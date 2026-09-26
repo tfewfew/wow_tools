@@ -8,7 +8,7 @@
 
 ## 使用
 
-插件安装后，在游戏中输入 `/wowdetector on` 启动，`/wowdetector off` 关闭。面板提供启动/关闭及居中按钮；`/wowdetector unlock`、`lock` 控制拖动，`center` 居中，`status` 查询状态。旧命令 `/fishstate` 仍可使用。
+插件安装后，点击“启动”或输入 `/wowdetector on`，自动将色块居中并锁定位置；点击“关闭”或输入 `/wowdetector off`，停止检测并解除锁定。关闭后可拖动面板。`/wowdetector unlock`、`lock` 控制关闭状态下的拖动，`center` 居中，`status` 查询状态。旧命令 `/fishstate` 仍可使用。
 
 ## 修改与安装
 

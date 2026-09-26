@@ -9,7 +9,7 @@
 
 ## 使用
 
-1. 在游戏中启用 wowDetector，输入 `/wowdetector on`，点击面板“居中”按钮或输入 `/wowdetector center`。
+1. 在游戏中启用 wowDetector，点击“启动”或输入 `/wowdetector on`，插件会自动将色块居中并锁定位置；关闭检测后自动解除锁定。
 2. 保持只有一个 `WowClassic.exe` 实例运行，双击同目录或桌面的 `wowAuto.bat`。
 3. 在5秒倒计时内切回游戏，并松开修饰键。保持画面正中心色块可见。
 4. 停止时切回终端按 Ctrl+C。脚本更新后，先停止旧实例再启动新版。

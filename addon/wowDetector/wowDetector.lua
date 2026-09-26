@@ -4,7 +4,7 @@ local initialized = false
 local state = "disabled"
 local freeSlots = nil
 local panel = CreateFrame("Frame", "wowDetectorPanel", UIParent)
-panel:SetSize(310, 40)
+panel:SetSize(240, 40)
 panel:SetFrameStrata("HIGH")
 panel:SetClampedToScreen(true)
 panel:SetMovable(true)
@@ -23,10 +23,6 @@ label:SetPoint("LEFT", panel, "LEFT", 42, 0)
 local toggle = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
 toggle:SetSize(62, 24)
 toggle:SetPoint("RIGHT", -8, 0)
-local centerButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-centerButton:SetSize(62, 24)
-centerButton:SetPoint("RIGHT", toggle, "LEFT", -6, 0)
-centerButton:SetText("居中")
 
 local function Say(message)
     DEFAULT_CHAT_FRAME:AddMessage("|cff66ccffwowDetector:|r " .. message)
@@ -101,13 +97,6 @@ local function Refresh()
     if nextState ~= state then Paint(nextState) end
 end
 
-local function SetEnabled(value)
-    enabled = value
-    Refresh()
-    toggle:SetText(enabled and "关闭" or "启动")
-    Say(enabled and "已启动：绿色=钓鱼，红色=未钓鱼，黄色=普通背包已满。" or "已关闭：灰色=停用。")
-end
-
 local function SavePosition()
     local point, _, relativePoint, x, y = panel:GetPoint()
     wowDetectorDB.position = { point, relativePoint, x, y }
@@ -122,10 +111,23 @@ local function CenterIndicator()
     Say("色块已移至画面正中心。")
 end
 
-centerButton:SetScript("OnClick", CenterIndicator)
+local function SetEnabled(value)
+    if not initialized then return end
+    if value then
+        CenterIndicator()
+        wowDetectorDB.locked = true
+    else
+        panel:StopMovingOrSizing()
+        wowDetectorDB.locked = false
+    end
+    enabled = value
+    Refresh()
+    toggle:SetText(enabled and "关闭" or "启动")
+    Say(enabled and "已启动并锁定位置：绿色=钓鱼，红色=未钓鱼，黄色=普通背包已满。" or "已关闭并解锁，可以拖动面板。")
+end
 
 panel:SetScript("OnDragStart", function(self)
-    if initialized and not wowDetectorDB.locked then self:StartMoving() end
+    if initialized and not enabled and not wowDetectorDB.locked then self:StartMoving() end
 end)
 panel:SetScript("OnDragStop", function(self)
     self:StopMovingOrSizing()
@@ -155,7 +157,7 @@ panel:SetScript("OnEvent", function(_, event, unit)
     if event == "ADDON_LOADED" then
         if unit ~= "wowDetector" then return end
         if type(wowDetectorDB) ~= "table" then wowDetectorDB = {} end
-        if wowDetectorDB.locked == nil then wowDetectorDB.locked = true end
+        wowDetectorDB.locked = false
         local pos = wowDetectorDB.position
         if type(pos) == "table" and type(pos[1]) == "string"
             and type(pos[2]) == "string" and type(pos[3]) == "number"
@@ -183,6 +185,10 @@ SlashCmdList.WOWDETECTOR = function(message)
     elseif command == "toggle" or command == "" then
         SetEnabled(not enabled)
     elseif command == "unlock" then
+        if enabled then
+            Say("检测运行中保持锁定，请先点击“关闭”或输入 /wowdetector off。")
+            return
+        end
         wowDetectorDB.locked = false
         Say("已解锁，可以拖动面板。定位后输入 /wowdetector lock。")
     elseif command == "lock" then
