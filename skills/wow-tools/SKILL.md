@@ -5,7 +5,7 @@ description: 维护 wow_tools 仓库中的 wowDetector 游戏状态插件和 wow
 
 # wow_tools
 
-源码仓库：`C:\code\wow_tools`，远端 `origin`。插件源码在 `addon/wowDetector/`，脚本在 `tools/wowAuto.ps1` 和 `tools/wowAuto.bat`。不要再把游戏目录或桌面副本当作修改源。
+源码仓库：`C:\code\wow_tools`，远端 `origin`。插件源码在 `addon/wowDetector/`，脚本在 `tools/wowAuto/wowAuto.ps1` 和 `tools/wowAuto/wowAuto.bat`，使用说明在 `tools/wowAuto/README.md`。不要再把游戏目录或桌面副本当作修改源。
 
 ## 修改与同步顺序
 

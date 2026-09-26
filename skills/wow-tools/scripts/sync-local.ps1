@@ -38,7 +38,7 @@ foreach ($name in @('wowDetector.lua', 'wowDetector.toc')) {
     Copy-Verified (Join-Path $repo "addon\wowDetector\$name") (Join-Path $targetAddon $name) $name
 }
 foreach ($name in @('wowAuto.ps1', 'wowAuto.bat')) {
-    Copy-Verified (Join-Path $repo "tools\$name") (Join-Path $desktop $name) $name
+    Copy-Verified (Join-Path $repo "tools\wowAuto\$name") (Join-Path $desktop $name) $name
 }
 
 # Retire the old addon only after the new files have been copied and verified.
