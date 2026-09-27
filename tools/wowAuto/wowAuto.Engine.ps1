@@ -8,6 +8,7 @@ function New-WowAutoState {
         Running=$true; Mode='Ready'; NextDue=0L; Deadline=0L
         MinimumMs=$MinimumMs; MaximumMs=$MaximumMs; LastInterval=-1; ForceNextCast=$false
         AwaitingFishingTransition=$false; SawIdle=$false
+        ItemDue=0L; ItemRetryAt=0L
         Status='已加入统一调度队列。'
     }
 }
@@ -26,11 +27,27 @@ function New-WowAutoScheduler {
     [pscustomobject]@{
         Tasks=@{}; CompletedCycles=@{}; Order=(New-Object 'System.Collections.Generic.List[string]')
         Events=(New-Object System.Collections.ArrayList)
-        Cursor=0; ActiveKey=$null; Sequence=0L; ReelHoldUntil=0L; ReelHoldMs=100
+        Cursor=0; ActiveKey=$null; Sequence=0L; ReelHoldUntil=0L; ReelHoldMs=100; UseItem=$false
     }
 }
 function Set-WowAutoHoldDuration($Scheduler, [ValidateRange(0,60000)][int]$Milliseconds) {
     $Scheduler.ReelHoldMs=$Milliseconds
+}
+function Set-WowAutoItemEnabled($Scheduler, [bool]$Enabled, [long]$Now) {
+    if ($Scheduler.UseItem -eq $Enabled) { return }
+    $Scheduler.UseItem=$Enabled
+    foreach ($state in $Scheduler.Tasks.Values) {
+        $state.ItemDue=if ($Enabled) { $Now+600000 } else { 0L }
+        $state.ItemRetryAt=0L
+    }
+}
+function Complete-WowAutoItem($Scheduler, [string]$Key, [long]$Now, [bool]$Sent) {
+    $state=$Scheduler.Tasks[$Key]
+    if ($null -eq $state -or -not $state.Running -or -not $Scheduler.UseItem) { return }
+    if ($Sent) {
+        $state.ItemDue=$Now+600000
+        $state.ItemRetryAt=0L
+    } else { $state.ItemRetryAt=$Now+500 }
 }
 function Get-WowAutoCycleCount($Scheduler, [string]$Key) {
     if ($Scheduler.CompletedCycles.ContainsKey($Key)) { return [long]$Scheduler.CompletedCycles[$Key] }
@@ -62,6 +79,7 @@ function Add-WowAutoTask($Scheduler, [string]$Key, [int]$MinimumMs, [int]$Maximu
     $state=New-WowAutoState $MinimumMs $MaximumMs
     Stop-WowAutoTask $Scheduler $Key
     $state.NextDue=$Now
+    if ($Scheduler.UseItem) { $state.ItemDue=$Now+600000 }
     $Scheduler.Tasks[$Key]=$state
     $Scheduler.Order.Add($Key)
     return $state
@@ -91,6 +109,15 @@ function Get-WowAutoWork($Scheduler, [long]$Now) {
     $due=@($Scheduler.Events | Where-Object { $_.Kind -eq 'Reel' -and $_.Due -le $Now } | Sort-Object Due,Sequence)
     if ($due.Count -gt 0) {
         return [pscustomobject]@{ Key=$due[0].Key; Kind='Reel'; Due=$due[0].Due }
+    }
+    if ($Scheduler.UseItem) {
+        $item=@($Scheduler.Order | Where-Object {
+            $s=$Scheduler.Tasks[$_]
+            $s.Running -and $s.ItemDue -le $Now -and $s.ItemRetryAt -le $Now
+        } | Sort-Object { $Scheduler.Tasks[$_].ItemDue })
+        if ($item.Count -gt 0) {
+            return [pscustomobject]@{ Key=$item[0]; Kind='Item'; Due=$Scheduler.Tasks[$item[0]].ItemDue }
+        }
     }
     if ($null -ne $Scheduler.ActiveKey) {
         $active=$Scheduler.Tasks[$Scheduler.ActiveKey]
@@ -145,7 +172,7 @@ function Complete-WowAutoPoll($Scheduler, [string]$Key, [long]$Now, [string]$Col
         $state.Mode='Casting'
         $state.LastInterval=Get-WowAutoInterval $state.LastInterval
         $state.NextDue=$Now+$state.LastInterval
-        $state.Status=if ($state.ForceNextCast) { '收竿后首次抛竿：强制发送 Ctrl+1，再恢复颜色检测。' } else { '未钓鱼：重复 Ctrl+1，等待变绿；到期收竿优先。' }
+        $state.Status=if ($state.ForceNextCast) { '收竿后首次抛竿：强制发送 抛竿键，再恢复颜色检测。' } else { '未钓鱼：重复 抛竿键，等待变绿；到期收竿优先。' }
         return 'Ctrl1'
     }
     $state.Mode='Ready'; $state.NextDue=$Now+500
@@ -177,7 +204,7 @@ function Complete-WowAutoReel($Scheduler, [string]$Key, [long]$Now, [bool]$Sent)
     Remove-WowAutoEvents $Scheduler $Key
     $cooldownMs=[Math]::Max(1000,$holdMs)
     $state.Mode='Cooldown'; $state.Deadline=$Now+$cooldownMs
-    $state.Status="Ctrl+2 已发送：保持窗口 $holdMs ms，$cooldownMs ms后重新入队。"
+    $state.Status="收竿键 已发送：保持窗口 $holdMs ms，$cooldownMs ms后重新入队。"
     Add-WowAutoEvent $Scheduler $Key 'Cooldown' $state.Deadline
     if ($Scheduler.ActiveKey -eq $Key) { $Scheduler.ActiveKey=$null }
 }

@@ -78,6 +78,34 @@ foreach ($count in @(0,499,500,501)) {
 }
 Assert-Equal (Get-WowAutoCycleCount $q 'new-process-identity') 0 'New process starts at zero'
 $previous=-1
+$itemQueue=New-WowAutoScheduler
+$itemA=Add-WowAutoTask $itemQueue 'itemA' 100 100 0
+Assert-Equal $itemA.ItemDue 0 'Items disabled initially'
+Set-WowAutoItemEnabled $itemQueue $true 100
+$itemB=Add-WowAutoTask $itemQueue 'itemB' 100 100 200
+Assert-Equal $itemA.ItemDue 600100 'Enable waits ten minutes'
+Assert-Equal $itemB.ItemDue 600200 'New tasks have independent item deadlines'
+$null=Complete-WowAutoPoll $itemQueue 'itemA' 600000 'green'
+Assert-Equal (Get-WowAutoWork $itemQueue 600100).Kind 'Reel' 'Due reel outranks item'
+Complete-WowAutoReel $itemQueue 'itemA' 600100 $true
+Assert-Equal ($null -eq (Get-WowAutoWork $itemQueue 600199)) $true 'Item respects foreground hold'
+$itemWork=Get-WowAutoWork $itemQueue 600200
+Assert-Equal $itemWork.Kind 'Item' 'Item runs after hold'
+Assert-Equal $itemWork.Key 'itemA' 'Earliest item first'
+Complete-WowAutoItem $itemQueue 'itemA' 600200 $false
+Assert-Equal (Get-WowAutoWork $itemQueue 600201).Key 'itemB' 'Failed item does not starve other tasks'
+Complete-WowAutoItem $itemQueue 'itemB' 600201 $true
+Assert-Equal $itemB.ItemDue 1200201 'Repeat measured from successful send'
+Assert-Equal (Get-WowAutoWork $itemQueue 600700).Key 'itemA' 'Failed item retries'
+Complete-WowAutoItem $itemQueue 'itemA' 600700 $true
+Assert-Equal (Get-WowAutoCycleCount $itemQueue 'itemA') 1 'Item does not count as fishing cycle'
+Set-WowAutoItemEnabled $itemQueue $false 700000
+Assert-Equal $itemA.ItemDue 0 'Disable clears pending items'
+Set-WowAutoItemEnabled $itemQueue $true 700100
+Assert-Equal $itemA.ItemDue 1300100 'Reenable starts fresh interval'
+Stop-WowAutoTask $itemQueue 'itemA'
+Stop-WowAutoTask $itemQueue 'itemB'
+Assert-Equal ($null -eq (Get-WowAutoWork $itemQueue 2000000)) $true 'Stopped tasks cannot use items'
 $holdQueue=New-WowAutoScheduler
 foreach ($duration in @(0,275,1500)) {
     Set-WowAutoHoldDuration $holdQueue $duration

@@ -176,17 +176,27 @@ namespace WowAuto
         }
 
 
-        public static bool PressCtrlNumber(int targetProcessId, ushort number)
+        public static bool PressChord(int targetProcessId, ushort number, bool ctrl, bool shift, bool alt)
         {
             if (!IsTargetForeground(targetProcessId)) return false;
+            var down = new System.Collections.Generic.List<INPUT>();
+            var up = new System.Collections.Generic.List<INPUT>();
+            if (ctrl) down.Add(Key(0x11, false));
+            if (shift) down.Add(Key(0x10, false));
+            if (alt) down.Add(Key(0x12, false));
+            down.Add(Key(number, false));
+            up.Add(Key(number, true));
+            if (alt) up.Add(Key(0x12, true));
+            if (shift) up.Add(Key(0x10, true));
+            if (ctrl) up.Add(Key(0x11, true));
             try
             {
-                Send(new INPUT[] { Key(0x11, false), Key(number, false) });
+                Send(down.ToArray());
                 Thread.Sleep(50);
             }
             finally
             {
-                Send(new INPUT[] { Key(number, true), Key(0x11, true) });
+                Send(up.ToArray());
             }
             return true;
         }
@@ -252,7 +262,7 @@ $form.Controls.Add($tabs)
 $form.Controls.Add($header)
 $toolbar = New-Object System.Windows.Forms.Panel
 $toolbar.Dock = 'Top'
-$toolbar.Height = 54
+$toolbar.Height = 102
 $toolbar.Width = $form.ClientSize.Width
 $refreshButton.Anchor = 'Top, Left'
 $refreshButton.SetBounds(12, 10, 120, 35)
@@ -270,22 +280,64 @@ $stopAllButton.Text = '全部停止'
 $stopAllButton.SetBounds(272, 10, 120, 35)
 $stopAllButton.Enabled = $false
 $toolbar.Controls.Add($stopAllButton)
-$countLabel.SetBounds(410, 15, 365, 28)
+$countLabel.SetBounds(410, 15, 245, 28)
 $countLabel.Anchor = 'Top, Left'
 $countLabel.AutoEllipsis = $true
 $toolbar.Controls.Add($countLabel)
 $holdLabel = New-Object System.Windows.Forms.Label
 $holdLabel.Text = '收竿后保持（ms）'
-$holdLabel.SetBounds(790, 16, 160, 27)
+$holdLabel.SetBounds(820, 16, 160, 27)
 $toolbar.Controls.Add($holdLabel)
 $holdInput = New-Object System.Windows.Forms.NumericUpDown
-$holdInput.SetBounds(956, 12, 130, 30)
+$holdInput.SetBounds(980, 12, 110, 30)
 $holdInput.Minimum = 0
 $holdInput.Maximum = 60000
 $holdInput.Value = 100
 $holdInput.Increment = 1
 $toolbar.Controls.Add($holdInput)
 $holdInput.Add_ValueChanged({ Set-WowAutoHoldDuration $script:scheduler ([int]$holdInput.Value) })
+
+$itemCheck = New-Object System.Windows.Forms.CheckBox
+$itemCheck.Text = '使用钓鱼道具'
+$itemCheck.SetBounds(665, 13, 150, 30)
+$toolbar.Controls.Add($itemCheck)
+$itemCheck.Add_CheckedChanged({ Set-WowAutoItemEnabled $script:scheduler $itemCheck.Checked $script:schedulerClock.ElapsedMilliseconds })
+$script:keyBindings = @{}
+$script:keyInputs = @{}
+function Set-KeyBinding($InputBox, [int]$Code, [bool]$Ctrl, [bool]$Shift, [bool]$Alt) {
+    # Accept letters, digits, function keys, numpad and common standalone keys.
+    if (-not (($Code -ge 48 -and $Code -le 57) -or ($Code -ge 65 -and $Code -le 90) -or ($Code -ge 96 -and $Code -le 111) -or
+        ($Code -ge 112 -and $Code -le 135) -or $Code -in @(8,9,13,27,32,33,34,35,36,37,38,39,40,45,46))) { return }
+    $parts=@()
+    if ($Ctrl) { $parts+='Ctrl' }; if ($Shift) { $parts+='Shift' }; if ($Alt) { $parts+='Alt' }
+    $name=([System.Windows.Forms.Keys]$Code).ToString()
+    if ($Code -ge 48 -and $Code -le 57) { $name=[string]($Code-48) }
+    $parts+=$name
+    $binding=[pscustomobject]@{ Code=$Code; Ctrl=$Ctrl; Shift=$Shift; Alt=$Alt; Text=($parts -join '+') }
+    $script:keyBindings[$InputBox.Tag]=$binding
+    $InputBox.Text=$binding.Text
+}
+foreach ($spec in @(@('Cast','抛竿',12,49), @('Reel','收竿',365,50), @('Item','钓鱼道具',718,51))) {
+    $keyLabel=New-Object System.Windows.Forms.Label
+    $keyLabel.Text=$spec[1]
+    $keyLabel.SetBounds($spec[2], 62, 85, 27)
+    $toolbar.Controls.Add($keyLabel)
+    $keyInput=New-Object System.Windows.Forms.TextBox
+    $keyInput.Tag=$spec[0]
+    $keyInput.ReadOnly=$true
+    $keyInput.SetBounds(($spec[2]+90), 58, 220, 30)
+    $keyInput.BackColor=[System.Drawing.Color]::White
+    $keyInput.Add_PreviewKeyDown({ param($sender,$e) $e.IsInputKey=$true })
+    $keyInput.Add_KeyDown({ param($sender,$e)
+        $e.SuppressKeyPress=$true; $e.Handled=$true
+        Set-KeyBinding $sender ([int]$e.KeyCode) $e.Control $e.Shift $e.Alt
+    })
+    Set-KeyBinding $keyInput $spec[3] $true $false $false
+    $script:keyInputs[$spec[0]]=$keyInput
+    $toolbar.Controls.Add($keyInput)
+}
+$keyTip=New-Object System.Windows.Forms.ToolTip
+foreach ($inputBox in $script:keyInputs.Values) { $keyTip.SetToolTip($inputBox,'点击后直接按下要分配的按键或组合键，例如 Ctrl+1、Shift+F2。') }
 
 $intro = New-Object System.Windows.Forms.Label
 $intro.Dock = 'Top'
@@ -645,12 +697,15 @@ function Test-WorkerForeground($Row) {
     if ($UiTest) { return $Row.Process.FocusAllowed -and $script:workerFocus -eq $Row.Process.Id }
     return [WowAuto.NativeInput]::IsTargetForeground($Row.Process.Id)
 }
-function Send-WorkerKey($Row, [int]$Number) {
+function Send-WorkerKey($Row, [string]$Action) {
+    $binding=$script:keyBindings[$Action]
+    if ($null -eq $binding) { throw "未配置按键：$Action" }
+    $Number=$binding.Code
     if ($UiTest) {
         $script:workerKeys += "$($Row.Process.Id):$Number"
         return (Test-WorkerForeground $Row)
     }
-    return [WowAuto.NativeInput]::PressCtrlNumber($Row.Process.Id, [System.UInt16]$Number)
+    return [WowAuto.NativeInput]::PressChord($Row.Process.Id, [System.UInt16]$Number, $binding.Ctrl, $binding.Shift, $binding.Alt)
 }
 function Close-WorkerGame($Row) {
     $cycles=Get-WowAutoCycleCount $script:scheduler $Row.Key
@@ -700,8 +755,15 @@ function Invoke-SchedulerTick([long]$Now) {
             $script:pendingWork=$null
             return
         }
-        if ($work.Kind -eq 'Reel') {
-            $sent=Send-WorkerKey $row 0x32
+        if ($work.Kind -eq 'Item') {
+            $sent=$false
+            if ($color -in @('red','green')) { $sent=Send-WorkerKey $row 'Item' }
+            $completedAt=if ($UiTest) { $Now } else { $script:schedulerClock.ElapsedMilliseconds }
+            Complete-WowAutoItem $script:scheduler $work.Key $completedAt $sent
+            $script:pendingWork=$null
+        }
+        elseif ($work.Kind -eq 'Reel') {
+            $sent=Send-WorkerKey $row 'Reel'
             $completedAt=if ($UiTest) { $Now } else { $script:schedulerClock.ElapsedMilliseconds }
             Complete-WowAutoReel $script:scheduler $work.Key $completedAt $sent
             $script:pendingWork=$null
@@ -709,7 +771,7 @@ function Invoke-SchedulerTick([long]$Now) {
         else {
             $action=Complete-WowAutoPoll $script:scheduler $work.Key $Now $color
             if ($action -eq 'Ctrl1') {
-                $sent=Send-WorkerKey $row 0x31
+                $sent=Send-WorkerKey $row 'Cast'
                 Complete-WowAutoCast $script:scheduler $work.Key $sent
             }
             # Keep focus while repeatedly casting; a due Reel event can still preempt.
@@ -755,6 +817,7 @@ try {
             . (Join-Path $PSScriptRoot 'tests\Layout.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Refresh.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Scheduler.UiTests.ps1')
+            . (Join-Path $PSScriptRoot 'tests\KeyItem.UiTests.ps1')
         }
         if ($PreviewPath) {
             [System.Windows.Forms.Application]::DoEvents()

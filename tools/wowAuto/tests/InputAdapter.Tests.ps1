@@ -1,4 +1,4 @@
-$ErrorActionPreference='Stop'
+﻿$ErrorActionPreference='Stop'
 # Execute the production PowerShell adapter against an inert C# stand-in.
 # Refuse an existing NativeInput type to ensure this test can never emit real keys.
 if ('WowAuto.NativeInput' -as [type]) { throw 'Run this test in a fresh PowerShell process.' }
@@ -8,7 +8,9 @@ namespace WowAuto {
         public static int LastProcessId;
         public static ushort LastKey;
         public static int Calls;
-        public static bool PressCtrlNumber(int processId, ushort number) {
+        public static bool Ctrl, Shift, Alt;
+        public static bool PressChord(int processId, ushort number, bool ctrl, bool shift, bool alt) {
+            Ctrl=ctrl; Shift=shift; Alt=alt;
             LastProcessId = processId;
             LastKey = number;
             Calls++;
@@ -29,11 +31,19 @@ if ($null -eq $adapter) { throw 'Send-WorkerKey adapter not found.' }
 . ([scriptblock]::Create($adapter.Extent.Text))
 $UiTest=$false
 $row=[pscustomobject]@{ Process=[pscustomobject]@{ Id=12345 } }
-foreach ($key in @(0x31,0x32)) {
-    $sent=Send-WorkerKey $row $key
-    if (-not $sent -or [WowAuto.NativeInput]::LastProcessId -ne 12345 -or [WowAuto.NativeInput]::LastKey -ne $key) {
-        throw 'Production adapter did not pass the expected process/key to the stub.'
-    }
+$script:keyBindings=@{
+    Cast=[pscustomobject]@{Code=49; Ctrl=$true; Shift=$false; Alt=$false}
+    Reel=[pscustomobject]@{Code=113; Ctrl=$false; Shift=$true; Alt=$true}
+    Item=[pscustomobject]@{Code=51; Ctrl=$false; Shift=$false; Alt=$false}
 }
-if ([WowAuto.NativeInput]::Calls -ne 2) { throw 'Unexpected adapter call count.' }
-Write-Output 'PASS: actual PowerShell input adapter converts both Ctrl+1/Ctrl+2 key codes under Windows PowerShell. Native input is replaced with an inert stub.'
+foreach ($action in @('Cast','Reel','Item')) {
+    $binding=$script:keyBindings[$action]
+    $sent=Send-WorkerKey $row $action
+    if (-not $sent -or [WowAuto.NativeInput]::LastProcessId -ne 12345 -or
+        [WowAuto.NativeInput]::LastKey -ne $binding.Code -or
+        [WowAuto.NativeInput]::Ctrl -ne $binding.Ctrl -or
+        [WowAuto.NativeInput]::Shift -ne $binding.Shift -or
+        [WowAuto.NativeInput]::Alt -ne $binding.Alt) { throw 'Wrong key/modifiers passed to native adapter.' }
+}
+if ([WowAuto.NativeInput]::Calls -ne 3) { throw 'Unexpected adapter call count.' }
+Write-Output 'PASS: configured cast/reel/item key codes and modifiers reach inert native stub.'
