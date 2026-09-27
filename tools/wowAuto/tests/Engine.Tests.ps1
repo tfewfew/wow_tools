@@ -47,6 +47,7 @@ Assert-Equal @($q.Events | Where-Object { $_.Key -eq 'A' }).Count 0 'Stop remove
 Stop-WowAutoTask $q 'B'
 Assert-Equal $q.Tasks.Count 0 'All stopped'
 Assert-Equal ($null -eq (Get-WowAutoWork $q 99999)) $true 'No stale work after stop'
+$q=New-WowAutoScheduler
 $old=Add-WowAutoTask $q 'A' 20 20 100
 $null=Complete-WowAutoPoll $q 'A' 100 'green'
 Stop-WowAutoTask $q 'A'
@@ -60,10 +61,13 @@ $null=Complete-WowAutoPoll $q 'X' 0 'green'
 $null=Complete-WowAutoPoll $q 'Y' 0 'green'
 Assert-Equal (Get-WowAutoWork $q 100).Key 'X' 'Tied deadlines preserve event order'
 Complete-WowAutoReel $q 'X' 100 $true
-Assert-Equal (Get-WowAutoWork $q 100).Key 'Y' 'Second due timer runs before normal work'
-Complete-WowAutoReel $q 'Y' 100 $false
+Assert-Equal ($null -eq (Get-WowAutoWork $q 100)) $true 'Hold starts after successful reel'
+Assert-Equal ($null -eq (Get-WowAutoWork $q 199)) $true 'Overdue timer cannot preempt 100ms hold'
+Assert-Equal (Get-WowAutoWork $q 200).Key 'Y' 'Overdue timer runs at hold expiry'
+Complete-WowAutoReel $q 'Y' 200 $false
 Assert-Equal (Get-WowAutoCycleCount $q 'Y') 0 'Failed key send is not a cycle'
-Complete-WowAutoReel $q 'Y' 150 $true
+Assert-Equal $q.ReelHoldUntil 200 'Failed key send does not extend hold'
+Complete-WowAutoReel $q 'Y' 250 $true
 Assert-Equal (Get-WowAutoCycleCount $q 'Y') 1 'Successful retry counts once'
 Stop-WowAutoTask $q 'Y'
 $null=Add-WowAutoTask $q 'Y' 100 100 200

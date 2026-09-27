@@ -519,6 +519,8 @@ function Begin-RefreshScan {
 
 function Invoke-RefreshScan([long]$Now) {
     if (-not $script:scanning -or $Now -lt $script:scanDue) { return }
+    # Manual refresh also waits out an in-progress post-reel foreground hold.
+    if ($script:schedulerClock.ElapsedMilliseconds -lt $script:scheduler.ReelHoldUntil) { return }
     if ($script:scanIndex -ge $script:scanQueue.Count) { Finish-RefreshScan; return }
     $row = $script:scanQueue[$script:scanIndex]
     try {

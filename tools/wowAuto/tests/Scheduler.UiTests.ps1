@@ -32,6 +32,17 @@ Invoke-SchedulerTick ($base+2825)
 Invoke-SchedulerTick ($base+3025)
 Assert-Ui ($script:workerKeys[-1] -eq "$($b.Process.Id):50") 'Due reel did not preempt red casting.'
 Assert-Ui ($b.State.Mode -eq 'Cooldown' -and $b.State.Deadline -eq $base+4025) 'Reel did not schedule 1-second cooldown.'
+$a.State.Mode='Wait'; $a.State.Deadline=$base+3050
+Add-WowAutoEvent $script:scheduler $a.Key 'Reel' $a.State.Deadline
+$focusCount=$script:workerActivations.Count
+$keyCount=$script:workerKeys.Count
+Invoke-SchedulerTick ($base+3075)
+Invoke-SchedulerTick ($base+3124)
+Assert-Ui ($script:workerActivations.Count -eq $focusCount -and $script:workerKeys.Count -eq $keyCount) 'Overdue reel preempted the 100ms foreground hold.'
+Invoke-SchedulerTick ($base+3125)
+Assert-Ui ($script:workerActivations.Count -eq $focusCount+1 -and $script:workerFocus -eq $a.Process.Id) 'Overdue window was not selected after hold expiry.'
+Invoke-SchedulerTick ($base+3325)
+Assert-Ui ($script:workerKeys[-1] -eq "$($a.Process.Id):50") 'Deferred reel did not execute.'
 $stopAllButton.PerformClick()
 Assert-Ui ($script:scheduler.Tasks.Count -eq 0 -and $script:scheduler.Events.Count -eq 0) 'Stop all left events behind.'
 $keyCount=$script:workerKeys.Count

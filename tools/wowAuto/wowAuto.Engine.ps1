@@ -25,7 +25,7 @@ function New-WowAutoScheduler {
     [pscustomobject]@{
         Tasks=@{}; CompletedCycles=@{}; Order=(New-Object 'System.Collections.Generic.List[string]')
         Events=(New-Object System.Collections.ArrayList)
-        Cursor=0; ActiveKey=$null; Sequence=0L
+        Cursor=0; ActiveKey=$null; Sequence=0L; ReelHoldUntil=0L
     }
 }
 function Get-WowAutoCycleCount($Scheduler, [string]$Key) {
@@ -69,6 +69,8 @@ function Add-WowAutoEvent($Scheduler, [string]$Key, [string]$Kind, [long]$Due) {
     })
 }
 function Get-WowAutoWork($Scheduler, [long]$Now) {
+    # No task, even an overdue reel, may take the foreground during this hold.
+    if ($Now -lt $Scheduler.ReelHoldUntil) { return $null }
     # Remove obsolete events before selecting an action. An event retains its session identity.
     for ($i=$Scheduler.Events.Count-1; $i -ge 0; $i--) {
         $event=$Scheduler.Events[$i]
@@ -148,9 +150,10 @@ function Complete-WowAutoReel($Scheduler, [string]$Key, [long]$Now, [bool]$Sent)
     })
     if ($state.Mode -ne 'Wait' -or $registered.Count -eq 0) { return }
     $Scheduler.CompletedCycles[$Key]=(Get-WowAutoCycleCount $Scheduler $Key)+1
+    $Scheduler.ReelHoldUntil=$Now+100
     Remove-WowAutoEvents $Scheduler $Key
     $state.Mode='Cooldown'; $state.Deadline=$Now+1000
-    $state.Status='Ctrl+2 已发送，等待 1000 ms 后重新入队。'
+    $state.Status='Ctrl+2 已发送：前100ms保持窗口，1000ms后重新入队。'
     Add-WowAutoEvent $Scheduler $Key 'Cooldown' $state.Deadline
     if ($Scheduler.ActiveKey -eq $Key) { $Scheduler.ActiveKey=$null }
 }
