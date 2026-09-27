@@ -1,0 +1,11 @@
+## Interface: 38002
+## Title: wow_tools
+## Notes-zhCN: 工具合集：wowDetector 钓鱼检测与 inner_graphic_config 内部画面设置。
+## Author: Ray
+## Version: 2.0.0
+## SavedVariables: wowDetectorDB
+
+Init.lua
+wowDetector\wowDetector.lua
+inner_graphic_config\Core.lua
+Core.lua

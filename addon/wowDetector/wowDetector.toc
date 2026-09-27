@@ -1,9 +1,0 @@
-## Interface: 38002
-## Title: wowDetector
-## Title-zhCN: wowDetector 钓鱼状态指示器
-## Notes: Manually enabled fishing state indicator. Green=fishing, red=idle, yellow=bags full, gray=disabled/unknown.
-## Author: Local
-## Version: 1.2.0
-## SavedVariables: wowDetectorDB
-
-wowDetector.lua

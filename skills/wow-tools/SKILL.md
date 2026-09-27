@@ -1,11 +1,11 @@
 ---
 name: wow-tools
-description: 维护 wow_tools 仓库中的 wowDetector 游戏状态插件和 wowAuto 前台脚本，验证并提交推送后同步到本机泰坦时光服和桌面。用于这套工具的修改、改名、发布与安装。
+description: 维护 wow_tools 插件合集（wowDetector、inner_graphic_config）和 wowAuto 前台脚本，验证并提交推送后同步到本机泰坦时光服和桌面。用于这套工具的修改、改名、发布与安装。
 ---
 
 # wow_tools
 
-源码仓库：`C:\code\wow_tools`，远端 `origin`。插件源码在 `addon/wowDetector/`，图形工具在 `tools/wowAuto/`（wowAuto.ps1、wowAuto.Engine.ps1、wowAuto.bat），使用说明在该目录 README.md。不要再把游戏目录或桌面副本当作修改源。
+源码仓库：`C:\code\wow_tools`，远端 `origin`。插件源码在 `addon/wow_tools/`，图形工具在 `tools/wowAuto/`（wowAuto.ps1、wowAuto.Engine.ps1、wowAuto.bat），使用说明在该目录 README.md。不要再把游戏目录或桌面副本当作修改源。
 
 ## 修改与同步顺序
 
@@ -17,14 +17,15 @@ description: 维护 wow_tools 仓库中的 wowDetector 游戏状态插件和 wow
 
 ## 安装目标
 
-- 游戏：`C:\Program Files (x86)\World of Warcraft\_classic_titan_\Interface\AddOns\wowDetector`。
+- 游戏：`C:\Program Files (x86)\World of Warcraft\_classic_titan_\Interface\AddOns\wow_tools`。
 - 桌面：通过 Windows Desktop 特殊文件夹解析，安装 `wowAuto.ps1`、`wowAuto.Engine.ps1` 和 `wowAuto.bat`。
-- 同步脚本将旧 `FishingState` 插件移到仓库忽略目录 `.local-backups`，避免两个插件同时运行；旧桌面文件保留为转发到 `wowAuto` 的入口。
+- 同步脚本将旧 `FishingState`、`wowDetector`、`Inner_graphic_config` 插件移到仓库忽略目录 `.local-backups`，避免两个插件同时运行；旧桌面文件保留为转发到 `wowAuto` 的入口。
 - 不提交本机备份、游戏配置、SavedVariables 或外部依赖。
 
 ## 行为约定
 
-- 小地图钓鱼图标左键显示/隐藏整个检测面板，拖动调整入口角度；panelHidden、minimapAngle 保存到 wowDetectorDB。显隐不改变检测开关，隐藏时色块也隐藏；状态更新独立于面板可见性。show/hide 命令控制显隐，on 命令先显示面板。入口不依赖外部库。
+- wow_tools 是唯一 TOC 插件，子目录 wowDetector 和 inner_graphic_config 分别保存模块；Init.lua 初始化 WoWTools.modules，Core.lua 统一小地图及右键菜单。图形模块来自本机 Inner_graphic_config 1.7.0，保留 /igc 和原有设置行为。同步先完整复制验证，再归档旧独立插件；首次复制账号旧 wowDetector.lua SavedVariables 为 wow_tools.lua，已有目标不覆盖。
+- 小地图右键菜单分别切换两个子模块界面，/wowtools 打开菜单。小地图钓鱼图标左键显示/隐藏整个检测面板，拖动调整入口角度；panelHidden、minimapAngle 保存到 wowDetectorDB。显隐不改变检测开关，隐藏时色块也隐藏；状态更新独立于面板可见性。show/hide 命令控制显隐，on 命令先显示面板。入口不依赖外部库。
 - 泰坦时光服接口版本目前为 38002；插件每次登录或重载默认关闭。`/wowdetector` 是主命令，`/fishstate` 保留为兼容别名。
 - 绿色表示钓鱼，红色表示非钓鱼，黄色表示随身普通背包空格为零，灰色表示关闭或数据未知。黄色优先于红绿。排除银行、材料及专用背包；不估算现有物品剩余堆叠容量。
 - “启动”按钮和 on 命令将色块中心对齐客户区中心、保存位置并锁定；关闭时解锁。无独立居中按钮，center 命令仍兼容。运行中不允许拖动或用 unlock 解锁；登录或重载默认关闭且解锁。

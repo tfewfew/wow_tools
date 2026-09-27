@@ -61,7 +61,7 @@
 
 从仓库根目录按“检查 → 提交 → 推送”顺序完成修改，再运行 `skills/wow-tools/scripts/sync-local.ps1`。完整维护流程见 [维护技能](../../skills/wow-tools/SKILL.md)。
 
-同步脚本将此目录的三个运行文件安装到 Windows 桌面。旧 `wow-foreground-loop.bat` 和 `.ps1` 入口转发到新版，覆盖前文件备份在仓库 `.local-backups` 中。插件同步至游戏的 `Interface\AddOns\wowDetector`。
+同步脚本将此目录的三个运行文件安装到 Windows 桌面。旧 `wow-foreground-loop.bat` 和 `.ps1` 入口转发到新版，覆盖前文件备份在仓库 `.local-backups` 中。插件同步至游戏的 `Interface\AddOns\wow_tools`。
 
 ## 验证
 
