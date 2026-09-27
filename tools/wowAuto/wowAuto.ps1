@@ -708,7 +708,10 @@ function Invoke-SchedulerTick([long]$Now) {
         }
         else {
             $action=Complete-WowAutoPoll $script:scheduler $work.Key $Now $color
-            if ($action -eq 'Ctrl1') { $null=Send-WorkerKey $row 0x31 }
+            if ($action -eq 'Ctrl1') {
+                $sent=Send-WorkerKey $row 0x31
+                Complete-WowAutoCast $script:scheduler $work.Key $sent
+            }
             # Keep focus while repeatedly casting; a due Reel event can still preempt.
             $script:pendingWork=$null
         }

@@ -92,6 +92,28 @@ foreach ($duration in @(0,275,1500)) {
     }
 }
 $invalidHoldRejected=$false
+foreach ($color in @('red','green')) {
+    $castQueue=New-WowAutoScheduler
+    $castState=Add-WowAutoTask $castQueue 'cast' 100 100 0
+    Assert-Equal (Complete-WowAutoPoll $castQueue 'cast' 0 'green') 'None' 'Initial green does not force cast'
+    Complete-WowAutoReel $castQueue 'cast' 100 $false
+    Assert-Equal $castState.ForceNextCast $false 'Failed reel does not force cast'
+    Complete-WowAutoReel $castQueue 'cast' 100 $true
+    Assert-Equal ($null -eq (Get-WowAutoWork $castQueue 1099)) $true 'Forced cast respects cooldown'
+    $null=Get-WowAutoWork $castQueue 1100
+    Assert-Equal (Complete-WowAutoPoll $castQueue 'cast' 1100 'unknown') 'None' 'Unknown still skips input'
+    Assert-Equal (Complete-WowAutoPoll $castQueue 'cast' 1600 $color) 'Ctrl1' 'First post-reel cast ignores green'
+    Complete-WowAutoCast $castQueue 'cast' $false
+    Assert-Equal $castState.ForceNextCast $true 'Failed cast retains pending forced cast'
+    Assert-Equal (Complete-WowAutoPoll $castQueue 'cast' 2200 $color) 'Ctrl1' 'Failed cast retries'
+    Complete-WowAutoCast $castQueue 'cast' $true
+    Assert-Equal (Complete-WowAutoPoll $castQueue 'cast' 2800 'green') 'None' 'Successful cast restores green wait'
+    Assert-Equal $castState.Mode 'Wait' 'Only one successful forced cast'
+    Complete-WowAutoReel $castQueue 'cast' 2900 $true
+    Assert-Equal (Complete-WowAutoPoll $castQueue 'cast' 3900 'yellow') 'Stop' 'Yellow takes priority over forced cast'
+    $freshCast=Add-WowAutoTask $castQueue 'cast' 100 100 4000
+    Assert-Equal $freshCast.ForceNextCast $false 'Restart clears forced cast'
+}
 try { Set-WowAutoHoldDuration $holdQueue -1 } catch { $invalidHoldRejected=$true }
 Assert-Equal $invalidHoldRejected $true 'Invalid hold rejected'
 for ($i=0;$i -lt 1000;$i++) {

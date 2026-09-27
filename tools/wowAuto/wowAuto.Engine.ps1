@@ -6,7 +6,7 @@ function New-WowAutoState {
     }
     [pscustomobject]@{
         Running=$true; Mode='Ready'; NextDue=0L; Deadline=0L
-        MinimumMs=$MinimumMs; MaximumMs=$MaximumMs; LastInterval=-1
+        MinimumMs=$MinimumMs; MaximumMs=$MaximumMs; LastInterval=-1; ForceNextCast=$false
         Status='已加入统一调度队列。'
     }
 }
@@ -122,7 +122,7 @@ function Complete-WowAutoPoll($Scheduler, [string]$Key, [long]$Now, [string]$Col
         if ($canExit) { return 'ExitGame' }
         return 'Stop'
     }
-    if ($Color -eq 'green') {
+    if ($Color -eq 'green' -and -not $state.ForceNextCast) {
         $delay=Get-Random -Minimum $state.MinimumMs -Maximum ($state.MaximumMs+1)
         Remove-WowAutoEvents $Scheduler $Key
         $state.Mode='Wait'; $state.Deadline=$Now+$delay
@@ -131,17 +131,23 @@ function Complete-WowAutoPoll($Scheduler, [string]$Key, [long]$Now, [string]$Col
         $Scheduler.ActiveKey=$null
         return 'None'
     }
-    if ($Color -eq 'red') {
+    if ($Color -eq 'red' -or ($Color -eq 'green' -and $state.ForceNextCast)) {
         $state.Mode='Casting'
         $state.LastInterval=Get-WowAutoInterval $state.LastInterval
         $state.NextDue=$Now+$state.LastInterval
-        $state.Status='未钓鱼：重复 Ctrl+1，等待变绿；到期收竿优先。'
+        $state.Status=if ($state.ForceNextCast) { '收竿后首次抛竿：强制发送 Ctrl+1，再恢复颜色检测。' } else { '未钓鱼：重复 Ctrl+1，等待变绿；到期收竿优先。' }
         return 'Ctrl1'
     }
     $state.Mode='Ready'; $state.NextDue=$Now+500
     $state.Status='灰色或未知：暂不按键，稍后重新排队检测。'
     $Scheduler.ActiveKey=$null
     return 'None'
+}
+function Complete-WowAutoCast($Scheduler, [string]$Key, [bool]$Sent) {
+    $state=$Scheduler.Tasks[$Key]
+    if ($Sent -and $null -ne $state -and $state.Running -and $state.Mode -eq 'Casting') {
+        $state.ForceNextCast=$false
+    }
 }
 function Complete-WowAutoReel($Scheduler, [string]$Key, [long]$Now, [bool]$Sent) {
     $state=$Scheduler.Tasks[$Key]
@@ -153,6 +159,7 @@ function Complete-WowAutoReel($Scheduler, [string]$Key, [long]$Now, [bool]$Sent)
     })
     if ($state.Mode -ne 'Wait' -or $registered.Count -eq 0) { return }
     $Scheduler.CompletedCycles[$Key]=(Get-WowAutoCycleCount $Scheduler $Key)+1
+    $state.ForceNextCast=$true
     $holdMs=$Scheduler.ReelHoldMs
     $Scheduler.ReelHoldUntil=$Now+$holdMs
     Remove-WowAutoEvents $Scheduler $Key

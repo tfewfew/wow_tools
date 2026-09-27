@@ -43,6 +43,12 @@ Invoke-SchedulerTick ($base+3125)
 Assert-Ui ($script:workerActivations.Count -eq $focusCount+1 -and $script:workerFocus -eq $a.Process.Id) 'Overdue window was not selected after hold expiry.'
 Invoke-SchedulerTick ($base+3325)
 Assert-Ui ($script:workerKeys[-1] -eq "$($a.Process.Id):50") 'Deferred reel did not execute.'
+$a.Process.ScanColor='green'
+Invoke-SchedulerTick ($base+4025)
+Invoke-SchedulerTick ($base+4225)
+Assert-Ui ($script:workerKeys[-1] -eq "$($b.Process.Id):49" -and -not $b.State.ForceNextCast) 'Post-reel green did not force and acknowledge Ctrl+1.'
+Invoke-SchedulerTick ($base+4825)
+Assert-Ui ($b.State.Mode -eq 'Wait' -and $script:workerKeys[-1] -eq "$($b.Process.Id):49") 'Green should resume waiting after one forced cast.'
 $stopAllButton.PerformClick()
 Assert-Ui ($script:scheduler.Tasks.Count -eq 0 -and $script:scheduler.Events.Count -eq 0) 'Stop all left events behind.'
 $keyCount=$script:workerKeys.Count
