@@ -1,4 +1,4 @@
-﻿param([string]$PreviewPath)
+﻿param([string]$PreviewPath, [switch]$UiTest)
 $ErrorActionPreference = 'Stop'
 if (-not ('WowAuto.NativeInput' -as [type])) {
     Add-Type -TypeDefinition @"
@@ -166,189 +166,314 @@ namespace WowAuto
 }
 
 
+
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 . (Join-Path $PSScriptRoot 'wowAuto.Engine.ps1')
 [System.Windows.Forms.Application]::EnableVisualStyles()
-
-$script:state = $null
-$script:target = $null
-$script:targetStartTime = $null
-$script:clock = [System.Diagnostics.Stopwatch]::StartNew()
+$script:rows = @{}
+$script:mockProcesses = @()
 $form = New-Object System.Windows.Forms.Form
 $form.Text = 'wowAuto'
-$form.ClientSize = New-Object System.Drawing.Size(640, 490)
+$form.ClientSize = New-Object System.Drawing.Size(1160, 460)
+$form.MinimumSize = New-Object System.Drawing.Size(1080, 350)
 $form.StartPosition = 'CenterScreen'
-$form.FormBorderStyle = 'FixedDialog'
-$form.MaximizeBox = $false
 $form.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 10)
 $form.BackColor = [System.Drawing.Color]::FromArgb(245, 247, 250)
 $form.AutoScaleMode = 'Dpi'
 
-function Add-Label($Text, $X, $Y, $Width, $Height) {
-    $control = New-Object System.Windows.Forms.Label
-    $control.Text = $Text
-    $control.SetBounds($X, $Y, $Width, $Height)
-    $form.Controls.Add($control)
-    return $control
-}
-$title = Add-Label 'wowAuto' 24 18 300 38
+$header = New-Object System.Windows.Forms.Panel
+$header.Dock = 'Top'
+$header.Height = 75
+$header.Width = $form.ClientSize.Width
+$title = New-Object System.Windows.Forms.Label
+$title.Text = 'wowAuto'
 $title.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 21, [System.Drawing.FontStyle]::Bold)
-$null = Add-Label '前台钓鱼工具 · 配合 wowDetector 使用' 26 62 580 28
-$null = Add-Label '收竿等待范围（毫秒）' 26 104 580 28
-$null = Add-Label '最小值' 26 147 65 28
-$minimum = New-Object System.Windows.Forms.NumericUpDown
-$minimum.SetBounds(94, 143, 165, 32)
-$minimum.Minimum = 1
-$minimum.Maximum = 3600000
-$minimum.Value = 8000
-$minimum.Increment = 1
-$minimum.ThousandsSeparator = $false
-$form.Controls.Add($minimum)
-$null = Add-Label '最大值' 313 147 65 28
-$maximum = New-Object System.Windows.Forms.NumericUpDown
-$maximum.SetBounds(380, 143, 165, 32)
-$maximum.Minimum = 1
-$maximum.Maximum = 3600000
-$maximum.Value = 13000
-$maximum.Increment = 1
-$maximum.ThousandsSeparator = $false
-$form.Controls.Add($maximum)
-$null = Add-Label 'ms' 552 147 50 28
+$title.SetBounds(20, 14, 230, 45)
+$header.Controls.Add($title)
+$countLabel = New-Object System.Windows.Forms.Label
+$countLabel.SetBounds(270, 27, 670, 30)
+$countLabel.Anchor = 'Top, Left, Right'
+$header.Controls.Add($countLabel)
+$refreshButton = New-Object System.Windows.Forms.Button
+$refreshButton.Text = '刷新进程'
+$refreshButton.SetBounds(1020, 20, 115, 36)
+$refreshButton.Anchor = 'Top, Right'
+$header.Controls.Add($refreshButton)
+$tabs = New-Object System.Windows.Forms.TabControl
+$tabs.Dock = 'Fill'
+$tab = New-Object System.Windows.Forms.TabPage
+$tab.Text = 'autofish'
+$tab.BackColor = [System.Drawing.Color]::White
+$tabs.TabPages.Add($tab)
+$form.Controls.Add($tabs)
+$form.Controls.Add($header)
 
-$startButton = New-Object System.Windows.Forms.Button
-$startButton.Text = '开始'
-$startButton.SetBounds(26, 195, 278, 43)
-$startButton.BackColor = [System.Drawing.Color]::FromArgb(35, 100, 210)
-$startButton.ForeColor = [System.Drawing.Color]::White
-$startButton.FlatStyle = 'Flat'
-$form.Controls.Add($startButton)
-$stopButton = New-Object System.Windows.Forms.Button
-$stopButton.Text = '停止'
-$stopButton.SetBounds(320, 195, 294, 43)
-$stopButton.Enabled = $false
-$form.Controls.Add($stopButton)
-$null = Add-Label '当前状态' 26 258 580 28
-$statusBox = New-Object System.Windows.Forms.TextBox
-$statusBox.SetBounds(26, 290, 588, 120)
-$statusBox.Multiline = $true
-$statusBox.ReadOnly = $true
-$statusBox.ScrollBars = 'Vertical'
-$statusBox.BackColor = [System.Drawing.Color]::White
-$statusBox.Text = '尚未开始。' + "`r`n" + '请先在游戏插件中点击“启动”，再在这里点击“开始”。'
-$form.Controls.Add($statusBox)
-$note = Add-Label "切回游戏后自动检测；切出游戏暂停。`r`n背包黄色信号会结束选中的游戏进程；关闭本窗口会停止工具。" 26 428 588 50
-$note.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 9)
-$note.ForeColor = [System.Drawing.Color]::FromArgb(80, 88, 100)
+$intro = New-Object System.Windows.Forms.Label
+$intro.Dock = 'Top'
+$intro.Height = 44
+$intro.Padding = New-Object System.Windows.Forms.Padding(12, 12, 0, 0)
+$intro.Text = '每行独立控制一个游戏进程。先在游戏插件中启动检测，再点击对应行的开始。'
+$headings = New-Object System.Windows.Forms.Panel
+$headings.Dock = 'Top'
+$headings.Height = 32
+foreach ($heading in @(@('游戏进程',12,230), @('最小等待 ms',250,105), @('最大等待 ms',360,105), @('操作',475,145), @('实时状态',635,350))) {
+    $label = New-Object System.Windows.Forms.Label
+    $label.Text = $heading[0]
+    $label.SetBounds($heading[1], 3, $heading[2], 25)
+    $headings.Controls.Add($label)
+}
+$list = New-Object System.Windows.Forms.FlowLayoutPanel
+$list.Dock = 'Fill'
+$list.FlowDirection = 'TopDown'
+$list.WrapContents = $false
+$list.AutoScroll = $true
+$list.Padding = New-Object System.Windows.Forms.Padding(6, 0, 6, 0)
+$footer = New-Object System.Windows.Forms.Label
+$footer.Dock = 'Bottom'
+$footer.Height = 43
+$footer.Padding = New-Object System.Windows.Forms.Padding(12, 10, 0, 0)
+$footer.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 9)
+$footer.Text = '仅前台游戏发送按键；后台行暂停。黄色信号只结束对应游戏进程。关闭窗口会停止所有行。'
+$tab.Controls.Add($list)
+$tab.Controls.Add($headings)
+$tab.Controls.Add($intro)
+$tab.Controls.Add($footer)
 
-function Set-RunningControls([bool]$Running) {
-    $startButton.Enabled = -not $Running
-    $stopButton.Enabled = $Running
-    $minimum.Enabled = -not $Running
-    $maximum.Enabled = -not $Running
+function Get-WowAutoProcesses {
+    if ($UiTest) { return $script:mockProcesses }
+    return @(Get-Process -Name 'WowClassic' -ErrorAction SilentlyContinue | Sort-Object Id)
 }
 
-function Update-StatusBox {
-    if ($null -eq $script:state) { return }
-    $text = $script:state.Status
-    if ($script:state.Running) {
-        $text += "`r`n目标：WowClassic.exe（PID $($script:target.Id)）"
-        $text += "`r`n等待范围：$($script:state.MinimumMs)–$($script:state.MaximumMs) ms"
-        if ($script:state.Mode -in @('Wait', 'Cooldown')) {
-            $remaining = [Math]::Max(0, $script:state.Deadline - $script:clock.ElapsedMilliseconds)
-            $text += "`r`n剩余：$remaining ms"
+function Set-RowControls($Row) {
+    $running = $null -ne $Row.State -and $Row.State.Running
+    $Row.Start.Enabled = -not $running -and $null -ne $Row.StartTime -and -not $Row.Exited
+    $Row.Stop.Enabled = $running
+    $Row.Minimum.Enabled = -not $running
+    $Row.Maximum.Enabled = -not $running
+}
+
+function Update-RowStatus($Row) {
+    if ($null -ne $Row.State) {
+        $text = $Row.State.Status
+        if ($Row.State.Running -and $Row.State.Mode -in @('Wait', 'Cooldown')) {
+            $left = [Math]::Max(0, $Row.State.Deadline - $Row.Clock.ElapsedMilliseconds)
+            $text += "`r`n剩余 $left ms"
         }
+        if ($Row.Status.Text -ne $text) { $Row.Status.Text = $text }
     }
-    if ($statusBox.Text -ne $text) { $statusBox.Text = $text }
+    Set-RowControls $Row
 }
 
-$timer = New-Object System.Windows.Forms.Timer
-$timer.Interval = 25
-$startButton.Add_Click({
+function Stop-Row($Row, [string]$Reason = '已停止，当前等待已取消。') {
+    if ($null -ne $Row.State) { Stop-WowAutoState $Row.State $Reason }
+    else { $Row.Status.Text = $Reason }
+    Update-RowStatus $Row
+}
+
+function Start-Row($Row) {
     try {
-        # Read the edited text as well as Value, including edits not yet committed by the control.
-        $minText = $minimum.Text.Trim()
-        $maxText = $maximum.Text.Trim()
+        if ($null -ne $Row.State -and $Row.State.Running) { return }
+        $minText = $Row.Minimum.Text.Trim()
+        $maxText = $Row.Maximum.Text.Trim()
         if ($minText -notmatch '^\d+$' -or $maxText -notmatch '^\d+$') { throw '请输入整数毫秒值。' }
-        $newState = New-WowAutoState -MinimumMs ([int]$minText) -MaximumMs ([int]$maxText)
-        $targets = @(Get-Process -Name 'WowClassic' -ErrorAction SilentlyContinue)
-        if ($targets.Count -eq 0) { throw '未找到 WowClassic.exe，请先启动游戏。' }
-        if ($targets.Count -ne 1) { throw '检测到多个游戏实例，请只保留一个后重试。' }
-        $script:target = $targets[0]
-        $script:targetStartTime = $script:target.StartTime
-        $script:state = $newState
-        $script:clock.Restart()
-        Set-RunningControls $true
-        $timer.Start()
-        Update-StatusBox
-    }
-    catch { $statusBox.Text = '无法开始：' + $_.Exception.Message }
-})
-$stopButton.Add_Click({
-    $timer.Stop()
-    if ($null -ne $script:state) { Stop-WowAutoState $script:state '已停止，当前等待已取消。' }
-    Set-RunningControls $false
-    Update-StatusBox
-})
-$timer.Add_Tick({
-    try {
-        if ($null -eq $script:state -or -not $script:state.Running) { return }
-        $now = $script:clock.ElapsedMilliseconds
-        if ($now -ge $script:state.NextDue) {
-            $script:target.Refresh()
-            if ($script:target.HasExited) { throw '游戏进程已退出。' }
-            if ($script:target.ProcessName -ne 'WowClassic' -or $script:target.StartTime -ne $script:targetStartTime) {
-                throw '目标进程身份已改变，工具已停止。'
-            }
-            $foreground = [WowAuto.NativeInput]::IsTargetForeground($script:target.Id)
-            $color = 'unknown'
-            if ($foreground -and $script:state.Mode -ne 'Cooldown') {
-                $color = [WowAuto.NativeInput]::ReadCenterColor($script:target.Id)
-            }
-            $action = Invoke-WowAutoState $script:state $now $foreground $color
-            switch ($action) {
-                'Ctrl1' { $null = [WowAuto.NativeInput]::PressCtrlNumber($script:target.Id, 0x31) }
-                'Ctrl2' {
-                    $sent = [WowAuto.NativeInput]::PressCtrlNumber($script:target.Id, 0x32)
-                    Complete-WowAutoInteraction $script:state $script:clock.ElapsedMilliseconds $sent
-                }
-                'ExitGame' {
-                    $timer.Stop()
-                    # Kill the retained Process object, never reselect a process by name.
-                    $script:target.Refresh()
-                    if (-not $script:target.HasExited) {
-                        if ($script:target.StartTime -ne $script:targetStartTime) { throw '进程身份已改变，未结束任何进程。' }
-                        $script:target.Kill()
-                    }
-                    $script:state.Status = '背包已满，已发送结束游戏进程的请求；工具已停止。'
-                    Set-RunningControls $false
-                }
-            }
+        $newState = New-WowAutoState ([int]$minText) ([int]$maxText)
+        $Row.Process.Refresh()
+        if ($Row.Process.HasExited) { throw '该游戏进程已退出，请刷新。' }
+        if ($null -eq $Row.StartTime -or $Row.Process.StartTime -ne $Row.StartTime -or $Row.Process.ProcessName -ne 'WowClassic') {
+            throw '进程身份已变化，请刷新。'
         }
-        Update-StatusBox
+        $Row.State = $newState
+        $Row.Clock.Restart()
+        Update-RowStatus $Row
     }
     catch {
-        $timer.Stop()
-        if ($null -ne $script:state) { Stop-WowAutoState $script:state ('已停止：' + $_.Exception.Message) }
-        Set-RunningControls $false
-        Update-StatusBox
+        if ($null -ne $Row.State) { Stop-WowAutoState $Row.State ('无法开始：' + $_.Exception.Message) }
+        $Row.Status.Text = '无法开始：' + $_.Exception.Message
+        Set-RowControls $Row
     }
+}
+
+function New-ProcessRow($Process, $StartTime, [string]$Key) {
+    $panel = New-Object System.Windows.Forms.Panel
+    $panel.Height = 82
+    $panel.Width = [Math]::Max(1000, $list.ClientSize.Width - 32)
+    $panel.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 6)
+    $panel.BackColor = [System.Drawing.Color]::FromArgb(245, 247, 250)
+    $nameLabel = New-Object System.Windows.Forms.Label
+    $nameLabel.SetBounds(6, 14, 232, 56)
+    $panel.Controls.Add($nameLabel)
+    $minimum = New-Object System.Windows.Forms.NumericUpDown
+    $minimum.SetBounds(244, 25, 100, 30)
+    $minimum.Minimum = 1; $minimum.Maximum = 3600000; $minimum.Value = 8000
+    $panel.Controls.Add($minimum)
+    $maximum = New-Object System.Windows.Forms.NumericUpDown
+    $maximum.SetBounds(354, 25, 100, 30)
+    $maximum.Minimum = 1; $maximum.Maximum = 3600000; $maximum.Value = 13000
+    $panel.Controls.Add($maximum)
+    $start = New-Object System.Windows.Forms.Button
+    $start.Text = '开始'
+    $start.SetBounds(469, 21, 68, 37)
+    $start.BackColor = [System.Drawing.Color]::FromArgb(35, 100, 210)
+    $start.ForeColor = [System.Drawing.Color]::White
+    $start.FlatStyle = 'Flat'
+    $panel.Controls.Add($start)
+    $stop = New-Object System.Windows.Forms.Button
+    $stop.Text = '停止'
+    $stop.SetBounds(543, 21, 68, 37)
+    $stop.Enabled = $false
+    $panel.Controls.Add($stop)
+    $status = New-Object System.Windows.Forms.TextBox
+    $status.SetBounds(629, 12, $panel.Width - 641, 58)
+    $status.Anchor = 'Top, Left, Right'
+    $status.Multiline = $true
+    $status.ReadOnly = $true
+    $status.ScrollBars = 'Vertical'
+    $status.BackColor = [System.Drawing.Color]::White
+    $status.Text = '尚未开始。'
+    $panel.Controls.Add($status)
+    $row = [pscustomobject]@{
+        Key=$Key; Process=$Process; StartTime=$StartTime; Exited=$false
+        Panel=$panel; Name=$nameLabel; Minimum=$minimum; Maximum=$maximum
+        Start=$start; Stop=$stop; Status=$status; State=$null
+        Clock=[System.Diagnostics.Stopwatch]::StartNew()
+    }
+    # Sender.Tag keeps handlers bound to their own row, not a shared loop variable.
+    $start.Tag = $row
+    $stop.Tag = $row
+    $start.Add_Click({ param($sender, $eventArgs) Start-Row $sender.Tag })
+    $stop.Add_Click({ param($sender, $eventArgs) Stop-Row $sender.Tag })
+    if ($null -eq $StartTime) { $status.Text = '无法读取进程信息，请检查权限后刷新。' }
+    Set-RowControls $row
+    return $row
+}
+
+function Refresh-ProcessRows {
+    try {
+        $processes = @(Get-WowAutoProcesses)
+        $next = @{}
+        $ordered = @()
+        foreach ($process in $processes) {
+            $started = $null
+            try { $started = $process.StartTime } catch { }
+            $key = if ($null -ne $started) { "$($process.Id):$($started.Ticks)" } else { "$($process.Id):unknown" }
+            $row = $script:rows[$key]
+            if ($null -eq $row) { $row = New-ProcessRow $process $started $key }
+            $caption = 'WowClassic.exe'
+            try { if ($process.MainWindowTitle) { $caption = $process.MainWindowTitle } } catch { }
+            $row.Name.Text = "$caption`r`nPID $($process.Id)"
+            $next[$key] = $row
+            $ordered += $row
+        }
+        foreach ($key in @($script:rows.Keys)) {
+            if (-not $next.ContainsKey($key)) {
+                Stop-Row $script:rows[$key] '进程已退出，已停止。'
+                $script:rows[$key].Panel.Dispose()
+            }
+        }
+        $list.SuspendLayout()
+        $list.Controls.Clear()
+        $script:rows = $next
+        foreach ($row in $ordered) { $list.Controls.Add($row.Panel) }
+        $list.ResumeLayout()
+        $countLabel.Text = "检测到 $($processes.Count) 个 WowClassic.exe 进程"
+        if ($processes.Count -eq 0) { $countLabel.Text += '，启动游戏后点击刷新。' }
+    }
+    catch { $countLabel.Text = '刷新失败：' + $_.Exception.Message }
+}
+$refreshButton.Add_Click({ Refresh-ProcessRows })
+$list.Add_SizeChanged({
+    foreach ($row in $script:rows.Values) { $row.Panel.Width = [Math]::Max(1000, $list.ClientSize.Width - 32) }
 })
+
+function Invoke-RowTick($Row) {
+    try {
+        if ($null -eq $Row.State -or -not $Row.State.Running) { return }
+        $now = $Row.Clock.ElapsedMilliseconds
+        if ($now -ge $Row.State.NextDue) {
+            $Row.Process.Refresh()
+            if ($Row.Process.HasExited) { $Row.Exited=$true; throw '游戏进程已退出，请刷新。' }
+            if ($Row.Process.ProcessName -ne 'WowClassic' -or $Row.Process.StartTime -ne $Row.StartTime) { throw '目标进程身份已改变。' }
+            $foreground = [WowAuto.NativeInput]::IsTargetForeground($Row.Process.Id)
+            $color = 'unknown'
+            if ($foreground -and $Row.State.Mode -ne 'Cooldown') { $color = [WowAuto.NativeInput]::ReadCenterColor($Row.Process.Id) }
+            $action = Invoke-WowAutoState $Row.State $now $foreground $color
+            switch ($action) {
+                'Ctrl1' { $null = [WowAuto.NativeInput]::PressCtrlNumber($Row.Process.Id, 0x31) }
+                'Ctrl2' {
+                    $sent = [WowAuto.NativeInput]::PressCtrlNumber($Row.Process.Id, 0x32)
+                    Complete-WowAutoInteraction $Row.State $Row.Clock.ElapsedMilliseconds $sent
+                }
+                'ExitGame' {
+                    $Row.Process.Refresh()
+                    if (-not $Row.Process.HasExited) {
+                        if ($Row.Process.StartTime -ne $Row.StartTime) { throw '进程身份已改变，未结束任何进程。' }
+                        $Row.Process.Kill()
+                    }
+                    $Row.Exited = $true
+                    $Row.State.Status = '背包已满，已请求结束此游戏进程；本行已停止。'
+                }
+            }
+        }
+        Update-RowStatus $Row
+    }
+    catch { Stop-Row $Row ('已停止：' + $_.Exception.Message) }
+}
+$timer = New-Object System.Windows.Forms.Timer
+$timer.Interval = 25
+$timer.Add_Tick({ foreach ($row in @($script:rows.Values)) { Invoke-RowTick $row } })
 $form.Add_FormClosing({
     $timer.Stop()
-    if ($null -ne $script:state) { Stop-WowAutoState $script:state }
+    foreach ($row in $script:rows.Values) { Stop-Row $row }
 })
+
 try {
-    if ($PreviewPath) {
-        # Briefly render the initial, stopped UI without starting automation.
+    if ($UiTest) {
+        # Test fixtures are never passed to native input, capture, or termination.
+        foreach ($id in @(101, 202, 303)) {
+            $mock = [pscustomobject]@{ Id=$id; StartTime=[datetime]'2026-09-27'; ProcessName='WowClassic'; MainWindowTitle="测试游戏 $id"; HasExited=$false }
+            $mock | Add-Member ScriptMethod Refresh { }
+            $script:mockProcesses += $mock
+        }
+    }
+    Refresh-ProcessRows
+    if (-not $PreviewPath -and -not $UiTest) { $timer.Start() }
+    if ($PreviewPath -or $UiTest) {
         $form.Show()
         [System.Windows.Forms.Application]::DoEvents()
-        $bitmap = New-Object System.Drawing.Bitmap($form.Width, $form.Height)
-        try {
-            $form.DrawToBitmap($bitmap, (New-Object System.Drawing.Rectangle(0, 0, $form.Width, $form.Height)))
-            $bitmap.Save($PreviewPath, [System.Drawing.Imaging.ImageFormat]::Png)
+        if ($UiTest) {
+            # Resolve by Id rather than relying on local date parsing.
+            $a = @($script:rows.Values | Where-Object { $_.Process.Id -eq 101 })[0]
+            $b = @($script:rows.Values | Where-Object { $_.Process.Id -eq 202 })[0]
+            if ($script:rows.Count -ne 3) { throw 'Expected three rows.' }
+            if (-not $header.ClientRectangle.Contains($refreshButton.Bounds)) { throw 'Refresh button outside header.' }
+            $a.Start.PerformClick()
+            $b.Minimum.Value = 2345; $b.Maximum.Value = 6789
+            $b.Start.PerformClick()
+            if (-not $a.State.Running -or -not $b.State.Running -or $b.State.MinimumMs -ne 2345 -or $a.State.MinimumMs -ne 8000) { throw 'Independent start/range failed.' }
+            $refreshButton.PerformClick()
+            if ($script:rows[$a.Key] -ne $a -or -not $a.State.Running) { throw 'Refresh lost active state.' }
+            $a.Stop.PerformClick()
+            if ($a.State.Running -or -not $b.State.Running) { throw 'Stop affected another row.' }
+            $script:mockProcesses = @($script:mockProcesses | Where-Object { $_.Id -ne 202 })
+            $refreshButton.PerformClick()
+            if ($script:rows.Count -ne 2 -or $b.State.Running) { throw 'Exited process not removed/stopped.' }
+            # Reused PID creates a fresh row, never inherits the old session.
+            $script:mockProcesses[0].StartTime = $script:mockProcesses[0].StartTime.AddSeconds(1)
+            $refreshButton.PerformClick()
+            $fresh = @($script:rows.Values | Where-Object { $_.Process.Id -eq 101 })[0]
+            if ($fresh -eq $a -or $null -ne $fresh.State) { throw 'PID reuse retained old state.' }
+            Write-Output 'PASS: independent rows/ranges, button bindings, refresh preservation, exited process removal, PID reuse. No native actions executed.'
         }
-        finally { $bitmap.Dispose() }
+        if ($PreviewPath) {
+            [System.Windows.Forms.Application]::DoEvents()
+            $bitmap = New-Object System.Drawing.Bitmap($form.Width, $form.Height)
+            try {
+                $form.DrawToBitmap($bitmap, (New-Object System.Drawing.Rectangle(0,0,$form.Width,$form.Height)))
+                $bitmap.Save($PreviewPath, [System.Drawing.Imaging.ImageFormat]::Png)
+            }
+            finally { $bitmap.Dispose() }
+        }
     }
     else { [void]$form.ShowDialog() }
 }
