@@ -93,11 +93,17 @@ $itemWork=Get-WowAutoWork $itemQueue 600200
 Assert-Equal $itemWork.Kind 'Item' 'Item runs after hold'
 Assert-Equal $itemWork.Key 'itemA' 'Earliest item first'
 Complete-WowAutoItem $itemQueue 'itemA' 600200 $false
+Assert-Equal $itemQueue.ItemHoldUntil 0 'Failed item does not start hold'
 Assert-Equal (Get-WowAutoWork $itemQueue 600201).Key 'itemB' 'Failed item does not starve other tasks'
 Complete-WowAutoItem $itemQueue 'itemB' 600201 $true
 Assert-Equal $itemB.ItemDue 1200201 'Repeat measured from successful send'
-Assert-Equal (Get-WowAutoWork $itemQueue 600700).Key 'itemA' 'Failed item retries'
-Complete-WowAutoItem $itemQueue 'itemA' 600700 $true
+Assert-Equal ($null -eq (Get-WowAutoWork $itemQueue 603200)) $true 'Items and polling wait full three seconds'
+Assert-Equal (Get-WowAutoWork $itemQueue 603201).Key 'itemA' 'Failed item retries after hold'
+Complete-WowAutoItem $itemQueue 'itemA' 603201 $true
+Set-WowAutoItemEnabled $itemQueue $false 603202
+$null=Complete-WowAutoPoll $itemQueue 'itemB' 603202 'green'
+Assert-Equal ($null -eq (Get-WowAutoWork $itemQueue 606200)) $true 'Due reel cannot interrupt item hold even after unchecking'
+Assert-Equal (Get-WowAutoWork $itemQueue 606201).Kind 'Reel' 'Overdue reel resumes at three-second boundary'
 Assert-Equal (Get-WowAutoCycleCount $itemQueue 'itemA') 1 'Item does not count as fishing cycle'
 Set-WowAutoItemEnabled $itemQueue $false 700000
 Assert-Equal $itemA.ItemDue 0 'Disable clears pending items'

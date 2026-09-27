@@ -28,6 +28,7 @@ function New-WowAutoScheduler {
         Tasks=@{}; CompletedCycles=@{}; Order=(New-Object 'System.Collections.Generic.List[string]')
         Events=(New-Object System.Collections.ArrayList)
         Cursor=0; ActiveKey=$null; Sequence=0L; ReelHoldUntil=0L; ReelHoldMs=100; UseItem=$false
+        ItemHoldUntil=0L
     }
 }
 function Set-WowAutoHoldDuration($Scheduler, [ValidateRange(0,60000)][int]$Milliseconds) {
@@ -45,6 +46,7 @@ function Complete-WowAutoItem($Scheduler, [string]$Key, [long]$Now, [bool]$Sent)
     $state=$Scheduler.Tasks[$Key]
     if ($null -eq $state -or -not $state.Running -or -not $Scheduler.UseItem) { return }
     if ($Sent) {
+        $Scheduler.ItemHoldUntil=$Now+3000
         $state.ItemDue=$Now+600000
         $state.ItemRetryAt=0L
     } else { $state.ItemRetryAt=$Now+500 }
@@ -92,7 +94,7 @@ function Add-WowAutoEvent($Scheduler, [string]$Key, [string]$Kind, [long]$Due) {
 }
 function Get-WowAutoWork($Scheduler, [long]$Now) {
     # No task, even an overdue reel, may take the foreground during this hold.
-    if ($Now -lt $Scheduler.ReelHoldUntil) { return $null }
+    if ($Now -lt $Scheduler.ReelHoldUntil -or $Now -lt $Scheduler.ItemHoldUntil) { return $null }
     # Remove obsolete events before selecting an action. An event retains its session identity.
     for ($i=$Scheduler.Events.Count-1; $i -ge 0; $i--) {
         $event=$Scheduler.Events[$i]

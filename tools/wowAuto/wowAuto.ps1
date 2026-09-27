@@ -419,6 +419,10 @@ function Update-RowStatus($Row) {
             $left = [Math]::Max(0, $Row.State.Deadline - $script:schedulerClock.ElapsedMilliseconds)
             $text += "`r`n剩余 $left ms"
         }
+        if ($Row.State.Running -and $script:schedulerClock.ElapsedMilliseconds -lt $script:scheduler.ItemHoldUntil) {
+            $left=$script:scheduler.ItemHoldUntil-$script:schedulerClock.ElapsedMilliseconds
+            $text="道具执行等待：剩余 $left ms；暂停抛竿、收竿及检测。"
+        }
         if ($Row.Status.Text -ne $text) { $Row.Status.Text = $text }
     }
     Set-RowControls $Row
@@ -613,7 +617,8 @@ function Begin-RefreshScan {
 function Invoke-RefreshScan([long]$Now) {
     if (-not $script:scanning -or $Now -lt $script:scanDue) { return }
     # Manual refresh also waits out an in-progress post-reel foreground hold.
-    if ($script:schedulerClock.ElapsedMilliseconds -lt $script:scheduler.ReelHoldUntil) { return }
+    if ($script:schedulerClock.ElapsedMilliseconds -lt $script:scheduler.ReelHoldUntil -or
+        $script:schedulerClock.ElapsedMilliseconds -lt $script:scheduler.ItemHoldUntil) { return }
     if ($script:scanIndex -ge $script:scanQueue.Count) { Finish-RefreshScan; return }
     $row = $script:scanQueue[$script:scanIndex]
     try {

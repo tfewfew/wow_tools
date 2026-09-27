@@ -23,6 +23,12 @@ $script:workerKeys=@()
 Invoke-SchedulerTick $due
 Assert-Ui (($script:workerKeys -join ',') -eq "$($row.Process.Id):113") 'Item did not send configured key.'
 Assert-Ui ($row.State.ItemDue -eq $due+600000) 'Item did not reschedule from successful send.'
+$keysBefore=$script:workerKeys.Count
+$focusBefore=$script:workerActivations.Count
+Invoke-SchedulerTick ($due+2999)
+Assert-Ui ($script:workerKeys.Count -eq $keysBefore -and $script:workerActivations.Count -eq $focusBefore) 'Item wait allowed input or window switching.'
+Invoke-SchedulerTick ($due+3000)
+Assert-Ui ($script:workerKeys.Count -eq $keysBefore+1 -and $script:workerKeys[-1] -eq "$($row.Process.Id):49") 'Casting did not resume after three seconds.'
 $itemCheck.Checked=$false
 Assert-Ui (-not $script:scheduler.UseItem -and $row.State.ItemDue -eq 0) 'Unchecking left item scheduled.'
 Stop-AllRows
