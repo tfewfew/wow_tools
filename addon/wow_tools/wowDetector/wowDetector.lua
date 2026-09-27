@@ -11,6 +11,7 @@ panel:SetMovable(true)
 panel:EnableMouse(true)
 panel:RegisterForDrag("LeftButton")
 panel:SetPoint("LEFT", UIParent, "CENTER", -20, 0)
+panel:Hide()
 
 local background = panel:CreateTexture(nil, "BACKGROUND")
 background:SetAllPoints()
@@ -183,8 +184,9 @@ panel:SetScript("OnEvent", function(_, event, unit)
         initialized = true
         enabled = false
         Paint("disabled")
-        if wowDetectorDB.panelHidden then panel:Hide() else panel:Show() end
-        Say("已加载，默认关闭。小地图入口显示/隐藏界面；点击“启动”或输入 /wowdetector on。")
+        wowDetectorDB.panelHidden = true
+        panel:Hide()
+        Say("已加载，默认隐藏且检测关闭。小地图入口打开界面，或输入 /wowdetector on。")
     elseif event == "PLAYER_ENTERING_WORLD" or event == "BAG_UPDATE_DELAYED" or unit == "player" then
         Refresh()
     end

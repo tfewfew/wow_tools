@@ -8,7 +8,7 @@
 
 ## 使用
 
-小地图旁的钓鱼图标是 wow_tools 统一入口，右键打开菜单，可分别打开/关闭 wowDetector 和 inner_graphic_config 界面；左键点击显示/隐藏检测面板，拖动可调整入口位置；面板显隐和入口位置会保存。也可用 `/wowdetector show`、`hide` 控制面板。显隐不改变检测开关；隐藏时色块一并隐藏，外部工具无法读取插件色块。`/wowdetector on` 会先显示面板再启动检测。
+小地图旁的钓鱼图标是 wow_tools 统一入口，右键打开菜单，可分别打开/关闭 wowDetector 和 inner_graphic_config 界面；左键点击显示/隐藏检测面板，拖动可调整并保存入口位置。wowDetector 每次登录或重载默认隐藏且检测关闭，不恢复上次显示状态。也可用 `/wowdetector show`、`hide` 控制面板。显隐不改变检测开关；隐藏时色块一并隐藏，外部工具无法读取插件色块。`/wowdetector on` 会先显示面板再启动检测。
 
 inner_graphic_config 从原本机 1.7.0 版本收编，保留原有全部画面参数设置和 `/igc`、`/inner_graphic_config` 命令。仅点击应用或勾选时修改游戏设置。`/wowtools` 也可打开子插件菜单。
 

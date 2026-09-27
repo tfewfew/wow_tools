@@ -26,7 +26,7 @@ description: 维护 wow_tools 插件合集（wowDetector、inner_graphic_config�
 
 - wow_tools 是唯一 TOC 插件，子目录 wowDetector 和 inner_graphic_config 分别保存模块；Init.lua 初始化 WoWTools.modules，Core.lua 统一小地图及右键菜单。图形模块来自本机 Inner_graphic_config 1.7.0，保留 /igc 和原有设置行为。同步先完整复制验证，再归档旧独立插件；首次复制账号旧 wowDetector.lua SavedVariables 为 wow_tools.lua，已有目标不覆盖。
 - 小地图右键菜单分别切换两个子模块界面，/wowtools 打开菜单。小地图钓鱼图标左键显示/隐藏整个检测面板，拖动调整入口角度；panelHidden、minimapAngle 保存到 wowDetectorDB。显隐不改变检测开关，隐藏时色块也隐藏；状态更新独立于面板可见性。show/hide 命令控制显隐，on 命令先显示面板。入口不依赖外部库。
-- 泰坦时光服接口版本目前为 38002；插件每次登录或重载默认关闭。`/wowdetector` 是主命令，`/fishstate` 保留为兼容别名。
+- 泰坦时光服接口版本目前为 38002；wowDetector 面板创建时即隐藏，每次登录或重载重置 panelHidden=true，检测默认关闭，不恢复上次面板显示状态。小地图入口及 show/on 命令仍可打开。`/wowdetector` 是主命令，`/fishstate` 保留为兼容别名。
 - 绿色表示钓鱼，红色表示非钓鱼，黄色表示随身普通背包空格为零，灰色表示关闭或数据未知。黄色优先于红绿。排除银行、材料及专用背包；不估算现有物品剩余堆叠容量。
 - “启动”按钮和 on 命令将色块中心对齐客户区中心、保存位置并锁定；关闭时解锁。无独立居中按钮，center 命令仍兼容。运行中不允许拖动或用 unlock 解锁；登录或重载默认关闭且解锁。
 - wowAuto 的 autofish 标签页包含刷新进程、全部开始、全部停止按钮，按 `WowClassic.exe` 进程生成独立控制行，每行横向排列范围、开始/停止、状态框。初始按钮锁定。刷新先停止所有任务并清空事件，再按PID和启动时间更新列表，保留存活行的范围，移除已退出行；复用PID不得继承状态。
