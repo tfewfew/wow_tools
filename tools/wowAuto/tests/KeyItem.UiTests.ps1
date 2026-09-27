@@ -7,6 +7,12 @@ foreach ($action in @('Cast','Reel','Item')) {
     $inputBox=$script:keyInputs[$action]
     Assert-Ui ($toolbar.ClientRectangle.Contains($inputBox.Bounds) -and $inputBox.Top -gt $holdInput.Bottom) 'Key input is clipped or not below hold controls.'
 }
+foreach ($keyCase in @(@(189,'-'),@(187,'='))) {
+    Set-KeyBinding $script:keyInputs['Item'] $keyCase[0] $false $false $false
+    Assert-Ui ($script:keyBindings.Item.Text -eq $keyCase[1] -and $script:keyBindings.Item.Code -eq $keyCase[0]) 'Punctuation single key rejected.'
+    Set-KeyBinding $script:keyInputs['Item'] $keyCase[0] $true $false $false
+    Assert-Ui ($script:keyBindings.Item.Text -eq ('Ctrl+'+$keyCase[1]) -and $script:keyBindings.Item.Ctrl) 'Punctuation chord rejected.'
+}
 Set-KeyBinding $script:keyInputs['Item'] 113 $false $true $false
 Assert-Ui ($script:keyBindings.Item.Text -eq 'Shift+F2') 'Key capture did not accept Shift+F2.'
 Set-KeyBinding $script:keyInputs['Item'] 16 $true $true $false

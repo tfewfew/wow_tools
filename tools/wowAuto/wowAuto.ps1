@@ -307,11 +307,13 @@ $script:keyInputs = @{}
 function Set-KeyBinding($InputBox, [int]$Code, [bool]$Ctrl, [bool]$Shift, [bool]$Alt) {
     # Accept letters, digits, function keys, numpad and common standalone keys.
     if (-not (($Code -ge 48 -and $Code -le 57) -or ($Code -ge 65 -and $Code -le 90) -or ($Code -ge 96 -and $Code -le 111) -or
-        ($Code -ge 112 -and $Code -le 135) -or $Code -in @(8,9,13,27,32,33,34,35,36,37,38,39,40,45,46))) { return }
+        ($Code -ge 112 -and $Code -le 135) -or $Code -in @(8,9,13,27,32,33,34,35,36,37,38,39,40,45,46,187,189))) { return }
     $parts=@()
     if ($Ctrl) { $parts+='Ctrl' }; if ($Shift) { $parts+='Shift' }; if ($Alt) { $parts+='Alt' }
     $name=([System.Windows.Forms.Keys]$Code).ToString()
     if ($Code -ge 48 -and $Code -le 57) { $name=[string]($Code-48) }
+    if ($Code -eq 189) { $name='-' }
+    if ($Code -eq 187) { $name='=' }
     $parts+=$name
     $binding=[pscustomobject]@{ Code=$Code; Ctrl=$Ctrl; Shift=$Shift; Alt=$Alt; Text=($parts -join '+') }
     $script:keyBindings[$InputBox.Tag]=$binding
