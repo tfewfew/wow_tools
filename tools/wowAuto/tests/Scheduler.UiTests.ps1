@@ -48,7 +48,16 @@ Invoke-SchedulerTick ($base+4025)
 Invoke-SchedulerTick ($base+4225)
 Assert-Ui ($script:workerKeys[-1] -eq "$($b.Process.Id):49" -and -not $b.State.ForceNextCast) 'Post-reel green did not force and acknowledge Ctrl+1.'
 Invoke-SchedulerTick ($base+4825)
-Assert-Ui ($b.State.Mode -eq 'Wait' -and $script:workerKeys[-1] -eq "$($b.Process.Id):49") 'Green should resume waiting after one forced cast.'
+Assert-Ui ($b.State.Mode -eq 'Casting' -and $b.State.Deadline -eq 0) 'Stale green started countdown before red was observed.'
+$keyCount=$script:workerKeys.Count
+Invoke-SchedulerTick ($base+5425)
+Assert-Ui ($script:workerKeys.Count -eq $keyCount -and $b.State.Mode -eq 'Casting') 'Stale green should only poll, without another forced cast.'
+$b.Process.ScanColor='red'
+Invoke-SchedulerTick ($base+6025)
+Assert-Ui ($script:workerKeys.Count -eq $keyCount+1) 'Red did not resume casting.'
+$b.Process.ScanColor='green'
+Invoke-SchedulerTick ($base+6625)
+Assert-Ui ($b.State.Mode -eq 'Wait' -and $b.State.Deadline -eq $base+7625) 'Red-to-green did not start a fresh countdown.'
 $stopAllButton.PerformClick()
 Assert-Ui ($script:scheduler.Tasks.Count -eq 0 -and $script:scheduler.Events.Count -eq 0) 'Stop all left events behind.'
 $keyCount=$script:workerKeys.Count

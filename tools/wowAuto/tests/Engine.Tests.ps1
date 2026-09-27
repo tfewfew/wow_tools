@@ -107,9 +107,20 @@ foreach ($color in @('red','green')) {
     Assert-Equal $castState.ForceNextCast $true 'Failed cast retains pending forced cast'
     Assert-Equal (Complete-WowAutoPoll $castQueue 'cast' 2200 $color) 'Ctrl1' 'Failed cast retries'
     Complete-WowAutoCast $castQueue 'cast' $true
+    if ($color -eq 'green') {
+        foreach ($time in @(2500,2600,2700)) {
+            Assert-Equal (Complete-WowAutoPoll $castQueue 'cast' $time 'green') 'None' 'Stale green emits no extra cast'
+            Assert-Equal $castState.Mode 'Casting' 'Stale green must not start countdown'
+            Assert-Equal @($castQueue.Events | Where-Object { $_.Kind -eq 'Reel' }).Count 0 'No reel event until red observed'
+        }
+        Assert-Equal (Complete-WowAutoPoll $castQueue 'cast' 2750 'red') 'Ctrl1' 'Red resumes casting'
+        Complete-WowAutoCast $castQueue 'cast' $true
+    }
     Assert-Equal (Complete-WowAutoPoll $castQueue 'cast' 2800 'green') 'None' 'Successful cast restores green wait'
     Assert-Equal $castState.Mode 'Wait' 'Only one successful forced cast'
+    Assert-Equal $castState.Deadline 2900 'Countdown starts at confirmed green'
     Complete-WowAutoReel $castQueue 'cast' 2900 $true
+    Assert-Equal $castState.SawIdle $false 'Previous cycle red cannot confirm new cycle'
     Assert-Equal (Complete-WowAutoPoll $castQueue 'cast' 3900 'yellow') 'Stop' 'Yellow takes priority over forced cast'
     $freshCast=Add-WowAutoTask $castQueue 'cast' 100 100 4000
     Assert-Equal $freshCast.ForceNextCast $false 'Restart clears forced cast'

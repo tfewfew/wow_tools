@@ -7,6 +7,7 @@ function New-WowAutoState {
     [pscustomobject]@{
         Running=$true; Mode='Ready'; NextDue=0L; Deadline=0L
         MinimumMs=$MinimumMs; MaximumMs=$MaximumMs; LastInterval=-1; ForceNextCast=$false
+        AwaitingFishingTransition=$false; SawIdle=$false
         Status='已加入统一调度队列。'
     }
 }
@@ -122,7 +123,16 @@ function Complete-WowAutoPoll($Scheduler, [string]$Key, [long]$Now, [string]$Col
         if ($canExit) { return 'ExitGame' }
         return 'Stop'
     }
+    if ($Color -eq 'red') { $state.SawIdle=$true }
     if ($Color -eq 'green' -and -not $state.ForceNextCast) {
+        if ($state.AwaitingFishingTransition -and -not $state.SawIdle) {
+            $state.Mode='Casting'
+            $state.LastInterval=Get-WowAutoInterval $state.LastInterval
+            $state.NextDue=$Now+$state.LastInterval
+            $state.Status='等待本轮红色→绿色确认：当前仍为绿色，尚未检测到红色，不开始倒计时。'
+            return 'None'
+        }
+        $state.AwaitingFishingTransition=$false
         $delay=Get-Random -Minimum $state.MinimumMs -Maximum ($state.MaximumMs+1)
         Remove-WowAutoEvents $Scheduler $Key
         $state.Mode='Wait'; $state.Deadline=$Now+$delay
@@ -160,6 +170,8 @@ function Complete-WowAutoReel($Scheduler, [string]$Key, [long]$Now, [bool]$Sent)
     if ($state.Mode -ne 'Wait' -or $registered.Count -eq 0) { return }
     $Scheduler.CompletedCycles[$Key]=(Get-WowAutoCycleCount $Scheduler $Key)+1
     $state.ForceNextCast=$true
+    $state.AwaitingFishingTransition=$true
+    $state.SawIdle=$false
     $holdMs=$Scheduler.ReelHoldMs
     $Scheduler.ReelHoldUntil=$Now+$holdMs
     Remove-WowAutoEvents $Scheduler $Key
