@@ -23,10 +23,17 @@ function Get-WowAutoInterval {
 }
 function New-WowAutoScheduler {
     [pscustomobject]@{
-        Tasks=@{}; Order=(New-Object 'System.Collections.Generic.List[string]')
+        Tasks=@{}; CompletedCycles=@{}; Order=(New-Object 'System.Collections.Generic.List[string]')
         Events=(New-Object System.Collections.ArrayList)
         Cursor=0; ActiveKey=$null; Sequence=0L
     }
+}
+function Get-WowAutoCycleCount($Scheduler, [string]$Key) {
+    if ($Scheduler.CompletedCycles.ContainsKey($Key)) { return [long]$Scheduler.CompletedCycles[$Key] }
+    return 0L
+}
+function Test-WowAutoExitAllowed($Scheduler, [string]$Key) {
+    return (Get-WowAutoCycleCount $Scheduler $Key) -gt 500
 }
 function Remove-WowAutoEvents($Scheduler, [string]$Key) {
     for ($i=$Scheduler.Events.Count-1; $i -ge 0; $i--) {
@@ -104,8 +111,11 @@ function Complete-WowAutoPoll($Scheduler, [string]$Key, [long]$Now, [string]$Col
     $state=$Scheduler.Tasks[$Key]
     if ($null -eq $state -or -not $state.Running) { return 'None' }
     if ($Color -eq 'yellow') {
-        Stop-WowAutoTask $Scheduler $Key '背包已满，正在结束此游戏进程。'
-        return 'ExitGame'
+        $canExit=Test-WowAutoExitAllowed $Scheduler $Key
+        $reason=if ($canExit) { '背包已满且有效循环超过500次，正在结束此进程。' } else { '背包已满，有效循环未超过500次；保留进程并停止本行。' }
+        Stop-WowAutoTask $Scheduler $Key $reason
+        if ($canExit) { return 'ExitGame' }
+        return 'Stop'
     }
     if ($Color -eq 'green') {
         $delay=Get-Random -Minimum $state.MinimumMs -Maximum ($state.MaximumMs+1)
@@ -132,6 +142,12 @@ function Complete-WowAutoReel($Scheduler, [string]$Key, [long]$Now, [bool]$Sent)
     $state=$Scheduler.Tasks[$Key]
     if ($null -eq $state -or -not $state.Running) { return }
     if (-not $Sent) { return } # Keep the overdue event; the adapter will retry or stop this row.
+    # Count only a successfully sent, registered reel action, once per fishing wait.
+    $registered=@($Scheduler.Events | Where-Object {
+        $_.Key -eq $Key -and $_.Kind -eq 'Reel' -and [object]::ReferenceEquals($_.State,$state)
+    })
+    if ($state.Mode -ne 'Wait' -or $registered.Count -eq 0) { return }
+    $Scheduler.CompletedCycles[$Key]=(Get-WowAutoCycleCount $Scheduler $Key)+1
     Remove-WowAutoEvents $Scheduler $Key
     $state.Mode='Cooldown'; $state.Deadline=$Now+1000
     $state.Status='Ctrl+2 已发送，等待 1000 ms 后重新入队。'

@@ -33,10 +33,12 @@ $b.Start.PerformClick()
 Assert-Ui ($a.State.Running -and $b.State.Running -and $b.State.MinimumMs -eq 2345) 'Independent start/ranges failed.'
 $a.Stop.PerformClick()
 Assert-Ui (-not $a.State.Running -and $b.State.Running) 'Stop affected another row.'
+$script:scheduler.CompletedCycles[$a.Key]=123
 $refreshButton.PerformClick()
 Assert-Ui (-not $b.State.Running -and -not $b.Start.Enabled -and -not $b.Stop.Enabled) 'Refresh did not stop and lock active row.'
 Complete-TestScan
 Assert-Ui ($script:rows[$b.Key] -eq $b -and $b.Minimum.Value -eq 2345 -and $null -eq $b.State) 'Refresh did not preserve range/stopped row.'
+Assert-Ui ((Get-WowAutoCycleCount $script:scheduler $a.Key) -eq 123) 'Refresh cleared process cycle count.'
 $a.Process.ScanColor = 'unknown'
 $b.Process.FocusAllowed = $false
 $c.Process.ScanColor = 'not-foreground'
@@ -55,6 +57,7 @@ $refreshButton.PerformClick()
 Complete-TestScan
 $fresh = @($script:rows.Values | Where-Object { $_.Process.Id -eq 101 })[0]
 Assert-Ui ($fresh -ne $a -and $null -eq $fresh.State) 'Reused PID inherited old session.'
+Assert-Ui ((Get-WowAutoCycleCount $script:scheduler $fresh.Key) -eq 0) 'Reused PID inherited cycle count.'
 $saved = $script:mockProcesses
 $script:mockProcesses = @()
 $refreshButton.PerformClick()

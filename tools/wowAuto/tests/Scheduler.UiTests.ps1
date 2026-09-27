@@ -43,3 +43,25 @@ $startAllButton.PerformClick()
 Assert-Ui ($a.State.Running -and -not $b.State.Running -and $script:scheduler.Tasks.Count -eq 1) 'Start all included an ineligible row.'
 Stop-AllRows
 Write-Output 'PASS: tab toolbar, eligible start-all, repeated red casting, green rotation, timed preemption, 1-second cooldown, stop-all cancellation. Native actions mocked.'
+
+$script:workerClosed=@()
+$b.Validated=$true
+Start-Row $b
+foreach ($count in @(0,500,501)) {
+    $a.Process.HasExited=$false; $a.Exited=$false; $a.Validated=$true
+    $script:scheduler.CompletedCycles[$a.Key]=$count
+    Start-Row $a
+    $closedBefore=$script:workerClosed.Count
+    Close-WorkerGame $a
+    Assert-Ui (-not $a.State.Running) 'Yellow did not stop current row.'
+    Assert-Ui $b.State.Running 'Yellow affected another row.'
+    Assert-Ui (@($script:scheduler.Events | Where-Object { $_.Key -eq $a.Key }).Count -eq 0) 'Yellow left pending events.'
+    if ($count -le 500) {
+        Assert-Ui (-not $a.Process.HasExited -and $script:workerClosed.Count -eq $closedBefore -and -not $a.Validated) 'Low-count yellow terminated game or left it enabled.'
+    }
+    else {
+        Assert-Ui ($a.Process.HasExited -and $script:workerClosed.Count -eq $closedBefore+1) '501 cycles did not permit target termination.'
+    }
+}
+Stop-AllRows
+Write-Output 'PASS: yellow preserves game at 0/500 cycles, permits termination at 501, clears only target events, leaves other task running. Process termination mocked.'

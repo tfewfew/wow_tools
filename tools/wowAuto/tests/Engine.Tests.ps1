@@ -29,6 +29,9 @@ $null=Complete-WowAutoPoll $q 'B' 400 'green'
 Assert-Equal ($null -eq (Get-WowAutoWork $q 1399)) $true 'All waiting leaves worker idle'
 Assert-Equal (Get-WowAutoWork $q 1400).Key 'B' 'Earliest deadline wins'
 Complete-WowAutoReel $q 'B' 1450 $true
+Assert-Equal (Get-WowAutoCycleCount $q 'B') 1 'Successful reel increments once'
+Complete-WowAutoReel $q 'B' 1451 $true
+Assert-Equal (Get-WowAutoCycleCount $q 'B') 1 'Duplicate completion cannot count twice'
 Assert-Equal $b.Deadline 2450 'Cooldown starts at key release'
 Assert-Equal ($null -eq (Get-WowAutoWork $q 2449)) $true 'Cooldown blocks only own task'
 Assert-Equal (Get-WowAutoWork $q 2450).Key 'B' 'Cooldown requeues task'
@@ -49,7 +52,7 @@ $null=Complete-WowAutoPoll $q 'A' 100 'green'
 Stop-WowAutoTask $q 'A'
 $fresh=Add-WowAutoTask $q 'A' 8000 13000 110
 Assert-Equal (Get-WowAutoWork $q 200).Kind 'Poll' 'Restart cannot inherit old timer'
-Assert-Equal (Complete-WowAutoPoll $q 'A' 200 'yellow') 'ExitGame' 'Yellow stops target'
+Assert-Equal (Complete-WowAutoPoll $q 'A' 200 'yellow') 'Stop' 'Low-count yellow preserves process'
 Assert-Equal $fresh.Running $false 'Yellow clears running state'
 $x=Add-WowAutoTask $q 'X' 100 100 0
 $y=Add-WowAutoTask $q 'Y' 100 100 0
@@ -58,6 +61,18 @@ $null=Complete-WowAutoPoll $q 'Y' 0 'green'
 Assert-Equal (Get-WowAutoWork $q 100).Key 'X' 'Tied deadlines preserve event order'
 Complete-WowAutoReel $q 'X' 100 $true
 Assert-Equal (Get-WowAutoWork $q 100).Key 'Y' 'Second due timer runs before normal work'
+Complete-WowAutoReel $q 'Y' 100 $false
+Assert-Equal (Get-WowAutoCycleCount $q 'Y') 0 'Failed key send is not a cycle'
+Complete-WowAutoReel $q 'Y' 150 $true
+Assert-Equal (Get-WowAutoCycleCount $q 'Y') 1 'Successful retry counts once'
+Stop-WowAutoTask $q 'Y'
+$null=Add-WowAutoTask $q 'Y' 100 100 200
+Assert-Equal (Get-WowAutoCycleCount $q 'Y') 1 'Stop and restart retain process count'
+foreach ($count in @(0,499,500,501)) {
+    $q.CompletedCycles['Y']=$count
+    Assert-Equal (Test-WowAutoExitAllowed $q 'Y') ($count -gt 500) 'Strict greater-than threshold'
+}
+Assert-Equal (Get-WowAutoCycleCount $q 'new-process-identity') 0 'New process starts at zero'
 $previous=-1
 for ($i=0;$i -lt 1000;$i++) {
     $next=Get-WowAutoInterval $previous

@@ -296,7 +296,7 @@ $footer.Dock = 'Bottom'
 $footer.Height = 43
 $footer.Padding = New-Object System.Windows.Forms.Padding(12, 10, 0, 0)
 $footer.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 9)
-$footer.Text = '运行时自动切换游戏窗口；到期收竿优先。全部停止可取消所有事件。黄色只结束对应进程。'
+$footer.Text = '运行时自动切换窗口；到期收竿优先。黄色仅在有效循环超过500次时结束对应进程，否则停止该行。'
 $tab.Controls.Add($list)
 $tab.Controls.Add($headings)
 $tab.Controls.Add($intro)
@@ -318,6 +318,8 @@ function Set-RowControls($Row) {
 }
 
 function Update-RowStatus($Row) {
+    $cycles=Get-WowAutoCycleCount $script:scheduler $Row.Key
+    $Row.Name.Text = "$($Row.Caption)`r`nPID $($Row.Process.Id) · 循环 $cycles"
     if ($null -ne $Row.State) {
         $text = $Row.State.Status
         if ($Row.State.Running -and $Row.State.Mode -in @('Wait', 'Cooldown')) {
@@ -399,7 +401,7 @@ function New-ProcessRow($Process, $StartTime, [string]$Key) {
     $status.Text = '尚未验证，请点击刷新进程。'
     $panel.Controls.Add($status)
     $row = [pscustomobject]@{
-        Key=$Key; Process=$Process; StartTime=$StartTime; Exited=$false; Validated=$false
+        Key=$Key; Process=$Process; StartTime=$StartTime; Exited=$false; Validated=$false; Caption='WowClassic.exe'
         Panel=$panel; Name=$nameLabel; Minimum=$minimum; Maximum=$maximum
         Start=$start; Stop=$stop; Status=$status; State=$null
 
@@ -427,7 +429,8 @@ function Refresh-ProcessRows {
             if ($null -eq $row) { $row = New-ProcessRow $process $started $key }
             $caption = 'WowClassic.exe'
             try { if ($process.MainWindowTitle) { $caption = $process.MainWindowTitle } } catch { }
-            $row.Name.Text = "$caption`r`nPID $($process.Id)"
+            $row.Caption = $caption
+            Update-RowStatus $row
             $next[$key] = $row
             $ordered += $row
         }
@@ -607,6 +610,12 @@ function Send-WorkerKey($Row, [int]$Number) {
     return [WowAuto.NativeInput]::PressCtrlNumber($Row.Process.Id, [ushort]$Number)
 }
 function Close-WorkerGame($Row) {
+    $cycles=Get-WowAutoCycleCount $script:scheduler $Row.Key
+    if (-not (Test-WowAutoExitAllowed $script:scheduler $Row.Key)) {
+        $Row.Validated=$false
+        Stop-Row $Row "背包已满：有效循环 $cycles 次，未超过500次；保留进程，停止本行。"
+        return
+    }
     $Row.Process.Refresh()
     if (-not $Row.Process.HasExited) {
         if ($Row.Process.StartTime -ne $Row.StartTime -or $Row.Process.ProcessName -ne 'WowClassic') { throw '进程身份已改变，未结束任何进程。' }
@@ -614,7 +623,7 @@ function Close-WorkerGame($Row) {
         else { $Row.Process.Kill() }
     }
     $Row.Exited=$true
-    Stop-Row $Row '背包已满，已请求结束此进程；本行退出队列。'
+    Stop-Row $Row "背包已满：有效循环 $cycles 次，已请求结束此进程；本行退出队列。"
 }
 function Invoke-SchedulerTick([long]$Now) {
     if ($script:scanning) { return }
