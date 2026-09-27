@@ -74,7 +74,7 @@ namespace WowAuto
 
         public static IntPtr CurrentWindow() { return GetForegroundWindow(); }
 
-        // Called only during an explicit refresh scan, never by the automation loop.
+        // Foreground activation for refresh validation and the shared scheduler.
         public static bool ActivateForScan(int processId, long startTimeTicks)
         {
             using (System.Diagnostics.Process target = System.Diagnostics.Process.GetProcessById(processId))
@@ -202,6 +202,13 @@ Add-Type -AssemblyName System.Drawing
 . (Join-Path $PSScriptRoot 'wowAuto.Engine.ps1')
 [System.Windows.Forms.Application]::EnableVisualStyles()
 $script:rows = @{}
+$script:scheduler = New-WowAutoScheduler
+$script:schedulerClock = [System.Diagnostics.Stopwatch]::StartNew()
+$script:pendingWork = $null
+$script:workerFocus = 0
+$script:workerActivations = @()
+$script:workerKeys = @()
+$script:workerClosed = @()
 $script:mockProcesses = @()
 $script:scanning = $false
 $script:scanClock = [System.Diagnostics.Stopwatch]::StartNew()
@@ -234,7 +241,7 @@ $refreshButton = New-Object System.Windows.Forms.Button
 $refreshButton.Text = '刷新进程'
 $refreshButton.SetBounds(1020, 20, 115, 36)
 $refreshButton.Anchor = 'Top, Right'
-$header.Controls.Add($refreshButton)
+
 $tabs = New-Object System.Windows.Forms.TabControl
 $tabs.Dock = 'Fill'
 $tab = New-Object System.Windows.Forms.TabPage
@@ -243,12 +250,32 @@ $tab.BackColor = [System.Drawing.Color]::White
 $tabs.TabPages.Add($tab)
 $form.Controls.Add($tabs)
 $form.Controls.Add($header)
+$toolbar = New-Object System.Windows.Forms.Panel
+$toolbar.Dock = 'Top'
+$toolbar.Height = 54
+$toolbar.Width = $form.ClientSize.Width
+$refreshButton.Anchor = 'Top, Left'
+$refreshButton.SetBounds(12, 10, 120, 35)
+$toolbar.Controls.Add($refreshButton)
+$startAllButton = New-Object System.Windows.Forms.Button
+$startAllButton.Text = '全部开始'
+$startAllButton.SetBounds(142, 10, 120, 35)
+$startAllButton.BackColor = [System.Drawing.Color]::FromArgb(35, 100, 210)
+$startAllButton.ForeColor = [System.Drawing.Color]::White
+$startAllButton.FlatStyle = 'Flat'
+$startAllButton.Enabled = $false
+$toolbar.Controls.Add($startAllButton)
+$stopAllButton = New-Object System.Windows.Forms.Button
+$stopAllButton.Text = '全部停止'
+$stopAllButton.SetBounds(272, 10, 120, 35)
+$stopAllButton.Enabled = $false
+$toolbar.Controls.Add($stopAllButton)
 
 $intro = New-Object System.Windows.Forms.Label
 $intro.Dock = 'Top'
 $intro.Height = 44
 $intro.Padding = New-Object System.Windows.Forms.Padding(12, 12, 0, 0)
-$intro.Text = '先在游戏插件中启动检测，再点刷新；逐个切换窗口，红色或绿色通过后开放按钮。'
+$intro.Text = '先刷新检测，再全部开始：轮流下竿，绿色登记收竿时间；到期事件优先处理。'
 $headings = New-Object System.Windows.Forms.Panel
 $headings.Dock = 'Top'
 $headings.Height = 32
@@ -269,10 +296,11 @@ $footer.Dock = 'Bottom'
 $footer.Height = 43
 $footer.Padding = New-Object System.Windows.Forms.Padding(12, 10, 0, 0)
 $footer.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 9)
-$footer.Text = '仅前台游戏发送按键；后台行暂停。黄色信号只结束对应游戏进程。关闭窗口会停止所有行。'
+$footer.Text = '运行时自动切换游戏窗口；到期收竿优先。全部停止可取消所有事件。黄色只结束对应进程。'
 $tab.Controls.Add($list)
 $tab.Controls.Add($headings)
 $tab.Controls.Add($intro)
+$tab.Controls.Add($toolbar)
 $tab.Controls.Add($footer)
 
 function Get-WowAutoProcesses {
@@ -293,7 +321,7 @@ function Update-RowStatus($Row) {
     if ($null -ne $Row.State) {
         $text = $Row.State.Status
         if ($Row.State.Running -and $Row.State.Mode -in @('Wait', 'Cooldown')) {
-            $left = [Math]::Max(0, $Row.State.Deadline - $Row.Clock.ElapsedMilliseconds)
+            $left = [Math]::Max(0, $Row.State.Deadline - $script:schedulerClock.ElapsedMilliseconds)
             $text += "`r`n剩余 $left ms"
         }
         if ($Row.Status.Text -ne $text) { $Row.Status.Text = $text }
@@ -302,6 +330,8 @@ function Update-RowStatus($Row) {
 }
 
 function Stop-Row($Row, [string]$Reason = '已停止，当前等待已取消。') {
+    if ($null -ne $script:pendingWork -and $script:pendingWork.Key -eq $Row.Key) { $script:pendingWork=$null }
+    Stop-WowAutoTask $script:scheduler $Row.Key $Reason
     if ($null -ne $Row.State) { Stop-WowAutoState $Row.State $Reason }
     else { $Row.Status.Text = $Reason }
     Update-RowStatus $Row
@@ -320,8 +350,7 @@ function Start-Row($Row) {
         if ($null -eq $Row.StartTime -or $Row.Process.StartTime -ne $Row.StartTime -or $Row.Process.ProcessName -ne 'WowClassic') {
             throw '进程身份已变化，请刷新。'
         }
-        $Row.State = $newState
-        $Row.Clock.Restart()
+        $Row.State = Add-WowAutoTask $script:scheduler $Row.Key $newState.MinimumMs $newState.MaximumMs $script:schedulerClock.ElapsedMilliseconds
         Update-RowStatus $Row
     }
     catch {
@@ -373,7 +402,7 @@ function New-ProcessRow($Process, $StartTime, [string]$Key) {
         Key=$Key; Process=$Process; StartTime=$StartTime; Exited=$false; Validated=$false
         Panel=$panel; Name=$nameLabel; Minimum=$minimum; Maximum=$maximum
         Start=$start; Stop=$stop; Status=$status; State=$null
-        Clock=[System.Diagnostics.Stopwatch]::StartNew()
+
     }
     # Sender.Tag keeps handlers bound to their own row, not a shared loop variable.
     $start.Tag = $row
@@ -450,11 +479,14 @@ function Finish-RefreshScan {
         if (-not $restored) { $countLabel.Text += ' 请手动切回工具窗口。' }
     }
     $script:scanOriginalWindow = [IntPtr]::Zero
+    Update-BatchControls
 }
 
 function Begin-RefreshScan {
     if ($script:scanning) { return }
     $script:scanning = $true
+    $startAllButton.Enabled = $false
+    $script:pendingWork = $null
     $refreshButton.Enabled = $false
     $script:scanOriginalWindow = if ($UiTest) { [IntPtr]::Zero } else { [WowAuto.NativeInput]::CurrentWindow() }
     # Stop all work before changing focus; scanning must never trigger input or termination.
@@ -532,47 +564,117 @@ $scanTimer.Add_Tick({
     }
 })
 $refreshButton.Add_Click({ Begin-RefreshScan })
+function Update-BatchControls {
+    $eligible = @($script:rows.Values | Where-Object { $_.Validated -and -not $_.Exited -and ($null -eq $_.State -or -not $_.State.Running) })
+    $startAllButton.Enabled = -not $script:scanning -and $eligible.Count -gt 0
+    $stopAllButton.Enabled = $script:scheduler.Tasks.Count -gt 0
+}
+function Stop-AllRows {
+    foreach ($row in @($script:rows.Values)) { Stop-Row $row }
+    $script:pendingWork=$null
+    Update-BatchControls
+}
+$startAllButton.Add_Click({
+    if ($script:scanning) { return }
+    foreach ($row in @($script:rows.Values | Sort-Object { $_.Process.Id })) {
+        if ($row.Validated -and -not $row.Exited) { Start-Row $row }
+    }
+    Update-BatchControls
+})
+$stopAllButton.Add_Click({ Stop-AllRows })
 
 $list.Add_SizeChanged({
     foreach ($row in $script:rows.Values) { $row.Panel.Width = [Math]::Max(1000, $list.ClientSize.Width - 32) }
 })
 
-function Invoke-RowTick($Row) {
-    try {
-        if ($null -eq $Row.State -or -not $Row.State.Running) { return }
-        $now = $Row.Clock.ElapsedMilliseconds
-        if ($now -ge $Row.State.NextDue) {
-            $Row.Process.Refresh()
-            if ($Row.Process.HasExited) { $Row.Exited=$true; throw '游戏进程已退出，请刷新。' }
-            if ($Row.Process.ProcessName -ne 'WowClassic' -or $Row.Process.StartTime -ne $Row.StartTime) { throw '目标进程身份已改变。' }
-            $foreground = [WowAuto.NativeInput]::IsTargetForeground($Row.Process.Id)
-            $color = 'unknown'
-            if ($foreground -and $Row.State.Mode -ne 'Cooldown') { $color = [WowAuto.NativeInput]::ReadCenterColor($Row.Process.Id) }
-            $action = Invoke-WowAutoState $Row.State $now $foreground $color
-            switch ($action) {
-                'Ctrl1' { $null = [WowAuto.NativeInput]::PressCtrlNumber($Row.Process.Id, 0x31) }
-                'Ctrl2' {
-                    $sent = [WowAuto.NativeInput]::PressCtrlNumber($Row.Process.Id, 0x32)
-                    Complete-WowAutoInteraction $Row.State $Row.Clock.ElapsedMilliseconds $sent
-                }
-                'ExitGame' {
-                    $Row.Process.Refresh()
-                    if (-not $Row.Process.HasExited) {
-                        if ($Row.Process.StartTime -ne $Row.StartTime) { throw '进程身份已改变，未结束任何进程。' }
-                        $Row.Process.Kill()
-                    }
-                    $Row.Exited = $true
-                    $Row.State.Status = '背包已满，已请求结束此游戏进程；本行已停止。'
-                }
-            }
-        }
-        Update-RowStatus $Row
+function Activate-WorkerRow($Row) {
+    if ($UiTest) {
+        $script:workerFocus = $Row.Process.Id
+        $script:workerActivations += $Row.Process.Id
+        return $Row.Process.FocusAllowed
     }
-    catch { Stop-Row $Row ('已停止：' + $_.Exception.Message) }
+    return [WowAuto.NativeInput]::ActivateForScan($Row.Process.Id, $Row.StartTime.Ticks)
 }
+function Test-WorkerForeground($Row) {
+    if ($UiTest) { return $Row.Process.FocusAllowed -and $script:workerFocus -eq $Row.Process.Id }
+    return [WowAuto.NativeInput]::IsTargetForeground($Row.Process.Id)
+}
+function Send-WorkerKey($Row, [int]$Number) {
+    if ($UiTest) {
+        $script:workerKeys += "$($Row.Process.Id):$Number"
+        return (Test-WorkerForeground $Row)
+    }
+    return [WowAuto.NativeInput]::PressCtrlNumber($Row.Process.Id, [ushort]$Number)
+}
+function Close-WorkerGame($Row) {
+    $Row.Process.Refresh()
+    if (-not $Row.Process.HasExited) {
+        if ($Row.Process.StartTime -ne $Row.StartTime -or $Row.Process.ProcessName -ne 'WowClassic') { throw '进程身份已改变，未结束任何进程。' }
+        if ($UiTest) { $Row.Process.HasExited=$true; $script:workerClosed += $Row.Process.Id }
+        else { $Row.Process.Kill() }
+    }
+    $Row.Exited=$true
+    Stop-Row $Row '背包已满，已请求结束此进程；本行退出队列。'
+}
+function Invoke-SchedulerTick([long]$Now) {
+    if ($script:scanning) { return }
+    $work=Get-WowAutoWork $script:scheduler $Now
+    if ($null -eq $work) { return }
+    $row=$script:rows[$work.Key]
+    if ($null -eq $row) { Stop-WowAutoTask $script:scheduler $work.Key; return }
+    try {
+        $row.Process.Refresh()
+        if ($row.Process.HasExited) { $row.Exited=$true; throw '进程已退出。' }
+        if ($row.Process.StartTime -ne $row.StartTime -or $row.Process.ProcessName -ne 'WowClassic') { throw '进程身份已改变。' }
+        $pending=$script:pendingWork
+        if ($null -eq $pending -or $pending.Key -ne $work.Key -or $pending.Kind -ne $work.Kind) {
+            $alreadyForeground=Test-WorkerForeground $row
+            if (-not $alreadyForeground -and -not (Activate-WorkerRow $row)) { throw '无法切换到此游戏窗口。' }
+            $readyAt=if ($alreadyForeground) { $Now } else { $Now+200 }
+            $script:pendingWork=[pscustomobject]@{ Key=$work.Key; Kind=$work.Kind; ReadyAt=$readyAt; Timeout=$Now+800 }
+            $pending=$script:pendingWork
+            if (-not $alreadyForeground) { return }
+        }
+        if ($Now -lt $pending.ReadyAt) { return }
+        if (-not (Test-WorkerForeground $row)) {
+            if ($Now -ge $pending.Timeout) { throw '无法获得前台焦点，已停止此行。' }
+            return
+        }
+        # The work selection is repeated every tick, including while switching windows.
+        # Overdue Reel events therefore preempt both casting and a pending activation.
+        $color=Read-ScanColor $row
+        if ($color -eq 'yellow') {
+            Close-WorkerGame $row
+            $script:pendingWork=$null
+            return
+        }
+        if ($work.Kind -eq 'Reel') {
+            $sent=Send-WorkerKey $row 0x32
+            $completedAt=if ($UiTest) { $Now } else { $script:schedulerClock.ElapsedMilliseconds }
+            Complete-WowAutoReel $script:scheduler $work.Key $completedAt $sent
+            $script:pendingWork=$null
+        }
+        else {
+            $action=Complete-WowAutoPoll $script:scheduler $work.Key $Now $color
+            if ($action -eq 'Ctrl1') { $null=Send-WorkerKey $row 0x31 }
+            # Keep focus while repeatedly casting; a due Reel event can still preempt.
+            $script:pendingWork=$null
+        }
+        Update-RowStatus $row
+    }
+    catch {
+        Stop-Row $row ('已停止：'+$_.Exception.Message)
+        $script:pendingWork=$null
+    }
+}
+
 $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 25
-$timer.Add_Tick({ if (-not $script:scanning) { foreach ($row in @($script:rows.Values)) { Invoke-RowTick $row } } })
+$timer.Add_Tick({
+    if (-not $script:scanning) { Invoke-SchedulerTick $script:schedulerClock.ElapsedMilliseconds }
+    foreach ($row in @($script:rows.Values)) { Update-RowStatus $row }
+    Update-BatchControls
+})
 $form.Add_FormClosing({
     $timer.Stop()
     if ($script:scanning) { Finish-RefreshScan }
@@ -596,6 +698,7 @@ try {
         [System.Windows.Forms.Application]::DoEvents()
         if ($UiTest) {
             . (Join-Path $PSScriptRoot 'tests\Refresh.UiTests.ps1')
+            . (Join-Path $PSScriptRoot 'tests\Scheduler.UiTests.ps1')
         }
         if ($PreviewPath) {
             [System.Windows.Forms.Application]::DoEvents()

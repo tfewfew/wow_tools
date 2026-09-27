@@ -1,4 +1,4 @@
-# Dot-sourced only by wowAuto.ps1 -UiTest. All focus/pixel operations use fixtures.
+﻿# Dot-sourced only by wowAuto.ps1 -UiTest. All focus/pixel operations use fixtures.
 function Assert-Ui($Condition, $Message) { if (-not $Condition) { throw $Message } }
 function Complete-TestScan {
     $time = 0L
@@ -14,7 +14,7 @@ $c = @($script:rows.Values | Where-Object { $_.Process.Id -eq 303 })[0]
 $b.Process.ScanColor = 'green'
 $c.Process.ScanColor = 'yellow'
 Assert-Ui ($script:rows.Count -eq 3) 'Expected three rows.'
-Assert-Ui ($header.ClientRectangle.Contains($refreshButton.Bounds)) 'Refresh button outside header.'
+Assert-Ui ($toolbar.ClientRectangle.Contains($refreshButton.Bounds)) 'Refresh button outside header.'
 foreach ($row in $script:rows.Values) {
     Assert-Ui (-not $row.Start.Enabled -and -not $row.Stop.Enabled) 'Unverified row unlocked.'
 }
