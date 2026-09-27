@@ -14,7 +14,7 @@ $script:workerKeys=@(); $script:workerActivations=@()
 $base=$script:schedulerClock.ElapsedMilliseconds+10
 Invoke-SchedulerTick $base
 Invoke-SchedulerTick ($base+200)
-Assert-Ui (($script:workerKeys -join ',') -eq "$($a.Process.Id):49") 'First row did not cast.'
+Assert-Ui (($script:workerKeys -join ',') -eq "$($a.Process.Id):48") 'First row did not cast.'
 Invoke-SchedulerTick ($base+900)
 Assert-Ui ($script:workerKeys.Count -ge 2 -and $script:workerActivations.Count -eq 1) 'Red must keep casting without rotating.'
 $a.Process.ScanColor='green'
@@ -30,7 +30,7 @@ Invoke-SchedulerTick ($base+1900)
 Invoke-SchedulerTick ($base+2100)
 Invoke-SchedulerTick ($base+2825)
 Invoke-SchedulerTick ($base+3025)
-Assert-Ui ($script:workerKeys[-1] -eq "$($b.Process.Id):50") 'Due reel did not preempt red casting.'
+Assert-Ui ($script:workerKeys[-1] -eq "$($b.Process.Id):187") 'Due reel did not preempt red casting.'
 Assert-Ui ($b.State.Mode -eq 'Cooldown' -and $b.State.Deadline -eq $base+4025) 'Reel did not schedule 1-second cooldown.'
 $a.State.Mode='Wait'; $a.State.Deadline=$base+3050
 Add-WowAutoEvent $script:scheduler $a.Key 'Reel' $a.State.Deadline
@@ -42,11 +42,11 @@ Assert-Ui ($script:workerActivations.Count -eq $focusCount -and $script:workerKe
 Invoke-SchedulerTick ($base+3125)
 Assert-Ui ($script:workerActivations.Count -eq $focusCount+1 -and $script:workerFocus -eq $a.Process.Id) 'Overdue window was not selected after hold expiry.'
 Invoke-SchedulerTick ($base+3325)
-Assert-Ui ($script:workerKeys[-1] -eq "$($a.Process.Id):50") 'Deferred reel did not execute.'
+Assert-Ui ($script:workerKeys[-1] -eq "$($a.Process.Id):187") 'Deferred reel did not execute.'
 $a.Process.ScanColor='green'
 Invoke-SchedulerTick ($base+4025)
 Invoke-SchedulerTick ($base+4225)
-Assert-Ui ($script:workerKeys[-1] -eq "$($b.Process.Id):49" -and -not $b.State.ForceNextCast) 'Post-reel green did not force and acknowledge Ctrl+1.'
+Assert-Ui ($script:workerKeys[-1] -eq "$($b.Process.Id):48" -and -not $b.State.ForceNextCast) 'Post-reel green did not force and acknowledge Ctrl+1.'
 Invoke-SchedulerTick ($base+4825)
 Assert-Ui ($b.State.Mode -eq 'Casting' -and $b.State.Deadline -eq 0) 'Stale green started countdown before red was observed.'
 $keyCount=$script:workerKeys.Count

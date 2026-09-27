@@ -34,9 +34,9 @@ $focusBefore=$script:workerActivations.Count
 Invoke-SchedulerTick ($due+2999)
 Assert-Ui ($script:workerKeys.Count -eq $keysBefore -and $script:workerActivations.Count -eq $focusBefore) 'Item wait allowed input or window switching.'
 Invoke-SchedulerTick ($due+3000)
-Assert-Ui ($script:workerKeys.Count -eq $keysBefore+1 -and $script:workerKeys[-1] -eq "$($row.Process.Id):49") 'Casting did not resume after three seconds.'
+Assert-Ui ($script:workerKeys.Count -eq $keysBefore+1 -and $script:workerKeys[-1] -eq "$($row.Process.Id):48") 'Casting did not resume after three seconds.'
 $itemCheck.Checked=$false
 Assert-Ui (-not $script:scheduler.UseItem -and $row.State.ItemDue -eq 0) 'Unchecking left item scheduled.'
 Stop-AllRows
-Set-KeyBinding $script:keyInputs['Item'] 51 $true $false $false
+Set-KeyBinding $script:keyInputs['Item'] 189 $false $false $false
 Write-Output 'PASS: key layout/capture, checkbox binding, configured item dispatch and cancellation. Native input mocked.'

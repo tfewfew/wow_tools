@@ -319,7 +319,7 @@ function Set-KeyBinding($InputBox, [int]$Code, [bool]$Ctrl, [bool]$Shift, [bool]
     $script:keyBindings[$InputBox.Tag]=$binding
     $InputBox.Text=$binding.Text
 }
-foreach ($spec in @(@('Cast','抛竿',12,49), @('Reel','收竿',365,50), @('Item','钓鱼道具',718,51))) {
+foreach ($spec in @(@('Cast','抛竿',12,48), @('Reel','收竿',365,187), @('Item','钓鱼道具',718,189))) {
     $keyLabel=New-Object System.Windows.Forms.Label
     $keyLabel.Text=$spec[1]
     $keyLabel.SetBounds($spec[2], 62, 85, 27)
@@ -334,7 +334,7 @@ foreach ($spec in @(@('Cast','抛竿',12,49), @('Reel','收竿',365,50), @('Item
         $e.SuppressKeyPress=$true; $e.Handled=$true
         Set-KeyBinding $sender ([int]$e.KeyCode) $e.Control $e.Shift $e.Alt
     })
-    Set-KeyBinding $keyInput $spec[3] $true $false $false
+    Set-KeyBinding $keyInput $spec[3] $false $false $false
     $script:keyInputs[$spec[0]]=$keyInput
     $toolbar.Controls.Add($keyInput)
 }
@@ -472,11 +472,11 @@ function New-ProcessRow($Process, $StartTime, [string]$Key) {
     $panel.Controls.Add($nameLabel)
     $minimum = New-Object System.Windows.Forms.NumericUpDown
     $minimum.SetBounds(244, 25, 100, 30)
-    $minimum.Minimum = 1; $minimum.Maximum = 3600000; $minimum.Value = 8000
+    $minimum.Minimum = 1; $minimum.Maximum = 3600000; $minimum.Value = 9000; $minimum.Increment = 1000
     $panel.Controls.Add($minimum)
     $maximum = New-Object System.Windows.Forms.NumericUpDown
     $maximum.SetBounds(354, 25, 100, 30)
-    $maximum.Minimum = 1; $maximum.Maximum = 3600000; $maximum.Value = 13000
+    $maximum.Minimum = 1; $maximum.Maximum = 3600000; $maximum.Value = 13000; $maximum.Increment = 1000
     $panel.Controls.Add($maximum)
     $start = New-Object System.Windows.Forms.Button
     $start.Text = '开始'
