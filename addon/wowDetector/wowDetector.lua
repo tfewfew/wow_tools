@@ -135,7 +135,77 @@ panel:SetScript("OnDragStop", function(self)
 end)
 toggle:SetScript("OnClick", function() SetEnabled(not enabled) end)
 
-panel:SetScript("OnUpdate", function(_, delta)
+local function SetPanelVisible(visible)
+    if not initialized then return end
+    panel:StopMovingOrSizing()
+    SavePosition()
+    wowDetectorDB.panelHidden = not visible
+    if visible then
+        Refresh()
+        panel:Show()
+    else
+        panel:Hide()
+    end
+end
+
+local minimapButton = CreateFrame("Button", "wowDetectorMinimapButton", Minimap)
+minimapButton:SetSize(32, 32)
+minimapButton:SetFrameStrata("MEDIUM")
+minimapButton:SetFrameLevel(Minimap:GetFrameLevel() + 8)
+minimapButton:RegisterForClicks("LeftButtonUp")
+minimapButton:RegisterForDrag("LeftButton")
+minimapButton:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
+local minimapIcon = minimapButton:CreateTexture(nil, "BACKGROUND")
+minimapIcon:SetSize(20, 20)
+minimapIcon:SetPoint("CENTER")
+minimapIcon:SetTexture("Interface\\Icons\\Trade_Fishing")
+local minimapBorder = minimapButton:CreateTexture(nil, "OVERLAY")
+minimapBorder:SetSize(54, 54)
+minimapBorder:SetPoint("TOPLEFT")
+minimapBorder:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
+
+local function PositionMinimapButton()
+    local angle = math.rad(wowDetectorDB.minimapAngle or 225)
+    local x, y = math.cos(angle), math.sin(angle)
+    -- Follow the minimap edge; also support square minimaps.
+    local shape = GetMinimapShape and GetMinimapShape() or "ROUND"
+    if shape == "SQUARE" then
+        local edge = math.max(math.abs(x), math.abs(y))
+        x, y = x / edge, y / edge
+    end
+    minimapButton:ClearAllPoints()
+    minimapButton:SetPoint("CENTER", Minimap, "CENTER",
+        x * (Minimap:GetWidth() / 2 + 6), y * (Minimap:GetHeight() / 2 + 6))
+end
+
+minimapButton:SetScript("OnClick", function()
+    SetPanelVisible(not panel:IsShown())
+end)
+minimapButton:SetScript("OnDragStart", function(self)
+    if not initialized then return end
+    GameTooltip:Hide()
+    self:SetScript("OnUpdate", function()
+        local x, y = GetCursorPosition()
+        local cx, cy = Minimap:GetCenter()
+        local scale = Minimap:GetEffectiveScale()
+        wowDetectorDB.minimapAngle = math.deg(math.atan2(y / scale - cy, x / scale - cx)) % 360
+        PositionMinimapButton()
+    end)
+end)
+minimapButton:SetScript("OnDragStop", function(self) self:SetScript("OnUpdate", nil) end)
+minimapButton:SetScript("OnHide", function(self) self:SetScript("OnUpdate", nil) end)
+minimapButton:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+    GameTooltip:AddLine("wowDetector")
+    GameTooltip:AddLine("左键：显示/隐藏检测界面", 1, 1, 1)
+    GameTooltip:AddLine("拖动：调整小地图入口位置", 1, 1, 1)
+    GameTooltip:Show()
+end)
+minimapButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+-- Keep state updates active even while the control panel is hidden.
+local updates = CreateFrame("Frame")
+updates:SetScript("OnUpdate", function(_, delta)
     if not enabled then return end
     elapsed = elapsed + delta
     if elapsed >= 0.1 then
@@ -168,7 +238,10 @@ panel:SetScript("OnEvent", function(_, event, unit)
         initialized = true
         enabled = false
         Paint("disabled")
-        Say("已加载，默认关闭。点击“启动”或输入 /wowdetector on。")
+        if type(wowDetectorDB.minimapAngle) ~= "number" then wowDetectorDB.minimapAngle = 225 end
+        PositionMinimapButton()
+        if wowDetectorDB.panelHidden then panel:Hide() else panel:Show() end
+        Say("已加载，默认关闭。小地图入口显示/隐藏界面；点击“启动”或输入 /wowdetector on。")
     elseif event == "PLAYER_ENTERING_WORLD" or event == "BAG_UPDATE_DELAYED" or unit == "player" then
         Refresh()
     end
@@ -179,7 +252,12 @@ SLASH_WOWDETECTOR2 = "/fishstate"
 SlashCmdList.WOWDETECTOR = function(message)
     local command = (message or ""):match("^%s*(%S*)"):lower()
     if command == "on" then
+        SetPanelVisible(true)
         SetEnabled(true)
+    elseif command == "show" then
+        SetPanelVisible(true)
+    elseif command == "hide" then
+        SetPanelVisible(false)
     elseif command == "off" then
         SetEnabled(false)
     elseif command == "toggle" or command == "" then
@@ -203,7 +281,7 @@ SlashCmdList.WOWDETECTOR = function(message)
         local name, _, _, _, _, _, _, id = UnitChannelInfo("player")
         Say("状态=" .. state .. "；普通背包空格=" .. tostring(freeSlots) .. "；引导=" .. tostring(name) .. "；技能ID=" .. tostring(id))
     else
-        Say("命令：/wowdetector on | off | toggle | unlock | lock | center | reset | status")
+        Say("命令：/wowdetector on | off | toggle | show | hide | unlock | lock | center | reset | status")
     end
 end
 
