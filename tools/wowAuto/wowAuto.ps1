@@ -1,7 +1,5 @@
-# Sends only while the selected WowClassic.exe window is foreground; never activates windows.
-# Switch back to this PowerShell window and press Ctrl+C to stop.
+﻿param([string]$PreviewPath)
 $ErrorActionPreference = 'Stop'
-
 if (-not ('WowAuto.NativeInput' -as [type])) {
     Add-Type -TypeDefinition @"
 using System;
@@ -167,117 +165,191 @@ namespace WowAuto
 "@
 }
 
-$targets = @(Get-Process -Name 'WowClassic' -ErrorAction SilentlyContinue)
-if ($targets.Count -eq 0) { throw 'WowClassic.exe is not running. Start the game first.' }
-if ($targets.Count -ne 1) { throw 'Multiple WowClassic.exe processes found. Keep only one game instance open.' }
-$targetProcessId = $targets[0].Id
-$targetStartTime = $targets[0].StartTime
-Write-Host "Selected WowClassic.exe, PID $targetProcessId."
 
-Write-Host 'Pixel loop: sample the CENTER every random 300-600 ms; consecutive intervals differ.'
-Write-Host 'RED: Ctrl+1. GREEN: wait random 8000-13000 ms, Ctrl+2, then pause detection for 1000 ms. YELLOW: terminate selected game and stop.'
-Write-Host 'No window activation. Background/minimized: pause and cancel pending interaction; check every 500 ms.'
-Write-Host 'Return to the game: restart color detection. Gray/unknown colors: no action.'
-Write-Host 'In game, use /wowdetector center and /wowdetector on before starting.'
-Write-Host 'To stop: switch back to this PowerShell window and press Ctrl+C.'
-Write-Host 'Release modifier keys and switch to the game during the countdown.'
-for ($seconds = 5; $seconds -gt 0; $seconds--) {
-    Write-Host "Starting in $seconds..."
-    Start-Sleep -Seconds 1
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+. (Join-Path $PSScriptRoot 'wowAuto.Engine.ps1')
+[System.Windows.Forms.Application]::EnableVisualStyles()
+
+$script:state = $null
+$script:target = $null
+$script:targetStartTime = $null
+$script:clock = [System.Diagnostics.Stopwatch]::StartNew()
+$form = New-Object System.Windows.Forms.Form
+$form.Text = 'wowAuto'
+$form.ClientSize = New-Object System.Drawing.Size(640, 490)
+$form.StartPosition = 'CenterScreen'
+$form.FormBorderStyle = 'FixedDialog'
+$form.MaximizeBox = $false
+$form.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 10)
+$form.BackColor = [System.Drawing.Color]::FromArgb(245, 247, 250)
+$form.AutoScaleMode = 'Dpi'
+
+function Add-Label($Text, $X, $Y, $Width, $Height) {
+    $control = New-Object System.Windows.Forms.Label
+    $control.Text = $Text
+    $control.SetBounds($X, $Y, $Width, $Height)
+    $form.Controls.Add($control)
+    return $control
+}
+$title = Add-Label 'wowAuto' 24 18 300 38
+$title.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 21, [System.Drawing.FontStyle]::Bold)
+$null = Add-Label '前台钓鱼工具 · 配合 wowDetector 使用' 26 62 580 28
+$null = Add-Label '收竿等待范围（毫秒）' 26 104 580 28
+$null = Add-Label '最小值' 26 147 65 28
+$minimum = New-Object System.Windows.Forms.NumericUpDown
+$minimum.SetBounds(94, 143, 165, 32)
+$minimum.Minimum = 1
+$minimum.Maximum = 3600000
+$minimum.Value = 8000
+$minimum.Increment = 1
+$minimum.ThousandsSeparator = $false
+$form.Controls.Add($minimum)
+$null = Add-Label '最大值' 313 147 65 28
+$maximum = New-Object System.Windows.Forms.NumericUpDown
+$maximum.SetBounds(380, 143, 165, 32)
+$maximum.Minimum = 1
+$maximum.Maximum = 3600000
+$maximum.Value = 13000
+$maximum.Increment = 1
+$maximum.ThousandsSeparator = $false
+$form.Controls.Add($maximum)
+$null = Add-Label 'ms' 552 147 50 28
+
+$startButton = New-Object System.Windows.Forms.Button
+$startButton.Text = '开始'
+$startButton.SetBounds(26, 195, 278, 43)
+$startButton.BackColor = [System.Drawing.Color]::FromArgb(35, 100, 210)
+$startButton.ForeColor = [System.Drawing.Color]::White
+$startButton.FlatStyle = 'Flat'
+$form.Controls.Add($startButton)
+$stopButton = New-Object System.Windows.Forms.Button
+$stopButton.Text = '停止'
+$stopButton.SetBounds(320, 195, 294, 43)
+$stopButton.Enabled = $false
+$form.Controls.Add($stopButton)
+$null = Add-Label '当前状态' 26 258 580 28
+$statusBox = New-Object System.Windows.Forms.TextBox
+$statusBox.SetBounds(26, 290, 588, 120)
+$statusBox.Multiline = $true
+$statusBox.ReadOnly = $true
+$statusBox.ScrollBars = 'Vertical'
+$statusBox.BackColor = [System.Drawing.Color]::White
+$statusBox.Text = '尚未开始。' + "`r`n" + '请先在游戏插件中点击“启动”，再在这里点击“开始”。'
+$form.Controls.Add($statusBox)
+$note = Add-Label "切回游戏后自动检测；切出游戏暂停。`r`n背包黄色信号会结束选中的游戏进程；关闭本窗口会停止工具。" 26 428 588 50
+$note.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 9)
+$note.ForeColor = [System.Drawing.Color]::FromArgb(80, 88, 100)
+
+function Set-RunningControls([bool]$Running) {
+    $startButton.Enabled = -not $Running
+    $stopButton.Enabled = $Running
+    $minimum.Enabled = -not $Running
+    $maximum.Enabled = -not $Running
 }
 
-function Get-NextDetectionInterval {
-    param([int]$Previous = -1)
-    if ($Previous -lt 300 -or $Previous -gt 600) {
-        return (Get-Random -Minimum 300 -Maximum 601)
-    }
-    # Choose uniformly from the 300 remaining values, excluding the previous value.
-    $next = Get-Random -Minimum 300 -Maximum 600
-    if ($next -ge $Previous) { $next++ }
-    return $next
-}
-
-$lastDetectionIntervalMs = -1
-$lastColor = ''
-$wasForeground = $false
-$interactionDueMs = $null
-$resumeDetectionAtMs = $null
-$sessionClock = [System.Diagnostics.Stopwatch]::StartNew()
-try {
-    while ($true) {
-        $pollTimer = [System.Diagnostics.Stopwatch]::StartNew()
-        if (-not [WowAuto.NativeInput]::IsTargetForeground($targetProcessId)) {
-            if ($wasForeground) { Write-Host 'Paused: game is not foreground. Pending interaction cancelled.' }
-            $wasForeground = $false
-            $resumeDetectionAtMs = $null
-            $interactionDueMs = $null
-            $lastColor = ''
+function Update-StatusBox {
+    if ($null -eq $script:state) { return }
+    $text = $script:state.Status
+    if ($script:state.Running) {
+        $text += "`r`n目标：WowClassic.exe（PID $($script:target.Id)）"
+        $text += "`r`n等待范围：$($script:state.MinimumMs)–$($script:state.MaximumMs) ms"
+        if ($script:state.Mode -in @('Wait', 'Cooldown')) {
+            $remaining = [Math]::Max(0, $script:state.Deadline - $script:clock.ElapsedMilliseconds)
+            $text += "`r`n剩余：$remaining ms"
         }
-        else {
-            if (-not $wasForeground) { Write-Host 'Game is foreground. Starting fresh color detection.' }
-            $wasForeground = $true
-            if ($null -ne $resumeDetectionAtMs -and $sessionClock.ElapsedMilliseconds -ge $resumeDetectionAtMs) {
-                $resumeDetectionAtMs = $null
+    }
+    if ($statusBox.Text -ne $text) { $statusBox.Text = $text }
+}
+
+$timer = New-Object System.Windows.Forms.Timer
+$timer.Interval = 25
+$startButton.Add_Click({
+    try {
+        # Read the edited text as well as Value, including edits not yet committed by the control.
+        $minText = $minimum.Text.Trim()
+        $maxText = $maximum.Text.Trim()
+        if ($minText -notmatch '^\d+$' -or $maxText -notmatch '^\d+$') { throw '请输入整数毫秒值。' }
+        $newState = New-WowAutoState -MinimumMs ([int]$minText) -MaximumMs ([int]$maxText)
+        $targets = @(Get-Process -Name 'WowClassic' -ErrorAction SilentlyContinue)
+        if ($targets.Count -eq 0) { throw '未找到 WowClassic.exe，请先启动游戏。' }
+        if ($targets.Count -ne 1) { throw '检测到多个游戏实例，请只保留一个后重试。' }
+        $script:target = $targets[0]
+        $script:targetStartTime = $script:target.StartTime
+        $script:state = $newState
+        $script:clock.Restart()
+        Set-RunningControls $true
+        $timer.Start()
+        Update-StatusBox
+    }
+    catch { $statusBox.Text = '无法开始：' + $_.Exception.Message }
+})
+$stopButton.Add_Click({
+    $timer.Stop()
+    if ($null -ne $script:state) { Stop-WowAutoState $script:state '已停止，当前等待已取消。' }
+    Set-RunningControls $false
+    Update-StatusBox
+})
+$timer.Add_Tick({
+    try {
+        if ($null -eq $script:state -or -not $script:state.Running) { return }
+        $now = $script:clock.ElapsedMilliseconds
+        if ($now -ge $script:state.NextDue) {
+            $script:target.Refresh()
+            if ($script:target.HasExited) { throw '游戏进程已退出。' }
+            if ($script:target.ProcessName -ne 'WowClassic' -or $script:target.StartTime -ne $script:targetStartTime) {
+                throw '目标进程身份已改变，工具已停止。'
             }
+            $foreground = [WowAuto.NativeInput]::IsTargetForeground($script:target.Id)
             $color = 'unknown'
-            if ($null -eq $resumeDetectionAtMs) {
-                $color = [WowAuto.NativeInput]::ReadCenterColor($targetProcessId)
+            if ($foreground -and $script:state.Mode -ne 'Cooldown') {
+                $color = [WowAuto.NativeInput]::ReadCenterColor($script:target.Id)
             }
-            if ($color -eq 'yellow') {
-                Write-Host 'Bags full (yellow). Terminating the selected WowClassic process and stopping.'
-                $targetToStop = Get-Process -Id $targetProcessId -ErrorAction SilentlyContinue
-                if ($null -ne $targetToStop) {
-                    if ($targetToStop.ProcessName -ne 'WowClassic' -or $targetToStop.StartTime -ne $targetStartTime) {
-                        throw 'Target process identity changed. No process was terminated.'
+            $action = Invoke-WowAutoState $script:state $now $foreground $color
+            switch ($action) {
+                'Ctrl1' { $null = [WowAuto.NativeInput]::PressCtrlNumber($script:target.Id, 0x31) }
+                'Ctrl2' {
+                    $sent = [WowAuto.NativeInput]::PressCtrlNumber($script:target.Id, 0x32)
+                    Complete-WowAutoInteraction $script:state $script:clock.ElapsedMilliseconds $sent
+                }
+                'ExitGame' {
+                    $timer.Stop()
+                    # Kill the retained Process object, never reselect a process by name.
+                    $script:target.Refresh()
+                    if (-not $script:target.HasExited) {
+                        if ($script:target.StartTime -ne $script:targetStartTime) { throw '进程身份已改变，未结束任何进程。' }
+                        $script:target.Kill()
                     }
-                    Stop-Process -InputObject $targetToStop -Force -ErrorAction Stop
-                    if (-not $targetToStop.WaitForExit(5000)) { throw 'The selected game process did not exit within 5 seconds.' }
-                }
-                break
-            }
-            if ($null -ne $interactionDueMs) {
-                # While waiting, check focus and the full-bag signal every 500 ms.
-                if ($sessionClock.ElapsedMilliseconds -ge $interactionDueMs) {
-                    $sentInteraction = [WowAuto.NativeInput]::PressCtrlNumber($targetProcessId, 0x32)
-                    if ($sentInteraction) {
-                        $resumeDetectionAtMs = $sessionClock.ElapsedMilliseconds + 1000
-                        Write-Host 'Ctrl+2 sent. Waiting 1000 ms before resuming color detection.'
-                    }
-                    $interactionDueMs = $null
-                    $lastColor = ''
-                }
-            }
-            elseif ($null -eq $resumeDetectionAtMs) {
-                if ($color -ne $lastColor) {
-                    Write-Host "Center pixel: $color"
-                    $lastColor = $color
-                }
-                if ($color -eq 'red') {
-                    $null = [WowAuto.NativeInput]::PressCtrlNumber($targetProcessId, 0x31)
-                }
-                elseif ($color -eq 'green') {
-                    $delayMs = Get-Random -Minimum 8000 -Maximum 13001
-                    $interactionDueMs = $sessionClock.ElapsedMilliseconds + $delayMs
-                    Write-Host "Waiting $delayMs ms before Ctrl+2; focus and yellow checks continue."
+                    $script:state.Status = '背包已满，已发送结束游戏进程的请求；工具已停止。'
+                    Set-RunningControls $false
                 }
             }
         }
-        $pollIntervalMs = 500
-        if ($wasForeground -and $null -eq $interactionDueMs -and $null -eq $resumeDetectionAtMs) {
-            $pollIntervalMs = Get-NextDetectionInterval -Previous $lastDetectionIntervalMs
-            $lastDetectionIntervalMs = $pollIntervalMs
-        }
-        $remainingMs = [Math]::Max(0, $pollIntervalMs - [int]$pollTimer.ElapsedMilliseconds)
-        # Wake at the actual deadline instead of rounding random waits to 500 ms.
-        foreach ($deadline in @($interactionDueMs, $resumeDetectionAtMs)) {
-            if ($null -ne $deadline) {
-                $untilDeadline = [Math]::Max(0, $deadline - $sessionClock.ElapsedMilliseconds)
-                $remainingMs = [Math]::Min($remainingMs, $untilDeadline)
-            }
-        }
-        if ($remainingMs -gt 0) { Start-Sleep -Milliseconds ([int]$remainingMs) }
+        Update-StatusBox
     }
+    catch {
+        $timer.Stop()
+        if ($null -ne $script:state) { Stop-WowAutoState $script:state ('已停止：' + $_.Exception.Message) }
+        Set-RunningControls $false
+        Update-StatusBox
+    }
+})
+$form.Add_FormClosing({
+    $timer.Stop()
+    if ($null -ne $script:state) { Stop-WowAutoState $script:state }
+})
+try {
+    if ($PreviewPath) {
+        # Briefly render the initial, stopped UI without starting automation.
+        $form.Show()
+        [System.Windows.Forms.Application]::DoEvents()
+        $bitmap = New-Object System.Drawing.Bitmap($form.Width, $form.Height)
+        try {
+            $form.DrawToBitmap($bitmap, (New-Object System.Drawing.Rectangle(0, 0, $form.Width, $form.Height)))
+            $bitmap.Save($PreviewPath, [System.Drawing.Imaging.ImageFormat]::Png)
+        }
+        finally { $bitmap.Dispose() }
+    }
+    else { [void]$form.ShowDialog() }
 }
-finally {
-    Write-Host 'Pixel loop stopped.'
-}
+finally { $timer.Dispose(); $form.Dispose() }

@@ -5,7 +5,7 @@ description: 维护 wow_tools 仓库中的 wowDetector 游戏状态插件和 wow
 
 # wow_tools
 
-源码仓库：`C:\code\wow_tools`，远端 `origin`。插件源码在 `addon/wowDetector/`，脚本在 `tools/wowAuto/wowAuto.ps1` 和 `tools/wowAuto/wowAuto.bat`，使用说明在 `tools/wowAuto/README.md`。不要再把游戏目录或桌面副本当作修改源。
+源码仓库：`C:\code\wow_tools`，远端 `origin`。插件源码在 `addon/wowDetector/`，图形工具在 `tools/wowAuto/`（wowAuto.ps1、wowAuto.Engine.ps1、wowAuto.bat），使用说明在该目录 README.md。不要再把游戏目录或桌面副本当作修改源。
 
 ## 修改与同步顺序
 
@@ -18,7 +18,7 @@ description: 维护 wow_tools 仓库中的 wowDetector 游戏状态插件和 wow
 ## 安装目标
 
 - 游戏：`C:\Program Files (x86)\World of Warcraft\_classic_titan_\Interface\AddOns\wowDetector`。
-- 桌面：通过 Windows Desktop 特殊文件夹解析，安装 `wowAuto.ps1` 和 `wowAuto.bat`。
+- 桌面：通过 Windows Desktop 特殊文件夹解析，安装 `wowAuto.ps1`、`wowAuto.Engine.ps1` 和 `wowAuto.bat`。
 - 同步脚本将旧 `FishingState` 插件移到仓库忽略目录 `.local-backups`，避免两个插件同时运行；旧桌面文件保留为转发到 `wowAuto` 的入口。
 - 不提交本机备份、游戏配置、SavedVariables 或外部依赖。
 
@@ -28,6 +28,8 @@ description: 维护 wow_tools 仓库中的 wowDetector 游戏状态插件和 wow
 - 绿色表示钓鱼，红色表示非钓鱼，黄色表示随身普通背包空格为零，灰色表示关闭或数据未知。黄色优先于红绿。排除银行、材料及专用背包；不估算现有物品剩余堆叠容量。
 - “启动”按钮和 on 命令将色块中心对齐客户区中心、保存位置并锁定；关闭时解锁。无独立居中按钮，center 命令仍兼容。运行中不允许拖动或用 unlock 解锁；登录或重载默认关闭且解锁。
 - wowAuto 只操作启动时选定的唯一 `WowClassic.exe`；不激活窗口。后台时每500ms检查，取消未完成的等待；回到前台重新检测。
-- 正常颜色检测间隔随机300–600ms，相邻值不重复。红色发Ctrl+1；绿色等待随机8000–13000ms再发Ctrl+2；发送完成后暂停颜色检测1000ms。
+- 图形窗口默认未启动，提供开始/停止、实时状态和ms范围输入。范围默认为8000–13000，允许1–3600000整数且下限不大于上限，运行时锁定输入；停止取消等待，关闭窗口停止并退出。使用非阻塞定时器保持按钮响应。
+- 正常颜色检测间隔随机300–600ms，相邻值不重复。红色发Ctrl+1；绿色按输入范围随机等待整数毫秒再发Ctrl+2；发送完成后暂停颜色检测1000ms。
 - 收竿前等待期间每500ms检查前台状态和黄色，临近截止时间提前唤醒，避免把毫秒随机值取整成500ms。
-- 黄色会核对进程名及启动时间后强制结束选定游戏进程，并退出脚本。用户已明确要求此运行行为；不要在部署时启动脚本触发它。
+- 黄色会核对进程名及启动时间后强制结束选定游戏进程，并停止运行，窗口保留结果。用户已明确要求此运行行为；不要在部署时点击开始触发它。
+- `tools/wowAuto/tests/Engine.Tests.ps1` 验证纯状态逻辑；GUI 的 PreviewPath 参数可渲染初始未启动窗口。不要用真实按键/结束游戏验证 GUI。

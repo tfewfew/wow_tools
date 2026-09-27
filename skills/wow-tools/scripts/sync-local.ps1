@@ -37,7 +37,7 @@ New-Item -ItemType Directory -Path $targetAddon -Force | Out-Null
 foreach ($name in @('wowDetector.lua', 'wowDetector.toc')) {
     Copy-Verified (Join-Path $repo "addon\wowDetector\$name") (Join-Path $targetAddon $name) $name
 }
-foreach ($name in @('wowAuto.ps1', 'wowAuto.bat')) {
+foreach ($name in @('wowAuto.ps1', 'wowAuto.bat', 'wowAuto.Engine.ps1')) {
     Copy-Verified (Join-Path $repo "tools\wowAuto\$name") (Join-Path $desktop $name) $name
 }
 
