@@ -607,7 +607,7 @@ function Send-WorkerKey($Row, [int]$Number) {
         $script:workerKeys += "$($Row.Process.Id):$Number"
         return (Test-WorkerForeground $Row)
     }
-    return [WowAuto.NativeInput]::PressCtrlNumber($Row.Process.Id, [ushort]$Number)
+    return [WowAuto.NativeInput]::PressCtrlNumber($Row.Process.Id, [System.UInt16]$Number)
 }
 function Close-WorkerGame($Row) {
     $cycles=Get-WowAutoCycleCount $script:scheduler $Row.Key
