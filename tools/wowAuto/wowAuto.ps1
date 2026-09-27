@@ -65,6 +65,36 @@ namespace WowAuto
         [DllImport("user32.dll")]
         private static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
 
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr window);
+        [DllImport("user32.dll")]
+        private static extern bool ShowWindowAsync(IntPtr window, int command);
+        [DllImport("user32.dll")]
+        private static extern bool IsWindow(IntPtr window);
+
+        public static IntPtr CurrentWindow() { return GetForegroundWindow(); }
+
+        // Called only during an explicit refresh scan, never by the automation loop.
+        public static bool ActivateForScan(int processId, long startTimeTicks)
+        {
+            using (System.Diagnostics.Process target = System.Diagnostics.Process.GetProcessById(processId))
+            {
+                if (!String.Equals(target.ProcessName, "WowClassic", StringComparison.OrdinalIgnoreCase)
+                    || target.StartTime.Ticks != startTimeTicks) return false;
+                IntPtr window = target.MainWindowHandle;
+                if (window == IntPtr.Zero) return false;
+                if (IsIconic(window)) ShowWindowAsync(window, 9);
+                SetForegroundWindow(window);
+                return true; // The scan verifies actual foreground ownership before sampling.
+            }
+        }
+
+        public static bool RestoreAfterScan(IntPtr window)
+        {
+            return window != IntPtr.Zero && IsWindow(window) && SetForegroundWindow(window);
+        }
+
+
         public static bool IsTargetForeground(int targetProcessId)
         {
             using (System.Diagnostics.Process target = System.Diagnostics.Process.GetProcessById(targetProcessId))
@@ -173,6 +203,11 @@ Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
 $script:rows = @{}
 $script:mockProcesses = @()
+$script:scanning = $false
+$script:scanClock = [System.Diagnostics.Stopwatch]::StartNew()
+$script:scanOriginalWindow = [IntPtr]::Zero
+$script:scanOrder = @()
+$script:restored = $false
 $form = New-Object System.Windows.Forms.Form
 $form.Text = 'wowAuto'
 $form.ClientSize = New-Object System.Drawing.Size(1160, 460)
@@ -213,7 +248,7 @@ $intro = New-Object System.Windows.Forms.Label
 $intro.Dock = 'Top'
 $intro.Height = 44
 $intro.Padding = New-Object System.Windows.Forms.Padding(12, 12, 0, 0)
-$intro.Text = '每行独立控制一个游戏进程。先在游戏插件中启动检测，再点击对应行的开始。'
+$intro.Text = '先在游戏插件中启动检测，再点刷新；逐个切换窗口，红色或绿色通过后开放按钮。'
 $headings = New-Object System.Windows.Forms.Panel
 $headings.Dock = 'Top'
 $headings.Height = 32
@@ -247,8 +282,9 @@ function Get-WowAutoProcesses {
 
 function Set-RowControls($Row) {
     $running = $null -ne $Row.State -and $Row.State.Running
-    $Row.Start.Enabled = -not $running -and $null -ne $Row.StartTime -and -not $Row.Exited
-    $Row.Stop.Enabled = $running
+    $eligible = $Row.Validated -and -not $script:scanning -and $null -ne $Row.StartTime -and -not $Row.Exited
+    $Row.Start.Enabled = $eligible -and -not $running
+    $Row.Stop.Enabled = $eligible
     $Row.Minimum.Enabled = -not $running
     $Row.Maximum.Enabled = -not $running
 }
@@ -273,6 +309,7 @@ function Stop-Row($Row, [string]$Reason = '已停止，当前等待已取消。'
 
 function Start-Row($Row) {
     try {
+        if (-not $Row.Validated -or $script:scanning) { throw '请先刷新并通过红色/绿色检测。' }
         if ($null -ne $Row.State -and $Row.State.Running) { return }
         $minText = $Row.Minimum.Text.Trim()
         $maxText = $Row.Maximum.Text.Trim()
@@ -330,10 +367,10 @@ function New-ProcessRow($Process, $StartTime, [string]$Key) {
     $status.ReadOnly = $true
     $status.ScrollBars = 'Vertical'
     $status.BackColor = [System.Drawing.Color]::White
-    $status.Text = '尚未开始。'
+    $status.Text = '尚未验证，请点击刷新进程。'
     $panel.Controls.Add($status)
     $row = [pscustomobject]@{
-        Key=$Key; Process=$Process; StartTime=$StartTime; Exited=$false
+        Key=$Key; Process=$Process; StartTime=$StartTime; Exited=$false; Validated=$false
         Panel=$panel; Name=$nameLabel; Minimum=$minimum; Maximum=$maximum
         Start=$start; Stop=$stop; Status=$status; State=$null
         Clock=[System.Diagnostics.Stopwatch]::StartNew()
@@ -379,9 +416,123 @@ function Refresh-ProcessRows {
         $countLabel.Text = "检测到 $($processes.Count) 个 WowClassic.exe 进程"
         if ($processes.Count -eq 0) { $countLabel.Text += '，启动游戏后点击刷新。' }
     }
-    catch { $countLabel.Text = '刷新失败：' + $_.Exception.Message }
+    catch { $countLabel.Text = '刷新失败：' + $_.Exception.Message; return $false }
+    return $true
 }
-$refreshButton.Add_Click({ Refresh-ProcessRows })
+function Activate-ScanRow($Row) {
+    if ($UiTest) {
+        $script:scanOrder += $Row.Process.Id
+        return $Row.Process.FocusAllowed
+    }
+    return [WowAuto.NativeInput]::ActivateForScan($Row.Process.Id, $Row.StartTime.Ticks)
+}
+
+function Read-ScanColor($Row) {
+    $Row.Process.Refresh()
+    if ($Row.Process.HasExited -or $Row.Process.StartTime -ne $Row.StartTime -or $Row.Process.ProcessName -ne 'WowClassic') {
+        throw '进程已退出或身份改变。'
+    }
+    if ($UiTest) { return $Row.Process.ScanColor }
+    if (-not [WowAuto.NativeInput]::IsTargetForeground($Row.Process.Id)) { return 'not-foreground' }
+    return [WowAuto.NativeInput]::ReadCenterColor($Row.Process.Id)
+}
+
+function Finish-RefreshScan {
+    $scanTimer.Stop()
+    $script:scanning = $false
+    $refreshButton.Enabled = $true
+    foreach ($row in $script:rows.Values) { Set-RowControls $row }
+    $passed = @($script:rows.Values | Where-Object { $_.Validated }).Count
+    $countLabel.Text = "检测到 $($script:rows.Count) 个进程，$passed 个通过红/绿检测。"
+    if ($UiTest) { $script:restored = $true }
+    elseif ($script:scanOriginalWindow -ne [IntPtr]::Zero) {
+        $restored = [WowAuto.NativeInput]::RestoreAfterScan($script:scanOriginalWindow)
+        if (-not $restored) { $countLabel.Text += ' 请手动切回工具窗口。' }
+    }
+    $script:scanOriginalWindow = [IntPtr]::Zero
+}
+
+function Begin-RefreshScan {
+    if ($script:scanning) { return }
+    $script:scanning = $true
+    $refreshButton.Enabled = $false
+    $script:scanOriginalWindow = if ($UiTest) { [IntPtr]::Zero } else { [WowAuto.NativeInput]::CurrentWindow() }
+    # Stop all work before changing focus; scanning must never trigger input or termination.
+    foreach ($row in $script:rows.Values) {
+        $row.Validated = $false
+        Stop-Row $row '刷新前已停止，等待重新检测。'
+    }
+    if (-not (Refresh-ProcessRows)) {
+        Finish-RefreshScan
+        $countLabel.Text = '刷新进程失败，请重试。'
+        return
+    }
+    $script:scanQueue = @($script:rows.Values | Sort-Object { $_.Process.Id })
+    foreach ($row in $script:scanQueue) {
+        $row.Validated = $false
+        $row.State = $null
+        $row.Status.Text = '等待前台颜色检测。'
+        Set-RowControls $row
+    }
+    $script:scanIndex = 0
+    $script:scanPhase = 'Activate'
+    $script:scanDue = 0L
+    $script:scanClock.Restart()
+    if ($script:scanQueue.Count -eq 0) { Finish-RefreshScan; return }
+    if (-not $UiTest) { $scanTimer.Start() }
+}
+
+function Invoke-RefreshScan([long]$Now) {
+    if (-not $script:scanning -or $Now -lt $script:scanDue) { return }
+    if ($script:scanIndex -ge $script:scanQueue.Count) { Finish-RefreshScan; return }
+    $row = $script:scanQueue[$script:scanIndex]
+    try {
+        if ($script:scanPhase -eq 'Activate') {
+            $countLabel.Text = "检测中：$($script:scanIndex + 1)/$($script:scanQueue.Count)，PID $($row.Process.Id)"
+            if ($null -eq $row.StartTime -or -not (Activate-ScanRow $row)) { throw '无法激活游戏窗口。' }
+            $row.Status.Text = '正在切换到前台并等待画面刷新。'
+            $script:scanPhase = 'Sample'
+            $script:scanDue = $Now + 200
+            $script:scanTimeout = $Now + 800
+            return
+        }
+        $color = Read-ScanColor $row
+        if ($color -in @('red', 'green')) {
+            $row.Validated = $true
+            $label = if ($color -eq 'red') { '红色' } else { '绿色' }
+            $row.Status.Text = "检测通过（$label），可以开始。"
+        }
+        elseif ($color -eq 'yellow') {
+            $row.Status.Text = '黄色：背包已满，未开放按钮。'
+        }
+        elseif ($Now -lt $script:scanTimeout) {
+            $script:scanDue = $Now + 100
+            return
+        }
+        else {
+            $row.Status.Text = if ($color -eq 'not-foreground') { '未获得前台焦点，请重试刷新。' } else { '未检测到红色或绿色，请启用插件后刷新。' }
+        }
+    }
+    catch { $row.Validated = $false; $row.Status.Text = '检测失败：' + $_.Exception.Message }
+    Set-RowControls $row
+    $script:scanIndex++
+    $script:scanPhase = 'Activate'
+    $script:scanDue = $Now
+    if ($script:scanIndex -ge $script:scanQueue.Count) { Finish-RefreshScan }
+}
+
+$scanTimer = New-Object System.Windows.Forms.Timer
+$scanTimer.Interval = 50
+$scanTimer.Add_Tick({
+    try { Invoke-RefreshScan $script:scanClock.ElapsedMilliseconds }
+    catch {
+        foreach ($row in $script:rows.Values) { $row.Validated = $false; Stop-Row $row '扫描异常，请重新刷新。' }
+        Finish-RefreshScan
+        $countLabel.Text = '扫描失败：' + $_.Exception.Message
+    }
+})
+$refreshButton.Add_Click({ Begin-RefreshScan })
+
 $list.Add_SizeChanged({
     foreach ($row in $script:rows.Values) { $row.Panel.Width = [Math]::Max(1000, $list.ClientSize.Width - 32) }
 })
@@ -421,9 +572,11 @@ function Invoke-RowTick($Row) {
 }
 $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 25
-$timer.Add_Tick({ foreach ($row in @($script:rows.Values)) { Invoke-RowTick $row } })
+$timer.Add_Tick({ if (-not $script:scanning) { foreach ($row in @($script:rows.Values)) { Invoke-RowTick $row } } })
 $form.Add_FormClosing({
     $timer.Stop()
+    if ($script:scanning) { Finish-RefreshScan }
+    $scanTimer.Stop()
     foreach ($row in $script:rows.Values) { Stop-Row $row }
 })
 
@@ -431,39 +584,18 @@ try {
     if ($UiTest) {
         # Test fixtures are never passed to native input, capture, or termination.
         foreach ($id in @(101, 202, 303)) {
-            $mock = [pscustomobject]@{ Id=$id; StartTime=[datetime]'2026-09-27'; ProcessName='WowClassic'; MainWindowTitle="测试游戏 $id"; HasExited=$false }
+            $mock = [pscustomobject]@{ Id=$id; StartTime=[datetime]'2026-09-27'; ProcessName='WowClassic'; MainWindowTitle="测试游戏 $id"; HasExited=$false; FocusAllowed=$true; ScanColor='red' }
             $mock | Add-Member ScriptMethod Refresh { }
             $script:mockProcesses += $mock
         }
     }
-    Refresh-ProcessRows
+    $null = Refresh-ProcessRows
     if (-not $PreviewPath -and -not $UiTest) { $timer.Start() }
     if ($PreviewPath -or $UiTest) {
         $form.Show()
         [System.Windows.Forms.Application]::DoEvents()
         if ($UiTest) {
-            # Resolve by Id rather than relying on local date parsing.
-            $a = @($script:rows.Values | Where-Object { $_.Process.Id -eq 101 })[0]
-            $b = @($script:rows.Values | Where-Object { $_.Process.Id -eq 202 })[0]
-            if ($script:rows.Count -ne 3) { throw 'Expected three rows.' }
-            if (-not $header.ClientRectangle.Contains($refreshButton.Bounds)) { throw 'Refresh button outside header.' }
-            $a.Start.PerformClick()
-            $b.Minimum.Value = 2345; $b.Maximum.Value = 6789
-            $b.Start.PerformClick()
-            if (-not $a.State.Running -or -not $b.State.Running -or $b.State.MinimumMs -ne 2345 -or $a.State.MinimumMs -ne 8000) { throw 'Independent start/range failed.' }
-            $refreshButton.PerformClick()
-            if ($script:rows[$a.Key] -ne $a -or -not $a.State.Running) { throw 'Refresh lost active state.' }
-            $a.Stop.PerformClick()
-            if ($a.State.Running -or -not $b.State.Running) { throw 'Stop affected another row.' }
-            $script:mockProcesses = @($script:mockProcesses | Where-Object { $_.Id -ne 202 })
-            $refreshButton.PerformClick()
-            if ($script:rows.Count -ne 2 -or $b.State.Running) { throw 'Exited process not removed/stopped.' }
-            # Reused PID creates a fresh row, never inherits the old session.
-            $script:mockProcesses[0].StartTime = $script:mockProcesses[0].StartTime.AddSeconds(1)
-            $refreshButton.PerformClick()
-            $fresh = @($script:rows.Values | Where-Object { $_.Process.Id -eq 101 })[0]
-            if ($fresh -eq $a -or $null -ne $fresh.State) { throw 'PID reuse retained old state.' }
-            Write-Output 'PASS: independent rows/ranges, button bindings, refresh preservation, exited process removal, PID reuse. No native actions executed.'
+            . (Join-Path $PSScriptRoot 'tests\Refresh.UiTests.ps1')
         }
         if ($PreviewPath) {
             [System.Windows.Forms.Application]::DoEvents()
@@ -477,4 +609,4 @@ try {
     }
     else { [void]$form.ShowDialog() }
 }
-finally { $timer.Dispose(); $form.Dispose() }
+finally { $scanTimer.Dispose(); $timer.Dispose(); $form.Dispose() }
