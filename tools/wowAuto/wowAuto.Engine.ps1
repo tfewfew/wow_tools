@@ -8,7 +8,7 @@ function New-WowAutoState {
         Running=$true; Mode='Ready'; NextDue=0L; Deadline=0L
         MinimumMs=$MinimumMs; MaximumMs=$MaximumMs; LastInterval=-1; ForceNextCast=$false
         AwaitingFishingTransition=$false; SawIdle=$false
-        ItemDue=0L; ItemRetryAt=0L
+        ItemDue=0L; ItemRetryAt=0L; InitialItemPending=$false
         Status='已加入统一调度队列。'
     }
 }
@@ -40,12 +40,14 @@ function Set-WowAutoItemEnabled($Scheduler, [bool]$Enabled, [long]$Now) {
     foreach ($state in $Scheduler.Tasks.Values) {
         $state.ItemDue=if ($Enabled) { $Now+600000 } else { 0L }
         $state.ItemRetryAt=0L
+        if (-not $Enabled) { $state.InitialItemPending=$false }
     }
 }
 function Complete-WowAutoItem($Scheduler, [string]$Key, [long]$Now, [bool]$Sent) {
     $state=$Scheduler.Tasks[$Key]
     if ($null -eq $state -or -not $state.Running -or -not $Scheduler.UseItem) { return }
     if ($Sent) {
+        $state.InitialItemPending=$false
         $Scheduler.ItemHoldUntil=$Now+3000
         $state.ItemDue=$Now+600000
         $state.ItemRetryAt=0L
@@ -81,7 +83,7 @@ function Add-WowAutoTask($Scheduler, [string]$Key, [int]$MinimumMs, [int]$Maximu
     $state=New-WowAutoState $MinimumMs $MaximumMs
     Stop-WowAutoTask $Scheduler $Key
     $state.NextDue=$Now
-    if ($Scheduler.UseItem) { $state.ItemDue=$Now+600000 }
+    if ($Scheduler.UseItem) { $state.ItemDue=$Now; $state.InitialItemPending=$true }
     $Scheduler.Tasks[$Key]=$state
     $Scheduler.Order.Add($Key)
     return $state
@@ -123,7 +125,7 @@ function Get-WowAutoWork($Scheduler, [long]$Now) {
     }
     if ($null -ne $Scheduler.ActiveKey) {
         $active=$Scheduler.Tasks[$Scheduler.ActiveKey]
-        if ($null -ne $active -and $active.Running -and $active.Mode -in @('Ready','Casting')) {
+        if ($null -ne $active -and $active.Running -and -not $active.InitialItemPending -and $active.Mode -in @('Ready','Casting')) {
             if ($active.NextDue -le $Now) { return [pscustomobject]@{ Key=$Scheduler.ActiveKey; Kind='Poll'; Due=$active.NextDue } }
             return $null # Keep this window until green, unless a Reel event preempts it.
         }
@@ -134,7 +136,7 @@ function Get-WowAutoWork($Scheduler, [long]$Now) {
         $index=($Scheduler.Cursor+$offset)%$count
         $key=$Scheduler.Order[$index]
         $state=$Scheduler.Tasks[$key]
-        if ($state.Running -and $state.Mode -in @('Ready','Casting') -and $state.NextDue -le $Now) {
+        if ($state.Running -and -not $state.InitialItemPending -and $state.Mode -in @('Ready','Casting') -and $state.NextDue -le $Now) {
             $Scheduler.Cursor=($index+1)%$count
             $Scheduler.ActiveKey=$key
             return [pscustomobject]@{ Key=$key; Kind='Poll'; Due=$state.NextDue }

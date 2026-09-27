@@ -24,6 +24,7 @@ $row.Process.HasExited=$false; $row.Exited=$false; $row.Validated=$true
 $row.Process.FocusAllowed=$true; $row.Process.ScanColor='red'
 Start-Row $row
 $due=$row.State.ItemDue
+Assert-Ui ($due -le $script:schedulerClock.ElapsedMilliseconds -and $row.State.InitialItemPending) 'Start did not immediately queue an item.'
 $script:workerFocus=$row.Process.Id
 $script:workerKeys=@()
 Invoke-SchedulerTick $due

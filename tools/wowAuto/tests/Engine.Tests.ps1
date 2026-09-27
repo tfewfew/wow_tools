@@ -84,7 +84,11 @@ Assert-Equal $itemA.ItemDue 0 'Items disabled initially'
 Set-WowAutoItemEnabled $itemQueue $true 100
 $itemB=Add-WowAutoTask $itemQueue 'itemB' 100 100 200
 Assert-Equal $itemA.ItemDue 600100 'Enable waits ten minutes'
-Assert-Equal $itemB.ItemDue 600200 'New tasks have independent item deadlines'
+Assert-Equal $itemB.ItemDue 200 'Start immediately queues initial item'
+Assert-Equal (Get-WowAutoWork $itemQueue 200).Key 'itemB' 'Initial item precedes fishing'
+Complete-WowAutoItem $itemQueue 'itemB' 200 $true
+Assert-Equal $itemB.ItemDue 600200 'Next item waits ten minutes after initial use'
+Assert-Equal ($null -eq (Get-WowAutoWork $itemQueue 3199)) $true 'Initial item holds all tasks for three seconds'
 $null=Complete-WowAutoPoll $itemQueue 'itemA' 600000 'green'
 Assert-Equal (Get-WowAutoWork $itemQueue 600100).Kind 'Reel' 'Due reel outranks item'
 Complete-WowAutoReel $itemQueue 'itemA' 600100 $true
@@ -93,7 +97,7 @@ $itemWork=Get-WowAutoWork $itemQueue 600200
 Assert-Equal $itemWork.Kind 'Item' 'Item runs after hold'
 Assert-Equal $itemWork.Key 'itemA' 'Earliest item first'
 Complete-WowAutoItem $itemQueue 'itemA' 600200 $false
-Assert-Equal $itemQueue.ItemHoldUntil 0 'Failed item does not start hold'
+Assert-Equal $itemQueue.ItemHoldUntil 3200 'Failed item does not extend hold'
 Assert-Equal (Get-WowAutoWork $itemQueue 600201).Key 'itemB' 'Failed item does not starve other tasks'
 Complete-WowAutoItem $itemQueue 'itemB' 600201 $true
 Assert-Equal $itemB.ItemDue 1200201 'Repeat measured from successful send'
@@ -113,6 +117,15 @@ Stop-WowAutoTask $itemQueue 'itemA'
 Stop-WowAutoTask $itemQueue 'itemB'
 Assert-Equal ($null -eq (Get-WowAutoWork $itemQueue 2000000)) $true 'Stopped tasks cannot use items'
 $holdQueue=New-WowAutoScheduler
+$startupQueue=New-WowAutoScheduler
+Set-WowAutoItemEnabled $startupQueue $true 0
+$null=Add-WowAutoTask $startupQueue 'first' 100 100 0
+Complete-WowAutoItem $startupQueue 'first' 0 $false
+Assert-Equal ($null -eq (Get-WowAutoWork $startupQueue 499)) $true 'Failed initial item cannot fall through to casting'
+$null=Add-WowAutoTask $startupQueue 'second' 100 100 500
+Complete-WowAutoItem $startupQueue 'first' 500 $true
+Assert-Equal ($null -eq (Get-WowAutoWork $startupQueue 3499)) $true 'Second startup cannot interrupt initial item hold'
+Assert-Equal (Get-WowAutoWork $startupQueue 3500).Key 'second' 'Second startup item follows first full hold'
 foreach ($duration in @(0,275,1500)) {
     Set-WowAutoHoldDuration $holdQueue $duration
     $null=Add-WowAutoTask $holdQueue 'hold-test' 1 1 0
