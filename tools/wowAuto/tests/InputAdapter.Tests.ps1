@@ -35,8 +35,9 @@ $script:keyBindings=@{
     Cast=[pscustomobject]@{Code=49; Ctrl=$true; Shift=$false; Alt=$false}
     Reel=[pscustomobject]@{Code=113; Ctrl=$false; Shift=$true; Alt=$true}
     Item=[pscustomobject]@{Code=51; Ctrl=$false; Shift=$false; Alt=$false}
+    Jump=[pscustomobject]@{Code=32; Ctrl=$false; Shift=$false; Alt=$false}
 }
-foreach ($action in @('Cast','Reel','Item')) {
+foreach ($action in @('Cast','Reel','Item','Jump')) {
     $binding=$script:keyBindings[$action]
     $sent=Send-WorkerKey $row $action
     if (-not $sent -or [WowAuto.NativeInput]::LastProcessId -ne 12345 -or
@@ -45,5 +46,5 @@ foreach ($action in @('Cast','Reel','Item')) {
         [WowAuto.NativeInput]::Shift -ne $binding.Shift -or
         [WowAuto.NativeInput]::Alt -ne $binding.Alt) { throw 'Wrong key/modifiers passed to native adapter.' }
 }
-if ([WowAuto.NativeInput]::Calls -ne 3) { throw 'Unexpected adapter call count.' }
+if ([WowAuto.NativeInput]::Calls -ne 4) { throw 'Unexpected adapter call count.' }
 Write-Output 'PASS: configured cast/reel/item key codes and modifiers reach inert native stub.'

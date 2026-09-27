@@ -46,8 +46,9 @@ Assert-Ui ($script:workerKeys[-1] -eq "$($a.Process.Id):187") 'Deferred reel did
 $a.Process.ScanColor='green'
 Invoke-SchedulerTick ($base+4025)
 Invoke-SchedulerTick ($base+4225)
-Assert-Ui ($script:workerKeys[-1] -eq "$($b.Process.Id):48" -and -not $b.State.ForceNextCast) 'Post-reel green did not force and acknowledge Ctrl+1.'
+Assert-Ui ($script:workerKeys[-1] -eq "$($b.Process.Id):32" -and $b.State.ForceNextCast) 'Post-reel green did not jump before casting.'
 Invoke-SchedulerTick ($base+4825)
+Assert-Ui ($script:workerKeys[-1] -eq "$($b.Process.Id):48" -and -not $b.State.ForceNextCast) 'Post-reel green did not force and acknowledge Ctrl+1.'
 Assert-Ui ($b.State.Mode -eq 'Casting' -and $b.State.Deadline -eq 0) 'Stale green started countdown before red was observed.'
 $keyCount=$script:workerKeys.Count
 Invoke-SchedulerTick ($base+5425)

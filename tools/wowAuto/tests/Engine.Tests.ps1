@@ -149,6 +149,13 @@ foreach ($color in @('red','green')) {
     Assert-Equal ($null -eq (Get-WowAutoWork $castQueue 1099)) $true 'Forced cast respects cooldown'
     $null=Get-WowAutoWork $castQueue 1100
     Assert-Equal (Complete-WowAutoPoll $castQueue 'cast' 1100 'unknown') 'None' 'Unknown still skips input'
+    if ($color -eq 'green') {
+        Assert-Equal (Complete-WowAutoPoll $castQueue 'cast' 1200 'green') 'Jump' 'Post-reel green jumps first'
+        Complete-WowAutoJump $castQueue 'cast' $false
+        Assert-Equal $castState.CheckReelGreen $true 'Failed jump remains pending'
+        Assert-Equal (Complete-WowAutoPoll $castQueue 'cast' 1500 'green') 'Jump' 'Retry failed jump'
+        Complete-WowAutoJump $castQueue 'cast' $true
+    }
     Assert-Equal (Complete-WowAutoPoll $castQueue 'cast' 1600 $color) 'Ctrl1' 'First post-reel cast ignores green'
     Complete-WowAutoCast $castQueue 'cast' $false
     Assert-Equal $castState.ForceNextCast $true 'Failed cast retains pending forced cast'

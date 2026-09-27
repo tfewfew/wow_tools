@@ -706,6 +706,7 @@ function Test-WorkerForeground($Row) {
 }
 function Send-WorkerKey($Row, [string]$Action) {
     $binding=$script:keyBindings[$Action]
+    if ($Action -eq 'Jump') { $binding=[pscustomobject]@{ Code=32; Ctrl=$false; Shift=$false; Alt=$false } }
     if ($null -eq $binding) { throw "未配置按键：$Action" }
     $Number=$binding.Code
     if ($UiTest) {
@@ -780,6 +781,10 @@ function Invoke-SchedulerTick([long]$Now) {
             if ($action -eq 'Ctrl1') {
                 $sent=Send-WorkerKey $row 'Cast'
                 Complete-WowAutoCast $script:scheduler $work.Key $sent
+            }
+            elseif ($action -eq 'Jump') {
+                $sent=Send-WorkerKey $row 'Jump'
+                Complete-WowAutoJump $script:scheduler $work.Key $sent
             }
             # Keep focus while repeatedly casting; a due Reel event can still preempt.
             $script:pendingWork=$null

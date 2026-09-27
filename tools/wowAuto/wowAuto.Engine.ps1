@@ -8,6 +8,7 @@ function New-WowAutoState {
         Running=$true; Mode='Ready'; NextDue=0L; Deadline=0L
         MinimumMs=$MinimumMs; MaximumMs=$MaximumMs; LastInterval=-1; ForceNextCast=$false
         AwaitingFishingTransition=$false; SawIdle=$false
+        CheckReelGreen=$false
         ItemDue=0L; ItemRetryAt=0L; InitialItemPending=$false
         Status='已加入统一调度队列。'
     }
@@ -154,7 +155,14 @@ function Complete-WowAutoPoll($Scheduler, [string]$Key, [long]$Now, [string]$Col
         if ($canExit) { return 'ExitGame' }
         return 'Stop'
     }
-    if ($Color -eq 'red') { $state.SawIdle=$true }
+    if ($state.CheckReelGreen -and $Color -eq 'green') {
+        $state.Mode='Casting'
+        $state.LastInterval=Get-WowAutoInterval $state.LastInterval
+        $state.NextDue=$Now+$state.LastInterval
+        $state.Status='收竿后仍为绿色：发送一次空格跳跃，再继续抛竿检测。'
+        return 'Jump'
+    }
+    if ($Color -eq 'red') { $state.SawIdle=$true; $state.CheckReelGreen=$false }
     if ($Color -eq 'green' -and -not $state.ForceNextCast) {
         if ($state.AwaitingFishingTransition -and -not $state.SawIdle) {
             $state.Mode='Casting'
@@ -184,6 +192,10 @@ function Complete-WowAutoPoll($Scheduler, [string]$Key, [long]$Now, [string]$Col
     $Scheduler.ActiveKey=$null
     return 'None'
 }
+function Complete-WowAutoJump($Scheduler, [string]$Key, [bool]$Sent) {
+    $state=$Scheduler.Tasks[$Key]
+    if ($Sent -and $null -ne $state -and $state.Running) { $state.CheckReelGreen=$false }
+}
 function Complete-WowAutoCast($Scheduler, [string]$Key, [bool]$Sent) {
     $state=$Scheduler.Tasks[$Key]
     if ($Sent -and $null -ne $state -and $state.Running -and $state.Mode -eq 'Casting') {
@@ -201,6 +213,7 @@ function Complete-WowAutoReel($Scheduler, [string]$Key, [long]$Now, [bool]$Sent)
     if ($state.Mode -ne 'Wait' -or $registered.Count -eq 0) { return }
     $Scheduler.CompletedCycles[$Key]=(Get-WowAutoCycleCount $Scheduler $Key)+1
     $state.ForceNextCast=$true
+    $state.CheckReelGreen=$true
     $state.AwaitingFishingTransition=$true
     $state.SawIdle=$false
     $holdMs=$Scheduler.ReelHoldMs
