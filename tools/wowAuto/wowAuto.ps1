@@ -236,7 +236,7 @@ $header.Controls.Add($title)
 $countLabel = New-Object System.Windows.Forms.Label
 $countLabel.SetBounds(270, 27, 670, 30)
 $countLabel.Anchor = 'Top, Left, Right'
-$header.Controls.Add($countLabel)
+
 $refreshButton = New-Object System.Windows.Forms.Button
 $refreshButton.Text = '刷新进程'
 $refreshButton.SetBounds(1020, 20, 115, 36)
@@ -270,6 +270,22 @@ $stopAllButton.Text = '全部停止'
 $stopAllButton.SetBounds(272, 10, 120, 35)
 $stopAllButton.Enabled = $false
 $toolbar.Controls.Add($stopAllButton)
+$countLabel.SetBounds(410, 15, 365, 28)
+$countLabel.Anchor = 'Top, Left'
+$countLabel.AutoEllipsis = $true
+$toolbar.Controls.Add($countLabel)
+$holdLabel = New-Object System.Windows.Forms.Label
+$holdLabel.Text = '收竿后保持（ms）'
+$holdLabel.SetBounds(790, 16, 160, 27)
+$toolbar.Controls.Add($holdLabel)
+$holdInput = New-Object System.Windows.Forms.NumericUpDown
+$holdInput.SetBounds(956, 12, 130, 30)
+$holdInput.Minimum = 0
+$holdInput.Maximum = 60000
+$holdInput.Value = 100
+$holdInput.Increment = 1
+$toolbar.Controls.Add($holdInput)
+$holdInput.Add_ValueChanged({ Set-WowAutoHoldDuration $script:scheduler ([int]$holdInput.Value) })
 
 $intro = New-Object System.Windows.Forms.Label
 $intro.Dock = 'Top'
@@ -303,6 +319,31 @@ $tab.Controls.Add($intro)
 $tab.Controls.Add($toolbar)
 $tab.Controls.Add($footer)
 
+function Fit-WindowToContent {
+    # Measure after layout/DPI scaling. Keep all rows visible when the screen allows it.
+    $form.PerformLayout()
+    $tab.PerformLayout()
+    $list.PerformLayout()
+    $workingArea = [System.Windows.Forms.Screen]::FromControl($form).WorkingArea
+    $scale = $form.CurrentAutoScaleDimensions.Width / 96.0
+    $frameWidth = $form.Width - $form.ClientSize.Width
+    $desiredWidth = [int][Math]::Ceiling([Math]::Max(1160 * $scale, $holdInput.Right + 28) + $frameWidth)
+    $rowHeight = $list.Padding.Vertical + 12
+    foreach ($row in $script:rows.Values) { $rowHeight += $row.Panel.Height + $row.Panel.Margin.Vertical }
+    $rowHeight = [Math]::Max([int](80 * $scale), $rowHeight)
+    $chromeHeight = $form.Height - $list.ClientSize.Height
+    $desiredHeight = $chromeHeight + $rowHeight
+    $form.MinimumSize = New-Object System.Drawing.Size(
+        ([Math]::Min([int](1080 * $scale), $workingArea.Width)),
+        ([Math]::Min([int](300 * $scale), $workingArea.Height)))
+    $form.Size = New-Object System.Drawing.Size(
+        ([Math]::Min($desiredWidth, $workingArea.Width)),
+        ([Math]::Min($desiredHeight, $workingArea.Height)))
+    $form.Location = New-Object System.Drawing.Point(
+        ($workingArea.Left + [int](($workingArea.Width - $form.Width) / 2)),
+        ($workingArea.Top + [int](($workingArea.Height - $form.Height) / 2)))
+}
+$form.Add_Shown({ Fit-WindowToContent })
 function Get-WowAutoProcesses {
     if ($UiTest) { return $script:mockProcesses }
     return @(Get-Process -Name 'WowClassic' -ErrorAction SilentlyContinue | Sort-Object Id)
@@ -708,6 +749,7 @@ try {
         $form.Show()
         [System.Windows.Forms.Application]::DoEvents()
         if ($UiTest) {
+            . (Join-Path $PSScriptRoot 'tests\Layout.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Refresh.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Scheduler.UiTests.ps1')
         }

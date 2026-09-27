@@ -78,6 +78,22 @@ foreach ($count in @(0,499,500,501)) {
 }
 Assert-Equal (Get-WowAutoCycleCount $q 'new-process-identity') 0 'New process starts at zero'
 $previous=-1
+$holdQueue=New-WowAutoScheduler
+foreach ($duration in @(0,275,1500)) {
+    Set-WowAutoHoldDuration $holdQueue $duration
+    $null=Add-WowAutoTask $holdQueue 'hold-test' 1 1 0
+    $null=Complete-WowAutoPoll $holdQueue 'hold-test' 0 'green'
+    Complete-WowAutoReel $holdQueue 'hold-test' 1 $true
+    Assert-Equal $holdQueue.ReelHoldUntil (1+$duration) 'Configured hold duration'
+    Assert-Equal $holdQueue.Tasks['hold-test'].Deadline (1+[Math]::Max(1000,$duration)) 'Cooldown includes full hold'
+    if ($duration -gt 0) {
+        Set-WowAutoHoldDuration $holdQueue 0
+        Assert-Equal ($null -eq (Get-WowAutoWork $holdQueue $duration)) $true 'Changing input cannot shorten current hold'
+    }
+}
+$invalidHoldRejected=$false
+try { Set-WowAutoHoldDuration $holdQueue -1 } catch { $invalidHoldRejected=$true }
+Assert-Equal $invalidHoldRejected $true 'Invalid hold rejected'
 for ($i=0;$i -lt 1000;$i++) {
     $next=Get-WowAutoInterval $previous
     if ($next -lt 300 -or $next -gt 600 -or $next -eq $previous) { throw 'Invalid polling interval.' }
