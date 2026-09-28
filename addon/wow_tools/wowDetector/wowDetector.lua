@@ -55,10 +55,8 @@ local function ResetAfterDeath()
     freeSlots = nil
     panel:StopMovingOrSizing()
     wowDetectorDB.locked = false
-    wowDetectorDB.panelHidden = true
     Paint("disabled")
-    panel:Hide()
-    if wasEnabled then Say("角色已死亡，检测已停止并恢复初始状态；复活后请手动启动。") end
+    if wasEnabled then Say("角色已死亡，检测已关闭并解除锁定；复活后请手动启动。") end
 end
 
 local function FishingName()
