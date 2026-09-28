@@ -47,6 +47,20 @@ local function Paint(newState)
     toggle:SetText(enabled and "关闭" or "启动")
 end
 
+local function ResetAfterDeath()
+    if not initialized then return end
+    local wasEnabled = enabled
+    enabled = false
+    elapsed = 0
+    freeSlots = nil
+    panel:StopMovingOrSizing()
+    wowDetectorDB.locked = false
+    wowDetectorDB.panelHidden = true
+    Paint("disabled")
+    panel:Hide()
+    if wasEnabled then Say("角色已死亡，检测已停止并恢复初始状态；复活后请手动启动。") end
+end
+
 local function FishingName()
     if C_Spell and C_Spell.GetSpellName then
         return C_Spell.GetSpellName(7620)
@@ -86,6 +100,10 @@ local function GetFreeSlots()
 end
 
 local function Refresh()
+    if enabled and UnitIsDeadOrGhost("player") then
+        ResetAfterDeath()
+        return
+    end
     if not enabled then
         if state ~= "disabled" then Paint("disabled") end
         return
@@ -115,6 +133,11 @@ end
 local function SetEnabled(value)
     if not initialized then return end
     if value then
+        if UnitIsDeadOrGhost("player") then
+            ResetAfterDeath()
+            Say("角色死亡或处于灵魂状态，无法启动检测。")
+            return
+        end
         CenterIndicator()
         wowDetectorDB.locked = true
     else
@@ -162,6 +185,9 @@ end)
 
 panel:RegisterEvent("ADDON_LOADED")
 panel:RegisterEvent("PLAYER_ENTERING_WORLD")
+panel:RegisterEvent("PLAYER_DEAD")
+panel:RegisterEvent("PLAYER_ALIVE")
+panel:RegisterEvent("PLAYER_UNGHOST")
 panel:RegisterEvent("BAG_UPDATE_DELAYED")
 panel:RegisterEvent("UNIT_SPELLCAST_START")
 panel:RegisterEvent("UNIT_SPELLCAST_STOP")
@@ -187,7 +213,12 @@ panel:SetScript("OnEvent", function(_, event, unit)
         wowDetectorDB.panelHidden = true
         panel:Hide()
         Say("已加载，默认隐藏且检测关闭。小地图入口打开界面，或输入 /wowdetector on。")
-    elseif event == "PLAYER_ENTERING_WORLD" or event == "BAG_UPDATE_DELAYED" or unit == "player" then
+    elseif event == "PLAYER_DEAD" then
+        ResetAfterDeath()
+    elseif event == "PLAYER_ENTERING_WORLD" and UnitIsDeadOrGhost("player") then
+        ResetAfterDeath()
+    elseif event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_ALIVE" or event == "PLAYER_UNGHOST"
+        or event == "BAG_UPDATE_DELAYED" or unit == "player" then
         Refresh()
     end
 end)
