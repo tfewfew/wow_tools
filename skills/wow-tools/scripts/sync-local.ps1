@@ -41,9 +41,8 @@ foreach ($file in Get-ChildItem -LiteralPath $addonSource -File -Recurse) {
     $relative = $file.FullName.Substring($addonSource.Length + 1)
     Copy-Verified $file.FullName (Join-Path $targetAddon $relative) (Join-Path 'wow_tools' $relative)
 }
-foreach ($name in @('wowAuto.ps1', 'wowAuto.bat', 'wowAuto.Engine.ps1')) {
-    Copy-Verified (Join-Path $repo "tools\wowAuto\$name") (Join-Path $desktop $name) $name
-}
+& (Join-Path $PSScriptRoot 'install-desktop-shortcut.ps1') `
+    -ToolRoot (Join-Path $repo 'tools\wowAuto') -DesktopPath $desktop -BackupPath (Join-Path $backup 'Desktop')
 
 # The addon filename changed, but the saved table remains wowDetectorDB.
 # Import existing on-disk settings once; never overwrite newer wow_tools settings.
@@ -70,13 +69,5 @@ foreach ($legacyName in @('FishingState', 'wowDetector', 'Inner_graphic_config')
     }
 }
 
-# Keep familiar desktop entry points while maintaining only one implementation.
-$legacyPs = Join-Path $desktop 'wow-foreground-loop.ps1'
-$legacyBat = Join-Path $desktop 'wow-foreground-loop.bat'
-foreach ($path in @($legacyPs, $legacyBat)) {
-    if (Test-Path -LiteralPath $path) { Copy-Item -LiteralPath $path -Destination (Join-Path $backup (Split-Path $path -Leaf)) }
-}
-Set-Content -LiteralPath $legacyPs -Encoding UTF8 -Value '& (Join-Path $PSScriptRoot ''wowAuto.ps1'')'
-Set-Content -LiteralPath $legacyBat -Encoding ASCII -Value "@echo off`r`ncall `"%~dp0wowAuto.bat`""
 Write-Output "Synced pushed commit $headCommit to $targetAddon and $desktop."
 Write-Output "Backups: $backup"

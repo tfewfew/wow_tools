@@ -12,14 +12,14 @@ description: 维护 wow_tools 插件合集（wowDetector、inner_graphic_config�
 1. 检查 Git 状态、当前分支及远端，保留无关改动。在仓库修改源码及必要说明。
 2. 检查 PowerShell 语法；修改内嵌 C# 时只编译，不运行主循环。针对改变的逻辑进行模拟验证。不要为测试发送真实按键或关闭游戏。
 3. 将本次修改提交，并推送当前分支到 `origin`。用户已授权此流程，无需逐次索要许可。不强推。推送失败时保留本地提交并报告原因，不同步安装副本。
-4. 推送成功后运行 `skills/wow-tools/scripts/sync-local.ps1`。它核对干净工作区和远端分支提交，再同步插件及桌面脚本并校验文件哈希。
-5. 报告提交、推送和同步结果，提醒用户停止旧脚本并重启桌面 `wowAuto.bat`；插件变更需 `/reload`，改名首次安装可能需要完全重启游戏。
+4. 推送成功后运行 `skills/wow-tools/scripts/sync-local.ps1`。它核对干净工作区和远端分支提交，再同步插件并校验文件哈希，通过 install-desktop-shortcut.ps1 创建桌面源码快捷方式并归档旧运行副本。
+5. 报告提交、推送和同步结果，提醒用户停止旧脚本并重启桌面 `wowAuto` 快捷方式；插件变更需 `/reload`，改名首次安装可能需要完全重启游戏。
 
 ## 安装目标
 
 - 游戏：`C:\Program Files (x86)\World of Warcraft\_classic_titan_\Interface\AddOns\wow_tools`。
-- 桌面：通过 Windows Desktop 特殊文件夹解析，安装 `wowAuto.ps1`、`wowAuto.Engine.ps1` 和 `wowAuto.bat`。
-- 同步脚本将旧 `FishingState`、`wowDetector`、`Inner_graphic_config` 插件移到仓库忽略目录 `.local-backups`，避免两个插件同时运行；旧桌面文件保留为转发到 `wowAuto` 的入口。
+- 桌面：通过 Windows Desktop 特殊文件夹解析，仅创建 `wowAuto.lnk`，直接指向源码 tools/wowAuto/wowAuto.bat，WorkingDirectory 设置为该源码目录；不复制运行文件到桌面。
+- 同步脚本将旧 `FishingState`、`wowDetector`、`Inner_graphic_config` 插件移到仓库忽略目录 `.local-backups`；快捷方式验证成功后，将桌面旧 wowAuto 三个运行文件及 wow-foreground-loop 两个入口移入该次备份的 Desktop 子目录。只处理确切文件名，不广泛清理桌面；移动前检查绝对路径，源码目录需保留完整运行文件。
 - 不提交本机备份、游戏配置、SavedVariables 或外部依赖。
 
 ## 行为约定
