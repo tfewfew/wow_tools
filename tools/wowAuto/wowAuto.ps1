@@ -415,25 +415,38 @@ function Set-RowControls($Row) {
     $Row.Maximum.Enabled = -not $running
 }
 
+function Set-RowStatusText($Row, [string]$Message) {
+    $Row.StatusMessage=$Message
+    if ($null -ne $Row.State) { $Row.State.Status=$Message }
+    Update-RowStatus $Row
+}
+
 function Update-RowStatus($Row) {
     $cycles=Get-WowAutoCycleCount $script:scheduler $Row.Key
     $Row.Name.Text = "$($Row.Caption)`r`nPID $($Row.Process.Id) · 循环 $cycles"
+    $text=$Row.StatusMessage
     if ($null -ne $Row.State) {
         $text = $Row.State.Status
         if ($script:pendingGameExits.ContainsKey($Row.Key)) {
             $left=[Math]::Max(0,$script:pendingGameExits[$Row.Key].Due-$script:schedulerClock.ElapsedMilliseconds)
             $text += "`r`n退出超时保护：剩余 $left ms；停止可取消。"
         }
-        if ($Row.State.Running -and $Row.State.Mode -in @('Wait', 'Cooldown')) {
+        if ($Row.State.Running -and $Row.State.FocusRetryAt -gt 0) {
+            $left=[Math]::Max(0,$Row.State.FocusRetryAt-$script:schedulerClock.ElapsedMilliseconds)
+            $seconds=[int][Math]::Ceiling($left/1000.0)
+            $text += "`r`n焦点重试：剩余 $seconds 秒。"
+        }
+        elseif ($Row.State.Running -and $Row.State.Mode -in @('Wait', 'Cooldown')) {
             $left = [Math]::Max(0, $Row.State.Deadline - $script:schedulerClock.ElapsedMilliseconds)
             $text += "`r`n剩余 $left ms"
         }
-        if ($Row.State.Running -and $script:schedulerClock.ElapsedMilliseconds -lt $script:scheduler.ItemHoldUntil) {
+        if ($Row.State.Running -and $Row.State.FocusRetryAt -eq 0 -and $script:schedulerClock.ElapsedMilliseconds -lt $script:scheduler.ItemHoldUntil) {
             $left=$script:scheduler.ItemHoldUntil-$script:schedulerClock.ElapsedMilliseconds
             $text="道具执行等待：剩余 $left ms；暂停抛竿、收竿及检测。"
         }
-        if ($Row.Status.Text -ne $text) { $Row.Status.Text = $text }
     }
+    $text="[$(Get-Date -Format 'HH:mm:ss')] $text"
+    if ($Row.Status.Text -ne $text) { $Row.Status.Text = $text }
     Set-RowControls $Row
 }
 
@@ -442,7 +455,7 @@ function Stop-Row($Row, [string]$Reason = '已停止，当前等待已取消。'
     if ($null -ne $script:pendingWork -and $script:pendingWork.Key -eq $Row.Key) { $script:pendingWork=$null }
     Stop-WowAutoTask $script:scheduler $Row.Key $Reason
     if ($null -ne $Row.State) { Stop-WowAutoState $Row.State $Reason }
-    else { $Row.Status.Text = $Reason }
+    else { $Row.StatusMessage = $Reason }
     Update-RowStatus $Row
 }
 
@@ -465,8 +478,7 @@ function Start-Row($Row) {
     }
     catch {
         if ($null -ne $Row.State) { Stop-WowAutoState $Row.State ('无法开始：' + $_.Exception.Message) }
-        $Row.Status.Text = '无法开始：' + $_.Exception.Message
-        Set-RowControls $Row
+        Set-RowStatusText $Row ('无法开始：' + $_.Exception.Message)
     }
 }
 
@@ -506,12 +518,12 @@ function New-ProcessRow($Process, $StartTime, [string]$Key) {
     $status.ReadOnly = $true
     $status.ScrollBars = 'Vertical'
     $status.BackColor = [System.Drawing.Color]::White
-    $status.Text = '尚未验证，请点击刷新进程。'
     $panel.Controls.Add($status)
     $row = [pscustomobject]@{
         Key=$Key; Process=$Process; StartTime=$StartTime; Exited=$false; Validated=$false; Caption='WowClassic.exe'
         Panel=$panel; Name=$nameLabel; Minimum=$minimum; Maximum=$maximum
         Start=$start; Stop=$stop; Status=$status; State=$null
+        StatusMessage='尚未验证，请点击刷新进程。'
 
     }
     # Sender.Tag keeps handlers bound to their own row, not a shared loop variable.
@@ -519,8 +531,8 @@ function New-ProcessRow($Process, $StartTime, [string]$Key) {
     $stop.Tag = $row
     $start.Add_Click({ param($sender, $eventArgs) Start-Row $sender.Tag })
     $stop.Add_Click({ param($sender, $eventArgs) Stop-Row $sender.Tag -CancelExit })
-    if ($null -eq $StartTime) { $status.Text = '无法读取进程信息，请检查权限后刷新。' }
-    Set-RowControls $row
+    if ($null -eq $StartTime) { $row.StatusMessage = '无法读取进程信息，请检查权限后刷新。' }
+    Update-RowStatus $row
     return $row
 }
 
@@ -615,7 +627,7 @@ function Begin-RefreshScan {
     foreach ($row in $script:scanQueue) {
         $row.Validated = $false
         $row.State = $null
-        $row.Status.Text = '等待前台颜色检测。'
+        Set-RowStatusText $row '等待前台颜色检测。'
         Set-RowControls $row
     }
     $script:scanIndex = 0
@@ -637,7 +649,7 @@ function Invoke-RefreshScan([long]$Now) {
         if ($script:scanPhase -eq 'Activate') {
             $countLabel.Text = "检测中：$($script:scanIndex + 1)/$($script:scanQueue.Count)，PID $($row.Process.Id)"
             if ($null -eq $row.StartTime -or -not (Activate-ScanRow $row)) { throw '无法激活游戏窗口。' }
-            $row.Status.Text = '正在切换到前台并等待画面刷新。'
+            Set-RowStatusText $row '正在切换到前台并等待画面刷新。'
             $script:scanPhase = 'Sample'
             $script:scanDue = $Now + 200
             $script:scanTimeout = $Now + 800
@@ -647,20 +659,21 @@ function Invoke-RefreshScan([long]$Now) {
         if ($color -in @('red', 'green')) {
             $row.Validated = $true
             $label = if ($color -eq 'red') { '红色' } else { '绿色' }
-            $row.Status.Text = "检测通过（$label），可以开始。"
+            Set-RowStatusText $row "检测通过（$label），可以开始。"
         }
         elseif ($color -eq 'yellow') {
-            $row.Status.Text = '黄色：背包已满，未开放按钮。'
+            Set-RowStatusText $row '黄色：背包已满，未开放按钮。'
         }
         elseif ($Now -lt $script:scanTimeout) {
             $script:scanDue = $Now + 100
             return
         }
         else {
-            $row.Status.Text = if ($color -eq 'not-foreground') { '未获得前台焦点，请重试刷新。' } else { '未检测到红色或绿色，请启用插件后刷新。' }
+            $message = if ($color -eq 'not-foreground') { '未获得前台焦点，请重试刷新。' } else { '未检测到红色或绿色，请启用插件后刷新。' }
+            Set-RowStatusText $row $message
         }
     }
-    catch { $row.Validated = $false; $row.Status.Text = '检测失败：' + $_.Exception.Message }
+    catch { $row.Validated = $false; Set-RowStatusText $row ('检测失败：' + $_.Exception.Message) }
     Set-RowControls $row
     $script:scanIndex++
     $script:scanPhase = 'Activate'
@@ -792,6 +805,12 @@ function Invoke-GameExitChecks([long]$Now) {
         }
     }
 }
+function Pause-RowForFocus($Row, [long]$Now, [string]$Reason) {
+    Suspend-WowAutoFocus $script:scheduler $Row.Key $Now $Reason
+    if ($null -ne $script:pendingWork -and $script:pendingWork.Key -eq $Row.Key) { $script:pendingWork=$null }
+    Update-RowStatus $Row
+}
+
 function Invoke-SchedulerTick([long]$Now) {
     if ($script:scanning) { return }
     $work=Get-WowAutoWork $script:scheduler $Now
@@ -801,11 +820,17 @@ function Invoke-SchedulerTick([long]$Now) {
     try {
         $row.Process.Refresh()
         if ($row.Process.HasExited) { $row.Exited=$true; throw '进程已退出。' }
-        if ($row.Process.StartTime -ne $row.StartTime -or $row.Process.ProcessName -ne 'WowClassic') { throw '进程身份已改变。' }
+        if ($row.Process.StartTime -ne $row.StartTime -or $row.Process.ProcessName -ne 'WowClassic') {
+            $row.Validated=$false
+            throw '进程身份已改变。'
+        }
         $pending=$script:pendingWork
         if ($null -eq $pending -or $pending.Key -ne $work.Key -or $pending.Kind -ne $work.Kind) {
             $alreadyForeground=Test-WorkerForeground $row
-            if (-not $alreadyForeground -and -not (Activate-WorkerRow $row)) { throw '无法切换到此游戏窗口。' }
+            if (-not $alreadyForeground -and -not (Activate-WorkerRow $row)) {
+                Pause-RowForFocus $row $Now '无法切换到此游戏窗口。'
+                return
+            }
             $readyAt=if ($alreadyForeground) { $Now } else { $Now+200 }
             $script:pendingWork=[pscustomobject]@{ Key=$work.Key; Kind=$work.Kind; ReadyAt=$readyAt; Timeout=$Now+800 }
             $pending=$script:pendingWork
@@ -813,17 +838,28 @@ function Invoke-SchedulerTick([long]$Now) {
         }
         if ($Now -lt $pending.ReadyAt) { return }
         if (-not (Test-WorkerForeground $row)) {
-            if ($Now -ge $pending.Timeout) { throw '无法获得前台焦点，已停止此行。' }
+            if ($Now -ge $pending.Timeout) { Pause-RowForFocus $row $Now '无法获得前台焦点。' }
+            return
+        }
+        if ($work.Kind -eq 'FocusRetry') {
+            Resume-WowAutoFocus $script:scheduler $work.Key
+            $script:pendingWork=$null
+            Update-RowStatus $row
             return
         }
         # The work selection is repeated every tick, including while switching windows.
         # Overdue Reel events therefore preempt both casting and a pending activation.
         $color=Read-ScanColor $row
+        if ($color -eq 'not-foreground') {
+            Pause-RowForFocus $row $Now '检测时失去前台焦点。'
+            return
+        }
         if ($color -eq 'yellow') {
             Close-WorkerGame $row
             $script:pendingWork=$null
             return
         }
+        $sent=$true
         if ($work.Kind -eq 'Item') {
             $sent=$false
             if ($color -in @('red','green')) { $sent=Send-WorkerKey $row 'Item' }
@@ -849,6 +885,11 @@ function Invoke-SchedulerTick([long]$Now) {
             }
             # Keep focus while repeatedly casting; a due Reel event can still preempt.
             $script:pendingWork=$null
+        }
+        if (-not $sent -and -not (Test-WorkerForeground $row)) {
+            $failedAt=if ($UiTest) { $Now } else { $script:schedulerClock.ElapsedMilliseconds }
+            Pause-RowForFocus $row $failedAt '发送按键时失去前台焦点。'
+            return
         }
         Update-RowStatus $row
     }
@@ -893,6 +934,7 @@ try {
             . (Join-Path $PSScriptRoot 'tests\Refresh.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Scheduler.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\KeyItem.UiTests.ps1')
+            . (Join-Path $PSScriptRoot 'tests\FocusRetry.UiTests.ps1')
         }
         if ($PreviewPath) {
             [System.Windows.Forms.Application]::DoEvents()

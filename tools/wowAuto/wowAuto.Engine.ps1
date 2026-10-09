@@ -10,12 +10,29 @@ function New-WowAutoState {
         AwaitingFishingTransition=$false; SawIdle=$false
         CheckReelGreen=$false
         ItemDue=0L; ItemRetryAt=0L; InitialItemPending=$false
+        FocusRetryAt=0L; FocusResumeStatus=''
         Status='已加入统一调度队列。'
     }
 }
 function Stop-WowAutoState {
     param($State, [string]$Reason='已停止。')
     $State.Running=$false; $State.Mode='Stopped'; $State.Deadline=0L; $State.Status=$Reason
+    $State.FocusRetryAt=0L; $State.FocusResumeStatus=''
+}
+function Suspend-WowAutoFocus($Scheduler, [string]$Key, [long]$Now, [string]$Reason) {
+    $state=$Scheduler.Tasks[$Key]
+    if ($null -eq $state -or -not $state.Running) { return }
+    if ($state.FocusRetryAt -eq 0) { $state.FocusResumeStatus=$state.Status }
+    $state.FocusRetryAt=$Now+30000
+    $state.Status="$Reason 已暂停此行，保留任务并每30秒重试焦点。"
+    if ($Scheduler.ActiveKey -eq $Key) { $Scheduler.ActiveKey=$null }
+}
+function Resume-WowAutoFocus($Scheduler, [string]$Key) {
+    $state=$Scheduler.Tasks[$Key]
+    if ($null -eq $state -or -not $state.Running -or $state.FocusRetryAt -eq 0) { return }
+    $state.FocusRetryAt=0L
+    $state.Status=$state.FocusResumeStatus
+    $state.FocusResumeStatus=''
 }
 function Get-WowAutoInterval {
     param([int]$Previous)
@@ -105,28 +122,38 @@ function Get-WowAutoWork($Scheduler, [long]$Now) {
         if ($null -eq $state -or -not $state.Running -or -not [object]::ReferenceEquals($event.State,$state)) {
             $Scheduler.Events.RemoveAt($i)
         }
-        elseif ($event.Kind -eq 'Cooldown' -and $event.Due -le $Now) {
+        elseif ($state.FocusRetryAt -eq 0 -and $event.Kind -eq 'Cooldown' -and $event.Due -le $Now) {
             $state.Mode='Ready'; $state.Deadline=0L; $state.NextDue=$Now
             $state.Status='收竿后等待结束，重新排队下竿。'
             $Scheduler.Events.RemoveAt($i)
         }
     }
-    $due=@($Scheduler.Events | Where-Object { $_.Kind -eq 'Reel' -and $_.Due -le $Now } | Sort-Object Due,Sequence)
+    $due=@($Scheduler.Events | Where-Object {
+        $_.Kind -eq 'Reel' -and $_.Due -le $Now -and $Scheduler.Tasks[$_.Key].FocusRetryAt -eq 0
+    } | Sort-Object Due,Sequence)
     if ($due.Count -gt 0) {
         return [pscustomobject]@{ Key=$due[0].Key; Kind='Reel'; Due=$due[0].Due }
     }
     if ($Scheduler.UseItem) {
         $item=@($Scheduler.Order | Where-Object {
             $s=$Scheduler.Tasks[$_]
-            $s.Running -and $s.ItemDue -le $Now -and $s.ItemRetryAt -le $Now
+            $s.Running -and $s.FocusRetryAt -eq 0 -and $s.ItemDue -le $Now -and $s.ItemRetryAt -le $Now
         } | Sort-Object { $Scheduler.Tasks[$_].ItemDue })
         if ($item.Count -gt 0) {
             return [pscustomobject]@{ Key=$item[0]; Kind='Item'; Due=$Scheduler.Tasks[$item[0]].ItemDue }
         }
     }
+    # Suspended rows retain their fishing/item deadlines but cannot monopolize overdue work.
+    $retry=@($Scheduler.Order | Where-Object {
+        $s=$Scheduler.Tasks[$_]
+        $s.Running -and $s.FocusRetryAt -gt 0 -and $s.FocusRetryAt -le $Now
+    } | Sort-Object { $Scheduler.Tasks[$_].FocusRetryAt })
+    if ($retry.Count -gt 0) {
+        return [pscustomobject]@{ Key=$retry[0]; Kind='FocusRetry'; Due=$Scheduler.Tasks[$retry[0]].FocusRetryAt }
+    }
     if ($null -ne $Scheduler.ActiveKey) {
         $active=$Scheduler.Tasks[$Scheduler.ActiveKey]
-        if ($null -ne $active -and $active.Running -and -not $active.InitialItemPending -and $active.Mode -in @('Ready','Casting')) {
+        if ($null -ne $active -and $active.Running -and $active.FocusRetryAt -eq 0 -and -not $active.InitialItemPending -and $active.Mode -in @('Ready','Casting')) {
             if ($active.NextDue -le $Now) { return [pscustomobject]@{ Key=$Scheduler.ActiveKey; Kind='Poll'; Due=$active.NextDue } }
             return $null # Keep this window until green, unless a Reel event preempts it.
         }
@@ -137,7 +164,7 @@ function Get-WowAutoWork($Scheduler, [long]$Now) {
         $index=($Scheduler.Cursor+$offset)%$count
         $key=$Scheduler.Order[$index]
         $state=$Scheduler.Tasks[$key]
-        if ($state.Running -and -not $state.InitialItemPending -and $state.Mode -in @('Ready','Casting') -and $state.NextDue -le $Now) {
+        if ($state.Running -and $state.FocusRetryAt -eq 0 -and -not $state.InitialItemPending -and $state.Mode -in @('Ready','Casting') -and $state.NextDue -le $Now) {
             $Scheduler.Cursor=($index+1)%$count
             $Scheduler.ActiveKey=$key
             return [pscustomobject]@{ Key=$key; Kind='Poll'; Due=$state.NextDue }
