@@ -366,7 +366,7 @@ $footer.Dock = 'Bottom'
 $footer.Height = 43
 $footer.Padding = New-Object System.Windows.Forms.Padding(12, 10, 0, 0)
 $footer.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 9)
-$footer.Text = '运行时自动切换窗口；到期收竿优先。黄色仅在有效循环超过500次时结束对应进程，否则停止该行。'
+$footer.Text = '运行时自动切换窗口；到期收竿优先。黄色仅在有效循环超过500次时请求游戏正常退出，否则停止该行。'
 $tab.Controls.Add($list)
 $tab.Controls.Add($headings)
 $tab.Controls.Add($intro)
@@ -717,19 +717,30 @@ function Send-WorkerKey($Row, [string]$Action) {
 }
 function Close-WorkerGame($Row) {
     $cycles=Get-WowAutoCycleCount $script:scheduler $Row.Key
+    $Row.Validated=$false
     if (-not (Test-WowAutoExitAllowed $script:scheduler $Row.Key)) {
-        $Row.Validated=$false
         Stop-Row $Row "背包已满：有效循环 $cycles 次，未超过500次；保留进程，停止本行。"
         return
     }
-    $Row.Process.Refresh()
-    if (-not $Row.Process.HasExited) {
-        if ($Row.Process.StartTime -ne $Row.StartTime -or $Row.Process.ProcessName -ne 'WowClassic') { throw '进程身份已改变，未结束任何进程。' }
-        if ($UiTest) { $Row.Process.HasExited=$true; $script:workerClosed += $Row.Process.Id }
-        else { $Row.Process.Kill() }
+    Stop-Row $Row "背包已满：有效循环 $cycles 次，已停止本行，正在请求游戏正常退出。"
+    try {
+        $Row.Process.Refresh()
+        if ($Row.Process.HasExited) {
+            $Row.Exited=$true
+            Stop-Row $Row "背包已满：有效循环 $cycles 次，游戏进程已退出。"
+            return
+        }
+        if ($Row.Process.StartTime -ne $Row.StartTime -or $Row.Process.ProcessName -ne 'WowClassic') {
+            throw '进程身份已改变，未发送退出请求。'
+        }
+        if ($UiTest) { $script:workerClosed += $Row.Process.Id; $requested=$true }
+        else { $requested=$Row.Process.CloseMainWindow() }
+        if (-not $requested) { throw '游戏窗口未接受正常关闭请求，请手动退出。' }
+        Stop-Row $Row "背包已满：有效循环 $cycles 次，已发送正常退出请求，等待游戏完成退出；本行已停止。"
     }
-    $Row.Exited=$true
-    Stop-Row $Row "背包已满：有效循环 $cycles 次，已请求结束此进程；本行退出队列。"
+    catch {
+        Stop-Row $Row ("背包已满：有效循环 $cycles 次，正常退出请求失败；本行已停止。"+$_.Exception.Message)
+    }
 }
 function Invoke-SchedulerTick([long]$Now) {
     if ($script:scanning) { return }

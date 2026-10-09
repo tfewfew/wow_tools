@@ -87,8 +87,8 @@ foreach ($count in @(0,500,501)) {
         Assert-Ui (-not $a.Process.HasExited -and $script:workerClosed.Count -eq $closedBefore -and -not $a.Validated) 'Low-count yellow terminated game or left it enabled.'
     }
     else {
-        Assert-Ui ($a.Process.HasExited -and $script:workerClosed.Count -eq $closedBefore+1) '501 cycles did not permit target termination.'
+        Assert-Ui (-not $a.Process.HasExited -and -not $a.Exited -and -not $a.Validated -and $script:workerClosed.Count -eq $closedBefore+1) '501 cycles must request normal exit without claiming immediate termination.'
     }
 }
 Stop-AllRows
-Write-Output 'PASS: yellow preserves game at 0/500 cycles, permits termination at 501, clears only target events, leaves other task running. Process termination mocked.'
+Write-Output 'PASS: yellow preserves game at 0/500 cycles, requests normal exit at 501, clears only target events, leaves other task running. Close requests mocked.'

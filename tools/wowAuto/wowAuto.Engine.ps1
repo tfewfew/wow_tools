@@ -150,7 +150,7 @@ function Complete-WowAutoPoll($Scheduler, [string]$Key, [long]$Now, [string]$Col
     if ($null -eq $state -or -not $state.Running) { return 'None' }
     if ($Color -eq 'yellow') {
         $canExit=Test-WowAutoExitAllowed $Scheduler $Key
-        $reason=if ($canExit) { '背包已满且有效循环超过500次，正在结束此进程。' } else { '背包已满，有效循环未超过500次；保留进程并停止本行。' }
+        $reason=if ($canExit) { '背包已满且有效循环超过500次，正在请求游戏正常退出。' } else { '背包已满，有效循环未超过500次；保留进程并停止本行。' }
         Stop-WowAutoTask $Scheduler $Key $reason
         if ($canExit) { return 'ExitGame' }
         return 'Stop'
