@@ -425,8 +425,11 @@ function Update-RowStatus($Row) {
     $cycles=Get-WowAutoCycleCount $script:scheduler $Row.Key
     $Row.Name.Text = "$($Row.Caption)`r`nPID $($Row.Process.Id) · 循环 $cycles"
     $text=$Row.StatusMessage
+    $statusKey=$text
     if ($null -ne $Row.State) {
         $text = $Row.State.Status
+        # Track state transitions and new deadlines, excluding the live countdown text.
+        $statusKey="$text|$($Row.State.Mode)|$($Row.State.Deadline)|$($Row.State.FocusRetryAt)"
         if ($script:pendingGameExits.ContainsKey($Row.Key)) {
             $left=[Math]::Max(0,$script:pendingGameExits[$Row.Key].Due-$script:schedulerClock.ElapsedMilliseconds)
             $text += "`r`n退出超时保护：剩余 $left ms；停止可取消。"
@@ -443,9 +446,14 @@ function Update-RowStatus($Row) {
         if ($Row.State.Running -and $Row.State.FocusRetryAt -eq 0 -and $script:schedulerClock.ElapsedMilliseconds -lt $script:scheduler.ItemHoldUntil) {
             $left=$script:scheduler.ItemHoldUntil-$script:schedulerClock.ElapsedMilliseconds
             $text="道具执行等待：剩余 $left ms；暂停抛竿、收竿及检测。"
+            $statusKey="道具执行等待|$($script:scheduler.ItemHoldUntil)"
         }
     }
-    $text="[$(Get-Date -Format 'HH:mm:ss')] $text"
+    if ($Row.StatusSnapshot -cne $statusKey) {
+        $Row.StatusSnapshot=$statusKey
+        $Row.StatusTimestamp=Get-Date -Format 'HH:mm:ss'
+    }
+    $text="[$($Row.StatusTimestamp)] $text"
     if ($Row.Status.Text -ne $text) { $Row.Status.Text = $text }
     Set-RowControls $Row
 }
@@ -524,6 +532,7 @@ function New-ProcessRow($Process, $StartTime, [string]$Key) {
         Panel=$panel; Name=$nameLabel; Minimum=$minimum; Maximum=$maximum
         Start=$start; Stop=$stop; Status=$status; State=$null
         StatusMessage='尚未验证，请点击刷新进程。'
+        StatusSnapshot=$null; StatusTimestamp=''
 
     }
     # Sender.Tag keeps handlers bound to their own row, not a shared loop variable.
@@ -935,6 +944,7 @@ try {
             . (Join-Path $PSScriptRoot 'tests\Scheduler.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\KeyItem.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\FocusRetry.UiTests.ps1')
+            . (Join-Path $PSScriptRoot 'tests\StatusTimestamp.UiTests.ps1')
         }
         if ($PreviewPath) {
             [System.Windows.Forms.Application]::DoEvents()
