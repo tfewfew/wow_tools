@@ -8,11 +8,11 @@
 
 ## 使用
 
-小地图旁的钓鱼图标是 wow_tools 统一入口，右键打开菜单，可分别打开/关闭 wowDetector 和 inner_graphic_config 界面；左键点击显示/隐藏检测面板，拖动可调整并保存入口位置。wowDetector 每次登录或重载默认隐藏且检测关闭，不恢复上次显示状态。也可用 `/wowdetector show`、`hide` 控制面板。显隐不改变检测开关；隐藏时色块一并隐藏，外部工具无法读取插件色块。`/wowdetector on` 会先显示面板再启动检测。
+小地图旁的钓鱼图标是 wow_tools 统一入口，右键打开菜单，可分别打开/关闭 wowDetector 和 inner_graphic_config 界面；左键点击打开面板并自动启动监测，再次点击关闭监测并隐藏面板，拖动可调整并保存入口位置。wowDetector 每次登录或重载默认隐藏且检测关闭，不恢复上次显示状态。也可用 `/wowdetector show`、`hide` 控制面板。面板“关闭”按钮停止监测并隐藏面板；仅 show/hide 命令保持单独控制显隐；隐藏时色块一并隐藏，外部工具无法读取插件色块。`/wowdetector on` 会先显示面板再启动检测。
 
 inner_graphic_config 从原本机 1.7.0 版本收编，保留原有全部画面参数设置和 `/igc`、`/inner_graphic_config` 命令。仅点击应用或勾选时修改游戏设置。`/wowtools` 也可打开子插件菜单。
 
-插件安装后，点击“启动”或输入 `/wowdetector on`，自动将色块居中并锁定位置；点击“关闭”或输入 `/wowdetector off`，停止检测并解除锁定。关闭后可拖动面板。`/wowdetector unlock`、`lock` 控制关闭状态下的拖动，`center` 居中，`status` 查询状态。旧命令 `/fishstate` 仍可使用。
+插件安装后，点击“启动”或输入 `/wowdetector on`，自动将色块居中并锁定位置；点击“关闭”或输入 `/wowdetector off`，停止检测并解除锁定。面板按钮关闭后会隐藏；使用 `/wowdetector off` 仅停止检测，可保留面板拖动。`/wowdetector unlock`、`lock` 控制关闭状态下的拖动，`center` 居中，`status` 查询状态。旧命令 `/fishstate` 仍可使用。
 
 角色死亡时 wowDetector 自动停止监测、清空当前状态并解除位置锁定，显示关闭状态；面板保持原来的显示/隐藏状态；死亡或灵魂状态禁止启动检测，复活后需手动启动。通过死亡事件及时处理，并在检测刷新时检查存活状态。此行为控制插件本身，不向外部 wowAuto 发送停止命令。
 

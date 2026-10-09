@@ -155,7 +155,6 @@ panel:SetScript("OnDragStop", function(self)
     self:StopMovingOrSizing()
     if initialized then SavePosition() end
 end)
-toggle:SetScript("OnClick", function() SetEnabled(not enabled) end)
 
 local function SetPanelVisible(visible)
     if not initialized then return end
@@ -169,6 +168,20 @@ local function SetPanelVisible(visible)
         panel:Hide()
     end
 end
+
+local function OpenMonitor()
+    SetPanelVisible(true)
+    SetEnabled(true)
+end
+
+local function CloseMonitor()
+    SetEnabled(false)
+    SetPanelVisible(false)
+end
+
+toggle:SetScript("OnClick", function()
+    if enabled then CloseMonitor() else OpenMonitor() end
+end)
 
 -- Keep state updates active even while the control panel is hidden.
 local updates = CreateFrame("Frame")
@@ -262,7 +275,9 @@ end
 Paint("disabled")
 
 WoWTools.modules.wowDetector = {
-    Toggle = function() SetPanelVisible(not panel:IsShown()) end,
-    Show = function() SetPanelVisible(true) end,
+    Toggle = function()
+        if panel:IsShown() then CloseMonitor() else OpenMonitor() end
+    end,
+    Show = OpenMonitor,
     IsShown = function() return panel:IsShown() end,
 }

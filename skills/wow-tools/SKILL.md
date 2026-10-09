@@ -25,7 +25,7 @@ description: 维护 wow_tools 插件合集（wowDetector、inner_graphic_config�
 ## 行为约定
 
 - wow_tools 是唯一 TOC 插件，子目录 wowDetector 和 inner_graphic_config 分别保存模块；Init.lua 初始化 WoWTools.modules，Core.lua 统一小地图及右键菜单。图形模块来自本机 Inner_graphic_config 1.7.0，保留 /igc 和原有设置行为。同步先完整复制验证，再归档旧独立插件；首次复制账号旧 wowDetector.lua SavedVariables 为 wow_tools.lua，已有目标不覆盖。
-- 小地图右键菜单分别切换两个子模块界面，/wowtools 打开菜单。小地图钓鱼图标左键显示/隐藏整个检测面板，拖动调整入口角度；panelHidden、minimapAngle 保存到 wowDetectorDB。显隐不改变检测开关，隐藏时色块也隐藏；状态更新独立于面板可见性。show/hide 命令控制显隐，on 命令先显示面板。入口不依赖外部库。
+- 小地图右键菜单分别切换两个子模块界面，/wowtools 打开菜单。小地图钓鱼图标左键打开面板并自动启动检测，再次点击停止检测并隐藏面板；右键菜单中的wowDetector及模块Show采用相同行为，面板关闭按钮停止检测并隐藏，拖动调整入口角度；panelHidden、minimapAngle 保存到 wowDetectorDB。show/hide命令仅控制显隐，不改变检测开关；隐藏时色块也隐藏；状态更新独立于面板可见性。show/hide 命令控制显隐，on 命令先显示面板。入口不依赖外部库。
 - 泰坦时光服接口版本目前为 38002；wowDetector 面板创建时即隐藏，每次登录或重载重置 panelHidden=true，检测默认关闭，不恢复上次面板显示状态。小地图入口及 show/on 命令仍可打开。`/wowdetector` 是主命令，`/fishstate` 保留为兼容别名。
 - 绿色表示钓鱼，红色表示非钓鱼，黄色表示随身普通背包空格为零，灰色表示关闭或数据未知。黄色优先于红绿。排除银行、材料及专用背包；不估算现有物品剩余堆叠容量。
 - wowDetector 使用PLAYER_DEAD及UnitIsDeadOrGhost检测角色死亡/灵魂状态，优先停止监测、清空状态与计时、解除位置锁定并显示关闭状态；保留面板显隐，不改panelHidden。死亡时禁止启动，复活事件不得自动重启；进入世界及监测刷新补充检查。只重置插件，不宣称能直接停止外部wowAuto。
