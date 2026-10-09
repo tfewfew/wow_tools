@@ -215,10 +215,12 @@ $script:rows = @{}
 $script:scheduler = New-WowAutoScheduler
 $script:schedulerClock = [System.Diagnostics.Stopwatch]::StartNew()
 $script:pendingWork = $null
+$script:pendingGameExits = @{}
 $script:workerFocus = 0
 $script:workerActivations = @()
 $script:workerKeys = @()
 $script:workerClosed = @()
+$script:workerKilled = @()
 $script:mockProcesses = @()
 $script:scanning = $false
 $script:scanClock = [System.Diagnostics.Stopwatch]::StartNew()
@@ -366,7 +368,7 @@ $footer.Dock = 'Bottom'
 $footer.Height = 43
 $footer.Padding = New-Object System.Windows.Forms.Padding(12, 10, 0, 0)
 $footer.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 9)
-$footer.Text = '运行时自动切换窗口；到期收竿优先。黄色仅在有效循环超过500次时请求游戏正常退出，否则停止该行。'
+$footer.Text = '运行时自动切换窗口；黄色超过500次循环时请求正常退出，30秒未退出则强制结束；次数不足只停止该行。'
 $tab.Controls.Add($list)
 $tab.Controls.Add($headings)
 $tab.Controls.Add($intro)
@@ -405,9 +407,10 @@ function Get-WowAutoProcesses {
 
 function Set-RowControls($Row) {
     $running = $null -ne $Row.State -and $Row.State.Running
-    $eligible = $Row.Validated -and -not $script:scanning -and $null -ne $Row.StartTime -and -not $Row.Exited
+    $exiting = $script:pendingGameExits.ContainsKey($Row.Key)
+    $eligible = $Row.Validated -and -not $exiting -and -not $script:scanning -and $null -ne $Row.StartTime -and -not $Row.Exited
     $Row.Start.Enabled = $eligible -and -not $running
-    $Row.Stop.Enabled = $eligible
+    $Row.Stop.Enabled = $eligible -or $exiting
     $Row.Minimum.Enabled = -not $running
     $Row.Maximum.Enabled = -not $running
 }
@@ -417,6 +420,10 @@ function Update-RowStatus($Row) {
     $Row.Name.Text = "$($Row.Caption)`r`nPID $($Row.Process.Id) · 循环 $cycles"
     if ($null -ne $Row.State) {
         $text = $Row.State.Status
+        if ($script:pendingGameExits.ContainsKey($Row.Key)) {
+            $left=[Math]::Max(0,$script:pendingGameExits[$Row.Key].Due-$script:schedulerClock.ElapsedMilliseconds)
+            $text += "`r`n退出超时保护：剩余 $left ms；停止可取消。"
+        }
         if ($Row.State.Running -and $Row.State.Mode -in @('Wait', 'Cooldown')) {
             $left = [Math]::Max(0, $Row.State.Deadline - $script:schedulerClock.ElapsedMilliseconds)
             $text += "`r`n剩余 $left ms"
@@ -430,7 +437,8 @@ function Update-RowStatus($Row) {
     Set-RowControls $Row
 }
 
-function Stop-Row($Row, [string]$Reason = '已停止，当前等待已取消。') {
+function Stop-Row($Row, [string]$Reason = '已停止，当前等待已取消。', [switch]$CancelExit) {
+    if ($CancelExit) { $script:pendingGameExits.Remove($Row.Key) }
     if ($null -ne $script:pendingWork -and $script:pendingWork.Key -eq $Row.Key) { $script:pendingWork=$null }
     Stop-WowAutoTask $script:scheduler $Row.Key $Reason
     if ($null -ne $Row.State) { Stop-WowAutoState $Row.State $Reason }
@@ -440,6 +448,7 @@ function Stop-Row($Row, [string]$Reason = '已停止，当前等待已取消。'
 
 function Start-Row($Row) {
     try {
+        if ($script:pendingGameExits.ContainsKey($Row.Key)) { throw '正在等待游戏退出，请先停止以取消超时保护。' }
         if (-not $Row.Validated -or $script:scanning) { throw '请先刷新并通过红色/绿色检测。' }
         if ($null -ne $Row.State -and $Row.State.Running) { return }
         $minText = $Row.Minimum.Text.Trim()
@@ -509,7 +518,7 @@ function New-ProcessRow($Process, $StartTime, [string]$Key) {
     $start.Tag = $row
     $stop.Tag = $row
     $start.Add_Click({ param($sender, $eventArgs) Start-Row $sender.Tag })
-    $stop.Add_Click({ param($sender, $eventArgs) Stop-Row $sender.Tag })
+    $stop.Add_Click({ param($sender, $eventArgs) Stop-Row $sender.Tag -CancelExit })
     if ($null -eq $StartTime) { $status.Text = '无法读取进程信息，请检查权限后刷新。' }
     Set-RowControls $row
     return $row
@@ -586,6 +595,7 @@ function Finish-RefreshScan {
 
 function Begin-RefreshScan {
     if ($script:scanning) { return }
+    $script:pendingGameExits.Clear()
     $script:scanning = $true
     $startAllButton.Enabled = $false
     $script:pendingWork = $null
@@ -672,9 +682,10 @@ $refreshButton.Add_Click({ Begin-RefreshScan })
 function Update-BatchControls {
     $eligible = @($script:rows.Values | Where-Object { $_.Validated -and -not $_.Exited -and ($null -eq $_.State -or -not $_.State.Running) })
     $startAllButton.Enabled = -not $script:scanning -and $eligible.Count -gt 0
-    $stopAllButton.Enabled = $script:scheduler.Tasks.Count -gt 0
+    $stopAllButton.Enabled = $script:scheduler.Tasks.Count -gt 0 -or $script:pendingGameExits.Count -gt 0
 }
 function Stop-AllRows {
+    $script:pendingGameExits.Clear()
     foreach ($row in @($script:rows.Values)) { Stop-Row $row }
     $script:pendingWork=$null
     Update-BatchControls
@@ -733,13 +744,52 @@ function Close-WorkerGame($Row) {
         if ($Row.Process.StartTime -ne $Row.StartTime -or $Row.Process.ProcessName -ne 'WowClassic') {
             throw '进程身份已改变，未发送退出请求。'
         }
+        if ($script:pendingGameExits.ContainsKey($Row.Key)) { return }
+        $script:pendingGameExits[$Row.Key]=[pscustomobject]@{
+            Process=$Row.Process; StartTime=$Row.StartTime; Row=$Row
+            Due=$script:schedulerClock.ElapsedMilliseconds+30000; NextCheck=0L
+        }
         if ($UiTest) { $script:workerClosed += $Row.Process.Id; $requested=$true }
         else { $requested=$Row.Process.CloseMainWindow() }
-        if (-not $requested) { throw '游戏窗口未接受正常关闭请求，请手动退出。' }
-        Stop-Row $Row "背包已满：有效循环 $cycles 次，已发送正常退出请求，等待游戏完成退出；本行已停止。"
+        if (-not $requested) { throw '游戏窗口未接受正常关闭请求，30秒后检查并强制结束。' }
+        Stop-Row $Row "背包已满：有效循环 $cycles 次，已发送正常退出请求，等待游戏完成退出；30秒超时后强制结束。"
     }
     catch {
         Stop-Row $Row ("背包已满：有效循环 $cycles 次，正常退出请求失败；本行已停止。"+$_.Exception.Message)
+    }
+    finally {
+        if ($script:pendingGameExits.ContainsKey($Row.Key)) {
+            $script:pendingGameExits[$Row.Key].Due=$script:schedulerClock.ElapsedMilliseconds+30000
+        }
+    }
+}
+function Invoke-GameExitChecks([long]$Now) {
+    foreach ($key in @($script:pendingGameExits.Keys)) {
+        $exit=$script:pendingGameExits[$key]
+        if ($Now -lt $exit.NextCheck -and $Now -lt $exit.Due) { continue }
+        $exit.NextCheck=$Now+500
+        try {
+            $exit.Process.Refresh()
+            if ($exit.Process.HasExited) {
+                $script:pendingGameExits.Remove($key)
+                $exit.Row.Exited=$true
+                Stop-Row $exit.Row '游戏已正常退出，30秒超时保护已解除。'
+                continue
+            }
+            if ($exit.Process.StartTime -ne $exit.StartTime -or $exit.Process.ProcessName -ne 'WowClassic') {
+                throw '进程身份已改变，已取消超时保护。'
+            }
+            if ($Now -lt $exit.Due) { continue }
+            # One attempt only, against the original process instance after identity validation.
+            $script:pendingGameExits.Remove($key)
+            if ($UiTest) { $script:workerKilled += $exit.Process.Id; $exit.Process.HasExited=$true }
+            else { $exit.Process.Kill() }
+            Stop-Row $exit.Row '正常退出超过30秒，已请求强制结束对应游戏进程。'
+        }
+        catch {
+            $script:pendingGameExits.Remove($key)
+            Stop-Row $exit.Row ('退出保护已停止：'+$_.Exception.Message)
+        }
     }
 }
 function Invoke-SchedulerTick([long]$Now) {
@@ -811,11 +861,13 @@ function Invoke-SchedulerTick([long]$Now) {
 $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 25
 $timer.Add_Tick({
+    Invoke-GameExitChecks $script:schedulerClock.ElapsedMilliseconds
     if (-not $script:scanning) { Invoke-SchedulerTick $script:schedulerClock.ElapsedMilliseconds }
     foreach ($row in @($script:rows.Values)) { Update-RowStatus $row }
     Update-BatchControls
 })
 $form.Add_FormClosing({
+    $script:pendingGameExits.Clear()
     $timer.Stop()
     if ($script:scanning) { Finish-RefreshScan }
     $scanTimer.Stop()

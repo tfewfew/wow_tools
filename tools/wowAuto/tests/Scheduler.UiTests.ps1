@@ -91,4 +91,5 @@ foreach ($count in @(0,500,501)) {
     }
 }
 Stop-AllRows
+Assert-Ui ($script:pendingGameExits.Count -eq 0) 'Stop all did not cancel pending exit protection.'
 Write-Output 'PASS: yellow preserves game at 0/500 cycles, requests normal exit at 501, clears only target events, leaves other task running. Close requests mocked.'
