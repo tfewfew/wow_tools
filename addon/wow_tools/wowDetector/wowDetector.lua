@@ -20,12 +20,24 @@ local indicator = panel:CreateTexture(nil, "ARTWORK")
 indicator:SetSize(24, 24)
 indicator:SetPoint("TOPLEFT", 8, -8)
 local lureIndicator = panel:CreateTexture(nil, "ARTWORK")
-lureIndicator:SetSize(12, 12)
 lureIndicator:SetColorTexture(0.5, 0.5, 0.5, 1)
 local function PositionLureIndicator()
     -- wowAuto reads exactly 32 physical screen pixels to the right of the main point.
+    -- Like Blizzard's PixelUtil, include the viewport's 768-unit reference height.
+    local _, physicalHeight
+    if GetPhysicalScreenSize then _, physicalHeight = GetPhysicalScreenSize() end
+    local scale = panel:GetEffectiveScale()
+    if type(physicalHeight) ~= "number" or physicalHeight <= 0
+        or type(scale) ~= "number" or scale <= 0 then
+        lureIndicator:Hide()
+        return false
+    end
+    local unitsPerPixel = 768 / physicalHeight / scale
     lureIndicator:ClearAllPoints()
-    lureIndicator:SetPoint("CENTER", indicator, "CENTER", 32 / panel:GetEffectiveScale(), 0)
+    lureIndicator:SetPoint("CENTER", indicator, "CENTER", 32 * unitsPerPixel, 0)
+    lureIndicator:SetSize(12 * unitsPerPixel, 12 * unitsPerPixel)
+    lureIndicator:Show()
+    return true
 end
 PositionLureIndicator()
 local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -122,8 +134,8 @@ local function GetLureState()
 end
 
 local function PaintLure()
-    PositionLureIndicator()
-    local lure = enabled and GetLureState() or "unknown"
+    local positioned = PositionLureIndicator()
+    local lure = enabled and positioned and GetLureState() or "unknown"
     if lure == "present" then lureIndicator:SetColorTexture(0, 0, 1, 1)
     elseif lure == "missing" then lureIndicator:SetColorTexture(1, 0, 1, 1)
     else lureIndicator:SetColorTexture(0.5, 0.5, 0.5, 1) end
@@ -306,6 +318,12 @@ SlashCmdList.WOWDETECTOR = function(message)
         Refresh()
         local name, _, _, _, _, _, _, id = UnitChannelInfo("player")
         Say("状态=" .. state .. "；普通背包空格=" .. tostring(freeSlots) .. "；鱼饵附魔=" .. GetLureState() .. "；引导=" .. tostring(name) .. "；技能ID=" .. tostring(id))
+        local width, height
+        if GetPhysicalScreenSize then width, height = GetPhysicalScreenSize() end
+        Say("监测=" .. (enabled and "开启" or "关闭") .. "；面板=" .. (panel:IsShown() and "显示" or "隐藏")
+            .. "；画面像素=" .. tostring(width) .. "x" .. tostring(height)
+            .. "；UI缩放=" .. tostring(panel:GetEffectiveScale())
+            .. "；鱼饵点=" .. (PositionLureIndicator() and "中心右侧32px，12x12px" or "无法获取画面尺寸"))
     else
         Say("命令：/wowdetector on | off | toggle | show | hide | unlock | lock | center | reset | status")
     end

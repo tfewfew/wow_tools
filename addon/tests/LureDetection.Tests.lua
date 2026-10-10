@@ -2,6 +2,7 @@
 local root = TEST_ROOT or "."
 local frames, names = {}, {}
 local scale, dead, pole, hasEnchant, expiration = 0.7, false, true, false, nil
+local physicalWidth, physicalHeight = 1920, 1080
 local function widget(name)
     local object = { scripts = {}, events = {}, textures = {}, shown = true }
     function object:SetScript(event, callback) self.scripts[event] = callback end
@@ -14,6 +15,7 @@ local function widget(name)
     function object:CreateFontString() return widget() end
     function object:GetEffectiveScale() return scale end
     function object:SetColorTexture(...) self.color = { ... } end
+    function object:SetSize(width, height) self.size = { width, height } end
     function object:SetPoint(...) self.point = { ... } end
     function object:GetPoint() return "LEFT", nil, "CENTER", -20, 0 end
     function object:Hide() self.shown = false end
@@ -29,9 +31,11 @@ function CreateFrame(_, name)
     return object
 end
 UIParent = widget()
-DEFAULT_CHAT_FRAME = { AddMessage = function() end }
+local messages = {}
+DEFAULT_CHAT_FRAME = { AddMessage = function(_, message) messages[#messages + 1] = message end }
 SlashCmdList = {}
 function UnitIsDeadOrGhost() return dead end
+function GetPhysicalScreenSize() return physicalWidth, physicalHeight end
 function GetInventoryItemLink() return pole and "fishing-pole" or "sword" end
 function GetItemInfoInstant() return 1, nil, nil, nil, nil, 2, pole and 20 or 7 end
 function GetWeaponEnchantInfo() return hasEnchant, expiration, 0, 266 end
@@ -51,7 +55,19 @@ end
 assertColor(0.5, 0.5, 0.5)
 SlashCmdList.WOWDETECTOR("on")
 assertColor(1, 0, 1)
-assert(math.abs(point.point[4] * scale - 32) < 0.001, "Detection point is not 32 physical pixels away")
+local function assertPhysicalOffset()
+    -- WoW region units also scale with the viewport height, not only UI scale.
+    local pixelsPerUnit = scale * physicalHeight / 768
+    assert(math.abs(point.point[4] * pixelsPerUnit - 32) < 0.001,
+        "Detection point is not 32 physical pixels away at " .. physicalWidth .. "x" .. physicalHeight)
+    assert(math.abs(point.size[1] * pixelsPerUnit - 12) < 0.001
+        and math.abs(point.size[2] * pixelsPerUnit - 12) < 0.001,
+        "Lure marker physical size changed after resize/scale")
+    assert(panel.textures[2].point[1] == "TOPLEFT" and panel.textures[2].point[2] == 8
+        and panel.textures[2].point[3] == -8 and panel.point[4] == -20,
+        "Lure positioning moved the original center detection marker")
+end
+assertPhysicalOffset()
 hasEnchant, expiration = true, 600000
 panel.scripts.OnEvent(panel, "UNIT_INVENTORY_CHANGED", "player")
 assertColor(0, 0, 1)
@@ -66,7 +82,40 @@ panel.scripts.OnEvent(panel, "PLAYER_EQUIPMENT_CHANGED", 16)
 assertColor(0.5, 0.5, 0.5)
 pole, scale = true, 1.25
 panel.scripts.OnEvent(panel, "UI_SCALE_CHANGED")
-assert(math.abs(point.point[4] * scale - 32) < 0.001, "UI scale moved physical detection offset")
+assertPhysicalOffset()
+for _, viewport in ipairs({ {800, 450}, {1280, 720}, {1365, 768}, {1920, 1080}, {2560, 1440}, {3840, 2160}, {1024, 1024} }) do
+    physicalWidth, physicalHeight = viewport[1], viewport[2]
+    for _, uiScale in ipairs({0.64, 0.7, 1, 1.25}) do
+        scale = uiScale
+        panel.scripts.OnEvent(panel, "DISPLAY_SIZE_CHANGED")
+        assertPhysicalOffset()
+        assertColor(0, 0, 1)
+    end
+end
+-- The periodic refresh must also track a resize when no display event is delivered.
+physicalWidth, physicalHeight, scale = 1600, 900, 0.8
+for _, frame in ipairs(frames) do
+    if frame.scripts.OnUpdate then frame.scripts.OnUpdate(frame, 0.1) end
+end
+assertPhysicalOffset()
+SlashCmdList.WOWDETECTOR("status")
+assert(messages[#messages]:find("1600x900", 1, true)
+    and messages[#messages]:find("32px", 1, true), "Status lacks pixel positioning diagnostics")
+-- Invalid/missing viewport data must not leave a misleading active color at an old position.
+physicalHeight = 0
+panel.scripts.OnEvent(panel, "DISPLAY_SIZE_CHANGED")
+assertColor(0.5, 0.5, 0.5)
+assert(not point.shown, "Invalid viewport left the lure marker visible")
+local physicalSizeApi = GetPhysicalScreenSize
+GetPhysicalScreenSize = nil
+panel.scripts.OnEvent(panel, "UI_SCALE_CHANGED")
+assertColor(0.5, 0.5, 0.5)
+GetPhysicalScreenSize = physicalSizeApi
+physicalHeight = 900
+panel.scripts.OnEvent(panel, "DISPLAY_SIZE_CHANGED")
+assert(point.shown, "Valid viewport did not restore the lure marker")
+assertColor(0, 0, 1)
+assertPhysicalOffset()
 dead = true
 panel.scripts.OnEvent(panel, "PLAYER_DEAD")
 assertColor(0.5, 0.5, 0.5)
@@ -75,4 +124,4 @@ dead = false
 SlashCmdList.WOWDETECTOR("on")
 SlashCmdList.WOWDETECTOR("off")
 assertColor(0.5, 0.5, 0.5)
-print("PASS: fishing-pole temporary enchant, missing/active/expired/unknown, non-pole exclusion, death/off reset and physical pixel offset across UI scales. All WoW APIs mocked.")
+print("PASS: temporary enchant states, death/off reset, 32px offset and 12px marker across window sizes/UI scales, periodic resize refresh, invalid viewport recovery and diagnostics. All WoW APIs mocked.")
