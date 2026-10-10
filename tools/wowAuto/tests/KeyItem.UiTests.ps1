@@ -1,8 +1,11 @@
 ﻿Stop-AllRows
 $script:scheduler=New-WowAutoScheduler
 $script:pendingWork=$null
-Assert-Ui (-not $itemCheck.Checked) 'Items must default off.'
-Assert-Ui ($itemCheck.Right -le $holdLabel.Left) 'Item checkbox must precede hold input.'
+foreach ($r in $script:rows.Values) {
+    Assert-Ui (-not $r.ItemCheck.Checked) 'Process items must default off.'
+    Assert-Ui ($r.ItemCheck.Parent -eq $r.Panel -and $r.ItemCheck.Left -gt $r.Stop.Right -and
+        $r.ItemCheck.Right -lt $r.Status.Left) 'Item checkbox is outside its process row or overlaps controls.'
+}
 foreach ($action in @('Cast','Reel','Item')) {
     $inputBox=$script:keyInputs[$action]
     Assert-Ui ($toolbar.ClientRectangle.Contains($inputBox.Bounds) -and $inputBox.Top -gt $holdInput.Bottom) 'Key input is clipped or not below hold controls.'
@@ -17,13 +20,13 @@ Set-KeyBinding $script:keyInputs['Item'] 113 $false $true $false
 Assert-Ui ($script:keyBindings.Item.Text -eq 'Shift+F2') 'Key capture did not accept Shift+F2.'
 Set-KeyBinding $script:keyInputs['Item'] 16 $true $true $false
 Assert-Ui ($script:keyBindings.Item.Text -eq 'Shift+F2') 'Modifier alone overwrote binding.'
-$itemCheck.Checked=$true
-Assert-Ui $script:scheduler.UseItem 'Checkbox did not enable item scheduling.'
 $row=@($script:rows.Values)[0]
+$row.ItemCheck.Checked=$true
 $row.Process.HasExited=$false; $row.Exited=$false; $row.Validated=$true
 $row.Process.FocusAllowed=$true; $row.Process.ScanColor='red'
 $row.Process.LureColor='missing'
 Start-Row $row
+Assert-Ui $row.State.UseItem 'Process checkbox did not enable item scheduling.'
 $due=$row.State.ItemDue
 Assert-Ui ($due -le $script:schedulerClock.ElapsedMilliseconds -and $row.State.InitialItemPending) 'Start did not immediately queue an item.'
 $script:workerFocus=$row.Process.Id
@@ -38,8 +41,8 @@ Assert-Ui ($script:workerKeys.Count -eq $keysBefore -and $script:workerActivatio
 $row.Process.LureColor='present'
 Invoke-SchedulerTick ($due+3000)
 Assert-Ui ($script:workerKeys.Count -eq $keysBefore+1 -and $script:workerKeys[-1] -eq "$($row.Process.Id):48") 'Casting did not resume after three seconds.'
-$itemCheck.Checked=$false
-Assert-Ui (-not $script:scheduler.UseItem -and $row.State.ItemDue -eq 0) 'Unchecking left item scheduled.'
+$row.ItemCheck.Checked=$false
+Assert-Ui (-not $row.State.UseItem -and $row.State.ItemDue -eq 0) 'Unchecking left item scheduled.'
 Stop-AllRows
 Set-KeyBinding $script:keyInputs['Item'] 189 $false $false $false
 Write-Output 'PASS: key layout/capture, checkbox binding, missing-enchant item dispatch, full hold, confirmation and cancellation. Native input mocked.'

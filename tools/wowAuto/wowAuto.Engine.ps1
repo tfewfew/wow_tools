@@ -9,7 +9,7 @@ function New-WowAutoState {
         MinimumMs=$MinimumMs; MaximumMs=$MaximumMs; LastInterval=-1; ForceNextCast=$false
         AwaitingFishingTransition=$false; SawIdle=$false
         CheckReelGreen=$false
-        ItemDue=0L; ItemRetryAt=0L; InitialItemPending=$false
+        UseItem=$false; ItemDue=0L; ItemRetryAt=0L; InitialItemPending=$false
         ItemStatus=''
         FocusRetryAt=0L; FocusResumeStatus=''
         Status='已加入统一调度队列。'
@@ -46,26 +46,25 @@ function New-WowAutoScheduler {
     [pscustomobject]@{
         Tasks=@{}; CompletedCycles=@{}; Order=(New-Object 'System.Collections.Generic.List[string]')
         Events=(New-Object System.Collections.ArrayList)
-        Cursor=0; ActiveKey=$null; Sequence=0L; ReelHoldUntil=0L; ReelHoldMs=100; UseItem=$false
+        Cursor=0; ActiveKey=$null; Sequence=0L; ReelHoldUntil=0L; ReelHoldMs=100
         ItemHoldUntil=0L
     }
 }
 function Set-WowAutoHoldDuration($Scheduler, [ValidateRange(0,60000)][int]$Milliseconds) {
     $Scheduler.ReelHoldMs=$Milliseconds
 }
-function Set-WowAutoItemEnabled($Scheduler, [bool]$Enabled, [long]$Now) {
-    if ($Scheduler.UseItem -eq $Enabled) { return }
-    $Scheduler.UseItem=$Enabled
-    foreach ($state in $Scheduler.Tasks.Values) {
-        $state.ItemDue=if ($Enabled) { $Now } else { 0L }
-        $state.ItemRetryAt=0L
-        $state.InitialItemPending=$Enabled
-        $state.ItemStatus=if ($Enabled) { '等待鱼饵附魔检测。' } else { '' }
-    }
+function Set-WowAutoItemEnabled($Scheduler, [string]$Key, [bool]$Enabled, [long]$Now) {
+    $state=$Scheduler.Tasks[$Key]
+    if ($null -eq $state -or -not $state.Running -or $state.UseItem -eq $Enabled) { return }
+    $state.UseItem=$Enabled
+    $state.ItemDue=if ($Enabled) { $Now } else { 0L }
+    $state.ItemRetryAt=0L
+    $state.InitialItemPending=$Enabled
+    $state.ItemStatus=if ($Enabled) { '等待鱼饵附魔检测。' } else { '' }
 }
 function Complete-WowAutoItemCheck($Scheduler, [string]$Key, [long]$Now, [string]$Lure, [string]$Color) {
     $state=$Scheduler.Tasks[$Key]
-    if ($null -eq $state -or -not $state.Running -or -not $Scheduler.UseItem) { return 'Continue' }
+    if ($null -eq $state -or -not $state.Running -or -not $state.UseItem) { return 'Continue' }
     $state.ItemDue=$Now+1000
     if ($Color -notin @('red','green') -or $Lure -notin @('present','missing')) {
         $state.InitialItemPending=$true
@@ -94,7 +93,7 @@ function Complete-WowAutoItemCheck($Scheduler, [string]$Key, [long]$Now, [string
 }
 function Complete-WowAutoItem($Scheduler, [string]$Key, [long]$Now, [bool]$Sent) {
     $state=$Scheduler.Tasks[$Key]
-    if ($null -eq $state -or -not $state.Running -or -not $Scheduler.UseItem) { return }
+    if ($null -eq $state -or -not $state.Running -or -not $state.UseItem) { return }
     if ($Sent) {
         $state.InitialItemPending=$true
         $Scheduler.ItemHoldUntil=$Now+3000
@@ -129,13 +128,13 @@ function Stop-WowAutoTask($Scheduler, [string]$Key, [string]$Reason='已停止�
     }
     if ($Scheduler.ActiveKey -eq $Key) { $Scheduler.ActiveKey=$null }
 }
-function Add-WowAutoTask($Scheduler, [string]$Key, [int]$MinimumMs, [int]$MaximumMs, [long]$Now) {
+function Add-WowAutoTask($Scheduler, [string]$Key, [int]$MinimumMs, [int]$MaximumMs, [long]$Now, [bool]$UseItem=$false) {
     $state=New-WowAutoState $MinimumMs $MaximumMs
     Stop-WowAutoTask $Scheduler $Key
     $state.NextDue=$Now
-    if ($Scheduler.UseItem) { $state.ItemDue=$Now; $state.InitialItemPending=$true; $state.ItemStatus='等待鱼饵附魔检测。' }
     $Scheduler.Tasks[$Key]=$state
     $Scheduler.Order.Add($Key)
+    Set-WowAutoItemEnabled $Scheduler $Key $UseItem $Now
     return $state
 }
 function Add-WowAutoEvent($Scheduler, [string]$Key, [string]$Kind, [long]$Due) {
@@ -166,14 +165,12 @@ function Get-WowAutoWork($Scheduler, [long]$Now) {
     if ($due.Count -gt 0) {
         return [pscustomobject]@{ Key=$due[0].Key; Kind='Reel'; Due=$due[0].Due }
     }
-    if ($Scheduler.UseItem) {
-        $item=@($Scheduler.Order | Where-Object {
-            $s=$Scheduler.Tasks[$_]
-            $s.Running -and $s.FocusRetryAt -eq 0 -and $s.Mode -in @('Ready','Casting') -and $s.ItemDue -le $Now
-        } | Sort-Object { $Scheduler.Tasks[$_].ItemDue })
-        if ($item.Count -gt 0) {
-            return [pscustomobject]@{ Key=$item[0]; Kind='Item'; Due=$Scheduler.Tasks[$item[0]].ItemDue }
-        }
+    $item=@($Scheduler.Order | Where-Object {
+        $s=$Scheduler.Tasks[$_]
+        $s.Running -and $s.UseItem -and $s.FocusRetryAt -eq 0 -and $s.Mode -in @('Ready','Casting') -and $s.ItemDue -le $Now
+    } | Sort-Object { $Scheduler.Tasks[$_].ItemDue })
+    if ($item.Count -gt 0) {
+        return [pscustomobject]@{ Key=$item[0]; Kind='Item'; Due=$Scheduler.Tasks[$item[0]].ItemDue }
     }
     # Suspended rows retain their fishing/item deadlines but cannot monopolize overdue work.
     $retry=@($Scheduler.Order | Where-Object {

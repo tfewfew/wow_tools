@@ -3,6 +3,12 @@ if ($countLabel.Parent -ne $toolbar -or $countLabel.Left -le $stopAllButton.Righ
     throw 'Process count must follow Stop All within the autofish toolbar.'
 }
 if (-not $toolbar.ClientRectangle.Contains($holdInput.Bounds)) { throw 'Hold input is clipped.' }
+if (@($toolbar.Controls | Where-Object { $_ -is [System.Windows.Forms.CheckBox] }).Count) { throw 'Global item checkbox remains in toolbar.' }
+foreach ($row in $script:rows.Values) {
+    if (-not $row.Panel.ClientRectangle.Contains($row.ItemCheck.Bounds) -or $row.Status.Left -le $row.ItemCheck.Right) {
+        throw 'Per-process item checkbox is clipped or overlaps status.'
+    }
+}
 $holdInput.Value=275
 if ($script:scheduler.ReelHoldMs -ne 275) { throw 'Hold input not connected to scheduler.' }
 $holdInput.Value=100

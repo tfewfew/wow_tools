@@ -1,7 +1,7 @@
 ﻿Stop-AllRows
 $itemRow=@($script:rows.Values)[0]
 $script:scheduler=New-WowAutoScheduler
-$itemCheck.Checked=$true
+$itemRow.ItemCheck.Checked=$true
 foreach ($lureCase in @('present','unknown','missing')) {
     Stop-AllRows
     $script:scheduler.ReelHoldUntil=0L; $script:scheduler.ItemHoldUntil=0L
@@ -32,6 +32,6 @@ Start-Row $itemRow
 $script:workerFocus=$itemRow.Process.Id; $script:workerKeys=@()
 Invoke-SchedulerTick $itemRow.State.ItemDue
 Assert-Ui ($script:workerKeys.Count -eq 0 -and $itemRow.State.Mode -eq 'Wait') 'Missing lure interrupted existing fishing channel.'
-$itemCheck.Checked=$false
+$itemRow.ItemCheck.Checked=$false
 Stop-AllRows
 Write-Output 'PASS: native adapter dispatch follows lure point, present skips, unknown waits, missing applies, failed confirmation blocks cast and green defers. All actions mocked.'

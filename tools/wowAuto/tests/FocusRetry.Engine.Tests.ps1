@@ -4,8 +4,7 @@ function Assert-Focus($Condition, [string]$Message) { if (-not $Condition) { thr
 
 foreach ($mode in @('poll','reel','item','cooldown')) {
     $q=New-WowAutoScheduler
-    if ($mode -eq 'item') { Set-WowAutoItemEnabled $q $true 0 }
-    $a=Add-WowAutoTask $q 'A' 100 100 0
+    $a=Add-WowAutoTask $q 'A' 100 100 0 -UseItem ($mode -eq 'item')
     if ($mode -in @('reel','cooldown')) {
         $null=Complete-WowAutoPoll $q 'A' 0 'green'
         if ($mode -eq 'cooldown') { Complete-WowAutoReel $q 'A' 100 $true }
@@ -35,7 +34,7 @@ foreach ($otherKind in @('Reel','Item','Poll')) {
     $null=Complete-WowAutoPoll $q 'A' 0 'green'
     Suspend-WowAutoFocus $q 'A' 100 'Denied.'
     if ($otherKind -eq 'Reel') { $null=Complete-WowAutoPoll $q 'B' 0 'green' }
-    if ($otherKind -eq 'Item') { Set-WowAutoItemEnabled $q $true 0; $b.ItemDue=100 }
+    if ($otherKind -eq 'Item') { Set-WowAutoItemEnabled $q 'B' $true 0; $b.ItemDue=100 }
     $work=Get-WowAutoWork $q 100
     Assert-Focus ($work.Key -eq 'B' -and $work.Kind -eq $otherKind) "Suspension blocked another row's $otherKind"
     Stop-WowAutoTask $q 'B'
@@ -47,7 +46,7 @@ foreach ($otherKind in @('Reel','Item','Poll')) {
     Stop-WowAutoTask $q 'A'
     Assert-Focus ($a.FocusRetryAt -eq 0 -and $null -eq (Get-WowAutoWork $q 99999)) 'Stop left a retry behind.'
     $fresh=Add-WowAutoTask $q 'A' 100 100 100000
-    $firstKind=if ($q.UseItem) { 'Item' } else { 'Poll' }
+    $firstKind=if ($fresh.UseItem) { 'Item' } else { 'Poll' }
     Assert-Focus ($fresh.FocusRetryAt -eq 0 -and (Get-WowAutoWork $q 100000).Kind -eq $firstKind) 'Restart inherited suspension.'
 }
 Write-Output 'PASS: focus retry boundaries, repeated failure, retained poll/reel/item/cooldown, row isolation, uninterrupted holds and cancellation.'

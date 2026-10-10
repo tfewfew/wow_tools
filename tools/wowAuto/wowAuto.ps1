@@ -242,8 +242,8 @@ $script:scanOrder = @()
 $script:restored = $false
 $form = New-Object System.Windows.Forms.Form
 $form.Text = 'wowAuto'
-$form.ClientSize = New-Object System.Drawing.Size(1160, 460)
-$form.MinimumSize = New-Object System.Drawing.Size(1080, 350)
+$form.ClientSize = New-Object System.Drawing.Size(1330, 460)
+$form.MinimumSize = New-Object System.Drawing.Size(1250, 350)
 $form.StartPosition = 'CenterScreen'
 $form.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 10)
 $form.BackColor = [System.Drawing.Color]::FromArgb(245, 247, 250)
@@ -301,10 +301,10 @@ $countLabel.AutoEllipsis = $true
 $toolbar.Controls.Add($countLabel)
 $holdLabel = New-Object System.Windows.Forms.Label
 $holdLabel.Text = '收竿后保持（ms）'
-$holdLabel.SetBounds(820, 16, 160, 27)
+$holdLabel.SetBounds(665, 16, 160, 27)
 $toolbar.Controls.Add($holdLabel)
 $holdInput = New-Object System.Windows.Forms.NumericUpDown
-$holdInput.SetBounds(980, 12, 110, 30)
+$holdInput.SetBounds(825, 12, 110, 30)
 $holdInput.Minimum = 0
 $holdInput.Maximum = 60000
 $holdInput.Value = 100
@@ -312,11 +312,6 @@ $holdInput.Increment = 1
 $toolbar.Controls.Add($holdInput)
 $holdInput.Add_ValueChanged({ Set-WowAutoHoldDuration $script:scheduler ([int]$holdInput.Value) })
 
-$itemCheck = New-Object System.Windows.Forms.CheckBox
-$itemCheck.Text = '使用钓鱼道具'
-$itemCheck.SetBounds(665, 13, 150, 30)
-$toolbar.Controls.Add($itemCheck)
-$itemCheck.Add_CheckedChanged({ Set-WowAutoItemEnabled $script:scheduler $itemCheck.Checked $script:schedulerClock.ElapsedMilliseconds })
 $script:keyBindings = @{}
 $script:keyInputs = @{}
 function Set-KeyBinding($InputBox, [int]$Code, [bool]$Ctrl, [bool]$Shift, [bool]$Alt) {
@@ -364,7 +359,7 @@ $intro.Text = '先刷新检测，再全部开始：轮流下竿，绿色登记�
 $headings = New-Object System.Windows.Forms.Panel
 $headings.Dock = 'Top'
 $headings.Height = 32
-foreach ($heading in @(@('游戏进程',12,230), @('最小等待 ms',250,105), @('最大等待 ms',360,105), @('操作',475,145), @('实时状态',635,350))) {
+foreach ($heading in @(@('游戏进程',12,230), @('最小等待 ms',250,105), @('最大等待 ms',360,105), @('操作',475,145), @('钓鱼道具',635,150), @('实时状态',805,350))) {
     $label = New-Object System.Windows.Forms.Label
     $label.Text = $heading[0]
     $label.SetBounds($heading[1], 3, $heading[2], 25)
@@ -396,14 +391,14 @@ function Fit-WindowToContent {
     $workingArea = [System.Windows.Forms.Screen]::FromControl($form).WorkingArea
     $scale = $form.CurrentAutoScaleDimensions.Width / 96.0
     $frameWidth = $form.Width - $form.ClientSize.Width
-    $desiredWidth = [int][Math]::Ceiling([Math]::Max(1160 * $scale, $holdInput.Right + 28) + $frameWidth)
+    $desiredWidth = [int][Math]::Ceiling([Math]::Max(1330 * $scale, $holdInput.Right + 28) + $frameWidth)
     $rowHeight = $list.Padding.Vertical + 12
     foreach ($row in $script:rows.Values) { $rowHeight += $row.Panel.Height + $row.Panel.Margin.Vertical }
     $rowHeight = [Math]::Max([int](80 * $scale), $rowHeight)
     $chromeHeight = $form.Height - $list.ClientSize.Height
     $desiredHeight = $chromeHeight + $rowHeight
     $form.MinimumSize = New-Object System.Drawing.Size(
-        ([Math]::Min([int](1080 * $scale), $workingArea.Width)),
+        ([Math]::Min([int](1250 * $scale), $workingArea.Width)),
         ([Math]::Min([int](300 * $scale), $workingArea.Height)))
     $form.Size = New-Object System.Drawing.Size(
         ([Math]::Min($desiredWidth, $workingArea.Width)),
@@ -426,6 +421,7 @@ function Set-RowControls($Row) {
     $Row.Stop.Enabled = $eligible -or $exiting
     $Row.Minimum.Enabled = -not $running
     $Row.Maximum.Enabled = -not $running
+    $Row.ItemCheck.Enabled = -not $script:scanning -and -not $exiting -and -not $Row.Exited -and $null -ne $Row.StartTime
 }
 
 function Set-RowStatusText($Row, [string]$Message) {
@@ -441,7 +437,7 @@ function Update-RowStatus($Row) {
     $statusKey=$text
     if ($null -ne $Row.State) {
         $text = $Row.State.Status
-        if ($Row.State.Running -and $script:scheduler.UseItem) { $text += "`r`n$($Row.State.ItemStatus)" }
+        if ($Row.State.Running -and $Row.State.UseItem) { $text += "`r`n$($Row.State.ItemStatus)" }
         # Track state transitions and new deadlines, excluding the live countdown text.
         $statusKey="$text|$($Row.State.Mode)|$($Row.State.Deadline)|$($Row.State.FocusRetryAt)"
         if ($script:pendingGameExits.ContainsKey($Row.Key)) {
@@ -495,7 +491,7 @@ function Start-Row($Row) {
         if ($null -eq $Row.StartTime -or $Row.Process.StartTime -ne $Row.StartTime -or $Row.Process.ProcessName -ne 'WowClassic') {
             throw '进程身份已变化，请刷新。'
         }
-        $Row.State = Add-WowAutoTask $script:scheduler $Row.Key $newState.MinimumMs $newState.MaximumMs $script:schedulerClock.ElapsedMilliseconds
+        $Row.State = Add-WowAutoTask $script:scheduler $Row.Key $newState.MinimumMs $newState.MaximumMs $script:schedulerClock.ElapsedMilliseconds -UseItem $Row.ItemCheck.Checked
         Update-RowStatus $Row
     }
     catch {
@@ -507,7 +503,7 @@ function Start-Row($Row) {
 function New-ProcessRow($Process, $StartTime, [string]$Key) {
     $panel = New-Object System.Windows.Forms.Panel
     $panel.Height = 82
-    $panel.Width = [Math]::Max(1000, $list.ClientSize.Width - 32)
+    $panel.Width = [Math]::Max(1170, $list.ClientSize.Width - 32)
     $panel.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 6)
     $panel.BackColor = [System.Drawing.Color]::FromArgb(245, 247, 250)
     $nameLabel = New-Object System.Windows.Forms.Label
@@ -533,8 +529,12 @@ function New-ProcessRow($Process, $StartTime, [string]$Key) {
     $stop.SetBounds(543, 21, 68, 37)
     $stop.Enabled = $false
     $panel.Controls.Add($stop)
+    $rowItemCheck = New-Object System.Windows.Forms.CheckBox
+    $rowItemCheck.Text = '使用钓鱼道具'
+    $rowItemCheck.SetBounds(629, 25, 150, 30)
+    $panel.Controls.Add($rowItemCheck)
     $status = New-Object System.Windows.Forms.TextBox
-    $status.SetBounds(629, 12, $panel.Width - 641, 58)
+    $status.SetBounds(799, 12, $panel.Width - 811, 58)
     $status.Anchor = 'Top, Left, Right'
     $status.Multiline = $true
     $status.ReadOnly = $true
@@ -544,7 +544,7 @@ function New-ProcessRow($Process, $StartTime, [string]$Key) {
     $row = [pscustomobject]@{
         Key=$Key; Process=$Process; StartTime=$StartTime; Exited=$false; Validated=$false; Caption='WowClassic.exe'
         Panel=$panel; Name=$nameLabel; Minimum=$minimum; Maximum=$maximum
-        Start=$start; Stop=$stop; Status=$status; State=$null
+        Start=$start; Stop=$stop; ItemCheck=$rowItemCheck; Status=$status; State=$null
         StatusMessage='尚未验证，请点击刷新进程。'
         StatusSnapshot=$null; StatusTimestamp=''
 
@@ -552,8 +552,14 @@ function New-ProcessRow($Process, $StartTime, [string]$Key) {
     # Sender.Tag keeps handlers bound to their own row, not a shared loop variable.
     $start.Tag = $row
     $stop.Tag = $row
+    $rowItemCheck.Tag = $row
     $start.Add_Click({ param($sender, $eventArgs) Start-Row $sender.Tag })
     $stop.Add_Click({ param($sender, $eventArgs) Stop-Row $sender.Tag -CancelExit })
+    $rowItemCheck.Add_CheckedChanged({ param($sender, $eventArgs)
+        $changedRow=$sender.Tag
+        Set-WowAutoItemEnabled $script:scheduler $changedRow.Key $sender.Checked $script:schedulerClock.ElapsedMilliseconds
+        Update-RowStatus $changedRow
+    })
     if ($null -eq $StartTime) { $row.StatusMessage = '无法读取进程信息，请检查权限后刷新。' }
     Update-RowStatus $row
     return $row
@@ -742,7 +748,7 @@ $startAllButton.Add_Click({
 $stopAllButton.Add_Click({ Stop-AllRows })
 
 $list.Add_SizeChanged({
-    foreach ($row in $script:rows.Values) { $row.Panel.Width = [Math]::Max(1000, $list.ClientSize.Width - 32) }
+    foreach ($row in $script:rows.Values) { $row.Panel.Width = [Math]::Max(1170, $list.ClientSize.Width - 32) }
 })
 
 function Activate-WorkerRow($Row) {
@@ -889,7 +895,7 @@ function Invoke-SchedulerTick([long]$Now) {
             return
         }
         $sent=$true
-        if ($script:scheduler.UseItem -and $work.Kind -ne 'Reel') {
+        if ($row.State.UseItem -and $work.Kind -ne 'Reel') {
             $lure=Read-LureColor $row
             if ($lure -eq 'not-foreground') { Pause-RowForFocus $row $Now '检测鱼饵时失去前台焦点。'; return }
             $itemAction=Complete-WowAutoItemCheck $script:scheduler $work.Key $Now $lure $color
@@ -980,6 +986,7 @@ try {
             . (Join-Path $PSScriptRoot 'tests\Scheduler.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\KeyItem.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\ItemDetection.UiTests.ps1')
+            . (Join-Path $PSScriptRoot 'tests\ProcessItems.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\FocusRetry.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\StatusTimestamp.UiTests.ps1')
         }
