@@ -10,6 +10,7 @@ function New-WowAutoState {
         AwaitingFishingTransition=$false; SawIdle=$false
         CheckReelGreen=$false
         ItemDue=0L; ItemRetryAt=0L; InitialItemPending=$false
+        ItemStatus=''
         FocusRetryAt=0L; FocusResumeStatus=''
         Status='已加入统一调度队列。'
     }
@@ -56,20 +57,51 @@ function Set-WowAutoItemEnabled($Scheduler, [bool]$Enabled, [long]$Now) {
     if ($Scheduler.UseItem -eq $Enabled) { return }
     $Scheduler.UseItem=$Enabled
     foreach ($state in $Scheduler.Tasks.Values) {
-        $state.ItemDue=if ($Enabled) { $Now+600000 } else { 0L }
+        $state.ItemDue=if ($Enabled) { $Now } else { 0L }
         $state.ItemRetryAt=0L
-        if (-not $Enabled) { $state.InitialItemPending=$false }
+        $state.InitialItemPending=$Enabled
+        $state.ItemStatus=if ($Enabled) { '等待鱼饵附魔检测。' } else { '' }
     }
+}
+function Complete-WowAutoItemCheck($Scheduler, [string]$Key, [long]$Now, [string]$Lure, [string]$Color) {
+    $state=$Scheduler.Tasks[$Key]
+    if ($null -eq $state -or -not $state.Running -or -not $Scheduler.UseItem) { return 'Continue' }
+    $state.ItemDue=$Now+1000
+    if ($Color -notin @('red','green') -or $Lure -notin @('present','missing')) {
+        $state.InitialItemPending=$true
+        $state.ItemStatus='鱼饵检测点未知：暂停本行抛竿，等待有效检测。'
+        if ($Scheduler.ActiveKey -eq $Key) { $Scheduler.ActiveKey=$null }
+        return 'Wait'
+    }
+    if ($Lure -eq 'present') {
+        $state.InitialItemPending=$false; $state.ItemRetryAt=0L
+        $state.ItemStatus='鱼竿临时附魔有效，无需使用道具。'
+        return 'Continue'
+    }
+    if ($Color -eq 'green') {
+        $state.InitialItemPending=$false
+        $state.ItemStatus='缺少鱼饵附魔：本轮收竿后再使用道具。'
+        return 'Continue'
+    }
+    $state.InitialItemPending=$true
+    if ($Now -lt $state.ItemRetryAt) {
+        $state.ItemStatus='尚未确认鱼饵附魔，稍后重试道具。'
+        if ($Scheduler.ActiveKey -eq $Key) { $Scheduler.ActiveKey=$null }
+        return 'Wait'
+    }
+    $state.ItemStatus='缺少鱼饵附魔：使用钓鱼道具。'
+    return 'UseItem'
 }
 function Complete-WowAutoItem($Scheduler, [string]$Key, [long]$Now, [bool]$Sent) {
     $state=$Scheduler.Tasks[$Key]
     if ($null -eq $state -or -not $state.Running -or -not $Scheduler.UseItem) { return }
     if ($Sent) {
-        $state.InitialItemPending=$false
+        $state.InitialItemPending=$true
         $Scheduler.ItemHoldUntil=$Now+3000
-        $state.ItemDue=$Now+600000
-        $state.ItemRetryAt=0L
-    } else { $state.ItemRetryAt=$Now+500 }
+        $state.ItemDue=$Now+3000
+        $state.ItemRetryAt=$Now+5000
+        $state.ItemStatus='道具已发送，等待3秒并重新确认鱼竿附魔。'
+    } else { $state.ItemRetryAt=$Now+500; $state.ItemDue=$Now+500 }
 }
 function Get-WowAutoCycleCount($Scheduler, [string]$Key) {
     if ($Scheduler.CompletedCycles.ContainsKey($Key)) { return [long]$Scheduler.CompletedCycles[$Key] }
@@ -101,7 +133,7 @@ function Add-WowAutoTask($Scheduler, [string]$Key, [int]$MinimumMs, [int]$Maximu
     $state=New-WowAutoState $MinimumMs $MaximumMs
     Stop-WowAutoTask $Scheduler $Key
     $state.NextDue=$Now
-    if ($Scheduler.UseItem) { $state.ItemDue=$Now; $state.InitialItemPending=$true }
+    if ($Scheduler.UseItem) { $state.ItemDue=$Now; $state.InitialItemPending=$true; $state.ItemStatus='等待鱼饵附魔检测。' }
     $Scheduler.Tasks[$Key]=$state
     $Scheduler.Order.Add($Key)
     return $state
@@ -137,7 +169,7 @@ function Get-WowAutoWork($Scheduler, [long]$Now) {
     if ($Scheduler.UseItem) {
         $item=@($Scheduler.Order | Where-Object {
             $s=$Scheduler.Tasks[$_]
-            $s.Running -and $s.FocusRetryAt -eq 0 -and $s.ItemDue -le $Now -and $s.ItemRetryAt -le $Now
+            $s.Running -and $s.FocusRetryAt -eq 0 -and $s.Mode -in @('Ready','Casting') -and $s.ItemDue -le $Now
         } | Sort-Object { $Scheduler.Tasks[$_].ItemDue })
         if ($item.Count -gt 0) {
             return [pscustomobject]@{ Key=$item[0]; Kind='Item'; Due=$Scheduler.Tasks[$item[0]].ItemDue }

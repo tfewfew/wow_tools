@@ -138,10 +138,22 @@ namespace WowAuto
             if (red >= 200 && green >= 200 && blue <= 80) return "yellow";
             if (red >= 200 && green <= 80 && blue <= 80) return "red";
             if (green >= 200 && red <= 80 && blue <= 80) return "green";
+            if (blue >= 200 && red <= 80 && green <= 80) return "present";
+            if (red >= 200 && blue >= 200 && green <= 80) return "missing";
             return "unknown";
         }
 
         public static string ReadCenterColor(int targetProcessId)
+        {
+            return ReadDetectionColor(targetProcessId, 0);
+        }
+
+        public static string ReadLureColor(int targetProcessId)
+        {
+            return ReadDetectionColor(targetProcessId, 32);
+        }
+
+        private static string ReadDetectionColor(int targetProcessId, int offsetX)
         {
             using (System.Diagnostics.Process target = System.Diagnostics.Process.GetProcessById(targetProcessId))
             {
@@ -158,8 +170,9 @@ namespace WowAuto
                     if (!GetClientRect(window, out rect) || rect.right <= rect.left || rect.bottom <= rect.top)
                         return "unknown";
                     POINT point = new POINT();
-                    point.x = (rect.right - rect.left) / 2;
+                    point.x = (rect.right - rect.left) / 2 + offsetX;
                     point.y = (rect.bottom - rect.top) / 2;
+                    if (point.x >= rect.right || point.x < rect.left) return "unknown";
                     if (!ClientToScreen(window, ref point)) return "unknown";
                     dc = GetDC(IntPtr.Zero);
                     if (dc == IntPtr.Zero) return "unknown";
@@ -428,6 +441,7 @@ function Update-RowStatus($Row) {
     $statusKey=$text
     if ($null -ne $Row.State) {
         $text = $Row.State.Status
+        if ($Row.State.Running -and $script:scheduler.UseItem) { $text += "`r`n$($Row.State.ItemStatus)" }
         # Track state transitions and new deadlines, excluding the live countdown text.
         $statusKey="$text|$($Row.State.Mode)|$($Row.State.Deadline)|$($Row.State.FocusRetryAt)"
         if ($script:pendingGameExits.ContainsKey($Row.Key)) {
@@ -596,6 +610,12 @@ function Read-ScanColor($Row) {
     if ($UiTest) { return $Row.Process.ScanColor }
     if (-not [WowAuto.NativeInput]::IsTargetForeground($Row.Process.Id)) { return 'not-foreground' }
     return [WowAuto.NativeInput]::ReadCenterColor($Row.Process.Id)
+}
+
+function Read-LureColor($Row) {
+    if ($UiTest) { return $Row.Process.LureColor }
+    if (-not [WowAuto.NativeInput]::IsTargetForeground($Row.Process.Id)) { return 'not-foreground' }
+    return [WowAuto.NativeInput]::ReadLureColor($Row.Process.Id)
 }
 
 function Finish-RefreshScan {
@@ -869,11 +889,27 @@ function Invoke-SchedulerTick([long]$Now) {
             return
         }
         $sent=$true
+        if ($script:scheduler.UseItem -and $work.Kind -ne 'Reel') {
+            $lure=Read-LureColor $row
+            if ($lure -eq 'not-foreground') { Pause-RowForFocus $row $Now '检测鱼饵时失去前台焦点。'; return }
+            $itemAction=Complete-WowAutoItemCheck $script:scheduler $work.Key $Now $lure $color
+            if ($itemAction -eq 'Wait') { $script:pendingWork=$null; Update-RowStatus $row; return }
+            if ($itemAction -eq 'UseItem') {
+                $sent=Send-WorkerKey $row 'Item'
+                $completedAt=if ($UiTest) { $Now } else { $script:schedulerClock.ElapsedMilliseconds }
+                Complete-WowAutoItem $script:scheduler $work.Key $completedAt $sent
+                if (-not $sent -and -not (Test-WorkerForeground $row)) { Pause-RowForFocus $row $completedAt '发送道具时失去前台焦点。' }
+                $script:pendingWork=$null
+                Update-RowStatus $row
+                return
+            }
+        }
         if ($work.Kind -eq 'Item') {
-            $sent=$false
-            if ($color -in @('red','green')) { $sent=Send-WorkerKey $row 'Item' }
-            $completedAt=if ($UiTest) { $Now } else { $script:schedulerClock.ElapsedMilliseconds }
-            Complete-WowAutoItem $script:scheduler $work.Key $completedAt $sent
+            # A valid enchant skips item use; continue fishing using the same foreground sample.
+            $script:scheduler.ActiveKey=$work.Key
+            $action=Complete-WowAutoPoll $script:scheduler $work.Key $Now $color
+            if ($action -eq 'Ctrl1') { $sent=Send-WorkerKey $row 'Cast'; Complete-WowAutoCast $script:scheduler $work.Key $sent }
+            elseif ($action -eq 'Jump') { $sent=Send-WorkerKey $row 'Jump'; Complete-WowAutoJump $script:scheduler $work.Key $sent }
             $script:pendingWork=$null
         }
         elseif ($work.Kind -eq 'Reel') {
@@ -928,7 +964,7 @@ try {
     if ($UiTest) {
         # Test fixtures are never passed to native input, capture, or termination.
         foreach ($id in @(101, 202, 303)) {
-            $mock = [pscustomobject]@{ Id=$id; StartTime=[datetime]'2026-09-27'; ProcessName='WowClassic'; MainWindowTitle="测试游戏 $id"; HasExited=$false; FocusAllowed=$true; ScanColor='red' }
+            $mock = [pscustomobject]@{ Id=$id; StartTime=[datetime]'2026-09-27'; ProcessName='WowClassic'; MainWindowTitle="测试游戏 $id"; HasExited=$false; FocusAllowed=$true; ScanColor='red'; LureColor='missing' }
             $mock | Add-Member ScriptMethod Refresh { }
             $script:mockProcesses += $mock
         }
@@ -943,6 +979,7 @@ try {
             . (Join-Path $PSScriptRoot 'tests\Refresh.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Scheduler.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\KeyItem.UiTests.ps1')
+            . (Join-Path $PSScriptRoot 'tests\ItemDetection.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\FocusRetry.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\StatusTimestamp.UiTests.ps1')
         }

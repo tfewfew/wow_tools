@@ -4,7 +4,7 @@ local initialized = false
 local state = "disabled"
 local freeSlots = nil
 local panel = CreateFrame("Frame", "wowDetectorPanel", UIParent)
-panel:SetSize(240, 40)
+panel:SetSize(280, 40)
 panel:SetFrameStrata("HIGH")
 panel:SetClampedToScreen(true)
 panel:SetMovable(true)
@@ -19,8 +19,17 @@ background:SetColorTexture(0.04, 0.04, 0.04, 1)
 local indicator = panel:CreateTexture(nil, "ARTWORK")
 indicator:SetSize(24, 24)
 indicator:SetPoint("TOPLEFT", 8, -8)
+local lureIndicator = panel:CreateTexture(nil, "ARTWORK")
+lureIndicator:SetSize(12, 12)
+lureIndicator:SetColorTexture(0.5, 0.5, 0.5, 1)
+local function PositionLureIndicator()
+    -- wowAuto reads exactly 32 physical screen pixels to the right of the main point.
+    lureIndicator:ClearAllPoints()
+    lureIndicator:SetPoint("CENTER", indicator, "CENTER", 32 / panel:GetEffectiveScale(), 0)
+end
+PositionLureIndicator()
 local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-label:SetPoint("LEFT", panel, "LEFT", 42, 0)
+label:SetPoint("LEFT", lureIndicator, "RIGHT", 10, 0)
 local toggle = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
 toggle:SetSize(62, 24)
 toggle:SetPoint("RIGHT", -8, 0)
@@ -43,6 +52,7 @@ local function Paint(newState)
     else
         indicator:SetColorTexture(0.5, 0.5, 0.5, 1)
         label:SetText(enabled and "背包状态未知" or "已关闭")
+        if not enabled then lureIndicator:SetColorTexture(0.5, 0.5, 0.5, 1) end
     end
     toggle:SetText(enabled and "关闭" or "启动")
 end
@@ -97,15 +107,39 @@ local function GetFreeSlots()
     return total
 end
 
+local function GetLureState()
+    if UnitIsDeadOrGhost("player") then return "unknown" end
+    local link = GetInventoryItemLink("player", 16)
+    local getInfo = C_Item and C_Item.GetItemInfoInstant or GetItemInfoInstant
+    if not link or not getInfo or not GetWeaponEnchantInfo then return "unknown" end
+    local _, _, _, _, _, classID, subclassID = getInfo(link)
+    -- Only a fishing pole's temporary enchant counts; permanent fishing-line enchants do not.
+    if classID == nil or subclassID == nil or classID ~= 2 or subclassID ~= 20 then return "unknown" end
+    local hasEnchant, expiration = GetWeaponEnchantInfo()
+    if not hasEnchant then return "missing" end
+    if type(expiration) ~= "number" then return "unknown" end
+    return expiration > 0 and "present" or "missing"
+end
+
+local function PaintLure()
+    PositionLureIndicator()
+    local lure = enabled and GetLureState() or "unknown"
+    if lure == "present" then lureIndicator:SetColorTexture(0, 0, 1, 1)
+    elseif lure == "missing" then lureIndicator:SetColorTexture(1, 0, 1, 1)
+    else lureIndicator:SetColorTexture(0.5, 0.5, 0.5, 1) end
+end
+
 local function Refresh()
     if enabled and UnitIsDeadOrGhost("player") then
         ResetAfterDeath()
         return
     end
     if not enabled then
+        PaintLure()
         if state ~= "disabled" then Paint("disabled") end
         return
     end
+    PaintLure()
     freeSlots = GetFreeSlots()
     local nextState
     if freeSlots == nil then nextState = "unknown"
@@ -200,6 +234,10 @@ panel:RegisterEvent("PLAYER_DEAD")
 panel:RegisterEvent("PLAYER_ALIVE")
 panel:RegisterEvent("PLAYER_UNGHOST")
 panel:RegisterEvent("BAG_UPDATE_DELAYED")
+panel:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+panel:RegisterEvent("UNIT_INVENTORY_CHANGED")
+panel:RegisterEvent("UI_SCALE_CHANGED")
+panel:RegisterEvent("DISPLAY_SIZE_CHANGED")
 panel:RegisterEvent("UNIT_SPELLCAST_START")
 panel:RegisterEvent("UNIT_SPELLCAST_STOP")
 panel:RegisterEvent("UNIT_SPELLCAST_CHANNEL_START")
@@ -229,7 +267,8 @@ panel:SetScript("OnEvent", function(_, event, unit)
     elseif event == "PLAYER_ENTERING_WORLD" and UnitIsDeadOrGhost("player") then
         ResetAfterDeath()
     elseif event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_ALIVE" or event == "PLAYER_UNGHOST"
-        or event == "BAG_UPDATE_DELAYED" or unit == "player" then
+        or event == "BAG_UPDATE_DELAYED" or event == "PLAYER_EQUIPMENT_CHANGED"
+        or event == "UI_SCALE_CHANGED" or event == "DISPLAY_SIZE_CHANGED" or unit == "player" then
         Refresh()
     end
 end)
@@ -266,7 +305,7 @@ SlashCmdList.WOWDETECTOR = function(message)
     elseif command == "status" then
         Refresh()
         local name, _, _, _, _, _, _, id = UnitChannelInfo("player")
-        Say("状态=" .. state .. "；普通背包空格=" .. tostring(freeSlots) .. "；引导=" .. tostring(name) .. "；技能ID=" .. tostring(id))
+        Say("状态=" .. state .. "；普通背包空格=" .. tostring(freeSlots) .. "；鱼饵附魔=" .. GetLureState() .. "；引导=" .. tostring(name) .. "；技能ID=" .. tostring(id))
     else
         Say("命令：/wowdetector on | off | toggle | show | hide | unlock | lock | center | reset | status")
     end
@@ -280,4 +319,5 @@ WoWTools.modules.wowDetector = {
     end,
     Show = OpenMonitor,
     IsShown = function() return panel:IsShown() end,
+    GetLureState = GetLureState,
 }
