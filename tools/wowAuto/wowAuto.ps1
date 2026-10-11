@@ -437,13 +437,20 @@ function Import-VersionWaitSettings {
     catch { $script:settingsWarning="config.ini 读取失败，保留当前配置：$($_.Exception.Message)" }
 }
 if (-not $UiTest) { Import-VersionWaitSettings }
+$script:uiColors=@{
+    Background=[System.Drawing.Color]::FromArgb(226,228,232)
+    Surface=[System.Drawing.Color]::FromArgb(235,237,240)
+    Input=[System.Drawing.Color]::FromArgb(230,232,235)
+    Text=[System.Drawing.Color]::FromArgb(42,45,50)
+}
 $form = New-Object System.Windows.Forms.Form
 $form.Text = 'wowAuto'
 $form.ClientSize = New-Object System.Drawing.Size(1330, 460)
 $form.MinimumSize = New-Object System.Drawing.Size(1250, 350)
 $form.StartPosition = 'CenterScreen'
 $form.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 10)
-$form.BackColor = [System.Drawing.Color]::FromArgb(245, 247, 250)
+$form.BackColor = $script:uiColors.Background
+$form.ForeColor = $script:uiColors.Text
 $form.AutoScaleMode = 'Dpi'
 
 $header = New-Object System.Windows.Forms.Panel
@@ -468,14 +475,15 @@ $tabs = New-Object System.Windows.Forms.TabControl
 $tabs.Dock = 'Fill'
 $tab = New-Object System.Windows.Forms.TabPage
 $tab.Text = 'autofish'
-$tab.BackColor = [System.Drawing.Color]::White
+$tab.BackColor = $script:uiColors.Background
 $tabs.TabPages.Add($tab)
 $form.Controls.Add($tabs)
 $form.Controls.Add($header)
 $toolbar = New-Object System.Windows.Forms.Panel
 $toolbar.Dock = 'Top'
 $toolbar.AutoScroll = $true
-$toolbar.Height = 138
+$toolbar.Height = 92
+$toolbar.BackColor = $script:uiColors.Surface
 $toolbar.Width = $form.ClientSize.Width
 $refreshButton.Anchor = 'Top, Left'
 $refreshButton.SetBounds(12, 10, 120, 35)
@@ -507,6 +515,7 @@ $holdInput.Minimum = 0
 $holdInput.Maximum = 60000
 $holdInput.Value = 100
 $holdInput.Increment = 1
+$holdInput.BackColor = $script:uiColors.Input
 $toolbar.Controls.Add($holdInput)
 $holdInput.Add_ValueChanged({ Set-WowAutoHoldDuration $script:scheduler ([int]$holdInput.Value) })
 $settingsButton = New-Object System.Windows.Forms.Button
@@ -519,18 +528,46 @@ $audioCheck.SetBounds(1090, 13, 195, 30)
 $audioCheck.Checked = -not $UiTest # Existing tests exercise the legacy timed mode explicitly.
 $toolbar.Controls.Add($audioCheck)
 $settingsSummary = New-Object System.Windows.Forms.Label
-$settingsSummary.SetBounds(12, 102, 1250, 28)
+$settingsSummary.SetBounds(12, 56, 1250, 28)
 $settingsSummary.Anchor = 'Top, Left, Right'
 $settingsSummary.AutoEllipsis = $true
 $toolbar.Controls.Add($settingsSummary)
 Update-VersionSummary
 
+function New-KeyBinding([int]$Code, [bool]$Ctrl, [bool]$Shift, [bool]$Alt) {
+    # Accept letters, digits, function keys, numpad and common standalone keys.
+    if (-not (($Code -ge 48 -and $Code -le 57) -or ($Code -ge 65 -and $Code -le 90) -or ($Code -ge 96 -and $Code -le 111) -or
+        ($Code -ge 112 -and $Code -le 135) -or $Code -in @(8,9,13,27,32,33,34,35,36,37,38,39,40,45,46,187,189))) { return $null }
+    $parts=@()
+    if ($Ctrl) { $parts+='Ctrl' }; if ($Shift) { $parts+='Shift' }; if ($Alt) { $parts+='Alt' }
+    $name=([System.Windows.Forms.Keys]$Code).ToString()
+    if ($Code -ge 48 -and $Code -le 57) { $name=[string]($Code-48) }
+    if ($Code -eq 189) { $name='-' }
+    if ($Code -eq 187) { $name='=' }
+    $parts+=$name
+    return [pscustomobject]@{ Code=$Code; Ctrl=$Ctrl; Shift=$Shift; Alt=$Alt; Text=($parts -join '+') }
+}
+function Set-KeyBinding($InputBox, [int]$Code, [bool]$Ctrl, [bool]$Shift, [bool]$Alt) {
+    $binding=New-KeyBinding $Code $Ctrl $Shift $Alt
+    if ($null -eq $binding) { return }
+    # Editing a dialog changes only its draft, never the active input mapping.
+    $InputBox.Tag.Bindings[$InputBox.Tag.Action]=$binding
+    $InputBox.Text=$binding.Text
+}
+$script:keyBindings=@{
+    Cast=(New-KeyBinding 48 $false $false $false)
+    Reel=(New-KeyBinding 187 $false $false $false)
+    Item=(New-KeyBinding 189 $false $false $false)
+}
+
 function New-WaitSettingsDialog {
     $dialog=New-Object System.Windows.Forms.Form
     $dialog.Text='自动钓鱼设置'
     $dialog.Font=$form.Font
+    $dialog.BackColor=$script:uiColors.Background
+    $dialog.ForeColor=$script:uiColors.Text
     $dialog.AutoScaleMode='Dpi'
-    $dialog.ClientSize=New-Object System.Drawing.Size(740,358)
+    $dialog.ClientSize=New-Object System.Drawing.Size(740,526)
     $dialog.FormBorderStyle='FixedDialog'
     $dialog.MaximizeBox=$false; $dialog.MinimizeBox=$false
     $dialog.StartPosition='CenterParent'
@@ -548,10 +585,11 @@ function New-WaitSettingsDialog {
         $max=New-Object System.Windows.Forms.NumericUpDown
         $threshold=New-Object System.Windows.Forms.NumericUpDown
         $min.SetBounds(130,$spec[2],175,30); $max.SetBounds(330,$spec[2],175,30)
-        foreach ($input in @($min,$max)) { $input.Minimum=1; $input.Maximum=3600000; $input.Increment=1000; $dialog.Controls.Add($input) }
+        foreach ($input in @($min,$max)) { $input.Minimum=1; $input.Maximum=3600000; $input.Increment=1000; $input.BackColor=$script:uiColors.Input; $dialog.Controls.Add($input) }
         $min.Value=$script:versionRanges[$spec[0]].MinimumMs; $max.Value=$script:versionRanges[$spec[0]].MaximumMs
         $threshold.SetBounds(530,$spec[2],175,30); $threshold.Minimum=50; $threshold.Maximum=100; $threshold.Increment=1
         $threshold.Value=$script:audioThresholds[$spec[0]]; $dialog.Controls.Add($threshold)
+        $threshold.BackColor=$script:uiColors.Input
         $inputs[$spec[0]]=[pscustomobject]@{Minimum=$min; Maximum=$max; AudioThreshold=$threshold}
     }
     $retryLabel=New-Object System.Windows.Forms.Label
@@ -561,24 +599,58 @@ function New-WaitSettingsDialog {
     $retryInput.SetBounds(330,146,175,30)
     $retryInput.Minimum=1000; $retryInput.Maximum=3600000; $retryInput.Increment=1000
     $retryInput.Value=$script:scheduler.FocusRetryIntervalMs; $dialog.Controls.Add($retryInput)
+    $retryInput.BackColor=$script:uiColors.Input
+    $keyGroup=New-Object System.Windows.Forms.GroupBox
+    $keyGroup.Text='快捷键（所有进程）'; $keyGroup.SetBounds(18,192,705,121)
+    $keyGroup.BackColor=$script:uiColors.Surface; $dialog.Controls.Add($keyGroup)
+    $keyInputs=@{}; $draftBindings=@{}
+    $keyTip=New-Object System.Windows.Forms.ToolTip
+    foreach ($spec in @(@('Cast','抛竿',16),@('Reel','收竿',248),@('Item','钓鱼道具',480))) {
+        $keyLabel=New-Object System.Windows.Forms.Label
+        $keyLabel.Text=$spec[1]; $keyLabel.SetBounds($spec[2],26,200,24); $keyGroup.Controls.Add($keyLabel)
+        $keyInput=New-Object System.Windows.Forms.TextBox
+        $keyInput.Tag=[pscustomobject]@{Action=$spec[0]; Bindings=$draftBindings}
+        $keyInput.ReadOnly=$true; $keyInput.SetBounds($spec[2],52,208,30)
+        $keyInput.BackColor=$script:uiColors.Input
+        $keyInput.Add_PreviewKeyDown({ param($sender,$e) $e.IsInputKey=$true })
+        $keyInput.Add_KeyDown({ param($sender,$e)
+            $e.SuppressKeyPress=$true; $e.Handled=$true
+            Set-KeyBinding $sender ([int]$e.KeyCode) $e.Control $e.Shift $e.Alt
+        })
+        $current=$script:keyBindings[$spec[0]]
+        Set-KeyBinding $keyInput $current.Code $current.Ctrl $current.Shift $current.Alt
+        $keyInputs[$spec[0]]=$keyInput; $keyGroup.Controls.Add($keyInput)
+        $keyTip.SetToolTip($keyInput,'点击后直接按下按键或组合键，例如 Ctrl+1、Shift+F2。')
+    }
+    $keyHint=New-Object System.Windows.Forms.Label
+    $keyHint.Text='点击输入框后直接按键，支持 Ctrl / Shift / Alt 组合键。'
+    $keyHint.SetBounds(16,88,675,24); $keyGroup.Controls.Add($keyHint)
     $note=New-Object System.Windows.Forms.Label
-    $note.Text="音频模式：匹配成功后随机等待；定时模式：变绿后随机等待。`r`n保存到 config.ini；范围用于下一次计时，已登记的截止时间保持不变。"
-    $note.SetBounds(18,194,705,52); $dialog.Controls.Add($note)
+    $note.Text="音频模式：匹配成功后随机等待；定时模式：变绿后随机等待。`r`n计时及门槛保存到 config.ini；已登记的截止时间保持不变。`r`n快捷键保存后在本次运行中生效，重启恢复默认 0 / = / -。"
+    $note.SetBounds(18,328,705,74); $dialog.Controls.Add($note)
     $errorLabel=New-Object System.Windows.Forms.Label
     $errorLabel.ForeColor=[System.Drawing.Color]::Firebrick
-    $errorLabel.SetBounds(18,248,705,44); $dialog.Controls.Add($errorLabel)
+    $errorLabel.SetBounds(18,409,705,44); $dialog.Controls.Add($errorLabel)
     $apply=New-Object System.Windows.Forms.Button
-    $apply.Text='保存'; $apply.SetBounds(500,306,95,32); $dialog.Controls.Add($apply)
+    $apply.Text='保存'; $apply.SetBounds(500,473,95,32); $dialog.Controls.Add($apply)
     $cancel=New-Object System.Windows.Forms.Button
-    $cancel.Text='取消'; $cancel.SetBounds(605,306,95,32)
+    $cancel.Text='取消'; $cancel.SetBounds(605,473,95,32)
     $cancel.DialogResult='Cancel'; $dialog.Controls.Add($cancel)
     $dialog.AcceptButton=$apply; $dialog.CancelButton=$cancel
-    $dialog.Tag=[pscustomobject]@{Inputs=$inputs; FocusRetry=$retryInput; Apply=$apply; Cancel=$cancel; Error=$errorLabel}
+    $dialog.Tag=[pscustomobject]@{Inputs=$inputs; FocusRetry=$retryInput; Apply=$apply; Cancel=$cancel; Error=$errorLabel; KeyInputs=$keyInputs; KeyBindings=$draftBindings; KeyTip=$keyTip}
+    $dialog.Add_Disposed({ param($sender,$eventArgs) $sender.Tag.KeyTip.Dispose() })
     $apply.Tag=$dialog
     $apply.Add_Click({ param($sender,$eventArgs)
         $settingsDialog=$sender.Tag; $fields=$settingsDialog.Tag.Inputs
         try {
+            $nextBindings=@{}
+            foreach ($action in @('Cast','Reel','Item')) {
+                $draft=$settingsDialog.Tag.KeyBindings[$action]
+                $nextBindings[$action]=New-KeyBinding $draft.Code $draft.Ctrl $draft.Shift $draft.Alt
+                if ($null -eq $nextBindings[$action]) { throw '请选择有效的快捷键。' }
+            }
             Set-VersionWaitRanges $fields.titan.Minimum.Text.Trim() $fields.titan.Maximum.Text.Trim() $fields.forerver.Minimum.Text.Trim() $fields.forerver.Maximum.Text.Trim() -FocusRetryIntervalMs $settingsDialog.Tag.FocusRetry.Text.Trim() -TitanAudioThresholdPercent $fields.titan.AudioThreshold.Text.Trim() -ForerverAudioThresholdPercent $fields.forerver.AudioThreshold.Text.Trim()
+            $script:keyBindings=$nextBindings
             $settingsDialog.DialogResult='OK'
         }
         catch { $settingsDialog.Tag.Error.Text=$_.Exception.Message }
@@ -594,45 +666,6 @@ $settingsButton.Add_Click({
     finally { if ($null -ne $dialog) { $dialog.Dispose() }; $script:editingSettings=$false; Update-BatchControls }
 })
 
-$script:keyBindings = @{}
-$script:keyInputs = @{}
-function Set-KeyBinding($InputBox, [int]$Code, [bool]$Ctrl, [bool]$Shift, [bool]$Alt) {
-    # Accept letters, digits, function keys, numpad and common standalone keys.
-    if (-not (($Code -ge 48 -and $Code -le 57) -or ($Code -ge 65 -and $Code -le 90) -or ($Code -ge 96 -and $Code -le 111) -or
-        ($Code -ge 112 -and $Code -le 135) -or $Code -in @(8,9,13,27,32,33,34,35,36,37,38,39,40,45,46,187,189))) { return }
-    $parts=@()
-    if ($Ctrl) { $parts+='Ctrl' }; if ($Shift) { $parts+='Shift' }; if ($Alt) { $parts+='Alt' }
-    $name=([System.Windows.Forms.Keys]$Code).ToString()
-    if ($Code -ge 48 -and $Code -le 57) { $name=[string]($Code-48) }
-    if ($Code -eq 189) { $name='-' }
-    if ($Code -eq 187) { $name='=' }
-    $parts+=$name
-    $binding=[pscustomobject]@{ Code=$Code; Ctrl=$Ctrl; Shift=$Shift; Alt=$Alt; Text=($parts -join '+') }
-    $script:keyBindings[$InputBox.Tag]=$binding
-    $InputBox.Text=$binding.Text
-}
-foreach ($spec in @(@('Cast','抛竿',12,48), @('Reel','收竿',365,187), @('Item','钓鱼道具',718,189))) {
-    $keyLabel=New-Object System.Windows.Forms.Label
-    $keyLabel.Text=$spec[1]
-    $keyLabel.SetBounds($spec[2], 62, 85, 27)
-    $toolbar.Controls.Add($keyLabel)
-    $keyInput=New-Object System.Windows.Forms.TextBox
-    $keyInput.Tag=$spec[0]
-    $keyInput.ReadOnly=$true
-    $keyInput.SetBounds(($spec[2]+90), 58, 220, 30)
-    $keyInput.BackColor=[System.Drawing.Color]::White
-    $keyInput.Add_PreviewKeyDown({ param($sender,$e) $e.IsInputKey=$true })
-    $keyInput.Add_KeyDown({ param($sender,$e)
-        $e.SuppressKeyPress=$true; $e.Handled=$true
-        Set-KeyBinding $sender ([int]$e.KeyCode) $e.Control $e.Shift $e.Alt
-    })
-    Set-KeyBinding $keyInput $spec[3] $false $false $false
-    $script:keyInputs[$spec[0]]=$keyInput
-    $toolbar.Controls.Add($keyInput)
-}
-$keyTip=New-Object System.Windows.Forms.ToolTip
-foreach ($inputBox in $script:keyInputs.Values) { $keyTip.SetToolTip($inputBox,'点击后直接按下要分配的按键或组合键，例如 Ctrl+1、Shift+F2。') }
-
 $intro = New-Object System.Windows.Forms.Label
 $intro.Dock = 'Top'
 $intro.Height = 44
@@ -641,6 +674,7 @@ $intro.Text = '先刷新检测，再全部开始：音频匹配后随机等待�
 $headings = New-Object System.Windows.Forms.Panel
 $headings.Dock = 'Top'
 $headings.Height = 32
+$headings.BackColor = $script:uiColors.Surface
 foreach ($heading in @(@('游戏进程 / 版本 / 窗口位置',12,360), @('操作',386,145), @('钓鱼道具',546,150), @('实时状态',716,350))) {
     $label = New-Object System.Windows.Forms.Label
     $label.Text = $heading[0]
@@ -652,6 +686,7 @@ $list.Dock = 'Fill'
 $list.FlowDirection = 'TopDown'
 $list.WrapContents = $false
 $list.AutoScroll = $true
+$list.BackColor = $script:uiColors.Background
 $list.Padding = New-Object System.Windows.Forms.Padding(6, 0, 6, 0)
 $footer = New-Object System.Windows.Forms.Label
 $footer.Dock = 'Bottom'
@@ -857,7 +892,7 @@ function New-ProcessRow($Process, $StartTime, [string]$Key, $Client) {
     $panel.Height = 82
     $panel.Width = [Math]::Max(1170, $list.ClientSize.Width - 32)
     $panel.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 6)
-    $panel.BackColor = [System.Drawing.Color]::FromArgb(245, 247, 250)
+    $panel.BackColor = $script:uiColors.Surface
     $nameLabel = New-Object System.Windows.Forms.Label
     $nameLabel.SetBounds(6, 14, 360, 56)
     $nameLabel.AutoEllipsis=$true
@@ -884,7 +919,7 @@ function New-ProcessRow($Process, $StartTime, [string]$Key, $Client) {
     $status.Multiline = $true
     $status.ReadOnly = $true
     $status.ScrollBars = 'Vertical'
-    $status.BackColor = [System.Drawing.Color]::White
+    $status.BackColor = $script:uiColors.Input
     $panel.Controls.Add($status)
     $row = [pscustomobject]@{
         Key=$Key; Process=$Process; StartTime=$StartTime; Client=$Client; Position='位置未知'
