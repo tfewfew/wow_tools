@@ -12,7 +12,7 @@ function New-WowAutoState {
         UseItem=$false; ItemDue=0L; ItemRetryAt=0L; InitialItemPending=$false
         ItemStatus=''
         FocusRetryAt=0L; FocusResumeStatus=''
-        UseAudio=$false; AudioReady=$true; AudioSession=0L; FishingStartedAt=0L
+        UseAudio=$false; AudioReady=$true; AudioSession=0L; FishingStartedAt=0L; AudioReelPending=$false
         Status='已加入统一调度队列。'
     }
 }
@@ -20,6 +20,7 @@ function Stop-WowAutoState {
     param($State, [string]$Reason='已停止。')
     $State.Running=$false; $State.Mode='Stopped'; $State.Deadline=0L; $State.Status=$Reason
     $State.FocusRetryAt=0L; $State.FocusResumeStatus=''
+    $State.AudioReelPending=$false
 }
 function Suspend-WowAutoFocus($Scheduler, [string]$Key, [long]$Now, [string]$Reason) {
     $state=$Scheduler.Tasks[$Key]
@@ -245,8 +246,9 @@ function Complete-WowAutoPoll($Scheduler, [string]$Key, [long]$Now, [string]$Col
             $Scheduler.Sequence++
             $state.AudioSession=$Scheduler.Sequence
             $state.FishingStartedAt=$Now
+            $state.AudioReelPending=$false
             $state.Mode='Wait'; $state.Deadline=$Now+35000
-            $state.Status='已确认钓鱼：监听本进程音频，声音突变后收竿。'
+            $state.Status='已确认钓鱼：监听本进程音频，匹配后随机等待再收竿。'
             Add-WowAutoEvent $Scheduler $Key 'AudioTimeout' $state.Deadline
             $Scheduler.ActiveKey=$null
             return 'None'
@@ -276,17 +278,19 @@ function Complete-WowAutoAudioBite($Scheduler, [string]$Key, [long]$Now, [long]$
     if ($null -eq $state -or -not $state.Running -or -not $state.UseAudio -or $state.Mode -ne 'Wait' -or
         $Session -eq 0 -or $state.AudioSession -ne $Session -or $Now -lt $state.FishingStartedAt+1000) { return $false }
     if (@($Scheduler.Events | Where-Object { $_.Key -eq $Key -and $_.Kind -eq 'Reel' }).Count -gt 0) { return $false }
+    $delay=Get-Random -Minimum $state.MinimumMs -Maximum ($state.MaximumMs+1)
     Remove-WowAutoEvents $Scheduler $Key
-    $state.Deadline=$Now
-    $state.Status='检测到本进程音频突变：收竿已加入优先队列。'
-    Add-WowAutoEvent $Scheduler $Key 'Reel' $Now
+    $state.AudioReelPending=$true
+    $state.Deadline=$Now+$delay
+    $state.Status="音频匹配成功：随机等待 $delay ms 后收竿，已登记收竿事件。"
+    Add-WowAutoEvent $Scheduler $Key 'Reel' $state.Deadline
     return $true
 }
 function Reset-WowAutoAudioWait($Scheduler, [string]$Key, [long]$Now, [string]$Reason) {
     $state=$Scheduler.Tasks[$Key]
     if ($null -eq $state -or -not $state.Running -or -not $state.UseAudio) { return }
     Remove-WowAutoEvents $Scheduler $Key
-    $state.AudioSession=0L; $state.Mode='Ready'; $state.Deadline=0L; $state.NextDue=$Now
+    $state.AudioSession=0L; $state.AudioReelPending=$false; $state.Mode='Ready'; $state.Deadline=0L; $state.NextDue=$Now
     $state.ForceNextCast=$true; $state.CheckReelGreen=$true
     $state.AwaitingFishingTransition=$true; $state.SawIdle=$false
     $state.Status=$Reason
@@ -312,6 +316,7 @@ function Complete-WowAutoReel($Scheduler, [string]$Key, [long]$Now, [bool]$Sent)
     })
     if ($state.Mode -ne 'Wait' -or $registered.Count -eq 0) { return }
     $Scheduler.CompletedCycles[$Key]=(Get-WowAutoCycleCount $Scheduler $Key)+1
+    $state.AudioReelPending=$false
     $state.ForceNextCast=$true
     $state.CheckReelGreen=$true
     $state.AwaitingFishingTransition=$true

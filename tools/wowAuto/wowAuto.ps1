@@ -325,8 +325,8 @@ $script:scanOrder = @()
 $script:restored = $false
 $script:editingSettings = $false
 $script:versionRanges = @{
-    titan=[pscustomobject]@{MinimumMs=9000; MaximumMs=13000}
-    forerver=[pscustomobject]@{MinimumMs=9000; MaximumMs=13000}
+    titan=[pscustomobject]@{MinimumMs=300; MaximumMs=600}
+    forerver=[pscustomobject]@{MinimumMs=300; MaximumMs=600}
 }
 $script:audioThresholds = @{titan=86; forerver=86}
 $script:settingsPath = if ($UiTest) { Join-Path ([IO.Path]::GetTempPath()) ('wowAuto-test-' + [Guid]::NewGuid().ToString() + '.ini') }
@@ -361,7 +361,7 @@ function Read-WowAutoSettingsIni([string]$Path) {
 function Update-VersionSummary {
     if ($null -ne $settingsSummary) {
         $t=$script:versionRanges.titan; $f=$script:versionRanges.forerver
-        $settingsSummary.Text="定时等待（ms）：时光服 $($t.MinimumMs)–$($t.MaximumMs)；无限服 $($f.MinimumMs)–$($f.MaximumMs)；焦点重试 $($script:scheduler.FocusRetryIntervalMs)；音频门槛：时光服 $($script:audioThresholds.titan)% / 无限服 $($script:audioThresholds.forerver)%。$script:settingsWarning"
+        $settingsSummary.Text="收竿等待（ms）：时光服 $($t.MinimumMs)–$($t.MaximumMs)；无限服 $($f.MinimumMs)–$($f.MaximumMs)；焦点重试 $($script:scheduler.FocusRetryIntervalMs)；音频门槛：时光服 $($script:audioThresholds.titan)% / 无限服 $($script:audioThresholds.forerver)%。$script:settingsWarning"
     }
 }
 function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $ForerverMaximum, [bool]$Persist=$true, $FocusRetryIntervalMs=$script:scheduler.FocusRetryIntervalMs,
@@ -562,7 +562,7 @@ function New-WaitSettingsDialog {
     $retryInput.Minimum=1000; $retryInput.Maximum=3600000; $retryInput.Increment=1000
     $retryInput.Value=$script:scheduler.FocusRetryIntervalMs; $dialog.Controls.Add($retryInput)
     $note=New-Object System.Windows.Forms.Label
-    $note.Text="音频分数达到门槛才触发；降低门槛更容易命中，也更容易误匹配。`r`n保存到 config.ini；门槛从下次匹配生效，已登记的截止时间保持不变。"
+    $note.Text="音频模式：匹配成功后随机等待；定时模式：变绿后随机等待。`r`n保存到 config.ini；范围用于下一次计时，已登记的截止时间保持不变。"
     $note.SetBounds(18,194,705,52); $dialog.Controls.Add($note)
     $errorLabel=New-Object System.Windows.Forms.Label
     $errorLabel.ForeColor=[System.Drawing.Color]::Firebrick
@@ -637,7 +637,7 @@ $intro = New-Object System.Windows.Forms.Label
 $intro.Dock = 'Top'
 $intro.Height = 44
 $intro.Padding = New-Object System.Windows.Forms.Padding(12, 12, 0, 0)
-$intro.Text = '先刷新检测，再全部开始：绿色后监听咬钩声音（取消音频勾选则计时）；收竿事件优先处理。'
+$intro.Text = '先刷新检测，再全部开始：音频匹配后随机等待再收竿；取消音频勾选则变绿后计时。'
 $headings = New-Object System.Windows.Forms.Panel
 $headings.Dock = 'Top'
 $headings.Height = 32
@@ -777,7 +777,8 @@ function Update-RowStatus($Row) {
         }
         elseif ($Row.State.Running -and $Row.State.Mode -in @('Wait', 'Cooldown')) {
             $left = [Math]::Max(0, $Row.State.Deadline - $script:schedulerClock.ElapsedMilliseconds)
-            if ($Row.State.UseAudio -and $Row.State.Mode -eq 'Wait' -and $left -gt 0) { $text += "`r`n无咬钩超时保护：剩余 $left ms" }
+            if ($Row.State.UseAudio -and $Row.State.Mode -eq 'Wait' -and $Row.State.AudioReelPending) { $text += "`r`n收竿等待：剩余 $left ms" }
+            elseif ($Row.State.UseAudio -and $Row.State.Mode -eq 'Wait') { $text += "`r`n无咬钩超时保护：剩余 $left ms" }
             else { $text += "`r`n剩余 $left ms" }
         }
         if ($Row.State.Running -and $Row.State.FocusRetryAt -eq 0 -and $script:schedulerClock.ElapsedMilliseconds -lt $script:scheduler.ItemHoldUntil) {
@@ -1206,7 +1207,7 @@ function Update-AudioCaptures([long]$Now) {
         if ($capture.Status -in @('Error','Stopped')) { Stop-Row $row ("音频采集失败，已停止此行：$($capture.Error)"); continue }
         if ($capture.Status -ne 'Listening') { continue }
         if (-not $state.AudioReady) { $state.AudioReady=$true; $state.Status='本进程音频采集就绪，已加入钓鱼队列。' }
-        $session=if ($state.Mode -eq 'Wait' -and $Now -ge $script:scheduler.ItemHoldUntil) { $state.AudioSession } else { 0L }
+        $session=if ($state.Mode -eq 'Wait' -and -not $state.AudioReelPending -and $Now -ge $script:scheduler.ItemHoldUntil) { $state.AudioSession } else { 0L }
         $capture.Arm($session)
         $biteSession=0L
         $hasBite=if ($UiTest) { $biteSession=$capture.Bite; $capture.Bite=0L; $biteSession -ne 0 }
