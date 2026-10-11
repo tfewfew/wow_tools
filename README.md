@@ -11,6 +11,8 @@
 
 两份插件都包含 wowDetector 和 inner_graphic_config，安装后的文件夹名均为 `wow_tools`。各自安装到对应客户端的 `Interface/AddOns/`，不要将两份同时放到一个客户端。wowDetector 默认关闭：红色=未钓鱼，绿色=钓鱼，黄色=普通背包空格为0，灰色=关闭或未知。两服 SavedVariables 分别存放在各自的 WTF 目录，不交叉复制。
 
+时光服2.1.3额外要求当前有可交互的 `softinteract` 目标，钓鱼引导与此条件同时满足才变绿；抛竿中或等待交互目标时为红色，交互数据无法读取时为灰色。测试前启用游戏“交互键”，可用 `/wowdetector status` 查看目标名称、GUID及交互设置。该目标不保证为自己的鱼漂，不代表咬钩；无限服检测条件不变。
+
 无限服按本机1.60.1.70338移植：使用新版原生菜单、C_Item附魔列表和FramerateFrame；只将鱼竿的有效Temporary附魔作为鱼饵，排除永久附魔和Imbue。施法数据不可读时显示灰色，不猜测钓鱼状态。无限服版本说明和接口依据见其目录README。wowAuto支持两服进程，按客户端目录和构建版本识别，工具说明见tools/wowAuto/README.md。
 
 小地图旁的钓鱼图标是 wow_tools 统一入口，右键打开菜单，可分别打开/关闭 wowDetector 和 inner_graphic_config 界面；左键点击打开面板并自动启动监测，再次点击关闭监测并隐藏面板，拖动可调整并保存入口位置。wowDetector 每次登录或重载默认隐藏且检测关闭，不恢复上次显示状态。也可用 `/wowdetector show`、`hide` 控制面板。面板“关闭”按钮停止监测并隐藏面板；仅 show/hide 命令保持单独控制显隐；隐藏时色块一并隐藏，外部工具无法读取插件色块。`/wowdetector on` 会先显示面板再启动检测。

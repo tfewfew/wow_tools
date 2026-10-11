@@ -61,9 +61,12 @@ local function Paint(newState)
     elseif state == "idle" then
         indicator:SetColorTexture(1, 0, 0, 1)
         label:SetText("未钓鱼 · 0")
+    elseif state == "waiting" then
+        indicator:SetColorTexture(1, 0, 0, 1)
+        label:SetText("等待交互 · 0")
     else
         indicator:SetColorTexture(0.5, 0.5, 0.5, 1)
-        label:SetText(enabled and "背包状态未知" or "已关闭")
+        label:SetText(not enabled and "已关闭" or (state == "interaction_unknown" and "交互状态未知" or "背包状态未知"))
         if not enabled then lureIndicator:SetColorTexture(0.5, 0.5, 0.5, 1) end
     end
     toggle:SetText(enabled and "关闭" or "启动")
@@ -92,12 +95,23 @@ end
 
 local function IsFishing()
     local name, _, _, _, _, _, _, spellID = UnitChannelInfo("player")
-    if not name then
-        name, _, _, _, _, _, _, _, spellID = UnitCastingInfo("player")
-    end
+    -- The cast itself is not enough: wait until the fishing channel has begun.
     if not name then return false end
     local fishingName = FishingName()
     return spellID == 7620 or (fishingName ~= nil and name == fishingName)
+end
+
+local function GetInteractState()
+    if type(UnitGUID) ~= "function" or type(UnitIsInteractable) ~= "function" then return "unknown" end
+    -- GameObjects such as bobbers need not pass UnitExists; read the soft target's GUID.
+    local ok, guid = pcall(UnitGUID, "softinteract")
+    if not ok or (issecretvalue and issecretvalue(guid)) then return "unknown" end
+    if guid == nil or guid == "" then return "missing" end
+    if type(guid) ~= "string" then return "unknown" end
+    local readable, interactable = pcall(UnitIsInteractable, "softinteract")
+    if not readable or (issecretvalue and issecretvalue(interactable))
+        or type(interactable) ~= "boolean" then return "unknown", guid end
+    return interactable and "present" or "missing", guid
 end
 
 local function GetFreeSlots()
@@ -157,7 +171,13 @@ local function Refresh()
     local nextState
     if freeSlots == nil then nextState = "unknown"
     elseif freeSlots == 0 then nextState = "full"
-    else nextState = IsFishing() and "fishing" or "idle" end
+    elseif not IsFishing() then nextState = "idle"
+    else
+        local interaction = GetInteractState()
+        if interaction == "present" then nextState = "fishing"
+        elseif interaction == "missing" then nextState = "waiting"
+        else nextState = "interaction_unknown" end
+    end
     if nextState ~= state then Paint(nextState) end
 end
 
@@ -197,7 +217,7 @@ local function SetEnabled(value)
     enabled = value
     Refresh()
     toggle:SetText(enabled and "关闭" or "启动")
-    Say(enabled and "已启动并锁定位置：绿色=钓鱼，红色=未钓鱼，黄色=普通背包已满。" or "已关闭并解锁，可以拖动面板。")
+    Say(enabled and "已启动并锁定位置：绿色=钓鱼引导且有可交互目标，红色=未钓鱼或等待交互，黄色=普通背包已满。请启用游戏交互键。" or "已关闭并解锁，可以拖动面板。")
 end
 
 panel:SetScript("OnDragStart", function(self)
@@ -257,6 +277,7 @@ panel:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
 panel:RegisterEvent("UNIT_INVENTORY_CHANGED")
 panel:RegisterEvent("UI_SCALE_CHANGED")
 panel:RegisterEvent("DISPLAY_SIZE_CHANGED")
+panel:RegisterEvent("PLAYER_SOFT_INTERACT_CHANGED")
 panel:RegisterEvent("UNIT_SPELLCAST_START")
 panel:RegisterEvent("UNIT_SPELLCAST_STOP")
 panel:RegisterEvent("UNIT_SPELLCAST_CHANNEL_START")
@@ -290,7 +311,8 @@ panel:SetScript("OnEvent", function(_, event, unit)
         ResetAfterDeath()
     elseif event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_ALIVE" or event == "PLAYER_UNGHOST"
         or event == "BAG_UPDATE_DELAYED" or event == "PLAYER_EQUIPMENT_CHANGED"
-        or event == "UI_SCALE_CHANGED" or event == "DISPLAY_SIZE_CHANGED" or unit == "player" then
+        or event == "UI_SCALE_CHANGED" or event == "DISPLAY_SIZE_CHANGED"
+        or event == "PLAYER_SOFT_INTERACT_CHANGED" or unit == "player" then
         Refresh()
     end
 end)
@@ -328,6 +350,19 @@ SlashCmdList.WOWDETECTOR = function(message)
         Refresh()
         local name, _, _, _, _, _, _, id = UnitChannelInfo("player")
         Say("状态=" .. state .. "；普通背包空格=" .. tostring(freeSlots) .. "；鱼饵附魔=" .. GetLureState() .. "；引导=" .. tostring(name) .. "；技能ID=" .. tostring(id))
+        local interaction, guid = GetInteractState()
+        local targetName, interactCVar
+        if UnitName then
+            local ok, value = pcall(UnitName, "softinteract")
+            if ok and not (issecretvalue and issecretvalue(value)) then targetName = value end
+        end
+        local getCVar = C_CVar and C_CVar.GetCVar or GetCVar
+        if getCVar then
+            local ok, value = pcall(getCVar, "softTargetInteract")
+            if ok then interactCVar = value end
+        end
+        Say("交互目标=" .. interaction .. "；名称=" .. tostring(targetName) .. "；GUID=" .. tostring(guid)
+            .. "；softTargetInteract=" .. tostring(interactCVar))
         local width, height
         if GetPhysicalScreenSize then width, height = GetPhysicalScreenSize() end
         Say("监测=" .. (enabled and "开启" or "关闭") .. "；面板=" .. (panel:IsShown() and "显示" or "隐藏")

@@ -25,7 +25,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 ## 行为约定
 
-- titan版基于原2.1.1独立维护，当前2.1.2/接口38002。forerver版当前2.2.1/接口16001按无限服1.60.1.70338的Blizzard导出源码943764493e6b16d63ded3ab304150d1f05e58b57移植；以后跟随对应分支源码核对API，不能仅改TOC号。
+- titan版基于原2.1.1独立维护，当前2.1.3/接口38002。forerver版当前2.2.1/接口16001按无限服1.60.1.70338的Blizzard导出源码943764493e6b16d63ded3ab304150d1f05e58b57移植；以后跟随对应分支源码核对API，不能仅改TOC号。
 - forerver在Init.lua后加载Compatibility.lua：ItemLocation主手槽16及C_Item.GetItemID/GetItemInfoInstant识别鱼竿，C_Item.GetWeaponEnchantInfo(Enum.WeaponSlot.MainHand)返回列表，只接受有效Temporary附魔，排除Permanent/Imbue；失败或受限/不完整数据为unknown。UnitChannelInfo的技能ID在第8项，UnitCastingInfo在第9项；先用issecretvalue排除受限返回再比较/输出，受限施法使主色块灰色。注册WEAPON_ENCHANT_CHANGED并每0.1秒刷新。菜单使用MenuUtil.CreateContextMenu；画面模块移动FramerateFrame整体，不再依赖FramerateLabel全局。未提供的CVar继续禁用，禁止加载时自动改变图形设置。forever测试覆盖全TOC加载，不发送游戏按键。
 - wowAuto同时识别时光服_classic_titan_/WowClassic.exe 3.80.和无限服_cn_beta_/Wow.exe 1.60.，允许游戏根目录位于其他盘符，但产品目录名须匹配。GetClientFlavor同时核对可执行文件名、父目录与构建前缀；未知/无法读取/零售服不加入列表。每行Client保存Flavor、Label、ExecutablePath；启动、取色、焦点切换、发键及正常/超时退出均核对PID、StartTime、路径与客户端身份。C#方法接收启动Ticks和预期路径，不能退回只按Wow进程名操作。
 
@@ -33,6 +33,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - 小地图右键菜单分别切换两个子模块界面，/wowtools 打开菜单。小地图钓鱼图标左键打开面板并自动启动检测，再次点击停止检测并隐藏面板；右键菜单中的wowDetector及模块Show采用相同行为，面板关闭按钮停止检测并隐藏，拖动调整入口角度；panelHidden、minimapAngle 保存到 wowDetectorDB。show/hide命令仅控制显隐，不改变检测开关；隐藏时色块也隐藏；状态更新独立于面板可见性。show/hide 命令控制显隐，on 命令先显示面板。入口不依赖外部库。
 - 泰坦时光服接口版本目前为 38002；wowDetector 面板创建时即隐藏，每次登录或重载重置 panelHidden=true，检测默认关闭，不恢复上次面板显示状态。小地图入口及 show/on 命令仍可打开。`/wowdetector` 是主命令，`/fishstate` 保留为兼容别名。
 - 绿色表示钓鱼，红色表示非钓鱼，黄色表示随身普通背包空格为零，灰色表示关闭或数据未知。黄色优先于红绿。排除银行、材料及专用背包；不估算现有物品剩余堆叠容量。
+- titan 2.1.3绿色须同时满足钓鱼引导及当前可交互软目标：UnitGUID(softinteract)有值且UnitIsInteractable(softinteract)为真，不依赖可能排除GameObject的UnitExists。抛竿施法及无引导显示红色；引导中无交互目标为红色“等待交互”，接口缺失/失败/受限为灰色；黄色仍优先。PLAYER_SOFT_INTERACT_CHANGED及时刷新并每0.1秒补查，不缓存上一轮成功。用户测试前须启用游戏交互键，不自动改变softTargetInteract；status输出目标状态/名称/GUID/CVar。不限定目标为自己的鱼漂、不宣称咬钩或扫描所有附近对象；forerver检测不变。LureDetection.Tests.lua模拟覆盖组合条件、目标出现/消失、轮询、未知及背包/死亡/关闭优先级。
 - wowDetector 使用PLAYER_DEAD及UnitIsDeadOrGhost检测角色死亡/灵魂状态，优先停止监测、清空状态与计时、解除位置锁定并显示关闭状态；保留面板显隐，不改panelHidden。死亡时禁止启动，复活事件不得自动重启；进入世界及监测刷新补充检查。只重置插件，不宣称能直接停止外部wowAuto。
 - “启动”按钮和 on 命令将色块中心对齐客户区中心、保存位置并锁定；关闭时解锁。无独立居中按钮，center 命令仍兼容。运行中不允许拖动或用 unlock 解锁；登录或重载默认关闭且解锁。
 - wowAuto主界面及设置采用炭灰及低饱和度灰蓝：背景RGB58/58/58、行/工具栏面RGB72/72/72、输入及状态框RGB50/50/50、所有文字RGB255/255/255（含禁用按钮/复选框及设置错误提示）、普通按钮RGB86/86/86、开始/保存强调按钮RGB88/100/112。主窗口及设置使用DimForm，通过DwmSetWindowAttribute按窗口设置系统标题栏黑底白字（20为深色模式、35为黑色标题栏、36为白色文字），在OnHandleCreated中处理句柄重建；不修改Windows全局主题，不移除原生标题栏，保留拖动/缩放及原有窗口按钮。35/36由Windows11支持，旧系统不支持时仍可打开工具并保留系统标题栏。正文字体12pt、页脚11pt、标题23pt；行高106、状态框82，设置窗口960x600以完整显示放大文字。DimTabControl保留原TabControl页选择及布局，自绘黑色标签栏背景，选中autofish标签采用低饱和度暗蓝RGB54/78/98区分，保留白字；DimButton/DimCheckBox保留原按钮及复选框语义，补绘禁用状态的白字，禁止为改变文字颜色而放开禁用权限；按钮、输入框、分组文字及错误提示统一适配深灰背景，避免恢复大面积纯白。KeyItem.UiTests.ps1覆盖设置内输入框/实际KeyDown事件、草稿隔离、取消/校验失败/保存/重新打开及已配置按键的模拟下发；预览检查主界面和设置布局，不发送真实按键。
