@@ -523,6 +523,7 @@ $script:uiColors=@{
     Text=[System.Drawing.Color]::White
     Button=[System.Drawing.Color]::FromArgb(86,86,86)
     Accent=[System.Drawing.Color]::FromArgb(88,100,112)
+    Tab=[System.Drawing.Color]::FromArgb(54,78,98)
     Border=[System.Drawing.Color]::FromArgb(116,116,116)
 }
 function Set-UiButtonStyle($Button, [bool]$Accent=$false) {
@@ -566,7 +567,7 @@ $refreshButton.Anchor = 'Top, Right'
 $tabs = New-Object WowAuto.DimTabControl
 $tabs.Dock = 'Fill'
 $tabs.HeaderBackground = [System.Drawing.Color]::Black
-$tabs.HeaderSurface = [System.Drawing.Color]::Black
+$tabs.HeaderSurface = $script:uiColors.Tab
 $tabs.ForeColor = $script:uiColors.Text
 $tabs.SizeMode = 'Fixed'
 $tabs.ItemSize = New-Object System.Drawing.Size(112,32)
@@ -602,29 +603,14 @@ $countLabel.SetBounds(410, 15, 245, 28)
 $countLabel.Anchor = 'Top, Left'
 $countLabel.AutoEllipsis = $true
 $toolbar.Controls.Add($countLabel)
-$holdLabel = New-Object System.Windows.Forms.Label
-$holdLabel.Text = '收竿后保持（ms）'
-$holdLabel.SetBounds(665, 16, 160, 27)
-$toolbar.Controls.Add($holdLabel)
-$holdInput = New-Object System.Windows.Forms.NumericUpDown
-$holdInput.SetBounds(825, 12, 110, 30)
-$holdInput.Minimum = 0
-$holdInput.Maximum = 60000
-$holdInput.Value = 100
-$holdInput.Increment = 1
-$holdInput.BackColor = $script:uiColors.Input
-$holdInput.ForeColor = $script:uiColors.Text
-$holdInput.BorderStyle = 'FixedSingle'
-$toolbar.Controls.Add($holdInput)
-$holdInput.Add_ValueChanged({ Set-WowAutoHoldDuration $script:scheduler ([int]$holdInput.Value) })
 $settingsButton = New-Object WowAuto.DimButton
 $settingsButton.Text = '设置'
 Set-UiButtonStyle $settingsButton
-$settingsButton.SetBounds(965, 10, 110, 35)
+$settingsButton.SetBounds(665, 10, 110, 35)
 $toolbar.Controls.Add($settingsButton)
 $audioCheck = New-Object WowAuto.DimCheckBox
 $audioCheck.Text = '音频咬钩检测'
-$audioCheck.SetBounds(1090, 13, 195, 32)
+$audioCheck.SetBounds(790, 13, 195, 32)
 $audioCheck.FlatStyle = 'Flat'
 $audioCheck.Checked = -not $UiTest # Existing tests exercise the legacy timed mode explicitly.
 $toolbar.Controls.Add($audioCheck)
@@ -668,7 +654,7 @@ function New-WaitSettingsDialog {
     $dialog.BackColor=$script:uiColors.Background
     $dialog.ForeColor=$script:uiColors.Text
     $dialog.AutoScaleMode='Dpi'
-    $dialog.ClientSize=New-Object System.Drawing.Size(780,550)
+    $dialog.ClientSize=New-Object System.Drawing.Size(780,600)
     $dialog.FormBorderStyle='FixedDialog'
     $dialog.MaximizeBox=$false; $dialog.MinimizeBox=$false
     $dialog.StartPosition='CenterParent'
@@ -705,8 +691,18 @@ function New-WaitSettingsDialog {
     $retryInput.BackColor=$script:uiColors.Input
     $retryInput.ForeColor=$script:uiColors.Text
     $retryInput.BorderStyle='FixedSingle'
+    $holdLabel=New-Object System.Windows.Forms.Label
+    $holdLabel.Text='收竿后保持（ms，所有进程）'
+    $holdLabel.SetBounds(18,196,300,30); $dialog.Controls.Add($holdLabel)
+    $reelHoldInput=New-Object System.Windows.Forms.NumericUpDown
+    $reelHoldInput.SetBounds(330,192,175,30)
+    $reelHoldInput.Minimum=0; $reelHoldInput.Maximum=60000; $reelHoldInput.Increment=1
+    $reelHoldInput.Value=$script:scheduler.ReelHoldMs
+    $reelHoldInput.BackColor=$script:uiColors.Input
+    $reelHoldInput.ForeColor=$script:uiColors.Text
+    $reelHoldInput.BorderStyle='FixedSingle'; $dialog.Controls.Add($reelHoldInput)
     $keyGroup=New-Object System.Windows.Forms.GroupBox
-    $keyGroup.Text='快捷键（所有进程）'; $keyGroup.SetBounds(18,192,745,131)
+    $keyGroup.Text='快捷键（所有进程）'; $keyGroup.SetBounds(18,238,745,131)
     $keyGroup.BackColor=$script:uiColors.Surface; $dialog.Controls.Add($keyGroup)
     $keyGroup.ForeColor=$script:uiColors.Text
     $keyInputs=@{}; $draftBindings=@{}
@@ -734,23 +730,28 @@ function New-WaitSettingsDialog {
     $keyHint.Text='点击输入框后直接按键，支持 Ctrl / Shift / Alt 组合键。'
     $keyHint.SetBounds(16,98,715,28); $keyGroup.Controls.Add($keyHint)
     $note=New-Object System.Windows.Forms.Label
-    $note.Text="音频模式：匹配成功后随机等待；定时模式：变绿后随机等待。`r`n计时及门槛保存到 config.ini；已登记的截止时间保持不变。`r`n快捷键保存后在本次运行中生效，重启恢复默认 0 / = / -。"
-    $note.SetBounds(18,338,745,80); $dialog.Controls.Add($note)
+    $note.Text="音频模式：匹配成功后随机等待；定时模式：变绿后随机等待。`r`n等待、重试及门槛保存到 config.ini；已登记的截止时间保持不变。`r`n保持时间和快捷键在本次运行中生效，重启恢复 100ms 及 0 / = / -。"
+    $note.SetBounds(18,384,745,80); $dialog.Controls.Add($note)
     $errorLabel=New-Object System.Windows.Forms.Label
     $errorLabel.ForeColor=$script:uiColors.Text
-    $errorLabel.SetBounds(18,423,745,52); $dialog.Controls.Add($errorLabel)
+    $errorLabel.SetBounds(18,469,745,52); $dialog.Controls.Add($errorLabel)
     $apply=New-Object WowAuto.DimButton
-    $apply.Text='保存'; $apply.SetBounds(540,495,95,36); Set-UiButtonStyle $apply $true; $dialog.Controls.Add($apply)
+    $apply.Text='保存'; $apply.SetBounds(540,545,95,36); Set-UiButtonStyle $apply $true; $dialog.Controls.Add($apply)
     $cancel=New-Object WowAuto.DimButton
-    $cancel.Text='取消'; $cancel.SetBounds(645,495,95,36); Set-UiButtonStyle $cancel
+    $cancel.Text='取消'; $cancel.SetBounds(645,545,95,36); Set-UiButtonStyle $cancel
     $cancel.DialogResult='Cancel'; $dialog.Controls.Add($cancel)
     $dialog.AcceptButton=$apply; $dialog.CancelButton=$cancel
-    $dialog.Tag=[pscustomobject]@{Inputs=$inputs; FocusRetry=$retryInput; Apply=$apply; Cancel=$cancel; Error=$errorLabel; KeyInputs=$keyInputs; KeyBindings=$draftBindings; KeyTip=$keyTip}
+    $dialog.Tag=[pscustomobject]@{Inputs=$inputs; FocusRetry=$retryInput; ReelHold=$reelHoldInput; Apply=$apply; Cancel=$cancel; Error=$errorLabel; KeyInputs=$keyInputs; KeyBindings=$draftBindings; KeyTip=$keyTip}
     $dialog.Add_Disposed({ param($sender,$eventArgs) $sender.Tag.KeyTip.Dispose() })
     $apply.Tag=$dialog
     $apply.Add_Click({ param($sender,$eventArgs)
         $settingsDialog=$sender.Tag; $fields=$settingsDialog.Tag.Inputs
         try {
+            $nextHold=0
+            $holdText=$settingsDialog.Tag.ReelHold.Text.Trim()
+            if ($holdText -notmatch '^\d+$' -or -not [int]::TryParse($holdText,[ref]$nextHold) -or $nextHold -lt 0 -or $nextHold -gt 60000) {
+                throw '收竿后保持需为0–60000之间的整数毫秒值。'
+            }
             $nextBindings=@{}
             foreach ($action in @('Cast','Reel','Item')) {
                 $draft=$settingsDialog.Tag.KeyBindings[$action]
@@ -758,6 +759,7 @@ function New-WaitSettingsDialog {
                 if ($null -eq $nextBindings[$action]) { throw '请选择有效的快捷键。' }
             }
             Set-VersionWaitRanges $fields.titan.Minimum.Text.Trim() $fields.titan.Maximum.Text.Trim() $fields.forerver.Minimum.Text.Trim() $fields.forerver.Maximum.Text.Trim() -FocusRetryIntervalMs $settingsDialog.Tag.FocusRetry.Text.Trim() -TitanAudioThresholdPercent $fields.titan.AudioThreshold.Text.Trim() -ForerverAudioThresholdPercent $fields.forerver.AudioThreshold.Text.Trim()
+            Set-WowAutoHoldDuration $script:scheduler $nextHold
             $script:keyBindings=$nextBindings
             $settingsDialog.DialogResult='OK'
         }

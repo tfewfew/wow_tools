@@ -39,6 +39,9 @@ try {
         }
         Assert-Ui ($dialog.Tag.FocusRetry.Value -eq 30000 -and $dialog.Tag.FocusRetry.Minimum -eq 1000 -and $dialog.Tag.FocusRetry.Maximum -eq 3600000 -and $dialog.Tag.FocusRetry.Increment -eq 1000) 'Focus retry default/range/step failed.'
         Assert-Ui ($dialog.ClientRectangle.Contains($dialog.Tag.FocusRetry.Bounds) -and $dialog.ClientRectangle.Contains($dialog.Tag.Apply.Bounds)) 'Focus retry field or save button clipped.'
+        Assert-Ui ($dialog.Tag.ReelHold.Value -eq 100 -and $dialog.Tag.ReelHold.Minimum -eq 0 -and $dialog.Tag.ReelHold.Maximum -eq 60000 -and $dialog.Tag.ReelHold.Increment -eq 1 -and $dialog.Tag.ReelHold.Parent -eq $dialog -and $dialog.ClientRectangle.Contains($dialog.Tag.ReelHold.Bounds)) 'Settings reel hold default/range/step/layout failed.'
+        $dialog.Tag.ReelHold.Value=275
+        Assert-Ui ($script:scheduler.ReelHoldMs -eq 100) 'Reel hold draft applied before save.'
         $fields.titan.Minimum.Value=9000; $fields.titan.Maximum.Value=13000
         $fields.forerver.Minimum.Value=12000; $fields.forerver.Maximum.Value=18000
         $dialog.Tag.FocusRetry.Value=5000
@@ -53,6 +56,7 @@ try {
         }
         $dialog.Tag.Apply.PerformClick()
         Assert-Ui ($dialog.DialogResult -eq 'OK' -and (Test-Path -LiteralPath $script:settingsPath)) 'Dialog failed to save separate version settings.'
+        Assert-Ui ($script:scheduler.ReelHoldMs -eq 275) 'Saving settings did not apply reel hold.'
     }
     finally { $dialog.Dispose() }
     # Reopen and save changed values with an existing destination: exercises File.Replace.
@@ -62,11 +66,17 @@ try {
         $fields=$dialog.Tag.Inputs
         Assert-Ui ($fields.titan.Minimum.Value -eq 9000 -and $fields.forerver.Maximum.Value -eq 18000 -and $dialog.Tag.FocusRetry.Value -eq 5000) 'Reopened dialog lost first saved values.'
         Assert-Ui ($fields.titan.AudioThreshold.Value -eq 89 -and $fields.forerver.AudioThreshold.Value -eq 85) 'Reopened dialog lost per-version audio thresholds.'
+        Assert-Ui ($dialog.Tag.ReelHold.Value -eq 275) 'Reopening settings lost active reel hold.'
+        $dialog.Tag.ReelHold.Value=350
         $fields.titan.Minimum.Value=9500; $fields.titan.Maximum.Value=9500
         $fields.forerver.Minimum.Value=12000; $fields.forerver.Maximum.Value=12000
         $dialog.Tag.FocusRetry.Value=7500
         $fields.titan.AudioThreshold.Value=88; $fields.forerver.AudioThreshold.Value=87
+        $previousHoldUntil=$script:scheduler.ReelHoldUntil
+        $script:scheduler.ReelHoldUntil=20000L
         $dialog.Tag.Apply.PerformClick()
+        Assert-Ui ($script:scheduler.ReelHoldMs -eq 350 -and $script:scheduler.ReelHoldUntil -eq 20000L) 'Saving reel hold changed the current hold deadline or failed to apply future duration.'
+        $script:scheduler.ReelHoldUntil=$previousHoldUntil
         Assert-Ui ($dialog.DialogResult -eq 'OK' -and $dialog.Tag.Error.Text -eq '') 'Second save failed to overwrite existing settings.'
         $persisted=Read-WowAutoSettingsIni $script:settingsPath
         Assert-Ui ($persisted.TitanMinimumMs -eq 9500 -and $persisted.TitanMaximumMs -eq 9500 -and $persisted.ForerverMinimumMs -eq 12000 -and $persisted.ForerverMaximumMs -eq 12000) 'Second save did not persist both changed ranges.'
@@ -130,6 +140,14 @@ try {
         try { Set-VersionWaitRanges 1000 1000 2000 2000 -FocusRetryIntervalMs 1000 -TitanAudioThresholdPercent 95 -ForerverAudioThresholdPercent 95 } catch { $rejected=$true }
         Assert-Ui ($rejected -and $script:scheduler.FocusRetryIntervalMs -eq 7500 -and $script:versionRanges.titan.MinimumMs -eq 9500) 'Failed INI write partially applied settings.'
         Assert-Ui ($script:audioThresholds.titan -eq 88 -and $script:audioThresholds.forerver -eq 87) 'Failed INI write partially applied thresholds.'
+        $lockedDialog=New-WaitSettingsDialog
+        try {
+            $lockedDialog.Show($form)
+            $lockedDialog.Tag.ReelHold.Value=700
+            $lockedDialog.Tag.Apply.PerformClick()
+            Assert-Ui ($lockedDialog.DialogResult -ne 'OK' -and $lockedDialog.Tag.Error.Text -ne '' -and $script:scheduler.ReelHoldMs -eq 350) 'Failed settings save partially applied draft reel hold.'
+        }
+        finally { $lockedDialog.Dispose() }
     }
     finally { $locked.Dispose() }
     Assert-Ui ((Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $savedHash) 'Failed INI write damaged saved settings.'
@@ -149,14 +167,18 @@ try {
         $dialog.Show($form)
         $dialog.Tag.Inputs.titan.Minimum.Value=20000
         $dialog.Tag.FocusRetry.Value=1000
+        $dialog.Tag.ReelHold.Value=450
         $dialog.Tag.Apply.PerformClick()
         Assert-Ui ($dialog.Tag.Error.Text -ne '' -and $dialog.DialogResult -ne 'OK' -and $script:versionRanges.titan.MinimumMs -eq 9500 -and $script:scheduler.FocusRetryIntervalMs -eq 7500) 'Invalid range partially applied.'
         Assert-Ui ((Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $savedHash) 'Invalid edit overwrote saved settings.'
+        Assert-Ui ($script:scheduler.ReelHoldMs -eq 350) 'Invalid settings applied draft reel hold.'
         $dialog.Tag.Inputs.titan.Minimum.Value=1000
         $dialog.Tag.Cancel.PerformClick()
         Assert-Ui ($script:versionRanges.titan.MinimumMs -eq 9500 -and $script:scheduler.FocusRetryIntervalMs -eq 7500 -and (Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $savedHash) 'Cancel changed settings.'
+        Assert-Ui ($script:scheduler.ReelHoldMs -eq 350) 'Cancel applied draft reel hold.'
     }
     finally { $dialog.Dispose() }
+    Set-WowAutoHoldDuration $script:scheduler 100
     Update-BatchControls; $startAllButton.PerformClick()
     foreach ($row in $mixedRows) {
         $expected=if ($row.Client.Flavor -eq 'titan') {9500} else {12000}
