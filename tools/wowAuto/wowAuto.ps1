@@ -410,19 +410,71 @@ $script:versionRanges = @{
 $script:audioThresholds = @{titan=86; forerver=86}
 $script:settingsPath = if ($UiTest) { Join-Path ([IO.Path]::GetTempPath()) ('wowAuto-test-' + [Guid]::NewGuid().ToString() + '.ini') }
     else { Join-Path $PSScriptRoot 'config.ini' }
+function New-KeyBinding([int]$Code, [bool]$Ctrl, [bool]$Shift, [bool]$Alt) {
+    if (-not (($Code -ge 48 -and $Code -le 57) -or ($Code -ge 65 -and $Code -le 90) -or ($Code -ge 96 -and $Code -le 111) -or
+        ($Code -ge 112 -and $Code -le 135) -or $Code -in @(8,9,13,27,32,33,34,35,36,37,38,39,40,45,46,187,189))) { return $null }
+    $parts=@()
+    if ($Ctrl) { $parts+='Ctrl' }; if ($Shift) { $parts+='Shift' }; if ($Alt) { $parts+='Alt' }
+    $name=([System.Windows.Forms.Keys]$Code).ToString()
+    if ($Code -ge 48 -and $Code -le 57) { $name=[string]($Code-48) }
+    if ($Code -eq 189) { $name='-' }
+    if ($Code -eq 187) { $name='=' }
+    $parts+=$name
+    return [pscustomobject]@{ Code=$Code; Ctrl=$Ctrl; Shift=$Shift; Alt=$Alt; Text=($parts -join '+') }
+}
+function ConvertFrom-KeyBindingText([string]$Text) {
+    $parts=$Text.Trim().Split('+'); $modifiers=@{Ctrl=$false; Shift=$false; Alt=$false}
+    for ($i=0; $i -lt $parts.Length-1; $i++) {
+        $modifier=$parts[$i].Trim()
+        if (-not $modifiers.ContainsKey($modifier) -or $modifiers[$modifier]) { throw '快捷键修饰键无效或重复。' }
+        $modifiers[$modifier]=$true
+    }
+    $key=$parts[-1].Trim(); $code=0
+    if ($key -match '^\d$') { $code=48+[int]$key }
+    elseif ($key -eq '-') { $code=189 }
+    elseif ($key -eq '=') { $code=187 }
+    elseif ($key -match '^[A-Za-z][A-Za-z0-9]*$') {
+        try { $code=[int][System.Enum]::Parse([System.Windows.Forms.Keys],$key,$true) }
+        catch { throw "无效的快捷键：$Text。" }
+    }
+    $binding=New-KeyBinding $code $modifiers.Ctrl $modifiers.Shift $modifiers.Alt
+    if ($null -eq $binding) { throw "无效的快捷键：$Text。" }
+    return $binding
+}
+function ConvertTo-PreferenceFlag($Value) {
+    if ($Value -is [bool]) { return [int]$Value }
+    if ([string]$Value -notmatch '^[01]$') { throw '开关配置必须为0或1。' }
+    return [int]$Value
+}
+$script:keyBindings=@{
+    Cast=(New-KeyBinding 48 $false $false $false)
+    Reel=(New-KeyBinding 187 $false $false $false)
+    Item=(New-KeyBinding 189 $false $false $false)
+}
+$script:audioDetectionEnabled=-not $UiTest
+$script:processItemPreferences=@{}
+$script:updatingPreferenceControls=$false
 $script:requiredSettingsKeys = @('TitanMinimumMs','TitanMaximumMs','ForerverMinimumMs','ForerverMaximumMs','FocusRetryIntervalMs')
 $script:audioSettingsKeys = @('TitanAudioThresholdPercent','ForerverAudioThresholdPercent')
-$script:settingsKeys = $script:requiredSettingsKeys + $script:audioSettingsKeys
+$script:preferenceSettingsKeys = @('ReelHoldMs','CastKey','ReelKey','ItemKey','AudioDetectionEnabled')
+$script:settingsKeys = $script:requiredSettingsKeys + $script:audioSettingsKeys + $script:preferenceSettingsKeys
 $script:settingsWarning = ''
 function Read-WowAutoSettingsIni([string]$Path) {
-    $values=@{}; $lineNumber=0
+    $values=@{}; $items=@{}; $seen=@{}; $lineNumber=0
     foreach ($sourceLine in [IO.File]::ReadAllLines($Path)) {
         $lineNumber++; $line=$sourceLine.Trim()
         if ($line -eq '' -or $line.StartsWith(';') -or $line.StartsWith('#')) { continue }
-        if ($line -notmatch '^([A-Za-z][A-Za-z0-9]*)\s*=\s*(\d+)\s*$') { throw "config.ini 第 $lineNumber 行格式错误，需为键=整数值。" }
+        if ($line -notmatch '^([A-Za-z][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$') { throw "config.ini 第 $lineNumber 行格式错误，需为键=值。" }
         $key=$matches[1]; $value=$matches[2]
+        if ($seen.ContainsKey($key)) { throw "config.ini 存在重复配置项：$key。" }
+        $seen[$key]=$true
+        if ($key -match '^UseItem_([1-9]\d*)_([1-9]\d*)$') {
+            $pidValue=0; $ticksValue=0L
+            if (-not [int]::TryParse($matches[1],[ref]$pidValue) -or -not [long]::TryParse($matches[2],[ref]$ticksValue) -or $ticksValue -gt [datetime]::MaxValue.Ticks) { throw '道具勾选的进程标识无效。' }
+            $items["${pidValue}:$ticksValue"]=[bool](ConvertTo-PreferenceFlag $value)
+            continue
+        }
         if ($key -notin $script:settingsKeys) { throw "config.ini 存在未知配置项：$key。" }
-        if ($values.ContainsKey($key)) { throw "config.ini 存在重复配置项：$key。" }
         $values[$key]=$value
     }
     foreach ($key in $script:requiredSettingsKeys) {
@@ -435,6 +487,14 @@ function Read-WowAutoSettingsIni([string]$Path) {
         $values.ForerverAudioThresholdPercent=$script:audioThresholds.forerver
     }
     elseif ($audioKeyCount -ne 2) { throw 'config.ini 需要同时配置两服的音频匹配门槛。' }
+    $preferenceKeyCount=@($script:preferenceSettingsKeys | Where-Object { $values.ContainsKey($_) }).Count
+    if ($preferenceKeyCount -eq 0) {
+        $values.ReelHoldMs=$script:scheduler.ReelHoldMs
+        $values.CastKey=$script:keyBindings.Cast.Text; $values.ReelKey=$script:keyBindings.Reel.Text; $values.ItemKey=$script:keyBindings.Item.Text
+        $values.AudioDetectionEnabled=[int]$script:audioDetectionEnabled
+    }
+    elseif ($preferenceKeyCount -ne $script:preferenceSettingsKeys.Count) { throw 'config.ini 需要同时配置保持时间、三个快捷键和音频检测开关。' }
+    $values.ProcessItemPreferences=$items
     return $values
 }
 function Update-VersionSummary {
@@ -444,7 +504,9 @@ function Update-VersionSummary {
     }
 }
 function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $ForerverMaximum, [bool]$Persist=$true, $FocusRetryIntervalMs=$script:scheduler.FocusRetryIntervalMs,
-    $TitanAudioThresholdPercent=$script:audioThresholds.titan, $ForerverAudioThresholdPercent=$script:audioThresholds.forerver) {
+    $TitanAudioThresholdPercent=$script:audioThresholds.titan, $ForerverAudioThresholdPercent=$script:audioThresholds.forerver,
+    $ReelHoldMs=$script:scheduler.ReelHoldMs, $KeyBindings=$script:keyBindings, $AudioDetectionEnabled=$script:audioDetectionEnabled,
+    $ProcessItemPreferences=$script:processItemPreferences) {
     # Validate the entire edit before saving or changing any active task.
     $next=@{}
     foreach ($spec in @(@('titan',$TitanMinimum,$TitanMaximum),@('forerver',$ForerverMinimum,$ForerverMaximum))) {
@@ -464,6 +526,18 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
         }
         $nextThresholds[$spec[0]]=$percent
     }
+    $nextHold=0
+    if ([string]$ReelHoldMs -notmatch '^\d+$' -or -not [int]::TryParse([string]$ReelHoldMs,[ref]$nextHold) -or $nextHold -gt 60000) { throw '收竿后保持需为0–60000之间的整数毫秒值。' }
+    $nextBindings=@{}
+    foreach ($action in @('Cast','Reel','Item')) { $nextBindings[$action]=ConvertFrom-KeyBindingText $KeyBindings[$action].Text }
+    $nextAudio=ConvertTo-PreferenceFlag $AudioDetectionEnabled
+    $nextItems=@{}
+    foreach ($key in $ProcessItemPreferences.Keys) {
+        if ($key -notmatch '^([1-9]\d*):([1-9]\d*)$') { throw '道具勾选的进程标识无效。' }
+        $pidValue=0; $ticksValue=0L
+        if (-not [int]::TryParse($matches[1],[ref]$pidValue) -or -not [long]::TryParse($matches[2],[ref]$ticksValue) -or $ticksValue -gt [datetime]::MaxValue.Ticks) { throw '道具勾选的进程标识无效。' }
+        $nextItems[$key]=[bool](ConvertTo-PreferenceFlag $ProcessItemPreferences[$key])
+    }
     if ($Persist) {
         $directory=Split-Path $script:settingsPath -Parent
         New-Item -ItemType Directory -Path $directory -Force | Out-Null
@@ -474,10 +548,13 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
                 ForerverMinimumMs=$next.forerver.MinimumMs; ForerverMaximumMs=$next.forerver.MaximumMs
                 FocusRetryIntervalMs=$retry
                 TitanAudioThresholdPercent=$nextThresholds.titan; ForerverAudioThresholdPercent=$nextThresholds.forerver
+                ReelHoldMs=$nextHold; CastKey=$nextBindings.Cast.Text; ReelKey=$nextBindings.Reel.Text; ItemKey=$nextBindings.Item.Text
+                AudioDetectionEnabled=$nextAudio
             }
-            $lines=@('; wowAuto settings: integer ms for timing, integer percent for audio thresholds.';
-                '; Wait ranges and audio thresholds are shared by client version; focus retry is global.')
+            $lines=@('; wowAuto settings: ms for timing, percent for thresholds, 0/1 for switches.';
+                '; Shortcuts use Ctrl/Shift/Alt plus a key; UseItem_PID_StartTicks stores process choices.')
             foreach ($key in $script:settingsKeys) { $lines += "$key=$($values[$key])" }
+            foreach ($key in @($nextItems.Keys | Sort-Object)) { $lines += "UseItem_$($key.Replace(':','_'))=$([int]$nextItems[$key])" }
             [IO.File]::WriteAllText($temporary,($lines -join "`r`n")+"`r`n",(New-Object Text.UTF8Encoding($false)))
             # Windows PowerShell 5.1 converts ordinary $null to an empty string here.
             # File.Replace requires an actual null backup filename, not an empty path.
@@ -491,6 +568,11 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
     $script:versionRanges=$next
     $script:audioThresholds=$nextThresholds
     Set-WowAutoFocusRetryInterval $script:scheduler $retry
+    Set-WowAutoHoldDuration $script:scheduler $nextHold
+    $script:keyBindings=$nextBindings
+    $script:audioDetectionEnabled=[bool]$nextAudio
+    $script:processItemPreferences=$nextItems
+    Sync-PreferenceControls
     # Update future waits for every running task of the same version; existing events keep their due time.
     foreach ($row in $script:rows.Values) {
         if ($null -ne $row.State -and $row.State.Running) {
@@ -511,9 +593,27 @@ function Import-VersionWaitSettings {
     }
     try {
         $saved=Read-WowAutoSettingsIni $script:settingsPath
-        Set-VersionWaitRanges $saved.TitanMinimumMs $saved.TitanMaximumMs $saved.ForerverMinimumMs $saved.ForerverMaximumMs -Persist $false -FocusRetryIntervalMs $saved.FocusRetryIntervalMs -TitanAudioThresholdPercent $saved.TitanAudioThresholdPercent -ForerverAudioThresholdPercent $saved.ForerverAudioThresholdPercent
+        $bindings=@{}
+        foreach ($action in @('Cast','Reel','Item')) { $bindings[$action]=ConvertFrom-KeyBindingText $saved[($action+'Key')] }
+        Set-VersionWaitRanges $saved.TitanMinimumMs $saved.TitanMaximumMs $saved.ForerverMinimumMs $saved.ForerverMaximumMs -Persist $false -FocusRetryIntervalMs $saved.FocusRetryIntervalMs -TitanAudioThresholdPercent $saved.TitanAudioThresholdPercent -ForerverAudioThresholdPercent $saved.ForerverAudioThresholdPercent -ReelHoldMs $saved.ReelHoldMs -KeyBindings $bindings -AudioDetectionEnabled $saved.AudioDetectionEnabled -ProcessItemPreferences $saved.ProcessItemPreferences
     }
     catch { $script:settingsWarning="config.ini 读取失败，保留当前配置：$($_.Exception.Message)" }
+}
+function Sync-PreferenceControls {
+    $previousGuard=$script:updatingPreferenceControls
+    $script:updatingPreferenceControls=$true
+    try {
+        if ($null -ne $audioCheck) { $audioCheck.Checked=$script:audioDetectionEnabled }
+        foreach ($row in $script:rows.Values) {
+            $row.ItemCheck.Checked=$script:processItemPreferences.ContainsKey($row.Key) -and $script:processItemPreferences[$row.Key]
+            Set-WowAutoItemEnabled $script:scheduler $row.Key $row.ItemCheck.Checked $script:schedulerClock.ElapsedMilliseconds
+        }
+    }
+    finally { $script:updatingPreferenceControls=$previousGuard }
+}
+function Save-PreferenceSwitches($AudioDetectionEnabled=$script:audioDetectionEnabled, $ProcessItemPreferences=$script:processItemPreferences) {
+    $t=$script:versionRanges.titan; $f=$script:versionRanges.forerver
+    Set-VersionWaitRanges $t.MinimumMs $t.MaximumMs $f.MinimumMs $f.MaximumMs -AudioDetectionEnabled $AudioDetectionEnabled -ProcessItemPreferences $ProcessItemPreferences
 }
 if (-not $UiTest) { Import-VersionWaitSettings }
 $script:uiColors=@{
@@ -612,8 +712,19 @@ $audioCheck = New-Object WowAuto.DimCheckBox
 $audioCheck.Text = '音频咬钩检测'
 $audioCheck.SetBounds(790, 13, 195, 32)
 $audioCheck.FlatStyle = 'Flat'
-$audioCheck.Checked = -not $UiTest # Existing tests exercise the legacy timed mode explicitly.
+$audioCheck.Checked = $script:audioDetectionEnabled
 $toolbar.Controls.Add($audioCheck)
+$audioCheck.Add_CheckedChanged({ param($sender,$eventArgs)
+    if ($script:updatingPreferenceControls) { return }
+    try { Save-PreferenceSwitches -AudioDetectionEnabled $sender.Checked }
+    catch {
+        $script:updatingPreferenceControls=$true
+        try { $sender.Checked=$script:audioDetectionEnabled }
+        finally { $script:updatingPreferenceControls=$false }
+        $script:settingsWarning='config.ini 保存失败，音频选项未改变：'+$_.Exception.Message
+        Update-VersionSummary
+    }
+})
 $settingsSummary = New-Object System.Windows.Forms.Label
 $settingsSummary.SetBounds(12, 56, 1250, 28)
 $settingsSummary.Anchor = 'Top, Left, Right'
@@ -621,30 +732,12 @@ $settingsSummary.AutoEllipsis = $true
 $toolbar.Controls.Add($settingsSummary)
 Update-VersionSummary
 
-function New-KeyBinding([int]$Code, [bool]$Ctrl, [bool]$Shift, [bool]$Alt) {
-    # Accept letters, digits, function keys, numpad and common standalone keys.
-    if (-not (($Code -ge 48 -and $Code -le 57) -or ($Code -ge 65 -and $Code -le 90) -or ($Code -ge 96 -and $Code -le 111) -or
-        ($Code -ge 112 -and $Code -le 135) -or $Code -in @(8,9,13,27,32,33,34,35,36,37,38,39,40,45,46,187,189))) { return $null }
-    $parts=@()
-    if ($Ctrl) { $parts+='Ctrl' }; if ($Shift) { $parts+='Shift' }; if ($Alt) { $parts+='Alt' }
-    $name=([System.Windows.Forms.Keys]$Code).ToString()
-    if ($Code -ge 48 -and $Code -le 57) { $name=[string]($Code-48) }
-    if ($Code -eq 189) { $name='-' }
-    if ($Code -eq 187) { $name='=' }
-    $parts+=$name
-    return [pscustomobject]@{ Code=$Code; Ctrl=$Ctrl; Shift=$Shift; Alt=$Alt; Text=($parts -join '+') }
-}
 function Set-KeyBinding($InputBox, [int]$Code, [bool]$Ctrl, [bool]$Shift, [bool]$Alt) {
     $binding=New-KeyBinding $Code $Ctrl $Shift $Alt
     if ($null -eq $binding) { return }
     # Editing a dialog changes only its draft, never the active input mapping.
     $InputBox.Tag.Bindings[$InputBox.Tag.Action]=$binding
     $InputBox.Text=$binding.Text
-}
-$script:keyBindings=@{
-    Cast=(New-KeyBinding 48 $false $false $false)
-    Reel=(New-KeyBinding 187 $false $false $false)
-    Item=(New-KeyBinding 189 $false $false $false)
 }
 
 function New-WaitSettingsDialog {
@@ -730,7 +823,7 @@ function New-WaitSettingsDialog {
     $keyHint.Text='点击输入框后直接按键，支持 Ctrl / Shift / Alt 组合键。'
     $keyHint.SetBounds(16,98,715,28); $keyGroup.Controls.Add($keyHint)
     $note=New-Object System.Windows.Forms.Label
-    $note.Text="音频模式：匹配成功后随机等待；定时模式：变绿后随机等待。`r`n等待、重试及门槛保存到 config.ini；已登记的截止时间保持不变。`r`n保持时间和快捷键在本次运行中生效，重启恢复 100ms 及 0 / = / -。"
+    $note.Text="音频模式：匹配成功后随机等待；定时模式：变绿后随机等待。`r`n所有配置保存到 config.ini，重启自动恢复。`r`n新配置用于下一次操作，已登记的截止时间保持不变。"
     $note.SetBounds(18,384,745,80); $dialog.Controls.Add($note)
     $errorLabel=New-Object System.Windows.Forms.Label
     $errorLabel.ForeColor=$script:uiColors.Text
@@ -758,9 +851,7 @@ function New-WaitSettingsDialog {
                 $nextBindings[$action]=New-KeyBinding $draft.Code $draft.Ctrl $draft.Shift $draft.Alt
                 if ($null -eq $nextBindings[$action]) { throw '请选择有效的快捷键。' }
             }
-            Set-VersionWaitRanges $fields.titan.Minimum.Text.Trim() $fields.titan.Maximum.Text.Trim() $fields.forerver.Minimum.Text.Trim() $fields.forerver.Maximum.Text.Trim() -FocusRetryIntervalMs $settingsDialog.Tag.FocusRetry.Text.Trim() -TitanAudioThresholdPercent $fields.titan.AudioThreshold.Text.Trim() -ForerverAudioThresholdPercent $fields.forerver.AudioThreshold.Text.Trim()
-            Set-WowAutoHoldDuration $script:scheduler $nextHold
-            $script:keyBindings=$nextBindings
+            Set-VersionWaitRanges $fields.titan.Minimum.Text.Trim() $fields.titan.Maximum.Text.Trim() $fields.forerver.Minimum.Text.Trim() $fields.forerver.Maximum.Text.Trim() -FocusRetryIntervalMs $settingsDialog.Tag.FocusRetry.Text.Trim() -TitanAudioThresholdPercent $fields.titan.AudioThreshold.Text.Trim() -ForerverAudioThresholdPercent $fields.forerver.AudioThreshold.Text.Trim() -ReelHoldMs $nextHold -KeyBindings $nextBindings
             $settingsDialog.DialogResult='OK'
         }
         catch { $settingsDialog.Tag.Error.Text=$_.Exception.Message }
@@ -1022,6 +1113,7 @@ function New-ProcessRow($Process, $StartTime, [string]$Key, $Client) {
     $rowItemCheck.Text = '使用钓鱼道具'
     $rowItemCheck.SetBounds(540, 37, 150, 32)
     $rowItemCheck.FlatStyle='Flat'
+    $rowItemCheck.Checked=$script:processItemPreferences.ContainsKey($Key) -and $script:processItemPreferences[$Key]
     $panel.Controls.Add($rowItemCheck)
     $status = New-Object System.Windows.Forms.TextBox
     $status.SetBounds(710, 12, $panel.Width - 722, 82)
@@ -1049,8 +1141,20 @@ function New-ProcessRow($Process, $StartTime, [string]$Key, $Client) {
     $start.Add_Click({ param($sender, $eventArgs) Start-Row $sender.Tag })
     $stop.Add_Click({ param($sender, $eventArgs) Stop-Row $sender.Tag -CancelExit })
     $rowItemCheck.Add_CheckedChanged({ param($sender, $eventArgs)
+        if ($script:updatingPreferenceControls) { return }
         $changedRow=$sender.Tag
-        Set-WowAutoItemEnabled $script:scheduler $changedRow.Key $sender.Checked $script:schedulerClock.ElapsedMilliseconds
+        try {
+            $nextItems=$script:processItemPreferences.Clone()
+            $nextItems[$changedRow.Key]=$sender.Checked
+            Save-PreferenceSwitches -ProcessItemPreferences $nextItems
+        }
+        catch {
+            $script:updatingPreferenceControls=$true
+            try { $sender.Checked=$script:processItemPreferences.ContainsKey($changedRow.Key) -and $script:processItemPreferences[$changedRow.Key] }
+            finally { $script:updatingPreferenceControls=$false }
+            $script:settingsWarning='config.ini 保存失败，道具选项未改变：'+$_.Exception.Message
+            Update-VersionSummary
+        }
         Update-RowStatus $changedRow
     })
     if ($null -eq $StartTime) { $row.StatusMessage = '无法读取进程信息，请检查权限后刷新。' }
@@ -1543,6 +1647,7 @@ try {
             . (Join-Path $PSScriptRoot 'tests\ClientSettings.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Audio.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Audio.Features.UiTests.ps1')
+            . (Join-Path $PSScriptRoot 'tests\Preferences.UiTests.ps1')
         }
         if ($PreviewPath) {
             [System.Windows.Forms.Application]::DoEvents()
