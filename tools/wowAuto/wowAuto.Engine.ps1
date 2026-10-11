@@ -12,7 +12,7 @@ function New-WowAutoState {
         UseItem=$false; ItemDue=0L; ItemRetryAt=0L; InitialItemPending=$false
         ItemStatus=''
         FocusRetryAt=0L; FocusResumeStatus=''
-        UseAudio=$false; AudioReady=$true; AudioSession=0L; FishingStartedAt=0L; AudioReelPending=$false
+        UseAudio=$false; AudioReady=$true; AudioSession=0L; FishingStartedAt=0L; AudioReelPending=$false; AudioTimeoutMs=35000
         Status='已加入统一调度队列。'
     }
 }
@@ -134,11 +134,12 @@ function Stop-WowAutoTask($Scheduler, [string]$Key, [string]$Reason='已停止�
     }
     if ($Scheduler.ActiveKey -eq $Key) { $Scheduler.ActiveKey=$null }
 }
-function Add-WowAutoTask($Scheduler, [string]$Key, [int]$MinimumMs, [int]$MaximumMs, [long]$Now, [bool]$UseItem=$false, [bool]$UseAudio=$false) {
+function Add-WowAutoTask($Scheduler, [string]$Key, [int]$MinimumMs, [int]$MaximumMs, [long]$Now, [bool]$UseItem=$false, [bool]$UseAudio=$false, [ValidateRange(1000,3600000)][int]$AudioTimeoutMs=35000) {
     $state=New-WowAutoState $MinimumMs $MaximumMs
     Stop-WowAutoTask $Scheduler $Key
     $state.NextDue=$Now
     $state.UseAudio=$UseAudio; $state.AudioReady=-not $UseAudio
+    $state.AudioTimeoutMs=$AudioTimeoutMs
     $Scheduler.Tasks[$Key]=$state
     $Scheduler.Order.Add($Key)
     Set-WowAutoItemEnabled $Scheduler $Key $UseItem $Now
@@ -247,7 +248,7 @@ function Complete-WowAutoPoll($Scheduler, [string]$Key, [long]$Now, [string]$Col
             $state.AudioSession=$Scheduler.Sequence
             $state.FishingStartedAt=$Now
             $state.AudioReelPending=$false
-            $state.Mode='Wait'; $state.Deadline=$Now+35000
+            $state.Mode='Wait'; $state.Deadline=$Now+$state.AudioTimeoutMs
             $state.Status='已确认钓鱼：监听本进程音频，匹配后随机等待再收竿。'
             Add-WowAutoEvent $Scheduler $Key 'AudioTimeout' $state.Deadline
             $Scheduler.ActiveKey=$null
