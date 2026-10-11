@@ -294,6 +294,39 @@ namespace WowAuto
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
+if (-not ('WowAuto.DimTabControl' -as [type])) {
+    Add-Type -ReferencedAssemblies System.Windows.Forms,System.Drawing -TypeDefinition @'
+using System;
+using System.Drawing;
+using System.Windows.Forms;
+namespace WowAuto {
+    public sealed class DimTabControl : TabControl {
+        public Color HeaderBackground { get; set; }
+        public Color HeaderSurface { get; set; }
+        public DimTabControl() {
+            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
+                ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
+        }
+        protected override void OnPaintBackground(PaintEventArgs e) {
+            e.Graphics.Clear(HeaderBackground);
+        }
+        protected override void OnPaint(PaintEventArgs e) {
+            for (int i = 0; i < TabCount; i++) {
+                Rectangle bounds = GetTabRect(i);
+                using (var brush = new SolidBrush(i == SelectedIndex ? HeaderSurface : HeaderBackground))
+                    e.Graphics.FillRectangle(brush, bounds);
+                TextRenderer.DrawText(e.Graphics, TabPages[i].Text, Font, bounds, ForeColor,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            }
+            base.OnPaint(e);
+        }
+        protected override void OnSelectedIndexChanged(EventArgs e) {
+            base.OnSelectedIndexChanged(e); Invalidate();
+        }
+    }
+}
+'@
+}
 . (Join-Path $PSScriptRoot 'wowAuto.Engine.ps1')
 if (-not ('WowAuto.Audio.ProcessCapture' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'wowAuto.Audio.cs') }
 [System.Windows.Forms.Application]::EnableVisualStyles()
@@ -438,17 +471,30 @@ function Import-VersionWaitSettings {
 }
 if (-not $UiTest) { Import-VersionWaitSettings }
 $script:uiColors=@{
-    Background=[System.Drawing.Color]::FromArgb(226,228,232)
-    Surface=[System.Drawing.Color]::FromArgb(235,237,240)
-    Input=[System.Drawing.Color]::FromArgb(230,232,235)
-    Text=[System.Drawing.Color]::FromArgb(42,45,50)
+    Background=[System.Drawing.Color]::FromArgb(58,58,58)
+    Surface=[System.Drawing.Color]::FromArgb(72,72,72)
+    Input=[System.Drawing.Color]::FromArgb(50,50,50)
+    Text=[System.Drawing.Color]::FromArgb(230,230,230)
+    Button=[System.Drawing.Color]::FromArgb(86,86,86)
+    Accent=[System.Drawing.Color]::FromArgb(88,100,112)
+    Border=[System.Drawing.Color]::FromArgb(116,116,116)
+    Error=[System.Drawing.Color]::FromArgb(224,168,168)
+}
+function Set-UiButtonStyle($Button, [bool]$Accent=$false) {
+    $Button.UseVisualStyleBackColor=$false
+    $Button.BackColor=if ($Accent) { $script:uiColors.Accent } else { $script:uiColors.Button }
+    $Button.ForeColor=$script:uiColors.Text
+    $Button.FlatStyle='Flat'
+    $Button.FlatAppearance.BorderColor=$script:uiColors.Border
+    $Button.FlatAppearance.MouseOverBackColor=[System.Drawing.Color]::FromArgb(104,104,104)
+    $Button.FlatAppearance.MouseDownBackColor=[System.Drawing.Color]::FromArgb(64,64,64)
 }
 $form = New-Object System.Windows.Forms.Form
 $form.Text = 'wowAuto'
 $form.ClientSize = New-Object System.Drawing.Size(1330, 460)
 $form.MinimumSize = New-Object System.Drawing.Size(1250, 350)
 $form.StartPosition = 'CenterScreen'
-$form.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 10)
+$form.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 12)
 $form.BackColor = $script:uiColors.Background
 $form.ForeColor = $script:uiColors.Text
 $form.AutoScaleMode = 'Dpi'
@@ -459,7 +505,7 @@ $header.Height = 75
 $header.Width = $form.ClientSize.Width
 $title = New-Object System.Windows.Forms.Label
 $title.Text = 'wowAuto'
-$title.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 21, [System.Drawing.FontStyle]::Bold)
+$title.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 23, [System.Drawing.FontStyle]::Bold)
 $title.SetBounds(20, 14, 230, 45)
 $header.Controls.Add($title)
 $countLabel = New-Object System.Windows.Forms.Label
@@ -468,14 +514,21 @@ $countLabel.Anchor = 'Top, Left, Right'
 
 $refreshButton = New-Object System.Windows.Forms.Button
 $refreshButton.Text = '刷新进程'
+Set-UiButtonStyle $refreshButton
 $refreshButton.SetBounds(1020, 20, 115, 36)
 $refreshButton.Anchor = 'Top, Right'
 
-$tabs = New-Object System.Windows.Forms.TabControl
+$tabs = New-Object WowAuto.DimTabControl
 $tabs.Dock = 'Fill'
+$tabs.HeaderBackground = $script:uiColors.Background
+$tabs.HeaderSurface = $script:uiColors.Surface
+$tabs.ForeColor = $script:uiColors.Text
+$tabs.SizeMode = 'Fixed'
+$tabs.ItemSize = New-Object System.Drawing.Size(112,32)
 $tab = New-Object System.Windows.Forms.TabPage
 $tab.Text = 'autofish'
 $tab.BackColor = $script:uiColors.Background
+$tab.ForeColor = $script:uiColors.Text
 $tabs.TabPages.Add($tab)
 $form.Controls.Add($tabs)
 $form.Controls.Add($header)
@@ -491,13 +544,12 @@ $toolbar.Controls.Add($refreshButton)
 $startAllButton = New-Object System.Windows.Forms.Button
 $startAllButton.Text = '全部开始'
 $startAllButton.SetBounds(142, 10, 120, 35)
-$startAllButton.BackColor = [System.Drawing.Color]::FromArgb(35, 100, 210)
-$startAllButton.ForeColor = [System.Drawing.Color]::White
-$startAllButton.FlatStyle = 'Flat'
+Set-UiButtonStyle $startAllButton $true
 $startAllButton.Enabled = $false
 $toolbar.Controls.Add($startAllButton)
 $stopAllButton = New-Object System.Windows.Forms.Button
 $stopAllButton.Text = '全部停止'
+Set-UiButtonStyle $stopAllButton
 $stopAllButton.SetBounds(272, 10, 120, 35)
 $stopAllButton.Enabled = $false
 $toolbar.Controls.Add($stopAllButton)
@@ -516,15 +568,19 @@ $holdInput.Maximum = 60000
 $holdInput.Value = 100
 $holdInput.Increment = 1
 $holdInput.BackColor = $script:uiColors.Input
+$holdInput.ForeColor = $script:uiColors.Text
+$holdInput.BorderStyle = 'FixedSingle'
 $toolbar.Controls.Add($holdInput)
 $holdInput.Add_ValueChanged({ Set-WowAutoHoldDuration $script:scheduler ([int]$holdInput.Value) })
 $settingsButton = New-Object System.Windows.Forms.Button
 $settingsButton.Text = '设置'
+Set-UiButtonStyle $settingsButton
 $settingsButton.SetBounds(965, 10, 110, 35)
 $toolbar.Controls.Add($settingsButton)
 $audioCheck = New-Object System.Windows.Forms.CheckBox
 $audioCheck.Text = '音频咬钩检测'
-$audioCheck.SetBounds(1090, 13, 195, 30)
+$audioCheck.SetBounds(1090, 13, 195, 32)
+$audioCheck.FlatStyle = 'Flat'
 $audioCheck.Checked = -not $UiTest # Existing tests exercise the legacy timed mode explicitly.
 $toolbar.Controls.Add($audioCheck)
 $settingsSummary = New-Object System.Windows.Forms.Label
@@ -567,7 +623,7 @@ function New-WaitSettingsDialog {
     $dialog.BackColor=$script:uiColors.Background
     $dialog.ForeColor=$script:uiColors.Text
     $dialog.AutoScaleMode='Dpi'
-    $dialog.ClientSize=New-Object System.Drawing.Size(740,526)
+    $dialog.ClientSize=New-Object System.Drawing.Size(780,550)
     $dialog.FormBorderStyle='FixedDialog'
     $dialog.MaximizeBox=$false; $dialog.MinimizeBox=$false
     $dialog.StartPosition='CenterParent'
@@ -585,11 +641,13 @@ function New-WaitSettingsDialog {
         $max=New-Object System.Windows.Forms.NumericUpDown
         $threshold=New-Object System.Windows.Forms.NumericUpDown
         $min.SetBounds(130,$spec[2],175,30); $max.SetBounds(330,$spec[2],175,30)
-        foreach ($input in @($min,$max)) { $input.Minimum=1; $input.Maximum=3600000; $input.Increment=1000; $input.BackColor=$script:uiColors.Input; $dialog.Controls.Add($input) }
+        foreach ($input in @($min,$max)) { $input.Minimum=1; $input.Maximum=3600000; $input.Increment=1000; $input.BackColor=$script:uiColors.Input; $input.ForeColor=$script:uiColors.Text; $input.BorderStyle='FixedSingle'; $dialog.Controls.Add($input) }
         $min.Value=$script:versionRanges[$spec[0]].MinimumMs; $max.Value=$script:versionRanges[$spec[0]].MaximumMs
         $threshold.SetBounds(530,$spec[2],175,30); $threshold.Minimum=50; $threshold.Maximum=100; $threshold.Increment=1
         $threshold.Value=$script:audioThresholds[$spec[0]]; $dialog.Controls.Add($threshold)
         $threshold.BackColor=$script:uiColors.Input
+        $threshold.ForeColor=$script:uiColors.Text
+        $threshold.BorderStyle='FixedSingle'
         $inputs[$spec[0]]=[pscustomobject]@{Minimum=$min; Maximum=$max; AudioThreshold=$threshold}
     }
     $retryLabel=New-Object System.Windows.Forms.Label
@@ -600,18 +658,23 @@ function New-WaitSettingsDialog {
     $retryInput.Minimum=1000; $retryInput.Maximum=3600000; $retryInput.Increment=1000
     $retryInput.Value=$script:scheduler.FocusRetryIntervalMs; $dialog.Controls.Add($retryInput)
     $retryInput.BackColor=$script:uiColors.Input
+    $retryInput.ForeColor=$script:uiColors.Text
+    $retryInput.BorderStyle='FixedSingle'
     $keyGroup=New-Object System.Windows.Forms.GroupBox
-    $keyGroup.Text='快捷键（所有进程）'; $keyGroup.SetBounds(18,192,705,121)
+    $keyGroup.Text='快捷键（所有进程）'; $keyGroup.SetBounds(18,192,745,131)
     $keyGroup.BackColor=$script:uiColors.Surface; $dialog.Controls.Add($keyGroup)
+    $keyGroup.ForeColor=$script:uiColors.Text
     $keyInputs=@{}; $draftBindings=@{}
     $keyTip=New-Object System.Windows.Forms.ToolTip
     foreach ($spec in @(@('Cast','抛竿',16),@('Reel','收竿',248),@('Item','钓鱼道具',480))) {
         $keyLabel=New-Object System.Windows.Forms.Label
-        $keyLabel.Text=$spec[1]; $keyLabel.SetBounds($spec[2],26,200,24); $keyGroup.Controls.Add($keyLabel)
+        $keyLabel.Text=$spec[1]; $keyLabel.SetBounds($spec[2],28,200,28); $keyGroup.Controls.Add($keyLabel)
         $keyInput=New-Object System.Windows.Forms.TextBox
         $keyInput.Tag=[pscustomobject]@{Action=$spec[0]; Bindings=$draftBindings}
-        $keyInput.ReadOnly=$true; $keyInput.SetBounds($spec[2],52,208,30)
+        $keyInput.ReadOnly=$true; $keyInput.SetBounds($spec[2],58,208,34)
         $keyInput.BackColor=$script:uiColors.Input
+        $keyInput.ForeColor=$script:uiColors.Text
+        $keyInput.BorderStyle='FixedSingle'
         $keyInput.Add_PreviewKeyDown({ param($sender,$e) $e.IsInputKey=$true })
         $keyInput.Add_KeyDown({ param($sender,$e)
             $e.SuppressKeyPress=$true; $e.Handled=$true
@@ -624,17 +687,17 @@ function New-WaitSettingsDialog {
     }
     $keyHint=New-Object System.Windows.Forms.Label
     $keyHint.Text='点击输入框后直接按键，支持 Ctrl / Shift / Alt 组合键。'
-    $keyHint.SetBounds(16,88,675,24); $keyGroup.Controls.Add($keyHint)
+    $keyHint.SetBounds(16,98,715,28); $keyGroup.Controls.Add($keyHint)
     $note=New-Object System.Windows.Forms.Label
     $note.Text="音频模式：匹配成功后随机等待；定时模式：变绿后随机等待。`r`n计时及门槛保存到 config.ini；已登记的截止时间保持不变。`r`n快捷键保存后在本次运行中生效，重启恢复默认 0 / = / -。"
-    $note.SetBounds(18,328,705,74); $dialog.Controls.Add($note)
+    $note.SetBounds(18,338,745,80); $dialog.Controls.Add($note)
     $errorLabel=New-Object System.Windows.Forms.Label
-    $errorLabel.ForeColor=[System.Drawing.Color]::Firebrick
-    $errorLabel.SetBounds(18,409,705,44); $dialog.Controls.Add($errorLabel)
+    $errorLabel.ForeColor=$script:uiColors.Error
+    $errorLabel.SetBounds(18,423,745,52); $dialog.Controls.Add($errorLabel)
     $apply=New-Object System.Windows.Forms.Button
-    $apply.Text='保存'; $apply.SetBounds(500,473,95,32); $dialog.Controls.Add($apply)
+    $apply.Text='保存'; $apply.SetBounds(540,495,95,36); Set-UiButtonStyle $apply $true; $dialog.Controls.Add($apply)
     $cancel=New-Object System.Windows.Forms.Button
-    $cancel.Text='取消'; $cancel.SetBounds(605,473,95,32)
+    $cancel.Text='取消'; $cancel.SetBounds(645,495,95,36); Set-UiButtonStyle $cancel
     $cancel.DialogResult='Cancel'; $dialog.Controls.Add($cancel)
     $dialog.AcceptButton=$apply; $dialog.CancelButton=$cancel
     $dialog.Tag=[pscustomobject]@{Inputs=$inputs; FocusRetry=$retryInput; Apply=$apply; Cancel=$cancel; Error=$errorLabel; KeyInputs=$keyInputs; KeyBindings=$draftBindings; KeyTip=$keyTip}
@@ -690,9 +753,9 @@ $list.BackColor = $script:uiColors.Background
 $list.Padding = New-Object System.Windows.Forms.Padding(6, 0, 6, 0)
 $footer = New-Object System.Windows.Forms.Label
 $footer.Dock = 'Bottom'
-$footer.Height = 43
+$footer.Height = 48
 $footer.Padding = New-Object System.Windows.Forms.Padding(12, 10, 0, 0)
-$footer.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 9)
+$footer.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 11)
 $footer.Text = '运行时自动切换窗口；黄色超过500次循环时请求正常退出，30秒未退出则强制结束；次数不足只停止该行。'
 $tab.Controls.Add($list)
 $tab.Controls.Add($headings)
@@ -889,37 +952,39 @@ function Start-Row($Row) {
 
 function New-ProcessRow($Process, $StartTime, [string]$Key, $Client) {
     $panel = New-Object System.Windows.Forms.Panel
-    $panel.Height = 82
+    $panel.Height = 106
     $panel.Width = [Math]::Max(1170, $list.ClientSize.Width - 32)
     $panel.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 6)
     $panel.BackColor = $script:uiColors.Surface
     $nameLabel = New-Object System.Windows.Forms.Label
-    $nameLabel.SetBounds(6, 14, 360, 56)
+    $nameLabel.SetBounds(6, 20, 360, 70)
     $nameLabel.AutoEllipsis=$true
     $panel.Controls.Add($nameLabel)
     $start = New-Object System.Windows.Forms.Button
     $start.Text = '开始'
-    $start.SetBounds(380, 21, 68, 37)
-    $start.BackColor = [System.Drawing.Color]::FromArgb(35, 100, 210)
-    $start.ForeColor = [System.Drawing.Color]::White
-    $start.FlatStyle = 'Flat'
+    $start.SetBounds(380, 33, 68, 40)
+    Set-UiButtonStyle $start $true
     $panel.Controls.Add($start)
     $stop = New-Object System.Windows.Forms.Button
     $stop.Text = '停止'
-    $stop.SetBounds(454, 21, 68, 37)
+    $stop.SetBounds(454, 33, 68, 40)
+    Set-UiButtonStyle $stop
     $stop.Enabled = $false
     $panel.Controls.Add($stop)
     $rowItemCheck = New-Object System.Windows.Forms.CheckBox
     $rowItemCheck.Text = '使用钓鱼道具'
-    $rowItemCheck.SetBounds(540, 25, 150, 30)
+    $rowItemCheck.SetBounds(540, 37, 150, 32)
+    $rowItemCheck.FlatStyle='Flat'
     $panel.Controls.Add($rowItemCheck)
     $status = New-Object System.Windows.Forms.TextBox
-    $status.SetBounds(710, 12, $panel.Width - 722, 58)
+    $status.SetBounds(710, 12, $panel.Width - 722, 82)
     $status.Anchor = 'Top, Left, Right'
     $status.Multiline = $true
     $status.ReadOnly = $true
     $status.ScrollBars = 'Vertical'
     $status.BackColor = $script:uiColors.Input
+    $status.ForeColor = $script:uiColors.Text
+    $status.BorderStyle = 'FixedSingle'
     $panel.Controls.Add($status)
     $row = [pscustomobject]@{
         Key=$Key; Process=$Process; StartTime=$StartTime; Client=$Client; Position='位置未知'
@@ -979,7 +1044,7 @@ function Refresh-ProcessRows {
         foreach ($row in $ordered) { $list.Controls.Add($row.Panel) }
         $list.ResumeLayout()
         $countLabel.Text = "检测到 $($processes.Count) 个游戏进程"
-        if ($processes.Count -eq 0) { $countLabel.Text += '，启动游戏后点击刷新。' }
+        if ($processes.Count -eq 0) { $countLabel.Text = '未找到游戏，请启动后刷新。' }
     }
     catch { $countLabel.Text = '刷新失败：' + $_.Exception.Message; return $false }
     return $true
@@ -1014,7 +1079,7 @@ function Finish-RefreshScan {
     $refreshButton.Enabled = $true
     foreach ($row in $script:rows.Values) { Set-RowControls $row }
     $passed = @($script:rows.Values | Where-Object { $_.Validated }).Count
-    $countLabel.Text = "检测到 $($script:rows.Count) 个进程，$passed 个通过红/绿检测。"
+    $countLabel.Text = "进程 $($script:rows.Count) · 红/绿通过 $passed"
     if ($UiTest) { $script:restored = $true }
     elseif ($script:scanOriginalWindow -ne [IntPtr]::Zero) {
         $restored = [WowAuto.NativeInput]::RestoreAfterScan($script:scanOriginalWindow)
