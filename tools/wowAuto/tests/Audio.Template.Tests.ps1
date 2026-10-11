@@ -12,15 +12,7 @@ public static class SampleFixture {
         }
         return result;
     }
-    public static void FloatWave(string path, short[] mono) {
-        using(BinaryWriter w=new BinaryWriter(File.Create(path))) {
-            w.Write(System.Text.Encoding.ASCII.GetBytes("RIFF")); w.Write(36+mono.Length*8);
-            w.Write(System.Text.Encoding.ASCII.GetBytes("WAVEfmt ")); w.Write(16);
-            w.Write((short)3); w.Write((short)2); w.Write(11025); w.Write(88200); w.Write((short)8); w.Write((short)32);
-            w.Write(System.Text.Encoding.ASCII.GetBytes("data")); w.Write(mono.Length*8);
-            foreach(short s in mono) { w.Write(s/32768f); w.Write(s/32768f); }
-        }
-    }
+
 }
 '@
 function Assert-Template($Condition,[string]$Message) { if (-not $Condition) { throw $Message } }
@@ -53,24 +45,33 @@ for ($time=5000; $time -lt 6000; $time+=10) { $null=$matcher.Feed($silence,0,$ti
 $null=$matcher.Feed([int16[]]@(20000,20000),0.7,6000)
 $matcher.Reset(6100)
 for ($time=6100; $time -lt 7800; $time+=10) { Assert-Template (-not $matcher.Feed($silence,0,$time)) 'Old candidate survived reset.' }
-$path=Join-Path ([IO.Path]::GetTempPath()) ('wow-template-test-'+[Guid]::NewGuid()+'.wav')
+$path=Join-Path ([IO.Path]::GetTempPath()) ('wow-feature-test-'+[Guid]::NewGuid()+'.feature')
 try {
-    [WowAuto.Audio.AudioTemplate]::WriteWave($path,$tone)
-    $loaded=[WowAuto.Audio.AudioTemplate]::FromWave($path)
-    Assert-Template ($loaded.Compare($tone) -gt 0.99) 'PCM16 WAV round-trip failed.'
-    [SampleFixture]::FloatWave($path,$tone)
-    $loaded=[WowAuto.Audio.AudioTemplate]::FromWave($path)
-    Assert-Template ($loaded.Compare($tone) -gt 0.99) 'Stereo float32 WAV import failed.'
-    [IO.File]::WriteAllBytes($path,[byte[]]@(1,2,3))
-    $rejected=$false; try { $null=[WowAuto.Audio.AudioTemplate]::FromWave($path) } catch { $rejected=$true }
-    Assert-Template $rejected 'Malformed WAV accepted.'
+    [WowAuto.Audio.AudioTemplate]::SaveFeatures($path,[WowAuto.Audio.AudioTemplate[]]@($template),0.91)
+    $loaded=[WowAuto.Audio.AudioTemplate]::LoadFeatures($path)
+    Assert-Template ($loaded.Count -eq 1 -and $loaded.IsTrial -and $loaded.MinimumSimilarity -eq 0.91 -and $loaded.Compare($tone) -gt 0.99) 'Numerical feature round-trip failed.'
+    $second=[WowAuto.Audio.AudioTemplate]::FromMono($other,11025)
+    [WowAuto.Audio.AudioTemplate]::SaveFeatures($path,[WowAuto.Audio.AudioTemplate[]]@($template,$second),0.9)
+    $loaded=[WowAuto.Audio.AudioTemplate]::LoadFeatures($path)
+    Assert-Template ($loaded.Count -eq 2 -and $loaded.Compare($other) -gt 0.99 -and $loaded.Compare($quiet) -gt 0.99) 'Feature variants did not match independently.'
+    $valid=[IO.File]::ReadAllText($path)
+    foreach ($invalid in @('Format=invalid', ($valid+"`nThreshold=0.9"), ($valid -replace 'Threshold=0.9','Threshold=NaN'), ($valid -replace 'Template=.*','Template=0,0,0'), ($valid -replace 'Status=trial','Status=invalid'))) {
+        [IO.File]::WriteAllText($path,$invalid)
+        $rejected=$false; try { $null=[WowAuto.Audio.AudioTemplate]::LoadFeatures($path) } catch { $rejected=$true }
+        Assert-Template $rejected 'Malformed/duplicate/non-finite numerical features accepted.'
+    }
     $rejected=$false; try { $null=[WowAuto.Audio.AudioTemplate]::FromMono((New-Object 'System.Int16[]' 11025),11025) } catch { $rejected=$true }
     Assert-Template $rejected 'Silence accepted as a template.'
     $rejected=$false; try { $null=[WowAuto.Audio.AudioTemplate]::FromMono((New-Object 'System.Int16[]' 121276),11025) } catch { $rejected=$true }
     Assert-Template $rejected 'Oversized sample accepted.'
+    [IO.File]::WriteAllText($path,($valid -replace 'Status=trial','Status=verified'))
+    Assert-Template (-not [WowAuto.Audio.AudioTemplate]::LoadFeatures($path).IsTrial) 'Verified status was not loaded.'
+    [IO.File]::WriteAllText($path,($valid -replace 'Status=trial',''))
+    Assert-Template ([WowAuto.Audio.AudioTemplate]::LoadFeatures($path).IsTrial) 'Unreviewed legacy features were marked verified.'
+    $null=[WowAuto.Audio.AudioTemplate]::LoadFeatures((Join-Path $PSScriptRoot '..\audio-features\forerver.feature'))
     $clock=[Diagnostics.Stopwatch]::StartNew()
     for ($i=0;$i -lt 100;$i++) { $null=$template.Compare($tone) }
     $clock.Stop()
-    Write-Output ("PASS: normalized FFT/envelope matching, rejected interference followed by real bite, warmup/dedup/reset, WAV formats/invalid input. 100 candidate comparisons: {0}ms; synthetic only." -f $clock.ElapsedMilliseconds)
+    Write-Output ("PASS: normalized FFT/envelope matching, rejected interference followed by real bite, warmup/dedup/reset, numerical feature banks/variants/invalid input. 100 candidate comparisons: {0}ms; synthetic only." -f $clock.ElapsedMilliseconds)
 }
 finally { if ([IO.File]::Exists($path)) { [IO.File]::Delete($path) } }

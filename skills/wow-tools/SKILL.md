@@ -5,7 +5,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 # wow_tools
 
-源码仓库：`C:\code\wow_tools`，远端 `origin`。插件源码分开归档在 `addon/titan/wow_tools/`（时光服）和 `addon/forerver/wow_tools/`（无限服），保留用户指定的forerver拼写；不要恢复旧的addon/wow_tools或让两服互相引用源码。图形工具在 `tools/wowAuto/`（wowAuto.ps1、wowAuto.Engine.ps1、wowAuto.Audio.cs、wowAuto.Samples.ps1、wowAuto.bat），使用说明在该目录 README.md。不要把游戏目录或桌面副本当作修改源。
+源码仓库：`C:\code\wow_tools`，远端 `origin`。插件源码分开归档在 `addon/titan/wow_tools/`（时光服）和 `addon/forerver/wow_tools/`（无限服），保留用户指定的forerver拼写；不要恢复旧的addon/wow_tools或让两服互相引用源码。图形工具在 `tools/wowAuto/`（wowAuto.ps1、wowAuto.Engine.ps1、wowAuto.Audio.cs、wowAuto.bat），使用说明在该目录 README.md。不要把游戏目录或桌面副本当作修改源。
 
 ## 修改与同步顺序
 
@@ -58,10 +58,11 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 ## 音频咬钩检测及设置恢复
 
-- wowAuto.Samples.ps1提供“声音样本”入口，全部任务/退出保护停止且扫描结束后可用；弹窗暂停自动操作。仅由用户手动开始指定PID的5秒录音，不自动发键或切换窗口；可导入0.2–10秒8–192kHz单/双声道PCM16或float32 WAV，自动提取最响事件约370ms，试听并确认后按版本原子保存。audio-samples/titan.wav及forerver.wav属于本地数据，Git忽略，不上传；保留原config.ini五键及用户值。重复保存仍使用NullString调用File.Replace，不允许静音或非法样本覆盖有效样本。
-- 可选模板模式先使用原音量突变门槛，再比对24个对数频带的512点FFT特征及8段音量包络，各自归一化；默认相似度88%，弹窗允许50–100%。按PID预加载对应版本不可变模板，缺失/无效模板阻止对应行启动，不隐式退回纯峰值。已有任一版本样本时重启默认启用模板；模式/自定义门槛不持久化，重启门槛88%。候选收集约300ms后判断，仅通过后消耗会话一次信号；拒绝150ms后继续监听，同一轮真咬钩仍可触发。会话切换、道具等待及停止清空旧候选，实时相似度/排除数不更新时间戳。不宣称能区分其他玩家的同一音效或保证排除所有干扰。
-- Audio.Template.Tests.ps1使用合成音频验证音量归一化、干扰拒绝后继续监听、去重/预热/重置、WAV格式/静音/非法输入及计算耗时。UiTest追加Audio.Samples.UiTests.ps1验证两服隔离、重复保存/失败保留、缺样本启动门槛、模拟录制/取消/关闭清理及状态时间戳；不监听游戏。Audio.Capture.Smoke.ps1补充自身无声PowerShell进程的短录制验证。没有用户指令不要实际录制游戏音频或运行真实钓鱼来测试。
-
+- wowAuto不提供录音、WAV导入/导出、试听或制样界面；ProcessCapture仅实时监听，在内存中保留短帧用于匹配，不保存音频。audio-features/titan.feature及forerver.feature保存经过校准的数值特征，按版本独立加载；缺失/无效时阻止对应行启动，不隐式退回纯峰值。保留config.ini原五键及用户值；原audio-samples目录继续忽略以保留本地旧样本，但运行时不读取。
+- 用户授权后使用本地忽略目录中的独立一次性工具进行长采集，默认40秒。用户通知开始前不得录音；用户手动钓鱼，工具只录目标PID声音及观察色块，不发送按键、不切换窗口。根据收竿前重复候选与抛竿/其他阶段声音的差异选取关键帧，确认后生成数值特征。原始录音、分析结果和临时采集工具留本机，不上传；没有实测样本不得伪造特征或将一服特征冒充另一服。此用户授权的校准独立于模拟测试的禁录要求。
+- 模板模式通过原音量门槛后，比对24个对数频带的512点FFT及8段音量包络，各自归一化。特征文件包含格式1/11025Hz/4096样本、校准相似度门槛0.5–1及1–8组变体，比较取最高分；启动时只读预加载。候选约300ms后匹配，仅通过后消耗本轮信号；拒绝150ms后继续监听。会话切换及道具等待清空旧候选，实时指标不更新时间戳。不宣称能区分其他玩家播放的同一音效或保证排除全部干扰。
+- 2026-10-11用户授权录无限服40秒；唯一完整引导约8.904–38.963秒，无提前收竿。第31.199秒的强声音仅为候选，用户答“不确定，你集成进去我试一下”，按此授权接入forerver.feature，Status=trial、门槛0.93；不得称为已确认咬钩或实测高成功率。原录音离线回放在31.239秒接受一次、相似度0.975981，仅验证同一候选可匹配。Status允许trial/verified、省略按trial；状态框显示试用匹配，不因指标更新时间戳。时光服无实测特征，不能套用无限服数据；其音频启动明确提示缺失，可显式取消音频使用定时模式。原录音/候选WAV/临时工具均留本机忽略目录。
+- Audio.Template.Tests.ps1使用合成音频验证归一化、拒绝干扰后继续监听、去重/预热/重置及数值文件/变体/非法数据；UiTest追加Audio.Features.UiTests.ps1验证没有录制UI/API、两服独立特征、缺失/无效门槛及时间戳。Audio.Capture.Smoke.ps1仅实时监听自身无声PowerShell进程，不录音、不采集游戏。实际长录音需等待用户通知。
 - 两服独立的wowDetector/Audio.lua在检测模块前加载。仅从关闭切到开启时保存支持的音频CVar到wowDetectorDB.audioSnapshot，开启总声音/SFX/后台声音，总音量/SFX设为1，静音音乐/环境/对话/错误/宠物/表情。重复on不覆盖原值；hide不改变检测或音频。off、面板关闭、死亡、PLAYER_LOGOUT恢复；ADDON_LOADED补充恢复旧快照。恢复失败原值保留重试，禁止覆盖未恢复快照。不修改音频输出设备、Windows音量或图形设置。AudioSettings.Tests.lua用Lua5.1验证两服。
 - wowAuto.Audio.cs通过系统.NET Framework Add-Type加载，使用Windows Build20348+的ActivateAudioInterfaceAsync/进程回环，仅捕获目标PID及子进程。背景线程核对PID/StartTime/路径，不回退系统音频；GUI启动及消费信号仍核对客户端身份。开始建立独立监听，启动完成前禁止抛竿；失败停止本行并报告；停止/刷新/退出释放监听。禁止给真实游戏发送按键或采集游戏音频来验证。
 - 工具栏音频勾选默认开启，只有全部任务停止可更改，不写入config.ini。原五项INI不变，等待范围仅用于取消音频勾选后的定时模式。音频确认绿色后登记独立钓鱼会话/35秒超时，不登记随机Reel。前1秒屏蔽抛竿声音并建立基线，峰值>=0.06、>=基线+0.025且>=基线*3才进入候选；纯峰值模式立即触发，模板模式匹配通过才触发，每会话一次。不宣称识别声音归属。

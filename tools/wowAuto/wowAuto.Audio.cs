@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.IO;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -51,14 +52,87 @@ namespace WowAuto.Audio
         public const int SampleRate = 11025;
         public const int WindowSamples = 4096;
         public const int PreSamples = 882; // 80 ms before the loudness gate.
-        private readonly double[] spectrum, envelope;
-        private readonly short[] clip;
+        private readonly double[][] spectra, envelopes;
+        public double MinimumSimilarity { get; private set; }
+        public bool IsTrial { get; private set; }
+        public int Count { get { return spectra.Length; } }
         private AudioTemplate(short[] samples)
         {
-            clip = SelectEvent(samples);
-            Describe(clip, out spectrum, out envelope);
+            double[] spectrum, envelope;
+            Describe(SelectEvent(samples), out spectrum, out envelope);
+            spectra = new double[][] { spectrum }; envelopes = new double[][] { envelope };
+            MinimumSimilarity = 0.88;
+            IsTrial = true;
         }
-        public short[] Clip { get { return (short[])clip.Clone(); } }
+        private AudioTemplate(double[][] frequencies, double[][] shapes, double threshold, bool trial)
+        { spectra = frequencies; envelopes = shapes; MinimumSimilarity = threshold; IsTrial = trial; }
+        public static AudioTemplate LoadFeatures(string path)
+        {
+            if (new FileInfo(path).Length > 65536) throw new InvalidDataException("Feature file is too large.");
+            Dictionary<string, string> headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            List<double[]> frequencies = new List<double[]>(), shapes = new List<double[]>();
+            foreach (string source in File.ReadAllLines(path))
+            {
+                string line = source.Trim(); if (line.Length == 0 || line.StartsWith("#")) continue;
+                int separator = line.IndexOf('='); if (separator < 1) throw new InvalidDataException("Invalid feature row.");
+                string key = line.Substring(0, separator).Trim(), value = line.Substring(separator + 1).Trim();
+                if (String.Equals(key, "Template", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (frequencies.Count >= 8) throw new InvalidDataException("At most 8 bite feature variants.");
+                    string[] values = value.Split(','); if (values.Length != 32) throw new InvalidDataException("32 feature values required.");
+                    double[] bands = new double[24], envelope = new double[8];
+                    for (int i = 0; i < values.Length; i++)
+                    {
+                        double number;
+                        if (!Double.TryParse(values[i], NumberStyles.Float, CultureInfo.InvariantCulture, out number) ||
+                            Double.IsNaN(number) || Double.IsInfinity(number) || number < 0 || number > 1)
+                            throw new InvalidDataException("Feature values must be finite, normalized numbers.");
+                        if (i < 24) bands[i] = number; else envelope[i - 24] = number;
+                    }
+                    CheckNormalized(bands); CheckNormalized(envelope); frequencies.Add(bands); shapes.Add(envelope);
+                }
+                else
+                {
+                    if (key != "Format" && key != "SampleRate" && key != "WindowSamples" && key != "Threshold" && key != "Status")
+                        throw new InvalidDataException("Unknown feature header.");
+                    if (headers.ContainsKey(key)) throw new InvalidDataException("Duplicate feature header.");
+                    headers.Add(key, value);
+                }
+            }
+            double threshold;
+            if (!headers.ContainsKey("Format") || !headers.ContainsKey("SampleRate") || !headers.ContainsKey("WindowSamples") || !headers.ContainsKey("Threshold") ||
+                headers["Format"] != "1" || headers["SampleRate"] != "11025" || headers["WindowSamples"] != "4096" ||
+                !Double.TryParse(headers["Threshold"], NumberStyles.Float, CultureInfo.InvariantCulture, out threshold) ||
+                Double.IsNaN(threshold) || threshold < 0.5 || threshold > 1 || frequencies.Count == 0)
+                throw new InvalidDataException("Missing/unsupported feature format or threshold.");
+            string reviewStatus;
+            if (!headers.TryGetValue("Status", out reviewStatus)) reviewStatus = "trial";
+            if (reviewStatus != "trial" && reviewStatus != "verified") throw new InvalidDataException("Feature status must be trial or verified.");
+            return new AudioTemplate(frequencies.ToArray(), shapes.ToArray(), threshold, reviewStatus == "trial");
+        }
+        private static void CheckNormalized(double[] values)
+        {
+            double norm = 0; foreach (double value in values) norm += value * value;
+            if (Math.Abs(norm - 1) > 0.001) throw new InvalidDataException("Feature vector is not normalized.");
+        }
+        // Offline preparation/tests use numerical features; no WAV recording or
+        // media-file import/export is exposed by the runtime tool.
+        public static void SaveFeatures(string path, AudioTemplate[] templates, double threshold)
+        {
+            if (templates == null || templates.Length < 1 || templates.Length > 8 || Double.IsNaN(threshold) || threshold < 0.5 || threshold > 1)
+                throw new ArgumentException("1-8 templates and a threshold 0.5-1 are required.");
+            List<string> lines = new List<string> { "# wowAuto bite fingerprints; no recorded audio", "Format=1", "SampleRate=11025", "WindowSamples=4096", "Status=trial",
+                "Threshold=" + threshold.ToString("R", CultureInfo.InvariantCulture) };
+            foreach (AudioTemplate template in templates)
+            {
+                if (template == null || template.Count != 1) throw new ArgumentException("Export individual calibrated samples.");
+                string[] values = new string[32];
+                for (int i = 0; i < 24; i++) values[i] = template.spectra[0][i].ToString("R", CultureInfo.InvariantCulture);
+                for (int i = 0; i < 8; i++) values[i + 24] = template.envelopes[0][i].ToString("R", CultureInfo.InvariantCulture);
+                lines.Add("Template=" + String.Join(",", values));
+            }
+            File.WriteAllLines(path, lines);
+        }
         public static AudioTemplate FromMono(short[] samples, int rate)
         {
             if (samples == null || rate < 8000 || rate > 192000 || samples.Length < rate / 5 || samples.Length > rate * 10)
@@ -152,65 +226,15 @@ namespace WowAuto.Audio
         {
             if (candidate == null || candidate.Length < SampleRate / 5) return 0;
             double[] bands, shape; Describe(SelectEvent(candidate), out bands, out shape);
-            double frequency = 0, timing = 0;
-            for (int i = 0; i < bands.Length; i++) frequency += spectrum[i] * bands[i];
-            for (int i = 0; i < shape.Length; i++) timing += envelope[i] * shape[i];
-            return Math.Max(0, Math.Min(1, 0.8 * frequency + 0.2 * timing));
-        }
-        public static AudioTemplate FromWave(string file) { return FromMono(ReadWave(file), SampleRate); }
-        public static short[] ReadWave(string file)
-        {
-            using (BinaryReader reader = new BinaryReader(File.OpenRead(file)))
+            double best = 0;
+            for (int variant = 0; variant < Count; variant++)
             {
-                if (reader.BaseStream.Length > 8000000 || reader.BaseStream.Length < 44 || new String(reader.ReadChars(4)) != "RIFF")
-                    throw new InvalidDataException("Use a PCM16 or float32 RIFF WAV, at most 10 seconds.");
-                reader.ReadUInt32(); if (new String(reader.ReadChars(4)) != "WAVE") throw new InvalidDataException("Not a WAV file.");
-                int tag = 0, channels = 0, rate = 0, bits = 0, align = 0; byte[] data = null;
-                while (reader.BaseStream.Position + 8 <= reader.BaseStream.Length)
-                {
-                    string id = new String(reader.ReadChars(4)); uint size = reader.ReadUInt32(); long next = reader.BaseStream.Position + size;
-                    if (next > reader.BaseStream.Length) throw new InvalidDataException("Truncated WAV chunk.");
-                    if (id == "fmt " && size >= 16)
-                    {
-                        tag = reader.ReadUInt16(); channels = reader.ReadUInt16(); rate = reader.ReadInt32();
-                        reader.ReadInt32(); align = reader.ReadUInt16(); bits = reader.ReadUInt16();
-                        if (tag == 65534 && size >= 40)
-                        { reader.ReadUInt16(); int validBits = reader.ReadUInt16(); reader.ReadUInt32(); tag = reader.ReadUInt16(); if (validBits != bits) tag = 0; }
-                    }
-                    if (id == "data") { if (data != null) throw new InvalidDataException("Multiple WAV data chunks."); data = reader.ReadBytes((int)size); }
-                    reader.BaseStream.Position = next + (size & 1);
-                }
-                if ((tag != 1 || bits != 16) && (tag != 3 || bits != 32)) throw new InvalidDataException("Only PCM16 / float32 WAV is supported.");
-                if (channels < 1 || channels > 2 || rate < 8000 || rate > 192000 || align != channels * bits / 8 || data == null || data.Length % align != 0)
-                    throw new InvalidDataException("Invalid WAV format; use mono or stereo, 8-192 kHz.");
-                int frames = data.Length / align;
-                if (frames < rate / 5 || frames > rate * 10) throw new InvalidDataException("Use a 0.2-10 second WAV sample.");
-                short[] mono = new short[frames];
-                for (int i = 0; i < frames; i++)
-                {
-                    double sum = 0;
-                    for (int c = 0; c < channels; c++)
-                    {
-                        int offset = i * align + c * bits / 8;
-                        double value = tag == 1 ? BitConverter.ToInt16(data, offset) / 32768.0 : BitConverter.ToSingle(data, offset);
-                        if (Double.IsNaN(value) || Double.IsInfinity(value)) throw new InvalidDataException("Non-finite WAV samples.");
-                        sum += value;
-                    }
-                    mono[i] = (short)(Math.Max(-1, Math.Min(32767.0 / 32768, sum / channels)) * 32768);
-                }
-                return Resample(mono, rate);
+                double frequency = 0, timing = 0;
+                for (int i = 0; i < bands.Length; i++) frequency += spectra[variant][i] * bands[i];
+                for (int i = 0; i < shape.Length; i++) timing += envelopes[variant][i] * shape[i];
+                best = Math.Max(best, 0.8 * frequency + 0.2 * timing);
             }
-        }
-        public static void WriteWave(string file, short[] mono)
-        {
-            using (BinaryWriter writer = new BinaryWriter(File.Create(file)))
-            {
-                writer.Write(System.Text.Encoding.ASCII.GetBytes("RIFF")); writer.Write(36 + mono.Length * 2);
-                writer.Write(System.Text.Encoding.ASCII.GetBytes("WAVEfmt ")); writer.Write(16);
-                writer.Write((short)1); writer.Write((short)1); writer.Write(SampleRate); writer.Write(SampleRate * 2);
-                writer.Write((short)2); writer.Write((short)16); writer.Write(System.Text.Encoding.ASCII.GetBytes("data"));
-                writer.Write(mono.Length * 2); foreach (short sample in mono) writer.Write(sample);
-            }
+            return Math.Max(0, Math.Min(1, best));
         }
     }
 
@@ -258,9 +282,6 @@ namespace WowAuto.Audio
         private readonly Stopwatch clock = Stopwatch.StartNew();
         private readonly SpikeDetector detector = new SpikeDetector();
         private readonly TemplateDetector matcher;
-        private List<short> recording;
-        private short[] recorded;
-        private long recordingUntil;
         private int downsampleCount, downsampleSum;
         private readonly Thread thread;
         private string status = "Starting";
@@ -274,7 +295,6 @@ namespace WowAuto.Audio
         public double Peak { get { lock (gate) return peak; } }
         public double Similarity { get { lock (gate) return matcher == null ? 0 : matcher.LastSimilarity; } }
         public int Rejected { get { lock (gate) return matcher == null ? 0 : matcher.Rejected; } }
-        public bool Recording { get { lock (gate) return recording != null; } }
         public ProcessCapture(int processId, long expectedStartTicks, string expectedPath)
             : this(processId, expectedStartTicks, expectedPath, null, 0.88) { }
         public ProcessCapture(int processId, long expectedStartTicks, string expectedPath, AudioTemplate template, double threshold)
@@ -301,19 +321,6 @@ namespace WowAuto.Audio
                 if (matcher != null) matcher.Reset(clock.ElapsedMilliseconds);
             }
         }
-        public void StartRecording(int seconds)
-        {
-            lock (gate)
-            {
-                if (disposed || status != "Listening" || session != 0) throw new InvalidOperationException("Recording requires a stopped, ready listener.");
-                if (seconds < 1 || seconds > 10) throw new ArgumentOutOfRangeException("seconds");
-                recorded = null; recording = new List<short>(); recordingUntil = clock.ElapsedMilliseconds + seconds * 1000;
-            }
-        }
-        public short[] TakeRecording()
-        {
-            lock (gate) { short[] result = recorded; recorded = null; return result; }
-        }
         public bool TryTakeBite(out long fishingSession)
         {
             lock (gate)
@@ -328,7 +335,6 @@ namespace WowAuto.Audio
             {
                 if (disposed) return;
                 disposed = true; session = 0; pendingBite = 0;
-                recording = null; recorded = null;
                 stop.Set();
             }
             // Cleanup runs on the capture thread. Do not block the GUI or its holds.
@@ -370,9 +376,6 @@ namespace WowAuto.Audio
                 WaitHandle[] waits = { stop, ready };
                 while (WaitHandle.WaitAny(waits, 100) != 0)
                 {
-                    lock (gate)
-                        if (recording != null && clock.ElapsedMilliseconds >= recordingUntil)
-                        { recorded = recording.ToArray(); recording = null; }
                     if (clock.ElapsedMilliseconds - checkedAt >= 1000)
                     { CheckIdentity(); checkedAt = clock.ElapsedMilliseconds; }
                     uint available;
@@ -401,11 +404,6 @@ namespace WowAuto.Audio
                                 {
                                     downsampleSum += ((int)samples[i] + samples[i + 1]) / 2;
                                     if (++downsampleCount == 4) { mono.Add((short)(downsampleSum / 4)); downsampleCount = 0; downsampleSum = 0; }
-                                }
-                                if (recording != null)
-                                {
-                                    int remaining = 10 * AudioTemplate.SampleRate - recording.Count;
-                                    if (remaining > 0) recording.AddRange(mono.GetRange(0, Math.Min(remaining, mono.Count)));
                                 }
                                 peak = packetPeak;
                                 bool bite = !disposed && session != 0 && (matcher == null
