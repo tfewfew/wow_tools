@@ -300,6 +300,34 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 namespace WowAuto {
+    // Keep disabled controls readable without changing their input permissions.
+    public sealed class DimButton : Button {
+        protected override void OnPaint(PaintEventArgs e) {
+            base.OnPaint(e);
+            if (Enabled) return;
+            Rectangle bounds = ClientRectangle;
+            bounds.Inflate(-1, -1);
+            using (var brush = new SolidBrush(BackColor))
+                e.Graphics.FillRectangle(brush, bounds);
+            TextRenderer.DrawText(e.Graphics, Text, Font, bounds, ForeColor,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+        }
+    }
+    public sealed class DimCheckBox : CheckBox {
+        protected override void OnPaint(PaintEventArgs e) {
+            base.OnPaint(e);
+            if (Enabled) return;
+            e.Graphics.Clear(BackColor);
+            int size = (int)Math.Round(13 * e.Graphics.DpiX / 96);
+            Rectangle glyph = new Rectangle(0, (Height - size) / 2, size, size);
+            ControlPaint.DrawCheckBox(e.Graphics, glyph,
+                ButtonState.Inactive | (Checked ? ButtonState.Checked : ButtonState.Normal));
+            int textLeft = size + (int)Math.Round(4 * e.Graphics.DpiX / 96);
+            Rectangle textBounds = new Rectangle(textLeft, 0, Math.Max(0, Width - textLeft), Height);
+            TextRenderer.DrawText(e.Graphics, Text, Font, textBounds, ForeColor,
+                TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+        }
+    }
     public sealed class DimTabControl : TabControl {
         public Color HeaderBackground { get; set; }
         public Color HeaderSurface { get; set; }
@@ -474,11 +502,10 @@ $script:uiColors=@{
     Background=[System.Drawing.Color]::FromArgb(58,58,58)
     Surface=[System.Drawing.Color]::FromArgb(72,72,72)
     Input=[System.Drawing.Color]::FromArgb(50,50,50)
-    Text=[System.Drawing.Color]::FromArgb(230,230,230)
+    Text=[System.Drawing.Color]::White
     Button=[System.Drawing.Color]::FromArgb(86,86,86)
     Accent=[System.Drawing.Color]::FromArgb(88,100,112)
     Border=[System.Drawing.Color]::FromArgb(116,116,116)
-    Error=[System.Drawing.Color]::FromArgb(224,168,168)
 }
 function Set-UiButtonStyle($Button, [bool]$Accent=$false) {
     $Button.UseVisualStyleBackColor=$false
@@ -512,7 +539,7 @@ $countLabel = New-Object System.Windows.Forms.Label
 $countLabel.SetBounds(270, 27, 670, 30)
 $countLabel.Anchor = 'Top, Left, Right'
 
-$refreshButton = New-Object System.Windows.Forms.Button
+$refreshButton = New-Object WowAuto.DimButton
 $refreshButton.Text = '刷新进程'
 Set-UiButtonStyle $refreshButton
 $refreshButton.SetBounds(1020, 20, 115, 36)
@@ -520,8 +547,8 @@ $refreshButton.Anchor = 'Top, Right'
 
 $tabs = New-Object WowAuto.DimTabControl
 $tabs.Dock = 'Fill'
-$tabs.HeaderBackground = $script:uiColors.Background
-$tabs.HeaderSurface = $script:uiColors.Surface
+$tabs.HeaderBackground = [System.Drawing.Color]::Black
+$tabs.HeaderSurface = [System.Drawing.Color]::Black
 $tabs.ForeColor = $script:uiColors.Text
 $tabs.SizeMode = 'Fixed'
 $tabs.ItemSize = New-Object System.Drawing.Size(112,32)
@@ -541,13 +568,13 @@ $toolbar.Width = $form.ClientSize.Width
 $refreshButton.Anchor = 'Top, Left'
 $refreshButton.SetBounds(12, 10, 120, 35)
 $toolbar.Controls.Add($refreshButton)
-$startAllButton = New-Object System.Windows.Forms.Button
+$startAllButton = New-Object WowAuto.DimButton
 $startAllButton.Text = '全部开始'
 $startAllButton.SetBounds(142, 10, 120, 35)
 Set-UiButtonStyle $startAllButton $true
 $startAllButton.Enabled = $false
 $toolbar.Controls.Add($startAllButton)
-$stopAllButton = New-Object System.Windows.Forms.Button
+$stopAllButton = New-Object WowAuto.DimButton
 $stopAllButton.Text = '全部停止'
 Set-UiButtonStyle $stopAllButton
 $stopAllButton.SetBounds(272, 10, 120, 35)
@@ -572,12 +599,12 @@ $holdInput.ForeColor = $script:uiColors.Text
 $holdInput.BorderStyle = 'FixedSingle'
 $toolbar.Controls.Add($holdInput)
 $holdInput.Add_ValueChanged({ Set-WowAutoHoldDuration $script:scheduler ([int]$holdInput.Value) })
-$settingsButton = New-Object System.Windows.Forms.Button
+$settingsButton = New-Object WowAuto.DimButton
 $settingsButton.Text = '设置'
 Set-UiButtonStyle $settingsButton
 $settingsButton.SetBounds(965, 10, 110, 35)
 $toolbar.Controls.Add($settingsButton)
-$audioCheck = New-Object System.Windows.Forms.CheckBox
+$audioCheck = New-Object WowAuto.DimCheckBox
 $audioCheck.Text = '音频咬钩检测'
 $audioCheck.SetBounds(1090, 13, 195, 32)
 $audioCheck.FlatStyle = 'Flat'
@@ -641,7 +668,7 @@ function New-WaitSettingsDialog {
         $max=New-Object System.Windows.Forms.NumericUpDown
         $threshold=New-Object System.Windows.Forms.NumericUpDown
         $min.SetBounds(130,$spec[2],175,30); $max.SetBounds(330,$spec[2],175,30)
-        foreach ($input in @($min,$max)) { $input.Minimum=1; $input.Maximum=3600000; $input.Increment=1000; $input.BackColor=$script:uiColors.Input; $input.ForeColor=$script:uiColors.Text; $input.BorderStyle='FixedSingle'; $dialog.Controls.Add($input) }
+        foreach ($input in @($min,$max)) { $input.Minimum=1; $input.Maximum=3600000; $input.Increment=100; $input.BackColor=$script:uiColors.Input; $input.ForeColor=$script:uiColors.Text; $input.BorderStyle='FixedSingle'; $dialog.Controls.Add($input) }
         $min.Value=$script:versionRanges[$spec[0]].MinimumMs; $max.Value=$script:versionRanges[$spec[0]].MaximumMs
         $threshold.SetBounds(530,$spec[2],175,30); $threshold.Minimum=50; $threshold.Maximum=100; $threshold.Increment=1
         $threshold.Value=$script:audioThresholds[$spec[0]]; $dialog.Controls.Add($threshold)
@@ -692,11 +719,11 @@ function New-WaitSettingsDialog {
     $note.Text="音频模式：匹配成功后随机等待；定时模式：变绿后随机等待。`r`n计时及门槛保存到 config.ini；已登记的截止时间保持不变。`r`n快捷键保存后在本次运行中生效，重启恢复默认 0 / = / -。"
     $note.SetBounds(18,338,745,80); $dialog.Controls.Add($note)
     $errorLabel=New-Object System.Windows.Forms.Label
-    $errorLabel.ForeColor=$script:uiColors.Error
+    $errorLabel.ForeColor=$script:uiColors.Text
     $errorLabel.SetBounds(18,423,745,52); $dialog.Controls.Add($errorLabel)
-    $apply=New-Object System.Windows.Forms.Button
+    $apply=New-Object WowAuto.DimButton
     $apply.Text='保存'; $apply.SetBounds(540,495,95,36); Set-UiButtonStyle $apply $true; $dialog.Controls.Add($apply)
-    $cancel=New-Object System.Windows.Forms.Button
+    $cancel=New-Object WowAuto.DimButton
     $cancel.Text='取消'; $cancel.SetBounds(645,495,95,36); Set-UiButtonStyle $cancel
     $cancel.DialogResult='Cancel'; $dialog.Controls.Add($cancel)
     $dialog.AcceptButton=$apply; $dialog.CancelButton=$cancel
@@ -960,18 +987,18 @@ function New-ProcessRow($Process, $StartTime, [string]$Key, $Client) {
     $nameLabel.SetBounds(6, 20, 360, 70)
     $nameLabel.AutoEllipsis=$true
     $panel.Controls.Add($nameLabel)
-    $start = New-Object System.Windows.Forms.Button
+    $start = New-Object WowAuto.DimButton
     $start.Text = '开始'
     $start.SetBounds(380, 33, 68, 40)
     Set-UiButtonStyle $start $true
     $panel.Controls.Add($start)
-    $stop = New-Object System.Windows.Forms.Button
+    $stop = New-Object WowAuto.DimButton
     $stop.Text = '停止'
     $stop.SetBounds(454, 33, 68, 40)
     Set-UiButtonStyle $stop
     $stop.Enabled = $false
     $panel.Controls.Add($stop)
-    $rowItemCheck = New-Object System.Windows.Forms.CheckBox
+    $rowItemCheck = New-Object WowAuto.DimCheckBox
     $rowItemCheck.Text = '使用钓鱼道具'
     $rowItemCheck.SetBounds(540, 37, 150, 32)
     $rowItemCheck.FlatStyle='Flat'

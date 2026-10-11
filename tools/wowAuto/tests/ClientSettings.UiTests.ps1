@@ -34,7 +34,7 @@ try {
         [System.Windows.Forms.Application]::DoEvents()
         $fields=$dialog.Tag.Inputs
         foreach ($flavor in @('titan','forerver')) {
-            Assert-Ui ($fields[$flavor].Minimum.Increment -eq 1000 -and $dialog.ClientRectangle.Contains($fields[$flavor].Maximum.Bounds)) 'Settings field step/layout failed.'
+            Assert-Ui ($fields[$flavor].Minimum.Increment -eq 100 -and $fields[$flavor].Maximum.Increment -eq 100 -and $dialog.ClientRectangle.Contains($fields[$flavor].Maximum.Bounds)) 'Settings field step/layout failed.'
             Assert-Ui ($fields[$flavor].AudioThreshold.Minimum -eq 50 -and $fields[$flavor].AudioThreshold.Maximum -eq 100 -and $fields[$flavor].AudioThreshold.Increment -eq 1 -and $dialog.ClientRectangle.Contains($fields[$flavor].AudioThreshold.Bounds)) 'Audio threshold field range/step/layout failed.'
         }
         Assert-Ui ($dialog.Tag.FocusRetry.Value -eq 30000 -and $dialog.Tag.FocusRetry.Minimum -eq 1000 -and $dialog.Tag.FocusRetry.Maximum -eq 3600000 -and $dialog.Tag.FocusRetry.Increment -eq 1000) 'Focus retry default/range/step failed.'
