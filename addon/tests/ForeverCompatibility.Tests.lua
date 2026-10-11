@@ -5,6 +5,9 @@ local frames, names, widgets = {}, {}, {}
 local scale, width, height, dead, free = 0.7, 1920, 1080, false, 10
 local pole, enchants, channelName, channelID, castName, castID = true, {}, nil, nil, nil, nil
 local apiFailure, cvarWrites, menuEntries = false, 0, {}
+local targetGUID, targetName, interactable, interactCVar = nil, "模拟鱼漂", false, "3"
+local guidFailure, interactFailure = false, false
+local messages = {}
 local secret = setmetatable({}, {
     __eq = function() error("Compared a restricted value") end,
     __tostring = function() error("Printed a restricted value") end,
@@ -63,10 +66,11 @@ end
 UIParent, Minimap, FramerateFrame, GameTooltip = widget(), widget(), widget(), widget()
 function GameTooltip:SetOwner() end
 function GameTooltip:AddLine() end
-DEFAULT_CHAT_FRAME = { AddMessage = function() end }
+DEFAULT_CHAT_FRAME = { AddMessage = function(_, message) messages[#messages + 1] = message end }
 SlashCmdList, UISpecialFrames = {}, {}
 Settings = { RegisterCanvasLayoutCategory = function() return {} end, RegisterAddOnCategory = function() end }
-C_CVar = { GetCVar = function() return nil end, SetCVar = function() cvarWrites = cvarWrites + 1 end }
+C_CVar = { GetCVar = function(key) return key == "softTargetInteract" and interactCVar or nil end,
+    SetCVar = function() cvarWrites = cvarWrites + 1 end }
 MenuUtil = { CreateContextMenu = function(owner, generator)
     menuEntries = {}
     local description = {
@@ -97,6 +101,18 @@ function UnitIsDeadOrGhost() return dead end
 function GetPhysicalScreenSize() return width, height end
 function UnitChannelInfo() return channelName, nil, nil, nil, nil, nil, nil, channelID end
 function UnitCastingInfo() return castName, nil, nil, nil, nil, nil, "cast-guid", false, castID end
+function UnitGUID(unit)
+    assert(unit == "softinteract", "Wrong interaction target")
+    if guidFailure then error("Unavailable GUID") end
+    return targetGUID
+end
+function UnitIsInteractable(unit)
+    assert(unit == "softinteract", "Wrong interactability target")
+    if interactFailure then error("Unavailable interaction") end
+    return interactable
+end
+function UnitName(unit) assert(unit == "softinteract"); return targetName end
+function UnitExists() error("Do not reject GameObjects with UnitExists") end
 for _, file in ipairs({ "Init.lua", "Compatibility.lua", "wowDetector/Audio.lua", "wowDetector/wowDetector.lua", "inner_graphic_config/Core.lua", "Core.lua" }) do
     dofile(addon .. file)
 end
@@ -107,6 +123,11 @@ local panel, compat = names.wowDetectorPanel, WoWTools.compat
 local indicator, lure = panel.textures[2], panel.textures[3]
 local function assertColor(texture, r, g, b)
     assert(texture.color[1] == r and texture.color[2] == g and texture.color[3] == b, "Unexpected detection color")
+end
+local function tick()
+    for _, frame in ipairs(frames) do
+        if frame.scripts.OnUpdate then frame.scripts.OnUpdate(frame, 0.1) end
+    end
 end
 assert(not panel.shown and not wowDetectorDB.locked, "Monitor did not default off/hidden")
 assert(cvarWrites == 0, "Port changed graphics automatically")
@@ -141,20 +162,94 @@ assert(compat.GetLureState() == "unknown", "Non-pole accepted")
 pole, enchants = true, {}
 channelName, channelID = "Fishing", 7620
 panel.scripts.OnEvent(panel, "UNIT_SPELLCAST_CHANNEL_START", "player")
+assertColor(indicator, 1, 0, 0)
+assert(panel.events.PLAYER_SOFT_INTERACT_CHANGED, "Soft interaction event was not registered")
+targetGUID, interactable = "GameObject-0-1-2-3-4-5", true
+panel.scripts.OnEvent(panel, "PLAYER_SOFT_INTERACT_CHANGED", secret, secret)
 assertColor(indicator, 0, 1, 0)
+SlashCmdList.WOWDETECTOR("status")
+local diagnostic = messages[#messages - 1]
+assert(diagnostic:find("交互目标=present", 1, true) and diagnostic:find(targetGUID, 1, true)
+    and diagnostic:find(targetName, 1, true) and diagnostic:find("softTargetInteract=3", 1, true),
+    "Missing interaction diagnostics")
+targetGUID = nil
+panel.scripts.OnEvent(panel, "PLAYER_SOFT_INTERACT_CHANGED", secret, secret)
+assertColor(indicator, 1, 0, 0)
+targetGUID = "GameObject-0-1-2-3-4-6"
+tick()
+assertColor(indicator, 0, 1, 0)
+interactable = false
+tick()
+assertColor(indicator, 1, 0, 0)
+interactable = true
+tick()
+assertColor(indicator, 0, 1, 0)
+targetGUID = nil
+tick()
+assertColor(indicator, 1, 0, 0)
+targetGUID = "GameObject-0-1-2-3-4-6"
+channelName, channelID = "Other channel", 123
+panel.scripts.OnEvent(panel, "UNIT_SPELLCAST_CHANNEL_START", "player")
+assertColor(indicator, 1, 0, 0)
 channelName, channelID, castName, castID = nil, nil, "Localized fishing", 7620
-assert(compat.GetFishingState() == true, "Casting spell ID not read from return 9")
+assert(compat.GetFishingState() == false, "Cast counted as a ready fishing channel")
+panel.scripts.OnEvent(panel, "UNIT_SPELLCAST_START", "player")
+assertColor(indicator, 1, 0, 0)
 castName, castID = "Other cast", 123
 assert(compat.GetFishingState() == false, "Non-fishing cast accepted")
+castName, castID, channelName, channelID = nil, nil, "Fishing", 7731
+assert(compat.GetFishingState() == true, "Localized name fallback rejected another fishing rank")
+tick()
+assertColor(indicator, 0, 1, 0)
+local guidAPI, interactAPI = UnitGUID, UnitIsInteractable
+UnitGUID = nil
+tick()
+assertColor(indicator, 0.5, 0.5, 0.5)
+UnitGUID, UnitIsInteractable = guidAPI, nil
+tick()
+assertColor(indicator, 0.5, 0.5, 0.5)
+UnitIsInteractable, guidFailure = interactAPI, true
+tick()
+assertColor(indicator, 0.5, 0.5, 0.5)
+guidFailure, interactFailure = false, true
+tick()
+assertColor(indicator, 0.5, 0.5, 0.5)
+interactFailure, interactable = false, nil
+tick()
+assertColor(indicator, 0.5, 0.5, 0.5)
+interactable, targetGUID = true, 42
+tick()
+assertColor(indicator, 0.5, 0.5, 0.5)
+targetGUID, targetName, interactCVar = secret, secret, secret
+tick()
+assertColor(indicator, 0.5, 0.5, 0.5)
+SlashCmdList.WOWDETECTOR("status") -- must not compare or print restricted target/CVar data.
+targetGUID, targetName, interactCVar, interactable = "GameObject-0-1-2-3-4-6", "模拟鱼漂", "3", secret
+tick()
+assertColor(indicator, 0.5, 0.5, 0.5)
+SlashCmdList.WOWDETECTOR("status")
+interactable = true
+tick()
+assertColor(indicator, 0, 1, 0)
+SlashCmdList.WOWDETECTOR("off")
+assertColor(indicator, 0.5, 0.5, 0.5)
+tick()
+assertColor(indicator, 0.5, 0.5, 0.5)
+targetGUID = nil
+SlashCmdList.WOWDETECTOR("on")
+assertColor(indicator, 1, 0, 0)
 castName, castID, channelName, channelID = nil, nil, secret, secret
 panel.scripts.OnEvent(panel, "UNIT_SPELLCAST_CHANNEL_START", "player")
 assertColor(indicator, 0.5, 0.5, 0.5)
 assert(compat.GetFishingState() == nil, "Restricted cast did not stay unknown")
 SlashCmdList.WOWDETECTOR("status") -- must not print restricted values.
-channelName, channelID, free = nil, nil, 0
+channelName, channelID, free, targetGUID = "Fishing", 7620, 0, secret
 panel.scripts.OnEvent(panel, "BAG_UPDATE_DELAYED")
 assertColor(indicator, 1, 1, 0)
-free = 10
+free = nil
+tick()
+assertColor(indicator, 0.5, 0.5, 0.5)
+channelName, channelID, targetGUID, free = nil, nil, nil, 10
 for _, viewport in ipairs({{800,450},{1920,1080},{3840,2160}}) do
     width, height = viewport[1], viewport[2]
     panel.scripts.OnEvent(panel, "DISPLAY_SIZE_CHANGED")
@@ -165,6 +260,8 @@ panel.scripts.OnEvent(panel, "PLAYER_DEAD")
 assertColor(indicator, 0.5, 0.5, 0.5)
 assert(not wowDetectorDB.locked and panel.shown, "Death changed visibility/kept lock")
 dead = false
+panel.scripts.OnEvent(panel, "PLAYER_ALIVE")
+assertColor(indicator, 0.5, 0.5, 0.5)
 SlashCmdList.WOWTOOLS()
 assert(#menuEntries == 2, "Modern module menu is missing")
 menuEntries[2].onSelect()
@@ -185,4 +282,4 @@ end
 assert(fpsApplied and FramerateFrame.point[1] == "BOTTOM" and FramerateFrame.point[5] == 180,
     "Mainline FPS frame could not be repositioned")
 assert(cvarWrites == 0, "Read-only actions changed graphics CVars")
-print("PASS: Forever full addon load, namespaced temporary enchants, permanent/imbue exclusion, restricted/failed data, casting/channel IDs, bags/death, resize, native module menu and Mainline FPS frame. All client APIs mocked.")
+print("PASS: Forever full addon load; fishing channel plus interactable soft target, cast/other channel rejection, event/polling arrival and loss, restricted event/target diagnostics, missing/failed APIs and bag/off/death priority; temporary enchants, resize, native menu and Mainline FPS frame. All client APIs mocked.")

@@ -23,11 +23,7 @@ end
 function Compat.GetFishingState()
     local name, spellID, readable = Compat.GetChannelInfo()
     if not readable then return nil end
-    if not name then
-        -- UnitCastingInfo's spell ID is return 9, unlike UnitChannelInfo's return 8.
-        name, spellID, readable = ReadCast(UnitCastingInfo, 9)
-        if not readable then return nil end
-    end
+    -- A fishing cast is not ready until its channel has begun.
     if not name then return false end
     if spellID == 7620 then return true end
     if C_Spell and C_Spell.GetSpellName then
@@ -35,6 +31,20 @@ function Compat.GetFishingState()
         if ok and Readable(fishingName) and fishingName then return name == fishingName end
     end
     return false
+end
+
+function Compat.GetInteractState()
+    if type(UnitGUID) ~= "function" or type(UnitIsInteractable) ~= "function" then return "unknown" end
+    -- GameObjects need not pass UnitExists; use the current interaction soft target.
+    local ok, guid = pcall(UnitGUID, "softinteract")
+    if not ok or not Readable(guid) then return "unknown" end
+    if guid == nil or guid == "" then return "missing" end
+    if type(guid) ~= "string" then return "unknown" end
+    local readable, interactable = pcall(UnitIsInteractable, "softinteract")
+    if not readable or not Readable(interactable) or type(interactable) ~= "boolean" then
+        return "unknown", guid
+    end
+    return interactable and "present" or "missing", guid
 end
 
 function Compat.GetLureState()
