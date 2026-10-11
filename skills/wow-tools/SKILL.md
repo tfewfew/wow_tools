@@ -5,7 +5,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 # wow_tools
 
-源码仓库：`C:\code\wow_tools`，远端 `origin`。插件源码分开归档在 `addon/titan/wow_tools/`（时光服）和 `addon/forerver/wow_tools/`（无限服），保留用户指定的forerver拼写；不要恢复旧的addon/wow_tools或让两服互相引用源码。图形工具在 `tools/wowAuto/`（wowAuto.ps1、wowAuto.Engine.ps1、wowAuto.Audio.cs、wowAuto.bat），使用说明在该目录 README.md。不要把游戏目录或桌面副本当作修改源。
+源码仓库：`C:\code\wow_tools`，远端 `origin`。插件源码分开归档在 `addon/titan/wow_tools/`（时光服）和 `addon/forerver/wow_tools/`（无限服），保留用户指定的forerver拼写；不要恢复旧的addon/wow_tools或让两服互相引用源码。图形工具在 `tools/wowAuto/`（wowAuto.ps1、wowAuto.Engine.ps1、wowAuto.Audio.cs、wowAuto.Samples.ps1、wowAuto.bat），使用说明在该目录 README.md。不要把游戏目录或桌面副本当作修改源。
 
 ## 修改与同步顺序
 
@@ -58,8 +58,12 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 ## 音频咬钩检测及设置恢复
 
+- wowAuto.Samples.ps1提供“声音样本”入口，全部任务/退出保护停止且扫描结束后可用；弹窗暂停自动操作。仅由用户手动开始指定PID的5秒录音，不自动发键或切换窗口；可导入0.2–10秒8–192kHz单/双声道PCM16或float32 WAV，自动提取最响事件约370ms，试听并确认后按版本原子保存。audio-samples/titan.wav及forerver.wav属于本地数据，Git忽略，不上传；保留原config.ini五键及用户值。重复保存仍使用NullString调用File.Replace，不允许静音或非法样本覆盖有效样本。
+- 可选模板模式先使用原音量突变门槛，再比对24个对数频带的512点FFT特征及8段音量包络，各自归一化；默认相似度88%，弹窗允许50–100%。按PID预加载对应版本不可变模板，缺失/无效模板阻止对应行启动，不隐式退回纯峰值。已有任一版本样本时重启默认启用模板；模式/自定义门槛不持久化，重启门槛88%。候选收集约300ms后判断，仅通过后消耗会话一次信号；拒绝150ms后继续监听，同一轮真咬钩仍可触发。会话切换、道具等待及停止清空旧候选，实时相似度/排除数不更新时间戳。不宣称能区分其他玩家的同一音效或保证排除所有干扰。
+- Audio.Template.Tests.ps1使用合成音频验证音量归一化、干扰拒绝后继续监听、去重/预热/重置、WAV格式/静音/非法输入及计算耗时。UiTest追加Audio.Samples.UiTests.ps1验证两服隔离、重复保存/失败保留、缺样本启动门槛、模拟录制/取消/关闭清理及状态时间戳；不监听游戏。Audio.Capture.Smoke.ps1补充自身无声PowerShell进程的短录制验证。没有用户指令不要实际录制游戏音频或运行真实钓鱼来测试。
+
 - 两服独立的wowDetector/Audio.lua在检测模块前加载。仅从关闭切到开启时保存支持的音频CVar到wowDetectorDB.audioSnapshot，开启总声音/SFX/后台声音，总音量/SFX设为1，静音音乐/环境/对话/错误/宠物/表情。重复on不覆盖原值；hide不改变检测或音频。off、面板关闭、死亡、PLAYER_LOGOUT恢复；ADDON_LOADED补充恢复旧快照。恢复失败原值保留重试，禁止覆盖未恢复快照。不修改音频输出设备、Windows音量或图形设置。AudioSettings.Tests.lua用Lua5.1验证两服。
 - wowAuto.Audio.cs通过系统.NET Framework Add-Type加载，使用Windows Build20348+的ActivateAudioInterfaceAsync/进程回环，仅捕获目标PID及子进程。背景线程核对PID/StartTime/路径，不回退系统音频；GUI启动及消费信号仍核对客户端身份。开始建立独立监听，启动完成前禁止抛竿；失败停止本行并报告；停止/刷新/退出释放监听。禁止给真实游戏发送按键或采集游戏音频来验证。
-- 工具栏音频勾选默认开启，只有全部任务停止可更改，不写入config.ini。原五项INI不变，等待范围仅用于取消音频勾选后的定时模式。音频确认绿色后登记独立钓鱼会话/35秒超时，不登记随机Reel。前1秒屏蔽抛竿声音并建立基线，峰值>=0.06、>=基线+0.025且>=基线*3才触发，每会话一次；这是音量突变，不宣称识别咬钩音效内容或归属。
+- 工具栏音频勾选默认开启，只有全部任务停止可更改，不写入config.ini。原五项INI不变，等待范围仅用于取消音频勾选后的定时模式。音频确认绿色后登记独立钓鱼会话/35秒超时，不登记随机Reel。前1秒屏蔽抛竿声音并建立基线，峰值>=0.06、>=基线+0.025且>=基线*3才进入候选；纯峰值模式立即触发，模板模式匹配通过才触发，每会话一次。不宣称识别声音归属。
 - 音频信号按任务引用/会话隔离，进入原Reel优先队列，遵守ReelHoldUntil和ItemHoldUntil。道具3秒期间解除所有音频监听的判断/清空未处理噪声，之后重新预热。收竿前绿色才下发，红色取消重抛，灰/未知停本行，黄色沿用背包规则。无信号35秒重抛不计循环，收竿成功计数及后续跳跃/强制抛竿/红转绿不变。焦点暂停保留信号队列。峰值显示变化不更新时间戳。
 - Audio.Detector.Tests.ps1只编译并测试合成数据/结构；Audio.Engine.Tests.ps1测试纯调度；UiTest额外运行Audio.UiTests.ps1，所有监听和游戏操作模拟。Audio.Capture.Smoke.ps1仅监听自身无声测试PowerShell进程，允许PCM转换的2个最低有效位噪声，验证本机接口初始化和身份拒绝，不监听游戏或发送输入。部署后请用户/reload并重启wowAuto；真实无限服声音准确率需后续实测。

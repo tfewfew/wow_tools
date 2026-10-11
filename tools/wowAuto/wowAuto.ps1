@@ -491,6 +491,7 @@ $settingsSummary.Anchor = 'Top, Left, Right'
 $settingsSummary.AutoEllipsis = $true
 $toolbar.Controls.Add($settingsSummary)
 Update-VersionSummary
+. (Join-Path $PSScriptRoot 'wowAuto.Samples.ps1')
 
 function New-WaitSettingsDialog {
     $dialog=New-Object System.Windows.Forms.Form
@@ -752,7 +753,12 @@ function Update-RowStatus($Row) {
     }
     if ($script:audioCaptures.ContainsKey($Row.Key)) {
         $capture=$script:audioCaptures[$Row.Key].Capture
-        if ($capture.Status -eq 'Listening') { $text += "`r`n本进程音频峰值：$([Math]::Round($capture.Peak*100,1))%" }
+        if ($capture.Status -eq 'Listening') {
+            $text += "`r`n音频峰值：$([Math]::Round($capture.Peak*100,1))%"
+            if ($script:audioCaptures[$Row.Key].TemplateMode) {
+                $text += "；匹配：$([Math]::Round($capture.Similarity*100,1))%；排除：$($capture.Rejected)"
+            }
+        }
     }
     if ($Row.StatusSnapshot -cne $statusKey) {
         $Row.StatusSnapshot=$statusKey
@@ -788,15 +794,17 @@ function Start-Row($Row) {
         if (-not (Test-RowProcessIdentity $Row)) {
             throw '进程身份已变化，请刷新。'
         }
+        $template=$null
+        if ($audioCheck.Checked -and $script:audioUseTemplate) { $template=Get-AudioTemplate $Row.Client.Flavor }
         $Row.State = Add-WowAutoTask $script:scheduler $Row.Key $newState.MinimumMs $newState.MaximumMs $script:schedulerClock.ElapsedMilliseconds -UseItem $Row.ItemCheck.Checked -UseAudio $audioCheck.Checked
         if ($Row.State.UseAudio) {
             if ($UiTest) {
-                $capture=[pscustomobject]@{Status='Listening'; Error=''; Peak=0.0; Session=0L; Bite=0L; Disposed=$false}
+                $capture=[pscustomobject]@{Status='Listening'; Error=''; Peak=0.0; Similarity=0.0; Rejected=0; Session=0L; Bite=0L; Disposed=$false}
                 $capture | Add-Member ScriptMethod Arm { param([long]$value) if ($this.Session -ne $value) { $this.Session=$value; $this.Bite=0L } }
                 $capture | Add-Member ScriptMethod Dispose { $this.Disposed=$true; $this.Session=0L; $this.Bite=0L }
             }
-            else { $capture=New-Object WowAuto.Audio.ProcessCapture($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath) }
-            $script:audioCaptures[$Row.Key]=[pscustomobject]@{Capture=$capture; State=$Row.State}
+            else { $capture=[WowAuto.Audio.ProcessCapture]::new($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,$template,$script:audioSimilarity) }
+            $script:audioCaptures[$Row.Key]=[pscustomobject]@{Capture=$capture; State=$Row.State; TemplateMode=($null -ne $template)}
             $Row.State.Status='正在启动本进程音频采集，暂不抛竿。'
         }
         Update-RowStatus $Row
@@ -1035,6 +1043,7 @@ function Update-BatchControls {
     $startAllButton.Enabled = -not $script:scanning -and -not $script:editingSettings -and $eligible.Count -gt 0
     $settingsButton.Enabled = -not $script:scanning -and -not $script:editingSettings
     $audioCheck.Enabled = -not $script:scanning -and -not $script:editingSettings -and $script:scheduler.Tasks.Count -eq 0
+    $sampleButton.Enabled = $audioCheck.Enabled -and $script:pendingGameExits.Count -eq 0
     $stopAllButton.Enabled = $script:scheduler.Tasks.Count -gt 0 -or $script:pendingGameExits.Count -gt 0
 }
 function Stop-AllRows {
@@ -1349,6 +1358,7 @@ try {
             . (Join-Path $PSScriptRoot 'tests\StatusTimestamp.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\ClientSettings.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Audio.UiTests.ps1')
+            . (Join-Path $PSScriptRoot 'tests\Audio.Samples.UiTests.ps1')
         }
         if ($PreviewPath) {
             [System.Windows.Forms.Application]::DoEvents()
@@ -1367,4 +1377,8 @@ finally {
     $script:audioCaptures.Clear()
     $positionTimer.Dispose(); $scanTimer.Dispose(); $timer.Dispose(); $form.Dispose()
     if ($UiTest -and (Test-Path -LiteralPath $script:settingsPath)) { Remove-Item -LiteralPath $script:settingsPath }
+    if ($UiTest -and (Test-Path -LiteralPath $script:sampleDirectory)) {
+        foreach ($flavor in @('titan','forerver')) { $samplePath=Get-AudioSamplePath $flavor; if ([IO.File]::Exists($samplePath)) { [IO.File]::Delete($samplePath) } }
+        [IO.Directory]::Delete($script:sampleDirectory)
+    }
 }
