@@ -2,6 +2,7 @@
 Stop-AllRows
 $audioCheck.Checked=$true
 $savedTemplateMode=$script:audioUseTemplate
+$savedThresholds=@{titan=$script:audioThresholds.titan; forerver=$script:audioThresholds.forerver}
 $script:audioUseTemplate=$true
 try {
     Assert-Ui (@($toolbar.Controls | Where-Object { $_.Text -match '声音样本|录制|导入|试听' }).Count -eq 0) 'Recording/sample UI remains in runtime tool.'
@@ -25,13 +26,22 @@ try {
     Start-Row $row
     Assert-Ui ($row.State.Running -and $script:audioCaptures[$row.Key].TemplateMode -and $script:audioCaptures[$row.Key].Trial) 'Audio row did not use the trial feature bank.'
     $capture=$script:audioCaptures[$row.Key].Capture; $capture.Similarity=0.52; $capture.Rejected=1
+    Assert-Ui ($capture.MinimumSimilarity -eq $script:audioThresholds.titan/100.0) 'Startup used the feature recommendation instead of the configured threshold.'
     Update-RowStatus $row; $stamp=$row.StatusTimestamp
     $capture.Similarity=0.94; $capture.Rejected=2; Update-RowStatus $row
     Assert-Ui ($row.StatusTimestamp -eq $stamp -and $row.Status.Text -match '94%' -and $row.Status.Text -match '试用匹配') 'Match metrics refreshed timestamp or lost the trial label.'
+    [WowAuto.Audio.AudioTemplate]::SaveFeatures((Join-Path $script:audioFeatureDirectory 'forerver.feature'),[WowAuto.Audio.AudioTemplate[]]@($template),0.91)
+    Start-Row $other
+    $otherCapture=$script:audioCaptures[$other.Key].Capture
+    $capture.Arm(37); $capture.Bite=37
+    Set-VersionWaitRanges $script:versionRanges.titan.MinimumMs $script:versionRanges.titan.MaximumMs $script:versionRanges.forerver.MinimumMs $script:versionRanges.forerver.MaximumMs -Persist $false -TitanAudioThresholdPercent 90 -ForerverAudioThresholdPercent 84
+    Update-RowStatus $row
+    Assert-Ui ($capture.MinimumSimilarity -eq 0.90 -and $otherCapture.MinimumSimilarity -eq 0.84 -and $capture.Session -eq 37 -and $capture.Bite -eq 37) 'Thresholds failed to update per version or reset the active signal/session.'
+    Assert-Ui ($row.StatusTimestamp -eq $stamp -and $row.Status.Text -match '门槛 90%') 'Threshold display was missing or refreshed the state timestamp.'
     Stop-AllRows
     [IO.File]::WriteAllText($path,'Format=invalid')
     Start-Row $row
     Assert-Ui (-not $row.State.Running -and $script:audioCaptures.Count -eq 0) 'Invalid calibration silently fell back to peak detection.'
 }
-finally { Stop-AllRows; $script:audioUseTemplate=$savedTemplateMode; $audioCheck.Checked=$false }
-Write-Output 'PASS: no recording UI/API, per-version numerical features/threshold, missing/invalid feature gate, template assignment and stable metric timestamps. No game audio/input.'
+finally { Stop-AllRows; $script:audioThresholds=$savedThresholds; Update-VersionSummary; $script:audioUseTemplate=$savedTemplateMode; $audioCheck.Checked=$false }
+Write-Output 'PASS: no recording UI/API, per-version features/configured live thresholds, missing/invalid feature gate, signal/session preservation and stable metric timestamps. No game audio/input.'

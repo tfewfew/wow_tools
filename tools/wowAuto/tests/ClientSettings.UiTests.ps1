@@ -35,12 +35,14 @@ try {
         $fields=$dialog.Tag.Inputs
         foreach ($flavor in @('titan','forerver')) {
             Assert-Ui ($fields[$flavor].Minimum.Increment -eq 1000 -and $dialog.ClientRectangle.Contains($fields[$flavor].Maximum.Bounds)) 'Settings field step/layout failed.'
+            Assert-Ui ($fields[$flavor].AudioThreshold.Minimum -eq 50 -and $fields[$flavor].AudioThreshold.Maximum -eq 100 -and $fields[$flavor].AudioThreshold.Increment -eq 1 -and $dialog.ClientRectangle.Contains($fields[$flavor].AudioThreshold.Bounds)) 'Audio threshold field range/step/layout failed.'
         }
         Assert-Ui ($dialog.Tag.FocusRetry.Value -eq 30000 -and $dialog.Tag.FocusRetry.Minimum -eq 1000 -and $dialog.Tag.FocusRetry.Maximum -eq 3600000 -and $dialog.Tag.FocusRetry.Increment -eq 1000) 'Focus retry default/range/step failed.'
         Assert-Ui ($dialog.ClientRectangle.Contains($dialog.Tag.FocusRetry.Bounds) -and $dialog.ClientRectangle.Contains($dialog.Tag.Apply.Bounds)) 'Focus retry field or save button clipped.'
         $fields.titan.Minimum.Value=9000; $fields.titan.Maximum.Value=13000
         $fields.forerver.Minimum.Value=12000; $fields.forerver.Maximum.Value=18000
         $dialog.Tag.FocusRetry.Value=5000
+        $fields.titan.AudioThreshold.Value=89; $fields.forerver.AudioThreshold.Value=85
         if ($PreviewPath) {
             $bitmap=New-Object System.Drawing.Bitmap($dialog.Width,$dialog.Height)
             try {
@@ -59,21 +61,25 @@ try {
         $dialog.Show($form)
         $fields=$dialog.Tag.Inputs
         Assert-Ui ($fields.titan.Minimum.Value -eq 9000 -and $fields.forerver.Maximum.Value -eq 18000 -and $dialog.Tag.FocusRetry.Value -eq 5000) 'Reopened dialog lost first saved values.'
+        Assert-Ui ($fields.titan.AudioThreshold.Value -eq 89 -and $fields.forerver.AudioThreshold.Value -eq 85) 'Reopened dialog lost per-version audio thresholds.'
         $fields.titan.Minimum.Value=9500; $fields.titan.Maximum.Value=9500
         $fields.forerver.Minimum.Value=12000; $fields.forerver.Maximum.Value=12000
         $dialog.Tag.FocusRetry.Value=7500
+        $fields.titan.AudioThreshold.Value=88; $fields.forerver.AudioThreshold.Value=87
         $dialog.Tag.Apply.PerformClick()
         Assert-Ui ($dialog.DialogResult -eq 'OK' -and $dialog.Tag.Error.Text -eq '') 'Second save failed to overwrite existing settings.'
         $persisted=Read-WowAutoSettingsIni $script:settingsPath
         Assert-Ui ($persisted.TitanMinimumMs -eq 9500 -and $persisted.TitanMaximumMs -eq 9500 -and $persisted.ForerverMinimumMs -eq 12000 -and $persisted.ForerverMaximumMs -eq 12000) 'Second save did not persist both changed ranges.'
         Assert-Ui ($persisted.FocusRetryIntervalMs -eq 7500 -and $script:scheduler.FocusRetryIntervalMs -eq 7500 -and $settingsSummary.Text -match '焦点重试 7500') 'Saved focus retry not persisted/applied/displayed.'
+        Assert-Ui ($persisted.TitanAudioThresholdPercent -eq 88 -and $persisted.ForerverAudioThresholdPercent -eq 87 -and $script:audioThresholds.titan -eq 88 -and $script:audioThresholds.forerver -eq 87) 'Second save did not persist/apply the two thresholds.'
         $temporaryFiles=@(Get-ChildItem -LiteralPath (Split-Path $script:settingsPath -Parent) -Filter ((Split-Path $script:settingsPath -Leaf)+'.*.tmp'))
         Assert-Ui ($temporaryFiles.Count -eq 0) 'Second save leaked a temporary settings file.'
     }
     finally { $dialog.Dispose() }
-    Set-VersionWaitRanges 1000 1000 2000 2000 -Persist $false -FocusRetryIntervalMs 30000
+    Set-VersionWaitRanges 1000 1000 2000 2000 -Persist $false -FocusRetryIntervalMs 30000 -TitanAudioThresholdPercent 50 -ForerverAudioThresholdPercent 100
     Import-VersionWaitSettings
     Assert-Ui ($script:versionRanges.titan.MinimumMs -eq 9500 -and $script:versionRanges.forerver.MinimumMs -eq 12000 -and $script:scheduler.FocusRetryIntervalMs -eq 7500) 'Saved settings did not reload.'
+    Assert-Ui ($script:audioThresholds.titan -eq 88 -and $script:audioThresholds.forerver -eq 87) 'Audio thresholds did not reload.'
     # INI supports comments, blank lines, whitespace, case-insensitive keys and UTF-8 BOM.
     $savedIni=[IO.File]::ReadAllText($script:settingsPath)
     try {
@@ -86,6 +92,9 @@ try {
             ($savedIni+"titanminimumms=1000`r`n"),
             ($savedIni -replace '(?m)^FocusRetryIntervalMs=.*\r?\n?', ''),
             ($savedIni.Replace('FocusRetryIntervalMs=7500','FocusRetryIntervalMs=0')),
+            ($savedIni.Replace('TitanAudioThresholdPercent=88','TitanAudioThresholdPercent=49')),
+            ($savedIni.Replace('ForerverAudioThresholdPercent=87','ForerverAudioThresholdPercent=101')),
+            ($savedIni -replace '(?m)^TitanAudioThresholdPercent=.*\r?\n?', ''),
             ($savedIni.Replace('TitanMinimumMs=9500','TitanMinimumMs=20000')),
             ($savedIni.Replace('ForerverMaximumMs=12000','ForerverMaximumMs=abc')),
             ($savedIni+"UnknownKey=1234`r`n"),
@@ -96,8 +105,14 @@ try {
             $invalidHash=(Get-FileHash -LiteralPath $script:settingsPath).Hash
             Import-VersionWaitSettings
             Assert-Ui ($script:scheduler.FocusRetryIntervalMs -eq 7500 -and $script:versionRanges.titan.MinimumMs -eq 9500 -and $script:versionRanges.forerver.MaximumMs -eq 12000 -and $script:settingsWarning -ne '') 'Invalid INI partially applied or lacked a warning.'
+            Assert-Ui ($script:audioThresholds.titan -eq 88 -and $script:audioThresholds.forerver -eq 87) 'Invalid INI partially applied an audio threshold.'
             Assert-Ui ((Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $invalidHash) 'Import rewrote invalid INI.'
         }
+        $legacy=$savedIni -replace '(?m)^(Titan|Forerver)AudioThresholdPercent=.*\r?\n?', ''
+        [IO.File]::WriteAllText($script:settingsPath,$legacy)
+        $legacyHash=(Get-FileHash -LiteralPath $script:settingsPath).Hash
+        Import-VersionWaitSettings
+        Assert-Ui ($script:settingsWarning -eq '' -and $script:audioThresholds.titan -eq 88 -and $script:audioThresholds.forerver -eq 87 -and (Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $legacyHash) 'Legacy five-key INI failed or was rewritten on read.'
     }
     finally { [IO.File]::WriteAllText($script:settingsPath,$savedIni); Import-VersionWaitSettings }
     $savedSettingsPath=$script:settingsPath
@@ -112,8 +127,9 @@ try {
     $locked=[IO.File]::Open($script:settingsPath,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
     try {
         $rejected=$false
-        try { Set-VersionWaitRanges 1000 1000 2000 2000 -FocusRetryIntervalMs 1000 } catch { $rejected=$true }
+        try { Set-VersionWaitRanges 1000 1000 2000 2000 -FocusRetryIntervalMs 1000 -TitanAudioThresholdPercent 95 -ForerverAudioThresholdPercent 95 } catch { $rejected=$true }
         Assert-Ui ($rejected -and $script:scheduler.FocusRetryIntervalMs -eq 7500 -and $script:versionRanges.titan.MinimumMs -eq 9500) 'Failed INI write partially applied settings.'
+        Assert-Ui ($script:audioThresholds.titan -eq 88 -and $script:audioThresholds.forerver -eq 87) 'Failed INI write partially applied thresholds.'
     }
     finally { $locked.Dispose() }
     Assert-Ui ((Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $savedHash) 'Failed INI write damaged saved settings.'
@@ -122,6 +138,11 @@ try {
         $rejected=$false
         try { Set-VersionWaitRanges 1000 1000 2000 2000 -FocusRetryIntervalMs $invalid } catch { $rejected=$true }
         Assert-Ui ($rejected -and $script:scheduler.FocusRetryIntervalMs -eq 7500 -and $script:versionRanges.titan.MinimumMs -eq 9500 -and (Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $savedHash) 'Invalid retry partially applied or saved settings.'
+    }
+    foreach ($invalid in @('49','101','86.5','NaN','999999999999999999999999')) {
+        $rejected=$false
+        try { Set-VersionWaitRanges 1000 1000 2000 2000 -ForerverAudioThresholdPercent $invalid } catch { $rejected=$true }
+        Assert-Ui ($rejected -and $script:audioThresholds.forerver -eq 87 -and $script:versionRanges.titan.MinimumMs -eq 9500 -and (Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $savedHash) 'Invalid audio threshold partially applied or saved settings.'
     }
     $dialog=New-WaitSettingsDialog
     try {

@@ -63,6 +63,7 @@ function Feed-Synthetic($Detector,[int16[]]$Samples,[long]$Start) {
 }
 Assert-Template ((Feed-Synthetic $matcher $other 1000) -eq 0 -and $matcher.Rejected -gt 0) 'Interference was not rejected.'
 Assert-Template ((Feed-Synthetic $matcher $tone 3000) -eq 1) 'Rejected interference consumed the session or real template failed.'
+$matcher.SetMinimumSimilarity(0.5)
 Assert-Template ((Feed-Synthetic $matcher $tone 5000) -eq 0) 'A session emitted a second signal.'
 $matcher.Reset(7000)
 Assert-Template ((Feed-Synthetic $matcher $tone 7100) -eq 0) 'Reset skipped cast warmup.'
@@ -72,6 +73,20 @@ for ($time=9000; $time -lt 10000; $time+=10) { $null=$matcher.Feed($silence,0,$t
 $null=$matcher.Feed([int16[]]@(20000,20000),0.7,10000)
 $matcher.Reset(10100)
 for ($time=10100; $time -lt 12800; $time+=10) { Assert-Template (-not $matcher.Feed($silence,0,$time)) 'Old candidate survived reset.' }
+# Change a threshold while collecting a real candidate; preserve its frames.
+$live=[WowAuto.Audio.TemplateDetector]::new($ordered,0.99); $live.Reset(0)
+for ($time=0; $time -lt 1000; $time+=10) { $null=$live.Feed($silence,0,$time) }
+$liveSignals=0
+for ($i=0; $i -lt $missingTail.Length; $i+=110) {
+    if ($i -eq 4400) { $live.SetMinimumSimilarity(0.5) }
+    $packet=[int16[]]$missingTail[$i..([Math]::Min($missingTail.Length-1,$i+109))]
+    if ($live.Feed($packet,[WowAuto.Audio.SpikeDetector]::Pcm16Peak($packet),(1000+[long]($i*1000/11025)))) { $liveSignals++ }
+}
+Assert-Template ($liveSignals -eq 1) 'Live threshold update discarded a candidate or failed to use the new threshold.'
+foreach ($invalid in @([double]::NaN,0.49,1.01)) {
+    $rejected=$false; try { $live.SetMinimumSimilarity($invalid) } catch { $rejected=$true }
+    Assert-Template ($rejected -and $live.MinimumSimilarity -eq 0.5) 'Invalid live threshold changed the active threshold.'
+}
 $path=Join-Path ([IO.Path]::GetTempPath()) ('wow-feature-test-'+[Guid]::NewGuid()+'.feature')
 try {
     [WowAuto.Audio.AudioTemplate]::SaveFeatures($path,[WowAuto.Audio.AudioTemplate[]]@($template),0.91)

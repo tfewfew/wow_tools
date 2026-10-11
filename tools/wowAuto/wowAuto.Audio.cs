@@ -274,18 +274,25 @@ namespace WowAuto.Audio
     public sealed class TemplateDetector
     {
         private readonly AudioTemplate template;
-        private readonly double threshold;
+        private double threshold;
         private readonly SpikeDetector spike = new SpikeDetector();
         private readonly Queue<short> history = new Queue<short>();
         private List<short> candidate;
         private long retryAt;
         public double LastSimilarity { get; private set; }
         public int Rejected { get; private set; }
+        public double MinimumSimilarity { get { return threshold; } }
         public TemplateDetector(AudioTemplate sample, double minimumSimilarity)
         {
             if (sample == null || minimumSimilarity < 0.5 || minimumSimilarity > 1 || Double.IsNaN(minimumSimilarity))
                 throw new ArgumentException("Template and similarity threshold 0.5-1 are required.");
             template = sample; threshold = minimumSimilarity;
+        }
+        public void SetMinimumSimilarity(double value)
+        {
+            if (Double.IsNaN(value) || value < 0.5 || value > 1) throw new ArgumentOutOfRangeException("value");
+            // Preserve the candidate, warmup, and once-per-session signal state.
+            threshold = value;
         }
         public void Reset(long now)
         { spike.Reset(now); history.Clear(); candidate = null; retryAt = 0; LastSimilarity = 0; Rejected = 0; }
@@ -326,6 +333,11 @@ namespace WowAuto.Audio
         public double Peak { get { lock (gate) return peak; } }
         public double Similarity { get { lock (gate) return matcher == null ? 0 : matcher.LastSimilarity; } }
         public int Rejected { get { lock (gate) return matcher == null ? 0 : matcher.Rejected; } }
+        public void SetMinimumSimilarity(double value)
+        {
+            if (Double.IsNaN(value) || value < 0.5 || value > 1) throw new ArgumentOutOfRangeException("value");
+            lock (gate) { if (!disposed && matcher != null) matcher.SetMinimumSimilarity(value); }
+        }
         public ProcessCapture(int processId, long expectedStartTicks, string expectedPath)
             : this(processId, expectedStartTicks, expectedPath, null, 0.88) { }
         public ProcessCapture(int processId, long expectedStartTicks, string expectedPath, AudioTemplate template, double threshold)
