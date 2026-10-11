@@ -28,6 +28,18 @@ public static class SampleFixture {
         for(int i=0; i<source.Length; i++) if(i+offset>=0 && i+offset<result.Length) result[i+offset]=source[i];
         return result;
     }
+    public static short[] LateRise() {
+        short[] result=new short[22050];
+        for(int i=0;i<result.Length;i++) {
+            double t=i/11025.0, amplitude=0;
+            // An early quiet gate, a low-energy gap, then the actual loud burst.
+            if(t>=.25 && t<.31) amplitude=.08;
+            if(t>=.54 && t<.64) amplitude=.65;
+            if(t>=.64 && t<1.40) amplitude=.65*Math.Exp(-(t-.64)*3);
+            result[i]=(short)(32767*amplitude*Math.Sin(2*Math.PI*880*t));
+        }
+        return result;
+    }
 
 }
 '@
@@ -87,6 +99,18 @@ foreach ($invalid in @([double]::NaN,0.49,1.01)) {
     $rejected=$false; try { $live.SetMinimumSimilarity($invalid) } catch { $rejected=$true }
     Assert-Template ($rejected -and $live.MinimumSimilarity -eq 0.5) 'Invalid live threshold changed the active threshold.'
 }
+# A later onset needs a complete tail beyond the minimum 1.2-second candidate.
+$late=[SampleFixture]::LateRise()
+$lateTemplate=[WowAuto.Audio.AudioTemplate]::FromMono($late,11025)
+$lateMatcher=[WowAuto.Audio.TemplateDetector]::new($lateTemplate,0.95); $lateMatcher.Reset(0)
+for ($time=0; $time -lt 1000; $time+=10) { $null=$lateMatcher.Feed($silence,0,$time) }
+$lateSignals=0; $lateFiredAt=0L
+for ($i=0; $i -lt $late.Length; $i+=110) {
+    $packet=[int16[]]$late[$i..([Math]::Min($late.Length-1,$i+109))]
+    $now=1000+[long]($i*1000/11025)
+    if ($lateMatcher.Feed($packet,[WowAuto.Audio.SpikeDetector]::Pcm16Peak($packet),$now)) { $lateSignals++; $lateFiredAt=$now }
+}
+Assert-Template ($lateSignals -eq 1 -and $lateMatcher.Rejected -eq 0 -and $lateFiredAt -gt 2200 -and $lateFiredAt -lt 2700) 'Late-rise candidate was truncated/rejected, fired early or exceeded the bounded tail wait.'
 $path=Join-Path ([IO.Path]::GetTempPath()) ('wow-feature-test-'+[Guid]::NewGuid()+'.feature')
 try {
     [WowAuto.Audio.AudioTemplate]::SaveFeatures($path,[WowAuto.Audio.AudioTemplate[]]@($template),0.91)
@@ -114,6 +138,6 @@ try {
     $clock=[Diagnostics.Stopwatch]::StartNew()
     for ($i=0;$i -lt 100;$i++) { $null=$template.Compare($tone) }
     $clock.Stop()
-    Write-Output ("PASS: normalized time-resolved FFT/envelope matching, time order/tail/packet alignment, rejected interference followed by real bite, warmup/dedup/reset, format-2 feature banks/variants/invalid input. 100 candidate comparisons: {0}ms; synthetic only." -f $clock.ElapsedMilliseconds)
+    Write-Output ("PASS: normalized time-resolved FFT/envelope matching, time order/tail/packet alignment, bounded late-rise capture, live thresholds, rejected interference followed by real bite, warmup/dedup/reset, format-2 feature banks/variants/invalid input. 100 candidate comparisons: {0}ms; synthetic only." -f $clock.ElapsedMilliseconds)
 }
 finally { if ([IO.File]::Exists($path)) { [IO.File]::Delete($path) } }

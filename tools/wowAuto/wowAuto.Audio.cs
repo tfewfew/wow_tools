@@ -53,6 +53,7 @@ namespace WowAuto.Audio
         public const int WindowSamples = 11025; // One second, including an 80 ms lead-in.
         public const int PreSamples = 2205; // 200 ms before the loudness gate.
         public const int CandidateSamples = WindowSamples + PreSamples;
+        public const int MaximumCandidateSamples = WindowSamples + SampleRate * 3 / 5;
         private const int SpectrumBands = 24, TimeSlices = 8, EnvelopeBins = 16;
         private const int TemporalValues = SpectrumBands * TimeSlices;
         private const int FeatureValues = SpectrumBands + TemporalValues + EnvelopeBins;
@@ -169,20 +170,29 @@ namespace WowAuto.Audio
             }
             return result;
         }
-        private static short[] SelectEvent(short[] samples)
+        private static int FindEventStart(short[] samples)
         {
             const int hop = 110;
             // Anchor the first burst, not a louder unrelated sound later in the clip.
             // Both offline samples and live candidates must retain the complete tail.
             int count = (Math.Min(samples.Length, SampleRate * 3 / 5) + hop - 1) / hop, loudest = 0;
-            if (count == 0) return null;
+            if (count == 0) return -1;
             double[] energy = new double[count];
             for (int i = 0; i < Math.Min(samples.Length, count * hop); i++) energy[i / hop] += (double)samples[i] * samples[i];
             for (int i = 1; i < count; i++) if (energy[i] > energy[loudest]) loudest = i;
             int onset = loudest;
-            if (energy[loudest] == 0) return null;
+            if (energy[loudest] == 0) return -1;
             while (onset > 0 && loudest - onset < 30 && energy[onset - 1] > energy[loudest] * 0.04) onset--;
-            int start = onset * hop - 882; // 80 ms before the energy onset.
+            return onset * hop - 882; // 80 ms before the energy onset.
+        }
+        internal static int RequiredCandidateSamples(short[] samples)
+        {
+            int start = FindEventStart(samples);
+            return start < 0 ? 0 : start + WindowSamples;
+        }
+        private static short[] SelectEvent(short[] samples)
+        {
+            int start = FindEventStart(samples);
             if (start < 0 || start + WindowSamples > samples.Length) return null;
             short[] result = new short[WindowSamples];
             Array.Copy(samples, start, result, 0, result.Length);
@@ -269,7 +279,7 @@ namespace WowAuto.Audio
         }
     }
 
-    // FFT work runs only after a spike, after ~1 s of following audio. A fixed
+    // FFT work runs only after a spike, after ~1-1.4 s of following audio. A fixed
     // pre-roll ring and bounded candidate prevent unbounded per-PID memory use.
     public sealed class TemplateDetector
     {
@@ -278,6 +288,7 @@ namespace WowAuto.Audio
         private readonly SpikeDetector spike = new SpikeDetector();
         private readonly Queue<short> history = new Queue<short>();
         private List<short> candidate;
+        private int candidateTarget;
         private long retryAt;
         public double LastSimilarity { get; private set; }
         public int Rejected { get; private set; }
@@ -295,14 +306,21 @@ namespace WowAuto.Audio
             threshold = value;
         }
         public void Reset(long now)
-        { spike.Reset(now); history.Clear(); candidate = null; retryAt = 0; LastSimilarity = 0; Rejected = 0; }
+        { spike.Reset(now); history.Clear(); candidate = null; candidateTarget = 0; retryAt = 0; LastSimilarity = 0; Rejected = 0; }
         public bool Feed(short[] mono, double peak, long now)
         {
-            if (candidate == null && now >= retryAt && spike.Probe(peak, now)) candidate = new List<short>(history);
+            if (candidate == null && now >= retryAt && spike.Probe(peak, now))
+            { candidate = new List<short>(history); candidateTarget = AudioTemplate.CandidateSamples; }
             if (candidate != null) candidate.AddRange(mono);
             foreach (short value in mono) { history.Enqueue(value); if (history.Count > AudioTemplate.PreSamples) history.Dequeue(); }
-            if (candidate == null || candidate.Count < AudioTemplate.CandidateSamples) return false;
-            LastSimilarity = template.Compare(candidate.ToArray()); candidate = null;
+            if (candidate == null || candidate.Count < candidateTarget) return false;
+            // The first 600 ms anchor is now fixed. A late rise can need more tail
+            // than the minimum capture; keep those frames instead of rejecting it.
+            short[] frames = candidate.ToArray();
+            int needed = AudioTemplate.RequiredCandidateSamples(frames);
+            if (needed > candidate.Count && needed <= AudioTemplate.MaximumCandidateSamples)
+            { candidateTarget = needed; return false; }
+            LastSimilarity = template.Compare(frames); candidate = null;
             if (LastSimilarity >= threshold) { spike.Accept(); return true; }
             Rejected++; retryAt = now + 150; return false;
         }
