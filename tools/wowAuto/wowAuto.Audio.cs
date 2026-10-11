@@ -337,7 +337,7 @@ namespace WowAuto.Audio
         private readonly ManualResetEvent stop = new ManualResetEvent(false);
         private readonly Stopwatch clock = Stopwatch.StartNew();
         private readonly SpikeDetector detector = new SpikeDetector();
-        private readonly TemplateDetector matcher;
+        private TemplateDetector matcher;
         private int downsampleCount, downsampleSum;
         private readonly Thread thread;
         private string status = "Starting";
@@ -355,6 +355,21 @@ namespace WowAuto.Audio
         {
             if (Double.IsNaN(value) || value < 0.5 || value > 1) throw new ArgumentOutOfRangeException("value");
             lock (gate) { if (!disposed && matcher != null) matcher.SetMinimumSimilarity(value); }
+        }
+        // The controller switches recordings only between fishing sessions.
+        // Do not discard a candidate or a pending bite from the current round.
+        public void SetTemplate(AudioTemplate template, double threshold)
+        {
+            if (template == null) throw new ArgumentNullException("template");
+            if (Double.IsNaN(threshold) || threshold < 0.5 || threshold > 1) throw new ArgumentOutOfRangeException("threshold");
+            lock (gate)
+            {
+                if (disposed) return;
+                if (session != 0) throw new InvalidOperationException("Disarm capture before switching recordings.");
+                matcher = new TemplateDetector(template, threshold);
+                matcher.Reset(clock.ElapsedMilliseconds);
+                pendingBite = 0;
+            }
         }
         public ProcessCapture(int processId, long expectedStartTicks, string expectedPath)
             : this(processId, expectedStartTicks, expectedPath, null, 0.88) { }

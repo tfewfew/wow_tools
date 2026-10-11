@@ -17,7 +17,7 @@ try {
     for ($i=1102;$i -lt 3528;$i++) { $samples[$i]=[int16](20000*[Math]::Exp(-($i-1102)/1102)*[Math]::Sin(2*[Math]::PI*880*$i/11025)) }
     $template=[WowAuto.Audio.AudioTemplate]::FromMono($samples,11025)
     [void][IO.Directory]::CreateDirectory($script:audioFeatureDirectory)
-    $path=Join-Path $script:audioFeatureDirectory 'titan.feature'
+    $path=Join-Path $script:audioFeatureDirectory (Get-AudioRecording 'titan' $script:audioRecordingSelections.titan).Feature
     [WowAuto.Audio.AudioTemplate]::SaveFeatures($path,[WowAuto.Audio.AudioTemplate[]]@($template),0.91)
     $loaded=Get-AudioTemplate 'titan'
     Assert-Ui ($loaded.MinimumSimilarity -eq 0.91 -and $loaded.Compare($samples) -gt 0.99) 'Calibrated numerical feature file failed to load.'

@@ -385,12 +385,7 @@ $script:audioCaptures = @{}
 $script:audioUseTemplate = -not $UiTest
 $script:audioFeatureDirectory = if ($UiTest) { Join-Path ([IO.Path]::GetTempPath()) ('wowAuto-features-test-'+[Guid]::NewGuid()) }
     else { Join-Path $PSScriptRoot 'audio-features' }
-function Get-AudioTemplate([string]$Flavor) {
-    if ($Flavor -notin @('titan','forerver')) { throw '未知客户端版本。' }
-    $path=Join-Path $script:audioFeatureDirectory ($Flavor+'.feature')
-    if (-not (Test-Path -LiteralPath $path)) { throw '此版本尚未校准咬钩声音特征，请先完成一次性采集。' }
-    return [WowAuto.Audio.AudioTemplate]::LoadFeatures($path)
-}
+. (Join-Path $PSScriptRoot 'wowAuto.Recordings.ps1')
 $script:workerFocus = 0
 $script:workerActivations = @()
 $script:workerKeys = @()
@@ -457,8 +452,9 @@ $script:updatingPreferenceControls=$false
 $script:requiredSettingsKeys = @('TitanMinimumMs','TitanMaximumMs','ForerverMinimumMs','ForerverMaximumMs','FocusRetryIntervalMs')
 $script:audioSettingsKeys = @('TitanAudioThresholdPercent','ForerverAudioThresholdPercent')
 $script:audioTimeoutSettingsKeys = @('TitanAudioTimeoutMs','ForerverAudioTimeoutMs')
+$script:recordingSettingsKeys = @('TitanAudioRecordingId','ForerverAudioRecordingId')
 $script:preferenceSettingsKeys = @('ReelHoldMs','CastKey','ReelKey','ItemKey','AudioDetectionEnabled')
-$script:settingsKeys = $script:requiredSettingsKeys + $script:audioSettingsKeys + $script:audioTimeoutSettingsKeys + $script:preferenceSettingsKeys
+$script:settingsKeys = $script:requiredSettingsKeys + $script:audioSettingsKeys + $script:audioTimeoutSettingsKeys + $script:recordingSettingsKeys + $script:preferenceSettingsKeys
 $script:settingsWarning = ''
 function Read-WowAutoSettingsIni([string]$Path) {
     $values=@{}; $items=@{}; $seen=@{}; $lineNumber=0
@@ -494,6 +490,12 @@ function Read-WowAutoSettingsIni([string]$Path) {
         $values.ForerverAudioTimeoutMs=$script:versionRanges.forerver.AudioTimeoutMs
     }
     elseif ($timeoutKeyCount -ne 2) { throw 'config.ini 需要同时配置两服的无咬钩保护时间。' }
+    $recordingKeyCount=@($script:recordingSettingsKeys | Where-Object {$values.ContainsKey($_)}).Count
+    if ($recordingKeyCount -eq 0) {
+        $values.TitanAudioRecordingId=$script:audioRecordingSelections.titan
+        $values.ForerverAudioRecordingId=$script:audioRecordingSelections.forerver
+    }
+    elseif ($recordingKeyCount -ne 2) { throw 'config.ini 需要同时配置两服的录音序号。' }
     $preferenceKeyCount=@($script:preferenceSettingsKeys | Where-Object { $values.ContainsKey($_) }).Count
     if ($preferenceKeyCount -eq 0) {
         $values.ReelHoldMs=$script:scheduler.ReelHoldMs
@@ -507,14 +509,15 @@ function Read-WowAutoSettingsIni([string]$Path) {
 function Update-VersionSummary {
     if ($null -ne $settingsSummary) {
         $t=$script:versionRanges.titan; $f=$script:versionRanges.forerver
-        $settingsSummary.Text="收竿等待（ms）：时光服 $($t.MinimumMs)–$($t.MaximumMs)；无限服 $($f.MinimumMs)–$($f.MaximumMs)；无咬钩保护（ms）：时光服 $($t.AudioTimeoutMs) / 无限服 $($f.AudioTimeoutMs)；焦点重试 $($script:scheduler.FocusRetryIntervalMs)；音频门槛：时光服 $($script:audioThresholds.titan)% / 无限服 $($script:audioThresholds.forerver)%。$script:settingsWarning"
+        $settingsSummary.Text="收竿等待（ms）：时光服 $($t.MinimumMs)–$($t.MaximumMs)；无限服 $($f.MinimumMs)–$($f.MaximumMs)；无咬钩保护（ms）：时光服 $($t.AudioTimeoutMs) / 无限服 $($f.AudioTimeoutMs)；焦点重试 $($script:scheduler.FocusRetryIntervalMs)。" + [Environment]::NewLine + "音频门槛：时光服 $($script:audioThresholds.titan)% / 无限服 $($script:audioThresholds.forerver)%；录音：时光服 $($script:audioRecordingSelections.titan) / 无限服 $($script:audioRecordingSelections.forerver)。$script:settingsWarning"
     }
 }
 function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $ForerverMaximum, [bool]$Persist=$true, $FocusRetryIntervalMs=$script:scheduler.FocusRetryIntervalMs,
     $TitanAudioThresholdPercent=$script:audioThresholds.titan, $ForerverAudioThresholdPercent=$script:audioThresholds.forerver,
     $ReelHoldMs=$script:scheduler.ReelHoldMs, $KeyBindings=$script:keyBindings, $AudioDetectionEnabled=$script:audioDetectionEnabled,
     $ProcessItemPreferences=$script:processItemPreferences,
-    $TitanAudioTimeoutMs=$script:versionRanges.titan.AudioTimeoutMs, $ForerverAudioTimeoutMs=$script:versionRanges.forerver.AudioTimeoutMs) {
+    $TitanAudioTimeoutMs=$script:versionRanges.titan.AudioTimeoutMs, $ForerverAudioTimeoutMs=$script:versionRanges.forerver.AudioTimeoutMs,
+    $TitanAudioRecordingId=$script:audioRecordingSelections.titan, $ForerverAudioRecordingId=$script:audioRecordingSelections.forerver) {
     # Validate the entire edit before saving or changing any active task.
     $next=@{}
     foreach ($spec in @(@('titan',$TitanMinimum,$TitanMaximum),@('forerver',$ForerverMinimum,$ForerverMaximum))) {
@@ -547,6 +550,7 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
     foreach ($action in @('Cast','Reel','Item')) { $nextBindings[$action]=ConvertFrom-KeyBindingText $KeyBindings[$action].Text }
     $nextAudio=ConvertTo-PreferenceFlag $AudioDetectionEnabled
     $nextItems=@{}
+    $nextRecordings=@{titan=(Get-AudioRecording 'titan' $TitanAudioRecordingId).Id; forerver=(Get-AudioRecording 'forerver' $ForerverAudioRecordingId).Id}
     foreach ($key in $ProcessItemPreferences.Keys) {
         if ($key -notmatch '^([1-9]\d*):([1-9]\d*)$') { throw '道具勾选的进程标识无效。' }
         $pidValue=0; $ticksValue=0L
@@ -564,6 +568,7 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
                 FocusRetryIntervalMs=$retry
                 TitanAudioThresholdPercent=$nextThresholds.titan; ForerverAudioThresholdPercent=$nextThresholds.forerver
                 TitanAudioTimeoutMs=$next.titan.AudioTimeoutMs; ForerverAudioTimeoutMs=$next.forerver.AudioTimeoutMs
+                TitanAudioRecordingId=$nextRecordings.titan; ForerverAudioRecordingId=$nextRecordings.forerver
                 ReelHoldMs=$nextHold; CastKey=$nextBindings.Cast.Text; ReelKey=$nextBindings.Reel.Text; ItemKey=$nextBindings.Item.Text
                 AudioDetectionEnabled=$nextAudio
             }
@@ -583,6 +588,7 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
     }
     $script:versionRanges=$next
     $script:audioThresholds=$nextThresholds
+    $script:audioRecordingSelections=$nextRecordings
     Set-WowAutoFocusRetryInterval $script:scheduler $retry
     Set-WowAutoHoldDuration $script:scheduler $nextHold
     $script:keyBindings=$nextBindings
@@ -612,7 +618,7 @@ function Import-VersionWaitSettings {
         $saved=Read-WowAutoSettingsIni $script:settingsPath
         $bindings=@{}
         foreach ($action in @('Cast','Reel','Item')) { $bindings[$action]=ConvertFrom-KeyBindingText $saved[($action+'Key')] }
-        Set-VersionWaitRanges $saved.TitanMinimumMs $saved.TitanMaximumMs $saved.ForerverMinimumMs $saved.ForerverMaximumMs -Persist $false -FocusRetryIntervalMs $saved.FocusRetryIntervalMs -TitanAudioThresholdPercent $saved.TitanAudioThresholdPercent -ForerverAudioThresholdPercent $saved.ForerverAudioThresholdPercent -ReelHoldMs $saved.ReelHoldMs -KeyBindings $bindings -AudioDetectionEnabled $saved.AudioDetectionEnabled -ProcessItemPreferences $saved.ProcessItemPreferences -TitanAudioTimeoutMs $saved.TitanAudioTimeoutMs -ForerverAudioTimeoutMs $saved.ForerverAudioTimeoutMs
+        Set-VersionWaitRanges $saved.TitanMinimumMs $saved.TitanMaximumMs $saved.ForerverMinimumMs $saved.ForerverMaximumMs -Persist $false -FocusRetryIntervalMs $saved.FocusRetryIntervalMs -TitanAudioThresholdPercent $saved.TitanAudioThresholdPercent -ForerverAudioThresholdPercent $saved.ForerverAudioThresholdPercent -ReelHoldMs $saved.ReelHoldMs -KeyBindings $bindings -AudioDetectionEnabled $saved.AudioDetectionEnabled -ProcessItemPreferences $saved.ProcessItemPreferences -TitanAudioTimeoutMs $saved.TitanAudioTimeoutMs -ForerverAudioTimeoutMs $saved.ForerverAudioTimeoutMs -TitanAudioRecordingId $saved.TitanAudioRecordingId -ForerverAudioRecordingId $saved.ForerverAudioRecordingId
     }
     catch { $script:settingsWarning="config.ini 读取失败，保留当前配置：$($_.Exception.Message)" }
 }
@@ -698,7 +704,7 @@ $form.Controls.Add($header)
 $toolbar = New-Object System.Windows.Forms.Panel
 $toolbar.Dock = 'Top'
 $toolbar.AutoScroll = $true
-$toolbar.Height = 92
+$toolbar.Height = 116
 $toolbar.BackColor = $script:uiColors.Surface
 $toolbar.Width = $form.ClientSize.Width
 $refreshButton.Anchor = 'Top, Left'
@@ -743,7 +749,7 @@ $audioCheck.Add_CheckedChanged({ param($sender,$eventArgs)
     }
 })
 $settingsSummary = New-Object System.Windows.Forms.Label
-$settingsSummary.SetBounds(12, 56, 1250, 28)
+$settingsSummary.SetBounds(12, 56, 1250, 52)
 $settingsSummary.Anchor = 'Top, Left, Right'
 $settingsSummary.AutoEllipsis = $true
 $toolbar.Controls.Add($settingsSummary)
@@ -764,7 +770,7 @@ function New-WaitSettingsDialog {
     $dialog.BackColor=$script:uiColors.Background
     $dialog.ForeColor=$script:uiColors.Text
     $dialog.AutoScaleMode='Dpi'
-    $dialog.ClientSize=New-Object System.Drawing.Size(960,600)
+    $dialog.ClientSize=New-Object System.Drawing.Size(960,770)
     $dialog.FormBorderStyle='FixedDialog'
     $dialog.MaximizeBox=$false; $dialog.MinimizeBox=$false
     $dialog.StartPosition='CenterParent'
@@ -816,8 +822,52 @@ function New-WaitSettingsDialog {
     $reelHoldInput.BackColor=$script:uiColors.Input
     $reelHoldInput.ForeColor=$script:uiColors.Text
     $reelHoldInput.BorderStyle='FixedSingle'; $dialog.Controls.Add($reelHoldInput)
+    $recordGroup=New-Object System.Windows.Forms.GroupBox
+    $recordGroup.Text='咬钩录音（按版本选择）'; $recordGroup.SetBounds(18,238,912,151)
+    $recordGroup.BackColor=$script:uiColors.Surface; $recordGroup.ForeColor=$script:uiColors.Text
+    $dialog.Controls.Add($recordGroup)
+    $recordInputs=@{}
+    foreach ($spec in @(@('titan','时光服',30),@('forerver','无限服',76))) {
+        $recordLabel=New-Object System.Windows.Forms.Label
+        $recordLabel.Text=$spec[1]; $recordLabel.SetBounds(16,($spec[2]+5),95,30); $recordGroup.Controls.Add($recordLabel)
+        $selection=New-Object System.Windows.Forms.ComboBox
+        $selection.DropDownStyle='DropDownList'; $selection.DisplayMember='Label'
+        $selection.DrawMode='OwnerDrawFixed'; $selection.ItemHeight=26; $selection.FlatStyle='Flat'
+        $selection.SetBounds(112,$spec[2],528,34)
+        $selection.BackColor=$script:uiColors.Input; $selection.ForeColor=$script:uiColors.Text
+        $selection.Add_DrawItem({param($sender,$eventArgs)
+            $brush=New-Object System.Drawing.SolidBrush($script:uiColors.Input)
+            try { $eventArgs.Graphics.FillRectangle($brush,$eventArgs.Bounds) }
+            finally { $brush.Dispose() }
+            $item=if ($eventArgs.Index -ge 0) {$sender.Items[$eventArgs.Index]} else {$sender.SelectedItem}
+            if ($null -ne $item) {
+                $bounds=$eventArgs.Bounds; $bounds.X+=3; $bounds.Width-=6
+                [System.Windows.Forms.TextRenderer]::DrawText($eventArgs.Graphics,$item.Label,$sender.Font,$bounds,$script:uiColors.Text,([System.Windows.Forms.TextFormatFlags]'Left,VerticalCenter,NoPrefix,EndEllipsis'))
+            }
+            $eventArgs.DrawFocusRectangle()
+        })
+        foreach ($recording in $script:audioRecordings[$spec[0]]) { [void]$selection.Items.Add($recording) }
+        $selection.SelectedItem=Get-AudioRecording $spec[0] $script:audioRecordingSelections[$spec[0]]
+        $selection.Tag=$dialog; $recordGroup.Controls.Add($selection)
+        $selection.Add_SelectedIndexChanged({param($sender,$eventArgs) Stop-AudioPreview $sender.Tag})
+        $preview=New-Object WowAuto.DimButton
+        $preview.Text='试听'; $preview.SetBounds(652,$spec[2],110,36); Set-UiButtonStyle $preview
+        $preview.Tag=[pscustomobject]@{Dialog=$dialog; Flavor=$spec[0]; Selection=$selection}
+        $preview.Add_Click({param($sender,$eventArgs)
+            try { $sender.Tag.Dialog.Tag.Error.Text=''; Start-AudioPreview $sender.Tag.Dialog $sender.Tag.Flavor $sender.Tag.Selection.SelectedItem.Id }
+            catch { $sender.Tag.Dialog.Tag.Error.Text=$_.Exception.Message }
+        })
+        $recordGroup.Controls.Add($preview)
+        $recordInputs[$spec[0]]=[pscustomobject]@{Selection=$selection; Play=$preview}
+    }
+    $stopPreview=New-Object WowAuto.DimButton
+    $stopPreview.Text='停止试听'; $stopPreview.SetBounds(780,30,110,36); Set-UiButtonStyle $stopPreview
+    $stopPreview.Tag=$dialog; $stopPreview.Add_Click({param($sender,$eventArgs) Stop-AudioPreview $sender.Tag})
+    $recordGroup.Controls.Add($stopPreview)
+    $previewStatus=New-Object System.Windows.Forms.Label
+    $previewStatus.SetBounds(16,118,876,28); $recordGroup.Controls.Add($previewStatus)
     $keyGroup=New-Object System.Windows.Forms.GroupBox
-    $keyGroup.Text='快捷键（所有进程）'; $keyGroup.SetBounds(18,238,745,131)
+    $keyGroup.Text='快捷键（所有进程）'; $keyGroup.SetBounds(18,400,745,131)
     $keyGroup.BackColor=$script:uiColors.Surface; $dialog.Controls.Add($keyGroup)
     $keyGroup.ForeColor=$script:uiColors.Text
     $keyInputs=@{}; $draftBindings=@{}
@@ -846,18 +896,21 @@ function New-WaitSettingsDialog {
     $keyHint.SetBounds(16,98,715,28); $keyGroup.Controls.Add($keyHint)
     $note=New-Object System.Windows.Forms.Label
     $note.Text="音频模式：匹配成功后随机等待；定时模式：变绿后随机等待。`r`n无咬钩保护从确认绿色开始计时，仅用于音频模式。`r`n配置保存到 config.ini；保护新值从下轮生效，已有截止不变。"
-    $note.SetBounds(18,384,745,80); $dialog.Controls.Add($note)
+    $note.Text+="`r`n录音选择保存后从下轮使用；试听不改变已保存的选择。"
+    $note.SetBounds(18,546,912,100); $dialog.Controls.Add($note)
     $errorLabel=New-Object System.Windows.Forms.Label
     $errorLabel.ForeColor=$script:uiColors.Text
-    $errorLabel.SetBounds(18,469,745,52); $dialog.Controls.Add($errorLabel)
+    $errorLabel.SetBounds(18,648,912,52); $dialog.Controls.Add($errorLabel)
     $apply=New-Object WowAuto.DimButton
-    $apply.Text='保存'; $apply.SetBounds(540,545,95,36); Set-UiButtonStyle $apply $true; $dialog.Controls.Add($apply)
+    $apply.Text='保存'; $apply.SetBounds(540,715,95,36); Set-UiButtonStyle $apply $true; $dialog.Controls.Add($apply)
     $cancel=New-Object WowAuto.DimButton
-    $cancel.Text='取消'; $cancel.SetBounds(645,545,95,36); Set-UiButtonStyle $cancel
+    $cancel.Text='取消'; $cancel.SetBounds(645,715,95,36); Set-UiButtonStyle $cancel
     $cancel.DialogResult='Cancel'; $dialog.Controls.Add($cancel)
     $dialog.AcceptButton=$apply; $dialog.CancelButton=$cancel
-    $dialog.Tag=[pscustomobject]@{Inputs=$inputs; FocusRetry=$retryInput; ReelHold=$reelHoldInput; Apply=$apply; Cancel=$cancel; Error=$errorLabel; KeyInputs=$keyInputs; KeyBindings=$draftBindings; KeyTip=$keyTip}
-    $dialog.Add_Disposed({ param($sender,$eventArgs) $sender.Tag.KeyTip.Dispose() })
+    $dialog.Tag=[pscustomobject]@{Inputs=$inputs; FocusRetry=$retryInput; ReelHold=$reelHoldInput; Apply=$apply; Cancel=$cancel; Error=$errorLabel; KeyInputs=$keyInputs; KeyBindings=$draftBindings; KeyTip=$keyTip; Recordings=$recordInputs; StopPreview=$stopPreview; PreviewStatus=$previewStatus; PreviewPlayer=$null}
+    $dialog.Add_FormClosed({param($sender,$eventArgs) Stop-AudioPreview $sender})
+    $dialog.Add_Disposed({ param($sender,$eventArgs) Stop-AudioPreview $sender; $sender.Tag.KeyTip.Dispose() })
+    $cancel.Tag=$dialog; $cancel.Add_Click({param($sender,$eventArgs) Stop-AudioPreview $sender.Tag})
     $apply.Tag=$dialog
     $apply.Add_Click({ param($sender,$eventArgs)
         $settingsDialog=$sender.Tag; $fields=$settingsDialog.Tag.Inputs
@@ -873,7 +926,8 @@ function New-WaitSettingsDialog {
                 $nextBindings[$action]=New-KeyBinding $draft.Code $draft.Ctrl $draft.Shift $draft.Alt
                 if ($null -eq $nextBindings[$action]) { throw '请选择有效的快捷键。' }
             }
-            Set-VersionWaitRanges $fields.titan.Minimum.Text.Trim() $fields.titan.Maximum.Text.Trim() $fields.forerver.Minimum.Text.Trim() $fields.forerver.Maximum.Text.Trim() -FocusRetryIntervalMs $settingsDialog.Tag.FocusRetry.Text.Trim() -TitanAudioThresholdPercent $fields.titan.AudioThreshold.Text.Trim() -ForerverAudioThresholdPercent $fields.forerver.AudioThreshold.Text.Trim() -ReelHoldMs $nextHold -KeyBindings $nextBindings -TitanAudioTimeoutMs $fields.titan.AudioTimeout.Text.Trim() -ForerverAudioTimeoutMs $fields.forerver.AudioTimeout.Text.Trim()
+            Set-VersionWaitRanges $fields.titan.Minimum.Text.Trim() $fields.titan.Maximum.Text.Trim() $fields.forerver.Minimum.Text.Trim() $fields.forerver.Maximum.Text.Trim() -FocusRetryIntervalMs $settingsDialog.Tag.FocusRetry.Text.Trim() -TitanAudioThresholdPercent $fields.titan.AudioThreshold.Text.Trim() -ForerverAudioThresholdPercent $fields.forerver.AudioThreshold.Text.Trim() -ReelHoldMs $nextHold -KeyBindings $nextBindings -TitanAudioTimeoutMs $fields.titan.AudioTimeout.Text.Trim() -ForerverAudioTimeoutMs $fields.forerver.AudioTimeout.Text.Trim() -TitanAudioRecordingId $settingsDialog.Tag.Recordings.titan.Selection.SelectedItem.Id -ForerverAudioRecordingId $settingsDialog.Tag.Recordings.forerver.Selection.SelectedItem.Id
+            Stop-AudioPreview $settingsDialog
             $settingsDialog.DialogResult='OK'
         }
         catch { $settingsDialog.Tag.Error.Text=$_.Exception.Message }
@@ -1051,7 +1105,7 @@ function Update-RowStatus($Row) {
             $text += "`r`n音频峰值：$([Math]::Round($capture.Peak*100,1))%"
             if ($script:audioCaptures[$Row.Key].TemplateMode) {
                 $matchLabel=if ($script:audioCaptures[$Row.Key].Trial) { '试用匹配' } else { '匹配' }
-                $text += "；$($matchLabel)：$([Math]::Round($capture.Similarity*100,1))%（门槛 $($script:audioThresholds[$Row.Client.Flavor])%）；排除：$($capture.Rejected)"
+                $text += "；$($matchLabel)：$([Math]::Round($capture.Similarity*100,1))%（录音 $($script:audioCaptures[$Row.Key].RecordingId)；门槛 $($script:audioThresholds[$Row.Client.Flavor])%）；排除：$($capture.Rejected)"
             }
         }
     }
@@ -1094,13 +1148,14 @@ function Start-Row($Row) {
         $Row.State = Add-WowAutoTask $script:scheduler $Row.Key $newState.MinimumMs $newState.MaximumMs $script:schedulerClock.ElapsedMilliseconds -UseItem $Row.ItemCheck.Checked -UseAudio $audioCheck.Checked -AudioTimeoutMs $range.AudioTimeoutMs
         if ($Row.State.UseAudio) {
             if ($UiTest) {
-                $capture=[pscustomobject]@{Status='Listening'; Error=''; Peak=0.0; Similarity=0.0; Rejected=0; Session=0L; Bite=0L; Disposed=$false; MinimumSimilarity=$script:audioThresholds[$Row.Client.Flavor]/100.0}
+                $capture=[pscustomobject]@{Status='Listening'; Error=''; Peak=0.0; Similarity=0.0; Rejected=0; Session=0L; Bite=0L; Disposed=$false; MinimumSimilarity=$script:audioThresholds[$Row.Client.Flavor]/100.0; Template=$template; TemplateChanges=0}
                 $capture | Add-Member ScriptMethod Arm { param([long]$value) if ($this.Session -ne $value) { $this.Session=$value; $this.Bite=0L } }
                 $capture | Add-Member ScriptMethod Dispose { $this.Disposed=$true; $this.Session=0L; $this.Bite=0L }
                 $capture | Add-Member ScriptMethod SetMinimumSimilarity { param([double]$value) $this.MinimumSimilarity=$value }
+                $capture | Add-Member ScriptMethod SetTemplate { param($value,[double]$threshold) if ($this.Session -ne 0) {throw 'Disarm capture before switching recordings.'}; $this.Template=$value; $this.MinimumSimilarity=$threshold; $this.TemplateChanges++; $this.Bite=0L }
             }
             else { $capture=[WowAuto.Audio.ProcessCapture]::new($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,$template,$script:audioThresholds[$Row.Client.Flavor]/100.0) }
-            $script:audioCaptures[$Row.Key]=[pscustomobject]@{Capture=$capture; State=$Row.State; TemplateMode=($null -ne $template); Trial=($null -ne $template -and $template.IsTrial)}
+            $script:audioCaptures[$Row.Key]=[pscustomobject]@{Capture=$capture; State=$Row.State; TemplateMode=($null -ne $template); Trial=($null -ne $template -and $template.IsTrial); RecordingId=$script:audioRecordingSelections[$Row.Client.Flavor]; TemplateSession=0L}
             $Row.State.Status='正在启动本进程声音监听，暂不抛竿。'
         }
         Update-RowStatus $Row
@@ -1481,6 +1536,19 @@ function Update-AudioCaptures([long]$Now) {
         if ($capture.Status -ne 'Listening') { continue }
         if (-not $state.AudioReady) { $state.AudioReady=$true; $state.Status='本进程音频采集就绪，已加入钓鱼队列。' }
         $session=if ($state.Mode -eq 'Wait' -and -not $state.AudioReelPending -and $Now -ge $script:scheduler.ItemHoldUntil) { $state.AudioSession } else { 0L }
+        if ($entry.TemplateMode -and $session -ne 0 -and $entry.TemplateSession -ne $state.AudioSession) {
+            try {
+                $selected=$script:audioRecordingSelections[$row.Client.Flavor]
+                if ($entry.RecordingId -ne $selected) {
+                    $nextTemplate=Get-AudioTemplate $row.Client.Flavor $selected
+                    $capture.Arm(0)
+                    $capture.SetTemplate($nextTemplate,$script:audioThresholds[$row.Client.Flavor]/100.0)
+                    $entry.RecordingId=$selected; $entry.Trial=$nextTemplate.IsTrial
+                }
+                $entry.TemplateSession=$state.AudioSession
+            }
+            catch { Stop-Row $row ("所选录音特征无法加载，已停止此行：$($_.Exception.Message)"); continue }
+        }
         $capture.Arm($session)
         $biteSession=0L
         $hasBite=if ($UiTest) { $biteSession=$capture.Bite; $capture.Bite=0L; $biteSession -ne 0 }
@@ -1672,6 +1740,7 @@ try {
             . (Join-Path $PSScriptRoot 'tests\Audio.Features.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Preferences.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Audio.Timeout.UiTests.ps1')
+            . (Join-Path $PSScriptRoot 'tests\Audio.Recordings.UiTests.ps1')
         }
         if ($PreviewPath) {
             [System.Windows.Forms.Application]::DoEvents()
@@ -1690,8 +1759,15 @@ finally {
     $script:audioCaptures.Clear()
     $positionTimer.Dispose(); $scanTimer.Dispose(); $timer.Dispose(); $form.Dispose()
     if ($UiTest -and (Test-Path -LiteralPath $script:settingsPath)) { Remove-Item -LiteralPath $script:settingsPath }
+    if ($UiTest -and (Test-Path -LiteralPath $script:audioRecordingDirectory)) {
+        foreach ($recording in $script:audioRecordings.Values | ForEach-Object {$_}) {
+            $wavePath=Join-Path $script:audioRecordingDirectory $recording.Wave
+            if ([IO.File]::Exists($wavePath)) { [IO.File]::Delete($wavePath) }
+        }
+        [IO.Directory]::Delete($script:audioRecordingDirectory)
+    }
     if ($UiTest -and (Test-Path -LiteralPath $script:audioFeatureDirectory)) {
-        foreach ($flavor in @('titan','forerver')) { $featurePath=Join-Path $script:audioFeatureDirectory ($flavor+'.feature'); if ([IO.File]::Exists($featurePath)) { [IO.File]::Delete($featurePath) } }
+        foreach ($name in @(@($script:audioRecordings.Values | ForEach-Object {$_} | ForEach-Object Feature) + @('titan.feature','forerver.feature') | Select-Object -Unique)) { $featurePath=Join-Path $script:audioFeatureDirectory $name; if ([IO.File]::Exists($featurePath)) { [IO.File]::Delete($featurePath) } }
         [IO.Directory]::Delete($script:audioFeatureDirectory)
     }
 }

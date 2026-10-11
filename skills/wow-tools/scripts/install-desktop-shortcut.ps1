@@ -7,7 +7,7 @@ $ErrorActionPreference = 'Stop'
 $toolPath = [IO.Path]::GetFullPath($ToolRoot)
 $desktopPathResolved = [IO.Path]::GetFullPath($DesktopPath)
 $backupPathResolved = [IO.Path]::GetFullPath($BackupPath)
-foreach ($name in @('wowAuto.bat', 'wowAuto.ps1', 'wowAuto.Engine.ps1', 'wowAuto.Audio.cs')) {
+foreach ($name in @('wowAuto.bat', 'wowAuto.ps1', 'wowAuto.Engine.ps1', 'wowAuto.Audio.cs', 'wowAuto.Recordings.ps1')) {
     if (-not (Test-Path -LiteralPath (Join-Path $toolPath $name) -PathType Leaf)) {
         throw "Missing source runtime file: $name"
     }
