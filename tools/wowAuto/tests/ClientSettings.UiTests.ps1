@@ -33,8 +33,11 @@ try {
         foreach ($flavor in @('titan','forerver')) {
             Assert-Ui ($fields[$flavor].Minimum.Increment -eq 1000 -and $dialog.ClientRectangle.Contains($fields[$flavor].Maximum.Bounds)) 'Settings field step/layout failed.'
         }
+        Assert-Ui ($dialog.Tag.FocusRetry.Value -eq 30000 -and $dialog.Tag.FocusRetry.Minimum -eq 1000 -and $dialog.Tag.FocusRetry.Maximum -eq 3600000 -and $dialog.Tag.FocusRetry.Increment -eq 1000) 'Focus retry default/range/step failed.'
+        Assert-Ui ($dialog.ClientRectangle.Contains($dialog.Tag.FocusRetry.Bounds) -and $dialog.ClientRectangle.Contains($dialog.Tag.Apply.Bounds)) 'Focus retry field or save button clipped.'
         $fields.titan.Minimum.Value=9000; $fields.titan.Maximum.Value=13000
         $fields.forerver.Minimum.Value=12000; $fields.forerver.Maximum.Value=18000
+        $dialog.Tag.FocusRetry.Value=5000
         if ($PreviewPath) {
             $bitmap=New-Object System.Drawing.Bitmap($dialog.Width,$dialog.Height)
             try {
@@ -52,31 +55,52 @@ try {
     try {
         $dialog.Show($form)
         $fields=$dialog.Tag.Inputs
-        Assert-Ui ($fields.titan.Minimum.Value -eq 9000 -and $fields.forerver.Maximum.Value -eq 18000) 'Reopened dialog lost first saved values.'
+        Assert-Ui ($fields.titan.Minimum.Value -eq 9000 -and $fields.forerver.Maximum.Value -eq 18000 -and $dialog.Tag.FocusRetry.Value -eq 5000) 'Reopened dialog lost first saved values.'
         $fields.titan.Minimum.Value=9500; $fields.titan.Maximum.Value=9500
         $fields.forerver.Minimum.Value=12000; $fields.forerver.Maximum.Value=12000
+        $dialog.Tag.FocusRetry.Value=7500
         $dialog.Tag.Apply.PerformClick()
         Assert-Ui ($dialog.DialogResult -eq 'OK' -and $dialog.Tag.Error.Text -eq '') 'Second save failed to overwrite existing settings.'
         $persisted=[IO.File]::ReadAllText($script:settingsPath) | ConvertFrom-Json
         Assert-Ui ($persisted.titan.MinimumMs -eq 9500 -and $persisted.titan.MaximumMs -eq 9500 -and $persisted.forerver.MinimumMs -eq 12000 -and $persisted.forerver.MaximumMs -eq 12000) 'Second save did not persist both changed ranges.'
+        Assert-Ui ($persisted.FocusRetryIntervalMs -eq 7500 -and $script:scheduler.FocusRetryIntervalMs -eq 7500 -and $settingsSummary.Text -match '焦点重试 7500') 'Saved focus retry not persisted/applied/displayed.'
         $temporaryFiles=@(Get-ChildItem -LiteralPath (Split-Path $script:settingsPath -Parent) -Filter ((Split-Path $script:settingsPath -Leaf)+'.*.tmp'))
         Assert-Ui ($temporaryFiles.Count -eq 0) 'Second save leaked a temporary settings file.'
     }
     finally { $dialog.Dispose() }
-    Set-VersionWaitRanges 1000 1000 2000 2000 -Persist $false
+    Set-VersionWaitRanges 1000 1000 2000 2000 -Persist $false -FocusRetryIntervalMs 30000
     Import-VersionWaitSettings
-    Assert-Ui ($script:versionRanges.titan.MinimumMs -eq 9500 -and $script:versionRanges.forerver.MinimumMs -eq 12000) 'Saved settings did not reload.'
+    Assert-Ui ($script:versionRanges.titan.MinimumMs -eq 9500 -and $script:versionRanges.forerver.MinimumMs -eq 12000 -and $script:scheduler.FocusRetryIntervalMs -eq 7500) 'Saved settings did not reload.'
+    # Existing settings have no retry field; keep their waits and use the 30-second default.
+    $savedJson=[IO.File]::ReadAllText($script:settingsPath)
+    try {
+        $legacy=[pscustomobject]@{Version=1; titan=$persisted.titan; forerver=$persisted.forerver} | ConvertTo-Json -Depth 3
+        [IO.File]::WriteAllText($script:settingsPath,$legacy)
+        Import-VersionWaitSettings
+        Assert-Ui ($script:versionRanges.titan.MinimumMs -eq 9500 -and $script:versionRanges.forerver.MinimumMs -eq 12000 -and $script:scheduler.FocusRetryIntervalMs -eq 30000 -and $script:settingsWarning -eq '') 'Legacy settings lost waits or did not default retry.'
+        $persisted.FocusRetryIntervalMs=0
+        [IO.File]::WriteAllText($script:settingsPath,($persisted | ConvertTo-Json -Depth 3))
+        Import-VersionWaitSettings
+        Assert-Ui ($script:scheduler.FocusRetryIntervalMs -eq 30000 -and $script:settingsWarning -ne '') 'Invalid persisted retry was accepted.'
+    }
+    finally { [IO.File]::WriteAllText($script:settingsPath,$savedJson); Import-VersionWaitSettings }
     $savedHash=(Get-FileHash -LiteralPath $script:settingsPath).Hash
+    foreach ($invalid in @('0','999','3600001','1.5','not-an-integer','999999999999999999999999')) {
+        $rejected=$false
+        try { Set-VersionWaitRanges 1000 1000 2000 2000 -FocusRetryIntervalMs $invalid } catch { $rejected=$true }
+        Assert-Ui ($rejected -and $script:scheduler.FocusRetryIntervalMs -eq 7500 -and $script:versionRanges.titan.MinimumMs -eq 9500 -and (Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $savedHash) 'Invalid retry partially applied or saved settings.'
+    }
     $dialog=New-WaitSettingsDialog
     try {
         $dialog.Show($form)
         $dialog.Tag.Inputs.titan.Minimum.Value=20000
+        $dialog.Tag.FocusRetry.Value=1000
         $dialog.Tag.Apply.PerformClick()
-        Assert-Ui ($dialog.Tag.Error.Text -ne '' -and $dialog.DialogResult -ne 'OK' -and $script:versionRanges.titan.MinimumMs -eq 9500) 'Invalid range partially applied.'
+        Assert-Ui ($dialog.Tag.Error.Text -ne '' -and $dialog.DialogResult -ne 'OK' -and $script:versionRanges.titan.MinimumMs -eq 9500 -and $script:scheduler.FocusRetryIntervalMs -eq 7500) 'Invalid range partially applied.'
         Assert-Ui ((Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $savedHash) 'Invalid edit overwrote saved settings.'
         $dialog.Tag.Inputs.titan.Minimum.Value=1000
         $dialog.Tag.Cancel.PerformClick()
-        Assert-Ui ($script:versionRanges.titan.MinimumMs -eq 9500 -and (Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $savedHash) 'Cancel changed settings.'
+        Assert-Ui ($script:versionRanges.titan.MinimumMs -eq 9500 -and $script:scheduler.FocusRetryIntervalMs -eq 7500 -and (Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $savedHash) 'Cancel changed settings.'
     }
     finally { $dialog.Dispose() }
     Update-BatchControls; $startAllButton.PerformClick()
@@ -89,13 +113,17 @@ try {
     Invoke-SchedulerTick 1000
     $deadline=$a.State.Deadline; $event=@($script:scheduler.Events | Where-Object {$_.Key -eq $a.Key})[0]
     Assert-Ui ($deadline -eq 10500) 'Initial version wait not used.'
+    Pause-RowForFocus $f 1000 'Simulated focus denial.'
+    Assert-Ui ($f.State.FocusRetryAt -eq 8500) 'New failure ignored saved retry interval.'
     $script:editingSettings=$true
     $pausedKeys=$script:workerKeys.Count; $pausedActivations=$script:workerActivations.Count
     Invoke-SchedulerTick 11000; Begin-RefreshScan
     Assert-Ui (-not $script:scanning -and $a.State.Running -and $event.Due -eq $deadline -and $script:workerKeys.Count -eq $pausedKeys -and $script:workerActivations.Count -eq $pausedActivations) 'Editing settings emitted input, switched focus or cancelled overdue work.'
     $script:editingSettings=$false
-    Set-VersionWaitRanges 1000 1000 2000 2000 -Persist $false
-    Assert-Ui ($a.State.Deadline -eq $deadline -and $event.Due -eq $deadline -and $a.State.MinimumMs -eq 1000 -and $f.State.MinimumMs -eq 2000) 'Runtime settings changed an existing deadline or missed tasks.'
+    Set-VersionWaitRanges 1000 1000 2000 2000 -Persist $false -FocusRetryIntervalMs 2500
+    Assert-Ui ($a.State.Deadline -eq $deadline -and $event.Due -eq $deadline -and $a.State.MinimumMs -eq 1000 -and $f.State.MinimumMs -eq 2000 -and $f.State.FocusRetryAt -eq 8500) 'Runtime settings changed an existing deadline or missed tasks.'
+    Pause-RowForFocus $f 8500 'Repeated simulated denial.'
+    Assert-Ui ($f.State.FocusRetryAt -eq 11000 -and $f.Status.Text -notmatch '每30秒') 'Repeated failure ignored updated retry interval/status.'
     $null=Complete-WowAutoPoll $script:scheduler $b.Key 1100 'green'
     Assert-Ui ($b.State.Deadline -eq 2100) 'New wait ignored updated version settings.'
     $timestamp=$a.StatusTimestamp
@@ -111,11 +139,15 @@ try {
     $f.Process.Minimized=$false
     Stop-AllRows
     $script:scheduler=New-WowAutoScheduler
+    Set-VersionWaitRanges 1000 1000 2000 2000 -Persist $false -FocusRetryIntervalMs 5000
     $f.Process.ScanColor='red'; $f.Process.FocusAllowed=$false; $f.Validated=$true
     Start-Row $f; Invoke-SchedulerTick 1000
-    Assert-Ui ($f.State.Running -and $f.State.FocusRetryAt -eq 31000) 'Infinite focus failure stopped task.'
+    Assert-Ui ($f.State.Running -and $f.State.FocusRetryAt -eq 6000) 'Infinite focus failure ignored configured retry.'
     $f.Process.FocusAllowed=$true
-    Invoke-SchedulerTick 31000; Invoke-SchedulerTick 31200; Invoke-SchedulerTick 31201
+    $activationsBefore=$script:workerActivations.Count
+    Invoke-SchedulerTick 5999
+    Assert-Ui ($script:workerActivations.Count -eq $activationsBefore -and $f.State.FocusRetryAt -eq 6000) 'Configured retry activated too early.'
+    Invoke-SchedulerTick 6000; Invoke-SchedulerTick 6200; Invoke-SchedulerTick 6201
     Assert-Ui ($f.State.FocusRetryAt -eq 0 -and $script:workerKeys[-1] -eq "$($f.Process.Id):48") 'Infinite task did not recover/cast.'
     $script:scheduler.CompletedCycles[$f.Key]=501
     Close-WorkerGame $f
@@ -133,4 +165,4 @@ try {
     Fit-WindowToContent
 }
 finally { $script:editingSettings=$false; Stop-AllRows; $script:schedulerClock=$savedClientClock }
-Write-Output 'PASS: mixed Titan/Infinite UI/scan/start, retail exclusion, shared waits, settings dialog/first-save/overwrite/reload/invalid/cancel, immutable pending deadlines, moving/minimized monitors, Infinite focus recovery and exit/client identity. All native actions mocked.'
+Write-Output 'PASS: mixed Titan/Infinite UI/scan/start, retail exclusion, shared waits/configurable focus retry, settings dialog/first-save/overwrite/reload/legacy/invalid/cancel, immutable pending deadlines, moving/minimized monitors, configured Infinite focus recovery and exit/client identity. All native actions mocked.'

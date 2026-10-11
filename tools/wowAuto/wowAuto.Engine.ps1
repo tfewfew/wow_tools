@@ -24,8 +24,8 @@ function Suspend-WowAutoFocus($Scheduler, [string]$Key, [long]$Now, [string]$Rea
     $state=$Scheduler.Tasks[$Key]
     if ($null -eq $state -or -not $state.Running) { return }
     if ($state.FocusRetryAt -eq 0) { $state.FocusResumeStatus=$state.Status }
-    $state.FocusRetryAt=$Now+30000
-    $state.Status="$Reason 已暂停此行，保留任务并每30秒重试焦点。"
+    $state.FocusRetryAt=$Now+$Scheduler.FocusRetryIntervalMs
+    $state.Status="$Reason 已暂停此行，保留任务并等待重试焦点。"
     if ($Scheduler.ActiveKey -eq $Key) { $Scheduler.ActiveKey=$null }
 }
 function Resume-WowAutoFocus($Scheduler, [string]$Key) {
@@ -47,11 +47,15 @@ function New-WowAutoScheduler {
         Tasks=@{}; CompletedCycles=@{}; Order=(New-Object 'System.Collections.Generic.List[string]')
         Events=(New-Object System.Collections.ArrayList)
         Cursor=0; ActiveKey=$null; Sequence=0L; ReelHoldUntil=0L; ReelHoldMs=100
-        ItemHoldUntil=0L
+        ItemHoldUntil=0L; FocusRetryIntervalMs=30000
     }
 }
 function Set-WowAutoHoldDuration($Scheduler, [ValidateRange(0,60000)][int]$Milliseconds) {
     $Scheduler.ReelHoldMs=$Milliseconds
+}
+function Set-WowAutoFocusRetryInterval($Scheduler, [ValidateRange(1000,3600000)][int]$Milliseconds) {
+    # Apply to the next failure, leaving already scheduled retries unchanged.
+    $Scheduler.FocusRetryIntervalMs=$Milliseconds
 }
 function Set-WowAutoItemEnabled($Scheduler, [string]$Key, [bool]$Enabled, [long]$Now) {
     $state=$Scheduler.Tasks[$Key]

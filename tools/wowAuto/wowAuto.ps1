@@ -323,10 +323,10 @@ $script:settingsWarning = ''
 function Update-VersionSummary {
     if ($null -ne $settingsSummary) {
         $t=$script:versionRanges.titan; $f=$script:versionRanges.forerver
-        $settingsSummary.Text="统一等待（ms）：时光服 $($t.MinimumMs)–$($t.MaximumMs)；无限服 $($f.MinimumMs)–$($f.MaximumMs)。$script:settingsWarning"
+        $settingsSummary.Text="统一等待（ms）：时光服 $($t.MinimumMs)–$($t.MaximumMs)；无限服 $($f.MinimumMs)–$($f.MaximumMs)；焦点重试 $($script:scheduler.FocusRetryIntervalMs)。$script:settingsWarning"
     }
 }
-function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $ForerverMaximum, [bool]$Persist=$true) {
+function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $ForerverMaximum, [bool]$Persist=$true, $FocusRetryIntervalMs=$script:scheduler.FocusRetryIntervalMs) {
     # Validate the entire edit before saving or changing any active task.
     $next=@{}
     foreach ($spec in @(@('titan',$TitanMinimum,$TitanMaximum),@('forerver',$ForerverMinimum,$ForerverMaximum))) {
@@ -334,12 +334,16 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
         $checked=New-WowAutoState ([int]$spec[1]) ([int]$spec[2])
         $next[$spec[0]]=[pscustomobject]@{MinimumMs=$checked.MinimumMs; MaximumMs=$checked.MaximumMs}
     }
+    $retry=0
+    if ([string]$FocusRetryIntervalMs -notmatch '^\d+$' -or -not [int]::TryParse([string]$FocusRetryIntervalMs,[ref]$retry) -or $retry -lt 1000 -or $retry -gt 3600000) {
+        throw '焦点重试间隔需为1000–3600000之间的整数毫秒值。'
+    }
     if ($Persist) {
         $directory=Split-Path $script:settingsPath -Parent
         New-Item -ItemType Directory -Path $directory -Force | Out-Null
         $temporary=$script:settingsPath + '.' + [Guid]::NewGuid().ToString() + '.tmp'
         try {
-            $json=[pscustomobject]@{Version=1; titan=$next.titan; forerver=$next.forerver} | ConvertTo-Json -Depth 3
+            $json=[pscustomobject]@{Version=1; titan=$next.titan; forerver=$next.forerver; FocusRetryIntervalMs=$retry} | ConvertTo-Json -Depth 3
             [IO.File]::WriteAllText($temporary,$json,(New-Object Text.UTF8Encoding($false)))
             # Windows PowerShell 5.1 converts ordinary $null to an empty string here.
             # File.Replace requires an actual null backup filename, not an empty path.
@@ -351,6 +355,7 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
         finally { if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary } }
     }
     $script:versionRanges=$next
+    Set-WowAutoFocusRetryInterval $script:scheduler $retry
     # Update future waits for every running task of the same version; existing events keep their due time.
     foreach ($row in $script:rows.Values) {
         if ($null -ne $row.State -and $row.State.Running) {
@@ -366,9 +371,10 @@ function Import-VersionWaitSettings {
     try {
         $saved=[IO.File]::ReadAllText($script:settingsPath) | ConvertFrom-Json
         if ($saved.Version -ne 1) { throw '不支持的设置格式。' }
-        Set-VersionWaitRanges $saved.titan.MinimumMs $saved.titan.MaximumMs $saved.forerver.MinimumMs $saved.forerver.MaximumMs -Persist $false
+        $retry=if ($null -ne $saved.PSObject.Properties['FocusRetryIntervalMs']) { $saved.FocusRetryIntervalMs } else { 30000 }
+        Set-VersionWaitRanges $saved.titan.MinimumMs $saved.titan.MaximumMs $saved.forerver.MinimumMs $saved.forerver.MaximumMs -Persist $false -FocusRetryIntervalMs $retry
     }
-    catch { $script:settingsWarning='设置读取失败，保留当前范围；请打开设置重新保存。' }
+    catch { $script:settingsWarning='设置读取失败，保留当前配置；请打开设置重新保存。' }
 }
 if (-not $UiTest) { Import-VersionWaitSettings }
 $form = New-Object System.Windows.Forms.Form
@@ -455,10 +461,10 @@ Update-VersionSummary
 
 function New-WaitSettingsDialog {
     $dialog=New-Object System.Windows.Forms.Form
-    $dialog.Text='等待时间设置'
+    $dialog.Text='自动钓鱼设置'
     $dialog.Font=$form.Font
     $dialog.AutoScaleMode='Dpi'
-    $dialog.ClientSize=New-Object System.Drawing.Size(550,275)
+    $dialog.ClientSize=New-Object System.Drawing.Size(550,342)
     $dialog.FormBorderStyle='FixedDialog'
     $dialog.MaximizeBox=$false; $dialog.MinimizeBox=$false
     $dialog.StartPosition='CenterParent'
@@ -479,24 +485,31 @@ function New-WaitSettingsDialog {
         $min.Value=$script:versionRanges[$spec[0]].MinimumMs; $max.Value=$script:versionRanges[$spec[0]].MaximumMs
         $inputs[$spec[0]]=[pscustomobject]@{Minimum=$min; Maximum=$max}
     }
+    $retryLabel=New-Object System.Windows.Forms.Label
+    $retryLabel.Text='焦点重试间隔（ms，所有进程）'
+    $retryLabel.SetBounds(18,150,300,30); $dialog.Controls.Add($retryLabel)
+    $retryInput=New-Object System.Windows.Forms.NumericUpDown
+    $retryInput.SetBounds(330,146,175,30)
+    $retryInput.Minimum=1000; $retryInput.Maximum=3600000; $retryInput.Increment=1000
+    $retryInput.Value=$script:scheduler.FocusRetryIntervalMs; $dialog.Controls.Add($retryInput)
     $note=New-Object System.Windows.Forms.Label
-    $note.Text='同版本所有进程共用范围；保存后用于下一次计时。'
-    $note.SetBounds(18,145,520,25); $dialog.Controls.Add($note)
+    $note.Text="同版本共用等待范围；焦点重试间隔对所有进程生效。`r`n保存后用于下次计时，已开始的倒计时保持不变。"
+    $note.SetBounds(18,194,520,48); $dialog.Controls.Add($note)
     $errorLabel=New-Object System.Windows.Forms.Label
     $errorLabel.ForeColor=[System.Drawing.Color]::Firebrick
-    $errorLabel.SetBounds(18,175,520,28); $dialog.Controls.Add($errorLabel)
+    $errorLabel.SetBounds(18,244,520,44); $dialog.Controls.Add($errorLabel)
     $apply=New-Object System.Windows.Forms.Button
-    $apply.Text='保存'; $apply.SetBounds(320,225,95,32); $dialog.Controls.Add($apply)
+    $apply.Text='保存'; $apply.SetBounds(320,294,95,32); $dialog.Controls.Add($apply)
     $cancel=New-Object System.Windows.Forms.Button
-    $cancel.Text='取消'; $cancel.SetBounds(425,225,95,32)
+    $cancel.Text='取消'; $cancel.SetBounds(425,294,95,32)
     $cancel.DialogResult='Cancel'; $dialog.Controls.Add($cancel)
     $dialog.AcceptButton=$apply; $dialog.CancelButton=$cancel
-    $dialog.Tag=[pscustomobject]@{Inputs=$inputs; Apply=$apply; Cancel=$cancel; Error=$errorLabel}
+    $dialog.Tag=[pscustomobject]@{Inputs=$inputs; FocusRetry=$retryInput; Apply=$apply; Cancel=$cancel; Error=$errorLabel}
     $apply.Tag=$dialog
     $apply.Add_Click({ param($sender,$eventArgs)
         $settingsDialog=$sender.Tag; $fields=$settingsDialog.Tag.Inputs
         try {
-            Set-VersionWaitRanges $fields.titan.Minimum.Text.Trim() $fields.titan.Maximum.Text.Trim() $fields.forerver.Minimum.Text.Trim() $fields.forerver.Maximum.Text.Trim()
+            Set-VersionWaitRanges $fields.titan.Minimum.Text.Trim() $fields.titan.Maximum.Text.Trim() $fields.forerver.Minimum.Text.Trim() $fields.forerver.Maximum.Text.Trim() -FocusRetryIntervalMs $settingsDialog.Tag.FocusRetry.Text.Trim()
             $settingsDialog.DialogResult='OK'
         }
         catch { $settingsDialog.Tag.Error.Text=$_.Exception.Message }

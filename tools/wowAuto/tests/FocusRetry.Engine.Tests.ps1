@@ -49,4 +49,22 @@ foreach ($otherKind in @('Reel','Item','Poll')) {
     $firstKind=if ($fresh.UseItem) { 'Item' } else { 'Poll' }
     Assert-Focus ($fresh.FocusRetryAt -eq 0 -and (Get-WowAutoWork $q 100000).Kind -eq $firstKind) 'Restart inherited suspension.'
 }
-Write-Output 'PASS: focus retry boundaries, repeated failure, retained poll/reel/item/cooldown, row isolation, uninterrupted holds and cancellation.'
+# Custom intervals govern each new failure, with existing deadlines kept on edits.
+foreach ($interval in @(1000,7500,3600000)) {
+    $q=New-WowAutoScheduler
+    Set-WowAutoFocusRetryInterval $q $interval
+    $a=Add-WowAutoTask $q 'A' 100 100 0
+    Suspend-WowAutoFocus $q 'A' 1000 'Denied.'
+    $due=1000L+$interval
+    Assert-Focus ($a.FocusRetryAt -eq $due -and $null -eq (Get-WowAutoWork $q ($due-1)) -and (Get-WowAutoWork $q $due).Kind -eq 'FocusRetry') 'Custom retry boundary ignored.'
+    Set-WowAutoFocusRetryInterval $q 2500
+    Assert-Focus ($a.FocusRetryAt -eq $due) 'Editing retry interval moved pending retry.'
+    Suspend-WowAutoFocus $q 'A' $due 'Still denied.'
+    Assert-Focus ($a.FocusRetryAt -eq ($due+2500) -and $null -eq (Get-WowAutoWork $q ($due+2499))) 'Repeated failure ignored new interval.'
+}
+foreach ($invalid in @(0,999,3600001)) {
+    $rejected=$false
+    try { Set-WowAutoFocusRetryInterval $q $invalid } catch { $rejected=$true }
+    Assert-Focus ($rejected -and $q.FocusRetryIntervalMs -eq 2500) 'Invalid retry interval changed scheduler.'
+}
+Write-Output 'PASS: default/custom focus retry boundaries, settings edits retain deadlines, repeated failure, retained poll/reel/item/cooldown, row isolation, uninterrupted holds and cancellation.'
