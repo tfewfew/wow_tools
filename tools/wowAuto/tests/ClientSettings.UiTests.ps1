@@ -33,8 +33,8 @@ try {
         foreach ($flavor in @('titan','forerver')) {
             Assert-Ui ($fields[$flavor].Minimum.Increment -eq 1000 -and $dialog.ClientRectangle.Contains($fields[$flavor].Maximum.Bounds)) 'Settings field step/layout failed.'
         }
-        $fields.titan.Minimum.Value=9500; $fields.titan.Maximum.Value=9500
-        $fields.forerver.Minimum.Value=12000; $fields.forerver.Maximum.Value=12000
+        $fields.titan.Minimum.Value=9000; $fields.titan.Maximum.Value=13000
+        $fields.forerver.Minimum.Value=12000; $fields.forerver.Maximum.Value=18000
         if ($PreviewPath) {
             $bitmap=New-Object System.Drawing.Bitmap($dialog.Width,$dialog.Height)
             try {
@@ -45,6 +45,22 @@ try {
         }
         $dialog.Tag.Apply.PerformClick()
         Assert-Ui ($dialog.DialogResult -eq 'OK' -and (Test-Path -LiteralPath $script:settingsPath)) 'Dialog failed to save separate version settings.'
+    }
+    finally { $dialog.Dispose() }
+    # Reopen and save changed values with an existing destination: exercises File.Replace.
+    $dialog=New-WaitSettingsDialog
+    try {
+        $dialog.Show($form)
+        $fields=$dialog.Tag.Inputs
+        Assert-Ui ($fields.titan.Minimum.Value -eq 9000 -and $fields.forerver.Maximum.Value -eq 18000) 'Reopened dialog lost first saved values.'
+        $fields.titan.Minimum.Value=9500; $fields.titan.Maximum.Value=9500
+        $fields.forerver.Minimum.Value=12000; $fields.forerver.Maximum.Value=12000
+        $dialog.Tag.Apply.PerformClick()
+        Assert-Ui ($dialog.DialogResult -eq 'OK' -and $dialog.Tag.Error.Text -eq '') 'Second save failed to overwrite existing settings.'
+        $persisted=[IO.File]::ReadAllText($script:settingsPath) | ConvertFrom-Json
+        Assert-Ui ($persisted.titan.MinimumMs -eq 9500 -and $persisted.titan.MaximumMs -eq 9500 -and $persisted.forerver.MinimumMs -eq 12000 -and $persisted.forerver.MaximumMs -eq 12000) 'Second save did not persist both changed ranges.'
+        $temporaryFiles=@(Get-ChildItem -LiteralPath (Split-Path $script:settingsPath -Parent) -Filter ((Split-Path $script:settingsPath -Leaf)+'.*.tmp'))
+        Assert-Ui ($temporaryFiles.Count -eq 0) 'Second save leaked a temporary settings file.'
     }
     finally { $dialog.Dispose() }
     Set-VersionWaitRanges 1000 1000 2000 2000 -Persist $false
@@ -117,4 +133,4 @@ try {
     Fit-WindowToContent
 }
 finally { $script:editingSettings=$false; Stop-AllRows; $script:schedulerClock=$savedClientClock }
-Write-Output 'PASS: mixed Titan/Infinite UI/scan/start, retail exclusion, shared waits, settings dialog/save/reload/invalid/cancel, immutable pending deadlines, moving/minimized monitors, Infinite focus recovery and exit/client identity. All native actions mocked.'
+Write-Output 'PASS: mixed Titan/Infinite UI/scan/start, retail exclusion, shared waits, settings dialog/first-save/overwrite/reload/invalid/cancel, immutable pending deadlines, moving/minimized monitors, Infinite focus recovery and exit/client identity. All native actions mocked.'

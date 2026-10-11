@@ -341,7 +341,11 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
         try {
             $json=[pscustomobject]@{Version=1; titan=$next.titan; forerver=$next.forerver} | ConvertTo-Json -Depth 3
             [IO.File]::WriteAllText($temporary,$json,(New-Object Text.UTF8Encoding($false)))
-            if (Test-Path -LiteralPath $script:settingsPath) { [IO.File]::Replace($temporary,$script:settingsPath,$null) }
+            # Windows PowerShell 5.1 converts ordinary $null to an empty string here.
+            # File.Replace requires an actual null backup filename, not an empty path.
+            if (Test-Path -LiteralPath $script:settingsPath) {
+                [IO.File]::Replace($temporary,$script:settingsPath,[System.Management.Automation.Language.NullString]::Value)
+            }
             else { [IO.File]::Move($temporary,$script:settingsPath) }
         }
         finally { if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary } }
