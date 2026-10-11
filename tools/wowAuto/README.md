@@ -80,6 +80,8 @@
 
 同步脚本在 Windows 桌面创建 `wowAuto.lnk`，目标为源码目录的 `wowAuto.bat`，工作目录也是源码目录。确认快捷方式后，将桌面旧 `wowAuto.ps1`、`wowAuto.Engine.ps1`、`wowAuto.bat` 及 `wow-foreground-loop.bat`、`.ps1` 移入仓库 `.local-backups`，桌面只保留快捷方式。源码目录需保留完整的三个运行文件；移动仓库后重新执行同步以更新入口。插件同步至游戏的 `Interface\AddOns\wow_tools`。
 
+插件已分成 `addon/titan/wow_tools`（时光服）与 `addon/forerver/wow_tools`（无限服）独立源码，同步默认分别安装到各自客户端。wowAuto当前仍只识别 `WowClassic.exe`；无限服使用 `Wow.exe`，本次插件移植尚未增加外部工具对该进程的识别与调度。
+
 ## 验证
 
 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\ItemDetection.Tests.ps1` 验证附魔状态、已有Buff跳过、未知等待、绿色延后、收竿优先、3秒等待和附魔确认重试；`wowAuto.ps1 -UiTest` 同时执行 `ItemDetection.UiTests.ps1` 验证实际适配层的模拟按键。`ColorAdapter.Tests.ps1` 只编译生产C#并验证颜色分类，不调用窗口、取色或按键接口。

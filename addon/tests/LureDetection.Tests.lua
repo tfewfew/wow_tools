@@ -44,8 +44,8 @@ function UnitCastingInfo() return nil end
 function GetContainerNumSlots(bag) return bag == 0 and 16 or 0 end
 function GetContainerNumFreeSlots() return 10, 0 end
 NUM_BAG_SLOTS = 4
-dofile(root .. "/addon/wow_tools/Init.lua")
-dofile(root .. "/addon/wow_tools/wowDetector/wowDetector.lua")
+dofile(root .. "/addon/titan/wow_tools/Init.lua")
+dofile(root .. "/addon/titan/wow_tools/wowDetector/wowDetector.lua")
 local panel = names.wowDetectorPanel
 panel.scripts.OnEvent(panel, "ADDON_LOADED", "wow_tools")
 local point = panel.textures[3]
