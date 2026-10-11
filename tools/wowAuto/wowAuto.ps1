@@ -509,7 +509,7 @@ function Read-WowAutoSettingsIni([string]$Path) {
 function Update-VersionSummary {
     if ($null -ne $settingsSummary) {
         $t=$script:versionRanges.titan; $f=$script:versionRanges.forerver
-        $settingsSummary.Text="收竿等待（ms）：时光服 $($t.MinimumMs)–$($t.MaximumMs)；无限服 $($f.MinimumMs)–$($f.MaximumMs)；无咬钩保护（ms）：时光服 $($t.AudioTimeoutMs) / 无限服 $($f.AudioTimeoutMs)；焦点重试 $($script:scheduler.FocusRetryIntervalMs)。" + [Environment]::NewLine + "音频门槛：时光服 $($script:audioThresholds.titan)% / 无限服 $($script:audioThresholds.forerver)%；录音：时光服 $($script:audioRecordingSelections.titan) / 无限服 $($script:audioRecordingSelections.forerver)。$script:settingsWarning"
+        $settingsSummary.Text="收竿等待（ms）：时光服 $($t.MinimumMs)–$($t.MaximumMs)；无限服 $($f.MinimumMs)–$($f.MaximumMs)；无咬钩保护（ms）：时光服 $($t.AudioTimeoutMs) / 无限服 $($f.AudioTimeoutMs)；焦点重试 $($script:scheduler.FocusRetryIntervalMs)。" + [Environment]::NewLine + "音频门槛：时光服 $($script:audioThresholds.titan)% / 无限服 $($script:audioThresholds.forerver)%；片段：时光服 $($script:audioRecordingSelections.titan) / 无限服 $($script:audioRecordingSelections.forerver)。$script:settingsWarning"
     }
 }
 function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $ForerverMaximum, [bool]$Persist=$true, $FocusRetryIntervalMs=$script:scheduler.FocusRetryIntervalMs,
@@ -823,7 +823,7 @@ function New-WaitSettingsDialog {
     $reelHoldInput.ForeColor=$script:uiColors.Text
     $reelHoldInput.BorderStyle='FixedSingle'; $dialog.Controls.Add($reelHoldInput)
     $recordGroup=New-Object System.Windows.Forms.GroupBox
-    $recordGroup.Text='咬钩录音（按版本选择）'; $recordGroup.SetBounds(18,238,912,151)
+    $recordGroup.Text='咬钩匹配片段（按版本选择）'; $recordGroup.SetBounds(18,238,912,151)
     $recordGroup.BackColor=$script:uiColors.Surface; $recordGroup.ForeColor=$script:uiColors.Text
     $dialog.Controls.Add($recordGroup)
     $recordInputs=@{}
@@ -896,7 +896,7 @@ function New-WaitSettingsDialog {
     $keyHint.SetBounds(16,98,715,28); $keyGroup.Controls.Add($keyHint)
     $note=New-Object System.Windows.Forms.Label
     $note.Text="音频模式：匹配成功后随机等待；定时模式：变绿后随机等待。`r`n无咬钩保护从确认绿色开始计时，仅用于音频模式。`r`n配置保存到 config.ini；保护新值从下轮生效，已有截止不变。"
-    $note.Text+="`r`n录音选择保存后从下轮使用；试听不改变已保存的选择。"
+    $note.Text+="`r`n片段选择保存后从下轮使用；试听仅播放1秒匹配片段。"
     $note.SetBounds(18,546,912,100); $dialog.Controls.Add($note)
     $errorLabel=New-Object System.Windows.Forms.Label
     $errorLabel.ForeColor=$script:uiColors.Text
@@ -1105,7 +1105,7 @@ function Update-RowStatus($Row) {
             $text += "`r`n音频峰值：$([Math]::Round($capture.Peak*100,1))%"
             if ($script:audioCaptures[$Row.Key].TemplateMode) {
                 $matchLabel=if ($script:audioCaptures[$Row.Key].Trial) { '试用匹配' } else { '匹配' }
-                $text += "；$($matchLabel)：$([Math]::Round($capture.Similarity*100,1))%（录音 $($script:audioCaptures[$Row.Key].RecordingId)；门槛 $($script:audioThresholds[$Row.Client.Flavor])%）；排除：$($capture.Rejected)"
+                $text += "；$($matchLabel)：$([Math]::Round($capture.Similarity*100,1))%（片段 $($script:audioCaptures[$Row.Key].RecordingId)；门槛 $($script:audioThresholds[$Row.Client.Flavor])%）；排除：$($capture.Rejected)"
             }
         }
     }
@@ -1547,7 +1547,7 @@ function Update-AudioCaptures([long]$Now) {
                 }
                 $entry.TemplateSession=$state.AudioSession
             }
-            catch { Stop-Row $row ("所选录音特征无法加载，已停止此行：$($_.Exception.Message)"); continue }
+            catch { Stop-Row $row ("所选片段特征无法加载，已停止此行：$($_.Exception.Message)"); continue }
         }
         $capture.Arm($session)
         $biteSession=0L

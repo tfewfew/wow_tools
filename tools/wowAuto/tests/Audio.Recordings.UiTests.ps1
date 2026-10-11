@@ -49,12 +49,12 @@ try {
             finally {$bitmap.Dispose()}
         }
         $dialog.Tag.Recordings.titan.Play.PerformClick(); $played2=$dialog.Tag.PreviewPlayer
-        Assert-Ui ($played2.Played -and $played2.SoundLocation.EndsWith('titan-02.wav')) 'Preview played the wrong recording.'
+        Assert-Ui ($played2.Played -and $played2.SoundLocation.EndsWith('titan-02-match.wav')) 'Preview played the wrong matching excerpt.'
         $dialog.Tag.Recordings.titan.Selection.SelectedItem=Get-AudioRecording 'titan' 1
         Assert-Ui ($played2.Stopped -and $played2.Disposed -and $null -eq $dialog.Tag.PreviewPlayer -and $script:audioRecordingSelections.titan -eq 2 -and (Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $recordHash) 'Changing a draft failed to stop playback or applied/saved the choice.'
         $dialog.Tag.Recordings.titan.Play.PerformClick(); $played1=$dialog.Tag.PreviewPlayer
         $dialog.Tag.Recordings.forerver.Play.PerformClick(); $playedForever=$dialog.Tag.PreviewPlayer
-        Assert-Ui ($played1.Stopped -and $played1.Disposed -and $playedForever.SoundLocation.EndsWith('forerver-01.wav')) 'Switching clients left two previews playing.'
+        Assert-Ui ($played1.Stopped -and $played1.Disposed -and $playedForever.SoundLocation.EndsWith('forerver-01-match.wav')) 'Switching clients left two previews playing.'
         $dialog.Tag.StopPreview.PerformClick()
         Assert-Ui ($playedForever.Stopped -and $playedForever.Disposed -and $null -eq $dialog.Tag.PreviewPlayer) 'Stop-preview failed.'
         $dialog.Tag.Recordings.titan.Play.PerformClick(); $savedPlayer=$dialog.Tag.PreviewPlayer
@@ -78,7 +78,7 @@ try {
     $dialog=New-WaitSettingsDialog
     $dialog.Show($form); $dialog.Tag.Recordings.titan.Play.PerformClick(); $disposePlayer=$dialog.Tag.PreviewPlayer; $dialog.Dispose()
     Assert-Ui ($disposePlayer.Stopped -and $disposePlayer.Disposed) 'Disposing settings leaked playback.'
-    [IO.File]::Delete((Join-Path $script:audioRecordingDirectory 'titan-01.wav'))
+    [IO.File]::Delete((Join-Path $script:audioRecordingDirectory 'titan-01-match.wav'))
     $dialog=New-WaitSettingsDialog
     try {$dialog.Show($form); $dialog.Tag.Recordings.titan.Play.PerformClick(); Assert-Ui ($dialog.Tag.Error.Text -match '试听文件不存在' -and $null -eq $dialog.Tag.PreviewPlayer -and $script:audioRecordingSelections.titan -eq 1) 'Missing preview was not handled safely.'}
     finally {$dialog.Dispose()}
