@@ -21,7 +21,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - forerver游戏：`C:\Program Files (x86)\World of Warcraft\_cn_beta_\Interface\AddOns\wow_tools`，客户端Wow.exe 1.60.1.70338，接口16001。
 - 桌面：通过 Windows Desktop 特殊文件夹解析，仅创建 `wowAuto.lnk`，直接指向源码 tools/wowAuto/wowAuto.bat，WorkingDirectory 设置为该源码目录；不复制运行文件到桌面。
 - 同步脚本将旧 `FishingState`、`wowDetector`、`Inner_graphic_config` 插件移到仓库忽略目录 `.local-backups`；快捷方式验证成功后，将桌面旧 wowAuto 三个运行文件及 wow-foreground-loop 两个入口移入该次备份的 Desktop 子目录。只处理确切文件名，不广泛清理桌面；移动前检查绝对路径，源码目录需保留完整运行文件。
-- 不提交本机备份、游戏配置、SavedVariables或外部依赖。备份按titan/forerver分子目录；SavedVariables迁移只在各自客户端内进行，不跨服复制。
+- 不提交本机备份、游戏配置、SavedVariables或外部依赖。tools/wowAuto/config.ini按用户要求纳入Git，属于工具共享配置，不受此条排除；保留用户在设置窗口保存的值，后续维护时检查其改动。备份按titan/forerver分子目录；SavedVariables迁移只在各自客户端内进行，不跨服复制。
 
 ## 行为约定
 
@@ -38,7 +38,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - wowAuto 的 autofish 标签页包含刷新进程、全部开始、全部停止按钮，按已识别的两服进程生成独立控制行，每行横向排列进程信息、开始/停止、使用钓鱼道具复选框、状态框，移除逐进程范围输入。PID后显示时光服/无限服及窗口位置。初始按钮锁定。刷新先停止所有任务并清空事件，再按PID和启动时间更新列表，保留存活行的道具勾选，等待范围属于版本配置，移除已退出行；复用PID不得继承状态或勾选。窗口宽度随新增列适配，屏幕容不下时列表允许滚动。
 - 用户授权刷新扫描轮流切换游戏窗口到前台，约200ms后读取中心色，未识别最多重试到800ms。只有红/绿开放按钮，黄/灰/未知/切换失败保持锁定；刷新期间不允许自动按键或结束游戏。完成后尝试恢复原前台，任务需手动重新开始。
 - 用户已授权运行时自动切换窗口。全部开始只将通过验证的行加入统一调度队列；只有调度目标在前台时发送按键。任务共享单调时钟，不能因切到后台取消收竿事件。
-- 每行默认未启动。工具栏“设置”按钮打开两服统一等待范围编辑器，分别默认9000–13000ms，步长1000ms，允许1–3600000整数且下限不大于上限。保存前验证两份范围，再原子写入%LOCALAPPDATA%/wow_tools/wowAuto.settings.json；覆盖已有文件时File.Replace的无备份参数必须使用[System.Management.Automation.Language.NullString]::Value，不能直接传$null（Windows PowerShell 5.1会转换为空路径并报错）；等待范围及所有进程共用的FocusRetryIntervalMs持久化，不提交本机设置。焦点重试默认30000ms，设置窗口支持1000–3600000整数、步长1000ms；兼容缺少该字段的旧Version=1配置，读取时使用30000ms且保留两服范围。保存前一并验证所有字段，失败不得部分应用。设置按Flavor应用到所有同服活动任务的MinimumMs/MaximumMs，影响下次登记的等待，不重算已登记Deadline/Event.Due。取消/校验或保存失败不应用。重启读取配置，错误则保留默认并显示提示。设置弹窗期间暂停自动切换/发键和刷新扫描，保留队列，关闭后继续。单行停止清除本行事件，全部停止/刷新/关闭窗口清空所有任务与事件。使用非阻塞定时器保持按钮响应。
+- 每行默认未启动。工具栏“设置”按钮打开两服统一等待范围编辑器，两服内部默认9000–13000ms，实际启动值读取config.ini，步长1000ms，允许1–3600000整数且下限不大于上限。保存前验证两份范围，再以key=value原子写入脚本目录tools/wowAuto/config.ini；覆盖已有文件时File.Replace的无备份参数必须使用[System.Management.Automation.Language.NullString]::Value，不能直接传$null（Windows PowerShell 5.1会转换为空路径并报错）；等待范围及所有进程共用的FocusRetryIntervalMs持久化，config.ini须提交到现有origin远端。五个键为TitanMinimumMs/TitanMaximumMs/ForerverMinimumMs/ForerverMaximumMs/FocusRetryIntervalMs；支持空行、;和#整行注释，键名不区分大小写，拒绝重复/缺失/未知键、分节及非法值。保存规范化重写五项，不自动运行Git。焦点重试默认30000ms，设置窗口支持1000–3600000整数、步长1000ms；已迁入原本JSON配置的两服范围和重试值，不再读写LOCALAPPDATA旧JSON。保存前一并验证所有字段，失败不得部分应用。设置按Flavor应用到所有同服活动任务的MinimumMs/MaximumMs，影响下次登记的等待，不重算已登记Deadline/Event.Due。取消/校验或保存失败不应用。重启读取配置，错误则保留默认并显示提示。设置弹窗期间暂停自动切换/发键和刷新扫描，保留队列，关闭后继续。单行停止清除本行事件，全部停止/刷新/关闭窗口清空所有任务与事件。使用非阻塞定时器保持按钮响应。
 - 红色窗口按随机300–600ms周期持续抛竿键直到变绿；相邻周期不同。绿色登记随机毫秒收竿事件，立即轮转下一窗口。已到期收竿优先于下竿和窗口切换，按截止时间/登记顺序处理，但不得抢占收竿后可配置的前台保持阶段。
 - 工具栏在全部停止后显示进程检测数量，提供全局收竿保持输入0–60000ms，默认100，0表示不保持；修改从下次成功收竿生效，不缩短当前保持。启动窗口按内容和行数适配并居中，尺寸限制在屏幕可用区域内，超出高度的行滚动查看。
 - 使用钓鱼道具复选框位于各进程行，默认关闭，可在启动前选择或运行中单独修改；全部开始沿用各行选项。停止/重启该行、刷新保留同一PID+启动时间的勾选，新进程或重启工具默认不勾选。工具栏的下一行仍提供全局抛竿/收竿/道具按键录入，默认0/=/-（主键盘单键，VK48/187/189），支持主键盘-（VK189）和=（VK187），可录入Ctrl/Shift/Alt组合，修改从下一次按键生效，工具重启恢复默认。NativeInput.PressChord负责发送配置键并释放修饰键。
@@ -54,4 +54,4 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - 运行中黄色只有累计有效循环严格大于500（501起）才核对身份并通过Process.CloseMainWindow请求游戏正常退出。先停止该行、清空钓鱼事件并禁用开始；请求后登记独立pendingGameExits保护，30秒未退出才重新核对StartTime及客户端路径/版本身份并对原Process实例Kill一次。正常请求失败但已确认身份并尝试关闭时同样计时；身份改变取消保护，不误杀复用PID。保护检查在主UI定时器独立执行，不阻塞其他任务。进程正常退出取消保护，强制结束失败仅报告，不无限重试；单行停止、全部停止、刷新和工具关闭取消待执行超时保护。请求被接受不代表已退出，不提前设置Exited。次数不足仍只停该行；刷新扫描不请求退出。GracefulExit.Tests.ps1使用模拟进程验证30秒边界、提前退出、阈值、失败和隔离，不关闭真实游戏。不要在部署时点击开始触发真实操作。
 - `tools/wowAuto/tests/Engine.Tests.ps1` 验证纯队列调度。PreviewPath 参数渲染初始窗口；源码中的 UiTest 参数执行 Layout.UiTests.ps1、Refresh.UiTests.ps1 和 Scheduler.UiTests.ps1，以模拟进程验证扫描、按钮、轮转和到期抢占，不调用真实切换/取色/按键/结束进程。
 
-- 窗口位置以窗口中心相对主要所在显示器划分四象限；中心在屏幕中点宽高各10%范围内为居中，最小化/读取失败分别标识最小化/位置未知。ReadWindowPosition在同一DPI上下文读取窗口及显示器物理坐标，支持负坐标显示器；独立1000ms只读定时器更新Row.Position和进程标签，不切换窗口/取色/发键，不改变状态时间戳。ClientIdentity.Tests.ps1仅调用生产C#纯函数；ClientSettings.UiTests.ps1在UiTest内模拟两服队列、统一设置、计时不变、编辑暂停、位置更新、无限服焦点和退出保护。UiTest设置文件使用独立临时路径并清理，不能写用户真实配置。
+- 窗口位置以窗口中心相对主要所在显示器划分四象限；中心在屏幕中点宽高各10%范围内为居中，最小化/读取失败分别标识最小化/位置未知。ReadWindowPosition在同一DPI上下文读取窗口及显示器物理坐标，支持负坐标显示器；独立1000ms只读定时器更新Row.Position和进程标签，不切换窗口/取色/发键，不改变状态时间戳。ClientIdentity.Tests.ps1仅调用生产C#纯函数；ClientSettings.UiTests.ps1在UiTest内模拟两服队列、统一设置、计时不变、编辑暂停、位置更新、无限服焦点和退出保护。UiTest设置文件使用独立临时.ini路径并清理，校验源码config.ini哈希未改变，不能写用户真实配置；覆盖INI重复保存、注释/大小写/BOM、重复/缺失/未知键及非法范围、文件锁定时不部分应用。

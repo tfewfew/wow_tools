@@ -3,6 +3,9 @@ Stop-AllRows
 $savedClientClock=$script:schedulerClock
 $script:scheduler=New-WowAutoScheduler
 $script:schedulerClock=[pscustomobject]@{ElapsedMilliseconds=1000L}
+$sourceConfigPath=Join-Path (Split-Path $PSScriptRoot -Parent) 'config.ini'
+$sourceConfigHash=(Get-FileHash -LiteralPath $sourceConfigPath).Hash
+Assert-Ui ($script:settingsPath.EndsWith('.ini') -and $script:settingsPath -ne $sourceConfigPath) 'UiTest must use an isolated INI file.'
 try {
     $script:mockProcesses=@()
     foreach ($spec in @(@(401,'titan'),@(402,'titan'),@(403,'forerver'),@(404,'forerver'),@(405,'retail'))) {
@@ -61,8 +64,8 @@ try {
         $dialog.Tag.FocusRetry.Value=7500
         $dialog.Tag.Apply.PerformClick()
         Assert-Ui ($dialog.DialogResult -eq 'OK' -and $dialog.Tag.Error.Text -eq '') 'Second save failed to overwrite existing settings.'
-        $persisted=[IO.File]::ReadAllText($script:settingsPath) | ConvertFrom-Json
-        Assert-Ui ($persisted.titan.MinimumMs -eq 9500 -and $persisted.titan.MaximumMs -eq 9500 -and $persisted.forerver.MinimumMs -eq 12000 -and $persisted.forerver.MaximumMs -eq 12000) 'Second save did not persist both changed ranges.'
+        $persisted=Read-WowAutoSettingsIni $script:settingsPath
+        Assert-Ui ($persisted.TitanMinimumMs -eq 9500 -and $persisted.TitanMaximumMs -eq 9500 -and $persisted.ForerverMinimumMs -eq 12000 -and $persisted.ForerverMaximumMs -eq 12000) 'Second save did not persist both changed ranges.'
         Assert-Ui ($persisted.FocusRetryIntervalMs -eq 7500 -and $script:scheduler.FocusRetryIntervalMs -eq 7500 -and $settingsSummary.Text -match '焦点重试 7500') 'Saved focus retry not persisted/applied/displayed.'
         $temporaryFiles=@(Get-ChildItem -LiteralPath (Split-Path $script:settingsPath -Parent) -Filter ((Split-Path $script:settingsPath -Leaf)+'.*.tmp'))
         Assert-Ui ($temporaryFiles.Count -eq 0) 'Second save leaked a temporary settings file.'
@@ -71,20 +74,50 @@ try {
     Set-VersionWaitRanges 1000 1000 2000 2000 -Persist $false -FocusRetryIntervalMs 30000
     Import-VersionWaitSettings
     Assert-Ui ($script:versionRanges.titan.MinimumMs -eq 9500 -and $script:versionRanges.forerver.MinimumMs -eq 12000 -and $script:scheduler.FocusRetryIntervalMs -eq 7500) 'Saved settings did not reload.'
-    # Existing settings have no retry field; keep their waits and use the 30-second default.
-    $savedJson=[IO.File]::ReadAllText($script:settingsPath)
+    # INI supports comments, blank lines, whitespace, case-insensitive keys and UTF-8 BOM.
+    $savedIni=[IO.File]::ReadAllText($script:settingsPath)
     try {
-        $legacy=[pscustomobject]@{Version=1; titan=$persisted.titan; forerver=$persisted.forerver} | ConvertTo-Json -Depth 3
-        [IO.File]::WriteAllText($script:settingsPath,$legacy)
+        $commented="# 自定义配置`r`n`r`n"+$savedIni.Replace('TitanMinimumMs=9500','  titanminimumms = 9500  ')
+        [IO.File]::WriteAllText($script:settingsPath,$commented,(New-Object Text.UTF8Encoding($true)))
+        Set-VersionWaitRanges 1000 1000 2000 2000 -Persist $false -FocusRetryIntervalMs 30000
         Import-VersionWaitSettings
-        Assert-Ui ($script:versionRanges.titan.MinimumMs -eq 9500 -and $script:versionRanges.forerver.MinimumMs -eq 12000 -and $script:scheduler.FocusRetryIntervalMs -eq 30000 -and $script:settingsWarning -eq '') 'Legacy settings lost waits or did not default retry.'
-        $persisted.FocusRetryIntervalMs=0
-        [IO.File]::WriteAllText($script:settingsPath,($persisted | ConvertTo-Json -Depth 3))
-        Import-VersionWaitSettings
-        Assert-Ui ($script:scheduler.FocusRetryIntervalMs -eq 30000 -and $script:settingsWarning -ne '') 'Invalid persisted retry was accepted.'
+        Assert-Ui ($script:versionRanges.titan.MinimumMs -eq 9500 -and $script:versionRanges.forerver.MinimumMs -eq 12000 -and $script:scheduler.FocusRetryIntervalMs -eq 7500 -and $script:settingsWarning -eq '') 'Commented INI failed to reload.'
+        foreach ($invalidIni in @(
+            ($savedIni+"titanminimumms=1000`r`n"),
+            ($savedIni -replace '(?m)^FocusRetryIntervalMs=.*\r?\n?', ''),
+            ($savedIni.Replace('FocusRetryIntervalMs=7500','FocusRetryIntervalMs=0')),
+            ($savedIni.Replace('TitanMinimumMs=9500','TitanMinimumMs=20000')),
+            ($savedIni.Replace('ForerverMaximumMs=12000','ForerverMaximumMs=abc')),
+            ($savedIni+"UnknownKey=1234`r`n"),
+            ($savedIni+"[autofish]`r`n"),
+            ($savedIni+"broken line`r`n")
+        )) {
+            [IO.File]::WriteAllText($script:settingsPath,$invalidIni)
+            $invalidHash=(Get-FileHash -LiteralPath $script:settingsPath).Hash
+            Import-VersionWaitSettings
+            Assert-Ui ($script:scheduler.FocusRetryIntervalMs -eq 7500 -and $script:versionRanges.titan.MinimumMs -eq 9500 -and $script:versionRanges.forerver.MaximumMs -eq 12000 -and $script:settingsWarning -ne '') 'Invalid INI partially applied or lacked a warning.'
+            Assert-Ui ((Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $invalidHash) 'Import rewrote invalid INI.'
+        }
     }
-    finally { [IO.File]::WriteAllText($script:settingsPath,$savedJson); Import-VersionWaitSettings }
+    finally { [IO.File]::WriteAllText($script:settingsPath,$savedIni); Import-VersionWaitSettings }
+    $savedSettingsPath=$script:settingsPath
+    try {
+        $script:settingsPath=$savedSettingsPath+'.missing'
+        Import-VersionWaitSettings
+        Assert-Ui ($script:scheduler.FocusRetryIntervalMs -eq 7500 -and $script:versionRanges.titan.MinimumMs -eq 9500 -and $script:settingsWarning -match '不存在') 'Missing INI failed to retain settings/report warning.'
+    }
+    finally { $script:settingsPath=$savedSettingsPath; Import-VersionWaitSettings }
     $savedHash=(Get-FileHash -LiteralPath $script:settingsPath).Hash
+    # A locked file must leave both persisted and running settings unchanged.
+    $locked=[IO.File]::Open($script:settingsPath,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
+    try {
+        $rejected=$false
+        try { Set-VersionWaitRanges 1000 1000 2000 2000 -FocusRetryIntervalMs 1000 } catch { $rejected=$true }
+        Assert-Ui ($rejected -and $script:scheduler.FocusRetryIntervalMs -eq 7500 -and $script:versionRanges.titan.MinimumMs -eq 9500) 'Failed INI write partially applied settings.'
+    }
+    finally { $locked.Dispose() }
+    Assert-Ui ((Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $savedHash) 'Failed INI write damaged saved settings.'
+    Assert-Ui (@(Get-ChildItem -LiteralPath (Split-Path $script:settingsPath -Parent) -Filter ((Split-Path $script:settingsPath -Leaf)+'.*.tmp')).Count -eq 0) 'Failed INI write leaked a temporary file.'
     foreach ($invalid in @('0','999','3600001','1.5','not-an-integer','999999999999999999999999')) {
         $rejected=$false
         try { Set-VersionWaitRanges 1000 1000 2000 2000 -FocusRetryIntervalMs $invalid } catch { $rejected=$true }
@@ -165,4 +198,5 @@ try {
     Fit-WindowToContent
 }
 finally { $script:editingSettings=$false; Stop-AllRows; $script:schedulerClock=$savedClientClock }
-Write-Output 'PASS: mixed Titan/Infinite UI/scan/start, retail exclusion, shared waits/configurable focus retry, settings dialog/first-save/overwrite/reload/legacy/invalid/cancel, immutable pending deadlines, moving/minimized monitors, configured Infinite focus recovery and exit/client identity. All native actions mocked.'
+Assert-Ui ((Get-FileHash -LiteralPath $sourceConfigPath).Hash -eq $sourceConfigHash) 'UiTest changed the source config.ini.'
+Write-Output 'PASS: mixed Titan/Infinite UI/scan/start, retail exclusion, shared waits/configurable focus retry, INI first-save/overwrite/reload/comments/invalid/locked/cancel and source-file isolation, immutable pending deadlines, moving/minimized monitors, configured Infinite focus recovery and exit/client identity. All native actions mocked.'

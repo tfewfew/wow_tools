@@ -317,9 +317,26 @@ $script:versionRanges = @{
     titan=[pscustomobject]@{MinimumMs=9000; MaximumMs=13000}
     forerver=[pscustomobject]@{MinimumMs=9000; MaximumMs=13000}
 }
-$script:settingsPath = if ($UiTest) { Join-Path ([IO.Path]::GetTempPath()) ('wowAuto-test-' + [Guid]::NewGuid().ToString() + '.json') }
-    else { Join-Path $env:LOCALAPPDATA 'wow_tools\wowAuto.settings.json' }
+$script:settingsPath = if ($UiTest) { Join-Path ([IO.Path]::GetTempPath()) ('wowAuto-test-' + [Guid]::NewGuid().ToString() + '.ini') }
+    else { Join-Path $PSScriptRoot 'config.ini' }
+$script:settingsKeys = @('TitanMinimumMs','TitanMaximumMs','ForerverMinimumMs','ForerverMaximumMs','FocusRetryIntervalMs')
 $script:settingsWarning = ''
+function Read-WowAutoSettingsIni([string]$Path) {
+    $values=@{}; $lineNumber=0
+    foreach ($sourceLine in [IO.File]::ReadAllLines($Path)) {
+        $lineNumber++; $line=$sourceLine.Trim()
+        if ($line -eq '' -or $line.StartsWith(';') -or $line.StartsWith('#')) { continue }
+        if ($line -notmatch '^([A-Za-z][A-Za-z0-9]*)\s*=\s*(\d+)\s*$') { throw "config.ini 第 $lineNumber 行格式错误，需为键=整数毫秒值。" }
+        $key=$matches[1]; $value=$matches[2]
+        if ($key -notin $script:settingsKeys) { throw "config.ini 存在未知配置项：$key。" }
+        if ($values.ContainsKey($key)) { throw "config.ini 存在重复配置项：$key。" }
+        $values[$key]=$value
+    }
+    foreach ($key in $script:settingsKeys) {
+        if (-not $values.ContainsKey($key)) { throw "config.ini 缺少配置项：$key。" }
+    }
+    return $values
+}
 function Update-VersionSummary {
     if ($null -ne $settingsSummary) {
         $t=$script:versionRanges.titan; $f=$script:versionRanges.forerver
@@ -343,8 +360,15 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
         New-Item -ItemType Directory -Path $directory -Force | Out-Null
         $temporary=$script:settingsPath + '.' + [Guid]::NewGuid().ToString() + '.tmp'
         try {
-            $json=[pscustomobject]@{Version=1; titan=$next.titan; forerver=$next.forerver; FocusRetryIntervalMs=$retry} | ConvertTo-Json -Depth 3
-            [IO.File]::WriteAllText($temporary,$json,(New-Object Text.UTF8Encoding($false)))
+            $values=[ordered]@{
+                TitanMinimumMs=$next.titan.MinimumMs; TitanMaximumMs=$next.titan.MaximumMs
+                ForerverMinimumMs=$next.forerver.MinimumMs; ForerverMaximumMs=$next.forerver.MaximumMs
+                FocusRetryIntervalMs=$retry
+            }
+            $lines=@('; wowAuto settings: all values are integer milliseconds.';
+                '; Shared wait ranges by client version; focus retry applies to all processes.')
+            foreach ($key in $script:settingsKeys) { $lines += "$key=$($values[$key])" }
+            [IO.File]::WriteAllText($temporary,($lines -join "`r`n")+"`r`n",(New-Object Text.UTF8Encoding($false)))
             # Windows PowerShell 5.1 converts ordinary $null to an empty string here.
             # File.Replace requires an actual null backup filename, not an empty path.
             if (Test-Path -LiteralPath $script:settingsPath) {
@@ -367,14 +391,15 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
     Update-VersionSummary
 }
 function Import-VersionWaitSettings {
-    if (-not (Test-Path -LiteralPath $script:settingsPath)) { return }
-    try {
-        $saved=[IO.File]::ReadAllText($script:settingsPath) | ConvertFrom-Json
-        if ($saved.Version -ne 1) { throw '不支持的设置格式。' }
-        $retry=if ($null -ne $saved.PSObject.Properties['FocusRetryIntervalMs']) { $saved.FocusRetryIntervalMs } else { 30000 }
-        Set-VersionWaitRanges $saved.titan.MinimumMs $saved.titan.MaximumMs $saved.forerver.MinimumMs $saved.forerver.MaximumMs -Persist $false -FocusRetryIntervalMs $retry
+    if (-not (Test-Path -LiteralPath $script:settingsPath)) {
+        $script:settingsWarning='config.ini 不存在，保留当前配置；请打开设置保存。'
+        return
     }
-    catch { $script:settingsWarning='设置读取失败，保留当前配置；请打开设置重新保存。' }
+    try {
+        $saved=Read-WowAutoSettingsIni $script:settingsPath
+        Set-VersionWaitRanges $saved.TitanMinimumMs $saved.TitanMaximumMs $saved.ForerverMinimumMs $saved.ForerverMaximumMs -Persist $false -FocusRetryIntervalMs $saved.FocusRetryIntervalMs
+    }
+    catch { $script:settingsWarning="config.ini 读取失败，保留当前配置：$($_.Exception.Message)" }
 }
 if (-not $UiTest) { Import-VersionWaitSettings }
 $form = New-Object System.Windows.Forms.Form
@@ -493,7 +518,7 @@ function New-WaitSettingsDialog {
     $retryInput.Minimum=1000; $retryInput.Maximum=3600000; $retryInput.Increment=1000
     $retryInput.Value=$script:scheduler.FocusRetryIntervalMs; $dialog.Controls.Add($retryInput)
     $note=New-Object System.Windows.Forms.Label
-    $note.Text="同版本共用等待范围；焦点重试间隔对所有进程生效。`r`n保存后用于下次计时，已开始的倒计时保持不变。"
+    $note.Text="同版本共用等待范围；焦点重试间隔对所有进程生效。`r`n保存到 config.ini；已开始的倒计时保持不变。"
     $note.SetBounds(18,194,520,48); $dialog.Controls.Add($note)
     $errorLabel=New-Object System.Windows.Forms.Label
     $errorLabel.ForeColor=[System.Drawing.Color]::Firebrick
