@@ -12,7 +12,7 @@ try {
     foreach ($current in @($row,$other)) { $current.Validated=$true; $current.Exited=$false; $current.Process.HasExited=$false }
     Start-Row $row
     Assert-Ui (-not $row.State.Running -and $row.Status.Text -match '尚未校准' -and $script:audioCaptures.Count -eq 0) 'Missing feature bank allowed audio automation.'
-    $samples=New-Object 'System.Int16[]' 7718
+    $samples=New-Object 'System.Int16[]' 15435
     for ($i=1102;$i -lt 3528;$i++) { $samples[$i]=[int16](20000*[Math]::Exp(-($i-1102)/1102)*[Math]::Sin(2*[Math]::PI*880*$i/11025)) }
     $template=[WowAuto.Audio.AudioTemplate]::FromMono($samples,11025)
     [void][IO.Directory]::CreateDirectory($script:audioFeatureDirectory)

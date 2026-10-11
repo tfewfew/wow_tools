@@ -45,32 +45,39 @@ namespace WowAuto.Audio
         }
     }
 
-    // Local, immutable fingerprint: 24 logarithmic FFT bands + 8 envelope bins.
+    // Local, immutable fingerprint: spectrum, time-resolved spectrum and envelope.
     // No dependencies, network, or learned model. Volume is normalized separately.
     public sealed class AudioTemplate
     {
         public const int SampleRate = 11025;
-        public const int WindowSamples = 4096;
-        public const int PreSamples = 882; // 80 ms before the loudness gate.
-        private readonly double[][] spectra, envelopes;
+        public const int WindowSamples = 11025; // One second, including an 80 ms lead-in.
+        public const int PreSamples = 2205; // 200 ms before the loudness gate.
+        public const int CandidateSamples = WindowSamples + PreSamples;
+        private const int SpectrumBands = 24, TimeSlices = 8, EnvelopeBins = 16;
+        private const int TemporalValues = SpectrumBands * TimeSlices;
+        private const int FeatureValues = SpectrumBands + TemporalValues + EnvelopeBins;
+        private readonly double[][] spectra, temporalSpectra, envelopes;
         public double MinimumSimilarity { get; private set; }
         public bool IsTrial { get; private set; }
         public int Count { get { return spectra.Length; } }
         private AudioTemplate(short[] samples)
         {
-            double[] spectrum, envelope;
-            Describe(SelectEvent(samples), out spectrum, out envelope);
-            spectra = new double[][] { spectrum }; envelopes = new double[][] { envelope };
-            MinimumSimilarity = 0.88;
+            short[] selected = SelectEvent(samples);
+            if (selected == null) throw new InvalidDataException("Provide the first sound within 600 ms and enough leading/trailing audio for a complete one-second fingerprint.");
+            double[] spectrum, temporal, envelope;
+            Describe(selected, 0, out spectrum, out temporal, out envelope);
+            spectra = new double[][] { spectrum }; temporalSpectra = new double[][] { temporal }; envelopes = new double[][] { envelope };
+            MinimumSimilarity = 0.86;
             IsTrial = true;
         }
-        private AudioTemplate(double[][] frequencies, double[][] shapes, double threshold, bool trial)
-        { spectra = frequencies; envelopes = shapes; MinimumSimilarity = threshold; IsTrial = trial; }
+        private AudioTemplate(double[][] frequencies, double[][] temporal, double[][] shapes, double threshold, bool trial)
+        { spectra = frequencies; temporalSpectra = temporal; envelopes = shapes; MinimumSimilarity = threshold; IsTrial = trial; }
         public static AudioTemplate LoadFeatures(string path)
         {
             if (new FileInfo(path).Length > 65536) throw new InvalidDataException("Feature file is too large.");
             Dictionary<string, string> headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            List<double[]> frequencies = new List<double[]>(), shapes = new List<double[]>();
+            List<double[]> frequencies = new List<double[]>(), temporal = new List<double[]>(), shapes = new List<double[]>();
+            HashSet<string> knownHeaders = new HashSet<string>(new string[] { "Format", "SampleRate", "WindowSamples", "SpectrumBands", "TimeSlices", "EnvelopeBins", "Threshold", "Status" }, StringComparer.OrdinalIgnoreCase);
             foreach (string source in File.ReadAllLines(path))
             {
                 string line = source.Trim(); if (line.Length == 0 || line.StartsWith("#")) continue;
@@ -79,21 +86,24 @@ namespace WowAuto.Audio
                 if (String.Equals(key, "Template", StringComparison.OrdinalIgnoreCase))
                 {
                     if (frequencies.Count >= 8) throw new InvalidDataException("At most 8 bite feature variants.");
-                    string[] values = value.Split(','); if (values.Length != 32) throw new InvalidDataException("32 feature values required.");
-                    double[] bands = new double[24], envelope = new double[8];
+                    string[] values = value.Split(','); if (values.Length != FeatureValues) throw new InvalidDataException("232 feature values required for format 2.");
+                    double[] bands = new double[SpectrumBands], timed = new double[TemporalValues], envelope = new double[EnvelopeBins];
                     for (int i = 0; i < values.Length; i++)
                     {
                         double number;
                         if (!Double.TryParse(values[i], NumberStyles.Float, CultureInfo.InvariantCulture, out number) ||
                             Double.IsNaN(number) || Double.IsInfinity(number) || number < 0 || number > 1)
                             throw new InvalidDataException("Feature values must be finite, normalized numbers.");
-                        if (i < 24) bands[i] = number; else envelope[i - 24] = number;
+                        if (i < SpectrumBands) bands[i] = number;
+                        else if (i < SpectrumBands + TemporalValues) timed[i - SpectrumBands] = number;
+                        else envelope[i - SpectrumBands - TemporalValues] = number;
                     }
-                    CheckNormalized(bands); CheckNormalized(envelope); frequencies.Add(bands); shapes.Add(envelope);
+                    CheckNormalized(bands); CheckNormalized(timed); CheckNormalized(envelope);
+                    frequencies.Add(bands); temporal.Add(timed); shapes.Add(envelope);
                 }
                 else
                 {
-                    if (key != "Format" && key != "SampleRate" && key != "WindowSamples" && key != "Threshold" && key != "Status")
+                    if (!knownHeaders.Contains(key))
                         throw new InvalidDataException("Unknown feature header.");
                     if (headers.ContainsKey(key)) throw new InvalidDataException("Duplicate feature header.");
                     headers.Add(key, value);
@@ -101,14 +111,17 @@ namespace WowAuto.Audio
             }
             double threshold;
             if (!headers.ContainsKey("Format") || !headers.ContainsKey("SampleRate") || !headers.ContainsKey("WindowSamples") || !headers.ContainsKey("Threshold") ||
-                headers["Format"] != "1" || headers["SampleRate"] != "11025" || headers["WindowSamples"] != "4096" ||
+                headers["Format"] != "2" || headers["SampleRate"] != "11025" || headers["WindowSamples"] != "11025" ||
+                !headers.ContainsKey("SpectrumBands") || headers["SpectrumBands"] != "24" ||
+                !headers.ContainsKey("TimeSlices") || headers["TimeSlices"] != "8" ||
+                !headers.ContainsKey("EnvelopeBins") || headers["EnvelopeBins"] != "16" ||
                 !Double.TryParse(headers["Threshold"], NumberStyles.Float, CultureInfo.InvariantCulture, out threshold) ||
                 Double.IsNaN(threshold) || threshold < 0.5 || threshold > 1 || frequencies.Count == 0)
                 throw new InvalidDataException("Missing/unsupported feature format or threshold.");
             string reviewStatus;
             if (!headers.TryGetValue("Status", out reviewStatus)) reviewStatus = "trial";
             if (reviewStatus != "trial" && reviewStatus != "verified") throw new InvalidDataException("Feature status must be trial or verified.");
-            return new AudioTemplate(frequencies.ToArray(), shapes.ToArray(), threshold, reviewStatus == "trial");
+            return new AudioTemplate(frequencies.ToArray(), temporal.ToArray(), shapes.ToArray(), threshold, reviewStatus == "trial");
         }
         private static void CheckNormalized(double[] values)
         {
@@ -121,22 +134,23 @@ namespace WowAuto.Audio
         {
             if (templates == null || templates.Length < 1 || templates.Length > 8 || Double.IsNaN(threshold) || threshold < 0.5 || threshold > 1)
                 throw new ArgumentException("1-8 templates and a threshold 0.5-1 are required.");
-            List<string> lines = new List<string> { "# wowAuto bite fingerprints; no recorded audio", "Format=1", "SampleRate=11025", "WindowSamples=4096", "Status=trial",
+            List<string> lines = new List<string> { "# wowAuto bite fingerprints; no recorded audio", "Format=2", "SampleRate=11025", "WindowSamples=11025", "SpectrumBands=24", "TimeSlices=8", "EnvelopeBins=16", "Status=trial",
                 "Threshold=" + threshold.ToString("R", CultureInfo.InvariantCulture) };
             foreach (AudioTemplate template in templates)
             {
                 if (template == null || template.Count != 1) throw new ArgumentException("Export individual calibrated samples.");
-                string[] values = new string[32];
-                for (int i = 0; i < 24; i++) values[i] = template.spectra[0][i].ToString("R", CultureInfo.InvariantCulture);
-                for (int i = 0; i < 8; i++) values[i + 24] = template.envelopes[0][i].ToString("R", CultureInfo.InvariantCulture);
+                string[] values = new string[FeatureValues];
+                for (int i = 0; i < SpectrumBands; i++) values[i] = template.spectra[0][i].ToString("R", CultureInfo.InvariantCulture);
+                for (int i = 0; i < TemporalValues; i++) values[i + SpectrumBands] = template.temporalSpectra[0][i].ToString("R", CultureInfo.InvariantCulture);
+                for (int i = 0; i < EnvelopeBins; i++) values[i + SpectrumBands + TemporalValues] = template.envelopes[0][i].ToString("R", CultureInfo.InvariantCulture);
                 lines.Add("Template=" + String.Join(",", values));
             }
             File.WriteAllLines(path, lines);
         }
         public static AudioTemplate FromMono(short[] samples, int rate)
         {
-            if (samples == null || rate < 8000 || rate > 192000 || samples.Length < rate / 5 || samples.Length > rate * 10)
-                throw new InvalidDataException("Use a 0.2-10 second WAV sample (8-192 kHz).");
+            if (samples == null || rate < 8000 || rate > 192000 || samples.Length < rate * 6 / 5 || samples.Length > rate * 10)
+                throw new InvalidDataException("Use a 1.2-10 second mono sample (8-192 kHz).");
             short[] mono = Resample(samples, rate);
             if (SpikeDetector.Pcm16Peak(mono) < 0.005) throw new InvalidDataException("Sample is silent or too quiet.");
             return new AudioTemplate(mono);
@@ -157,17 +171,21 @@ namespace WowAuto.Audio
         }
         private static short[] SelectEvent(short[] samples)
         {
-            const int hop = 110; // Locate the loudest 10 ms, then its onset.
-            int count = (samples.Length + hop - 1) / hop, loudest = 0;
+            const int hop = 110;
+            // Anchor the first burst, not a louder unrelated sound later in the clip.
+            // Both offline samples and live candidates must retain the complete tail.
+            int count = (Math.Min(samples.Length, SampleRate * 3 / 5) + hop - 1) / hop, loudest = 0;
+            if (count == 0) return null;
             double[] energy = new double[count];
-            for (int i = 0; i < samples.Length; i++) energy[i / hop] += (double)samples[i] * samples[i];
+            for (int i = 0; i < Math.Min(samples.Length, count * hop); i++) energy[i / hop] += (double)samples[i] * samples[i];
             for (int i = 1; i < count; i++) if (energy[i] > energy[loudest]) loudest = i;
             int onset = loudest;
-            while (onset > 0 && loudest - onset < 10 && energy[onset - 1] > energy[loudest] * 0.04) onset--;
-            int start = onset * hop - PreSamples;
+            if (energy[loudest] == 0) return null;
+            while (onset > 0 && loudest - onset < 30 && energy[onset - 1] > energy[loudest] * 0.04) onset--;
+            int start = onset * hop - 882; // 80 ms before the energy onset.
+            if (start < 0 || start + WindowSamples > samples.Length) return null;
             short[] result = new short[WindowSamples];
-            for (int i = 0; i < result.Length; i++)
-                if (start + i >= 0 && start + i < samples.Length) result[i] = samples[start + i];
+            Array.Copy(samples, start, result, 0, result.Length);
             return result;
         }
         private static void Normalize(double[] values)
@@ -176,9 +194,9 @@ namespace WowAuto.Audio
             length = Math.Sqrt(length);
             if (length > 0) for (int i = 0; i < values.Length; i++) values[i] /= length;
         }
-        private static void Describe(short[] samples, out double[] bands, out double[] shape)
+        private static void Describe(short[] samples, int shift, out double[] bands, out double[] temporal, out double[] shape)
         {
-            bands = new double[24]; shape = new double[8];
+            bands = new double[SpectrumBands]; temporal = new double[TemporalValues]; shape = new double[EnvelopeBins];
             const int size = 512;
             double[] real = new double[size], imaginary = new double[size];
             for (int start = 0; start + size <= samples.Length; start += 256)
@@ -189,14 +207,21 @@ namespace WowAuto.Audio
                 for (int i = 1; i < size / 2; i++)
                 {
                     double hz = i * SampleRate / (double)size;
-                    int band = (int)(Math.Log(hz / 40, 2) / Math.Log(5500.0 / 40, 2) * 24);
-                    if (band >= 0 && band < 24) bands[band] += real[i] * real[i] + imaginary[i] * imaginary[i];
+                    int band = (int)(Math.Log(hz / 40, 2) / Math.Log(5500.0 / 40, 2) * SpectrumBands);
+                    if (band >= 0 && band < SpectrumBands)
+                    {
+                        double power = real[i] * real[i] + imaginary[i] * imaginary[i];
+                        bands[band] += power;
+                        int slice = Math.Max(0, Math.Min(TimeSlices - 1, (start + size / 2 + shift) * TimeSlices / samples.Length));
+                        temporal[slice * SpectrumBands + band] += power;
+                    }
                 }
             }
-            for (int i = 0; i < samples.Length; i++) shape[Math.Min(7, i * 8 / samples.Length)] += (double)samples[i] * samples[i];
+            for (int i = 0; i < samples.Length; i++) shape[Math.Max(0, Math.Min(EnvelopeBins - 1, (i + shift) * EnvelopeBins / samples.Length))] += (double)samples[i] * samples[i];
             for (int i = 0; i < bands.Length; i++) bands[i] = Math.Sqrt(bands[i]);
+            for (int i = 0; i < temporal.Length; i++) temporal[i] = Math.Sqrt(temporal[i]);
             for (int i = 0; i < shape.Length; i++) shape[i] = Math.Sqrt(shape[i]);
-            Normalize(bands); Normalize(shape);
+            Normalize(bands); Normalize(temporal); Normalize(shape);
         }
         private static void Fft(double[] real, double[] imaginary)
         {
@@ -224,21 +249,27 @@ namespace WowAuto.Audio
         }
         public double Compare(short[] candidate)
         {
-            if (candidate == null || candidate.Length < SampleRate / 5) return 0;
-            double[] bands, shape; Describe(SelectEvent(candidate), out bands, out shape);
+            if (candidate == null || candidate.Length < WindowSamples) return 0;
+            short[] selected = SelectEvent(candidate); if (selected == null) return 0;
             double best = 0;
-            for (int variant = 0; variant < Count; variant++)
+            // One FFT-hop tolerance handles packet phase without erasing time order.
+            for (int shift = -256; shift <= 256; shift += 256)
             {
-                double frequency = 0, timing = 0;
-                for (int i = 0; i < bands.Length; i++) frequency += spectra[variant][i] * bands[i];
-                for (int i = 0; i < shape.Length; i++) timing += envelopes[variant][i] * shape[i];
-                best = Math.Max(best, 0.8 * frequency + 0.2 * timing);
+                double[] bands, temporal, shape; Describe(selected, shift, out bands, out temporal, out shape);
+                for (int variant = 0; variant < Count; variant++)
+                {
+                    double frequency = 0, sequence = 0, timing = 0;
+                    for (int i = 0; i < bands.Length; i++) frequency += spectra[variant][i] * bands[i];
+                    for (int i = 0; i < temporal.Length; i++) sequence += temporalSpectra[variant][i] * temporal[i];
+                    for (int i = 0; i < shape.Length; i++) timing += envelopes[variant][i] * shape[i];
+                    best = Math.Max(best, 0.35 * frequency + 0.5 * sequence + 0.15 * timing);
+                }
             }
             return Math.Max(0, Math.Min(1, best));
         }
     }
 
-    // FFT work runs only after a spike, once per ~370 ms candidate. A fixed
+    // FFT work runs only after a spike, after ~1 s of following audio. A fixed
     // pre-roll ring and bounded candidate prevent unbounded per-PID memory use.
     public sealed class TemplateDetector
     {
@@ -263,7 +294,7 @@ namespace WowAuto.Audio
             if (candidate == null && now >= retryAt && spike.Probe(peak, now)) candidate = new List<short>(history);
             if (candidate != null) candidate.AddRange(mono);
             foreach (short value in mono) { history.Enqueue(value); if (history.Count > AudioTemplate.PreSamples) history.Dequeue(); }
-            if (candidate == null || candidate.Count < AudioTemplate.WindowSamples) return false;
+            if (candidate == null || candidate.Count < AudioTemplate.CandidateSamples) return false;
             LastSimilarity = template.Compare(candidate.ToArray()); candidate = null;
             if (LastSimilarity >= threshold) { spike.Accept(); return true; }
             Rejected++; retryAt = now + 150; return false;
