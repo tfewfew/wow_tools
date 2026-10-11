@@ -298,8 +298,26 @@ if (-not ('WowAuto.DimTabControl' -as [type])) {
     Add-Type -ReferencedAssemblies System.Windows.Forms,System.Drawing -TypeDefinition @'
 using System;
 using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 namespace WowAuto {
+    public sealed class DimForm : Form {
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr window, int attribute,
+            ref int value, int size);
+        protected override void OnHandleCreated(EventArgs e) {
+            base.OnHandleCreated(e);
+            // Apply per-window caption colors again whenever WinForms recreates the handle.
+            try {
+                int dark = 1, black = 0, white = 0x00FFFFFF;
+                DwmSetWindowAttribute(Handle, 20, ref dark, sizeof(int)); // Immersive dark mode.
+                DwmSetWindowAttribute(Handle, 35, ref black, sizeof(int)); // Caption color.
+                DwmSetWindowAttribute(Handle, 36, ref white, sizeof(int)); // Caption text color.
+            }
+            catch (DllNotFoundException) { }
+            catch (EntryPointNotFoundException) { }
+        }
+    }
     // Keep disabled controls readable without changing their input permissions.
     public sealed class DimButton : Button {
         protected override void OnPaint(PaintEventArgs e) {
@@ -516,7 +534,7 @@ function Set-UiButtonStyle($Button, [bool]$Accent=$false) {
     $Button.FlatAppearance.MouseOverBackColor=[System.Drawing.Color]::FromArgb(104,104,104)
     $Button.FlatAppearance.MouseDownBackColor=[System.Drawing.Color]::FromArgb(64,64,64)
 }
-$form = New-Object System.Windows.Forms.Form
+$form = New-Object WowAuto.DimForm
 $form.Text = 'wowAuto'
 $form.ClientSize = New-Object System.Drawing.Size(1330, 460)
 $form.MinimumSize = New-Object System.Drawing.Size(1250, 350)
@@ -644,7 +662,7 @@ $script:keyBindings=@{
 }
 
 function New-WaitSettingsDialog {
-    $dialog=New-Object System.Windows.Forms.Form
+    $dialog=New-Object WowAuto.DimForm
     $dialog.Text='自动钓鱼设置'
     $dialog.Font=$form.Font
     $dialog.BackColor=$script:uiColors.Background
