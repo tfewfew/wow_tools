@@ -72,6 +72,7 @@ end
 local function ResetAfterDeath()
     if not initialized then return end
     local wasEnabled = enabled
+    WoWTools.audio.Restore()
     enabled = false
     elapsed = 0
     freeSlots = nil
@@ -182,9 +183,14 @@ local function SetEnabled(value)
             Say("角色死亡或处于灵魂状态，无法启动检测。")
             return
         end
+        if not enabled then
+            local ok, reason = WoWTools.audio.Start()
+            if not ok then Say(reason) end
+        end
         CenterIndicator()
         wowDetectorDB.locked = true
     else
+        if not WoWTools.audio.Restore() then Say("部分音频设置未恢复，将在关闭或重载时重试。") end
         panel:StopMovingOrSizing()
         wowDetectorDB.locked = false
     end
@@ -243,6 +249,7 @@ end)
 panel:RegisterEvent("ADDON_LOADED")
 panel:RegisterEvent("PLAYER_ENTERING_WORLD")
 panel:RegisterEvent("PLAYER_DEAD")
+panel:RegisterEvent("PLAYER_LOGOUT")
 panel:RegisterEvent("PLAYER_ALIVE")
 panel:RegisterEvent("PLAYER_UNGHOST")
 panel:RegisterEvent("BAG_UPDATE_DELAYED")
@@ -260,6 +267,7 @@ panel:SetScript("OnEvent", function(_, event, unit)
     if event == "ADDON_LOADED" then
         if unit ~= "wow_tools" then return end
         if type(wowDetectorDB) ~= "table" then wowDetectorDB = {} end
+        WoWTools.audio.Restore()
         wowDetectorDB.locked = false
         local pos = wowDetectorDB.position
         if type(pos) == "table" and type(pos[1]) == "string"
@@ -274,6 +282,8 @@ panel:SetScript("OnEvent", function(_, event, unit)
         wowDetectorDB.panelHidden = true
         panel:Hide()
         Say("已加载，默认隐藏且检测关闭。小地图入口打开界面，或输入 /wowdetector on。")
+    elseif event == "PLAYER_LOGOUT" then
+        WoWTools.audio.Restore()
     elseif event == "PLAYER_DEAD" then
         ResetAfterDeath()
     elseif event == "PLAYER_ENTERING_WORLD" and UnitIsDeadOrGhost("player") then

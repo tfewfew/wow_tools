@@ -5,7 +5,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 # wow_tools
 
-源码仓库：`C:\code\wow_tools`，远端 `origin`。插件源码分开归档在 `addon/titan/wow_tools/`（时光服）和 `addon/forerver/wow_tools/`（无限服），保留用户指定的forerver拼写；不要恢复旧的addon/wow_tools或让两服互相引用源码。图形工具在 `tools/wowAuto/`（wowAuto.ps1、wowAuto.Engine.ps1、wowAuto.bat），使用说明在该目录 README.md。不要把游戏目录或桌面副本当作修改源。
+源码仓库：`C:\code\wow_tools`，远端 `origin`。插件源码分开归档在 `addon/titan/wow_tools/`（时光服）和 `addon/forerver/wow_tools/`（无限服），保留用户指定的forerver拼写；不要恢复旧的addon/wow_tools或让两服互相引用源码。图形工具在 `tools/wowAuto/`（wowAuto.ps1、wowAuto.Engine.ps1、wowAuto.Audio.cs、wowAuto.bat），使用说明在该目录 README.md。不要把游戏目录或桌面副本当作修改源。
 
 ## 修改与同步顺序
 
@@ -25,7 +25,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 ## 行为约定
 
-- titan版归档保留原2.1.1源码和TOC。forerver版2.2.0按无限服1.60.1.70338的Blizzard导出源码943764493e6b16d63ded3ab304150d1f05e58b57移植；以后跟随对应分支源码核对API，不能仅改TOC号。
+- titan版基于原2.1.1独立维护，当前2.1.2/接口38002。forerver版当前2.2.1/接口16001按无限服1.60.1.70338的Blizzard导出源码943764493e6b16d63ded3ab304150d1f05e58b57移植；以后跟随对应分支源码核对API，不能仅改TOC号。
 - forerver在Init.lua后加载Compatibility.lua：ItemLocation主手槽16及C_Item.GetItemID/GetItemInfoInstant识别鱼竿，C_Item.GetWeaponEnchantInfo(Enum.WeaponSlot.MainHand)返回列表，只接受有效Temporary附魔，排除Permanent/Imbue；失败或受限/不完整数据为unknown。UnitChannelInfo的技能ID在第8项，UnitCastingInfo在第9项；先用issecretvalue排除受限返回再比较/输出，受限施法使主色块灰色。注册WEAPON_ENCHANT_CHANGED并每0.1秒刷新。菜单使用MenuUtil.CreateContextMenu；画面模块移动FramerateFrame整体，不再依赖FramerateLabel全局。未提供的CVar继续禁用，禁止加载时自动改变图形设置。forever测试覆盖全TOC加载，不发送游戏按键。
 - wowAuto同时识别时光服_classic_titan_/WowClassic.exe 3.80.和无限服_cn_beta_/Wow.exe 1.60.，允许游戏根目录位于其他盘符，但产品目录名须匹配。GetClientFlavor同时核对可执行文件名、父目录与构建前缀；未知/无法读取/零售服不加入列表。每行Client保存Flavor、Label、ExecutablePath；启动、取色、焦点切换、发键及正常/超时退出均核对PID、StartTime、路径与客户端身份。C#方法接收启动Ticks和预期路径，不能退回只按Wow进程名操作。
 
@@ -39,7 +39,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - 用户授权刷新扫描轮流切换游戏窗口到前台，约200ms后读取中心色，未识别最多重试到800ms。只有红/绿开放按钮，黄/灰/未知/切换失败保持锁定；刷新期间不允许自动按键或结束游戏。完成后尝试恢复原前台，任务需手动重新开始。
 - 用户已授权运行时自动切换窗口。全部开始只将通过验证的行加入统一调度队列；只有调度目标在前台时发送按键。任务共享单调时钟，不能因切到后台取消收竿事件。
 - 每行默认未启动。工具栏“设置”按钮打开两服统一等待范围编辑器，两服内部默认9000–13000ms，实际启动值读取config.ini，步长1000ms，允许1–3600000整数且下限不大于上限。保存前验证两份范围，再以key=value原子写入脚本目录tools/wowAuto/config.ini；覆盖已有文件时File.Replace的无备份参数必须使用[System.Management.Automation.Language.NullString]::Value，不能直接传$null（Windows PowerShell 5.1会转换为空路径并报错）；等待范围及所有进程共用的FocusRetryIntervalMs持久化，config.ini须提交到现有origin远端。五个键为TitanMinimumMs/TitanMaximumMs/ForerverMinimumMs/ForerverMaximumMs/FocusRetryIntervalMs；支持空行、;和#整行注释，键名不区分大小写，拒绝重复/缺失/未知键、分节及非法值。保存规范化重写五项，不自动运行Git。焦点重试默认30000ms，设置窗口支持1000–3600000整数、步长1000ms；已迁入原本JSON配置的两服范围和重试值，不再读写LOCALAPPDATA旧JSON。保存前一并验证所有字段，失败不得部分应用。设置按Flavor应用到所有同服活动任务的MinimumMs/MaximumMs，影响下次登记的等待，不重算已登记Deadline/Event.Due。取消/校验或保存失败不应用。重启读取配置，错误则保留默认并显示提示。设置弹窗期间暂停自动切换/发键和刷新扫描，保留队列，关闭后继续。单行停止清除本行事件，全部停止/刷新/关闭窗口清空所有任务与事件。使用非阻塞定时器保持按钮响应。
-- 红色窗口按随机300–600ms周期持续抛竿键直到变绿；相邻周期不同。绿色登记随机毫秒收竿事件，立即轮转下一窗口。已到期收竿优先于下竿和窗口切换，按截止时间/登记顺序处理，但不得抢占收竿后可配置的前台保持阶段。
+- 红色窗口按随机300–600ms周期持续抛竿键直到变绿；相邻周期不同。定时模式绿色登记随机毫秒收竿事件，立即轮转下一窗口。已到期收竿优先于下竿和窗口切换，按截止时间/登记顺序处理，但不得抢占收竿后可配置的前台保持阶段。
 - 工具栏在全部停止后显示进程检测数量，提供全局收竿保持输入0–60000ms，默认100，0表示不保持；修改从下次成功收竿生效，不缩短当前保持。启动窗口按内容和行数适配并居中，尺寸限制在屏幕可用区域内，超出高度的行滚动查看。
 - 使用钓鱼道具复选框位于各进程行，默认关闭，可在启动前选择或运行中单独修改；全部开始沿用各行选项。停止/重启该行、刷新保留同一PID+启动时间的勾选，新进程或重启工具默认不勾选。工具栏的下一行仍提供全局抛竿/收竿/道具按键录入，默认0/=/-（主键盘单键，VK48/187/189），支持主键盘-（VK189）和=（VK187），可录入Ctrl/Shift/Alt组合，修改从下一次按键生效，工具重启恢复默认。NativeInput.PressChord负责发送配置键并释放修饰键。
 - wowDetector新增鱼饵小色块，中心固定为原中心检测点右侧32个物理屏幕像素、大小12x12物理像素。UI单位每物理像素为768/GetPhysicalScreenSize返回的实际画面高度/panel:GetEffectiveScale()（与Blizzard PixelUtil换算一致），不能只除UI缩放。DISPLAY_SIZE_CHANGED、UI_SCALE_CHANGED和监测中每0.1秒刷新都重新定位；尺寸或缩放无效时隐藏小点并设为未知，有效后恢复，主色块坐标不变。titan使用GetInventoryItemLink(player,16)及GetItemInfoInstant确认主手为武器类2、鱼竿子类20，再以GetWeaponEnchantInfo主手临时附魔及剩余毫秒判断：蓝色有效、紫色缺失/过期、灰色关闭/死亡/非鱼竿/未知。水下诱鱼器及其他有效临时鱼饵附魔均算有效，永久附魔不算；不依赖普通UnitAura；forerver使用上述Compatibility.lua的新版接口。状态命令包含附魔、开关/显隐、画面像素尺寸及小点定位信息，死亡关闭重置小点。LureDetection.Tests.lua按UI单位*有效缩放*实际高度/768还原物理像素，覆盖窗口尺寸和UI缩放组合，不能把有效缩放误当完整像素换算。
@@ -55,3 +55,11 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - `tools/wowAuto/tests/Engine.Tests.ps1` 验证纯队列调度。PreviewPath 参数渲染初始窗口；源码中的 UiTest 参数执行 Layout.UiTests.ps1、Refresh.UiTests.ps1 和 Scheduler.UiTests.ps1，以模拟进程验证扫描、按钮、轮转和到期抢占，不调用真实切换/取色/按键/结束进程。
 
 - 窗口位置以窗口中心相对主要所在显示器划分四象限；中心在屏幕中点宽高各10%范围内为居中，最小化/读取失败分别标识最小化/位置未知。ReadWindowPosition在同一DPI上下文读取窗口及显示器物理坐标，支持负坐标显示器；独立1000ms只读定时器更新Row.Position和进程标签，不切换窗口/取色/发键，不改变状态时间戳。ClientIdentity.Tests.ps1仅调用生产C#纯函数；ClientSettings.UiTests.ps1在UiTest内模拟两服队列、统一设置、计时不变、编辑暂停、位置更新、无限服焦点和退出保护。UiTest设置文件使用独立临时.ini路径并清理，校验源码config.ini哈希未改变，不能写用户真实配置；覆盖INI重复保存、注释/大小写/BOM、重复/缺失/未知键及非法范围、文件锁定时不部分应用。
+
+## 音频咬钩检测及设置恢复
+
+- 两服独立的wowDetector/Audio.lua在检测模块前加载。仅从关闭切到开启时保存支持的音频CVar到wowDetectorDB.audioSnapshot，开启总声音/SFX/后台声音，总音量/SFX设为1，静音音乐/环境/对话/错误/宠物/表情。重复on不覆盖原值；hide不改变检测或音频。off、面板关闭、死亡、PLAYER_LOGOUT恢复；ADDON_LOADED补充恢复旧快照。恢复失败原值保留重试，禁止覆盖未恢复快照。不修改音频输出设备、Windows音量或图形设置。AudioSettings.Tests.lua用Lua5.1验证两服。
+- wowAuto.Audio.cs通过系统.NET Framework Add-Type加载，使用Windows Build20348+的ActivateAudioInterfaceAsync/进程回环，仅捕获目标PID及子进程。背景线程核对PID/StartTime/路径，不回退系统音频；GUI启动及消费信号仍核对客户端身份。开始建立独立监听，启动完成前禁止抛竿；失败停止本行并报告；停止/刷新/退出释放监听。禁止给真实游戏发送按键或采集游戏音频来验证。
+- 工具栏音频勾选默认开启，只有全部任务停止可更改，不写入config.ini。原五项INI不变，等待范围仅用于取消音频勾选后的定时模式。音频确认绿色后登记独立钓鱼会话/35秒超时，不登记随机Reel。前1秒屏蔽抛竿声音并建立基线，峰值>=0.06、>=基线+0.025且>=基线*3才触发，每会话一次；这是音量突变，不宣称识别咬钩音效内容或归属。
+- 音频信号按任务引用/会话隔离，进入原Reel优先队列，遵守ReelHoldUntil和ItemHoldUntil。道具3秒期间解除所有音频监听的判断/清空未处理噪声，之后重新预热。收竿前绿色才下发，红色取消重抛，灰/未知停本行，黄色沿用背包规则。无信号35秒重抛不计循环，收竿成功计数及后续跳跃/强制抛竿/红转绿不变。焦点暂停保留信号队列。峰值显示变化不更新时间戳。
+- Audio.Detector.Tests.ps1只编译并测试合成数据/结构；Audio.Engine.Tests.ps1测试纯调度；UiTest额外运行Audio.UiTests.ps1，所有监听和游戏操作模拟。Audio.Capture.Smoke.ps1仅监听自身无声测试PowerShell进程，允许PCM转换的2个最低有效位噪声，验证本机接口初始化和身份拒绝，不监听游戏或发送输入。部署后请用户/reload并重启wowAuto；真实无限服声音准确率需后续实测。

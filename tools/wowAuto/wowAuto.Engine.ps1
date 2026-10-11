@@ -12,6 +12,7 @@ function New-WowAutoState {
         UseItem=$false; ItemDue=0L; ItemRetryAt=0L; InitialItemPending=$false
         ItemStatus=''
         FocusRetryAt=0L; FocusResumeStatus=''
+        UseAudio=$false; AudioReady=$true; AudioSession=0L; FishingStartedAt=0L
         Status='已加入统一调度队列。'
     }
 }
@@ -132,10 +133,11 @@ function Stop-WowAutoTask($Scheduler, [string]$Key, [string]$Reason='已停止�
     }
     if ($Scheduler.ActiveKey -eq $Key) { $Scheduler.ActiveKey=$null }
 }
-function Add-WowAutoTask($Scheduler, [string]$Key, [int]$MinimumMs, [int]$MaximumMs, [long]$Now, [bool]$UseItem=$false) {
+function Add-WowAutoTask($Scheduler, [string]$Key, [int]$MinimumMs, [int]$MaximumMs, [long]$Now, [bool]$UseItem=$false, [bool]$UseAudio=$false) {
     $state=New-WowAutoState $MinimumMs $MaximumMs
     Stop-WowAutoTask $Scheduler $Key
     $state.NextDue=$Now
+    $state.UseAudio=$UseAudio; $state.AudioReady=-not $UseAudio
     $Scheduler.Tasks[$Key]=$state
     $Scheduler.Order.Add($Key)
     Set-WowAutoItemEnabled $Scheduler $Key $UseItem $Now
@@ -169,9 +171,15 @@ function Get-WowAutoWork($Scheduler, [long]$Now) {
     if ($due.Count -gt 0) {
         return [pscustomobject]@{ Key=$due[0].Key; Kind='Reel'; Due=$due[0].Due }
     }
+    $timeouts=@($Scheduler.Events | Where-Object {
+        $_.Kind -eq 'AudioTimeout' -and $_.Due -le $Now -and $Scheduler.Tasks[$_.Key].FocusRetryAt -eq 0
+    } | Sort-Object Due,Sequence)
+    if ($timeouts.Count -gt 0) {
+        return [pscustomobject]@{ Key=$timeouts[0].Key; Kind='AudioTimeout'; Due=$timeouts[0].Due }
+    }
     $item=@($Scheduler.Order | Where-Object {
         $s=$Scheduler.Tasks[$_]
-        $s.Running -and $s.UseItem -and $s.FocusRetryAt -eq 0 -and $s.Mode -in @('Ready','Casting') -and $s.ItemDue -le $Now
+        $s.Running -and $s.AudioReady -and $s.UseItem -and $s.FocusRetryAt -eq 0 -and $s.Mode -in @('Ready','Casting') -and $s.ItemDue -le $Now
     } | Sort-Object { $Scheduler.Tasks[$_].ItemDue })
     if ($item.Count -gt 0) {
         return [pscustomobject]@{ Key=$item[0]; Kind='Item'; Due=$Scheduler.Tasks[$item[0]].ItemDue }
@@ -186,7 +194,7 @@ function Get-WowAutoWork($Scheduler, [long]$Now) {
     }
     if ($null -ne $Scheduler.ActiveKey) {
         $active=$Scheduler.Tasks[$Scheduler.ActiveKey]
-        if ($null -ne $active -and $active.Running -and $active.FocusRetryAt -eq 0 -and -not $active.InitialItemPending -and $active.Mode -in @('Ready','Casting')) {
+        if ($null -ne $active -and $active.Running -and $active.AudioReady -and $active.FocusRetryAt -eq 0 -and -not $active.InitialItemPending -and $active.Mode -in @('Ready','Casting')) {
             if ($active.NextDue -le $Now) { return [pscustomobject]@{ Key=$Scheduler.ActiveKey; Kind='Poll'; Due=$active.NextDue } }
             return $null # Keep this window until green, unless a Reel event preempts it.
         }
@@ -197,7 +205,7 @@ function Get-WowAutoWork($Scheduler, [long]$Now) {
         $index=($Scheduler.Cursor+$offset)%$count
         $key=$Scheduler.Order[$index]
         $state=$Scheduler.Tasks[$key]
-        if ($state.Running -and $state.FocusRetryAt -eq 0 -and -not $state.InitialItemPending -and $state.Mode -in @('Ready','Casting') -and $state.NextDue -le $Now) {
+        if ($state.Running -and $state.AudioReady -and $state.FocusRetryAt -eq 0 -and -not $state.InitialItemPending -and $state.Mode -in @('Ready','Casting') -and $state.NextDue -le $Now) {
             $Scheduler.Cursor=($index+1)%$count
             $Scheduler.ActiveKey=$key
             return [pscustomobject]@{ Key=$key; Kind='Poll'; Due=$state.NextDue }
@@ -232,6 +240,17 @@ function Complete-WowAutoPoll($Scheduler, [string]$Key, [long]$Now, [string]$Col
             return 'None'
         }
         $state.AwaitingFishingTransition=$false
+        if ($state.UseAudio) {
+            Remove-WowAutoEvents $Scheduler $Key
+            $Scheduler.Sequence++
+            $state.AudioSession=$Scheduler.Sequence
+            $state.FishingStartedAt=$Now
+            $state.Mode='Wait'; $state.Deadline=$Now+35000
+            $state.Status='已确认钓鱼：监听本进程音频，声音突变后收竿。'
+            Add-WowAutoEvent $Scheduler $Key 'AudioTimeout' $state.Deadline
+            $Scheduler.ActiveKey=$null
+            return 'None'
+        }
         $delay=Get-Random -Minimum $state.MinimumMs -Maximum ($state.MaximumMs+1)
         Remove-WowAutoEvents $Scheduler $Key
         $state.Mode='Wait'; $state.Deadline=$Now+$delay
@@ -251,6 +270,27 @@ function Complete-WowAutoPoll($Scheduler, [string]$Key, [long]$Now, [string]$Col
     $state.Status='灰色或未知：暂不按键，稍后重新排队检测。'
     $Scheduler.ActiveKey=$null
     return 'None'
+}
+function Complete-WowAutoAudioBite($Scheduler, [string]$Key, [long]$Now, [long]$Session) {
+    $state=$Scheduler.Tasks[$Key]
+    if ($null -eq $state -or -not $state.Running -or -not $state.UseAudio -or $state.Mode -ne 'Wait' -or
+        $Session -eq 0 -or $state.AudioSession -ne $Session -or $Now -lt $state.FishingStartedAt+1000) { return $false }
+    if (@($Scheduler.Events | Where-Object { $_.Key -eq $Key -and $_.Kind -eq 'Reel' }).Count -gt 0) { return $false }
+    Remove-WowAutoEvents $Scheduler $Key
+    $state.Deadline=$Now
+    $state.Status='检测到本进程音频突变：收竿已加入优先队列。'
+    Add-WowAutoEvent $Scheduler $Key 'Reel' $Now
+    return $true
+}
+function Reset-WowAutoAudioWait($Scheduler, [string]$Key, [long]$Now, [string]$Reason) {
+    $state=$Scheduler.Tasks[$Key]
+    if ($null -eq $state -or -not $state.Running -or -not $state.UseAudio) { return }
+    Remove-WowAutoEvents $Scheduler $Key
+    $state.AudioSession=0L; $state.Mode='Ready'; $state.Deadline=0L; $state.NextDue=$Now
+    $state.ForceNextCast=$true; $state.CheckReelGreen=$true
+    $state.AwaitingFishingTransition=$true; $state.SawIdle=$false
+    $state.Status=$Reason
+    if ($Scheduler.ActiveKey -eq $Key) { $Scheduler.ActiveKey=$null }
 }
 function Complete-WowAutoJump($Scheduler, [string]$Key, [bool]$Sent) {
     $state=$Scheduler.Tasks[$Key]

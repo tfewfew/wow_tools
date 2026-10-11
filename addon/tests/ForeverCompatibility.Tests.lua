@@ -97,7 +97,7 @@ function UnitIsDeadOrGhost() return dead end
 function GetPhysicalScreenSize() return width, height end
 function UnitChannelInfo() return channelName, nil, nil, nil, nil, nil, nil, channelID end
 function UnitCastingInfo() return castName, nil, nil, nil, nil, nil, "cast-guid", false, castID end
-for _, file in ipairs({ "Init.lua", "Compatibility.lua", "wowDetector/wowDetector.lua", "inner_graphic_config/Core.lua", "Core.lua" }) do
+for _, file in ipairs({ "Init.lua", "Compatibility.lua", "wowDetector/Audio.lua", "wowDetector/wowDetector.lua", "inner_graphic_config/Core.lua", "Core.lua" }) do
     dofile(addon .. file)
 end
 for _, frame in ipairs(frames) do

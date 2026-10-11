@@ -295,12 +295,14 @@ namespace WowAuto
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 . (Join-Path $PSScriptRoot 'wowAuto.Engine.ps1')
+if (-not ('WowAuto.Audio.ProcessCapture' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'wowAuto.Audio.cs') }
 [System.Windows.Forms.Application]::EnableVisualStyles()
 $script:rows = @{}
 $script:scheduler = New-WowAutoScheduler
 $script:schedulerClock = [System.Diagnostics.Stopwatch]::StartNew()
 $script:pendingWork = $null
 $script:pendingGameExits = @{}
+$script:audioCaptures = @{}
 $script:workerFocus = 0
 $script:workerActivations = @()
 $script:workerKeys = @()
@@ -340,7 +342,7 @@ function Read-WowAutoSettingsIni([string]$Path) {
 function Update-VersionSummary {
     if ($null -ne $settingsSummary) {
         $t=$script:versionRanges.titan; $f=$script:versionRanges.forerver
-        $settingsSummary.Text="统一等待（ms）：时光服 $($t.MinimumMs)–$($t.MaximumMs)；无限服 $($f.MinimumMs)–$($f.MaximumMs)；焦点重试 $($script:scheduler.FocusRetryIntervalMs)。$script:settingsWarning"
+        $settingsSummary.Text="定时模式等待（ms）：时光服 $($t.MinimumMs)–$($t.MaximumMs)；无限服 $($f.MinimumMs)–$($f.MaximumMs)；焦点重试 $($script:scheduler.FocusRetryIntervalMs)。$script:settingsWarning"
     }
 }
 function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $ForerverMaximum, [bool]$Persist=$true, $FocusRetryIntervalMs=$script:scheduler.FocusRetryIntervalMs) {
@@ -439,6 +441,7 @@ $form.Controls.Add($tabs)
 $form.Controls.Add($header)
 $toolbar = New-Object System.Windows.Forms.Panel
 $toolbar.Dock = 'Top'
+$toolbar.AutoScroll = $true
 $toolbar.Height = 138
 $toolbar.Width = $form.ClientSize.Width
 $refreshButton.Anchor = 'Top, Left'
@@ -477,6 +480,11 @@ $settingsButton = New-Object System.Windows.Forms.Button
 $settingsButton.Text = '设置'
 $settingsButton.SetBounds(965, 10, 110, 35)
 $toolbar.Controls.Add($settingsButton)
+$audioCheck = New-Object System.Windows.Forms.CheckBox
+$audioCheck.Text = '音频咬钩检测'
+$audioCheck.SetBounds(1090, 13, 195, 30)
+$audioCheck.Checked = -not $UiTest # Existing tests exercise the legacy timed mode explicitly.
+$toolbar.Controls.Add($audioCheck)
 $settingsSummary = New-Object System.Windows.Forms.Label
 $settingsSummary.SetBounds(12, 102, 1250, 28)
 $settingsSummary.Anchor = 'Top, Left, Right'
@@ -518,7 +526,7 @@ function New-WaitSettingsDialog {
     $retryInput.Minimum=1000; $retryInput.Maximum=3600000; $retryInput.Increment=1000
     $retryInput.Value=$script:scheduler.FocusRetryIntervalMs; $dialog.Controls.Add($retryInput)
     $note=New-Object System.Windows.Forms.Label
-    $note.Text="同版本共用等待范围；焦点重试间隔对所有进程生效。`r`n保存到 config.ini；已开始的倒计时保持不变。"
+    $note.Text="等待范围用于定时模式；焦点重试适用于两种模式。`r`n保存到 config.ini；已登记的截止时间保持不变。"
     $note.SetBounds(18,194,520,48); $dialog.Controls.Add($note)
     $errorLabel=New-Object System.Windows.Forms.Label
     $errorLabel.ForeColor=[System.Drawing.Color]::Firebrick
@@ -593,7 +601,7 @@ $intro = New-Object System.Windows.Forms.Label
 $intro.Dock = 'Top'
 $intro.Height = 44
 $intro.Padding = New-Object System.Windows.Forms.Padding(12, 12, 0, 0)
-$intro.Text = '先刷新检测，再全部开始：轮流下竿，绿色登记收竿时间；到期事件优先处理。'
+$intro.Text = '先刷新检测，再全部开始：绿色后监听咬钩声音（取消音频勾选则计时）；收竿事件优先处理。'
 $headings = New-Object System.Windows.Forms.Panel
 $headings.Dock = 'Top'
 $headings.Height = 32
@@ -629,14 +637,14 @@ function Fit-WindowToContent {
     $workingArea = [System.Windows.Forms.Screen]::FromControl($form).WorkingArea
     $scale = $form.CurrentAutoScaleDimensions.Width / 96.0
     $frameWidth = $form.Width - $form.ClientSize.Width
-    $desiredWidth = [int][Math]::Ceiling([Math]::Max(1330 * $scale, $holdInput.Right + 28) + $frameWidth)
+    $desiredWidth = [int][Math]::Ceiling([Math]::Max(1330 * $scale, $audioCheck.Right + 28) + $frameWidth)
     $rowHeight = $list.Padding.Vertical + 12
     foreach ($row in $script:rows.Values) { $rowHeight += $row.Panel.Height + $row.Panel.Margin.Vertical }
     $rowHeight = [Math]::Max([int](80 * $scale), $rowHeight)
     $chromeHeight = $form.Height - $list.ClientSize.Height
     $desiredHeight = $chromeHeight + $rowHeight
     $form.MinimumSize = New-Object System.Drawing.Size(
-        ([Math]::Min([int](1250 * $scale), $workingArea.Width)),
+        ([Math]::Min([int](1330 * $scale), $workingArea.Width)),
         ([Math]::Min([int](300 * $scale), $workingArea.Height)))
     $form.Size = New-Object System.Drawing.Size(
         ([Math]::Min($desiredWidth, $workingArea.Width)),
@@ -733,13 +741,18 @@ function Update-RowStatus($Row) {
         }
         elseif ($Row.State.Running -and $Row.State.Mode -in @('Wait', 'Cooldown')) {
             $left = [Math]::Max(0, $Row.State.Deadline - $script:schedulerClock.ElapsedMilliseconds)
-            $text += "`r`n剩余 $left ms"
+            if ($Row.State.UseAudio -and $Row.State.Mode -eq 'Wait' -and $left -gt 0) { $text += "`r`n无咬钩超时保护：剩余 $left ms" }
+            else { $text += "`r`n剩余 $left ms" }
         }
         if ($Row.State.Running -and $Row.State.FocusRetryAt -eq 0 -and $script:schedulerClock.ElapsedMilliseconds -lt $script:scheduler.ItemHoldUntil) {
             $left=$script:scheduler.ItemHoldUntil-$script:schedulerClock.ElapsedMilliseconds
             $text="道具执行等待：剩余 $left ms；暂停抛竿、收竿及检测。"
             $statusKey="道具执行等待|$($script:scheduler.ItemHoldUntil)"
         }
+    }
+    if ($script:audioCaptures.ContainsKey($Row.Key)) {
+        $capture=$script:audioCaptures[$Row.Key].Capture
+        if ($capture.Status -eq 'Listening') { $text += "`r`n本进程音频峰值：$([Math]::Round($capture.Peak*100,1))%" }
     }
     if ($Row.StatusSnapshot -cne $statusKey) {
         $Row.StatusSnapshot=$statusKey
@@ -751,6 +764,10 @@ function Update-RowStatus($Row) {
 }
 
 function Stop-Row($Row, [string]$Reason = '已停止，当前等待已取消。', [switch]$CancelExit) {
+    if ($script:audioCaptures.ContainsKey($Row.Key)) {
+        $script:audioCaptures[$Row.Key].Capture.Dispose()
+        $script:audioCaptures.Remove($Row.Key)
+    }
     if ($CancelExit) { $script:pendingGameExits.Remove($Row.Key) }
     if ($null -ne $script:pendingWork -and $script:pendingWork.Key -eq $Row.Key) { $script:pendingWork=$null }
     Stop-WowAutoTask $script:scheduler $Row.Key $Reason
@@ -771,12 +788,21 @@ function Start-Row($Row) {
         if (-not (Test-RowProcessIdentity $Row)) {
             throw '进程身份已变化，请刷新。'
         }
-        $Row.State = Add-WowAutoTask $script:scheduler $Row.Key $newState.MinimumMs $newState.MaximumMs $script:schedulerClock.ElapsedMilliseconds -UseItem $Row.ItemCheck.Checked
+        $Row.State = Add-WowAutoTask $script:scheduler $Row.Key $newState.MinimumMs $newState.MaximumMs $script:schedulerClock.ElapsedMilliseconds -UseItem $Row.ItemCheck.Checked -UseAudio $audioCheck.Checked
+        if ($Row.State.UseAudio) {
+            if ($UiTest) {
+                $capture=[pscustomobject]@{Status='Listening'; Error=''; Peak=0.0; Session=0L; Bite=0L; Disposed=$false}
+                $capture | Add-Member ScriptMethod Arm { param([long]$value) if ($this.Session -ne $value) { $this.Session=$value; $this.Bite=0L } }
+                $capture | Add-Member ScriptMethod Dispose { $this.Disposed=$true; $this.Session=0L; $this.Bite=0L }
+            }
+            else { $capture=New-Object WowAuto.Audio.ProcessCapture($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath) }
+            $script:audioCaptures[$Row.Key]=[pscustomobject]@{Capture=$capture; State=$Row.State}
+            $Row.State.Status='正在启动本进程音频采集，暂不抛竿。'
+        }
         Update-RowStatus $Row
     }
     catch {
-        if ($null -ne $Row.State) { Stop-WowAutoState $Row.State ('无法开始：' + $_.Exception.Message) }
-        Set-RowStatusText $Row ('无法开始：' + $_.Exception.Message)
+        Stop-Row $Row ('无法开始：' + $_.Exception.Message)
     }
 }
 
@@ -1008,6 +1034,7 @@ function Update-BatchControls {
     $eligible = @($script:rows.Values | Where-Object { $_.Validated -and -not $_.Exited -and ($null -eq $_.State -or -not $_.State.Running) })
     $startAllButton.Enabled = -not $script:scanning -and -not $script:editingSettings -and $eligible.Count -gt 0
     $settingsButton.Enabled = -not $script:scanning -and -not $script:editingSettings
+    $audioCheck.Enabled = -not $script:scanning -and -not $script:editingSettings -and $script:scheduler.Tasks.Count -eq 0
     $stopAllButton.Enabled = $script:scheduler.Tasks.Count -gt 0 -or $script:pendingGameExits.Count -gt 0
 }
 function Stop-AllRows {
@@ -1124,8 +1151,33 @@ function Pause-RowForFocus($Row, [long]$Now, [string]$Reason) {
     Update-RowStatus $Row
 }
 
+function Update-AudioCaptures([long]$Now) {
+    foreach ($key in @($script:audioCaptures.Keys)) {
+        $entry=$script:audioCaptures[$key]; $row=$script:rows[$key]; $state=$script:scheduler.Tasks[$key]
+        if ($null -eq $row -or $null -eq $state -or -not $state.Running -or -not [object]::ReferenceEquals($state,$entry.State)) {
+            $entry.Capture.Dispose(); $script:audioCaptures.Remove($key); continue
+        }
+        $capture=$entry.Capture
+        if ($capture.Status -in @('Error','Stopped')) { Stop-Row $row ("音频采集失败，已停止此行：$($capture.Error)"); continue }
+        if ($capture.Status -ne 'Listening') { continue }
+        if (-not $state.AudioReady) { $state.AudioReady=$true; $state.Status='本进程音频采集就绪，已加入钓鱼队列。' }
+        $session=if ($state.Mode -eq 'Wait' -and $Now -ge $script:scheduler.ItemHoldUntil) { $state.AudioSession } else { 0L }
+        $capture.Arm($session)
+        $biteSession=0L
+        $hasBite=if ($UiTest) { $biteSession=$capture.Bite; $capture.Bite=0L; $biteSession -ne 0 }
+            else { $capture.TryTakeBite([ref]$biteSession) }
+        if ($hasBite) {
+            # The state reference and fishing session prevent an old listener or cast
+            # from sending a key after stop/restart/PID reuse.
+            if (-not (Test-RowProcessIdentity $row)) { $row.Validated=$false; Stop-Row $row '音频事件的进程身份已变化。'; continue }
+            $null=Complete-WowAutoAudioBite $script:scheduler $key $Now $biteSession
+        }
+    }
+}
+
 function Invoke-SchedulerTick([long]$Now) {
     if ($script:scanning -or $script:editingSettings) { return }
+    Update-AudioCaptures $Now
     $work=Get-WowAutoWork $script:scheduler $Now
     if ($null -eq $work) { return }
     $row=$script:rows[$work.Key]
@@ -1170,6 +1222,23 @@ function Invoke-SchedulerTick([long]$Now) {
         if ($color -eq 'yellow') {
             Close-WorkerGame $row
             $script:pendingWork=$null
+            return
+        }
+        if ($row.State.UseAudio -and $color -notin @('red','green')) {
+            Stop-Row $row '检测面板关闭或颜色未知，取消音频检测并停止此行。'
+            $script:pendingWork=$null
+            return
+        }
+        if ($work.Kind -eq 'AudioTimeout') {
+            Reset-WowAutoAudioWait $script:scheduler $work.Key $Now '35秒内未检测到咬钩声音，重新抛竿；不计有效循环。'
+            $script:pendingWork=$null
+            Update-RowStatus $row
+            return
+        }
+        if ($work.Kind -eq 'Reel' -and $row.State.UseAudio -and $color -eq 'red') {
+            Reset-WowAutoAudioWait $script:scheduler $work.Key $Now '声音事件到达后已不在钓鱼状态，取消收竿并重新抛竿。'
+            $script:pendingWork=$null
+            Update-RowStatus $row
             return
         }
         $sent=$true
@@ -1279,6 +1348,7 @@ try {
             . (Join-Path $PSScriptRoot 'tests\FocusRetry.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\StatusTimestamp.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\ClientSettings.UiTests.ps1')
+            . (Join-Path $PSScriptRoot 'tests\Audio.UiTests.ps1')
         }
         if ($PreviewPath) {
             [System.Windows.Forms.Application]::DoEvents()
@@ -1293,6 +1363,8 @@ try {
     else { [void]$form.ShowDialog() }
 }
 finally {
+    foreach ($entry in @($script:audioCaptures.Values)) { $entry.Capture.Dispose() }
+    $script:audioCaptures.Clear()
     $positionTimer.Dispose(); $scanTimer.Dispose(); $timer.Dispose(); $form.Dispose()
     if ($UiTest -and (Test-Path -LiteralPath $script:settingsPath)) { Remove-Item -LiteralPath $script:settingsPath }
 }
