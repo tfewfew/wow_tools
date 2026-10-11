@@ -18,6 +18,6 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\skills\wow-tools\scrip
 
 首次安装请重启无限服客户端，在插件列表启用wow_tools，然后点击小地图钓鱼图标或输入 `/wowdetector on`。用 `/wowdetector status` 查看检测结果，`/igc` 打开画面设置。两服的SavedVariables各自保存，不复制时光服账号设置到无限服。
 
-`addon/tests/ForeverCompatibility.Tests.lua` 已覆盖全部TOC模块的模拟加载、新版附魔/施法API、永久附魔排除、受限/失败数据、背包/死亡、窗口调整、菜单和帧率位置。尚未以真实角色验证无限服运行效果；测试不发送按键或操作游戏。wowAuto当前只检测WowClassic.exe，无限服Wow.exe的外部按键调度尚未适配。
+`addon/tests/ForeverCompatibility.Tests.lua` 已覆盖全部TOC模块的模拟加载、新版附魔/施法API、永久附魔排除、受限/失败数据、背包/死亡、窗口调整、菜单和帧率位置。尚未以真实角色验证无限服运行效果；测试不发送按键或操作游戏。wowAuto已支持无限服Wow.exe，按_cn_beta_目录及1.60.构建识别；与时光服进程共用队列，等待范围按版本统一配置，使用说明见tools/wowAuto/README.md。
 
 主要接口依据：[ItemDocumentation](https://github.com/Gethe/wow-ui-source/blob/943764493e6b16d63ded3ab304150d1f05e58b57/Interface/AddOns/Blizzard_APIDocumentationGenerated/ItemDocumentation.lua)、[UnitDocumentation](https://github.com/Gethe/wow-ui-source/blob/943764493e6b16d63ded3ab304150d1f05e58b57/Interface/AddOns/Blizzard_APIDocumentationGenerated/UnitDocumentation.lua)、[原生菜单指南](https://github.com/Gethe/wow-ui-source/blob/943764493e6b16d63ded3ab304150d1f05e58b57/Interface/AddOns/Blizzard_Menu/11_0_0_MenuImplementationGuide.lua)、[FramerateFrame](https://github.com/Gethe/wow-ui-source/blob/943764493e6b16d63ded3ab304150d1f05e58b57/Interface/AddOns/Blizzard_FramerateFrame/Mainline/FramerateFrame.xml)。

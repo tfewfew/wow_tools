@@ -8,8 +8,11 @@ namespace WowAuto {
         public static int LastProcessId;
         public static ushort LastKey;
         public static int Calls;
+        public static long StartTicks;
+        public static string ExecutablePath;
         public static bool Ctrl, Shift, Alt;
-        public static bool PressChord(int processId, ushort number, bool ctrl, bool shift, bool alt) {
+        public static bool PressChord(int processId, long startTicks, string path, ushort number, bool ctrl, bool shift, bool alt) {
+            StartTicks=startTicks; ExecutablePath=path;
             Ctrl=ctrl; Shift=shift; Alt=alt;
             LastProcessId = processId;
             LastKey = number;
@@ -30,7 +33,7 @@ $adapter=$ast.Find({ param($node)
 if ($null -eq $adapter) { throw 'Send-WorkerKey adapter not found.' }
 . ([scriptblock]::Create($adapter.Extent.Text))
 $UiTest=$false
-$row=[pscustomobject]@{ Process=[pscustomobject]@{ Id=12345 } }
+$row=[pscustomobject]@{ Process=[pscustomobject]@{ Id=12345 }; StartTime=[datetime]'2026-01-01'; Client=[pscustomobject]@{ExecutablePath='C:\test-games\_cn_beta_\Wow.exe'} }
 $script:keyBindings=@{
     Cast=[pscustomobject]@{Code=49; Ctrl=$true; Shift=$false; Alt=$false}
     Reel=[pscustomobject]@{Code=113; Ctrl=$false; Shift=$true; Alt=$true}
@@ -41,6 +44,7 @@ foreach ($action in @('Cast','Reel','Item','Jump')) {
     $binding=$script:keyBindings[$action]
     $sent=Send-WorkerKey $row $action
     if (-not $sent -or [WowAuto.NativeInput]::LastProcessId -ne 12345 -or
+        [WowAuto.NativeInput]::StartTicks -ne $row.StartTime.Ticks -or [WowAuto.NativeInput]::ExecutablePath -ne $row.Client.ExecutablePath -or
         [WowAuto.NativeInput]::LastKey -ne $binding.Code -or
         [WowAuto.NativeInput]::Ctrl -ne $binding.Ctrl -or
         [WowAuto.NativeInput]::Shift -ne $binding.Shift -or

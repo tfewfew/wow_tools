@@ -74,13 +74,43 @@ namespace WowAuto
 
         public static IntPtr CurrentWindow() { return GetForegroundWindow(); }
 
+        // Identify the installed client, including the product directory and build family.
+        // Retail uses the same Wow.exe filename and must not enter the fishing queue.
+        public static string GetClientFlavor(string executablePath, string version)
+        {
+            if (String.IsNullOrEmpty(executablePath) || String.IsNullOrEmpty(version)) return null;
+            string file = System.IO.Path.GetFileName(executablePath);
+            string product = System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(executablePath));
+            if (String.Equals(file, "WowClassic.exe", StringComparison.OrdinalIgnoreCase)
+                && String.Equals(product, "_classic_titan_", StringComparison.OrdinalIgnoreCase)
+                && version.StartsWith("3.80.", StringComparison.Ordinal)) return "titan";
+            if (String.Equals(file, "Wow.exe", StringComparison.OrdinalIgnoreCase)
+                && String.Equals(product, "_cn_beta_", StringComparison.OrdinalIgnoreCase)
+                && version.StartsWith("1.60.", StringComparison.Ordinal)) return "forerver";
+            return null;
+        }
+
+        public static bool MatchesClientIdentity(string name, long actualStart, string path, string version,
+            long expectedStart, string expectedPath)
+        {
+            return actualStart == expectedStart && GetClientFlavor(path, version) != null
+                && String.Equals(path, expectedPath, StringComparison.OrdinalIgnoreCase)
+                && String.Equals(name, System.IO.Path.GetFileNameWithoutExtension(path), StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool MatchesTarget(System.Diagnostics.Process target, long startTimeTicks, string executablePath)
+        {
+            string path = target.MainModule.FileName;
+            string version = System.Diagnostics.FileVersionInfo.GetVersionInfo(path).FileVersion;
+            return MatchesClientIdentity(target.ProcessName, target.StartTime.Ticks, path, version, startTimeTicks, executablePath);
+        }
+
         // Foreground activation for refresh validation and the shared scheduler.
-        public static bool ActivateForScan(int processId, long startTimeTicks)
+        public static bool ActivateForScan(int processId, long startTimeTicks, string executablePath)
         {
             using (System.Diagnostics.Process target = System.Diagnostics.Process.GetProcessById(processId))
             {
-                if (!String.Equals(target.ProcessName, "WowClassic", StringComparison.OrdinalIgnoreCase)
-                    || target.StartTime.Ticks != startTimeTicks) return false;
+                if (!MatchesTarget(target, startTimeTicks, executablePath)) return false;
                 IntPtr window = target.MainWindowHandle;
                 if (window == IntPtr.Zero) return false;
                 if (IsIconic(window)) ShowWindowAsync(window, 9);
@@ -95,12 +125,12 @@ namespace WowAuto
         }
 
 
-        public static bool IsTargetForeground(int targetProcessId)
+        public static bool IsTargetForeground(int targetProcessId, long startTimeTicks, string executablePath)
         {
             using (System.Diagnostics.Process target = System.Diagnostics.Process.GetProcessById(targetProcessId))
             {
-                if (!String.Equals(target.ProcessName, "WowClassic", StringComparison.OrdinalIgnoreCase))
-                    throw new InvalidOperationException("The selected WowClassic process is no longer available.");
+                if (!MatchesTarget(target, startTimeTicks, executablePath))
+                    throw new InvalidOperationException("The selected WoW client identity has changed.");
                 IntPtr window = target.MainWindowHandle;
                 if (window == IntPtr.Zero || IsIconic(window)) return false;
                 IntPtr foreground = GetForegroundWindow();
@@ -115,6 +145,14 @@ namespace WowAuto
         private struct RECT { public int left, top, right, bottom; }
         [StructLayout(LayoutKind.Sequential)]
         private struct POINT { public int x, y; }
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MONITORINFO { public int size; public RECT monitor, work; public uint flags; }
+        [DllImport("user32.dll")]
+        private static extern bool GetWindowRect(IntPtr window, out RECT rect);
+        [DllImport("user32.dll")]
+        private static extern IntPtr MonitorFromWindow(IntPtr window, uint flags);
+        [DllImport("user32.dll")]
+        private static extern bool GetMonitorInfo(IntPtr monitor, ref MONITORINFO info);
         [DllImport("user32.dll")]
         private static extern bool GetClientRect(IntPtr window, out RECT rect);
         [DllImport("user32.dll")]
@@ -127,6 +165,40 @@ namespace WowAuto
         private static extern uint GetPixel(IntPtr dc, int x, int y);
         [DllImport("user32.dll")]
         private static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
+
+        public static string ClassifyWindowPosition(int left, int top, int right, int bottom,
+            int screenLeft, int screenTop, int screenRight, int screenBottom)
+        {
+            if (right <= left || bottom <= top || screenRight <= screenLeft || screenBottom <= screenTop)
+                return "位置未知";
+            double x = ((double)left + right) / 2, y = ((double)top + bottom) / 2;
+            double middleX = ((double)screenLeft + screenRight) / 2, middleY = ((double)screenTop + screenBottom) / 2;
+            if (Math.Abs(x - middleX) <= (screenRight - screenLeft) * 0.1
+                && Math.Abs(y - middleY) <= (screenBottom - screenTop) * 0.1) return "居中";
+            return (y < middleY ? (x < middleX ? "左上" : "右上") : (x < middleX ? "左下" : "右下"));
+        }
+
+        public static string ReadWindowPosition(int processId, long startTimeTicks, string executablePath)
+        {
+            using (System.Diagnostics.Process target = System.Diagnostics.Process.GetProcessById(processId))
+            {
+                if (!MatchesTarget(target, startTimeTicks, executablePath)) return "位置未知";
+                IntPtr window = target.MainWindowHandle;
+                if (window == IntPtr.Zero) return "位置未知";
+                if (IsIconic(window)) return "最小化";
+                IntPtr oldContext = SetThreadDpiAwarenessContext(new IntPtr(-4));
+                try
+                {
+                    RECT rect;
+                    MONITORINFO info = new MONITORINFO();
+                    info.size = Marshal.SizeOf(typeof(MONITORINFO));
+                    if (!GetWindowRect(window, out rect) || !GetMonitorInfo(MonitorFromWindow(window, 2), ref info)) return "位置未知";
+                    return ClassifyWindowPosition(rect.left, rect.top, rect.right, rect.bottom,
+                        info.monitor.left, info.monitor.top, info.monitor.right, info.monitor.bottom);
+                }
+                finally { if (oldContext != IntPtr.Zero) SetThreadDpiAwarenessContext(oldContext); }
+            }
+        }
 
         // Return red, green, or unknown; accept modest rendering color differences.
         public static string ClassifyColor(uint color)
@@ -143,22 +215,22 @@ namespace WowAuto
             return "unknown";
         }
 
-        public static string ReadCenterColor(int targetProcessId)
+        public static string ReadCenterColor(int targetProcessId, long startTimeTicks, string executablePath)
         {
-            return ReadDetectionColor(targetProcessId, 0);
+            return ReadDetectionColor(targetProcessId, startTimeTicks, executablePath, 0);
         }
 
-        public static string ReadLureColor(int targetProcessId)
+        public static string ReadLureColor(int targetProcessId, long startTimeTicks, string executablePath)
         {
-            return ReadDetectionColor(targetProcessId, 32);
+            return ReadDetectionColor(targetProcessId, startTimeTicks, executablePath, 32);
         }
 
-        private static string ReadDetectionColor(int targetProcessId, int offsetX)
+        private static string ReadDetectionColor(int targetProcessId, long startTimeTicks, string executablePath, int offsetX)
         {
             using (System.Diagnostics.Process target = System.Diagnostics.Process.GetProcessById(targetProcessId))
             {
-                if (!String.Equals(target.ProcessName, "WowClassic", StringComparison.OrdinalIgnoreCase))
-                    throw new InvalidOperationException("The selected WowClassic process is no longer available.");
+                if (!MatchesTarget(target, startTimeTicks, executablePath))
+                    throw new InvalidOperationException("The selected WoW client identity has changed.");
                 IntPtr window = target.MainWindowHandle;
                 if (window == IntPtr.Zero || IsIconic(window) || GetForegroundWindow() != window)
                     return "unknown";
@@ -189,9 +261,9 @@ namespace WowAuto
         }
 
 
-        public static bool PressChord(int targetProcessId, ushort number, bool ctrl, bool shift, bool alt)
+        public static bool PressChord(int targetProcessId, long startTimeTicks, string executablePath, ushort number, bool ctrl, bool shift, bool alt)
         {
-            if (!IsTargetForeground(targetProcessId)) return false;
+            if (!IsTargetForeground(targetProcessId, startTimeTicks, executablePath)) return false;
             var down = new System.Collections.Generic.List<INPUT>();
             var up = new System.Collections.Generic.List<INPUT>();
             if (ctrl) down.Add(Key(0x11, false));
@@ -240,6 +312,61 @@ $script:scanClock = [System.Diagnostics.Stopwatch]::StartNew()
 $script:scanOriginalWindow = [IntPtr]::Zero
 $script:scanOrder = @()
 $script:restored = $false
+$script:editingSettings = $false
+$script:versionRanges = @{
+    titan=[pscustomobject]@{MinimumMs=9000; MaximumMs=13000}
+    forerver=[pscustomobject]@{MinimumMs=9000; MaximumMs=13000}
+}
+$script:settingsPath = if ($UiTest) { Join-Path ([IO.Path]::GetTempPath()) ('wowAuto-test-' + [Guid]::NewGuid().ToString() + '.json') }
+    else { Join-Path $env:LOCALAPPDATA 'wow_tools\wowAuto.settings.json' }
+$script:settingsWarning = ''
+function Update-VersionSummary {
+    if ($null -ne $settingsSummary) {
+        $t=$script:versionRanges.titan; $f=$script:versionRanges.forerver
+        $settingsSummary.Text="统一等待（ms）：时光服 $($t.MinimumMs)–$($t.MaximumMs)；无限服 $($f.MinimumMs)–$($f.MaximumMs)。$script:settingsWarning"
+    }
+}
+function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $ForerverMaximum, [bool]$Persist=$true) {
+    # Validate the entire edit before saving or changing any active task.
+    $next=@{}
+    foreach ($spec in @(@('titan',$TitanMinimum,$TitanMaximum),@('forerver',$ForerverMinimum,$ForerverMaximum))) {
+        foreach ($value in @($spec[1],$spec[2])) { if ([string]$value -notmatch '^\d+$') { throw '请输入整数毫秒值。' } }
+        $checked=New-WowAutoState ([int]$spec[1]) ([int]$spec[2])
+        $next[$spec[0]]=[pscustomobject]@{MinimumMs=$checked.MinimumMs; MaximumMs=$checked.MaximumMs}
+    }
+    if ($Persist) {
+        $directory=Split-Path $script:settingsPath -Parent
+        New-Item -ItemType Directory -Path $directory -Force | Out-Null
+        $temporary=$script:settingsPath + '.' + [Guid]::NewGuid().ToString() + '.tmp'
+        try {
+            $json=[pscustomobject]@{Version=1; titan=$next.titan; forerver=$next.forerver} | ConvertTo-Json -Depth 3
+            [IO.File]::WriteAllText($temporary,$json,(New-Object Text.UTF8Encoding($false)))
+            if (Test-Path -LiteralPath $script:settingsPath) { [IO.File]::Replace($temporary,$script:settingsPath,$null) }
+            else { [IO.File]::Move($temporary,$script:settingsPath) }
+        }
+        finally { if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary } }
+    }
+    $script:versionRanges=$next
+    # Update future waits for every running task of the same version; existing events keep their due time.
+    foreach ($row in $script:rows.Values) {
+        if ($null -ne $row.State -and $row.State.Running) {
+            $range=$next[$row.Client.Flavor]
+            $row.State.MinimumMs=$range.MinimumMs; $row.State.MaximumMs=$range.MaximumMs
+        }
+    }
+    $script:settingsWarning=''
+    Update-VersionSummary
+}
+function Import-VersionWaitSettings {
+    if (-not (Test-Path -LiteralPath $script:settingsPath)) { return }
+    try {
+        $saved=[IO.File]::ReadAllText($script:settingsPath) | ConvertFrom-Json
+        if ($saved.Version -ne 1) { throw '不支持的设置格式。' }
+        Set-VersionWaitRanges $saved.titan.MinimumMs $saved.titan.MaximumMs $saved.forerver.MinimumMs $saved.forerver.MaximumMs -Persist $false
+    }
+    catch { $script:settingsWarning='设置读取失败，保留当前范围；请打开设置重新保存。' }
+}
+if (-not $UiTest) { Import-VersionWaitSettings }
 $form = New-Object System.Windows.Forms.Form
 $form.Text = 'wowAuto'
 $form.ClientSize = New-Object System.Drawing.Size(1330, 460)
@@ -277,7 +404,7 @@ $form.Controls.Add($tabs)
 $form.Controls.Add($header)
 $toolbar = New-Object System.Windows.Forms.Panel
 $toolbar.Dock = 'Top'
-$toolbar.Height = 102
+$toolbar.Height = 138
 $toolbar.Width = $form.ClientSize.Width
 $refreshButton.Anchor = 'Top, Left'
 $refreshButton.SetBounds(12, 10, 120, 35)
@@ -311,6 +438,75 @@ $holdInput.Value = 100
 $holdInput.Increment = 1
 $toolbar.Controls.Add($holdInput)
 $holdInput.Add_ValueChanged({ Set-WowAutoHoldDuration $script:scheduler ([int]$holdInput.Value) })
+$settingsButton = New-Object System.Windows.Forms.Button
+$settingsButton.Text = '设置'
+$settingsButton.SetBounds(965, 10, 110, 35)
+$toolbar.Controls.Add($settingsButton)
+$settingsSummary = New-Object System.Windows.Forms.Label
+$settingsSummary.SetBounds(12, 102, 1250, 28)
+$settingsSummary.Anchor = 'Top, Left, Right'
+$settingsSummary.AutoEllipsis = $true
+$toolbar.Controls.Add($settingsSummary)
+Update-VersionSummary
+
+function New-WaitSettingsDialog {
+    $dialog=New-Object System.Windows.Forms.Form
+    $dialog.Text='等待时间设置'
+    $dialog.Font=$form.Font
+    $dialog.AutoScaleMode='Dpi'
+    $dialog.ClientSize=New-Object System.Drawing.Size(550,275)
+    $dialog.FormBorderStyle='FixedDialog'
+    $dialog.MaximizeBox=$false; $dialog.MinimizeBox=$false
+    $dialog.StartPosition='CenterParent'
+    foreach ($spec in @(@('版本',18,18,95),@('最小等待（ms）',130,18,175),@('最大等待（ms）',330,18,175))) {
+        $label=New-Object System.Windows.Forms.Label
+        $label.Text=$spec[0]; $label.SetBounds($spec[1],$spec[2],$spec[3],25)
+        $dialog.Controls.Add($label)
+    }
+    $inputs=@{}
+    foreach ($spec in @(@('titan','时光服',54),@('forerver','无限服',100))) {
+        $label=New-Object System.Windows.Forms.Label
+        $label.Text=$spec[1]; $label.SetBounds(18,($spec[2]+4),95,30)
+        $dialog.Controls.Add($label)
+        $min=New-Object System.Windows.Forms.NumericUpDown
+        $max=New-Object System.Windows.Forms.NumericUpDown
+        $min.SetBounds(130,$spec[2],175,30); $max.SetBounds(330,$spec[2],175,30)
+        foreach ($input in @($min,$max)) { $input.Minimum=1; $input.Maximum=3600000; $input.Increment=1000; $dialog.Controls.Add($input) }
+        $min.Value=$script:versionRanges[$spec[0]].MinimumMs; $max.Value=$script:versionRanges[$spec[0]].MaximumMs
+        $inputs[$spec[0]]=[pscustomobject]@{Minimum=$min; Maximum=$max}
+    }
+    $note=New-Object System.Windows.Forms.Label
+    $note.Text='同版本所有进程共用范围；保存后用于下一次计时。'
+    $note.SetBounds(18,145,520,25); $dialog.Controls.Add($note)
+    $errorLabel=New-Object System.Windows.Forms.Label
+    $errorLabel.ForeColor=[System.Drawing.Color]::Firebrick
+    $errorLabel.SetBounds(18,175,520,28); $dialog.Controls.Add($errorLabel)
+    $apply=New-Object System.Windows.Forms.Button
+    $apply.Text='保存'; $apply.SetBounds(320,225,95,32); $dialog.Controls.Add($apply)
+    $cancel=New-Object System.Windows.Forms.Button
+    $cancel.Text='取消'; $cancel.SetBounds(425,225,95,32)
+    $cancel.DialogResult='Cancel'; $dialog.Controls.Add($cancel)
+    $dialog.AcceptButton=$apply; $dialog.CancelButton=$cancel
+    $dialog.Tag=[pscustomobject]@{Inputs=$inputs; Apply=$apply; Cancel=$cancel; Error=$errorLabel}
+    $apply.Tag=$dialog
+    $apply.Add_Click({ param($sender,$eventArgs)
+        $settingsDialog=$sender.Tag; $fields=$settingsDialog.Tag.Inputs
+        try {
+            Set-VersionWaitRanges $fields.titan.Minimum.Text.Trim() $fields.titan.Maximum.Text.Trim() $fields.forerver.Minimum.Text.Trim() $fields.forerver.Maximum.Text.Trim()
+            $settingsDialog.DialogResult='OK'
+        }
+        catch { $settingsDialog.Tag.Error.Text=$_.Exception.Message }
+    })
+    return $dialog
+}
+$settingsButton.Add_Click({
+    if ($script:scanning -or $script:editingSettings) { return }
+    # A modal editor must not lose focus to automatic game activation.
+    $script:editingSettings=$true
+    $dialog=$null
+    try { $dialog=New-WaitSettingsDialog; [void]$dialog.ShowDialog($form) }
+    finally { if ($null -ne $dialog) { $dialog.Dispose() }; $script:editingSettings=$false; Update-BatchControls }
+})
 
 $script:keyBindings = @{}
 $script:keyInputs = @{}
@@ -359,7 +555,7 @@ $intro.Text = '先刷新检测，再全部开始：轮流下竿，绿色登记�
 $headings = New-Object System.Windows.Forms.Panel
 $headings.Dock = 'Top'
 $headings.Height = 32
-foreach ($heading in @(@('游戏进程',12,230), @('最小等待 ms',250,105), @('最大等待 ms',360,105), @('操作',475,145), @('钓鱼道具',635,150), @('实时状态',805,350))) {
+foreach ($heading in @(@('游戏进程 / 版本 / 窗口位置',12,360), @('操作',386,145), @('钓鱼道具',546,150), @('实时状态',716,350))) {
     $label = New-Object System.Windows.Forms.Label
     $label.Text = $heading[0]
     $label.SetBounds($heading[1], 3, $heading[2], 25)
@@ -408,9 +604,56 @@ function Fit-WindowToContent {
         ($workingArea.Top + [int](($workingArea.Height - $form.Height) / 2)))
 }
 $form.Add_Shown({ Fit-WindowToContent })
+function Get-ProcessClientInfo($Process) {
+    try {
+        $path=if ($UiTest) { $Process.ExecutablePath } else { $Process.MainModule.FileName }
+        $version=if ($UiTest) { $Process.FileVersion } else { [Diagnostics.FileVersionInfo]::GetVersionInfo($path).FileVersion }
+        $flavor=[WowAuto.NativeInput]::GetClientFlavor($path,$version)
+        if (-not $flavor -or $Process.ProcessName -ne [IO.Path]::GetFileNameWithoutExtension($path)) { return $null }
+        return [pscustomobject]@{
+            Flavor=$flavor; Label=$(if ($flavor -eq 'titan') { '时光服' } else { '无限服' })
+            ExecutablePath=$path; ProcessName=$Process.ProcessName; Version=$version
+        }
+    }
+    catch { return $null }
+}
+function Test-RowProcessIdentity($Row) {
+    if ($null -eq $Row.StartTime -or $Row.Process.StartTime -ne $Row.StartTime) { return $false }
+    $client=Get-ProcessClientInfo $Row.Process
+    return $null -ne $client -and $client.Flavor -eq $Row.Client.Flavor -and
+        [string]::Equals($client.ExecutablePath,$Row.Client.ExecutablePath,[StringComparison]::OrdinalIgnoreCase)
+}
 function Get-WowAutoProcesses {
-    if ($UiTest) { return $script:mockProcesses }
-    return @(Get-Process -Name 'WowClassic' -ErrorAction SilentlyContinue | Sort-Object Id)
+    $candidates=if ($UiTest) { $script:mockProcesses } else { @(Get-Process -Name 'WowClassic','Wow' -ErrorAction SilentlyContinue) }
+    foreach ($process in @($candidates | Sort-Object Id)) {
+        $client=Get-ProcessClientInfo $process
+        if ($null -ne $client) {
+            $process | Add-Member NoteProperty WowAutoClient $client -Force
+            $process
+        }
+    }
+}
+function Read-RowWindowPosition($Row) {
+    try {
+        if ($UiTest) {
+            if ($Row.Process.Minimized) { return '最小化' }
+            $r=$Row.Process.WindowBounds; $s=$Row.Process.ScreenBounds
+            return [WowAuto.NativeInput]::ClassifyWindowPosition($r[0],$r[1],$r[2],$r[3],$s[0],$s[1],$s[2],$s[3])
+        }
+        if ($null -eq $Row.StartTime) { return '位置未知' }
+        return [WowAuto.NativeInput]::ReadWindowPosition($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath)
+    }
+    catch { return '位置未知' }
+}
+function Update-RowName($Row) {
+    $cycles=Get-WowAutoCycleCount $script:scheduler $Row.Key
+    $Row.Name.Text="$($Row.Caption)`r`nPID $($Row.Process.Id) · $($Row.Client.Label) · $($Row.Position) · 循环 $cycles"
+}
+function Update-WindowPositions {
+    foreach ($row in $script:rows.Values) {
+        $position=Read-RowWindowPosition $row
+        if ($position -ne $row.Position) { $row.Position=$position; Update-RowName $row }
+    }
 }
 
 function Set-RowControls($Row) {
@@ -419,8 +662,6 @@ function Set-RowControls($Row) {
     $eligible = $Row.Validated -and -not $exiting -and -not $script:scanning -and $null -ne $Row.StartTime -and -not $Row.Exited
     $Row.Start.Enabled = $eligible -and -not $running
     $Row.Stop.Enabled = $eligible -or $exiting
-    $Row.Minimum.Enabled = -not $running
-    $Row.Maximum.Enabled = -not $running
     $Row.ItemCheck.Enabled = -not $script:scanning -and -not $exiting -and -not $Row.Exited -and $null -ne $Row.StartTime
 }
 
@@ -431,8 +672,7 @@ function Set-RowStatusText($Row, [string]$Message) {
 }
 
 function Update-RowStatus($Row) {
-    $cycles=Get-WowAutoCycleCount $script:scheduler $Row.Key
-    $Row.Name.Text = "$($Row.Caption)`r`nPID $($Row.Process.Id) · 循环 $cycles"
+    Update-RowName $Row
     $text=$Row.StatusMessage
     $statusKey=$text
     if ($null -ne $Row.State) {
@@ -480,15 +720,13 @@ function Stop-Row($Row, [string]$Reason = '已停止，当前等待已取消。'
 function Start-Row($Row) {
     try {
         if ($script:pendingGameExits.ContainsKey($Row.Key)) { throw '正在等待游戏退出，请先停止以取消超时保护。' }
-        if (-not $Row.Validated -or $script:scanning) { throw '请先刷新并通过红色/绿色检测。' }
+        if (-not $Row.Validated -or $script:scanning -or $script:editingSettings) { throw '请先关闭设置，并刷新通过红色/绿色检测。' }
         if ($null -ne $Row.State -and $Row.State.Running) { return }
-        $minText = $Row.Minimum.Text.Trim()
-        $maxText = $Row.Maximum.Text.Trim()
-        if ($minText -notmatch '^\d+$' -or $maxText -notmatch '^\d+$') { throw '请输入整数毫秒值。' }
-        $newState = New-WowAutoState ([int]$minText) ([int]$maxText)
+        $range=$script:versionRanges[$Row.Client.Flavor]
+        $newState = New-WowAutoState $range.MinimumMs $range.MaximumMs
         $Row.Process.Refresh()
         if ($Row.Process.HasExited) { throw '该游戏进程已退出，请刷新。' }
-        if ($null -eq $Row.StartTime -or $Row.Process.StartTime -ne $Row.StartTime -or $Row.Process.ProcessName -ne 'WowClassic') {
+        if (-not (Test-RowProcessIdentity $Row)) {
             throw '进程身份已变化，请刷新。'
         }
         $Row.State = Add-WowAutoTask $script:scheduler $Row.Key $newState.MinimumMs $newState.MaximumMs $script:schedulerClock.ElapsedMilliseconds -UseItem $Row.ItemCheck.Checked
@@ -500,41 +738,34 @@ function Start-Row($Row) {
     }
 }
 
-function New-ProcessRow($Process, $StartTime, [string]$Key) {
+function New-ProcessRow($Process, $StartTime, [string]$Key, $Client) {
     $panel = New-Object System.Windows.Forms.Panel
     $panel.Height = 82
     $panel.Width = [Math]::Max(1170, $list.ClientSize.Width - 32)
     $panel.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 6)
     $panel.BackColor = [System.Drawing.Color]::FromArgb(245, 247, 250)
     $nameLabel = New-Object System.Windows.Forms.Label
-    $nameLabel.SetBounds(6, 14, 232, 56)
+    $nameLabel.SetBounds(6, 14, 360, 56)
+    $nameLabel.AutoEllipsis=$true
     $panel.Controls.Add($nameLabel)
-    $minimum = New-Object System.Windows.Forms.NumericUpDown
-    $minimum.SetBounds(244, 25, 100, 30)
-    $minimum.Minimum = 1; $minimum.Maximum = 3600000; $minimum.Value = 9000; $minimum.Increment = 1000
-    $panel.Controls.Add($minimum)
-    $maximum = New-Object System.Windows.Forms.NumericUpDown
-    $maximum.SetBounds(354, 25, 100, 30)
-    $maximum.Minimum = 1; $maximum.Maximum = 3600000; $maximum.Value = 13000; $maximum.Increment = 1000
-    $panel.Controls.Add($maximum)
     $start = New-Object System.Windows.Forms.Button
     $start.Text = '开始'
-    $start.SetBounds(469, 21, 68, 37)
+    $start.SetBounds(380, 21, 68, 37)
     $start.BackColor = [System.Drawing.Color]::FromArgb(35, 100, 210)
     $start.ForeColor = [System.Drawing.Color]::White
     $start.FlatStyle = 'Flat'
     $panel.Controls.Add($start)
     $stop = New-Object System.Windows.Forms.Button
     $stop.Text = '停止'
-    $stop.SetBounds(543, 21, 68, 37)
+    $stop.SetBounds(454, 21, 68, 37)
     $stop.Enabled = $false
     $panel.Controls.Add($stop)
     $rowItemCheck = New-Object System.Windows.Forms.CheckBox
     $rowItemCheck.Text = '使用钓鱼道具'
-    $rowItemCheck.SetBounds(629, 25, 150, 30)
+    $rowItemCheck.SetBounds(540, 25, 150, 30)
     $panel.Controls.Add($rowItemCheck)
     $status = New-Object System.Windows.Forms.TextBox
-    $status.SetBounds(799, 12, $panel.Width - 811, 58)
+    $status.SetBounds(710, 12, $panel.Width - 722, 58)
     $status.Anchor = 'Top, Left, Right'
     $status.Multiline = $true
     $status.ReadOnly = $true
@@ -542,8 +773,9 @@ function New-ProcessRow($Process, $StartTime, [string]$Key) {
     $status.BackColor = [System.Drawing.Color]::White
     $panel.Controls.Add($status)
     $row = [pscustomobject]@{
-        Key=$Key; Process=$Process; StartTime=$StartTime; Exited=$false; Validated=$false; Caption='WowClassic.exe'
-        Panel=$panel; Name=$nameLabel; Minimum=$minimum; Maximum=$maximum
+        Key=$Key; Process=$Process; StartTime=$StartTime; Client=$Client; Position='位置未知'
+        Exited=$false; Validated=$false; Caption=[IO.Path]::GetFileName($Client.ExecutablePath)
+        Panel=$panel; Name=$nameLabel
         Start=$start; Stop=$stop; ItemCheck=$rowItemCheck; Status=$status; State=$null
         StatusMessage='尚未验证，请点击刷新进程。'
         StatusSnapshot=$null; StatusTimestamp=''
@@ -575,8 +807,11 @@ function Refresh-ProcessRows {
             try { $started = $process.StartTime } catch { }
             $key = if ($null -ne $started) { "$($process.Id):$($started.Ticks)" } else { "$($process.Id):unknown" }
             $row = $script:rows[$key]
-            if ($null -eq $row) { $row = New-ProcessRow $process $started $key }
-            $caption = 'WowClassic.exe'
+            if ($null -eq $row) { $row = New-ProcessRow $process $started $key $process.WowAutoClient }
+            $row.Process=$process
+            $row.Client=$process.WowAutoClient
+            $row.Position=Read-RowWindowPosition $row
+            $caption = [IO.Path]::GetFileName($row.Client.ExecutablePath)
             try { if ($process.MainWindowTitle) { $caption = $process.MainWindowTitle } } catch { }
             $row.Caption = $caption
             Update-RowStatus $row
@@ -594,7 +829,7 @@ function Refresh-ProcessRows {
         $script:rows = $next
         foreach ($row in $ordered) { $list.Controls.Add($row.Panel) }
         $list.ResumeLayout()
-        $countLabel.Text = "检测到 $($processes.Count) 个 WowClassic.exe 进程"
+        $countLabel.Text = "检测到 $($processes.Count) 个游戏进程"
         if ($processes.Count -eq 0) { $countLabel.Text += '，启动游戏后点击刷新。' }
     }
     catch { $countLabel.Text = '刷新失败：' + $_.Exception.Message; return $false }
@@ -605,23 +840,23 @@ function Activate-ScanRow($Row) {
         $script:scanOrder += $Row.Process.Id
         return $Row.Process.FocusAllowed
     }
-    return [WowAuto.NativeInput]::ActivateForScan($Row.Process.Id, $Row.StartTime.Ticks)
+    return [WowAuto.NativeInput]::ActivateForScan($Row.Process.Id, $Row.StartTime.Ticks, $Row.Client.ExecutablePath)
 }
 
 function Read-ScanColor($Row) {
     $Row.Process.Refresh()
-    if ($Row.Process.HasExited -or $Row.Process.StartTime -ne $Row.StartTime -or $Row.Process.ProcessName -ne 'WowClassic') {
+    if ($Row.Process.HasExited -or -not (Test-RowProcessIdentity $Row)) {
         throw '进程已退出或身份改变。'
     }
     if ($UiTest) { return $Row.Process.ScanColor }
-    if (-not [WowAuto.NativeInput]::IsTargetForeground($Row.Process.Id)) { return 'not-foreground' }
-    return [WowAuto.NativeInput]::ReadCenterColor($Row.Process.Id)
+    if (-not [WowAuto.NativeInput]::IsTargetForeground($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath)) { return 'not-foreground' }
+    return [WowAuto.NativeInput]::ReadCenterColor($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath)
 }
 
 function Read-LureColor($Row) {
     if ($UiTest) { return $Row.Process.LureColor }
-    if (-not [WowAuto.NativeInput]::IsTargetForeground($Row.Process.Id)) { return 'not-foreground' }
-    return [WowAuto.NativeInput]::ReadLureColor($Row.Process.Id)
+    if (-not [WowAuto.NativeInput]::IsTargetForeground($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath)) { return 'not-foreground' }
+    return [WowAuto.NativeInput]::ReadLureColor($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath)
 }
 
 function Finish-RefreshScan {
@@ -641,7 +876,7 @@ function Finish-RefreshScan {
 }
 
 function Begin-RefreshScan {
-    if ($script:scanning) { return }
+    if ($script:scanning -or $script:editingSettings) { return }
     $script:pendingGameExits.Clear()
     $script:scanning = $true
     $startAllButton.Enabled = $false
@@ -729,7 +964,8 @@ $scanTimer.Add_Tick({
 $refreshButton.Add_Click({ Begin-RefreshScan })
 function Update-BatchControls {
     $eligible = @($script:rows.Values | Where-Object { $_.Validated -and -not $_.Exited -and ($null -eq $_.State -or -not $_.State.Running) })
-    $startAllButton.Enabled = -not $script:scanning -and $eligible.Count -gt 0
+    $startAllButton.Enabled = -not $script:scanning -and -not $script:editingSettings -and $eligible.Count -gt 0
+    $settingsButton.Enabled = -not $script:scanning -and -not $script:editingSettings
     $stopAllButton.Enabled = $script:scheduler.Tasks.Count -gt 0 -or $script:pendingGameExits.Count -gt 0
 }
 function Stop-AllRows {
@@ -757,11 +993,11 @@ function Activate-WorkerRow($Row) {
         $script:workerActivations += $Row.Process.Id
         return $Row.Process.FocusAllowed
     }
-    return [WowAuto.NativeInput]::ActivateForScan($Row.Process.Id, $Row.StartTime.Ticks)
+    return [WowAuto.NativeInput]::ActivateForScan($Row.Process.Id, $Row.StartTime.Ticks, $Row.Client.ExecutablePath)
 }
 function Test-WorkerForeground($Row) {
     if ($UiTest) { return $Row.Process.FocusAllowed -and $script:workerFocus -eq $Row.Process.Id }
-    return [WowAuto.NativeInput]::IsTargetForeground($Row.Process.Id)
+    return [WowAuto.NativeInput]::IsTargetForeground($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath)
 }
 function Send-WorkerKey($Row, [string]$Action) {
     $binding=$script:keyBindings[$Action]
@@ -772,7 +1008,7 @@ function Send-WorkerKey($Row, [string]$Action) {
         $script:workerKeys += "$($Row.Process.Id):$Number"
         return (Test-WorkerForeground $Row)
     }
-    return [WowAuto.NativeInput]::PressChord($Row.Process.Id, [System.UInt16]$Number, $binding.Ctrl, $binding.Shift, $binding.Alt)
+    return [WowAuto.NativeInput]::PressChord($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath, [System.UInt16]$Number, $binding.Ctrl, $binding.Shift, $binding.Alt)
 }
 function Close-WorkerGame($Row) {
     $cycles=Get-WowAutoCycleCount $script:scheduler $Row.Key
@@ -789,7 +1025,7 @@ function Close-WorkerGame($Row) {
             Stop-Row $Row "背包已满：有效循环 $cycles 次，游戏进程已退出。"
             return
         }
-        if ($Row.Process.StartTime -ne $Row.StartTime -or $Row.Process.ProcessName -ne 'WowClassic') {
+        if (-not (Test-RowProcessIdentity $Row)) {
             throw '进程身份已改变，未发送退出请求。'
         }
         if ($script:pendingGameExits.ContainsKey($Row.Key)) { return }
@@ -824,7 +1060,7 @@ function Invoke-GameExitChecks([long]$Now) {
                 Stop-Row $exit.Row '游戏已正常退出，30秒超时保护已解除。'
                 continue
             }
-            if ($exit.Process.StartTime -ne $exit.StartTime -or $exit.Process.ProcessName -ne 'WowClassic') {
+            if (-not (Test-RowProcessIdentity $exit.Row)) {
                 throw '进程身份已改变，已取消超时保护。'
             }
             if ($Now -lt $exit.Due) { continue }
@@ -847,7 +1083,7 @@ function Pause-RowForFocus($Row, [long]$Now, [string]$Reason) {
 }
 
 function Invoke-SchedulerTick([long]$Now) {
-    if ($script:scanning) { return }
+    if ($script:scanning -or $script:editingSettings) { return }
     $work=Get-WowAutoWork $script:scheduler $Now
     if ($null -eq $work) { return }
     $row=$script:rows[$work.Key]
@@ -855,7 +1091,7 @@ function Invoke-SchedulerTick([long]$Now) {
     try {
         $row.Process.Refresh()
         if ($row.Process.HasExited) { $row.Exited=$true; throw '进程已退出。' }
-        if ($row.Process.StartTime -ne $row.StartTime -or $row.Process.ProcessName -ne 'WowClassic') {
+        if (-not (Test-RowProcessIdentity $row)) {
             $row.Validated=$false
             throw '进程身份已改变。'
         }
@@ -958,9 +1194,13 @@ $timer.Add_Tick({
     foreach ($row in @($script:rows.Values)) { Update-RowStatus $row }
     Update-BatchControls
 })
+$positionTimer = New-Object System.Windows.Forms.Timer
+$positionTimer.Interval = 1000
+$positionTimer.Add_Tick({ Update-WindowPositions })
 $form.Add_FormClosing({
     $script:pendingGameExits.Clear()
     $timer.Stop()
+    $positionTimer.Stop()
     if ($script:scanning) { Finish-RefreshScan }
     $scanTimer.Stop()
     foreach ($row in $script:rows.Values) { Stop-Row $row }
@@ -970,13 +1210,20 @@ try {
     if ($UiTest) {
         # Test fixtures are never passed to native input, capture, or termination.
         foreach ($id in @(101, 202, 303)) {
-            $mock = [pscustomobject]@{ Id=$id; StartTime=[datetime]'2026-09-27'; ProcessName='WowClassic'; MainWindowTitle="测试游戏 $id"; HasExited=$false; FocusAllowed=$true; ScanColor='red'; LureColor='missing' }
+            $isForever=$id -eq 202
+            $mock = [pscustomobject]@{
+                Id=$id; StartTime=[datetime]'2026-09-27'; ProcessName=$(if ($isForever) { 'Wow' } else { 'WowClassic' })
+                ExecutablePath=$(if ($isForever) { 'C:\test-games\_cn_beta_\Wow.exe' } else { 'C:\test-games\_classic_titan_\WowClassic.exe' })
+                FileVersion=$(if ($isForever) { '1.60.1.70338' } else { '3.80.2.70177' })
+                MainWindowTitle="测试游戏 $id"; HasExited=$false; FocusAllowed=$true; ScanColor='red'; LureColor='missing'
+                WindowBounds=@(20,20,820,520); ScreenBounds=@(0,0,1920,1080); Minimized=$false
+            }
             $mock | Add-Member ScriptMethod Refresh { }
             $script:mockProcesses += $mock
         }
     }
     $null = Refresh-ProcessRows
-    if (-not $PreviewPath -and -not $UiTest) { $timer.Start() }
+    if (-not $PreviewPath -and -not $UiTest) { $timer.Start(); $positionTimer.Start() }
     if ($PreviewPath -or $UiTest) {
         $form.Show()
         [System.Windows.Forms.Application]::DoEvents()
@@ -989,6 +1236,7 @@ try {
             . (Join-Path $PSScriptRoot 'tests\ProcessItems.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\FocusRetry.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\StatusTimestamp.UiTests.ps1')
+            . (Join-Path $PSScriptRoot 'tests\ClientSettings.UiTests.ps1')
         }
         if ($PreviewPath) {
             [System.Windows.Forms.Application]::DoEvents()
@@ -1002,4 +1250,7 @@ try {
     }
     else { [void]$form.ShowDialog() }
 }
-finally { $scanTimer.Dispose(); $timer.Dispose(); $form.Dispose() }
+finally {
+    $positionTimer.Dispose(); $scanTimer.Dispose(); $timer.Dispose(); $form.Dispose()
+    if ($UiTest -and (Test-Path -LiteralPath $script:settingsPath)) { Remove-Item -LiteralPath $script:settingsPath }
+}

@@ -4,8 +4,9 @@ $testRows=@($script:rows.Values | Sort-Object { $_.Process.Id })
 $a=$testRows[0]; $b=$testRows[1]
 $a.Process.FocusAllowed=$true; $a.Process.ScanColor='red'; $a.Validated=$true
 $b.Process.FocusAllowed=$true; $b.Process.ScanColor='green'; $b.Validated=$true
-$a.Minimum.Value=8000; $a.Maximum.Value=13000
-$b.Minimum.Value=1000; $b.Maximum.Value=1000
+$b.Process.ProcessName='Wow'; $b.Process.ExecutablePath='C:\test-games\_cn_beta_\Wow.exe'; $b.Process.FileVersion='1.60.1.70338'
+$b.Client=Get-ProcessClientInfo $b.Process
+Set-VersionWaitRanges 8000 13000 1000 1000 -Persist $false
 Update-BatchControls
 Assert-Ui ($refreshButton.Parent -eq $toolbar -and $toolbar.Parent -eq $tab) 'Refresh button is outside autofish tab.'
 $startAllButton.PerformClick()

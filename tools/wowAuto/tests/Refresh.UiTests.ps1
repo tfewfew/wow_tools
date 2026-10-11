@@ -28,9 +28,9 @@ Assert-Ui $script:restored 'Original foreground was not restored.'
 Assert-Ui ($a.Start.Enabled -and $a.Stop.Enabled -and $b.Start.Enabled -and $b.Stop.Enabled) 'Red/green rows not unlocked.'
 Assert-Ui (-not $c.Start.Enabled -and -not $c.Stop.Enabled) 'Yellow row unlocked.'
 $a.Start.PerformClick()
-$b.Minimum.Value = 2345; $b.Maximum.Value = 6789
+Set-VersionWaitRanges 9000 13000 2345 6789 -Persist $false
 $b.Start.PerformClick()
-Assert-Ui ($a.State.Running -and $b.State.Running -and $b.State.MinimumMs -eq 2345) 'Independent start/ranges failed.'
+Assert-Ui ($a.State.Running -and $b.State.Running -and $b.State.MinimumMs -eq 2345 -and $a.State.MinimumMs -eq 9000) 'Version-based start/ranges failed.'
 $a.Stop.PerformClick()
 Assert-Ui (-not $a.State.Running -and $b.State.Running) 'Stop affected another row.'
 $a.ItemCheck.Checked=$true
@@ -38,7 +38,7 @@ $script:scheduler.CompletedCycles[$a.Key]=123
 $refreshButton.PerformClick()
 Assert-Ui (-not $b.State.Running -and -not $b.Start.Enabled -and -not $b.Stop.Enabled) 'Refresh did not stop and lock active row.'
 Complete-TestScan
-Assert-Ui ($script:rows[$b.Key] -eq $b -and $b.Minimum.Value -eq 2345 -and $null -eq $b.State) 'Refresh did not preserve range/stopped row.'
+Assert-Ui ($script:rows[$b.Key] -eq $b -and $script:versionRanges.forerver.MinimumMs -eq 2345 -and $null -eq $b.State) 'Refresh did not preserve version range/stopped row.'
 Assert-Ui ($a.ItemCheck.Checked -and -not $b.ItemCheck.Checked) 'Refresh did not preserve per-process checkbox selection.'
 Assert-Ui ((Get-WowAutoCycleCount $script:scheduler $a.Key) -eq 123) 'Refresh cleared process cycle count.'
 $a.Process.ScanColor = 'unknown'

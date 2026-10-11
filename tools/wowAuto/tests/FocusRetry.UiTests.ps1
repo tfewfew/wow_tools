@@ -6,11 +6,11 @@ function Reset-FocusTest {
     $script:scheduler=New-WowAutoScheduler
     $script:schedulerClock=[pscustomobject]@{ElapsedMilliseconds=1000L}
     $script:workerFocus=0; $script:workerKeys=@(); $script:workerActivations=@()
+    Set-VersionWaitRanges 1000 1000 1000 1000 -Persist $false
     foreach ($r in @($focusA,$focusB)) {
         $r.State=$null; $r.Exited=$false; $r.Validated=$true
         $r.Process.HasExited=$false; $r.Process.StartTime=$r.StartTime
-        $r.Process.ProcessName='WowClassic'; $r.Process.FocusAllowed=$true; $r.Process.ScanColor='red'
-        $r.Minimum.Value=1000; $r.Maximum.Value=1000
+        $r.Process.ProcessName=$r.Client.ProcessName; $r.Process.FocusAllowed=$true; $r.Process.ScanColor='red'
         Update-RowStatus $r
     }
 }
