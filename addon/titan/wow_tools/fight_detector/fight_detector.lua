@@ -154,7 +154,11 @@ signal:SetAllPoints(UIParent)
 signal:SetFrameStrata("TOOLTIP")
 signal:EnableMouse(false)
 local cells={signal:CreateTexture(nil,"OVERLAY"),signal:CreateTexture(nil,"OVERLAY")}
-for _,cell in ipairs(cells) do
+-- A two-pixel inset inside the main cell preserves the center-only V5 sample.
+-- The surrounding main cell can use the same red as fishing while out of combat.
+local dataCell=signal:CreateTexture(nil,"OVERLAY",nil,1)
+dataCell:Hide()
+for _,cell in ipairs({cells[1],cells[2],dataCell}) do
     if cell.SetSnapToPixelGrid then cell:SetSnapToPixelGrid(false) end
     if cell.SetTexelSnappingBias then cell:SetTexelSnappingBias(0) end
 end
@@ -172,6 +176,9 @@ local function PositionSignal()
         local size=(i==1 and 32 or 12)*unit
         cell:SetSize(size,size)
     end
+    dataCell:ClearAllPoints()
+    dataCell:SetPoint("CENTER",WoWTools.detectorAnchor,"CENTER",0,0)
+    dataCell:SetSize(2*unit,2*unit)
     if enabled and panel:IsShown() then signal:Show() else signal:Hide() end
     return true
 end
@@ -182,9 +189,16 @@ local function Paint()
         local encounter=encounterSerial%32
         local recover=recoveryCodes[recovery] or 3
         local red=state=="target" and ({[0]=240,[1]=248,[2]=8,[3]=40})[recover] or (16+8*(action*4+recover))
-        cells[1]:SetColorTexture(red/255,
-            (2+4*(identity+(busy and 26 or 0)))/255,
-            (2+4*(encounter+(combat and 32 or 0)))/255,1)
+        local r,g,b=red/255,(2+4*(identity+(busy and 26 or 0)))/255,
+            (2+4*(encounter+(combat and 32 or 0)))/255
+        dataCell:SetColorTexture(r,g,b,1)
+        if combat==false and state~="unknown" and recovery~="unknown" then
+            cells[1]:SetColorTexture(1,0,0,1)
+            dataCell:Show()
+        else
+            cells[1]:SetColorTexture(r,g,b,1)
+            dataCell:Hide()
+        end
         local hints={none={.15,.15,.15},recover={0,.4,1},emergency={1,.15,0},unknown={.5,.5,.5}}
         local hint=hints[recovery] or hints.unknown
         cells[2]:SetColorTexture(hint[1],hint[2],hint[3],1)

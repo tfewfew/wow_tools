@@ -85,7 +85,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 ## autoFight（2026-10-13）
 
-- 当前合集版本titan2.1.13、forerver2.2.12，两服独立维护fight_detector.lua；保留fightDetectorDB / rangeSpells，新增profiles[classId]恢复阈值。战斗通过模块接口关闭钓鱼以恢复音频，不直接读写wowDetectorDB、音频、图形或交互CVar。
+- 当前合集版本titan2.1.14、forerver2.2.13，两服独立维护fight_detector.lua；保留fightDetectorDB / rangeSpells，新增profiles[classId]恢复阈值。战斗通过模块接口关闭钓鱼以恢复音频，不直接读写wowDetectorDB、音频、图形或交互CVar。
 - autoFight.ps1、Engine.ps1、Native.cs、config.json的状态、输入、计时和配置与autofish隔离，只共享主题及标签。离开标签停止上一页，UiTest以模拟类型替代战斗原生操作，不加载战斗输入适配器。
 - 战斗v5只读取主色块：主32×32物理像素位于客户区正中心，副12×12位于中心右32px，只作恢复提示。无心跳、双块校验或颜色变化要求。主RGB=(16+8*(action*4+recovery),2+4*(identity+busy*26),2+4*(encounter+combat*32))；action=0..6为unknown/idle/opening/waiting/combat/loot/skin；新增target动作分别使用保留R240/248/8对应none/recover/emergency，G/B不变。recovery=0..3为none/recover/emergency/unknown；identity=classId-1+（forerver为13）；encounter模32。通道偏差最多1，拒绝非法字段/组合、版本或职业不符、未知恢复及旧协议；射程未知但恢复明确仍可执行恢复。
 - HP进入 / 退出阈值默认非战斗80/95、紧急30/50；可选法力恢复默认关闭，只对法力职业生效。0关闭项，进入<退出，迟滞避免状态抖动。受限 / 不可读不推断。恢复优先于普通动作；施法 / 引导 / 战利品窗口阻止普通发键，紧急宏允许打断当前施法。
@@ -109,3 +109,5 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - 战斗刷新 / 状态 / 职业 / 位置 / 发键前重读全部不以Foreground作为检测前提，扫描不Activate也不Restore，只有实际动作到期才激活并等待200ms，Press / BeginHold仍验证前台。交互保持可后台读色，移动失焦释放并继续监测。最小化 / 后台渲染黑图 / 非法色暂停，800ms规则保留，不以切换前台作为检测回退。FightDistance模拟安全属性禁战斗写入、nameplate先选再开、战斗错选 / 目标丢失 / focus失效、关闭脱战解绑；UiTest模拟后台刷新 / 待机无焦点变化、选目标取得焦点 / 200ms / 确认 / 重试 / 开怪门闩，Native只编译及纯Decode，不实际截游戏或发键。
 
 - 两服Init.lua各自创建WoWTools.detectorAnchor在UIParent正中心，钓鱼CenterIndicator把主色中心对齐该锚点，战斗主 / 副块均锚定它；主中心重合，副中心均为主右32物理px，副12px。保留各自颜色协议与主块尺寸，不能为位置重叠改坏脚本解码。WoWTools.ActivateDetector在成功启动前停止并隐藏另一个检测，钓鱼SetEnabled(true)和战斗Start统一调用，覆盖命令 / 按钮 / 小地图 / 菜单；钓鱼模块Hide=CloseMonitor，隐藏但enabled仍为true的钓鱼同样要停止并恢复音频快照，战斗停用清理会话并按既有战斗锁定规则延后解绑。死亡 / 未初始化等拒绝启动先返回，不停用原模块；仅钓鱼show / hide显隐不抢占当前检测。DetectorExclusion.Tests.lua分别用两服真实模块模拟双向切换、所有入口、显隐 / 失败 / 音频恢复 / 安全解绑，以及各窗口 / UI缩放下主副共同定位。
+
+- 非战斗主块主体使用钓鱼等待红RGB255/0/0，仅combat明确false且state/recovery均非unknown时应用，覆盖待机/选目标/开怪/等待接近/恢复/尸体交互。主32px内部正中心2×2物理px的OVERLAY子层1纹理保留v5数据，PC仍只读原主中心像素；外部仍为两个色块，无副块读取或心跳。战斗/未知隐藏内部纹理并用原编码铺满主块；恢复副块不变。内部区域与共享锚点重合，按相同unit换算，保留缩放及奇偶客户区中心采样。FightDistance.Tests.lua输出实际主中心颜色供C#解码，DetectorExclusion比较切换前的钓鱼等待红，不能误比较关闭后的灰色。

@@ -87,26 +87,37 @@ for _,flavor in ipairs({"titan","forerver"}) do
         event("ADDON_LOADED","wow_tools")
         assert(not WoWTools.modules.fight_detector.IsEnabled(),"Initial combat flag enables loot")
         local detector
-        for _,f in ipairs(frames) do if #f.textures==2 then detector=f end end
-        assert(detector,"Expected exactly two V5 signal cells")
+        for _,f in ipairs(frames) do if #f.textures==3 then detector=f end end
+        assert(detector,"Expected two V5 cells with an inset inside the main cell")
         return detector
     end
     local saved={rangeSpells={[1]=78},profiles={[3]={DetectionRangeYards=20}}}
     local signal=setup(1,saved)
+    local function centerCell()
+        return signal.textures[3].shown and signal.textures[3] or signal.textures[1]
+    end
     local function color(r,g,b)
         local expected={ ["128,128,128"]=0,["0,0,255"]=1,["255,96,0"]=2,["0,192,192"]=3,["255,0,0"]=4}
-        local code=math.floor((signal.textures[1].color[1]*255-16)/8/4)
+        local code=math.floor((signal.textures[3].color[1]*255-16)/8/4)
         assert(code==expected[r..","..g..","..b],flavor..": unexpected main state code "..code)
+        local visual=signal.textures[1].color
+        if not combat and code~=0 then
+            assert(visual[1]==1 and visual[2]==0 and visual[3]==0 and signal.textures[3].shown,
+                "Known noncombat state is not fishing waiting red")
+        else
+            assert(not signal.textures[3].shown,"Noncombat inset covered combat or unknown state")
+            for i=1,3 do assert(visual[i]==signal.textures[3].color[i],"Combat center no longer matches data") end
+        end
         if output then
             local function pixel(cell)
                 local c=cell.color
                 return math.floor(c[1]*255+.5)+256*math.floor(c[2]*255+.5)+65536*math.floor(c[3]*255+.5)
             end
             output:write(flavor," ",({[0]="unknown","idle","opening","waiting","combat"})[code]," ",
-                tostring(pixel(signal.textures[1]))," ",tostring(pixel(signal.textures[2])),"\n")
+                tostring(pixel(centerCell()))," ",tostring(pixel(signal.textures[2])),"\n")
         end
     end
-    local function epoch() return ((signal.textures[1].color[3]*255-2)/4)%32 end
+    local function epoch() return ((signal.textures[3].color[3]*255-2)/4)%32 end
     assert(edits[1].text=="30" and edits[2].text=="5" and warm>0,"Default distances / item-cache warmup failed: "..edits[1].text.." / "..edits[2].text.." / "..warm)
     assert(not WoWTools.FightRange.IsSupported(secret) and not WoWTools.FightRange.IsSupported(12))
     mobs.target={guid="Creature-A",distance=31}
@@ -115,14 +126,17 @@ for _,flavor in ipairs({"titan","forerver"}) do
     local function geometry()
         for i,cell in ipairs(signal.textures) do
             local unit=UIParent:GetHeight()/screenHeight
-            assert(math.abs(cell.point[4]/unit-(i==1 and 0 or 32))<.001
-                and math.abs(cell.point[5]/unit)<.001 and math.abs(cell.width/unit-(i==1 and 32 or 12))<.001,
+            assert(math.abs(cell.point[4]/unit-(i==2 and 32 or 0))<.001
+                and math.abs(cell.point[5]/unit)<.001 and math.abs(cell.width/unit-(i==1 and 32 or (i==2 and 12 or 2)))<.001,
                 "Physical geometry did not survive window/UI scaling")
         end
+        local sampleX,sampleY=math.floor(screenWidth/2)+.5,math.floor(screenHeight/2)+.5
+        assert(math.abs(sampleX-screenWidth/2)<1 and math.abs(sampleY-screenHeight/2)<1,
+            "Script center sample falls outside the two-pixel inset")
     end
-    local stable={unpack(signal.textures[1].color)}
+    local stable={unpack(signal.textures[3].color)}
     tick()
-    for i=1,3 do assert(signal.textures[1].color[i]==stable[i],"Unchanged state still depends on heartbeat") end
+    for i=1,3 do assert(signal.textures[3].color[i]==stable[i],"Unchanged state still depends on heartbeat") end
     geometry()
     for _,size in ipairs({{1280,720,.5},{2560,1440,1.25},{1279,719,.85},{1920,1080,1}}) do
         screenWidth,screenHeight,uiScale=unpack(size)
@@ -144,7 +158,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     color(0,192,192); assert(epoch()==first,"Nearby other monster bypassed target's attack distance")
     mobs.focus=mobs.target
     mobs.target={guid="Creature-C",distance=5}; tick()
-    assert(math.floor(signal.textures[1].color[1]*255+.5)==240 and epoch()==first,"Combat target switch replaced locked encounter")
+    assert(math.floor(signal.textures[3].color[1]*255+.5)==240 and epoch()==first,"Combat target switch replaced locked encounter")
     assert(names.wowToolsFightTargetButton.macrotext:find("combat,@focus",1,true),"Secure combat retarget missing")
     mobs.target=mobs.focus; mobs.focus=nil; tick(); color(0,192,192)
     mobs.target.distance=5; tick(); color(255,0,0)
@@ -155,7 +169,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     missing=false; conflicting=true; tick(); color(128,128,128)
     conflicting=false; mobs.target.guid=secret; tick(); color(128,128,128)
     mobs.target.guid="Creature-A"; health=20; mobs.target.distance=20; tick(); color(0,192,192)
-    local recover=((signal.textures[1].color[1]*255-16)/8)%4; assert(recover==2,"Recovery signal lost during waiting")
+    local recover=((signal.textures[3].color[1]*255-16)/8)%4; assert(recover==2,"Recovery signal lost during waiting")
     health=100; mobs.target.dead=true; combat=false; tick(); color(0,0,255)
     mobs.target={guid="Creature-D",distance=29}; tick(); color(255,96,0)
     local save
@@ -181,19 +195,25 @@ for _,flavor in ipairs({"titan","forerver"}) do
     mobs={nameplate1={guid="Creature-NEW",distance=10}}
     signal=setup(1,saved); event("NAME_PLATE_UNIT_ADDED","nameplate1")
     SlashCmdList.FIGHTDETECTOR("on")
-    assert(math.floor(signal.textures[1].color[1]*255+.5)==240 and override,"Unselected nameplate opened without target key")
+    assert(math.floor(signal.textures[3].color[1]*255+.5)==240 and override,"Unselected nameplate opened without target key")
     assert(names.wowToolsFightTargetButton.macrotext:find("nocombat,@nameplate1",1,true),"Selected wrong unit token")
     local selectedEpoch=epoch()
     mobs.target=mobs.nameplate1; tick()
-    assert(math.floor(signal.textures[1].color[1]*255+.5)==240,"Target without confirmed focus opened")
+    assert(math.floor(signal.textures[3].color[1]*255+.5)==240,"Target without confirmed focus opened")
     mobs.focus=mobs.target; tick(); color(255,96,0)
     assert(epoch()==selectedEpoch,"Confirming selection changed encounter")
     combat=true; mobs.focus=mobs.target; mobs.target=nil; tick()
-    assert(math.floor(signal.textures[1].color[1]*255+.5)==240 and epoch()==selectedEpoch,"Lost target did not request locked focus")
+    assert(math.floor(signal.textures[3].color[1]*255+.5)==240 and epoch()==selectedEpoch,"Lost target did not request locked focus")
     mobs.focus=nil; tick(); color(128,128,128) -- Never target an unrelated focus in combat.
     SlashCmdList.FIGHTDETECTOR("off"); assert(override,"Combat attempted protected unbind")
     assert(not WoWTools.modules.fight_detector.IsEnabled(),"Combat close leaves loot enabled")
     combat=false; event("PLAYER_REGEN_ENABLED"); assert(not override,"Deferred override cleanup missing")
+    mobs={}; health=70; SlashCmdList.FIGHTDETECTOR("on"); color(0,0,255)
+    assert(((centerCell().color[1]*255-16)/8)%4==1
+        and signal.textures[2].color[3]==1,"Red noncombat body lost recovery data or hint")
+    health=secret; tick(); color(128,128,128)
+    health=100; tick(); color(0,0,255)
+    SlashCmdList.FIGHTDETECTOR("off")
     print("PASS: "..flavor.." yard probes, 30/5 defaults, exact thresholds, opening/wait/approach/retreat, target identity, unknown/secret/failure/conflict, legacy fallback, settings scope/validation and death. Game APIs mocked.")
 end
 if output then output:close() end
