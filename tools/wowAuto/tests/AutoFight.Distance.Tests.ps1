@@ -24,6 +24,10 @@ foreach ($flavor in @('titan','forerver')) {
             }
         }
     }
+    foreach ($entry in @(@(240,0,$false,'none'),@(248,1,$false,'recover'),@(8,2,$true,'emergency'),@(240,0,$true,'none'))) {
+        $packet=[WowAutoFight.Native]::Decode(([uint32[]]@((Pixel $entry[0] $(if($flavor -eq 'titan'){2}else{54}) $(if($entry[2]){130}else{2})))),$flavor)
+        Assert-Distance ($packet -and $packet.Action -eq 'target' -and $packet.Recovery -eq $entry[3]) 'Target color / recovery decoding failed.'
+    }
     foreach ($class in 1..13 | Where-Object {$_ -notin (Get-AutoFightClassIds $flavor)}) {
         Assert-Distance ($null -eq [WowAutoFight.Native]::Decode((Test-Packet $flavor $class 1),$flavor)) 'Unavailable class accepted.'
     }

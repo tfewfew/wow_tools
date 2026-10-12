@@ -16,8 +16,10 @@ namespace WowAutoFight {
         public static string Position="左上";
         public static string ReadWindowPosition(object client) {return Position;}
         public static bool IsAlive(object client) { return true; }
-        public static bool Foreground(object client) { return true; }
-        public static bool Activate(object client) { return true; }
+        public static bool IsForeground=true;
+        public static int Activations=0, Restores=0;
+        public static bool Foreground(object client) { return IsForeground; }
+        public static bool Activate(object client) { Activations++; return true; }
         public static object Read(object client) {
             if (MissingReads>0) { MissingReads--; return null; }
             if (ReadsUntilEncounterChange>0 && --ReadsUntilEncounterChange==0) Current.EncounterId++;
@@ -31,7 +33,7 @@ namespace WowAutoFight {
             if (!Press(client,code,ctrl,shift,alt)) return false; IsHolding=true; return true;
         }
         public static void ReleaseHold() { if (IsHolding) Releases++; IsHolding=false; }
-        public static void Restore(object window) {}
+        public static void Restore(object window) {Restores++;}
     }
 }
 '@
@@ -142,7 +144,7 @@ try {
     Assert-Ui ($fightRows[0].CanStart -and $script:autoFight.Scan.Index -eq 1 -and
         -not $script:autoFight.Pending -and [WowAutoFight.Native]::Sends -eq 0) 'Stable main color required heartbeat or refresh emitted input.'
     Complete-AutoFightScan
-    foreach($state in @('opening','combat','recover','emergency','move-forward','move-backward','move-left','move-right','loot','skin')) {
+    foreach($state in @('target','opening','combat','recover','emergency','move-forward','move-backward','move-left','move-right','loot','skin')) {
         Prepare-FightInput $fightRows[0] $state 999
         Invoke-AutoFightTick
         Assert-Ui ([WowAutoFight.Native]::Sends -eq 0 -and $fightRows[0].Session.EntryPending) "Combat gate bypassed by $state."
@@ -272,6 +274,52 @@ try {
     $script:autoFight.Common.JumpIntervalSeconds=0
     Tick-FightEncounter $fightRows[0] 'idle' 60000
     Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline -and $fightRows[0].Session.NextJumpAt -eq [long]::MaxValue) 'Disabled jump remained scheduled.'
+    $script:autoFight.Common.JumpIntervalSeconds=0
+    [WowAutoFight.Native]::IsForeground=$false
+    [WowAutoFight.Native]::Activations=0; [WowAutoFight.Native]::Restores=0
+    Prepare-FightInput $fightRows[0] 'idle' 61000
+    Invoke-AutoFightTick
+    Assert-Ui ([WowAutoFight.Native]::Activations -eq 0 -and [WowAutoFight.Native]::Sends -eq $baseline -and $fightRows[0].Session) 'Background idle detection required focus.'
+    $script:autoFight.Scan=[pscustomobject]@{Order=@($fightRows[0]);Index=0;OriginalWindow=[IntPtr]::Zero}
+    $script:autoFight.Pending=New-AutoFightPending $fightRows[0] $null $true 61000
+    Invoke-AutoFightTick; Complete-AutoFightScan
+    Assert-Ui ($fightRows[0].CanStart -and [WowAutoFight.Native]::Activations -eq 0 -and [WowAutoFight.Native]::Restores -eq 0) 'Background refresh changed focus.'
+    Prepare-FightInput $fightRows[0] 'target' 62000
+    $script:autoFight.Pending.Activated=$false
+    Invoke-AutoFightTick
+    Assert-Ui ([WowAutoFight.Native]::Activations -eq 1 -and [WowAutoFight.Native]::Sends -eq $baseline -and -not $fightRows[0].Session.OpeningSent) 'Target input failed to wait for foreground.'
+    [WowAutoFight.Native]::IsForeground=$true
+    $script:autoFight.Clock.ElapsedMilliseconds=62199;Invoke-AutoFightTick
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline) 'Target key sent before focus settle.'
+    $script:autoFight.Clock.ElapsedMilliseconds=62200;Invoke-AutoFightTick
+    $baseline++
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline -and [WowAutoFight.Native]::LastCode -eq 121 -and -not $fightRows[0].Session.OpeningSent) 'Selection did not send reserved F10 independently of opener.'
+    Tick-FightEncounter $fightRows[0] 'target' 64000
+    $baseline++
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline -and -not $fightRows[0].Session.OpeningSent) 'Unconfirmed target opened or could not retry.'
+    Tick-FightEncounter $fightRows[0] 'opening' 65000
+    $baseline++
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline -and $fightRows[0].Session.OpeningSent) 'Confirmed selection failed to open.'
+    Tick-FightEncounter $fightRows[0] 'target' 66000
+    $baseline++
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline -and $fightRows[0].Session.OpeningSent) 'Reacquiring target reset opening latch.'
+    [WowAutoFight.Native]::FailSend=$true
+    Prepare-FightInput $fightRows[0] 'target' 67000;Invoke-AutoFightTick
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline) 'Failed selection sent opener.'
+    [WowAutoFight.Native]::FailSend=$false
+    Prepare-FightInput $fightRows[0] 'loot' 68000;Invoke-AutoFightTick
+    $baseline++
+    [WowAutoFight.Native]::IsForeground=$false
+    $script:autoFight.Clock.ElapsedMilliseconds=68100;Invoke-AutoFightTick
+    Assert-Ui ($fightRows[0].Session -and $script:autoFight.ActiveHold -and [WowAutoFight.Native]::Sends -eq $baseline) 'Background interaction hold required focus.'
+    [void](Release-AutoFightHold)
+    [WowAutoFight.Native]::IsForeground=$true
+    Prepare-FightInput $fightRows[0] 'move-forward' 70000;Invoke-AutoFightTick
+    $baseline++
+    [WowAutoFight.Native]::IsForeground=$false
+    $script:autoFight.Clock.ElapsedMilliseconds=70001;Invoke-AutoFightTick
+    Assert-Ui ($fightRows[0].Session -and -not [WowAutoFight.Native]::IsHolding -and -not $script:autoFight.ActiveHold) 'Movement focus loss did not release and retain background monitoring.'
+    [WowAutoFight.Native]::IsForeground=$true
     Assert-Ui ($script:scheduler.JumpEveryCycles -eq $fishJump -and (Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $fishIniHash -and (Get-FileHash -LiteralPath $fightSource).Hash -eq $fightSourceHash) 'Combat changed fishing settings or source configuration.'
     Write-Output 'PASS: combat settings 100 ms step/common draft/profile isolation/save/cancel/locked failure; mocked production input gate for all states, cross-window, release, restart and send failure. No real native operations.'
     Write-Output 'PASS: production combat UI adapter opens once, stays quiet through waiting/combat/emergency, attacks on approach, reopens for new monster and rechecks encounter before input.'

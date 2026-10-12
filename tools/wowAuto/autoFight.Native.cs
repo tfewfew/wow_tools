@@ -48,6 +48,9 @@ namespace WowAutoFight
         [DllImport("user32.dll")] private static extern bool ShowWindowAsync(IntPtr h, int command);
         [DllImport("user32.dll")] private static extern bool GetClientRect(IntPtr h, out Rect rect);
         [DllImport("user32.dll")] private static extern bool ClientToScreen(IntPtr h, ref Point point);
+        [DllImport("user32.dll")] private static extern bool PrintWindow(IntPtr h,IntPtr dc,uint flags);
+        [DllImport("user32.dll")] private static extern IntPtr WindowFromPoint(Point point);
+        [DllImport("user32.dll")] private static extern IntPtr GetAncestor(IntPtr h,uint flags);
         [DllImport("user32.dll")] private static extern IntPtr GetDC(IntPtr h);
         [DllImport("user32.dll")] private static extern int ReleaseDC(IntPtr h, IntPtr dc);
         [DllImport("gdi32.dll")] private static extern uint GetPixel(IntPtr dc, int x, int y);
@@ -173,7 +176,6 @@ namespace WowAutoFight
         public static Packet Read(Client c)
         {
             LastReadError="";
-            if (!Foreground(c)) return ReadFailed("窗口未在前台");
             using (Process p=Process.GetProcessById(c.ProcessId))
             {
                 if (!Matches(p,c)) return ReadFailed("进程身份已变化");
@@ -181,6 +183,7 @@ namespace WowAutoFight
                 IntPtr previous=SetThreadDpiAwarenessContext(new IntPtr(-4));
                 try
                 {
+                    if (h==IntPtr.Zero || IsIconic(h)) return ReadFailed("窗口最小化或没有可读取画面");
                     Rect rect;
                     if (!GetClientRect(h,out rect) || rect.Right-rect.Left<210 || rect.Bottom-rect.Top<160) return ReadFailed("客户区尺寸不可读或过小");
                     // Client rectangle and screen samples share physical coordinates under PMv2 DPI.
@@ -190,16 +193,21 @@ namespace WowAutoFight
                     dc=GetDC(IntPtr.Zero);
                     if (dc==IntPtr.Zero) return ReadFailed("无法读取屏幕");
                     memory=CreateCompatibleDC(dc);
-                    bitmap=CreateCompatibleBitmap(dc,1,1);
+                    bitmap=CreateCompatibleBitmap(dc,rect.Right-rect.Left,rect.Bottom-rect.Top);
                     if (memory==IntPtr.Zero || bitmap==IntPtr.Zero) return ReadFailed("无法创建取色快照");
                     original=SelectObject(memory,bitmap);
                     if (original==IntPtr.Zero || original==new IntPtr(-1)) return ReadFailed("无法准备取色快照");
-                    // Read only the enlarged main cell at the physical client center.
-                    if (!BitBlt(memory,0,0,1,1,dc,point.X,point.Y,0x00CC0020)) return ReadFailed("无法截取色块");
-                    uint main=GetPixel(memory,0,0);
+                    // Visible centers can be sampled without focus. Occluded windows need their own rendering.
+                    // Check ownership so another window's pixels can never authorize input.
+                    uint main=0xffffffff;
+                    if (GetAncestor(WindowFromPoint(point),2)==h) {
+                        if (BitBlt(memory,0,0,1,1,dc,point.X,point.Y,0x00CC0020)
+                            && GetAncestor(WindowFromPoint(point),2)==h) main=GetPixel(memory,0,0);
+                    }
+                    if (Decode(new uint[] {main},c.Flavor)==null && PrintWindow(h,memory,3))
+                        main=GetPixel(memory,samples[0],samples[1]);
                     Rect after;
-                    if (!GetClientRect(h,out after) || after.Right!=rect.Right || after.Bottom!=rect.Bottom
-                        || !Foreground(c)) return ReadFailed("采样期间窗口尺寸或前台变化");
+                    if (!GetClientRect(h,out after) || after.Right!=rect.Right || after.Bottom!=rect.Bottom) return ReadFailed("采样期间窗口尺寸变化");
                     int[] afterSamples=SampleOffsets(after.Right-after.Left,after.Bottom-after.Top);
                     Point afterPoint=new Point { X=afterSamples[0], Y=afterSamples[1] };
                     if (!ClientToScreen(h,ref afterPoint) || afterPoint.X!=point.X || afterPoint.Y!=point.Y)
@@ -226,19 +234,21 @@ namespace WowAutoFight
         public static Packet Decode(uint[] cells,string expectedFlavor)
         {
             if (cells==null || cells.Length!=1 || cells[0]==0xffffffff) return null;
-            int actionRecovery=Slot(R(cells[0]),16,8,28);
+            int red=R(cells[0]);
+            int targetRecovery=Math.Abs(red-240)<=1 ? 0 : Math.Abs(red-248)<=1 ? 1 : Math.Abs(red-8)<=1 ? 2 : -1;
+            int actionRecovery=targetRecovery>=0 ? 28+targetRecovery : Slot(red,16,8,28);
             int identityBusy=Slot(G(cells[0]),2,4,52), encounterCombat=Slot(B(cells[0]),2,4,64);
             if (actionRecovery<0 || identityBusy<0 || encounterCombat<0) return null;
             int action=actionRecovery/4, recoveryCode=actionRecovery%4;
             int identity=identityBusy%26, classId=identity%13+1;
             string flavor=identity<13 ? "titan" : "forerver";
             if (flavor!=expectedFlavor || classId==10 || classId>11 || (flavor=="forerver" && classId==6)) return null;
-            string[] actions={"unknown","idle","opening","waiting","combat","loot","skin"};
+            string[] actions={"unknown","idle","opening","waiting","combat","loot","skin","target"};
             string[] recoveries={"none","recover","emergency","unknown"};
             string state=actions[action], recovery=recoveries[recoveryCode];
             bool combat=encounterCombat>=32, busy=identityBusy>=26;
             if ((state=="unknown" && recovery=="none") || recovery=="unknown"
-                || (combat && state!="combat" && state!="waiting" && state!="unknown")
+                || (combat && state!="combat" && state!="waiting" && state!="unknown" && state!="target")
                 || (recovery=="recover" && combat) || (recovery=="emergency" && !combat)) return null;
             return new Packet {Action=state,Recovery=recovery,Flavor=flavor,Combat=combat,Busy=busy,
                 Skin=state=="skin",ClassId=classId,EncounterId=encounterCombat%32};

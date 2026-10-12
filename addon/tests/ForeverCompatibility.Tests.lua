@@ -8,6 +8,9 @@ local apiFailure, cvarWrites, menuEntries = false, 0, {}
 local targetGUID, targetName, interactable, interactCVar = nil, "模拟鱼漂", false, "3"
 local guidFailure, interactFailure = false, false
 local messages = {}
+function InCombatLockdown() return false end
+function ClearOverrideBindings() end
+function SetOverrideBindingClick() end
 local secret = setmetatable({}, {
     __eq = function() error("Compared a restricted value") end,
     __tostring = function() error("Printed a restricted value") end,
@@ -15,6 +18,7 @@ local secret = setmetatable({}, {
 function issecretvalue(value) return rawequal(value, secret) end
 local function widget(name)
     local object = { scripts = {}, events = {}, textures = {}, shown = true, text = "", enabled = true }
+    function object:SetAttribute() end
     function object:SetScript(event, callback) self.scripts[event] = callback end
     function object:RegisterEvent(event) self.events[event] = true end
     function object:CreateTexture()

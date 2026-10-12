@@ -27,6 +27,8 @@ for _,flavor in ipairs({"titan","forerver"}) do
     local function widget(name)
         local o={scripts={},events={},textures={},shown=true,text=""}
         function o:SetScript(event,fn) self.scripts[event]=fn end
+        function o:RegisterForClicks() end
+        function o:SetAttribute(key,value) assert(not combat,"Secure attribute changed during combat"); self[key]=value end
         function o:RegisterEvent(event) self.events[event]=true end
         function o:CreateTexture() local t=widget(); self.textures[#self.textures+1]=t; return t end
         function o:CreateFontString() return widget() end
@@ -59,7 +61,12 @@ for _,flavor in ipairs({"titan","forerver"}) do
     function UnitIsDeadOrGhost(unit) if unit=="player" then return dead end; return mobs[unit] and mobs[unit].dead or false end
     function UnitIsPlayer() return false end
     function UnitCanAttack(_,unit) return mobs[unit]~=nil end
-    function UnitGUID(unit) return mobs[unit] and mobs[unit].guid end
+    local autoFocus=true
+    function UnitGUID(unit) local mob=mobs[unit]; if unit=="focus" and not mob and autoFocus then mob=mobs.target end; return mob and mob.guid end
+    function InCombatLockdown() return combat end
+    local override
+    function SetOverrideBindingClick(_,_,key,name) assert(not combat); assert(key=="F10" and name=="wowToolsFightTargetButton"); override=true end
+    function ClearOverrideBindings() assert(not combat); override=false end
     function UnitAffectingCombat() return combat end
     function UnitHealth() return health end
     function UnitHealthMax() return 100 end
@@ -133,14 +140,19 @@ for _,flavor in ipairs({"titan","forerver"}) do
     mobs.target.distance=50; tick(); color(0,192,192); assert(epoch()==first,"Retreat changed tracked encounter")
     mobs.nameplate1={guid="Creature-B",distance=3}; event("NAME_PLATE_UNIT_ADDED","nameplate1"); tick()
     color(0,192,192); assert(epoch()==first,"Nearby other monster bypassed target's attack distance")
-    mobs.target={guid="Creature-C",distance=5}; tick(); color(255,0,0); assert(epoch()~=first,"Target change did not change encounter")
+    mobs.focus=mobs.target
+    mobs.target={guid="Creature-C",distance=5}; tick()
+    assert(math.floor(signal.textures[1].color[1]*255+.5)==240 and epoch()==first,"Combat target switch replaced locked encounter")
+    assert(names.wowToolsFightTargetButton.macrotext:find("combat,@focus",1,true),"Secure combat retarget missing")
+    mobs.target=mobs.focus; mobs.focus=nil; tick(); color(0,192,192)
+    mobs.target.distance=5; tick(); color(255,0,0)
     mobs.nameplate1=nil; event("NAME_PLATE_UNIT_REMOVED","nameplate1")
     restricted=true; tick(); color(128,128,128)
     restricted=false; failed=true; tick(); color(128,128,128)
     failed=false; missing=true; tick(); color(128,128,128)
     missing=false; conflicting=true; tick(); color(128,128,128)
     conflicting=false; mobs.target.guid=secret; tick(); color(128,128,128)
-    mobs.target.guid="Creature-C"; health=20; mobs.target.distance=20; tick(); color(0,192,192)
+    mobs.target.guid="Creature-A"; health=20; mobs.target.distance=20; tick(); color(0,192,192)
     local recover=((signal.textures[1].color[1]*255-16)/8)%4; assert(recover==2,"Recovery signal lost during waiting")
     health=100; mobs.target.dead=true; combat=false; tick(); color(0,0,255)
     mobs.target={guid="Creature-D",distance=29}; tick(); color(255,96,0)
@@ -161,6 +173,23 @@ for _,flavor in ipairs({"titan","forerver"}) do
     for _,b in ipairs(buttons) do if b.text=="保存" then save=b end end
     edits[1]:SetText("35"); edits[2]:SetText("15"); save.scripts.OnClick()
     setup(1,saved); assert(edits[1].text=="25" and edits[2].text=="15","Global attack did not apply to another class / detection overwritten")
+    -- Unselected nearby nameplate must request selection before opening.
+    autoFocus=false
+    mobs={nameplate1={guid="Creature-NEW",distance=10}}
+    signal=setup(1,saved); event("NAME_PLATE_UNIT_ADDED","nameplate1")
+    SlashCmdList.FIGHTDETECTOR("on")
+    assert(math.floor(signal.textures[1].color[1]*255+.5)==240 and override,"Unselected nameplate opened without target key")
+    assert(names.wowToolsFightTargetButton.macrotext:find("nocombat,@nameplate1",1,true),"Selected wrong unit token")
+    local selectedEpoch=epoch()
+    mobs.target=mobs.nameplate1; tick()
+    assert(math.floor(signal.textures[1].color[1]*255+.5)==240,"Target without confirmed focus opened")
+    mobs.focus=mobs.target; tick(); color(255,96,0)
+    assert(epoch()==selectedEpoch,"Confirming selection changed encounter")
+    combat=true; mobs.focus=mobs.target; mobs.target=nil; tick()
+    assert(math.floor(signal.textures[1].color[1]*255+.5)==240 and epoch()==selectedEpoch,"Lost target did not request locked focus")
+    mobs.focus=nil; tick(); color(128,128,128) -- Never target an unrelated focus in combat.
+    SlashCmdList.FIGHTDETECTOR("off"); assert(override,"Combat attempted protected unbind")
+    combat=false; event("PLAYER_REGEN_ENABLED"); assert(not override,"Deferred override cleanup missing")
     print("PASS: "..flavor.." yard probes, 30/5 defaults, exact thresholds, opening/wait/approach/retreat, target identity, unknown/secret/failure/conflict, legacy fallback, settings scope/validation and death. Game APIs mocked.")
 end
 if output then output:close() end

@@ -7,6 +7,7 @@ function Get-AutoFightClassIds([string]$Flavor) {
     return @($script:autoFightClasses.Keys | Where-Object {$Flavor -eq 'titan' -or $_ -ne '6'} | ForEach-Object {[int]$_})
 }
 $script:autoFightStates = [ordered]@{
+    'target'=@{Label='选中并锁定怪物'; Key='TargetKey'; Interval='TargetIntervalMs'}
     'opening'=@{Label='发现怪物，开怪'; Key='OpeningKey'; Interval=$null}
     'waiting'=@{Label='等待怪物接近'; Key=$null; Interval=$null}
     'combat'=@{Label='正常战斗'; Key='CombatKey'; Interval='CombatIntervalMs'}
@@ -42,7 +43,10 @@ function ConvertTo-AutoFightCommon($Common) {
         throw 'autoFight 通用配置字段不完整或包含未知字段。'
     }
     $fields=[ordered]@{}
-    foreach ($field in $script:autoFightCommonKeyFields) {$fields[$field]=(ConvertFrom-AutoFightBinding $Common.$field).Text}
+    foreach ($field in $script:autoFightCommonKeyFields) {
+        $fields[$field]=(ConvertFrom-AutoFightBinding $Common.$field).Text
+        if ($fields[$field] -eq 'F10') {throw 'F10 保留用于选中 / 锁定战斗目标，请为其他动作选择不同按键。'}
+    }
     if (@($script:autoFightCommonKeyFields[0..3] | ForEach-Object {$fields[$_]} | Select-Object -Unique).Count -ne 4) {
         throw '四个移动方向必须绑定不同的按键。'
     }
@@ -58,6 +62,7 @@ function Get-AutoFightEffectiveProfile($Profile,$Common) {
     foreach ($field in $script:autoFightProfileFields) {$fields[$field]=$Profile.$field}
     foreach ($field in $script:autoFightCommonFields) {$fields[$field]=$Common.$field}
     $fields.JumpKey='Space'
+    $fields.TargetKey='F10'; $fields.TargetIntervalMs=500
     return [pscustomobject]$fields
 }
 function New-AutoFightBinding([int]$Code,[bool]$Ctrl,[bool]$Shift,[bool]$Alt) {
@@ -138,7 +143,10 @@ function ConvertTo-AutoFightProfiles($Items,[int]$Version=5) {
             $p.CombatIntervalMs=$item.AttackIntervalMs
         }
         $fields=[ordered]@{Flavor=$p.Flavor; ClassId=$id}
-        foreach ($field in $script:autoFightKeyFields) { $fields[$field]=(ConvertFrom-AutoFightBinding $p.$field).Text }
+        foreach ($field in $script:autoFightKeyFields) {
+            $fields[$field]=(ConvertFrom-AutoFightBinding $p.$field).Text
+            if ($fields[$field] -eq 'F10') {throw 'F10 保留用于选中 / 锁定战斗目标，请为其他动作选择不同按键。'}
+        }
         $fields.CombatIntervalMs=Get-AutoFightInteger $p.CombatIntervalMs 100 10000 '正常战斗间隔 (ms)'
         if ($Version -lt 4) {
             $legacy=New-AutoFightCommon

@@ -23,6 +23,8 @@ try {
         $legacyProfile=Get-AutoFightEffectiveProfile $_ (New-AutoFightCommon)
         $legacyProfile.PSObject.Properties.Remove('JumpKey')
         $legacyProfile.PSObject.Properties.Remove('JumpIntervalSeconds')
+        $legacyProfile.PSObject.Properties.Remove('TargetKey')
+        $legacyProfile.PSObject.Properties.Remove('TargetIntervalMs')
         $legacyProfile | Add-Member NoteProperty OpeningIntervalMs 2000
         $legacyProfile | Add-Member NoteProperty EmergencyIntervalMs 1500
         $legacyProfile
@@ -49,6 +51,10 @@ try {
     $badCommon=Copy-AutoFightCommon $roundtrip.Common;$badCommon.MoveRightKey=$badCommon.MoveLeftKey
     $rejected=$false;try {$null=Save-AutoFightProfiles $path $roundtrip.Profiles 700 $badCommon} catch {$rejected=$true}
     Assert-Fight ($rejected -and [IO.File]::ReadAllText($path) -ceq $original) 'Invalid common draft partially saved.'
+    $reserved=Copy-AutoFightProfiles $roundtrip.Profiles
+    $reserved['titan:1'].OpeningKey='F10'
+    $rejected=$false;try {$null=Save-AutoFightProfiles $path $reserved 700} catch {$rejected=$true}
+    Assert-Fight ($rejected -and [IO.File]::ReadAllText($path) -ceq $original) 'Target override key accepted as opener.'
     $v1=@($profiles.Values | ForEach-Object { [pscustomobject]@{Flavor=$_.Flavor; ClassId=$_.ClassId; AttackKey='Alt+8'; SkinKey='F7'; AttackIntervalMs=700; InteractionHoldMs=3500; SkinEnabled=$true} })
     [IO.File]::WriteAllText($path,([pscustomobject]@{Version=1; Profiles=$v1} | ConvertTo-Json -Depth 5))
     $config=Read-AutoFightConfiguration $path
@@ -85,7 +91,7 @@ try {
     Complete-AutoFightCommand $gate 0 $true
     $packet=[pscustomobject]@{ClassId=1; Flavor='titan'; Busy=$false; Combat=$false; Action='opening'; Recovery='none'; EncounterId=1}
     $session=New-AutoFightSession 0 1; $p=Get-AutoFightEffectiveProfile $profiles['titan:1'] (New-AutoFightCommon)
-    foreach($state in @('opening','combat','recover','emergency','move-forward','move-backward','move-left','move-right','loot','skin')) {
+    foreach($state in @('target','opening','combat','recover','emergency','move-forward','move-backward','move-left','move-right','loot','skin')) {
         $packet.Action=if ($state.StartsWith('move-') -or $state -in @('recover','emergency')) {'idle'} else {$state}
         $packet.Recovery=if ($state -in @('recover','emergency')) {$state} else {'none'}
         $session.MovementRequest=if ($state.StartsWith('move-')) {$state.Substring(5)} else {''}

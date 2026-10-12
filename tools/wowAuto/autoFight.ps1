@@ -44,8 +44,13 @@ function Invoke-AutoFightHold([long]$Now) {
     $row=$hold.Row
     try {
         if ($row.Session -ne $hold.Session) { [void](Release-AutoFightHold); return }
-        if (-not [WowAutoFight.Native]::IsAlive($row.Client) -or -not [WowAutoFight.Native]::Foreground($row.Client)) {
-            throw '保持期间进程身份或前台发生变化，已释放移动键。'
+        if (-not [WowAutoFight.Native]::IsAlive($row.Client)) {
+            throw '保持期间进程身份发生变化，已释放移动键。'
+        }
+        if ($hold.Movement -and -not [WowAutoFight.Native]::Foreground($row.Client)) {
+            [void](Release-AutoFightHold)
+            Set-AutoFightStatus $row '失去前台，释放移动键并继续后台监测。'
+            return
         }
         $packet=[WowAutoFight.Native]::Read($row.Client)
         if ($null -eq $packet) { throw '保持期间检测关闭或协议不可读，已释放移动键。' }
@@ -69,10 +74,8 @@ function Stop-AutoFightRow($Row,[string]$Reason='已停止，战斗任务已取�
     Update-AutoFightControls
 }
 function Complete-AutoFightScan {
-    $scan=$script:autoFight.Scan
     $script:autoFight.Scan=$null
     $script:autoFight.Pending=$null
-    if ($scan) { [WowAutoFight.Native]::Restore($scan.OriginalWindow) }
     $script:autoFight.Summary.Text='检测到 '+$script:autoFight.Rows.Count+' 个进程；有效行需手动开始。'
     Update-AutoFightControls
 }
@@ -91,7 +94,7 @@ function Start-AutoFightRow($Row) {
     }
     $Row.Session=New-AutoFightSession $script:autoFight.Clock.ElapsedMilliseconds $Row.ClassId
     Set-AutoFightJumpInterval $Row.Session $script:autoFight.Common.JumpIntervalSeconds $script:autoFight.Clock.ElapsedMilliseconds
-    Set-AutoFightStatus $Row '开始监测，等待前台及主色块。'
+    Set-AutoFightStatus $Row '开始后台监测主色块；需要发键时切换窗口。'
     Update-AutoFightControls
 }
 function Update-AutoFightRowName($Row) {
@@ -160,8 +163,8 @@ function Begin-AutoFightRefresh {
     }
     if ($clients.Count -eq 0) { $script:autoFight.Summary.Text='未发现时光服 / 永恒服游戏进程。'; Update-AutoFightControls; return }
     $script:autoFight.Scan=[pscustomobject]@{Order=@($script:autoFight.Rows.Values | Sort-Object Order);
-        Index=0; OriginalWindow=[WowAutoFight.Native]::CurrentWindow()}
-    $script:autoFight.Summary.Text='正在逐个切换窗口读取战斗协议，不发送按键。'
+        Index=0}
+    $script:autoFight.Summary.Text='正在后台读取各窗口战斗协议，不发送按键。'
     Update-AutoFightControls
 }
 function New-AutoFightPending($Row,$Session,[bool]$Scanning,[long]$Now) {
@@ -208,16 +211,6 @@ function Invoke-AutoFightTick {
             else { Stop-AutoFightRow $row '进程已退出或身份改变。' }
             Update-AutoFightControls; return
         }
-        if (-not $pending.Activated) {
-            $pending.Activated=$true
-            if (-not [WowAutoFight.Native]::Activate($row.Client)) { throw '无法切换到目标窗口。' }
-            return
-        }
-        if ($now -lt $pending.SampleAt) { return }
-        if (-not [WowAutoFight.Native]::Foreground($row.Client)) {
-            if ($now-$pending.Since -lt 800) { return }
-            throw '窗口未取得前台，暂停该行。'
-        }
         $packet=[WowAutoFight.Native]::Read($row.Client)
         if ($null -eq $packet) {
             if ($pending.ReadFailureSince -lt 0) {$pending.ReadFailureSince=$now}
@@ -256,6 +249,17 @@ function Invoke-AutoFightTick {
             Set-AutoFightStatus $row ($script:autoFightStates[$session.State].Label+" · $detail · $combatText")
             Finish-AutoFightPending $now; return
         }
+        # Detection never requires focus. Activate only when an input is actually due.
+        if (-not (Test-AutoFightCommandReady $script:autoFight.CommandGate $now)) {Finish-AutoFightPending $now; return}
+        if (-not [WowAutoFight.Native]::Foreground($row.Client)) {
+            if (-not $pending.Activated) {
+                if (-not [WowAutoFight.Native]::Activate($row.Client)) {throw '无法切换到目标窗口。'}
+                $pending.Activated=$true; $pending.Since=$now; $pending.SampleAt=$now+200
+            }
+            elseif ($now-$pending.Since -ge 800) {throw '发键窗口未取得前台。'}
+            return
+        }
+        if ($pending.Activated -and $now -lt $pending.SampleAt) {return}
         $handler=$script:autoFightStates[$action]
         $keyField=$handler.Key
         $binding=ConvertFrom-AutoFightBinding $profile.$keyField
@@ -449,7 +453,7 @@ function New-AutoFightSettingsDialog {
     $jump.BackColor=[Drawing.Color]::FromArgb(50,50,50); $jump.ForeColor=[Drawing.Color]::White
     $jump.SetBounds(360,522,168,32); $body.Controls.Add($jump); $editor.CommonNumbers.JumpIntervalSeconds=$jump
     $hint=New-Object System.Windows.Forms.Label
-    $hint.Text="每只怪开怪一次，等待接近期间不发键；进入插件配置的攻击距离才攻击。`r`n检测距离按职业、攻击距离为全局，均在游戏插件面板设置（码）。`r`n公共间隔约束所有战斗窗口和指令；更长的重试 / 保持仍有效。`r`n普通 / 紧急恢复均每次进入只执行一次，退出后重置。`r`n移动仅由方向按钮请求；跳跃按各进程运行时间计时，忙碌或恢复时延后。"
+    $hint.Text="F10 保留用于选目标；确认后每只怪开怪一次，战斗通过焦点锁定。`r`n检测支持后台窗口；需要发键时取得前台并复查主色。`r`n检测 / 攻击距离在插件面板设置；等待接近期间不发攻击键。`r`n公共间隔约束所有战斗指令；普通 / 紧急恢复每次进入只执行一次。`r`n移动由方向按钮请求；跳跃按各进程计时，忙碌或恢复时延后。"
     $hint.SetBounds(16,568,812,144); $body.Controls.Add($hint)
     $errorLabel=New-Object System.Windows.Forms.Label
     $errorLabel.SetBounds(16,4,($footer.ClientSize.Width-32),30); $errorLabel.Anchor='Top, Left, Right'; $errorLabel.AutoEllipsis=$true

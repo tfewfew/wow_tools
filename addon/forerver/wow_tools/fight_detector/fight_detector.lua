@@ -1,4 +1,4 @@
--- Independent, read-only detector. No targeting, casting, movement or input APIs.
+-- Independent detector with a secure, key-triggered target/focus button. No movement or casting.
 local FLAVOR = "forerver"
 local enabled, initialized, elapsed = false, false, 0
 local nameplates = {}
@@ -17,10 +17,10 @@ local settingDefaults = { HealthEnter=80, HealthExit=95, ManaEnter=0, ManaExit=9
     EmergencyEnter=30, EmergencyExit=50 }
 -- V5: main cell contains action, recovery, client/class, busy, combat and encounter.
 -- Auxiliary cell is a visual recovery hint only; there is no heartbeat.
-local actionCodes={unknown=0,idle=1,opening=2,waiting=3,combat=4,loot=5,skin=6}
+local actionCodes={unknown=0,idle=1,opening=2,waiting=3,combat=4,loot=5,skin=6,target=7}
 local recoveryCodes={none=0,recover=1,emergency=2,unknown=3}
 local descriptions={disabled="已关闭",unknown="数据未知，暂停指令",idle="等待目标",
-    opening="发现怪物，开怪",waiting="等待怪物接近",combat="进入攻击距离",
+    target="选中并锁定本次怪物（F10）",opening="已选中怪物，开怪",waiting="等待怪物接近",combat="进入攻击距离",
     loot="可以拾取",skin="可以剥皮"}
 
 local function Readable(value)
@@ -39,6 +39,33 @@ local function Bool(fn, ...)
     if value == false or value == 0 or value == nil then return false end
     return nil
 end
+-- F10 is a temporary override while detection runs. Only a key click executes it.
+-- Attributes and bindings are never changed under combat lockdown.
+local targetButton=CreateFrame("Button","wowToolsFightTargetButton",UIParent,"SecureActionButtonTemplate")
+targetButton:RegisterForClicks("AnyDown","AnyUp")
+targetButton:SetAttribute("type","macro")
+targetButton:SetAttribute("macrotext","")
+local targetPreparedGUID, targetPreparedUnit, targetBound=nil,nil,false
+local function PrepareTarget(unit,guid)
+    if InCombatLockdown() then return targetBound and targetPreparedGUID==guid end
+    if not enabled then
+        ClearOverrideBindings(targetButton)
+        targetButton:SetAttribute("macrotext","")
+        targetPreparedGUID,targetPreparedUnit,targetBound=nil,nil,false
+        return false
+    end
+    if not unit or not guid then return false end
+    if targetPreparedGUID~=guid or targetPreparedUnit~=unit then
+        targetButton:SetAttribute("macrotext","/target [combat,@focus,exists,harm,nodead][nocombat,@"..unit..",exists,harm,nodead]\n/focus [nocombat,@target,exists,harm,nodead]")
+        targetPreparedGUID,targetPreparedUnit=guid,unit
+    end
+    if not targetBound then
+        SetOverrideBindingClick(targetButton,true,"F10","wowToolsFightTargetButton","LeftButton")
+        targetBound=true
+    end
+    return true
+end
+
 local function Say(message)
     DEFAULT_CHAT_FRAME:AddMessage("|cff66ccfffight_detector:|r " .. message)
 end
@@ -110,7 +137,7 @@ for i,row in ipairs(thresholdRows) do
 end
 local hint=panel:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall")
 hint:SetPoint("TOPLEFT",12,-266)
-hint:SetText("进入值须低于退出值；进入值 0 表示关闭该项恢复。")
+hint:SetText("进入 0 关闭恢复；检测期间 F10 选目标，焦点保留当前怪物。")
 local start = CreateFrame("Button",nil,panel,"UIPanelButtonTemplate")
 start:SetSize(64,22)
 start:SetPoint("BOTTOMLEFT",12,8)
@@ -154,7 +181,8 @@ local function Paint()
         local identity=(FLAVOR=="titan" and 0 or 13)+classID-1
         local encounter=encounterSerial%32
         local recover=recoveryCodes[recovery] or 3
-        cells[1]:SetColorTexture((16+8*(action*4+recover))/255,
+        local red=state=="target" and ({[0]=240,[1]=248,[2]=8,[3]=40})[recover] or (16+8*(action*4+recover))
+        cells[1]:SetColorTexture(red/255,
             (2+4*(identity+(busy and 26 or 0)))/255,
             (2+4*(encounter+(combat and 32 or 0)))/255,1)
         local hints={none={.15,.15,.15},recover={0,.4,1},emergency={1,.15,0},unknown={.5,.5,.5}}
@@ -182,21 +210,27 @@ local function SetEncounter(guid)
     end
 end
 local function FindEnemy()
-    local candidates={"target","softenemy"}
+    local candidates={"focus","target","softenemy"}
     local plates={}
     for unit in pairs(nameplates) do plates[#plates+1]=unit end
     table.sort(plates)
     for _,unit in ipairs(plates) do candidates[#candidates+1]=unit end
     local unknown=false
+    if encounterGUID then
+        for _,unit in ipairs(candidates) do
+            local guid,ok=Read(UnitGUID,unit)
+            if ok and guid==encounterGUID and Enemy(unit)==true then return unit,guid end
+        end
+    end
     for _,unit in ipairs(candidates) do
         local enemy=Enemy(unit)
         if enemy then
             local guid,ok=Read(UnitGUID,unit)
             if ok and type(guid)=="string" and guid~="" then
                 -- Keep following the pulled monster, even if it retreats beyond detection range.
-                -- A deliberate target change takes precedence over the previous nameplate.
-                if (combat and unit=="target") or guid==encounterGUID then return unit,guid end
-                if not combat then
+                -- Combat target changes must not replace the locked encounter.
+                if guid==encounterGUID then return unit,guid end
+                if not combat and unit~="focus" then
                     local detected=range.Check(unit,settings.DetectionRangeYards)
                     if detected then return unit,guid end
                     if detected==nil then unknown=true end
@@ -316,6 +350,7 @@ local function Stop()
     recovering,emergency=false,false
     health,mana,recovery=nil,nil,"none"
     SetEncounter(nil)
+    PrepareTarget(nil,nil)
     signal:Hide()
     Paint()
 end
@@ -356,6 +391,11 @@ local function Refresh()
     local unit,guid,unknown=FindEnemy()
     if unit then
         SetEncounter(guid)
+        local targetGUID,targetOK=Read(UnitGUID,"target")
+        local focusGUID,focusOK=Read(UnitGUID,"focus")
+        if not targetOK or not focusOK then SetState("unknown"); return end
+        if not PrepareTarget(unit,guid) or (combat and focusGUID~=guid) then SetState("unknown"); return end
+        if targetGUID~=guid or (not combat and focusGUID~=guid) then SetState("target"); return end
         if combat or pullObserved then
             local closeEnough=range.Check(unit,attackRange)
             if closeEnough==nil then SetState("unknown"); return end
@@ -370,6 +410,7 @@ local function Refresh()
     SetState("idle")
 end
 local function SafeRefresh()
+    if not enabled and not InCombatLockdown() then PrepareTarget(nil,nil) end
     local ok=pcall(Refresh)
     if not ok then state,combat,skin,busy,recovery="unknown",nil,nil,false,"unknown"; Paint() end
 end
@@ -416,7 +457,7 @@ WoWTools.modules.fight_detector={
 }
 local events=CreateFrame("Frame")
 for _,event in ipairs({"ADDON_LOADED","PLAYER_ENTERING_WORLD","PLAYER_DEAD","PLAYER_LOGOUT",
-    "PLAYER_REGEN_DISABLED","PLAYER_REGEN_ENABLED","PLAYER_TARGET_CHANGED","PLAYER_SOFT_ENEMY_CHANGED",
+    "PLAYER_REGEN_DISABLED","PLAYER_REGEN_ENABLED","PLAYER_TARGET_CHANGED","PLAYER_FOCUS_CHANGED","PLAYER_SOFT_ENEMY_CHANGED",
     "PLAYER_SOFT_INTERACT_CHANGED","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED",
     "LOOT_OPENED","LOOT_CLOSED","LOOT_READY","LOOT_SLOT_CLEARED",
     "UNIT_HEALTH","UNIT_MAXHEALTH","UNIT_POWER_UPDATE",
