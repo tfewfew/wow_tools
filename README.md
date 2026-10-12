@@ -44,3 +44,9 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\skills\wow-tools\scrip
 首次改名后完全重启游戏，在插件列表启用 wow_tools；后续修改通常 `/reload` 即可。重载后需要再次手动启动检测。
 
 升级为 wow_tools 时，同步程序备份并移走旧 wowDetector、Inner_graphic_config 目录，避免重复加载。检测配置仍使用 wowDetectorDB；首次部署复制各账号已落盘的旧配置到 wow_tools.lua，已有新配置不覆盖。图形设置保留在游戏 CVar 中。
+
+## 自动战斗
+
+两服均增加独立 `fight_detector` 模块（时光服2.1.4，永恒服 / 无限服2.2.3）。右键小地图图标选择它即可显示并启动，面板“关闭”停止检测并隐藏；`/fightdetector on|off|status` 可控制。插件判断可见单位的法术射程、自身战斗、当前软交互尸体的拾取 / 剥皮状态，通过独立色块协议交给 PC，插件自身不执行游戏操作。
+
+wowAuto新增并列 `autoFight` 标签，按服务器和插件识别的职业配置战斗键、剥皮交互键、按键间隔和交互保持时间，配置独立保存为 `autoFight.config.json`。战斗的源码、适配器、调度和配置均与autofish隔离；切换标签停止上一页任务。使用前需在游戏内绑定对应战斗按钮 / 宏和交互键，并在检测面板指定已学会的测距伤害法术。完整流程和检测边界见 [autoFight说明](tools/wowAuto/README.md#autofight-自动战斗与剥皮)。本次按用户要求未在mac环境执行任何验证或Windows本地同步。

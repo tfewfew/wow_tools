@@ -1,0 +1,239 @@
+{
+  "Version": 1,
+  "Profiles": [
+    {
+      "Flavor": "titan",
+      "ClassId": 1,
+      "AttackKey": "F6",
+      "SkinKey": "F7",
+      "AttackIntervalMs": 500,
+      "InteractionHoldMs": 3500,
+      "SkinEnabled": true
+    },
+    {
+      "Flavor": "titan",
+      "ClassId": 2,
+      "AttackKey": "F6",
+      "SkinKey": "F7",
+      "AttackIntervalMs": 500,
+      "InteractionHoldMs": 3500,
+      "SkinEnabled": true
+    },
+    {
+      "Flavor": "titan",
+      "ClassId": 3,
+      "AttackKey": "F6",
+      "SkinKey": "F7",
+      "AttackIntervalMs": 500,
+      "InteractionHoldMs": 3500,
+      "SkinEnabled": true
+    },
+    {
+      "Flavor": "titan",
+      "ClassId": 4,
+      "AttackKey": "F6",
+      "SkinKey": "F7",
+      "AttackIntervalMs": 500,
+      "InteractionHoldMs": 3500,
+      "SkinEnabled": true
+    },
+    {
+      "Flavor": "titan",
+      "ClassId": 5,
+      "AttackKey": "F6",
+      "SkinKey": "F7",
+      "AttackIntervalMs": 500,
+      "InteractionHoldMs": 3500,
+      "SkinEnabled": true
+    },
+    {
+      "Flavor": "titan",
+      "ClassId": 6,
+      "AttackKey": "F6",
+      "SkinKey": "F7",
+      "AttackIntervalMs": 500,
+      "InteractionHoldMs": 3500,
+      "SkinEnabled": true
+    },
+    {
+      "Flavor": "titan",
+      "ClassId": 7,
+      "AttackKey": "F6",
+      "SkinKey": "F7",
+      "AttackIntervalMs": 500,
+      "InteractionHoldMs": 3500,
+      "SkinEnabled": true
+    },
+    {
+      "Flavor": "titan",
+      "ClassId": 8,
+      "AttackKey": "F6",
+      "SkinKey": "F7",
+      "AttackIntervalMs": 500,
+      "InteractionHoldMs": 3500,
+      "SkinEnabled": true
+    },
+    {
+      "Flavor": "titan",
+      "ClassId": 9,
+      "AttackKey": "F6",
+      "SkinKey": "F7",
+      "AttackIntervalMs": 500,
+      "InteractionHoldMs": 3500,
+      "SkinEnabled": true
+    },
+    {
+      "Flavor": "titan",
+      "ClassId": 10,
+      "AttackKey": "F6",
+      "SkinKey": "F7",
+      "AttackIntervalMs": 500,
+      "InteractionHoldMs": 3500,
+      "SkinEnabled": true
+    },
+    {
+      "Flavor": "titan",
+      "ClassId": 11,
+      "AttackKey": "F6",
+      "SkinKey": "F7",
+      "AttackIntervalMs": 500,
+      "InteractionHoldMs": 3500,
+      "SkinEnabled": true
+    },
+    {
+      "Flavor": "titan",
+      "ClassId": 12,
+      "AttackKey": "F6",
+      "SkinKey": "F7",
+      "AttackIntervalMs": 500,
+      "InteractionHoldMs": 3500,
+      "SkinEnabled": true
+    },
+    {
+      "Flavor": "titan",
+      "ClassId": 13,
+      "AttackKey": "F6",
+      "SkinKey": "F7",
+      "AttackIntervalMs": 500,
+      "InteractionHoldMs": 3500,
+      "SkinEnabled": true
+    },
+    {
+      "Flavor": "forerver",
+      "ClassId": 1,
+      "AttackKey": "F6",
+      "SkinKey": "F7",
+      "AttackIntervalMs": 500,
+      "InteractionHoldMs": 3500,
+      "SkinEnabled": true
+    },
+    {
+      "Flavor": "forerver",
+      "ClassId": 2,
+      "AttackKey": "F6",
+      "SkinKey": "F7",
+      "AttackIntervalMs": 500,
+      "InteractionHoldMs": 3500,
+      "SkinEnabled": true
+    },
+    {
+      "Flavor": "forerver",
+      "ClassId": 3,
+      "AttackKey": "F6",
+      "SkinKey": "F7",
+      "AttackIntervalMs": 500,
+      "InteractionHoldMs": 3500,
+      "SkinEnabled": true
+    },
+    {
+      "Flavor": "forerver",
+      "ClassId": 4,
+      "AttackKey": "F6",
+      "SkinKey": "F7",
+      "AttackIntervalMs": 500,
+      "InteractionHoldMs": 3500,
+      "SkinEnabled": true
+    },
+    {
+      "Flavor": "forerver",
+      "ClassId": 5,
+      "AttackKey": "F6",
+      "SkinKey": "F7",
+      "AttackIntervalMs": 500,
+      "InteractionHoldMs": 3500,
+      "SkinEnabled": true
+    },
+    {
+      "Flavor": "forerver",
+      "ClassId": 6,
+      "AttackKey": "F6",
+      "SkinKey": "F7",
+      "AttackIntervalMs": 500,
+      "InteractionHoldMs": 3500,
+      "SkinEnabled": true
+    },
+    {
+      "Flavor": "forerver",
+      "ClassId": 7,
+      "AttackKey": "F6",
+      "SkinKey": "F7",
+      "AttackIntervalMs": 500,
+      "InteractionHoldMs": 3500,
+      "SkinEnabled": true
+    },
+    {
+      "Flavor": "forerver",
+      "ClassId": 8,
+      "AttackKey": "F6",
+      "SkinKey": "F7",
+      "AttackIntervalMs": 500,
+      "InteractionHoldMs": 3500,
+      "SkinEnabled": true
+    },
+    {
+      "Flavor": "forerver",
+      "ClassId": 9,
+      "AttackKey": "F6",
+      "SkinKey": "F7",
+      "AttackIntervalMs": 500,
+      "InteractionHoldMs": 3500,
+      "SkinEnabled": true
+    },
+    {
+      "Flavor": "forerver",
+      "ClassId": 10,
+      "AttackKey": "F6",
+      "SkinKey": "F7",
+      "AttackIntervalMs": 500,
+      "InteractionHoldMs": 3500,
+      "SkinEnabled": true
+    },
+    {
+      "Flavor": "forerver",
+      "ClassId": 11,
+      "AttackKey": "F6",
+      "SkinKey": "F7",
+      "AttackIntervalMs": 500,
+      "InteractionHoldMs": 3500,
+      "SkinEnabled": true
+    },
+    {
+      "Flavor": "forerver",
+      "ClassId": 12,
+      "AttackKey": "F6",
+      "SkinKey": "F7",
+      "AttackIntervalMs": 500,
+      "InteractionHoldMs": 3500,
+      "SkinEnabled": true
+    },
+    {
+      "Flavor": "forerver",
+      "ClassId": 13,
+      "AttackKey": "F6",
+      "SkinKey": "F7",
+      "AttackIntervalMs": 500,
+      "InteractionHoldMs": 3500,
+      "SkinEnabled": true
+    }
+  ]
+}

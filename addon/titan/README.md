@@ -15,3 +15,5 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\skills\wow-tools\scrip
 ```
 
 使用说明见根目录README。`addon/tests/LureDetection.Tests.lua` 使用模拟接口验证钓鱼引导与可交互目标的组合条件、目标变化/轮询及未知状态、鱼竿附魔、死亡关闭及窗口尺寸/UI缩放下的物理像素定位。
+
+2.1.4增加独立 `fight_detector/fight_detector.lua`：小地图右键启动 / 关闭、按职业设置测距伤害法术，读取战斗和软交互尸体的拾取 / 剥皮提示，以独立色块协议供autoFight使用。配置保存到独立 `fightDetectorDB`，不改变wowDetector、音频及画面模块。按本次用户要求未执行验证；使用流程见工具README。

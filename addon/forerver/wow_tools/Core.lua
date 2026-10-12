@@ -6,7 +6,7 @@ local function OpenMenu(owner)
     end
     MenuUtil.CreateContextMenu(owner, function(_, root)
         root:CreateTitle("wow_tools（无限服）")
-        for _, name in ipairs({ "wowDetector", "inner_graphic_config" }) do
+        for _, name in ipairs({ "wowDetector", "fight_detector", "inner_graphic_config" }) do
             local module = WoWTools.modules[name]
             root:CreateCheckbox(name, module.IsShown, module.Toggle)
         end

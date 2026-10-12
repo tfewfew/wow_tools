@@ -4,7 +4,7 @@ UIDropDownMenu_Initialize(menu, function(_, level)
     local title = UIDropDownMenu_CreateInfo()
     title.text, title.isTitle, title.notCheckable = "wow_tools", true, true
     UIDropDownMenu_AddButton(title, level)
-    for _, name in ipairs({ "wowDetector", "inner_graphic_config" }) do
+    for _, name in ipairs({ "wowDetector", "fight_detector", "inner_graphic_config" }) do
         local module = WoWTools.modules[name]
         local item = UIDropDownMenu_CreateInfo()
         item.text = name

@@ -1744,6 +1744,7 @@ $positionTimer = New-Object System.Windows.Forms.Timer
 $positionTimer.Interval = 1000
 $positionTimer.Add_Tick({ Update-WindowPositions })
 $form.Add_FormClosing({
+    if ($script:autoFight) { Stop-AutoFightAll }
     $script:pendingGameExits.Clear()
     $timer.Stop()
     $positionTimer.Stop()
@@ -1751,6 +1752,27 @@ $form.Add_FormClosing({
     $scanTimer.Stop()
     foreach ($row in $script:rows.Values) { Stop-Row $row }
 })
+
+# The tab container is the only integration point; autoFight owns its entire runtime.
+if (-not $UiTest) {
+    try {
+        . (Join-Path $PSScriptRoot 'autoFight.ps1')
+        Initialize-AutoFightTab $tabs $form
+        $tabs.Add_Selecting({ param($sender,$eventArgs)
+            if ($script:autoFight -and $eventArgs.TabPage -ne $sender.SelectedTab) {
+                if ($eventArgs.TabPage -eq $script:autoFight.Tab) {
+                    Stop-AllRows
+                    if ($script:scanning) { Finish-RefreshScan }
+                }
+                else { Stop-AutoFightAll }
+            }
+        })
+    }
+    catch {
+        if ($script:autoFight) { Close-AutoFightTab }
+        $countLabel.Text='autoFight initialization failed: '+$_.Exception.Message
+    }
+}
 
 try {
     if ($UiTest) {
@@ -1803,6 +1825,7 @@ try {
     else { [void]$form.ShowDialog() }
 }
 finally {
+    if ($script:autoFight) { Close-AutoFightTab }
     foreach ($entry in @($script:audioCaptures.Values)) { $entry.Capture.Dispose() }
     $script:audioCaptures.Clear()
     $positionTimer.Dispose(); $scanTimer.Dispose(); $timer.Dispose(); $form.Dispose()
