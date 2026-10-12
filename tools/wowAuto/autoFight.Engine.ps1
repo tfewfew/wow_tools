@@ -4,7 +4,8 @@ $script:autoFightClasses = [ordered]@{
     '7'='萨满祭司'; '8'='法师'; '9'='术士'; '10'='武僧'; '11'='德鲁伊'; '12'='恶魔猎手'; '13'='唤魔师'
 }
 $script:autoFightStates = [ordered]@{
-    'opening'=@{Label='开怪战斗'; Key='OpeningKey'; Interval='OpeningIntervalMs'}
+    'opening'=@{Label='发现怪物，开怪'; Key='OpeningKey'; Interval=$null}
+    'waiting'=@{Label='等待怪物接近'; Key=$null; Interval=$null}
     'combat'=@{Label='正常战斗'; Key='CombatKey'; Interval='CombatIntervalMs'}
     'recover'=@{Label='非战斗恢复'; Key='RecoveryKey'; Interval=$null}
     'emergency'=@{Label='战斗紧急恢复'; Key='EmergencyKey'; Interval='EmergencyIntervalMs'}
@@ -157,11 +158,15 @@ function Save-AutoFightProfiles([string]$Path,$Profiles,$CommandIntervalMs=500) 
 }
 function New-AutoFightSession([long]$Now,[int]$ClassId) {
     return [pscustomobject]@{Id=[Guid]::NewGuid().ToString('N'); ClassId=$ClassId; Due=$Now;
-        State=''; EnteredAt=$Now; EntryPending=$true; NextActionAt=$Now; NextInteractionAt=0L; LastInteractionState=''}
+        State=''; EnteredAt=$Now; EntryPending=$true; NextActionAt=$Now; NextInteractionAt=0L; LastInteractionState='';
+        EncounterId=-1; OpeningSent=$false}
 }
 function Update-AutoFightState($Session,$Packet,[long]$Now) {
-    $state=if ($Packet.Recovery -ne 'none') { $Packet.Recovery } else { $Packet.Action }
-    if ($Session.State -eq $state) { return $false }
+    $changed=$Session.EncounterId -ne $Packet.EncounterId
+    if ($changed) { $Session.EncounterId=$Packet.EncounterId; $Session.OpeningSent=$false }
+    $state=if ($Packet.Action -eq 'waiting' -or ($Packet.Action -eq 'opening' -and $Session.OpeningSent)) { 'waiting' }
+        elseif ($Packet.Recovery -ne 'none') { $Packet.Recovery } else { $Packet.Action }
+    if ($Session.State -eq $state -and -not $changed) { return $false }
     $Session.State=$state; $Session.EnteredAt=$Now; $Session.EntryPending=$true
     $Session.NextActionAt=$Now
     return $true
@@ -169,6 +174,8 @@ function Update-AutoFightState($Session,$Packet,[long]$Now) {
 function Get-AutoFightAction($Session,$Packet,$Profile,[long]$Now) {
     if ($Packet.ClassId -ne $Session.ClassId -or $Packet.Flavor -ne $Profile.Flavor) { return 'identity-changed' }
     if (-not $script:autoFightStates.Contains($Session.State)) { return 'identity-changed' }
+    # Waiting is deliberately quiet, including recovery keys. Key releases remain immediate.
+    if ($Packet.Action -eq 'waiting' -or ($Packet.Action -eq 'opening' -and $Session.OpeningSent)) { return 'wait' }
     # Emergency macros may stop a current cast; all other handlers wait for busy to clear.
     if ($Packet.Busy -and $Session.State -ne 'emergency') { return 'wait' }
     $handler=$script:autoFightStates[$Session.State]
@@ -184,6 +191,7 @@ function Get-AutoFightAction($Session,$Packet,$Profile,[long]$Now) {
 }
 function Complete-AutoFightAction($Session,$Profile,[string]$Action,[long]$Now) {
     $Session.EntryPending=$false
+    if ($Action -eq 'opening') { $Session.OpeningSent=$true }
     $interval=$script:autoFightStates[$Action].Interval
     $Session.NextActionAt=if ($interval) { $Now+$Profile.$interval } else { [long]::MaxValue }
     if ($Action -in @('skin','loot')) {

@@ -25,7 +25,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 ## 行为约定
 
-- titan版基于原2.1.1独立维护，当前2.1.7/接口38002。forerver版当前2.2.6/接口16001按无限服1.60.1.70338的Blizzard导出源码943764493e6b16d63ded3ab304150d1f05e58b57移植；以后跟随对应分支源码核对API，不能仅改TOC号。
+- titan版基于原2.1.1独立维护，当前2.1.8/接口38002。forerver版当前2.2.7/接口16001按无限服1.60.1.70338的Blizzard导出源码943764493e6b16d63ded3ab304150d1f05e58b57移植；以后跟随对应分支源码核对API，不能仅改TOC号。
 - forerver在Init.lua后加载Compatibility.lua：ItemLocation主手槽16及C_Item.GetItemID/GetItemInfoInstant识别鱼竿，C_Item.GetWeaponEnchantInfo(Enum.WeaponSlot.MainHand)返回列表，只接受有效Temporary附魔，排除Permanent/Imbue；失败或受限/不完整数据为unknown。UnitChannelInfo的技能ID在第8项，绿色只认钓鱼引导；先用issecretvalue排除受限返回再比较/输出，受限引导使主色块灰色。注册WEAPON_ENCHANT_CHANGED并每0.1秒刷新。菜单使用MenuUtil.CreateContextMenu；画面模块移动FramerateFrame整体，不再依赖FramerateLabel全局。未提供的CVar继续禁用，禁止加载时自动改变图形设置。forever测试覆盖全TOC加载，不发送游戏按键。
 - wowAuto同时识别时光服_classic_titan_/WowClassic.exe 3.80.和无限服_cn_beta_/Wow.exe 1.60.，允许游戏根目录位于其他盘符，但产品目录名须匹配。GetClientFlavor同时核对可执行文件名、父目录与构建前缀；未知/无法读取/零售服不加入列表。每行Client保存Flavor、Label、ExecutablePath；启动、取色、焦点切换、发键及正常/超时退出均核对PID、StartTime、路径与客户端身份。C#方法接收启动Ticks和预期路径，不能退回只按Wow进程名操作。
 
@@ -85,16 +85,19 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 ## autoFight（2026-10-12）
 
-- 当前合集版本titan2.1.7、forerver2.2.6，两服独立维护fight_detector.lua；保留fightDetectorDB / rangeSpells，新增profiles[classId]恢复阈值。Core及钓鱼模块不变，战斗不读写wowDetectorDB、音频、图形或交互CVar。
+- 当前合集版本titan2.1.8、forerver2.2.7，两服独立维护fight_detector.lua；保留fightDetectorDB / rangeSpells，新增profiles[classId]恢复阈值。Core及钓鱼模块不变，战斗不读写wowDetectorDB、音频、图形或交互CVar。
 - autoFight.ps1、Engine.ps1、Native.cs、config.json的状态、输入、计时和配置与autofish隔离，只共享主题及标签。离开标签停止上一页，UiTest以模拟类型替代战斗原生操作，不加载战斗输入适配器。
-- 插件驱动主色opening / combat / idle / 四向move / loot / skin；恢复独立输出none / recover / emergency。v2八格仍为中心y=-64、x=-56..56、间距16、格宽10，新签名RGB0/255/192，第4格R剥皮 / G忙碌 / B255；独立12px恢复点为x=+88、y=-64，蓝无需恢复、紫非战斗、橙紧急、灰未知。不要合并回主状态格，旧v1两端不混用。
+- 插件驱动主色opening / waiting / combat / idle / 四向move / loot / skin；恢复独立输出none / recover / emergency。v3九格为中心y=-64、x=-56..72、间距16、格宽10，新签名RGB0/192/255，第9格怪物会话RGB(N,255-N,102)，第4格R剥皮 / G忙碌 / B255；独立12px恢复点为x=+88、y=-64，蓝无需恢复、紫非战斗、橙紧急、灰未知。不要合并回主状态格，旧v1/v2两端不混用。
 - HP进入 / 退出阈值默认非战斗80/95、紧急30/50；可选法力恢复默认关闭，只对法力职业生效。0关闭项，进入<退出，迟滞避免状态抖动。受限 / 不可读不推断。恢复优先于普通动作；施法 / 引导 / 战利品窗口阻止普通发键，紧急宏允许打断当前施法。
-- PC状态切换设置EntryPending，开怪 / 正常战斗 / 紧急恢复各用独立重试间隔，非战斗恢复只在进入时发送一次；动作冷却不阻塞状态轮询。独立恢复清除后回到主状态。发键前重读主状态、恢复和忙碌；取得前台须新心跳，保持时监测并允许恢复 / 战斗抢占交互。
+- PC状态切换设置EntryPending，正常战斗 / 紧急恢复各用独立重试间隔；开怪成功后按怪物会话编号仅一次，随后等待接近且不发任何按键，非战斗恢复只在进入时发送一次；动作冷却不阻塞状态轮询。独立恢复清除后回到主状态。发键前重读主状态、恢复和忙碌；取得前台须新心跳，保持时监测并允许恢复 / 战斗抢占交互。
 - 自动移动选择规则用户尚未确定；只保留四个方向状态、快捷键及插件面板单次请求，默认不自动移动、不巡逻、不持久恢复请求。PC以非阻塞50ms计时按住100–2000ms，状态改变 / 超时 / 停止 / 刷新 / 关闭 / 设置 / 失焦 / 无效或冻结心跳均释放本模块按住的键，不让移动跨窗口。
 - 尸体交互按可拾取 → 无剩余战利品且可剥皮驱动；CanLootUnit同时读取hasLoot / canLoot，两项均明确且有权限才拾取，受限 / 不完整返回为unknown。有战利品而无权限时不交互、不判剥皮。LOOT_OPENED / LOOT_CLOSED维护忙碌，LOOT_READY / LOOT_SLOT_CLEARED及轮询刷新；两服独立实现。PC记录LastInteractionState，新拾取 / 剥皮阶段不继承上一阶段冷却，同阶段重新进入仍受NextInteractionAt限制；发键前仍要求非战斗、非忙碌及无需恢复。交互键沿用SkinKey，设置界面明确“拾取 / 剥皮交互键”，默认F7，按两服 / 职业保存；游戏内绑定交互；独立Loot.lua处理已打开窗口的自动拾取及拾取绑定确认，不改变CVar。
-- JSON v3顶层CommandIntervalMs保存战斗公共最小间隔（100–60000ms、默认500、UI步进100），两服各13职业保存九个键及五项计时、交互开关。v1只读迁移保留AttackKey为开怪及正常战斗、原间隔和交互，下次保存升级；取消 / 写入失败不应用草稿。缺省F5/F6/F8/F9、W/S/Q/E、F7，开怪2000ms、战斗500ms、紧急1500ms、移动400ms、交互3500ms。
+- JSON v3顶层CommandIntervalMs保存战斗公共最小间隔（100–60000ms、默认500、UI步进100），两服各13职业保存九个键及五项计时、交互开关。v1只读迁移保留AttackKey为开怪及正常战斗、原间隔和交互，下次保存升级；取消 / 写入失败不应用草稿。缺省F5/F6/F8/F9、W/S/Q/E、F7，开怪每怪一次（旧OpeningIntervalMs字段仅保留兼容）、战斗500ms、紧急1500ms、移动400ms、交互3500ms。
 - 本次Windows任务须执行解析、编译和模拟检查，提交并成功推送后同步两服及桌面快捷方式；不运行真实发键循环、采集游戏声音或结束游戏进程。
 
 - 钓鱼JumpEveryCycles独立保存到config.ini，0–1000000、默认0、步进1；旧INI缺省沿用当前值且不重写。每进程仅有效成功收竿计数，满N次在冷却 / 保持后有效红绿状态按空格，未知等待、黄色优先。保留绿色恢复跳跃，成功一次清除两种待跳并归零，失败重试；停止 / 刷新保留进程计数，改变N重置、重复保存不重置。设置原子写入成功才应用。JumpInterval引擎/UI模拟覆盖。
 - 战斗公共CommandGate跨窗口 / 职业 / 状态门控全部成功发键，不约束钓鱼；职业更长冷却和保持仍有效。松键不延迟且不消耗间隔；停止 / 刷新不重置LastSentAt，保存间隔也保留它。v1/v2只读迁移默认公共500ms，下次保存升级v3，全部字段成功写入才应用。AutoFight.Engine.Tests.ps1及UiTest模拟配置失败和全部状态跨窗口门控，生产Native.cs仅编译。
 - 两服各自Loot.lua监听LOOT_OPENED / LOOT_READY / LOOT_SLOT_CHANGED / LOOT_SLOT_CLEARED / LOOT_CLOSED，使用本客户端GetNumLootItems / GetLootSlotInfo第6项locked / LootSlot拾取未锁定槽位。LOOT_BIND_CONFIRM排队下一帧ConfirmLootSlot，成功才StaticPopup_Hide("LOOT_BIND", slot)；只确认拾取绑定，失败保留人工提示、受限不比较、不改变CVar或两模块设置。按槽位去重、关闭清空；Loot.Tests.lua分别模拟两服，ForeverCompatibility.Tests.lua按实际TOC加载完整模块。
+
+- 距离检测：两服独立fight_detector/Range.lua采用经典 / Forever已知敌对物品探针，档位5/10/15/20/25/30/35/40码，C_Item.IsItemInRange优先、全局接口仅缺省回退，先排除受限返回；缺失、异常、冲突为unknown。加载时预热物品数据，不使用、购买物品或读取怪物坐标。profiles[classId].DetectionRangeYards默认30，顶层AttackRangeYards默认5且为该客户端账号全局；旧rangeSpells保留。面板一次校验全部距离和恢复阈值后保存，非法不部分应用。
+- 开怪后跟踪GUID，玩家对该目标的伤害技能成功或进入战斗后只按攻击距离输出waiting / combat；退远回waiting，不能因进入战斗直接攻击。当前目标优先于其他近处姓名板；会话编号变化解除PC开怪一次标记，输入前重查编号。waitingRGB0/192/192，PC等待期间不发开怪 / 攻击 / 恢复 / 移动键，但按住键的释放仍立即执行。独立恢复色块保留，退出等待后恢复其优先处理。FightDistance.Tests.lua分别模拟两服；AutoFight.Distance.Tests.ps1仅调用生产C#纯Decode；UiTest覆盖生产PC调度与输入重查，严禁真实游戏输入验证。

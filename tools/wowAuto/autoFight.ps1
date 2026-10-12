@@ -225,7 +225,8 @@ function Invoke-AutoFightTick {
         $action=Get-AutoFightAction $session $packet $profile $now
         if ($action -eq 'identity-changed') { $row.CanStart=$false; Stop-AutoFightRow $row '角色职业或协议状态改变，请刷新。'; return }
         if ($action -eq 'wait') {
-            $detail=if ($packet.Busy) { '施法 / 交互中，等待' } else { '等待下一次状态处理' }
+            $detail=if ($session.State -eq 'waiting') { '不下发按键，等待进入攻击距离' }
+                elseif ($packet.Busy) { '施法 / 交互中，等待' } else { '等待下一次状态处理' }
             Set-AutoFightStatus $row ($script:autoFightStates[$session.State].Label+" · $detail · $combatText")
             Finish-AutoFightPending $now; return
         }
@@ -235,7 +236,8 @@ function Invoke-AutoFightTick {
         # Re-read both independent state and recovery signals immediately before input.
         $latest=[WowAutoFight.Native]::Read($row.Client)
         if ($null -eq $latest -or $latest.ClassId -ne $packet.ClassId -or $latest.Action -ne $packet.Action -or
-            $latest.Recovery -ne $packet.Recovery -or $latest.Combat -ne $packet.Combat -or $latest.Busy -ne $packet.Busy) {
+            $latest.Recovery -ne $packet.Recovery -or $latest.Combat -ne $packet.Combat -or $latest.Busy -ne $packet.Busy -or
+            $latest.EncounterId -ne $packet.EncounterId) {
             Set-AutoFightStatus $row '状态变化，等待重新探测。'; Finish-AutoFightPending $now; return
         }
         $movement=$action.StartsWith('move-')
@@ -330,7 +332,7 @@ function New-AutoFightSettingsDialog {
         })
         $editor.Bindings[$field]=$box; $body.Controls.Add($label); $body.Controls.Add($box)
     }
-    $numbers=@(@('OpeningIntervalMs','开怪重试间隔 (ms)',100,60000),@('CombatIntervalMs','正常战斗间隔 (ms)',100,10000),
+    $numbers=@(@('CombatIntervalMs','正常战斗间隔 (ms)',100,10000),
         @('EmergencyIntervalMs','紧急恢复重试间隔 (ms)',100,60000),@('MovementHoldMs','移动按住时长 (ms)',100,2000),
         @('InteractionHoldMs','交互前台保持 (ms)',1000,60000))
     for ($i=0;$i -lt $numbers.Count;$i++) {
@@ -353,7 +355,7 @@ function New-AutoFightSettingsDialog {
     $editor.CommandInterval.BackColor=[Drawing.Color]::FromArgb(50,50,50); $editor.CommandInterval.ForeColor=[Drawing.Color]::White
     $editor.CommandInterval.SetBounds(360,480,168,32); $body.Controls.Add($editor.CommandInterval)
     $hint=New-Object System.Windows.Forms.Label
-    $hint.Text="公共间隔约束所有战斗窗口、职业和指令；更长的职业重试 / 保持仍有效。`r`n插件主色驱动开怪 / 战斗，独立恢复色块优先驱动恢复。阈值在插件面板配置。`r`n非战斗恢复进入时按一次；四向移动暂仅响应插件面板手动请求。`r`n两服插件自动拾取并确认拾取绑定；可剥皮时再次按交互键。`r`n点击输入框录入按键；游戏内绑定对应宏 / 技能 / 交互 / 移动键。"
+    $hint.Text="每只怪开怪一次，等待接近期间不发键；进入插件配置的攻击距离才攻击。`r`n检测距离按职业、攻击距离为全局，均在游戏插件面板设置（码）。`r`n公共间隔约束所有战斗窗口和指令；更长的重试 / 保持仍有效。`r`n非战斗恢复进入时按一次；四向移动暂仅响应插件面板手动请求。`r`n点击输入框录入按键；游戏内绑定对应宏 / 技能 / 交互 / 移动键。"
     $hint.SetBounds(16,528,812,128); $body.Controls.Add($hint)
     $errorLabel=New-Object System.Windows.Forms.Label
     $errorLabel.SetBounds(16,4,($footer.ClientSize.Width-32),30); $errorLabel.Anchor='Top, Left, Right'; $errorLabel.AutoEllipsis=$true

@@ -2,18 +2,24 @@
 Add-Type -TypeDefinition @'
 namespace WowAutoFight {
     public class Packet {
-        public int ClassId=1, Heartbeat=1;
+        public int ClassId=1, Heartbeat=1, EncounterId=1;
         public string Flavor="titan", Action="combat", Recovery="none";
         public bool Busy=false, Combat=false;
     }
     public static class Native {
         public static Packet Current=new Packet();
         public static int Sends=0, Releases=0;
+        public static int ReadsUntilEncounterChange=0;
         public static bool FailSend=false, IsHolding=false;
         public static bool IsAlive(object client) { return true; }
         public static bool Foreground(object client) { return true; }
         public static bool Activate(object client) { return true; }
-        public static object Read(object client) { Current.Heartbeat++; return Current; }
+        public static object Read(object client) {
+            Current.Heartbeat++;
+            if (ReadsUntilEncounterChange>0 && --ReadsUntilEncounterChange==0) Current.EncounterId++;
+            return new Packet {ClassId=Current.ClassId, Heartbeat=Current.Heartbeat, EncounterId=Current.EncounterId,
+                Flavor=Current.Flavor, Action=Current.Action, Recovery=Current.Recovery, Busy=Current.Busy, Combat=Current.Combat};
+        }
         public static bool Press(object client, ushort code, bool ctrl, bool shift, bool alt) {
             if (FailSend) return false; Sends++; return true;
         }
@@ -35,6 +41,8 @@ try {
     Initialize-AutoFightTab $tabs $form
     $script:autoFight.Timer.Stop()
     $script:autoFight.ConfigPath=$fightPath
+    $script:autoFight.Profiles=New-AutoFightProfiles
+    $script:autoFight.CommandGate=New-AutoFightCommandGate
     $script:autoFight.CommandGate.LastSentAt=100L
     $tabs.SelectedTab=$script:autoFight.Tab
     $dialog=New-AutoFightSettingsDialog
@@ -111,8 +119,31 @@ try {
     [WowAutoFight.Native]::FailSend=$false
     Prepare-FightInput $fightRows[1] 'combat' 3000; Invoke-AutoFightTick
     Assert-Ui ([WowAutoFight.Native]::Sends -eq 3) 'Failure prevented valid other-window retry.'
+    Prepare-FightInput $fightRows[0] 'opening' 4000; Invoke-AutoFightTick
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 4 -and $fightRows[0].Session.OpeningSent) 'Initial encounter opening not sent.'
+    function Tick-FightEncounter($Row,[string]$Action,[long]$Now,[string]$Recovery='none') {
+        $script:autoFight.Clock.ElapsedMilliseconds=$Now
+        [WowAutoFight.Native]::Current.Action=$Action; [WowAutoFight.Native]::Current.Recovery=$Recovery
+        $pending=New-AutoFightPending $Row $Row.Session $false 0
+        $pending.Activated=$true; $pending.SampleAt=0; $pending.FirstBeat=0; $pending.FirstClass=1
+        $script:autoFight.Pending=$pending; Invoke-AutoFightTick
+    }
+    Tick-FightEncounter $fightRows[0] 'opening' 6000
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 4 -and $fightRows[0].Session.State -eq 'waiting') 'Opening repeated before monster approached.'
+    [WowAutoFight.Native]::Current.Combat=$true
+    Tick-FightEncounter $fightRows[0] 'waiting' 6500 'emergency'
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 4 -and $fightRows[0].Message -match '不下发按键') 'Waiting emitted combat/emergency keys.'
+    Tick-FightEncounter $fightRows[0] 'combat' 7000
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 5) 'Entering attack range did not attack.'
+    [WowAutoFight.Native]::Current.Combat=$false; [WowAutoFight.Native]::Current.EncounterId=2
+    Tick-FightEncounter $fightRows[0] 'opening' 8000
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 6) 'Changing monsters failed to issue a fresh opener.'
+    [WowAutoFight.Native]::Current.EncounterId=3; [WowAutoFight.Native]::ReadsUntilEncounterChange=2
+    Tick-FightEncounter $fightRows[0] 'opening' 9000
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 6) 'Encounter changed immediately before input but opener was sent.'
     Assert-Ui ($script:scheduler.JumpEveryCycles -eq $fishJump -and (Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $fishIniHash -and (Get-FileHash -LiteralPath $fightSource).Hash -eq $fightSourceHash) 'Combat changed fishing settings or source configuration.'
     Write-Output 'PASS: combat settings 100 ms step/common draft/profile isolation/save/cancel/locked failure; mocked production input gate for all states, cross-window, release, restart and send failure. No real native operations.'
+    Write-Output 'PASS: production combat UI adapter opens once, stays quiet through waiting/combat/emergency, attacks on approach, reopens for new monster and rechecks encounter before input.'
 } finally {
     Close-AutoFightTab
     $tabs.SelectedTab=$tab

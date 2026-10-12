@@ -3,7 +3,11 @@ local FLAVOR = "titan"
 local enabled, initialized, elapsed = false, false, 0
 local nameplates = {}
 local lootOpen = false
-local classID, rangeSpell = nil, nil
+local classID = nil
+local range=WoWTools.FightRange
+local attackRange=range.DefaultAttack
+local encounterGUID, encounterSerial = nil, 0
+local pullObserved=false
 local state, combat, skin, busy = "disabled", false, false, false
 local health, mana, settings = nil, nil, nil
 local recovery="none"
@@ -12,14 +16,12 @@ local recoveryDescriptions={none="无需恢复", recover="非战斗恢复", emer
 local recovering, emergency, movementStarted, requestedMovement = false, false, nil, nil
 local settingDefaults = { HealthEnter=80, HealthExit=95, ManaEnter=0, ManaExit=90,
     EmergencyEnter=30, EmergencyExit=50 }
-local defaults = { [1]=78, [2]=20271, [3]=75, [4]=1752, [5]=585, [6]=45462,
-    [7]=403, [8]=133, [9]=686, [10]=100780, [11]=5176, [12]=162243, [13]=361469 }
 local colors = { disabled={128,128,128}, unknown={128,128,128}, idle={0,0,255},
-    opening={255,96,0}, combat={255,0,0},
+    opening={255,96,0}, waiting={0,192,192}, combat={255,0,0},
     ["move-forward"]={64,255,64}, ["move-backward"]={64,128,255},
     ["move-left"]={255,192,64}, ["move-right"]={128,64,255}, skin={255,0,255}, loot={0,255,0} }
 local descriptions = { disabled="已关闭", unknown="数据未知，暂停指令", idle="等待目标 / 移动间歇",
-    opening="开怪战斗", combat="正常战斗", recover="非战斗恢复", emergency="战斗紧急恢复",
+    opening="发现怪物，开怪", waiting="等待怪物接近", combat="进入攻击距离", recover="非战斗恢复", emergency="战斗紧急恢复",
     ["move-forward"]="向前移动", ["move-backward"]="向后移动", ["move-left"]="向左移动",
     ["move-right"]="向右移动", skin="可以剥皮", loot="可以拾取" }
 
@@ -44,7 +46,7 @@ local function Say(message)
 end
 
 local panel = CreateFrame("Frame", "wowToolsFightDetectorPanel", UIParent)
-panel:SetSize(480, 324)
+panel:SetSize(560, 388)
 panel:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 12, -16)
 panel:SetFrameStrata("HIGH")
 panel:SetClampedToScreen(true)
@@ -61,23 +63,33 @@ title:SetPoint("TOPLEFT",12,-10)
 title:SetText("fight_detector · 时光服")
 local status = panel:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall")
 status:SetPoint("TOPLEFT",12,-30)
-status:SetWidth(454)
+status:SetWidth(534)
 status:SetHeight(32)
 status:SetJustifyH("LEFT")
 local rangeLabel = panel:CreateFontString(nil,"OVERLAY","GameFontNormalSmall")
 rangeLabel:SetPoint("TOPLEFT",12,-78)
-rangeLabel:SetText("测距法术 ID")
+rangeLabel:SetText("检测 / 开怪距离（本职业，码）")
 local input = CreateFrame("EditBox",nil,panel,"InputBoxTemplate")
-input:SetSize(90,22)
-input:SetPoint("TOPLEFT",100,-74)
+input:SetSize(64,22)
+input:SetPoint("TOPLEFT",250,-74)
 input:SetAutoFocus(false)
 input:SetNumeric(true)
-input:SetMaxLetters(9)
+input:SetMaxLetters(2)
 input:SetScript("OnEscapePressed",function(self) self:ClearFocus() end)
 local save = CreateFrame("Button",nil,panel,"UIPanelButtonTemplate")
 save:SetSize(54,22)
 save:SetPoint("LEFT",input,"RIGHT",6,0)
 save:SetText("保存")
+local attackLabel=panel:CreateFontString(nil,"OVERLAY","GameFontNormalSmall")
+attackLabel:SetPoint("TOPLEFT",12,-108)
+attackLabel:SetText("开始战斗距离（全局，码）")
+local attackInput=CreateFrame("EditBox",nil,panel,"InputBoxTemplate")
+attackInput:SetSize(64,22); attackInput:SetPoint("TOPLEFT",250,-104)
+attackInput:SetAutoFocus(false); attackInput:SetNumeric(true); attackInput:SetMaxLetters(2)
+attackInput:SetScript("OnEscapePressed",function(self) self:ClearFocus() end)
+local rangeHint=panel:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall")
+rangeHint:SetPoint("TOPLEFT",12,-138)
+rangeHint:SetText("可选距离：5 / 10 / 15 / 20 / 25 / 30 / 35 / 40 码。")
 local thresholds = {}
 local thresholdRows = {
     {"非战斗生命值 %", "HealthEnter", "HealthExit"},
@@ -85,7 +97,7 @@ local thresholdRows = {
     {"战斗紧急生命值 %", "EmergencyEnter", "EmergencyExit"},
 }
 for i,row in ipairs(thresholdRows) do
-    local y=-104-(i-1)*30
+    local y=-166-(i-1)*30
     local label=panel:CreateFontString(nil,"OVERLAY","GameFontNormalSmall")
     label:SetPoint("TOPLEFT",12,y); label:SetText(row[1])
     for j=2,3 do
@@ -102,13 +114,13 @@ local moveButtons = {}
 for i,entry in ipairs({{"off","停止移动"},{"forward","前"},
     {"backward","后"},{"left","左"},{"right","右"}}) do
     local button=CreateFrame("Button",nil,panel,"UIPanelButtonTemplate")
-    button:SetSize(72,24); button:SetPoint("TOPLEFT",12+(i-1)*76,-203)
+    button:SetSize(72,24); button:SetPoint("TOPLEFT",12+(i-1)*76,-266)
     button:SetText(entry[2]); moveButtons[entry[1]]=button
 end
 local movementLabel=panel:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall")
-movementLabel:SetPoint("TOPLEFT",12,-237)
+movementLabel:SetPoint("TOPLEFT",12,-300)
 local hint=panel:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall")
-hint:SetPoint("TOPLEFT",12,-261)
+hint:SetPoint("TOPLEFT",12,-320)
 hint:SetText("进入值须低于退出值；进入值 0 表示关闭该项恢复。")
 local start = CreateFrame("Button",nil,panel,"UIPanelButtonTemplate")
 start:SetSize(64,22)
@@ -120,14 +132,14 @@ close:SetPoint("BOTTOMRIGHT",-12,8)
 close:SetText("关闭")
 panel:Hide()
 
--- Eight 10px protocol cells at y=-64; an independent 12px recovery cell is at x=+88.
+-- Nine 10px protocol v3 cells at y=-64; an independent 12px recovery cell is at x=+88.
 -- Independent from wowDetector's center and +32px lure points.
 local signal = CreateFrame("Frame",nil,UIParent)
 signal:SetAllPoints(UIParent)
 signal:SetFrameStrata("TOOLTIP")
 signal:EnableMouse(false)
 local cells = {}
-for i=1,8 do cells[i]=signal:CreateTexture(nil,"OVERLAY") end
+for i=1,9 do cells[i]=signal:CreateTexture(nil,"OVERLAY") end
 local recoveryCell=signal:CreateTexture(nil,"OVERLAY")
 local function PaintCell(index,r,g,b)
     cells[index]:SetColorTexture(r/255,g/255,b/255,1)
@@ -145,7 +157,7 @@ local function PositionSignal()
         return false
     end
     local unit = 768/height/scale
-    for i=1,8 do
+    for i=1,9 do
         cells[i]:ClearAllPoints()
         cells[i]:SetPoint("CENTER",UIParent,"CENTER",(-56+(i-1)*16)*unit,64*unit)
         cells[i]:SetSize(10*unit,10*unit)
@@ -157,10 +169,10 @@ local function PositionSignal()
     return true
 end
 local function Paint()
-    for i=1,8 do PaintCell(i,128,128,128) end
+    for i=1,9 do PaintCell(i,128,128,128) end
     recoveryCell:SetColorTexture(.5,.5,.5,1)
     if enabled and classID and PositionSignal() then
-        PaintCell(1,0,255,192) -- protocol v2 header; reject v1 readers
+        PaintCell(1,0,192,255) -- v3: distance-gated actions and encounter identity
         PaintCell(2,unpack(colors[state] or colors.unknown))
         if combat~=nil then PaintCell(3,combat and 255 or 0,combat and 0 or 255,0) end
         if skin~=nil then PaintCell(4,skin and 255 or 0,busy and 255 or 0,255) end
@@ -171,6 +183,7 @@ local function Paint()
         local c=recoveryColors[recovery] or recoveryColors.unknown
         recoveryCell:SetColorTexture(c[1]/255,c[2]/255,c[3]/255,1)
         PaintCell(8,255,255,255) -- protocol trailer
+        PaintCell(9,encounterSerial,255-encounterSerial,102)
     else
         signal:Hide()
     end
@@ -185,20 +198,6 @@ local function Paint()
     if enabled then start:Disable() else start:Enable() end
 end
 
-local function InRange(unit)
-    if C_Spell and C_Spell.IsSpellInRange then
-        local value,ok=Read(C_Spell.IsSpellInRange,rangeSpell,unit)
-        if ok and (value==true or value==1) then return true end
-        if ok and (value==false or value==0) then return false end
-        return nil
-    end
-    local name, ok=Read(GetSpellInfo,rangeSpell)
-    if not ok or type(name)~="string" then return nil end
-    local value,valid=Read(IsSpellInRange,name,unit)
-    if valid and (value==true or value==1) then return true end
-    if valid and (value==false or value==0) then return false end
-    return nil
-end
 local function Enemy(unit)
     local exists=Bool(UnitExists,unit)
     if exists==false then return false end
@@ -206,6 +205,36 @@ local function Enemy(unit)
     local dead, player, attack=Bool(UnitIsDeadOrGhost,unit),Bool(UnitIsPlayer,unit),Bool(UnitCanAttack,"player",unit)
     if dead==nil or player==nil or attack==nil then return nil end
     return not dead and not player and attack
+end
+local function SetEncounter(guid)
+    if encounterGUID~=guid then
+        encounterGUID=guid; encounterSerial=(encounterSerial+1)%256; pullObserved=false
+    end
+end
+local function FindEnemy()
+    local candidates={"target","softenemy"}
+    local plates={}
+    for unit in pairs(nameplates) do plates[#plates+1]=unit end
+    table.sort(plates)
+    for _,unit in ipairs(plates) do candidates[#candidates+1]=unit end
+    local unknown=false
+    for _,unit in ipairs(candidates) do
+        local enemy=Enemy(unit)
+        if enemy then
+            local guid,ok=Read(UnitGUID,unit)
+            if ok and type(guid)=="string" and guid~="" then
+                -- Keep following the pulled monster, even if it retreats beyond detection range.
+                -- A deliberate target change takes precedence over the previous nameplate.
+                if (combat and unit=="target") or guid==encounterGUID then return unit,guid end
+                if not combat then
+                    local detected=range.Check(unit,settings.DetectionRangeYards)
+                    if detected then return unit,guid end
+                    if detected==nil then unknown=true end
+                end
+            else unknown=true end
+        elseif enemy==nil then unknown=true end
+    end
+    return nil,nil,unknown
 end
 local scanTooltip
 local function SkinTooltip(unit)
@@ -325,6 +354,7 @@ local function Stop()
     enabled,elapsed,state,combat,skin,busy=false,0,"disabled",false,false,false
     recovering,emergency,movementStarted,requestedMovement=false,false,nil,nil
     health,mana,recovery=nil,nil,"none"
+    SetEncounter(nil)
     signal:Hide()
     Paint()
 end
@@ -344,39 +374,40 @@ local function Refresh()
         emergency=settings.EmergencyEnter>0 and (health<=settings.EmergencyEnter
             or (emergency and health<settings.EmergencyExit))
         recovery=emergency and "emergency" or "none"
-        SetState("combat"); return
-    end
-    emergency=false
-    if recovering then
-        recovering=(settings.HealthEnter>0 and health<settings.HealthExit)
-            or (settings.ManaEnter>0 and mana~=nil and mana<settings.ManaExit)
     else
-        recovering=(settings.HealthEnter>0 and health<=settings.HealthEnter)
-            or (settings.ManaEnter>0 and mana~=nil and mana<=settings.ManaEnter)
+        emergency=false
+        if recovering then
+            recovering=(settings.HealthEnter>0 and health<settings.HealthExit)
+                or (settings.ManaEnter>0 and mana~=nil and mana<settings.ManaExit)
+        else
+            recovering=(settings.HealthEnter>0 and health<=settings.HealthEnter)
+                or (settings.ManaEnter>0 and mana~=nil and mana<=settings.ManaEnter)
+        end
+        recovery=recovering and "recover" or "none"
     end
-    recovery=recovering and "recover" or "none"
     if recovering then movementStarted,requestedMovement=nil,nil end
-    if busy then
-        if state=="skin" then skin=true
-        elseif state~="loot" then state="idle" end
-        SetState(state); return
+    if busy and not combat and (state=="skin" or state=="loot") then
+        skin=state=="skin"; SetState(state); return
     end
-    if not recovering then
+    if not combat and not recovering and not busy then
         local interaction=Interaction()
-        if interaction then skin=interaction=="skin"; SetState(interaction); return end
+        if interaction then SetEncounter(nil); skin=interaction=="skin"; SetState(interaction); return end
     end
-    local candidates={"target","softenemy"}
-    for unit in pairs(nameplates) do candidates[#candidates+1]=unit end
-    local unknown=false
-    for _,unit in ipairs(candidates) do
-        local enemy=Enemy(unit)
-        if enemy then
-            local inRange=InRange(unit)
-            if inRange then SetState("opening"); return end
-            if inRange==nil then unknown=true end
-        elseif enemy==nil then unknown=true end
+    local unit,guid,unknown=FindEnemy()
+    if unit then
+        SetEncounter(guid)
+        if combat or pullObserved then
+            local closeEnough=range.Check(unit,attackRange)
+            if closeEnough==nil then SetState("unknown"); return end
+            SetState(closeEnough and "combat" or "waiting"); return
+        end
+        local detected=range.Check(unit,settings.DetectionRangeYards)
+        if detected==nil then SetState("unknown"); return end
+        SetState(detected and "opening" or "waiting"); return
     end
-    SetState(unknown and "unknown" or (recovering and "idle" or Movement()))
+    if combat or unknown then SetState("unknown"); return end
+    SetEncounter(nil)
+    SetState(recovering and "idle" or Movement())
 end
 local function SafeRefresh()
     local ok=pcall(Refresh)
@@ -392,8 +423,11 @@ end
 save:SetScript("OnClick",function()
     if not initialized then return end
     local value=tonumber(input:GetText())
-    if not value or value<1 or value~=math.floor(value) then Say("请输入已学会的伤害技能 ID。"); return end
-    local draft={}
+    local attack=tonumber(attackInput:GetText())
+    if not range.IsSupported(value) or not range.IsSupported(attack) then
+        Say("距离请选择 5、10、15、20、25、30、35 或 40 码。"); return
+    end
+    local draft={DetectionRangeYards=value}
     for _,row in ipairs(thresholdRows) do
         for j=2,3 do
             local number=tonumber(thresholds[row[j]]:GetText())
@@ -402,11 +436,11 @@ save:SetScript("OnClick",function()
         end
         if draft[row[2]]>=draft[row[3]] then Say("恢复进入值必须小于退出值。"); return end
     end
-    rangeSpell,settings=value,draft
-    fightDetectorDB.rangeSpells[classID]=value
+    attackRange,settings=attack,draft
+    fightDetectorDB.AttackRangeYards=attack
     fightDetectorDB.profiles[classID]=draft
     recovering,emergency,movementStarted,requestedMovement=false,false,nil,nil
-    input:ClearFocus()
+    input:ClearFocus(); attackInput:ClearFocus()
     for _,box in pairs(thresholds) do box:ClearFocus() end
     SafeRefresh()
 end)
@@ -438,10 +472,10 @@ for _,event in ipairs({"ADDON_LOADED","PLAYER_ENTERING_WORLD","PLAYER_DEAD","PLA
     "PLAYER_SOFT_INTERACT_CHANGED","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED",
     "LOOT_OPENED","LOOT_CLOSED","LOOT_READY","LOOT_SLOT_CLEARED",
     "UNIT_HEALTH","UNIT_MAXHEALTH","UNIT_POWER_UPDATE",
-    "UNIT_MAXPOWER","UNIT_DISPLAYPOWER","DISPLAY_SIZE_CHANGED","UI_SCALE_CHANGED"}) do
+    "UNIT_MAXPOWER","UNIT_DISPLAYPOWER","DISPLAY_SIZE_CHANGED","UI_SCALE_CHANGED","GET_ITEM_INFO_RECEIVED","UNIT_SPELLCAST_SUCCEEDED"}) do
     pcall(events.RegisterEvent,events,event)
 end
-events:SetScript("OnEvent",function(_,event,arg)
+events:SetScript("OnEvent",function(_,event,arg,castGUID,spellID)
     if event=="ADDON_LOADED" then
         if arg~="wow_tools" then return end
         if type(fightDetectorDB)~="table" then fightDetectorDB={} end
@@ -450,12 +484,13 @@ events:SetScript("OnEvent",function(_,event,arg)
         local ok,_,_,id=pcall(UnitClass,"player")
         if not ok or not Readable(id) or type(id)~="number" or id<1 or id>13 then return end
         classID=id
-        rangeSpell=fightDetectorDB.rangeSpells[id] or defaults[id]
-        input:SetText(tostring(rangeSpell))
+        attackRange=range.IsSupported(fightDetectorDB.AttackRangeYards) and fightDetectorDB.AttackRangeYards or range.DefaultAttack
+        range.WarmCache()
         local stored=fightDetectorDB.profiles[id]
-        settings={}
+        settings={DetectionRangeYards=range.DefaultDetection}
         for key,value in pairs(settingDefaults) do settings[key]=value end
         if type(stored)=="table" then
+            if range.IsSupported(stored.DetectionRangeYards) then settings.DetectionRangeYards=stored.DetectionRangeYards end
             for _,row in ipairs(thresholdRows) do
                 local enter,exit=stored[row[2]],stored[row[3]]
                 if type(enter)=="number" and type(exit)=="number" and enter>=0 and exit<=100
@@ -464,9 +499,21 @@ events:SetScript("OnEvent",function(_,event,arg)
                 end
             end
         end
+        input:SetText(tostring(settings.DetectionRangeYards)); attackInput:SetText(tostring(attackRange))
         for field,box in pairs(thresholds) do box:SetText(tostring(settings[field])) end
         initialized=true
         Stop()
+    elseif event=="UNIT_SPELLCAST_SUCCEEDED" then
+        if enabled and Readable(arg) and arg=="player" and Readable(spellID) and type(spellID)=="number"
+            and Bool(C_Spell and C_Spell.IsSpellHarmful or IsHarmfulSpell,spellID)==true then
+            for _,unit in ipairs({"target","softenemy"}) do
+                local guid,ok=Read(UnitGUID,unit)
+                if ok and type(guid)=="string" and guid==encounterGUID and Enemy(unit)==true then
+                    pullObserved=true; break
+                end
+            end
+        end
+        SafeRefresh()
     elseif event=="LOOT_OPENED" then
         lootOpen=true
         SafeRefresh()
@@ -480,6 +527,7 @@ events:SetScript("OnEvent",function(_,event,arg)
     elseif event=="PLAYER_ENTERING_WORLD" then
         lootOpen=false
         nameplates={}
+        range.WarmCache()
         if C_NamePlate and C_NamePlate.GetNamePlates then
             local ok,plates=pcall(C_NamePlate.GetNamePlates)
             if ok and type(plates)=="table" then
@@ -502,6 +550,6 @@ SLASH_FIGHTDETECTOR1="/fightdetector"
 SlashCmdList.FIGHTDETECTOR=function(message)
     local command=(message or ""):lower():match("^%s*(.-)%s*$")
     if command=="off" or command=="hide" then Stop(); panel:Hide()
-    elseif command=="status" then Say((descriptions[state] or state).." · rangeSpell="..tostring(rangeSpell).." · class="..tostring(classID))
+    elseif command=="status" then Say((descriptions[state] or state).." · 检测="..(settings and settings.DetectionRangeYards or "?").."码 / 攻击="..attackRange.."码 / encounter="..encounterSerial.." · class="..tostring(classID))
     else Start() end
 end

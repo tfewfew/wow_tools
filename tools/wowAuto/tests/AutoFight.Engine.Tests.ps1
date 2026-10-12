@@ -36,7 +36,7 @@ try {
     $gate=New-AutoFightCommandGate 1000
     Assert-Fight (Test-AutoFightCommandReady $gate 0) 'Initial command blocked.'
     Complete-AutoFightCommand $gate 0 $true
-    $packet=[pscustomobject]@{ClassId=1; Flavor='titan'; Busy=$false; Combat=$false; Action='opening'; Recovery='none'}
+    $packet=[pscustomobject]@{ClassId=1; Flavor='titan'; Busy=$false; Combat=$false; Action='opening'; Recovery='none'; EncounterId=1}
     $session=New-AutoFightSession 0 1; $p=$profiles['titan:1']
     foreach($state in @('opening','combat','recover','emergency','move-forward','move-backward','move-left','move-right','loot','skin')) {
         $packet.Action=$state; $packet.Recovery='none'

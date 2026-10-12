@@ -19,7 +19,7 @@ namespace WowAutoFight
     {
         public string Action, Flavor, Recovery;
         public bool Combat, Skin, Busy;
-        public int ClassId, Heartbeat;
+        public int ClassId, Heartbeat, EncounterId;
     }
     public static class Native
     {
@@ -135,32 +135,13 @@ namespace WowAutoFight
                     dc=GetDC(IntPtr.Zero);
                     if (dc==IntPtr.Zero) return null;
                     uint before=GetPixel(dc,point.X+96,point.Y);
-                    uint[] cells=new uint[8];
-                    for (int i=0;i<8;i++) cells[i]=GetPixel(dc,point.X+i*16,point.Y);
+                    uint beforeEncounter=GetPixel(dc,point.X+128,point.Y);
+                    uint[] cells=new uint[9];
+                    for (int i=0;i<9;i++) cells[i]=GetPixel(dc,point.X+i*16,point.Y);
                     uint recoveryCell=GetPixel(dc,point.X+144,point.Y);
-                    if (before!=cells[6] || GetPixel(dc,point.X+96,point.Y)!=before || !Foreground(c)) return null;
-                    if (!Near(cells[0],0,255,192) || !Near(cells[7],255,255,255)) return null;
-                    string flavor=Near(cells[5],255,128,0)?"titan":Near(cells[5],128,0,255)?"forerver":null;
-                    if (flavor!=c.Flavor) return null;
-                    int classId=(int)Math.Round(R(cells[4])/16.0);
-                    if (classId<1 || classId>13 || Math.Abs(R(cells[4])-classId*16)>3
-                        || Math.Abs(G(cells[4])-(255-classId*16))>3 || Math.Abs(B(cells[4])-85)>12) return null;
-                    if (B(cells[6])<158 || B(cells[6])>182 || Math.Abs(R(cells[6])+G(cells[6])-255)>12) return null;
-                    string action=Near(cells[1],255,96,0)?"opening":Near(cells[1],255,0,0)?"combat":
-                        Near(cells[1],64,255,64)?"move-forward":Near(cells[1],64,128,255)?"move-backward":
-                        Near(cells[1],255,192,64)?"move-left":Near(cells[1],128,64,255)?"move-right":
-                        Near(cells[1],255,0,255)?"skin":Near(cells[1],0,255,0)?"loot":
-                        Near(cells[1],0,0,255)?"idle":Near(cells[1],128,128,128)?"unknown":null;
-                    string recovery=Near(recoveryCell,0,0,255)?"none":Near(recoveryCell,255,0,255)?"recover":
-                        Near(recoveryCell,255,128,0)?"emergency":null;
-                    bool combat=Near(cells[2],255,0,0), peaceful=Near(cells[2],0,255,0);
-                    bool skin=R(cells[3])>128, busy=G(cells[3])>128;
-                    if (action==null || recovery==null || (!combat && !peaceful) || !Near(cells[3],skin?255:0,busy?255:0,255)
-                        || (action=="skin")!=skin || (action!="unknown" && (action=="combat")!=combat)
-                        || (recovery=="recover" && combat) || (recovery=="emergency" && !combat)
-                        || (action=="unknown" && recovery=="none")) return null;
-                    return new Packet { Action=action, Recovery=recovery, Flavor=flavor, Combat=combat, Skin=skin, Busy=busy,
-                        ClassId=classId, Heartbeat=R(cells[6]) };
+                    if (before!=cells[6] || GetPixel(dc,point.X+96,point.Y)!=before ||
+                        beforeEncounter!=cells[8] || GetPixel(dc,point.X+128,point.Y)!=beforeEncounter || !Foreground(c)) return null;
+                    return Decode(cells,recoveryCell,c.Flavor);
                 }
                 finally
                 {
@@ -168,6 +149,34 @@ namespace WowAutoFight
                     if (previous!=IntPtr.Zero) SetThreadDpiAwarenessContext(previous);
                 }
             }
+        }
+        // Pure protocol parser; tests pass synthetic pixels without reading game windows.
+        public static Packet Decode(uint[] cells,uint recoveryCell,string expectedFlavor)
+        {
+            if (cells==null || cells.Length!=9) return null;
+            if (!Near(cells[0],0,192,255) || !Near(cells[7],255,255,255)) return null;
+            string flavor=Near(cells[5],255,128,0)?"titan":Near(cells[5],128,0,255)?"forerver":null;
+            if (flavor==null || flavor!=expectedFlavor) return null;
+            int classId=(int)Math.Round(R(cells[4])/16.0);
+            if (classId<1 || classId>13 || Math.Abs(R(cells[4])-classId*16)>3
+                || Math.Abs(G(cells[4])-(255-classId*16))>3 || Math.Abs(B(cells[4])-85)>12) return null;
+            if (B(cells[6])<158 || B(cells[6])>182 || Math.Abs(R(cells[6])+G(cells[6])-255)>12) return null;
+            string action=Near(cells[1],255,96,0)?"opening":Near(cells[1],255,0,0)?"combat":Near(cells[1],0,192,192)?"waiting":
+                Near(cells[1],64,255,64)?"move-forward":Near(cells[1],64,128,255)?"move-backward":
+                Near(cells[1],255,192,64)?"move-left":Near(cells[1],128,64,255)?"move-right":
+                Near(cells[1],255,0,255)?"skin":Near(cells[1],0,255,0)?"loot":
+                Near(cells[1],0,0,255)?"idle":Near(cells[1],128,128,128)?"unknown":null;
+            string recovery=Near(recoveryCell,0,0,255)?"none":Near(recoveryCell,255,0,255)?"recover":
+                Near(recoveryCell,255,128,0)?"emergency":null;
+            bool combat=Near(cells[2],255,0,0), peaceful=Near(cells[2],0,255,0);
+            bool skin=R(cells[3])>128, busy=G(cells[3])>128;
+            if (action==null || recovery==null || (!combat && !peaceful) || !Near(cells[3],skin?255:0,busy?255:0,255)
+                || (action=="skin")!=skin || (combat && action!="combat" && action!="waiting" && action!="unknown")
+                || (recovery=="recover" && combat) || (recovery=="emergency" && !combat)
+                || (action=="unknown" && recovery=="none")
+                || B(cells[8])<90 || B(cells[8])>114 || Math.Abs(R(cells[8])+G(cells[8])-255)>12) return null;
+            return new Packet { Action=action, Recovery=recovery, Flavor=flavor, Combat=combat, Skin=skin, Busy=busy,
+                ClassId=classId, Heartbeat=R(cells[6]), EncounterId=R(cells[8]) };
         }
         private static Input Key(ushort code,bool up)
         {
