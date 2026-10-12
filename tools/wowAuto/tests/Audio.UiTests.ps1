@@ -22,7 +22,7 @@ try {
     Assert-Ui ($script:workerKeys.Count -eq 0 -and @($script:scheduler.Events | Where-Object Kind -eq 'Reel').Count -eq 0) 'Green sent an unsolicited reel.'
     Update-RowStatus $a; $timestamp=$a.StatusTimestamp
     $ca.Peak=0.12; Update-RowStatus $a
-    Assert-Ui ($a.StatusTimestamp -eq $timestamp -and $a.Status.Text -match '12%') 'Audio peak changes refreshed the state timestamp.'
+    Assert-Ui ($a.StatusTimestamp -eq $timestamp -and $a.CurrentStatusText -match '12%') 'Audio peak changes refreshed the state timestamp.'
     $ca.Bite=$ca.Session
     $script:scheduler.ItemHoldUntil=4000
     Invoke-SchedulerTick 3000
@@ -34,7 +34,7 @@ try {
     Assert-Ui ($script:workerKeys.Count -eq 0 -and $b.State.AudioReelPending -and $b.State.Deadline -eq 6100) 'Audio failed to queue a delayed reel or interrupted the hold.'
     $script:schedulerClock.ElapsedMilliseconds=5500; Update-RowStatus $b; $delayStamp=$b.StatusTimestamp
     $script:schedulerClock.ElapsedMilliseconds=5501; Update-RowStatus $b
-    Assert-Ui ($b.Status.Text -match '收竿等待：剩余 599 ms' -and $b.Status.Text -notmatch '无咬钩超时保护' -and
+    Assert-Ui ($b.CurrentStatusText -match '收竿等待：剩余 599 ms' -and $b.CurrentStatusText -notmatch '无咬钩超时保护' -and
         $b.StatusTimestamp -eq $delayStamp) 'Audio delay status used the no-signal label or refreshed its timestamp during countdown.'
     $script:schedulerClock.ElapsedMilliseconds=0
     Invoke-SchedulerTick 6000
@@ -67,7 +67,7 @@ try {
     Assert-Ui ($script:workerKeys.Count -eq $keyCount -and $a.State.Mode -eq 'Ready') 'Audio signal reeled outside fishing state.'
     $current.Status='Error'; $current.Error='mock capture failure'
     Invoke-SchedulerTick 11000
-    Assert-Ui (-not $a.State.Running -and $a.Status.Text -match 'mock capture failure' -and -not $script:audioCaptures.ContainsKey($a.Key)) 'Capture failure lacked cleanup/status.'
+    Assert-Ui (-not $a.State.Running -and $a.CurrentStatusText -match 'mock capture failure' -and -not $script:audioCaptures.ContainsKey($a.Key)) 'Capture failure lacked cleanup/status.'
     $a.Process.ScanColor='green'; $a.Validated=$true
     Start-Row $a
     Invoke-SchedulerTick 12000; Invoke-SchedulerTick 12025
@@ -89,7 +89,7 @@ try {
     Assert-Ui ($a.State.Running -and -not $a.State.AudioReady -and $script:workerKeys.Count -eq $keyCount) 'Audio startup gate was bypassed.'
     $current.Status='Error'; $current.Error='mock initialization failure'
     Invoke-SchedulerTick 60100
-    Assert-Ui (-not $a.State.Running -and $current.Disposed -and $a.Status.Text -match 'mock initialization failure') 'Startup failure did not stop and report.'
+    Assert-Ui (-not $a.State.Running -and $current.Disposed -and $a.CurrentStatusText -match 'mock initialization failure') 'Startup failure did not stop and report.'
     Stop-AllRows
     Assert-Ui ($cb.Disposed -and $script:audioCaptures.Count -eq 0 -and $script:scheduler.Events.Count -eq 0) 'Stop all leaked listeners or events.'
 }

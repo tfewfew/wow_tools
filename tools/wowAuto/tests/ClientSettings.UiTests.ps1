@@ -199,7 +199,7 @@ try {
     Set-VersionWaitRanges 1000 1000 2000 2000 -Persist $false -FocusRetryIntervalMs 2500
     Assert-Ui ($a.State.Deadline -eq $deadline -and $event.Due -eq $deadline -and $a.State.MinimumMs -eq 1000 -and $f.State.MinimumMs -eq 2000 -and $f.State.FocusRetryAt -eq 8500) 'Runtime settings changed an existing deadline or missed tasks.'
     Pause-RowForFocus $f 8500 'Repeated simulated denial.'
-    Assert-Ui ($f.State.FocusRetryAt -eq 11000 -and $f.Status.Text -notmatch '每30秒') 'Repeated failure ignored updated retry interval/status.'
+    Assert-Ui ($f.State.FocusRetryAt -eq 11000 -and $f.CurrentStatusText -notmatch '每30秒') 'Repeated failure ignored updated retry interval/status.'
     $null=Complete-WowAutoPoll $script:scheduler $b.Key 1100 'green'
     Assert-Ui ($b.State.Deadline -eq 2100) 'New wait ignored updated version settings.'
     $timestamp=$a.StatusTimestamp

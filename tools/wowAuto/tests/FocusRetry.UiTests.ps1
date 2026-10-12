@@ -17,16 +17,16 @@ function Reset-FocusTest {
 $savedFocusClock=$script:schedulerClock
 try {
     Reset-FocusTest
-    Assert-Ui ($focusA.Status.Text -match '^\[\d{2}:\d{2}:\d{2}\] ') 'Unstarted row has no clock.'
+    Assert-Ui ($focusA.CurrentStatusText -match '^\[\d{2}:\d{2}:\d{2}\] ') 'Unstarted row has no clock.'
     $focusA.Process.FocusAllowed=$false
     Start-Row $focusA
     Invoke-SchedulerTick 1000
     Assert-Ui ($focusA.State.Running -and $focusA.State.FocusRetryAt -eq 31000) 'Activation failure stopped task.'
     Assert-Ui ($focusA.Stop.Enabled -and -not $focusA.Start.Enabled) 'Suspended controls allow duplicate start or disable stop.'
-    Assert-Ui ($focusA.Status.Text -match '^\[\d{2}:\d{2}:\d{2}\] ' -and $focusA.Status.Text -match '30') 'Retry status has no time/countdown.'
+    Assert-Ui ($focusA.CurrentStatusText -match '^\[\d{2}:\d{2}:\d{2}\] ' -and $focusA.CurrentStatusText -match '30') 'Retry status has no time/countdown.'
     $script:schedulerClock.ElapsedMilliseconds=16000
     Update-RowStatus $focusA
-    Assert-Ui ($focusA.Status.Text -match '剩余 15 秒' -and ([regex]::Matches($focusA.Status.Text,'\[\d{2}:\d{2}:\d{2}\]')).Count -eq 1) 'Retry countdown or timestamp duplicates are wrong.'
+    Assert-Ui ($focusA.CurrentStatusText -match '剩余 15 秒' -and ([regex]::Matches($focusA.CurrentStatusText,'\[\d{2}:\d{2}:\d{2}\]')).Count -eq 1) 'Retry countdown or timestamp duplicates are wrong.'
 
     # Another row must continue casting and reeling during the 30-second pause.
     $script:schedulerClock.ElapsedMilliseconds=1200
@@ -99,7 +99,7 @@ try {
         if ($cancel -eq 'refresh') { Begin-RefreshScan; Complete-TestScan }
         Invoke-SchedulerTick 99999
         Assert-Ui (-not $oldState.Running -and $oldState.FocusRetryAt -eq 0 -and $script:scheduler.Tasks.Count -eq 0 -and $script:workerKeys.Count -eq 0) "Cancellation left retry: $cancel"
-        Assert-Ui ($focusA.Status.Text -match '^\[\d{2}:\d{2}:\d{2}\] ') 'Stopped/refreshed status has no clock.'
+        Assert-Ui ($focusA.CurrentStatusText -match '^\[\d{2}:\d{2}:\d{2}\] ') 'Stopped/refreshed status has no clock.'
     }
 } finally {
     Stop-AllRows
