@@ -83,10 +83,13 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - 设置“咬钩匹配片段”分组采用DropDownList/OwnerDrawFixed/Flat灰底白字，显示序号/日期/来源/1秒时长；试听只播放所选短WAV一次，System.Media.SoundPlayer.Load后Play异步，一次一个播放器，切换选择/另一服试听/成功保存/取消/关闭/Dispose均Stop并Dispose，缺失文件提示不改选择，不退回180秒整段。PreviewStatus采用“试听片段”描述，避免1秒播放结束后仍显示正在播放。播放属于工具PID，游戏进程回环不包含它；弹窗继续暂停游戏切换/按键。UiTest使用模拟播放器，验证不得实际播放用户录音或采集游戏。
 - TitanAudioRecordingId/ForerverAudioRecordingId为新增两项固定INI键，必须为对应目录已知整数ID；两项同时缺省兼容旧14项，部分缺失/重复/未知ID拒绝整份配置。统一验证和原子保存后应用选择，草稿/取消/写入失败不应用；独立存储，保存不替换当前会话的匹配器/候选/已匹配信号/截止。Capture条目RecordingId显示实际使用的编号，TemplateSession记录钓鱼会话，只有新非零AudioSession才按所选ID加载；先Arm(0)，再锁内SetTemplate，再Arm新会话。道具保持引起的同一会话解除/重新Arm不得切换；载入失败停止本行，不回退。SetTemplate要求session=0并校验模板/门槛，清空已过期信号，捕获线程全部匹配仍在gate锁内。Audio.Recordings.UiTests.ps1验证编号/试听/INI/保存回滚/活动轮次和信号保留/下轮切换/版本及失败隔离；Audio.RecordingSwitch.Tests.ps1仅用未调用原生构造函数的内存对象及合成PCM验证实际C#切换保护，不创建采集线程。快捷方式安装检查五个运行文件，包含新Recordings模块。
 
-## autoFight（2026-10-12新增）
+## autoFight（2026-10-12）
 
-- 当前合集版本：titan2.1.4、forerver2.2.3。各自TOC额外加载独立 `fight_detector/fight_detector.lua` 并声明 `fightDetectorDB`，Core.lua只在菜单数组增加fight_detector，不改小地图左键钓鱼行为。战斗模块不读写wowDetectorDB、音频或画面设置。
-- PC战斗模块为autoFight.ps1、autoFight.Engine.ps1、autoFight.Native.cs及autoFight.config.json；不得把其配置并入严格钓鱼INI，或复用钓鱼调度 / 音频 / 输入适配器。只共享无业务状态的主题控件及主标签容器。两页切换停止离开的页，防止前台按键争用；UiTest继续使用原钓鱼入口，不初始化原生战斗模块。
-- 战斗协议v1位于中心上方64物理像素，8格x=-56..56、步长16、格宽10；包含独立签名 / 动作 / 战斗 / 剥皮 / 职业 / 服务器 / 心跳 / 尾签名。每次激活窗口等待200ms并确认心跳变化，发键前重读动作。身份校验沿用同样要求但实现独立；无关闭或终止游戏能力。
-- 检测只读当前目标、软目标及姓名板单位，以已学会的可测距伤害法术确认范围。拾取 / 剥皮只使用可交互softinteract尸体，剥皮来自本地化tooltip且排除技能不足的红色提示；受限值或不可读数据不会推断成可操作。战斗、施法 / 引导时不剥皮，死亡 / 隐藏 / 关闭 / 重载停止，复活不自动重启。
-- 本次用户明确要求mac开发完成直接提交、无需任何验证，因此跳过全部检查 / 测试 / 游戏运行及Windows同步；后续维护按届时用户要求决定验证与部署。源配置默认各职业F6 / F7、500ms战斗间隔、3500ms交互保持，游戏内绑定由用户配置；同服每职业、两服之间均独立。桌面快捷方式安装增加四个运行文件的存在检查，仍指向源码目录。
+- 当前合集版本titan2.1.5、forerver2.2.4，两服独立维护fight_detector.lua；保留fightDetectorDB / rangeSpells，新增profiles[classId]恢复阈值。Core及钓鱼模块不变，战斗不读写wowDetectorDB、音频、图形或交互CVar。
+- autoFight.ps1、Engine.ps1、Native.cs、config.json的状态、输入、计时和配置与autofish隔离，只共享主题及标签。离开标签停止上一页，UiTest仍不加载战斗原生模块。
+- 插件驱动主色opening / combat / idle / 四向move / loot / skin；恢复独立输出none / recover / emergency。v2八格仍为中心y=-64、x=-56..56、间距16、格宽10，新签名RGB0/255/192，第4格R剥皮 / G忙碌 / B255；独立12px恢复点为x=+88、y=-64，蓝无需恢复、紫非战斗、橙紧急、灰未知。不要合并回主状态格，旧v1两端不混用。
+- HP进入 / 退出阈值默认非战斗80/95、紧急30/50；可选法力恢复默认关闭，只对法力职业生效。0关闭项，进入<退出，迟滞避免状态抖动。受限 / 不可读不推断。恢复优先于普通动作；施法 / 引导 / 战利品窗口阻止普通发键，紧急宏允许打断当前施法。
+- PC状态切换设置EntryPending，开怪 / 正常战斗 / 紧急恢复各用独立重试间隔，非战斗恢复只在进入时发送一次；动作冷却不阻塞状态轮询。独立恢复清除后回到主状态。发键前重读主状态、恢复和忙碌；取得前台须新心跳，保持时监测并允许恢复 / 战斗抢占交互。
+- 自动移动选择规则用户尚未确定；只保留四个方向状态、快捷键及插件面板单次请求，默认不自动移动、不巡逻、不持久恢复请求。PC以非阻塞50ms计时按住100–2000ms，状态改变 / 超时 / 停止 / 刷新 / 关闭 / 设置 / 失焦 / 无效或冻结心跳均释放本模块按住的键，不让移动跨窗口。
+- JSON v2按两服各13职业保存九个键及五项计时、交互开关。v1只读迁移保留AttackKey为开怪及正常战斗、原间隔和交互，下次保存升级；取消 / 写入失败不应用草稿。缺省F5/F6/F8/F9、W/S/Q/E、F7，开怪2000ms、战斗500ms、紧急1500ms、移动400ms、交互3500ms。
+- 本次用户要求mac开发后直接提交推送、无需任何验证，继续跳过语法 / 编译 / 模拟 / UI / 游戏验证及Windows同步；部署时两端更新、游戏/reload并重启wowAuto。

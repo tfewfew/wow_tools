@@ -29,7 +29,41 @@ function Update-AutoFightControls {
     $script:autoFight.StartAll.Enabled=$runnable
     $script:autoFight.StopAll.Enabled=$running -or $busy
 }
+function Release-AutoFightHold {
+    $hold=$script:autoFight.ActiveHold
+    try { [WowAutoFight.Native]::ReleaseHold() }
+    catch { $script:autoFight.Summary.Text='释放移动键失败，暂停调度并继续重试：'+$_.Exception.Message; return $false }
+    $script:autoFight.ActiveHold=$null
+    if ($hold -and $hold.Row.Session -eq $hold.Session) { $hold.Session.Due=$script:autoFight.Clock.ElapsedMilliseconds }
+    return $true
+}
+function Invoke-AutoFightHold([long]$Now) {
+    $hold=$script:autoFight.ActiveHold
+    if (-not $hold) { return }
+    $row=$hold.Row
+    try {
+        if ($row.Session -ne $hold.Session) { [void](Release-AutoFightHold); return }
+        if (-not [WowAutoFight.Native]::IsAlive($row.Client) -or -not [WowAutoFight.Native]::Foreground($row.Client)) {
+            throw '保持期间进程身份或前台发生变化，已释放移动键。'
+        }
+        $packet=[WowAutoFight.Native]::Read($row.Client)
+        if ($null -eq $packet) { throw '保持期间检测关闭或协议不可读，已释放移动键。' }
+        if ($packet.ClassId -ne $hold.Session.ClassId) { throw '职业发生变化，已释放移动键。' }
+        if ($packet.Heartbeat -ne $hold.Beat) { $hold.Beat=$packet.Heartbeat; $hold.LastBeatAt=$Now }
+        elseif ($Now-$hold.LastBeatAt -ge 1500) { throw '保持期间插件心跳停止，已释放移动键。' }
+        if ($Now -ge $hold.Until -or $packet.Action -ne $hold.State -or $packet.Recovery -ne 'none' -or
+            ($hold.Movement -and $packet.Busy)) { [void](Release-AutoFightHold) }
+    }
+    catch {
+        $message=$_.Exception.Message
+        [void](Release-AutoFightHold)
+        $row.CanStart=$false
+        Stop-AutoFightRow $row $message
+    }
+}
 function Stop-AutoFightRow($Row,[string]$Reason='已停止，战斗任务已取消。') {
+    if (($script:autoFight.ActiveHold -and $script:autoFight.ActiveHold.Row -eq $Row) -or
+        (-not $script:autoFight.ActiveHold -and [WowAutoFight.Native]::IsHolding)) { [void](Release-AutoFightHold) }
     $Row.Session=$null
     if ($script:autoFight.Pending -and $script:autoFight.Pending.Row -eq $Row) { $script:autoFight.Pending=$null }
     Set-AutoFightStatus $Row $Reason
@@ -45,7 +79,7 @@ function Complete-AutoFightScan {
 }
 function Stop-AutoFightAll {
     if ($null -eq $script:autoFight) { return }
-    $script:autoFight.HoldUntil=0L
+    [void](Release-AutoFightHold)
     $script:autoFight.Pending=$null
     if ($script:autoFight.Scan) { Complete-AutoFightScan }
     foreach ($row in @($script:autoFight.Rows.Values)) { Stop-AutoFightRow $row }
@@ -118,9 +152,10 @@ function Finish-AutoFightPending([long]$Now) {
     }
 }
 function Invoke-AutoFightTick {
-    if ($script:autoFight.Editing -or $script:autoFight.Tabs.SelectedTab -ne $script:autoFight.Tab) { return }
     $now=$script:autoFight.Clock.ElapsedMilliseconds
-    if ($now -lt $script:autoFight.HoldUntil) { return }
+    if ($script:autoFight.ActiveHold) { Invoke-AutoFightHold $now; return }
+    if ([WowAutoFight.Native]::IsHolding) { [void](Release-AutoFightHold); return }
+    if ($script:autoFight.Editing -or $script:autoFight.Tabs.SelectedTab -ne $script:autoFight.Tab) { return }
     if (-not $script:autoFight.Pending) {
         if ($script:autoFight.Scan) {
             if ($script:autoFight.Scan.Index -ge $script:autoFight.Scan.Order.Count) { Complete-AutoFightScan; return }
@@ -182,37 +217,40 @@ function Invoke-AutoFightTick {
         }
         $session=$pending.Session
         $profile=$script:autoFight.Profiles["$($row.Client.Flavor):$($session.ClassId)"]
+        $previous=$session.State
+        if (Update-AutoFightState $session $packet $now) {
+            $before=if ($previous) { $script:autoFightStates[$previous].Label } else { '初始' }
+            Set-AutoFightStatus $row ("状态切换：$before → "+$script:autoFightStates[$session.State].Label)
+        }
         $action=Get-AutoFightAction $session $packet $profile $now
-        if ($action -eq 'identity-changed') { $row.CanStart=$false; Stop-AutoFightRow $row '角色职业改变，请刷新重新识别。'; return }
+        if ($action -eq 'identity-changed') { $row.CanStart=$false; Stop-AutoFightRow $row '角色职业或协议状态改变，请刷新。'; return }
         if ($action -eq 'wait') {
-            $text=switch ($packet.Action) { 'busy' {'施法 / 拾取 / 剥皮中'}; 'idle' {'等待范围内目标'};
-                'skin' {'可剥皮，当前配置未启用交互或仍在冷却'}; 'loot' {'可拾取，当前配置未启用交互或仍在冷却'}; default {'等待下一次战斗按键'} }
-            Set-AutoFightStatus $row "$text · $combatText"
+            $detail=if ($packet.Busy) { '施法 / 交互中，等待' } else { '等待下一次状态处理' }
+            Set-AutoFightStatus $row ($script:autoFightStates[$session.State].Label+" · $detail · $combatText")
             Finish-AutoFightPending $now; return
         }
-        $binding=ConvertFrom-AutoFightBinding $(if ($action -eq 'attack') { $profile.AttackKey } else { $profile.SkinKey })
-        # Read again immediately before input; reject any action/class/combat transition.
+        $handler=$script:autoFightStates[$action]
+        $keyField=$handler.Key
+        $binding=ConvertFrom-AutoFightBinding $profile.$keyField
+        # Re-read both independent state and recovery signals immediately before input.
         $latest=[WowAutoFight.Native]::Read($row.Client)
-        if ($null -eq $latest -or $latest.ClassId -ne $packet.ClassId -or
-            $latest.Action -ne $packet.Action -or $latest.Combat -ne $packet.Combat) {
+        if ($null -eq $latest -or $latest.ClassId -ne $packet.ClassId -or $latest.Action -ne $packet.Action -or
+            $latest.Recovery -ne $packet.Recovery -or $latest.Combat -ne $packet.Combat -or $latest.Busy -ne $packet.Busy) {
             Set-AutoFightStatus $row '状态变化，等待重新探测。'; Finish-AutoFightPending $now; return
         }
-        if (-not [WowAutoFight.Native]::Press($row.Client,[uint16]$binding.Code,$binding.Ctrl,$binding.Shift,$binding.Alt)) {
-            throw '发键前失去前台。'
-        }
+        $movement=$action.StartsWith('move-')
+        if ($movement) { $sent=[WowAutoFight.Native]::BeginHold($row.Client,[uint16]$binding.Code,$binding.Ctrl,$binding.Shift,$binding.Alt) }
+        else { $sent=[WowAutoFight.Native]::Press($row.Client,[uint16]$binding.Code,$binding.Ctrl,$binding.Shift,$binding.Alt) }
+        if (-not $sent) { throw '发键前失去前台。' }
         $completed=$script:autoFight.Clock.ElapsedMilliseconds
-        if ($action -eq 'attack') {
-            $session.NextAttackAt=$completed+$profile.AttackIntervalMs
-            $session.Due=$session.NextAttackAt
-            Set-AutoFightStatus $row "已发送战斗键 $($binding.Text) · $combatText"
+        Complete-AutoFightAction $session $profile $action $completed
+        if ($movement -or $action -in @('skin','loot')) {
+            $duration=if ($movement) { $profile.MovementHoldMs } else { $profile.InteractionHoldMs }
+            $script:autoFight.ActiveHold=[pscustomobject]@{Row=$row; Session=$session; State=$packet.Action;
+                Until=($completed+$duration); Movement=$movement; Beat=$latest.Heartbeat; LastBeatAt=$completed}
+            Set-AutoFightStatus $row ("已执行"+$handler.Label+" $($binding.Text) · 最长保持 $duration ms，状态改变时结束。")
         }
-        else {
-            $session.NextInteractionAt=$completed+$profile.InteractionHoldMs
-            $session.Due=$session.NextInteractionAt
-            $script:autoFight.HoldUntil=$session.NextInteractionAt
-            $verb=if ($packet.Action -eq 'skin') { '剥皮' } else { '拾取' }
-            Set-AutoFightStatus $row "已发送$verb 交互键 $($binding.Text)，前台保持 $($profile.InteractionHoldMs) ms。"
-        }
+        else { Set-AutoFightStatus $row ("已执行"+$handler.Label+"键 $($binding.Text) · $combatText") }
         Finish-AutoFightPending $completed
     }
     catch {
@@ -227,8 +265,8 @@ function Save-AutoFightDraftSelection {
     $editor=$script:autoFight.Editor
     if (-not $editor.CurrentKey) { return }
     $p=$editor.Draft[$editor.CurrentKey]
-    $p.AttackKey=$editor.Attack.Text; $p.SkinKey=$editor.Skin.Text
-    $p.AttackIntervalMs=[int]$editor.Interval.Value; $p.InteractionHoldMs=[int]$editor.Hold.Value
+    foreach ($field in $editor.Bindings.Keys) { $p.$field=$editor.Bindings[$field].Text }
+    foreach ($field in $editor.Numbers.Keys) { $p.$field=[int]$editor.Numbers[$field].Value }
     $p.SkinEnabled=$editor.SkinEnabled.Checked
 }
 function Select-AutoFightDraftProfile {
@@ -239,68 +277,82 @@ function Select-AutoFightDraftProfile {
     $id=$editor.Class.SelectedIndex+1
     $editor.CurrentKey="${flavor}:$id"
     $p=$editor.Draft[$editor.CurrentKey]
-    $editor.Attack.Text=$p.AttackKey; $editor.Skin.Text=$p.SkinKey
-    $editor.Interval.Value=$p.AttackIntervalMs; $editor.Hold.Value=$p.InteractionHoldMs
+    foreach ($field in $editor.Bindings.Keys) { $editor.Bindings[$field].Text=$p.$field }
+    foreach ($field in $editor.Numbers.Keys) { $editor.Numbers[$field].Value=$p.$field }
     $editor.SkinEnabled.Checked=$p.SkinEnabled
 }
 function Show-AutoFightSettings {
     if ($script:autoFight.Editing -or $script:autoFight.Scan) { return }
+    if (-not (Release-AutoFightHold)) { return }
+    $script:autoFight.Pending=$null
     $script:autoFight.Editing=$true
     $dialog=New-Object WowAuto.DimForm
-    $dialog.Text='autoFight · 按服务器及职业配置'; $dialog.StartPosition='CenterParent'
-    $dialog.ClientSize=New-Object Drawing.Size(720,475); $dialog.MinimumSize=$dialog.Size
+    $dialog.Text='autoFight · 状态按键 / 服务器及职业'; $dialog.StartPosition='CenterParent'
+    $area=[System.Windows.Forms.Screen]::FromControl($script:autoFight.Owner).WorkingArea
+    $dialog.ClientSize=New-Object Drawing.Size([Math]::Min(860,$area.Width-80),[Math]::Min(720,$area.Height-100))
+    $dialog.MinimumSize=New-Object Drawing.Size(600,450)
     $dialog.Font=$script:autoFight.Owner.Font; $dialog.BackColor=[Drawing.Color]::FromArgb(58,58,58)
     $dialog.ForeColor=[Drawing.Color]::White
+    $body=New-Object System.Windows.Forms.Panel
+    $body.Dock='Fill'; $body.AutoScroll=$true; $body.AutoScrollMinSize=New-Object Drawing.Size(840,590)
+    $footer=New-Object System.Windows.Forms.Panel
+    $footer.Dock='Bottom'; $footer.Height=100
+    $dialog.Controls.Add($body); $dialog.Controls.Add($footer)
     $editor=[pscustomobject]@{Draft=(Copy-AutoFightProfiles $script:autoFight.Profiles); CurrentKey=''; Loading=$true;
-        Flavor=$null; Class=$null; Attack=$null; Skin=$null; Interval=$null; Hold=$null; SkinEnabled=$null}
+        Flavor=$null; Class=$null; Bindings=@{}; Numbers=@{}; SkinEnabled=$null}
     $script:autoFight.Editor=$editor
-    $labels=@('服务器','职业','一键战斗快捷键','拾取 / 剥皮交互快捷键','战斗按键间隔 (ms)','交互后前台保持 (ms)')
-    for ($i=0;$i -lt $labels.Count;$i++) {
-        $label=New-Object System.Windows.Forms.Label; $label.Text=$labels[$i]; $label.SetBounds(24,(22+44*$i),280,32)
-        $dialog.Controls.Add($label)
-    }
-    $editor.Flavor=New-Object System.Windows.Forms.ComboBox
-    $editor.Class=New-Object System.Windows.Forms.ComboBox
-    foreach ($combo in @($editor.Flavor,$editor.Class)) {
+    foreach ($entry in @(@('Flavor','服务器'),@('Class','职业'))) {
+        $x=if ($entry[0] -eq 'Flavor') { 16 } else { 436 }
+        $label=New-Object System.Windows.Forms.Label; $label.Text=$entry[1]; $label.SetBounds($x,22,220,32)
+        $combo=New-Object System.Windows.Forms.ComboBox
         $combo.DropDownStyle='DropDownList'; $combo.FlatStyle='Flat'
         $combo.BackColor=[Drawing.Color]::FromArgb(50,50,50); $combo.ForeColor=[Drawing.Color]::White
+        $combo.SetBounds(($x+224),18,168,32)
         $combo.Add_SelectedIndexChanged({ Select-AutoFightDraftProfile })
-        $dialog.Controls.Add($combo)
+        $editor.($entry[0])=$combo; $body.Controls.Add($label); $body.Controls.Add($combo)
     }
-    $editor.Flavor.SetBounds(330,18,345,32); $editor.Class.SetBounds(330,62,345,32)
     $editor.Flavor.Items.AddRange([object[]]@('时光服 (titan)','永恒服 / 无限服 (forerver)'))
     $editor.Class.Items.AddRange([object[]]@($script:autoFightClasses.Values))
-    foreach ($field in @('Attack','Skin')) {
+    $keyLabels=@('开怪战斗键','正常战斗键','非战斗恢复键','战斗紧急恢复键','向前移动键','向后移动键','向左移动键','向右移动键','拾取 / 剥皮交互键')
+    for ($i=0;$i -lt $script:autoFightKeyFields.Count;$i++) {
+        $field=$script:autoFightKeyFields[$i]
+        $x=16+($i%2)*420; $y=66+[Math]::Floor($i/2)*44
+        $label=New-Object System.Windows.Forms.Label; $label.Text=$keyLabels[$i]; $label.SetBounds($x,($y+4),220,32)
         $box=New-Object System.Windows.Forms.TextBox; $box.ReadOnly=$true
         $box.BackColor=[Drawing.Color]::FromArgb(50,50,50); $box.ForeColor=[Drawing.Color]::White
+        $box.SetBounds(($x+224),$y,168,32)
         $box.Add_KeyDown({param($sender,$eventArgs)
             $binding=New-AutoFightBinding ([int]$eventArgs.KeyCode) $eventArgs.Control $eventArgs.Shift $eventArgs.Alt
             if ($null -ne $binding) { $sender.Text=$binding.Text }
             $eventArgs.SuppressKeyPress=$true; $eventArgs.Handled=$true
         })
-        $editor.$field=$box; $dialog.Controls.Add($box)
+        $editor.Bindings[$field]=$box; $body.Controls.Add($label); $body.Controls.Add($box)
     }
-    $editor.Attack.SetBounds(330,106,345,32); $editor.Skin.SetBounds(330,150,345,32)
-    foreach ($field in @('Interval','Hold')) {
+    $numbers=@(@('OpeningIntervalMs','开怪重试间隔 (ms)',100,60000),@('CombatIntervalMs','正常战斗间隔 (ms)',100,10000),
+        @('EmergencyIntervalMs','紧急恢复重试间隔 (ms)',100,60000),@('MovementHoldMs','移动按住时长 (ms)',100,2000),
+        @('InteractionHoldMs','交互前台保持 (ms)',1000,60000))
+    for ($i=0;$i -lt $numbers.Count;$i++) {
+        $entry=$numbers[$i]; $x=16+($i%2)*420; $y=302+[Math]::Floor($i/2)*44
+        $label=New-Object System.Windows.Forms.Label; $label.Text=$entry[1]; $label.SetBounds($x,($y+4),220,32)
         $number=New-Object System.Windows.Forms.NumericUpDown
-        $number.Minimum=if ($field -eq 'Interval') { 100 } else { 1000 }
-        $number.Maximum=if ($field -eq 'Interval') { 10000 } else { 60000 }
-        $number.Increment=100; $number.BackColor=[Drawing.Color]::FromArgb(50,50,50); $number.ForeColor=[Drawing.Color]::White
-        $editor.$field=$number; $dialog.Controls.Add($number)
+        $number.Minimum=$entry[2]; $number.Maximum=$entry[3]; $number.Increment=100
+        $number.BackColor=[Drawing.Color]::FromArgb(50,50,50); $number.ForeColor=[Drawing.Color]::White
+        $number.SetBounds(($x+224),$y,168,32)
+        $editor.Numbers[$entry[0]]=$number; $body.Controls.Add($label); $body.Controls.Add($number)
     }
-    $editor.Interval.SetBounds(330,194,345,32); $editor.Hold.SetBounds(330,238,345,32)
     $editor.SkinEnabled=New-Object WowAuto.DimCheckBox
-    $editor.SkinEnabled.Text='启用拾取及剥皮交互'; $editor.SkinEnabled.SetBounds(24,290,600,32)
-    $dialog.Controls.Add($editor.SkinEnabled)
+    $editor.SkinEnabled.Text='启用拾取及剥皮交互'; $editor.SkinEnabled.SetBounds(16,440,600,32)
+    $body.Controls.Add($editor.SkinEnabled)
     $hint=New-Object System.Windows.Forms.Label
-    $hint.Text="点击快捷键输入框后按键录入。游戏内须绑定对应战斗宏 / 交互键。`r`n切换服务器或职业可分别编辑；保存写入独立 autoFight.config.json。"
-    $hint.SetBounds(24,330,650,56); $dialog.Controls.Add($hint)
+    $hint.Text="插件主色驱动开怪 / 战斗，独立恢复色块优先驱动恢复。阈值在插件面板配置。`r`n非战斗恢复仅在进入状态时按一次；开怪 / 战斗 / 紧急恢复按各自间隔重试。`r`n四向移动规则待定，暂仅响应插件面板手动请求；按住至时限或状态改变。`r`n点击输入框按键录入；游戏内绑定对应宏 / 技能 / 交互 / 移动键。"
+    $hint.SetBounds(16,484,812,100); $body.Controls.Add($hint)
     $errorLabel=New-Object System.Windows.Forms.Label
-    $errorLabel.SetBounds(24,390,650,30); $errorLabel.AutoEllipsis=$true; $dialog.Controls.Add($errorLabel)
+    $errorLabel.SetBounds(16,4,($footer.ClientSize.Width-32),30); $errorLabel.Anchor='Top, Left, Right'; $errorLabel.AutoEllipsis=$true
+    $footer.Controls.Add($errorLabel)
     $save=New-Object WowAuto.DimButton
-    $save.Text='保存'; $save.SetBounds(460,430,100,32); Set-AutoFightButtonStyle $save $true
+    $save.Text='保存'; $save.SetBounds(($footer.ClientSize.Width-236),50,100,32); $save.Anchor='Top, Right'; Set-AutoFightButtonStyle $save $true
     $cancel=New-Object WowAuto.DimButton
-    $cancel.Text='取消'; $cancel.SetBounds(575,430,100,32); Set-AutoFightButtonStyle $cancel
+    $cancel.Text='取消'; $cancel.SetBounds(($footer.ClientSize.Width-116),50,100,32); $cancel.Anchor='Top, Right'; Set-AutoFightButtonStyle $cancel
     $cancel.Add_Click({param($sender,$eventArgs) $sender.FindForm().Close()})
     $save.Tag=$errorLabel
     $save.Add_Click({param($sender,$eventArgs)
@@ -308,12 +360,12 @@ function Show-AutoFightSettings {
             Save-AutoFightDraftSelection
             $valid=Save-AutoFightProfiles $script:autoFight.ConfigPath $script:autoFight.Editor.Draft
             $script:autoFight.Profiles=$valid; $script:autoFight.ConfigReady=$true
-            $script:autoFight.Summary.Text='autoFight 设置已保存；运行中的截止时间保留，下次操作使用新配置。'
+            $script:autoFight.Summary.Text='状态按键已保存；下次执行使用新配置，已有截止时间保留。'
             $sender.FindForm().Close()
         }
         catch { $sender.Tag.Text=$_.Exception.Message }
     })
-    $dialog.Controls.AddRange([System.Windows.Forms.Control[]]@($save,$cancel))
+    $footer.Controls.AddRange([System.Windows.Forms.Control[]]@($save,$cancel))
     $editor.Flavor.SelectedIndex=0; $editor.Class.SelectedIndex=0; $editor.Loading=$false
     Select-AutoFightDraftProfile
     try { [void]$dialog.ShowDialog($script:autoFight.Owner) }
@@ -326,8 +378,8 @@ function Initialize-AutoFightTab($Tabs,$Owner) {
     $toolbar.Dock='Top'; $toolbar.Height=60; $toolbar.AutoScroll=$true
     $toolbar.Padding=New-Object System.Windows.Forms.Padding(8); $toolbar.BackColor=[Drawing.Color]::FromArgb(72,72,72)
     $buttons=@{}
-    foreach ($entry in @(@('Refresh','刷新进程'),@('StartAll','全部开始'),@('StopAll','全部停止'),@('Settings','职业设置'))) {
-        $button=New-Object WowAuto.DimButton; $button.Text=$entry[1]; $button.Width=120; $button.Height=36
+    foreach ($entry in @(@('Refresh','刷新进程'),@('StartAll','全部开始'),@('StopAll','全部停止'),@('Settings','状态 / 职业设置'))) {
+        $button=New-Object WowAuto.DimButton; $button.Text=$entry[1]; $button.Width=if ($entry[0] -eq 'Settings') { 160 } else { 120 }; $button.Height=36
         Set-AutoFightButtonStyle $button ($entry[0] -eq 'StartAll')
         $buttons[$entry[0]]=$button; $toolbar.Controls.Add($button)
     }
@@ -341,7 +393,7 @@ function Initialize-AutoFightTab($Tabs,$Owner) {
     $list.Dock='Fill'; $list.FlowDirection='TopDown'; $list.WrapContents=$false; $list.AutoScroll=$true
     $list.Padding=New-Object System.Windows.Forms.Padding(12)
     $tab.Controls.Add($list); $tab.Controls.Add($hint); $tab.Controls.Add($toolbar)
-    $script:autoFight=[pscustomobject]@{Rows=@{}; Pending=$null; Scan=$null; HoldUntil=0L; Editing=$false; Editor=$null;
+    $script:autoFight=[pscustomobject]@{Rows=@{}; Pending=$null; Scan=$null; ActiveHold=$null; Editing=$false; Editor=$null;
         ConfigPath=(Join-Path $PSScriptRoot 'autoFight.config.json'); Profiles=(New-AutoFightProfiles); ConfigReady=$true;
         Tab=$tab; Tabs=$Tabs; Owner=$Owner; List=$list; Refresh=$buttons.Refresh; StartAll=$buttons.StartAll;
         StopAll=$buttons.StopAll; Settings=$buttons.Settings; Summary=$summary;
