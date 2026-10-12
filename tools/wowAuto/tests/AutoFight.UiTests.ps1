@@ -10,11 +10,14 @@ namespace WowAutoFight {
         public static Packet Current=new Packet();
         public static int Sends=0, Releases=0;
         public static int ReadsUntilEncounterChange=0;
+        public static int MissingReads=0;
+        public static string LastReadError="模拟快照暂不可读";
         public static bool FailSend=false, IsHolding=false;
         public static bool IsAlive(object client) { return true; }
         public static bool Foreground(object client) { return true; }
         public static bool Activate(object client) { return true; }
         public static object Read(object client) {
+            if (MissingReads>0) { MissingReads--; return null; }
             Current.Heartbeat++;
             if (ReadsUntilEncounterChange>0 && --ReadsUntilEncounterChange==0) Current.EncounterId++;
             return new Packet {ClassId=Current.ClassId, Heartbeat=Current.Heartbeat, EncounterId=Current.EncounterId,
@@ -191,6 +194,33 @@ try {
     Update-AutoFightControls
     $fightRows[0].MoveButtons[0].PerformClick()
     Assert-Ui ($fightRows[0].Session.NextActionAt -eq $cooldown -and -not $fightRows[0].Session.EntryPending) 'Movement request reset combat cooldown.'
+    $baseline=[WowAutoFight.Native]::Sends
+    Prepare-FightInput $fightRows[0] 'combat' 33000
+    $fightRows[0].CanStart=$true
+    [WowAutoFight.Native]::MissingReads=1
+    Invoke-AutoFightTick
+    Assert-Ui ($fightRows[0].Session -and $fightRows[0].CanStart -and $script:autoFight.Pending -and
+        [WowAutoFight.Native]::Sends -eq $baseline) 'Single missing frame stopped task or emitted input.'
+    $script:autoFight.Clock.ElapsedMilliseconds=33050;Invoke-AutoFightTick
+    $baseline++
+    Assert-Ui ($fightRows[0].Session -and [WowAutoFight.Native]::Sends -eq $baseline) 'Fresh frame did not resume pending combat input.'
+    Prepare-FightInput $fightRows[0] 'recover' 35000
+    [WowAutoFight.Native]::MissingReads=1;Invoke-AutoFightTick
+    $script:autoFight.Clock.ElapsedMilliseconds=35050;Invoke-AutoFightTick
+    $baseline++
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline -and $fightRows[0].Session.RecoverySent) 'Recovery not executed after transient read failure.'
+    [WowAutoFight.Native]::MissingReads=1
+    Tick-FightEncounter $fightRows[0] 'idle' 37000 'recover'
+    $script:autoFight.Clock.ElapsedMilliseconds=37050;Invoke-AutoFightTick
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline -and $fightRows[0].Session.RecoverySent) 'Transient read failure reset once-only recovery.'
+    Prepare-FightInput $fightRows[0] 'combat' 40000
+    [WowAutoFight.Native]::MissingReads=1000;Invoke-AutoFightTick
+    $script:autoFight.Clock.ElapsedMilliseconds=40799;Invoke-AutoFightTick
+    Assert-Ui ($fightRows[0].Session -and [WowAutoFight.Native]::Sends -eq $baseline) 'Unreadable grace period stopped early or emitted input.'
+    $script:autoFight.Clock.ElapsedMilliseconds=40800;Invoke-AutoFightTick
+    Assert-Ui (-not $fightRows[0].Session -and -not $fightRows[0].CanStart -and
+        $fightRows[0].Message -match '800ms.*模拟快照暂不可读' -and [WowAutoFight.Native]::Sends -eq $baseline) 'Persistent unreadability did not stop at deadline with diagnostic reason.'
+    [WowAutoFight.Native]::MissingReads=0
     Assert-Ui ($script:scheduler.JumpEveryCycles -eq $fishJump -and (Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $fishIniHash -and (Get-FileHash -LiteralPath $fightSource).Hash -eq $fightSourceHash) 'Combat changed fishing settings or source configuration.'
     Write-Output 'PASS: combat settings 100 ms step/common draft/profile isolation/save/cancel/locked failure; mocked production input gate for all states, cross-window, release, restart and send failure. No real native operations.'
     Write-Output 'PASS: production combat UI adapter opens once, stays quiet through waiting/combat/emergency, attacks on approach, reopens for new monster and rechecks encounter before input.'

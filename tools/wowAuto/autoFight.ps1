@@ -160,7 +160,7 @@ function Begin-AutoFightRefresh {
 }
 function New-AutoFightPending($Row,$Session,[bool]$Scanning,[long]$Now) {
     return [pscustomobject]@{Row=$Row; Session=$Session; Scanning=$Scanning; Activated=$false;
-        Since=$Now; SampleAt=($Now+200); FirstBeat=-1; FirstClass=0; FirstAction=''}
+        Since=$Now; SampleAt=($Now+200); FirstBeat=-1; FirstClass=0; FirstAction=''; ReadFailureSince=-1L}
 }
 function Finish-AutoFightPending([long]$Now) {
     $pending=$script:autoFight.Pending
@@ -210,12 +210,20 @@ function Invoke-AutoFightTick {
         }
         $packet=[WowAutoFight.Native]::Read($row.Client)
         if ($null -eq $packet) {
-            if ($pending.Scanning -and $now-$pending.Since -lt 800) { return }
+            if ($pending.ReadFailureSince -lt 0) {$pending.ReadFailureSince=$now}
+            $reason=[WowAutoFight.Native]::LastReadError
+            if (-not $reason) {$reason='色块暂时不可读'}
+            if ($now-$pending.ReadFailureSince -lt 800) {
+                Set-AutoFightStatus $row ('暂停发键，重新读取战斗色块：'+$reason)
+                return
+            }
             $row.CanStart=$false
-            if ($pending.Scanning) { Set-AutoFightStatus $row '战斗协议不可读，请启动 fight_detector 后刷新。'; Finish-AutoFightPending $now }
-            else { Stop-AutoFightRow $row '检测关闭、死亡或数据未知，请恢复插件后刷新。' }
+            $message='战斗色块连续800ms不可读：'+$reason+'。请保持插件面板可见，恢复后刷新。'
+            if ($pending.Scanning) { Set-AutoFightStatus $row $message; Finish-AutoFightPending $now }
+            else { Stop-AutoFightRow $row $message }
             Update-AutoFightControls; return
         }
+        $pending.ReadFailureSince=-1L
         # Every focus acquisition requires two different fresh heartbeat samples, even after a restart.
         if ($pending.FirstBeat -lt 0) {
             $pending.FirstBeat=$packet.Heartbeat; $pending.FirstClass=$packet.ClassId; $pending.FirstAction=$packet.Action

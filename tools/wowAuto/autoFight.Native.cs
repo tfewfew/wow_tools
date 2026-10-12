@@ -46,6 +46,13 @@ namespace WowAutoFight
         [DllImport("user32.dll")] private static extern IntPtr GetDC(IntPtr h);
         [DllImport("user32.dll")] private static extern int ReleaseDC(IntPtr h, IntPtr dc);
         [DllImport("gdi32.dll")] private static extern uint GetPixel(IntPtr dc, int x, int y);
+        [DllImport("gdi32.dll")] private static extern IntPtr CreateCompatibleDC(IntPtr dc);
+        [DllImport("gdi32.dll")] private static extern IntPtr CreateCompatibleBitmap(IntPtr dc,int width,int height);
+        [DllImport("gdi32.dll")] private static extern IntPtr SelectObject(IntPtr dc,IntPtr obj);
+        [DllImport("gdi32.dll")] private static extern bool DeleteObject(IntPtr obj);
+        [DllImport("gdi32.dll")] private static extern bool DeleteDC(IntPtr dc);
+        [DllImport("gdi32.dll")] private static extern bool BitBlt(IntPtr target,int x,int y,int width,int height,
+            IntPtr source,int sourceX,int sourceY,uint operation);
         [DllImport("user32.dll")] private static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
         [DllImport("user32.dll", SetLastError=true)] private static extern uint SendInput(uint count, Input[] inputs, int size);
 
@@ -121,36 +128,52 @@ namespace WowAutoFight
             if (width<210 || height<160) return null;
             return new int[] {width/2-16,height/2-64,width/2+16,height/2-64};
         }
+        public static string LastReadError { get; private set; }
+        private static Packet ReadFailed(string reason) { LastReadError=reason; return null; }
+        private static string RGB(uint c) { return R(c)+","+G(c)+","+B(c); }
         public static Packet Read(Client c)
         {
-            if (!Foreground(c)) return null;
+            LastReadError="";
+            if (!Foreground(c)) return ReadFailed("窗口未在前台");
             using (Process p=Process.GetProcessById(c.ProcessId))
             {
-                if (!Matches(p,c)) return null;
-                IntPtr h=p.MainWindowHandle, dc=IntPtr.Zero;
+                if (!Matches(p,c)) return ReadFailed("进程身份已变化");
+                IntPtr h=p.MainWindowHandle, dc=IntPtr.Zero, memory=IntPtr.Zero, bitmap=IntPtr.Zero, original=IntPtr.Zero;
                 IntPtr previous=SetThreadDpiAwarenessContext(new IntPtr(-4));
                 try
                 {
                     Rect rect;
-                    if (!GetClientRect(h,out rect) || rect.Right-rect.Left<210 || rect.Bottom-rect.Top<160) return null;
+                    if (!GetClientRect(h,out rect) || rect.Right-rect.Left<210 || rect.Bottom-rect.Top<160) return ReadFailed("客户区尺寸不可读或过小");
                     // Client rectangle and screen samples share physical coordinates under PMv2 DPI.
                     int[] samples=SampleOffsets(rect.Right-rect.Left,rect.Bottom-rect.Top);
                     Point point=new Point { X=samples[0], Y=samples[1] };
-                    if (!ClientToScreen(h,ref point)) return null;
+                    if (!ClientToScreen(h,ref point)) return ReadFailed("无法定位客户区");
                     dc=GetDC(IntPtr.Zero);
-                    if (dc==IntPtr.Zero) return null;
-                    uint main=GetPixel(dc,point.X,point.Y), aux=GetPixel(dc,point.X+32,point.Y);
-                    uint againMain=GetPixel(dc,point.X,point.Y), againAux=GetPixel(dc,point.X+32,point.Y);
+                    if (dc==IntPtr.Zero) return ReadFailed("无法读取屏幕");
+                    memory=CreateCompatibleDC(dc);
+                    bitmap=CreateCompatibleBitmap(dc,33,1);
+                    if (memory==IntPtr.Zero || bitmap==IntPtr.Zero) return ReadFailed("无法创建取色快照");
+                    original=SelectObject(memory,bitmap);
+                    if (original==IntPtr.Zero || original==new IntPtr(-1)) return ReadFailed("无法准备取色快照");
+                    // Copy both sample points in ONE screen operation. Read only the immutable copy:
+                    // separate live GetPixel calls can straddle the normal 100ms heartbeat update.
+                    if (!BitBlt(memory,0,0,33,1,dc,point.X,point.Y,0x00CC0020)) return ReadFailed("无法截取色块");
+                    uint main=GetPixel(memory,0,0), aux=GetPixel(memory,32,0);
                     Rect after;
-                    if (main!=againMain || aux!=againAux || !GetClientRect(h,out after)
-                        || after.Right!=rect.Right || after.Bottom!=rect.Bottom || !Foreground(c)) return null;
+                    if (!GetClientRect(h,out after) || after.Right!=rect.Right || after.Bottom!=rect.Bottom
+                        || !Foreground(c)) return ReadFailed("采样期间窗口尺寸或前台变化");
                     int[] afterSamples=SampleOffsets(after.Right-after.Left,after.Bottom-after.Top);
                     Point afterPoint=new Point { X=afterSamples[0], Y=afterSamples[1] };
-                    if (!ClientToScreen(h,ref afterPoint) || afterPoint.X!=point.X || afterPoint.Y!=point.Y) return null;
-                    return Decode(new uint[] {main,aux},c.Flavor);
+                    if (!ClientToScreen(h,ref afterPoint) || afterPoint.X!=point.X || afterPoint.Y!=point.Y)
+                        return ReadFailed("采样期间窗口位置变化");
+                    Packet result=Decode(new uint[] {main,aux},c.Flavor);
+                    return result ?? ReadFailed("色块数据未知或编码不符，主RGB("+RGB(main)+") 副RGB("+RGB(aux)+")");
                 }
                 finally
                 {
+                    if (original!=IntPtr.Zero && original!=new IntPtr(-1)) SelectObject(memory,original);
+                    if (bitmap!=IntPtr.Zero) DeleteObject(bitmap);
+                    if (memory!=IntPtr.Zero) DeleteDC(memory);
                     if (dc!=IntPtr.Zero) ReleaseDC(IntPtr.Zero,dc);
                     if (previous!=IntPtr.Zero) SetThreadDpiAwarenessContext(previous);
                 }
