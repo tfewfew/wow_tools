@@ -8,7 +8,7 @@ function New-WowAutoState {
         Running=$true; Mode='Ready'; NextDue=0L; Deadline=0L
         MinimumMs=$MinimumMs; MaximumMs=$MaximumMs; LastInterval=-1; ForceNextCast=$false; ReelDelayMs=0
         AwaitingFishingTransition=$false; SawIdle=$false
-        CheckReelGreen=$false
+        CheckReelGreen=$false; CycleJumpPending=$false
         UseItem=$false; ItemDue=0L; ItemRetryAt=0L; InitialItemPending=$false
         ItemStatus=''
         FocusRetryAt=0L; FocusResumeStatus=''
@@ -46,7 +46,7 @@ function Get-WowAutoInterval {
 }
 function New-WowAutoScheduler {
     [pscustomobject]@{
-        Tasks=@{}; CompletedCycles=@{}; Order=(New-Object 'System.Collections.Generic.List[string]')
+        Tasks=@{}; CompletedCycles=@{}; CyclesSinceJump=@{}; JumpEveryCycles=0; Order=(New-Object 'System.Collections.Generic.List[string]')
         Events=(New-Object System.Collections.ArrayList)
         Cursor=0; ActiveKey=$null; Sequence=0L; ReelHoldUntil=0L; ReelHoldMs=100
         ItemHoldUntil=0L; FocusRetryIntervalMs=30000
@@ -54,6 +54,12 @@ function New-WowAutoScheduler {
 }
 function Set-WowAutoHoldDuration($Scheduler, [ValidateRange(0,60000)][int]$Milliseconds) {
     $Scheduler.ReelHoldMs=$Milliseconds
+}
+function Set-WowAutoJumpInterval($Scheduler, [ValidateRange(0,1000000)][int]$Cycles) {
+    if ($Scheduler.JumpEveryCycles -eq $Cycles) { return }
+    $Scheduler.JumpEveryCycles=$Cycles
+    $Scheduler.CyclesSinceJump.Clear()
+    foreach ($state in $Scheduler.Tasks.Values) { $state.CycleJumpPending=$false }
 }
 function Set-WowAutoFocusRetryInterval($Scheduler, [ValidateRange(1000,3600000)][int]$Milliseconds) {
     # Apply to the next failure, leaving already scheduled retries unchanged.
@@ -140,6 +146,7 @@ function Add-WowAutoTask($Scheduler, [string]$Key, [int]$MinimumMs, [int]$Maximu
     $state.NextDue=$Now
     $state.UseAudio=$UseAudio; $state.AudioReady=-not $UseAudio
     $state.AudioTimeoutMs=$AudioTimeoutMs
+    $state.CycleJumpPending=$Scheduler.JumpEveryCycles -gt 0 -and [long]$Scheduler.CyclesSinceJump[$Key] -ge $Scheduler.JumpEveryCycles
     $Scheduler.Tasks[$Key]=$state
     $Scheduler.Order.Add($Key)
     Set-WowAutoItemEnabled $Scheduler $Key $UseItem $Now
@@ -225,14 +232,15 @@ function Complete-WowAutoPoll($Scheduler, [string]$Key, [long]$Now, [string]$Col
         if ($canExit) { return 'ExitGame' }
         return 'Stop'
     }
-    if ($state.CheckReelGreen -and $Color -eq 'green') {
+    if ($Color -eq 'red') { $state.SawIdle=$true; $state.CheckReelGreen=$false }
+    if ($Color -in @('red','green') -and ($state.CycleJumpPending -or ($state.CheckReelGreen -and $Color -eq 'green'))) {
         $state.Mode='Casting'
         $state.LastInterval=Get-WowAutoInterval $state.LastInterval
         $state.NextDue=$Now+$state.LastInterval
-        $state.Status='收竿后仍为绿色：发送一次空格跳跃，再继续抛竿检测。'
+        $state.Status=if ($state.CycleJumpPending) { "已完成 $($Scheduler.JumpEveryCycles) 次循环：跳跃一次后继续抛竿。" }
+            else { '收竿后仍为绿色：发送一次空格跳跃，再继续抛竿检测。' }
         return 'Jump'
     }
-    if ($Color -eq 'red') { $state.SawIdle=$true; $state.CheckReelGreen=$false }
     if ($Color -eq 'green' -and -not $state.ForceNextCast) {
         if ($state.AwaitingFishingTransition -and -not $state.SawIdle) {
             $state.Mode='Casting'
@@ -299,7 +307,10 @@ function Reset-WowAutoAudioWait($Scheduler, [string]$Key, [long]$Now, [string]$R
 }
 function Complete-WowAutoJump($Scheduler, [string]$Key, [bool]$Sent) {
     $state=$Scheduler.Tasks[$Key]
-    if ($Sent -and $null -ne $state -and $state.Running) { $state.CheckReelGreen=$false }
+    if ($Sent -and $null -ne $state -and $state.Running) {
+        $state.CheckReelGreen=$false; $state.CycleJumpPending=$false
+        $Scheduler.CyclesSinceJump[$Key]=0L
+    }
 }
 function Complete-WowAutoCast($Scheduler, [string]$Key, [bool]$Sent) {
     $state=$Scheduler.Tasks[$Key]
@@ -317,6 +328,10 @@ function Complete-WowAutoReel($Scheduler, [string]$Key, [long]$Now, [bool]$Sent)
     })
     if ($state.Mode -ne 'Wait' -or $registered.Count -eq 0) { return }
     $Scheduler.CompletedCycles[$Key]=(Get-WowAutoCycleCount $Scheduler $Key)+1
+    if ($Scheduler.JumpEveryCycles -gt 0) {
+        $Scheduler.CyclesSinceJump[$Key]=[long]$Scheduler.CyclesSinceJump[$Key]+1
+        $state.CycleJumpPending=$Scheduler.CyclesSinceJump[$Key] -ge $Scheduler.JumpEveryCycles
+    }
     $state.AudioReelPending=$false; $state.ReelDelayMs=0
     $state.ForceNextCast=$true
     $state.CheckReelGreen=$true

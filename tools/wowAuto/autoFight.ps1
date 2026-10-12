@@ -239,10 +239,16 @@ function Invoke-AutoFightTick {
             Set-AutoFightStatus $row '状态变化，等待重新探测。'; Finish-AutoFightPending $now; return
         }
         $movement=$action.StartsWith('move-')
+        # All combat windows and states share this gate. Releases always remain immediate.
+        if (-not (Test-AutoFightCommandReady $script:autoFight.CommandGate $script:autoFight.Clock.ElapsedMilliseconds)) {
+            Set-AutoFightStatus $row ('等待公共最小按键间隔：'+$script:autoFight.CommandGate.IntervalMs+' ms。')
+            Finish-AutoFightPending $now; return
+        }
         if ($movement) { $sent=[WowAutoFight.Native]::BeginHold($row.Client,[uint16]$binding.Code,$binding.Ctrl,$binding.Shift,$binding.Alt) }
         else { $sent=[WowAutoFight.Native]::Press($row.Client,[uint16]$binding.Code,$binding.Ctrl,$binding.Shift,$binding.Alt) }
         if (-not $sent) { throw '发键前失去前台。' }
         $completed=$script:autoFight.Clock.ElapsedMilliseconds
+        Complete-AutoFightCommand $script:autoFight.CommandGate $completed $true
         Complete-AutoFightAction $session $profile $action $completed
         if ($movement -or $action -in @('skin','loot')) {
             $duration=if ($movement) { $profile.MovementHoldMs } else { $profile.InteractionHoldMs }
@@ -281,25 +287,21 @@ function Select-AutoFightDraftProfile {
     foreach ($field in $editor.Numbers.Keys) { $editor.Numbers[$field].Value=$p.$field }
     $editor.SkinEnabled.Checked=$p.SkinEnabled
 }
-function Show-AutoFightSettings {
-    if ($script:autoFight.Editing -or $script:autoFight.Scan) { return }
-    if (-not (Release-AutoFightHold)) { return }
-    $script:autoFight.Pending=$null
-    $script:autoFight.Editing=$true
+function New-AutoFightSettingsDialog {
     $dialog=New-Object WowAuto.DimForm
     $dialog.Text='autoFight · 状态按键 / 服务器及职业'; $dialog.StartPosition='CenterParent'
     $area=[System.Windows.Forms.Screen]::FromControl($script:autoFight.Owner).WorkingArea
-    $dialog.ClientSize=New-Object Drawing.Size([Math]::Min(860,$area.Width-80),[Math]::Min(720,$area.Height-100))
+    $dialog.ClientSize=New-Object Drawing.Size([Math]::Min(860,$area.Width-80),[Math]::Min(770,$area.Height-100))
     $dialog.MinimumSize=New-Object Drawing.Size(600,450)
     $dialog.Font=$script:autoFight.Owner.Font; $dialog.BackColor=[Drawing.Color]::FromArgb(58,58,58)
     $dialog.ForeColor=[Drawing.Color]::White
     $body=New-Object System.Windows.Forms.Panel
-    $body.Dock='Fill'; $body.AutoScroll=$true; $body.AutoScrollMinSize=New-Object Drawing.Size(840,590)
+    $body.Dock='Fill'; $body.AutoScroll=$true; $body.AutoScrollMinSize=New-Object Drawing.Size(840,660)
     $footer=New-Object System.Windows.Forms.Panel
     $footer.Dock='Bottom'; $footer.Height=100
     $dialog.Controls.Add($body); $dialog.Controls.Add($footer)
     $editor=[pscustomobject]@{Draft=(Copy-AutoFightProfiles $script:autoFight.Profiles); CurrentKey=''; Loading=$true;
-        Flavor=$null; Class=$null; Bindings=@{}; Numbers=@{}; SkinEnabled=$null}
+        Flavor=$null; Class=$null; Bindings=@{}; Numbers=@{}; SkinEnabled=$null; CommandInterval=$null; Save=$null; Cancel=$null; Error=$null}
     $script:autoFight.Editor=$editor
     foreach ($entry in @(@('Flavor','服务器'),@('Class','职业'))) {
         $x=if ($entry[0] -eq 'Flavor') { 16 } else { 436 }
@@ -343,9 +345,16 @@ function Show-AutoFightSettings {
     $editor.SkinEnabled=New-Object WowAuto.DimCheckBox
     $editor.SkinEnabled.Text='启用自动拾取 / 剥皮交互'; $editor.SkinEnabled.SetBounds(16,440,600,32)
     $body.Controls.Add($editor.SkinEnabled)
+    $commonLabel=New-Object System.Windows.Forms.Label
+    $commonLabel.Text='公共最小按键间隔 (ms)'; $commonLabel.SetBounds(16,484,340,32); $body.Controls.Add($commonLabel)
+    $editor.CommandInterval=New-Object System.Windows.Forms.NumericUpDown
+    $editor.CommandInterval.Minimum=100; $editor.CommandInterval.Maximum=60000; $editor.CommandInterval.Increment=100
+    $editor.CommandInterval.Value=$script:autoFight.CommandGate.IntervalMs
+    $editor.CommandInterval.BackColor=[Drawing.Color]::FromArgb(50,50,50); $editor.CommandInterval.ForeColor=[Drawing.Color]::White
+    $editor.CommandInterval.SetBounds(360,480,168,32); $body.Controls.Add($editor.CommandInterval)
     $hint=New-Object System.Windows.Forms.Label
-    $hint.Text="插件主色驱动开怪 / 战斗，独立恢复色块优先驱动恢复。阈值在插件面板配置。`r`n非战斗恢复仅在进入状态时按一次；开怪 / 战斗 / 紧急恢复按各自间隔重试。`r`n四向移动规则待定，暂仅响应插件面板手动请求；按住至时限或状态改变。`r`n拾取后检测到可剥皮会再次按交互键；请在游戏中启用自动拾取。`r`n点击输入框按键录入；游戏内绑定对应宏 / 技能 / 交互 / 移动键。"
-    $hint.SetBounds(16,484,812,128); $body.Controls.Add($hint)
+    $hint.Text="公共间隔约束所有战斗窗口、职业和指令；更长的职业重试 / 保持仍有效。`r`n插件主色驱动开怪 / 战斗，独立恢复色块优先驱动恢复。阈值在插件面板配置。`r`n非战斗恢复进入时按一次；四向移动暂仅响应插件面板手动请求。`r`n两服插件自动拾取并确认拾取绑定；可剥皮时再次按交互键。`r`n点击输入框录入按键；游戏内绑定对应宏 / 技能 / 交互 / 移动键。"
+    $hint.SetBounds(16,528,812,128); $body.Controls.Add($hint)
     $errorLabel=New-Object System.Windows.Forms.Label
     $errorLabel.SetBounds(16,4,($footer.ClientSize.Width-32),30); $errorLabel.Anchor='Top, Left, Right'; $errorLabel.AutoEllipsis=$true
     $footer.Controls.Add($errorLabel)
@@ -358,16 +367,27 @@ function Show-AutoFightSettings {
     $save.Add_Click({param($sender,$eventArgs)
         try {
             Save-AutoFightDraftSelection
-            $valid=Save-AutoFightProfiles $script:autoFight.ConfigPath $script:autoFight.Editor.Draft
+            $interval=[int]$script:autoFight.Editor.CommandInterval.Value
+            $valid=Save-AutoFightProfiles $script:autoFight.ConfigPath $script:autoFight.Editor.Draft $interval
             $script:autoFight.Profiles=$valid; $script:autoFight.ConfigReady=$true
+            $script:autoFight.CommandGate.IntervalMs=$interval
             $script:autoFight.Summary.Text='状态按键已保存；下次执行使用新配置，已有截止时间保留。'
             $sender.FindForm().Close()
         }
         catch { $sender.Tag.Text=$_.Exception.Message }
     })
     $footer.Controls.AddRange([System.Windows.Forms.Control[]]@($save,$cancel))
+    $editor.Save=$save; $editor.Cancel=$cancel; $editor.Error=$errorLabel; $dialog.Tag=$editor
     $editor.Flavor.SelectedIndex=0; $editor.Class.SelectedIndex=0; $editor.Loading=$false
     Select-AutoFightDraftProfile
+    return $dialog
+}
+function Show-AutoFightSettings {
+    if ($script:autoFight.Editing -or $script:autoFight.Scan) { return }
+    if (-not (Release-AutoFightHold)) { return }
+    $script:autoFight.Pending=$null
+    $script:autoFight.Editing=$true
+    $dialog=New-AutoFightSettingsDialog
     try { [void]$dialog.ShowDialog($script:autoFight.Owner) }
     finally { $script:autoFight.Editor=$null; $script:autoFight.Editing=$false; $dialog.Dispose(); Update-AutoFightControls }
 }
@@ -397,8 +417,11 @@ function Initialize-AutoFightTab($Tabs,$Owner) {
         ConfigPath=(Join-Path $PSScriptRoot 'autoFight.config.json'); Profiles=(New-AutoFightProfiles); ConfigReady=$true;
         Tab=$tab; Tabs=$Tabs; Owner=$Owner; List=$list; Refresh=$buttons.Refresh; StartAll=$buttons.StartAll;
         StopAll=$buttons.StopAll; Settings=$buttons.Settings; Summary=$summary;
-        Clock=[Diagnostics.Stopwatch]::StartNew(); Timer=(New-Object System.Windows.Forms.Timer)}
-    try { $script:autoFight.Profiles=Read-AutoFightProfiles $script:autoFight.ConfigPath }
+        CommandGate=(New-AutoFightCommandGate); Clock=[Diagnostics.Stopwatch]::StartNew(); Timer=(New-Object System.Windows.Forms.Timer)}
+    try {
+        $config=Read-AutoFightConfiguration $script:autoFight.ConfigPath
+        $script:autoFight.Profiles=$config.Profiles; $script:autoFight.CommandGate.IntervalMs=$config.CommandIntervalMs
+    }
     catch { $script:autoFight.ConfigReady=$false; $summary.Text='配置读取失败，请在职业设置中修正并保存：'+$_.Exception.Message }
     $buttons.Refresh.Add_Click({ Begin-AutoFightRefresh })
     $buttons.Settings.Add_Click({ Show-AutoFightSettings })

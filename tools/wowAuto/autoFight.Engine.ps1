@@ -114,19 +114,38 @@ function ConvertTo-AutoFightProfiles($Items,[int]$Version=2) {
     if ($result.Count -ne 26) { throw 'autoFight 配置必须包含两服各 13 个职业的独立配置。' }
     return $result
 }
-function Read-AutoFightProfiles([string]$Path) {
-    if (-not [IO.File]::Exists($Path)) { return New-AutoFightProfiles }
+function New-AutoFightCommandGate([int]$IntervalMs=500) {
+    $interval=Get-AutoFightInteger $IntervalMs 100 60000 '公共最小按键间隔 (ms)'
+    return [pscustomobject]@{IntervalMs=$interval; LastSentAt=-1L}
+}
+function Test-AutoFightCommandReady($Gate,[long]$Now) {
+    return $Gate.LastSentAt -lt 0 -or $Now-$Gate.LastSentAt -ge $Gate.IntervalMs
+}
+function Complete-AutoFightCommand($Gate,[long]$Now,[bool]$Sent) {
+    if ($Sent) { $Gate.LastSentAt=$Now }
+}
+function Read-AutoFightConfiguration([string]$Path) {
+    if (-not [IO.File]::Exists($Path)) { return [pscustomobject]@{Profiles=(New-AutoFightProfiles); CommandIntervalMs=500} }
     $document=[IO.File]::ReadAllText($Path,[Text.Encoding]::UTF8) | ConvertFrom-Json
-    if ($null -eq $document -or $document.Version -notin @(1,2) -or
-        @($document.PSObject.Properties.Name).Count -ne 2 -or $null -eq $document.Profiles) {
+    if ($null -eq $document -or $document.Version -notin @(1,2,3)) {
         throw '无法读取 autoFight 配置版本或内容。'
     }
-    return ConvertTo-AutoFightProfiles $document.Profiles $document.Version
+    $expected=@('Version','Profiles')
+    if ($document.Version -eq 3) { $expected+='CommandIntervalMs' }
+    $actual=@($document.PSObject.Properties.Name)
+    if ($actual.Count -ne $expected.Count -or @($actual | Where-Object { $_ -notin $expected }).Count -or $null -eq $document.Profiles) {
+        throw 'autoFight 配置字段不完整或包含未知字段。'
+    }
+    $interval=500
+    if ($document.Version -eq 3) { $interval=Get-AutoFightInteger $document.CommandIntervalMs 100 60000 '公共最小按键间隔 (ms)' }
+    return [pscustomobject]@{Profiles=(ConvertTo-AutoFightProfiles $document.Profiles $document.Version); CommandIntervalMs=$interval}
 }
-function Save-AutoFightProfiles([string]$Path,$Profiles) {
+function Read-AutoFightProfiles([string]$Path) { return (Read-AutoFightConfiguration $Path).Profiles }
+function Save-AutoFightProfiles([string]$Path,$Profiles,$CommandIntervalMs=500) {
     $valid=ConvertTo-AutoFightProfiles @($Profiles.Values)
+    $interval=Get-AutoFightInteger $CommandIntervalMs 100 60000 '公共最小按键间隔 (ms)'
     $items=@($valid.Keys | Sort-Object | ForEach-Object { $valid[$_] })
-    $json=[pscustomobject]@{Version=2; Profiles=$items} | ConvertTo-Json -Depth 5
+    $json=[pscustomobject]@{Version=3; CommandIntervalMs=$interval; Profiles=$items} | ConvertTo-Json -Depth 5
     $temporary=$Path+'.'+[Guid]::NewGuid().ToString('N')+'.tmp'
     try {
         [IO.File]::WriteAllText($temporary,$json,(New-Object Text.UTF8Encoding($false)))

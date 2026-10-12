@@ -470,7 +470,7 @@ $script:audioSettingsKeys = @('TitanAudioThresholdPercent','ForerverAudioThresho
 $script:audioTimeoutSettingsKeys = @('TitanAudioTimeoutMs','ForerverAudioTimeoutMs')
 $script:recordingSettingsKeys = @('TitanAudioRecordingId','ForerverAudioRecordingId')
 $script:preferenceSettingsKeys = @('ReelHoldMs','CastKey','ReelKey','ItemKey','AudioDetectionEnabled')
-$script:settingsKeys = $script:requiredSettingsKeys + $script:audioSettingsKeys + $script:audioTimeoutSettingsKeys + $script:recordingSettingsKeys + $script:preferenceSettingsKeys + @('StatusLogLimit')
+$script:settingsKeys = $script:requiredSettingsKeys + $script:audioSettingsKeys + $script:audioTimeoutSettingsKeys + $script:recordingSettingsKeys + $script:preferenceSettingsKeys + @('StatusLogLimit','JumpEveryCycles')
 $script:settingsWarning = ''
 function Read-WowAutoSettingsIni([string]$Path) {
     $values=@{}; $items=@{}; $seen=@{}; $lineNumber=0
@@ -520,13 +520,14 @@ function Read-WowAutoSettingsIni([string]$Path) {
     }
     elseif ($preferenceKeyCount -ne $script:preferenceSettingsKeys.Count) { throw 'config.ini 需要同时配置保持时间、三个快捷键和音频检测开关。' }
     if (-not $values.ContainsKey('StatusLogLimit')) { $values.StatusLogLimit=$script:statusLogLimit }
+    if (-not $values.ContainsKey('JumpEveryCycles')) { $values.JumpEveryCycles=$script:scheduler.JumpEveryCycles }
     $values.ProcessItemPreferences=$items
     return $values
 }
 function Update-VersionSummary {
     if ($null -ne $settingsSummary) {
         $t=$script:versionRanges.titan; $f=$script:versionRanges.forerver
-        $settingsSummary.Text="收杆延迟区间（ms）：时光服 $($t.MinimumMs)–$($t.MaximumMs)；无限服 $($f.MinimumMs)–$($f.MaximumMs)；无咬钩保护（ms）：时光服 $($t.AudioTimeoutMs) / 无限服 $($f.AudioTimeoutMs)；焦点重试 $($script:scheduler.FocusRetryIntervalMs)。" + [Environment]::NewLine + "音频门槛：时光服 $($script:audioThresholds.titan)% / 无限服 $($script:audioThresholds.forerver)%；片段：时光服 $($script:audioRecordingSelections.titan) / 无限服 $($script:audioRecordingSelections.forerver)；日志保留 $script:statusLogLimit 条。$script:settingsWarning"
+        $settingsSummary.Text="收杆延迟区间（ms）：时光服 $($t.MinimumMs)–$($t.MaximumMs)；无限服 $($f.MinimumMs)–$($f.MaximumMs)；无咬钩保护（ms）：时光服 $($t.AudioTimeoutMs) / 无限服 $($f.AudioTimeoutMs)；焦点重试 $($script:scheduler.FocusRetryIntervalMs)。" + [Environment]::NewLine + "音频门槛：时光服 $($script:audioThresholds.titan)% / 无限服 $($script:audioThresholds.forerver)%；片段：时光服 $($script:audioRecordingSelections.titan) / 无限服 $($script:audioRecordingSelections.forerver)；定期跳跃 $($script:scheduler.JumpEveryCycles) 次（0关闭）；日志保留 $script:statusLogLimit 条。$script:settingsWarning"
     }
 }
 function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $ForerverMaximum, [bool]$Persist=$true, $FocusRetryIntervalMs=$script:scheduler.FocusRetryIntervalMs,
@@ -535,7 +536,7 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
     $ProcessItemPreferences=$script:processItemPreferences,
     $TitanAudioTimeoutMs=$script:versionRanges.titan.AudioTimeoutMs, $ForerverAudioTimeoutMs=$script:versionRanges.forerver.AudioTimeoutMs,
     $TitanAudioRecordingId=$script:audioRecordingSelections.titan, $ForerverAudioRecordingId=$script:audioRecordingSelections.forerver,
-    $StatusLogLimit=$script:statusLogLimit) {
+    $StatusLogLimit=$script:statusLogLimit, $JumpEveryCycles=$script:scheduler.JumpEveryCycles) {
     # Validate the entire edit before saving or changing any active task.
     $next=@{}
     foreach ($spec in @(@('titan',$TitanMinimum,$TitanMaximum),@('forerver',$ForerverMinimum,$ForerverMaximum))) {
@@ -566,6 +567,8 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
     if ([string]$ReelHoldMs -notmatch '^\d+$' -or -not [int]::TryParse([string]$ReelHoldMs,[ref]$nextHold) -or $nextHold -gt 60000) { throw '收竿后保持需为0–60000之间的整数毫秒值。' }
     $nextLogLimit=0
     if ([string]$StatusLogLimit -notmatch '^\d+$' -or -not [int]::TryParse([string]$StatusLogLimit,[ref]$nextLogLimit) -or $nextLogLimit -lt 1 -or $nextLogLimit -gt 1000) { throw '日志保留条数需为1–1000之间的整数。' }
+    $nextJumpCycles=0
+    if ([string]$JumpEveryCycles -notmatch '^\d+$' -or -not [int]::TryParse([string]$JumpEveryCycles,[ref]$nextJumpCycles) -or $nextJumpCycles -gt 1000000) { throw '跳跃循环间隔需为0–1000000之间的整数，0关闭定期跳跃。' }
     $nextBindings=@{}
     foreach ($action in @('Cast','Reel','Item')) { $nextBindings[$action]=ConvertFrom-KeyBindingText $KeyBindings[$action].Text }
     $nextAudio=ConvertTo-PreferenceFlag $AudioDetectionEnabled
@@ -590,7 +593,7 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
                 TitanAudioTimeoutMs=$next.titan.AudioTimeoutMs; ForerverAudioTimeoutMs=$next.forerver.AudioTimeoutMs
                 TitanAudioRecordingId=$nextRecordings.titan; ForerverAudioRecordingId=$nextRecordings.forerver
                 ReelHoldMs=$nextHold; CastKey=$nextBindings.Cast.Text; ReelKey=$nextBindings.Reel.Text; ItemKey=$nextBindings.Item.Text
-                AudioDetectionEnabled=$nextAudio; StatusLogLimit=$nextLogLimit
+                AudioDetectionEnabled=$nextAudio; StatusLogLimit=$nextLogLimit; JumpEveryCycles=$nextJumpCycles
             }
             $lines=@('; wowAuto settings: ms for timing, percent for thresholds, 0/1 for switches.';
                 '; Shortcuts use Ctrl/Shift/Alt plus a key; UseItem_PID_StartTicks stores process choices.')
@@ -613,6 +616,7 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
     $script:audioRecordingSelections=$nextRecordings
     Set-WowAutoFocusRetryInterval $script:scheduler $retry
     Set-WowAutoHoldDuration $script:scheduler $nextHold
+    Set-WowAutoJumpInterval $script:scheduler $nextJumpCycles
     $script:keyBindings=$nextBindings
     $script:audioDetectionEnabled=[bool]$nextAudio
     $script:processItemPreferences=$nextItems
@@ -641,7 +645,7 @@ function Import-VersionWaitSettings {
         $saved=Read-WowAutoSettingsIni $script:settingsPath
         $bindings=@{}
         foreach ($action in @('Cast','Reel','Item')) { $bindings[$action]=ConvertFrom-KeyBindingText $saved[($action+'Key')] }
-        Set-VersionWaitRanges $saved.TitanMinimumMs $saved.TitanMaximumMs $saved.ForerverMinimumMs $saved.ForerverMaximumMs -Persist $false -FocusRetryIntervalMs $saved.FocusRetryIntervalMs -TitanAudioThresholdPercent $saved.TitanAudioThresholdPercent -ForerverAudioThresholdPercent $saved.ForerverAudioThresholdPercent -ReelHoldMs $saved.ReelHoldMs -KeyBindings $bindings -AudioDetectionEnabled $saved.AudioDetectionEnabled -ProcessItemPreferences $saved.ProcessItemPreferences -TitanAudioTimeoutMs $saved.TitanAudioTimeoutMs -ForerverAudioTimeoutMs $saved.ForerverAudioTimeoutMs -TitanAudioRecordingId $saved.TitanAudioRecordingId -ForerverAudioRecordingId $saved.ForerverAudioRecordingId -StatusLogLimit $saved.StatusLogLimit
+        Set-VersionWaitRanges $saved.TitanMinimumMs $saved.TitanMaximumMs $saved.ForerverMinimumMs $saved.ForerverMaximumMs -Persist $false -FocusRetryIntervalMs $saved.FocusRetryIntervalMs -TitanAudioThresholdPercent $saved.TitanAudioThresholdPercent -ForerverAudioThresholdPercent $saved.ForerverAudioThresholdPercent -ReelHoldMs $saved.ReelHoldMs -KeyBindings $bindings -AudioDetectionEnabled $saved.AudioDetectionEnabled -ProcessItemPreferences $saved.ProcessItemPreferences -TitanAudioTimeoutMs $saved.TitanAudioTimeoutMs -ForerverAudioTimeoutMs $saved.ForerverAudioTimeoutMs -TitanAudioRecordingId $saved.TitanAudioRecordingId -ForerverAudioRecordingId $saved.ForerverAudioRecordingId -StatusLogLimit $saved.StatusLogLimit -JumpEveryCycles $saved.JumpEveryCycles
     }
     catch { $script:settingsWarning="config.ini 读取失败，保留当前配置：$($_.Exception.Message)" }
 }
@@ -854,6 +858,12 @@ function New-WaitSettingsDialog {
     $reelHoldInput.BackColor=$script:uiColors.Input
     $reelHoldInput.ForeColor=$script:uiColors.Text
     $reelHoldInput.BorderStyle='FixedSingle'; $dialog.Controls.Add($reelHoldInput)
+    $jumpLabel=New-Object System.Windows.Forms.Label
+    $jumpLabel.Text='跳跃间隔（循环，0关闭）'; $jumpLabel.SetBounds(530,196,200,30); $dialog.Controls.Add($jumpLabel)
+    $jumpInput=New-Object System.Windows.Forms.NumericUpDown
+    $jumpInput.SetBounds(730,192,200,30); $jumpInput.Minimum=0; $jumpInput.Maximum=1000000; $jumpInput.Increment=1
+    $jumpInput.Value=$script:scheduler.JumpEveryCycles; $jumpInput.BackColor=$script:uiColors.Input; $jumpInput.ForeColor=$script:uiColors.Text
+    $jumpInput.BorderStyle='FixedSingle'; $dialog.Controls.Add($jumpInput)
     $recordGroup=New-Object System.Windows.Forms.GroupBox
     $recordGroup.Text='咬钩匹配片段（按版本选择）'; $recordGroup.SetBounds(18,238,912,151)
     $recordGroup.BackColor=$script:uiColors.Surface; $recordGroup.ForeColor=$script:uiColors.Text
@@ -939,7 +949,7 @@ function New-WaitSettingsDialog {
     $cancel.Text='取消'; $cancel.SetBounds(645,715,95,36); Set-UiButtonStyle $cancel
     $cancel.DialogResult='Cancel'; $dialog.Controls.Add($cancel)
     $dialog.AcceptButton=$apply; $dialog.CancelButton=$cancel
-    $dialog.Tag=[pscustomobject]@{Inputs=$inputs; FocusRetry=$retryInput; ReelHold=$reelHoldInput; StatusLogLimit=$logLimitInput; Apply=$apply; Cancel=$cancel; Error=$errorLabel; KeyInputs=$keyInputs; KeyBindings=$draftBindings; KeyTip=$keyTip; Recordings=$recordInputs; StopPreview=$stopPreview; PreviewStatus=$previewStatus; PreviewPlayer=$null}
+    $dialog.Tag=[pscustomobject]@{Inputs=$inputs; FocusRetry=$retryInput; ReelHold=$reelHoldInput; StatusLogLimit=$logLimitInput; JumpEveryCycles=$jumpInput; Apply=$apply; Cancel=$cancel; Error=$errorLabel; KeyInputs=$keyInputs; KeyBindings=$draftBindings; KeyTip=$keyTip; Recordings=$recordInputs; StopPreview=$stopPreview; PreviewStatus=$previewStatus; PreviewPlayer=$null}
     $dialog.Add_FormClosed({param($sender,$eventArgs) Stop-AudioPreview $sender})
     $dialog.Add_Disposed({ param($sender,$eventArgs) Stop-AudioPreview $sender; $sender.Tag.KeyTip.Dispose() })
     $cancel.Tag=$dialog; $cancel.Add_Click({param($sender,$eventArgs) Stop-AudioPreview $sender.Tag})
@@ -958,7 +968,7 @@ function New-WaitSettingsDialog {
                 $nextBindings[$action]=New-KeyBinding $draft.Code $draft.Ctrl $draft.Shift $draft.Alt
                 if ($null -eq $nextBindings[$action]) { throw '请选择有效的快捷键。' }
             }
-            Set-VersionWaitRanges $fields.titan.Minimum.Text.Trim() $fields.titan.Maximum.Text.Trim() $fields.forerver.Minimum.Text.Trim() $fields.forerver.Maximum.Text.Trim() -FocusRetryIntervalMs $settingsDialog.Tag.FocusRetry.Text.Trim() -TitanAudioThresholdPercent $fields.titan.AudioThreshold.Text.Trim() -ForerverAudioThresholdPercent $fields.forerver.AudioThreshold.Text.Trim() -ReelHoldMs $nextHold -KeyBindings $nextBindings -TitanAudioTimeoutMs $fields.titan.AudioTimeout.Text.Trim() -ForerverAudioTimeoutMs $fields.forerver.AudioTimeout.Text.Trim() -TitanAudioRecordingId $settingsDialog.Tag.Recordings.titan.Selection.SelectedItem.Id -ForerverAudioRecordingId $settingsDialog.Tag.Recordings.forerver.Selection.SelectedItem.Id -StatusLogLimit $settingsDialog.Tag.StatusLogLimit.Text.Trim()
+            Set-VersionWaitRanges $fields.titan.Minimum.Text.Trim() $fields.titan.Maximum.Text.Trim() $fields.forerver.Minimum.Text.Trim() $fields.forerver.Maximum.Text.Trim() -FocusRetryIntervalMs $settingsDialog.Tag.FocusRetry.Text.Trim() -TitanAudioThresholdPercent $fields.titan.AudioThreshold.Text.Trim() -ForerverAudioThresholdPercent $fields.forerver.AudioThreshold.Text.Trim() -ReelHoldMs $nextHold -KeyBindings $nextBindings -TitanAudioTimeoutMs $fields.titan.AudioTimeout.Text.Trim() -ForerverAudioTimeoutMs $fields.forerver.AudioTimeout.Text.Trim() -TitanAudioRecordingId $settingsDialog.Tag.Recordings.titan.Selection.SelectedItem.Id -ForerverAudioRecordingId $settingsDialog.Tag.Recordings.forerver.Selection.SelectedItem.Id -StatusLogLimit $settingsDialog.Tag.StatusLogLimit.Text.Trim() -JumpEveryCycles $settingsDialog.Tag.JumpEveryCycles.Text.Trim()
             Stop-AudioPreview $settingsDialog
             $settingsDialog.DialogResult='OK'
         }
@@ -1811,6 +1821,8 @@ try {
             . (Join-Path $PSScriptRoot 'tests\Audio.Timeout.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Audio.Recordings.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\StatusLog.UiTests.ps1')
+            . (Join-Path $PSScriptRoot 'tests\JumpInterval.UiTests.ps1')
+            . (Join-Path $PSScriptRoot 'tests\AutoFight.UiTests.ps1')
         }
         if ($PreviewPath) {
             [System.Windows.Forms.Application]::DoEvents()

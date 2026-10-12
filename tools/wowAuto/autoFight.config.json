@@ -1,5 +1,6 @@
 {
-  "Version": 2,
+  "Version": 3,
+  "CommandIntervalMs": 500,
   "Profiles": [
     {
       "Flavor": "titan",

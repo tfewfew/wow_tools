@@ -35,6 +35,8 @@ local function widget(name)
     function object:GetFont() return "mock-font", 12, "" end
     function object:GetStringHeight() return 36 end
     function object:SetEnabled(value) self.enabled = value end
+    function object:Enable() self.enabled = true end
+    function object:Disable() self.enabled = false end
     function object:GetChecked() return self.checked end
     function object:SetChecked(value) self.checked = value end
     function object:Hide() self.shown = false end
@@ -98,6 +100,7 @@ C_Container = {
     GetContainerNumFreeSlots = function() return free, 0 end,
 }
 function UnitIsDeadOrGhost() return dead end
+function UnitClass() return "战士", "WARRIOR", 1 end
 function GetPhysicalScreenSize() return width, height end
 function UnitChannelInfo() return channelName, nil, nil, nil, nil, nil, nil, channelID end
 function UnitCastingInfo() return castName, nil, nil, nil, nil, nil, "cast-guid", false, castID end
@@ -113,8 +116,8 @@ function UnitIsInteractable(unit)
 end
 function UnitName(unit) assert(unit == "softinteract"); return targetName end
 function UnitExists() error("Do not reject GameObjects with UnitExists") end
-for _, file in ipairs({ "Init.lua", "Compatibility.lua", "wowDetector/Audio.lua", "wowDetector/wowDetector.lua", "inner_graphic_config/Core.lua", "Core.lua" }) do
-    dofile(addon .. file)
+for line in io.lines(addon .. "wow_tools.toc") do
+    if line:match("%.lua%s*$") then dofile(addon .. line:gsub("\\", "/"):gsub("%s+$", "")) end
 end
 for _, frame in ipairs(frames) do
     if frame.events.ADDON_LOADED then frame.scripts.OnEvent(frame, "ADDON_LOADED", "wow_tools") end
@@ -263,8 +266,8 @@ dead = false
 panel.scripts.OnEvent(panel, "PLAYER_ALIVE")
 assertColor(indicator, 0.5, 0.5, 0.5)
 SlashCmdList.WOWTOOLS()
-assert(#menuEntries == 2, "Modern module menu is missing")
-menuEntries[2].onSelect()
+assert(#menuEntries == 3 and menuEntries[2].title == "fight_detector", "Modern module menu is missing")
+menuEntries[3].onSelect()
 assert(names.InnerGraphicConfigWindow.shown and not wowDetectorDB.locked, "Menu toggled wrong module")
 menuEntries[1].onSelect()
 assert(not panel.shown, "Monitor close did not hide")

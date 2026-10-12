@@ -2,10 +2,11 @@
 ## Title: wow_tools
 ## Notes-zhCN: 工具合集：wowDetector 钓鱼检测、fight_detector 战斗检测与 inner_graphic_config 内部画面设置。
 ## Author: Ray
-## Version: 2.1.6
+## Version: 2.1.7
 ## SavedVariables: wowDetectorDB, fightDetectorDB
 
 Init.lua
+Loot.lua
 wowDetector\Audio.lua
 wowDetector\wowDetector.lua
 fight_detector\fight_detector.lua

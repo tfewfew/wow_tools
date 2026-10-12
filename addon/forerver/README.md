@@ -1,6 +1,6 @@
 # forerver
 
-无限服的独立插件源码：`wow_tools/`，版本2.2.2，接口16001。目录拼写按用户约定为 `forerver`。安装后仍名为wow_tools，包含wowDetector和inner_graphic_config。
+无限服的独立插件源码：`wow_tools/`，版本2.2.6，接口16001。目录拼写按用户约定为 `forerver`。安装后仍名为wow_tools，包含wowDetector、fight_detector、自动拾取及inner_graphic_config。
 
 移植目标为本机 `_cn_beta_\Wow.exe` 1.60.1.70338；已核对相同构建的[Blizzard界面源码导出](https://github.com/Gethe/wow-ui-source/tree/943764493e6b16d63ded3ab304150d1f05e58b57)，不是只更换TOC号。
 
@@ -29,3 +29,5 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\skills\wow-tools\scrip
 2.2.4：fight_detector由插件驱动开怪 / 正常战斗主色，并增加中心上方64px、右侧88px的独立恢复色块（蓝=无需恢复、紫=非战斗恢复、橙=战斗紧急恢复、灰=未知）。面板按本职业配置生命值进入 / 退出阈值，默认非战斗80% / 95%、战斗紧急30% / 50%；法力恢复可选，默认关闭。四向移动暂不确定自动规则，仅提供手动单次状态请求。PC需同时更新协议v2并重启；插件需/reload。详见工具README，本次仍未执行验证。
 
 2.2.5：尸体拾取同时确认有战利品且当前角色可拾取，战利品窗口（含自动拾取过程）打开期间标记忙碌；拾取关闭 / 槽位清空及时刷新，确认无剩余战利品并可剥皮后切换剥皮状态。PC在拾取与剥皮阶段切换时重新执行同一可配置交互键，同阶段失败重试继续保留间隔。按本次用户要求未执行验证。
+
+2.2.6：本客户端独立 `Loot.lua` 使用1.60.1.70338的全局拾取接口，在打开战利品时自动拾取未锁定槽位，包括钓鱼战利品；下一帧确认 `LOOT_BIND_CONFIRM`，成功后只隐藏对应槽位的 `LOOT_BIND` 提示。受限 / 缺失 / 失败数据保留人工处理，不改CVar，不共享钓鱼和战斗设置。已通过Lua5.1编译、全TOC加载及 `Loot.Tests.lua`、音频模拟；实际拾取效果由游戏测试确认。
