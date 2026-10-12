@@ -2,6 +2,7 @@
 local FLAVOR = "forerver"
 local enabled, initialized, elapsed = false, false, 0
 local nameplates = {}
+local lootOpen = false
 local classID, rangeSpell = nil, nil
 local state, combat, skin, busy = "disabled", false, false, false
 local health, mana, settings = nil, nil, nil
@@ -248,6 +249,16 @@ local function SkinTooltip(unit)
     scanTooltip:Hide()
     return result
 end
+local function LootStatus(guid)
+    -- CanLootUnit returns both loot presence and this player's permission to loot.
+    -- Missing, restricted or partial results cannot authorize an interaction.
+    if type(CanLootUnit)~="function" then return nil end
+    local ok,hasLoot,canLoot=pcall(CanLootUnit,guid)
+    if not ok or not Readable(hasLoot) or not Readable(canLoot) then return nil end
+    if hasLoot~=true and hasLoot~=false and hasLoot~=1 and hasLoot~=0 then return nil end
+    if canLoot~=true and canLoot~=false and canLoot~=1 and canLoot~=0 then return nil end
+    return hasLoot==true or hasLoot==1, canLoot==true or canLoot==1
+end
 local function Interaction()
     -- Only the soft interaction unit can be acted on by the configured interaction key.
     local guid, ok=Read(UnitGUID,"softinteract")
@@ -261,8 +272,12 @@ local function Interaction()
     local ready=Bool(UnitIsInteractable,"softinteract")
     if ready==false then return nil end
     if ready==nil then return "unknown" end
-    local hasLoot,lootOK=Read(CanLootUnit,guid)
-    if lootOK and (hasLoot==true or hasLoot==1) then return "loot" end
+    local hasLoot,canLoot=LootStatus(guid)
+    if hasLoot==nil then return "unknown" end
+    if hasLoot then
+        if canLoot then return "loot" end
+        return nil -- Do not skin a corpse that still has inaccessible loot.
+    end
     local canSkin=SkinTooltip("softinteract")
     if canSkin==nil then return "unknown" end
     if canSkin then return "skin" end
@@ -323,7 +338,7 @@ local function Refresh()
     local cast,castOK=Read(UnitCastingInfo,"player")
     local channel,channelOK=Read(UnitChannelInfo,"player")
     if not castOK or not channelOK then recovery="unknown"; SetState("unknown"); return end
-    busy=not not (cast or channel or (LootFrame and LootFrame:IsShown()))
+    busy=not not (cast or channel or lootOpen or (LootFrame and LootFrame:IsShown()))
     if combat then
         recovering=false
         emergency=settings.EmergencyEnter>0 and (health<=settings.EmergencyEnter
@@ -421,7 +436,8 @@ local events=CreateFrame("Frame")
 for _,event in ipairs({"ADDON_LOADED","PLAYER_ENTERING_WORLD","PLAYER_DEAD","PLAYER_LOGOUT",
     "PLAYER_REGEN_DISABLED","PLAYER_REGEN_ENABLED","PLAYER_TARGET_CHANGED","PLAYER_SOFT_ENEMY_CHANGED",
     "PLAYER_SOFT_INTERACT_CHANGED","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED",
-    "LOOT_OPENED","LOOT_CLOSED","UNIT_HEALTH","UNIT_MAXHEALTH","UNIT_POWER_UPDATE",
+    "LOOT_OPENED","LOOT_CLOSED","LOOT_READY","LOOT_SLOT_CLEARED",
+    "UNIT_HEALTH","UNIT_MAXHEALTH","UNIT_POWER_UPDATE",
     "UNIT_MAXPOWER","UNIT_DISPLAYPOWER","DISPLAY_SIZE_CHANGED","UI_SCALE_CHANGED"}) do
     pcall(events.RegisterEvent,events,event)
 end
@@ -451,11 +467,18 @@ events:SetScript("OnEvent",function(_,event,arg)
         for field,box in pairs(thresholds) do box:SetText(tostring(settings[field])) end
         initialized=true
         Stop()
+    elseif event=="LOOT_OPENED" then
+        lootOpen=true
+        SafeRefresh()
+    elseif event=="LOOT_CLOSED" then
+        lootOpen=false
+        SafeRefresh()
     elseif event=="NAME_PLATE_UNIT_ADDED" then
         if Readable(arg) and type(arg)=="string" then nameplates[arg]=true end
     elseif event=="NAME_PLATE_UNIT_REMOVED" then
         if Readable(arg) and type(arg)=="string" then nameplates[arg]=nil end
     elseif event=="PLAYER_ENTERING_WORLD" then
+        lootOpen=false
         nameplates={}
         if C_NamePlate and C_NamePlate.GetNamePlates then
             local ok,plates=pcall(C_NamePlate.GetNamePlates)
@@ -467,7 +490,7 @@ events:SetScript("OnEvent",function(_,event,arg)
             end
         end
         SafeRefresh()
-    elseif event=="PLAYER_DEAD" or event=="PLAYER_LOGOUT" then Stop()
+    elseif event=="PLAYER_DEAD" or event=="PLAYER_LOGOUT" then lootOpen=false; Stop()
     else SafeRefresh() end
 end)
 events:SetScript("OnUpdate",function(_,delta)

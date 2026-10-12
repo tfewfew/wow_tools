@@ -85,11 +85,12 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 ## autoFight（2026-10-12）
 
-- 当前合集版本titan2.1.5、forerver2.2.4，两服独立维护fight_detector.lua；保留fightDetectorDB / rangeSpells，新增profiles[classId]恢复阈值。Core及钓鱼模块不变，战斗不读写wowDetectorDB、音频、图形或交互CVar。
+- 当前合集版本titan2.1.6、forerver2.2.5，两服独立维护fight_detector.lua；保留fightDetectorDB / rangeSpells，新增profiles[classId]恢复阈值。Core及钓鱼模块不变，战斗不读写wowDetectorDB、音频、图形或交互CVar。
 - autoFight.ps1、Engine.ps1、Native.cs、config.json的状态、输入、计时和配置与autofish隔离，只共享主题及标签。离开标签停止上一页，UiTest仍不加载战斗原生模块。
 - 插件驱动主色opening / combat / idle / 四向move / loot / skin；恢复独立输出none / recover / emergency。v2八格仍为中心y=-64、x=-56..56、间距16、格宽10，新签名RGB0/255/192，第4格R剥皮 / G忙碌 / B255；独立12px恢复点为x=+88、y=-64，蓝无需恢复、紫非战斗、橙紧急、灰未知。不要合并回主状态格，旧v1两端不混用。
 - HP进入 / 退出阈值默认非战斗80/95、紧急30/50；可选法力恢复默认关闭，只对法力职业生效。0关闭项，进入<退出，迟滞避免状态抖动。受限 / 不可读不推断。恢复优先于普通动作；施法 / 引导 / 战利品窗口阻止普通发键，紧急宏允许打断当前施法。
 - PC状态切换设置EntryPending，开怪 / 正常战斗 / 紧急恢复各用独立重试间隔，非战斗恢复只在进入时发送一次；动作冷却不阻塞状态轮询。独立恢复清除后回到主状态。发键前重读主状态、恢复和忙碌；取得前台须新心跳，保持时监测并允许恢复 / 战斗抢占交互。
 - 自动移动选择规则用户尚未确定；只保留四个方向状态、快捷键及插件面板单次请求，默认不自动移动、不巡逻、不持久恢复请求。PC以非阻塞50ms计时按住100–2000ms，状态改变 / 超时 / 停止 / 刷新 / 关闭 / 设置 / 失焦 / 无效或冻结心跳均释放本模块按住的键，不让移动跨窗口。
+- 尸体交互按可拾取 → 无剩余战利品且可剥皮驱动；CanLootUnit同时读取hasLoot / canLoot，两项均明确且有权限才拾取，受限 / 不完整返回为unknown。有战利品而无权限时不交互、不判剥皮。LOOT_OPENED / LOOT_CLOSED维护忙碌，LOOT_READY / LOOT_SLOT_CLEARED及轮询刷新；两服独立实现。PC记录LastInteractionState，新拾取 / 剥皮阶段不继承上一阶段冷却，同阶段重新进入仍受NextInteractionAt限制；发键前仍要求非战斗、非忙碌及无需恢复。交互键沿用SkinKey，设置界面明确“拾取 / 剥皮交互键”，默认F7，按两服 / 职业保存；游戏内绑定交互并启用自动拾取，插件不自动更改CVar或直接拾取。
 - JSON v2按两服各13职业保存九个键及五项计时、交互开关。v1只读迁移保留AttackKey为开怪及正常战斗、原间隔和交互，下次保存升级；取消 / 写入失败不应用草稿。缺省F5/F6/F8/F9、W/S/Q/E、F7，开怪2000ms、战斗500ms、紧急1500ms、移动400ms、交互3500ms。
 - 本次用户要求mac开发后直接提交推送、无需任何验证，继续跳过语法 / 编译 / 模拟 / UI / 游戏验证及Windows同步；部署时两端更新、游戏/reload并重启wowAuto。

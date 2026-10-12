@@ -341,11 +341,11 @@ function Show-AutoFightSettings {
         $editor.Numbers[$entry[0]]=$number; $body.Controls.Add($label); $body.Controls.Add($number)
     }
     $editor.SkinEnabled=New-Object WowAuto.DimCheckBox
-    $editor.SkinEnabled.Text='启用拾取及剥皮交互'; $editor.SkinEnabled.SetBounds(16,440,600,32)
+    $editor.SkinEnabled.Text='启用自动拾取 / 剥皮交互'; $editor.SkinEnabled.SetBounds(16,440,600,32)
     $body.Controls.Add($editor.SkinEnabled)
     $hint=New-Object System.Windows.Forms.Label
-    $hint.Text="插件主色驱动开怪 / 战斗，独立恢复色块优先驱动恢复。阈值在插件面板配置。`r`n非战斗恢复仅在进入状态时按一次；开怪 / 战斗 / 紧急恢复按各自间隔重试。`r`n四向移动规则待定，暂仅响应插件面板手动请求；按住至时限或状态改变。`r`n点击输入框按键录入；游戏内绑定对应宏 / 技能 / 交互 / 移动键。"
-    $hint.SetBounds(16,484,812,100); $body.Controls.Add($hint)
+    $hint.Text="插件主色驱动开怪 / 战斗，独立恢复色块优先驱动恢复。阈值在插件面板配置。`r`n非战斗恢复仅在进入状态时按一次；开怪 / 战斗 / 紧急恢复按各自间隔重试。`r`n四向移动规则待定，暂仅响应插件面板手动请求；按住至时限或状态改变。`r`n拾取后检测到可剥皮会再次按交互键；请在游戏中启用自动拾取。`r`n点击输入框按键录入；游戏内绑定对应宏 / 技能 / 交互 / 移动键。"
+    $hint.SetBounds(16,484,812,128); $body.Controls.Add($hint)
     $errorLabel=New-Object System.Windows.Forms.Label
     $errorLabel.SetBounds(16,4,($footer.ClientSize.Width-32),30); $errorLabel.Anchor='Top, Left, Right'; $errorLabel.AutoEllipsis=$true
     $footer.Controls.Add($errorLabel)

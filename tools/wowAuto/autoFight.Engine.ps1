@@ -100,7 +100,7 @@ function ConvertTo-AutoFightProfiles($Items,[int]$Version=2) {
         foreach ($field in $script:autoFightKeyFields) { $fields[$field]=(ConvertFrom-AutoFightBinding $p.$field).Text }
         $directions=@($fields.MoveForwardKey,$fields.MoveBackwardKey,$fields.MoveLeftKey,$fields.MoveRightKey)
         if (@($directions | Select-Object -Unique).Count -ne 4) { throw '四个移动方向必须绑定不同的按键。' }
-        if ($p.SkinEnabled -isnot [bool]) { throw '剥皮开关必须为布尔值。' }
+        if ($p.SkinEnabled -isnot [bool]) { throw '拾取 / 剥皮交互开关必须为布尔值。' }
         $fields.OpeningIntervalMs=Get-AutoFightInteger $p.OpeningIntervalMs 100 60000 '开怪重试间隔 (ms)'
         $fields.CombatIntervalMs=Get-AutoFightInteger $p.CombatIntervalMs 100 10000 '正常战斗间隔 (ms)'
         $fields.EmergencyIntervalMs=Get-AutoFightInteger $p.EmergencyIntervalMs 100 60000 '紧急恢复重试间隔 (ms)'
@@ -138,7 +138,7 @@ function Save-AutoFightProfiles([string]$Path,$Profiles) {
 }
 function New-AutoFightSession([long]$Now,[int]$ClassId) {
     return [pscustomobject]@{Id=[Guid]::NewGuid().ToString('N'); ClassId=$ClassId; Due=$Now;
-        State=''; EnteredAt=$Now; EntryPending=$true; NextActionAt=$Now; NextInteractionAt=0L}
+        State=''; EnteredAt=$Now; EntryPending=$true; NextActionAt=$Now; NextInteractionAt=0L; LastInteractionState=''}
 }
 function Update-AutoFightState($Session,$Packet,[long]$Now) {
     $state=if ($Packet.Recovery -ne 'none') { $Packet.Recovery } else { $Packet.Action }
@@ -155,7 +155,10 @@ function Get-AutoFightAction($Session,$Packet,$Profile,[long]$Now) {
     $handler=$script:autoFightStates[$Session.State]
     if (-not $handler.Key -or $Now -lt $Session.NextActionAt) { return 'wait' }
     if ($Session.State -in @('skin','loot')) {
-        if (-not $Profile.SkinEnabled -or $Packet.Combat -or $Now -lt $Session.NextInteractionAt) { return 'wait' }
+        if (-not $Profile.SkinEnabled -or $Packet.Combat) { return 'wait' }
+        # A confirmed loot -> skin (or skin -> loot) transition starts a fresh interaction phase.
+        # Re-entering the same phase after idle or recovery still respects its retry deadline.
+        if ($Session.LastInteractionState -eq $Session.State -and $Now -lt $Session.NextInteractionAt) { return 'wait' }
     }
     if ($Session.EntryPending -or $handler.Interval) { return $Session.State }
     return 'wait'
@@ -164,7 +167,10 @@ function Complete-AutoFightAction($Session,$Profile,[string]$Action,[long]$Now) 
     $Session.EntryPending=$false
     $interval=$script:autoFightStates[$Action].Interval
     $Session.NextActionAt=if ($interval) { $Now+$Profile.$interval } else { [long]::MaxValue }
-    if ($Action -in @('skin','loot')) { $Session.NextInteractionAt=$Session.NextActionAt }
+    if ($Action -in @('skin','loot')) {
+        $Session.LastInteractionState=$Action
+        $Session.NextInteractionAt=$Session.NextActionAt
+    }
     # Poll states independently from action cooldowns, so recovery is not delayed by combat retries.
     $Session.Due=$Now+100
 }
