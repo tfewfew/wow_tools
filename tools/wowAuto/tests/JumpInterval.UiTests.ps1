@@ -45,5 +45,32 @@ try {
     Set-WowAutoJumpInterval $script:scheduler 0
     [IO.File]::WriteAllText($script:settingsPath,$full); Import-VersionWaitSettings
     Assert-Ui ($script:scheduler.JumpEveryCycles -eq 3) 'Startup failed to read jump setting.'
+    # Exercise the production UI scheduler with an inherited due jump, using mocked
+    # process/color/input adapters. No initial green or waiting tick may send Space.
+    $testRows=@($script:rows.Values)
+    foreach ($flavor in @('titan','forerver')) {
+        Stop-AllRows
+        $script:scheduler=New-WowAutoScheduler
+        Set-WowAutoJumpInterval $script:scheduler 1
+        $row=@($testRows | Where-Object {$_.Client.Flavor -eq $flavor})[0]
+        $row.Process.HasExited=$false; $row.Process.FocusAllowed=$true; $row.Process.ScanColor='green'
+        $script:scheduler.CyclesSinceJump[$row.Key]=1L
+        $row.State=Add-WowAutoTask $script:scheduler $row.Key 100 100 0
+        $script:pendingWork=$null; $script:workerFocus=$row.Process.Id; $script:workerKeys=@()
+        Invoke-SchedulerTick 0
+        Assert-Ui ($script:workerKeys.Count -eq 0 -and $row.State.Mode -eq 'Wait' -and
+            -not $row.State.PostReelJumpAllowed) 'Inherited due jump interrupted fishing on UI restart.'
+        Invoke-SchedulerTick 99
+        Assert-Ui ($script:workerKeys.Count -eq 0) 'Waiting for reel emitted an early jump.'
+        Invoke-SchedulerTick 100
+        Assert-Ui (($script:workerKeys -join ',') -eq "$($row.Process.Id):187" -and $row.State.PostReelJumpAllowed) 'Next successful reel was replaced by jump.'
+        Invoke-SchedulerTick 1099
+        Assert-Ui ($script:workerKeys.Count -eq 1) 'Post-reel jump bypassed cooldown.'
+        Invoke-SchedulerTick 1100
+        Assert-Ui (($script:workerKeys -join ',') -eq "$($row.Process.Id):187,$($row.Process.Id):32" -and
+            -not $row.State.PostReelJumpAllowed) 'Post-reel UI jump missing or permission not consumed.'
+    }
+    Stop-AllRows
 } finally {$script:scheduler=$jumpSavedScheduler; [IO.File]::WriteAllBytes($script:settingsPath,$jumpSavedIni); Import-VersionWaitSettings}
 Write-Output 'PASS: fishing jump setting draft/save/reload/cancel/locked/invalid/duplicate/legacy INI. Temporary configuration only.'
+Write-Output 'PASS: both clients production UI scheduler keeps inherited jump quiet during fishing, reels first, respects cooldown and jumps once afterward. All game operations mocked.'

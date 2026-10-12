@@ -8,7 +8,7 @@ function New-WowAutoState {
         Running=$true; Mode='Ready'; NextDue=0L; Deadline=0L
         MinimumMs=$MinimumMs; MaximumMs=$MaximumMs; LastInterval=-1; ForceNextCast=$false; ReelDelayMs=0
         AwaitingFishingTransition=$false; SawIdle=$false
-        CheckReelGreen=$false; CycleJumpPending=$false
+        CheckReelGreen=$false; CycleJumpPending=$false; PostReelJumpAllowed=$false
         UseItem=$false; ItemDue=0L; ItemRetryAt=0L; InitialItemPending=$false
         ItemStatus=''
         FocusRetryAt=0L; FocusResumeStatus=''
@@ -21,6 +21,7 @@ function Stop-WowAutoState {
     $State.Running=$false; $State.Mode='Stopped'; $State.Deadline=0L; $State.Status=$Reason
     $State.FocusRetryAt=0L; $State.FocusResumeStatus=''
     $State.AudioReelPending=$false; $State.ReelDelayMs=0
+    $State.PostReelJumpAllowed=$false
 }
 function Suspend-WowAutoFocus($Scheduler, [string]$Key, [long]$Now, [string]$Reason) {
     $state=$Scheduler.Tasks[$Key]
@@ -233,7 +234,10 @@ function Complete-WowAutoPoll($Scheduler, [string]$Key, [long]$Now, [string]$Col
         return 'Stop'
     }
     if ($Color -eq 'red') { $state.SawIdle=$true; $state.CheckReelGreen=$false }
-    if ($Color -in @('red','green') -and ($state.CycleJumpPending -or ($state.CheckReelGreen -and $Color -eq 'green'))) {
+    # A periodic/recovery jump belongs to a successfully reeled session only. Reaching
+    # the count, inheriting a count on restart, or an audio timeout cannot interrupt fishing.
+    if ($state.PostReelJumpAllowed -and $state.Mode -in @('Ready','Casting') -and
+        $Color -in @('red','green') -and ($state.CycleJumpPending -or ($state.CheckReelGreen -and $Color -eq 'green'))) {
         $state.Mode='Casting'
         $state.LastInterval=Get-WowAutoInterval $state.LastInterval
         $state.NextDue=$Now+$state.LastInterval
@@ -300,7 +304,7 @@ function Reset-WowAutoAudioWait($Scheduler, [string]$Key, [long]$Now, [string]$R
     if ($null -eq $state -or -not $state.Running -or -not $state.UseAudio) { return }
     Remove-WowAutoEvents $Scheduler $Key
     $state.AudioSession=0L; $state.AudioReelPending=$false; $state.ReelDelayMs=0; $state.Mode='Ready'; $state.Deadline=0L; $state.NextDue=$Now
-    $state.ForceNextCast=$true; $state.CheckReelGreen=$true
+    $state.ForceNextCast=$true; $state.CheckReelGreen=$false; $state.PostReelJumpAllowed=$false
     $state.AwaitingFishingTransition=$true; $state.SawIdle=$false
     $state.Status=$Reason
     if ($Scheduler.ActiveKey -eq $Key) { $Scheduler.ActiveKey=$null }
@@ -308,7 +312,7 @@ function Reset-WowAutoAudioWait($Scheduler, [string]$Key, [long]$Now, [string]$R
 function Complete-WowAutoJump($Scheduler, [string]$Key, [bool]$Sent) {
     $state=$Scheduler.Tasks[$Key]
     if ($Sent -and $null -ne $state -and $state.Running) {
-        $state.CheckReelGreen=$false; $state.CycleJumpPending=$false
+        $state.CheckReelGreen=$false; $state.CycleJumpPending=$false; $state.PostReelJumpAllowed=$false
         $Scheduler.CyclesSinceJump[$Key]=0L
     }
 }
@@ -316,6 +320,7 @@ function Complete-WowAutoCast($Scheduler, [string]$Key, [bool]$Sent) {
     $state=$Scheduler.Tasks[$Key]
     if ($Sent -and $null -ne $state -and $state.Running -and $state.Mode -eq 'Casting') {
         $state.ForceNextCast=$false
+        $state.PostReelJumpAllowed=$false; $state.CheckReelGreen=$false
     }
 }
 function Complete-WowAutoReel($Scheduler, [string]$Key, [long]$Now, [bool]$Sent) {
@@ -327,6 +332,7 @@ function Complete-WowAutoReel($Scheduler, [string]$Key, [long]$Now, [bool]$Sent)
         $_.Key -eq $Key -and $_.Kind -eq 'Reel' -and [object]::ReferenceEquals($_.State,$state)
     })
     if ($state.Mode -ne 'Wait' -or $registered.Count -eq 0) { return }
+    $state.PostReelJumpAllowed=$true
     $Scheduler.CompletedCycles[$Key]=(Get-WowAutoCycleCount $Scheduler $Key)+1
     if ($Scheduler.JumpEveryCycles -gt 0) {
         $Scheduler.CyclesSinceJump[$Key]=[long]$Scheduler.CyclesSinceJump[$Key]+1
