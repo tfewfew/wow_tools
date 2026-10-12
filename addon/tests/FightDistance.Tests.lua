@@ -1,7 +1,9 @@
 local root=TEST_ROOT or "."
+local output=TEST_PIXEL_OUTPUT and assert(io.open(TEST_PIXEL_OUTPUT,"w"))
 for _,flavor in ipairs({"titan","forerver"}) do
     local frames,names,edits,buttons={}, {}, {}, {}
     local now,combat,dead,health=0,false,false,100
+    local uiScale,screenWidth,screenHeight=1,1920,1080
     local mobs, class={}, nil
     local secret=setmetatable({}, {__eq=function() error("Compared secret") end,__tostring=function() error("Printed secret") end})
     local restricted,failed,missing,conflicting=false,false,false,false
@@ -33,7 +35,8 @@ for _,flavor in ipairs({"titan","forerver"}) do
         function o:SetColorTexture(...) self.color={...} end
         function o:SetText(text) self.text=text end
         function o:GetText() return self.text end
-        function o:GetEffectiveScale() return 1 end
+        function o:GetEffectiveScale() return uiScale end
+        function o:GetHeight() return 768/uiScale end
         function o:Show() self.shown=true end
         function o:Hide() self.shown=false end
         function o:IsShown() return self.shown end
@@ -49,7 +52,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
         return o
     end
     UIParent=widget(); SlashCmdList={}; DEFAULT_CHAT_FRAME={AddMessage=function(_,m) messages[#messages+1]=m end}
-    function GetPhysicalScreenSize() return 1920,1080 end
+    function GetPhysicalScreenSize() return screenWidth,screenHeight end
     function GetTime() return now end
     function UnitClass() return "模拟职业","TEST",class end
     function UnitExists(unit) return unit=="player" or mobs[unit]~=nil end
@@ -76,23 +79,44 @@ for _,flavor in ipairs({"titan","forerver"}) do
         dofile(root.."/addon/"..flavor.."/wow_tools/fight_detector/fight_detector.lua")
         event("ADDON_LOADED","wow_tools")
         local detector
-        for _,f in ipairs(frames) do if #f.textures==10 then detector=f end end
-        assert(detector,"Missing V3 nine-cell protocol and recovery point")
+        for _,f in ipairs(frames) do if #f.textures==2 then detector=f end end
+        assert(detector,"Expected exactly two V4 signal cells")
         return detector
     end
     local saved={rangeSpells={[1]=78},profiles={[3]={DetectionRangeYards=20}}}
     local signal=setup(1,saved)
     local function color(r,g,b)
-        local c=signal.textures[2].color
-        assert(c[1]==r/255 and c[2]==g/255 and c[3]==b/255,flavor..": unexpected main state")
+        local expected={ ["128,128,128"]=0,["0,0,255"]=1,["255,96,0"]=2,["0,192,192"]=3,["255,0,0"]=4}
+        local code=(signal.textures[1].color[1]*255-16)/32
+        assert(code==expected[r..","..g..","..b],flavor..": unexpected main state code "..code)
+        if output then
+            local function pixel(cell)
+                local c=cell.color
+                return math.floor(c[1]*255+.5)+256*math.floor(c[2]*255+.5)+65536*math.floor(c[3]*255+.5)
+            end
+            output:write(flavor," ",({[0]="unknown","idle","opening","waiting","combat"})[code]," ",
+                tostring(pixel(signal.textures[1]))," ",tostring(pixel(signal.textures[2])),"\n")
+        end
     end
-    local function epoch() return signal.textures[9].color[1] end
+    local function epoch() return signal.textures[1].color[3] end
     assert(edits[1].text=="30" and edits[2].text=="5" and warm>0,"Default distances / item-cache warmup failed: "..edits[1].text.." / "..edits[2].text.." / "..warm)
     assert(not WoWTools.FightRange.IsSupported(secret) and not WoWTools.FightRange.IsSupported(12))
     mobs.target={guid="Creature-A",distance=31}
     SlashCmdList.FIGHTDETECTOR("on"); color(0,0,255)
-    assert(math.abs(signal.textures[9].point[4]*1080/768-72)<.001
-        and math.abs(signal.textures[10].point[4]*1080/768-88)<.001,"Encounter/recovery physical pixels do not match PC reader")
+    local function geometry()
+        for i,cell in ipairs(signal.textures) do
+            local unit=UIParent:GetHeight()/screenHeight
+            assert(math.abs(cell.point[4]/unit-(i==1 and -16 or 16))<.001
+                and math.abs(cell.point[5]/unit-64)<.001 and math.abs(cell.width/unit-12)<.001,
+                "Physical geometry did not survive window/UI scaling")
+        end
+    end
+    geometry()
+    for _,size in ipairs({{1280,720,.5},{2560,1440,1.25},{1279,719,.85},{1920,1080,1}}) do
+        screenWidth,screenHeight,uiScale=unpack(size)
+        event("DISPLAY_SIZE_CHANGED"); event("UI_SCALE_CHANGED"); geometry()
+    end
+    for _,b in ipairs(buttons) do assert(b.text~="前" and b.text~="停止移动","Plugin still creates movement buttons") end
     mobs.target.distance=30; restricted=true; tick(); color(255,96,0) -- 5yd probe must not block opening.
     restricted=false; local first=epoch()
     event("UNIT_SPELLCAST_SUCCEEDED","player",secret,123); color(255,96,0)
@@ -114,7 +138,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     missing=false; conflicting=true; tick(); color(128,128,128)
     conflicting=false; mobs.target.guid=secret; tick(); color(128,128,128)
     mobs.target.guid="Creature-C"; health=20; mobs.target.distance=20; tick(); color(0,192,192)
-    local rc=signal.textures[10].color; assert(rc[1]==1 and rc[2]==128/255,"Recovery signal lost during waiting")
+    local aux=(signal.textures[2].color[1]*255-8)/16; assert(math.floor(aux/4)==2,"Recovery signal lost during waiting")
     health=100; mobs.target.dead=true; combat=false; tick(); color(0,0,255)
     mobs.target={guid="Creature-D",distance=29}; tick(); color(255,96,0)
     local save
@@ -136,3 +160,4 @@ for _,flavor in ipairs({"titan","forerver"}) do
     setup(1,saved); assert(edits[1].text=="25" and edits[2].text=="15","Global attack did not apply to another class / detection overwritten")
     print("PASS: "..flavor.." yard probes, 30/5 defaults, exact thresholds, opening/wait/approach/retreat, target identity, unknown/secret/failure/conflict, legacy fallback, settings scope/validation and death. Game APIs mocked.")
 end
+if output then output:close() end

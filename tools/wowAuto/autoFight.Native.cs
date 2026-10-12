@@ -116,8 +116,11 @@ namespace WowAutoFight
         private static int R(uint c) { return (int)(c&255); }
         private static int G(uint c) { return (int)((c>>8)&255); }
         private static int B(uint c) { return (int)((c>>16)&255); }
-        private static bool Near(uint c,int r,int g,int b)
-        { return c!=0xffffffff && Math.Abs(R(c)-r)<=12 && Math.Abs(G(c)-g)<=12 && Math.Abs(B(c)-b)<=12; }
+        public static int[] SampleOffsets(int width,int height)
+        {
+            if (width<210 || height<160) return null;
+            return new int[] {width/2-16,height/2-64,width/2+16,height/2-64};
+        }
         public static Packet Read(Client c)
         {
             if (!Foreground(c)) return null;
@@ -130,18 +133,21 @@ namespace WowAutoFight
                 {
                     Rect rect;
                     if (!GetClientRect(h,out rect) || rect.Right-rect.Left<210 || rect.Bottom-rect.Top<160) return null;
-                    Point point=new Point { X=(rect.Right-rect.Left)/2-56, Y=(rect.Bottom-rect.Top)/2-64 };
+                    // Client rectangle and screen samples share physical coordinates under PMv2 DPI.
+                    int[] samples=SampleOffsets(rect.Right-rect.Left,rect.Bottom-rect.Top);
+                    Point point=new Point { X=samples[0], Y=samples[1] };
                     if (!ClientToScreen(h,ref point)) return null;
                     dc=GetDC(IntPtr.Zero);
                     if (dc==IntPtr.Zero) return null;
-                    uint before=GetPixel(dc,point.X+96,point.Y);
-                    uint beforeEncounter=GetPixel(dc,point.X+128,point.Y);
-                    uint[] cells=new uint[9];
-                    for (int i=0;i<9;i++) cells[i]=GetPixel(dc,point.X+i*16,point.Y);
-                    uint recoveryCell=GetPixel(dc,point.X+144,point.Y);
-                    if (before!=cells[6] || GetPixel(dc,point.X+96,point.Y)!=before ||
-                        beforeEncounter!=cells[8] || GetPixel(dc,point.X+128,point.Y)!=beforeEncounter || !Foreground(c)) return null;
-                    return Decode(cells,recoveryCell,c.Flavor);
+                    uint main=GetPixel(dc,point.X,point.Y), aux=GetPixel(dc,point.X+32,point.Y);
+                    uint againMain=GetPixel(dc,point.X,point.Y), againAux=GetPixel(dc,point.X+32,point.Y);
+                    Rect after;
+                    if (main!=againMain || aux!=againAux || !GetClientRect(h,out after)
+                        || after.Right!=rect.Right || after.Bottom!=rect.Bottom || !Foreground(c)) return null;
+                    int[] afterSamples=SampleOffsets(after.Right-after.Left,after.Bottom-after.Top);
+                    Point afterPoint=new Point { X=afterSamples[0], Y=afterSamples[1] };
+                    if (!ClientToScreen(h,ref afterPoint) || afterPoint.X!=point.X || afterPoint.Y!=point.Y) return null;
+                    return Decode(new uint[] {main,aux},c.Flavor);
                 }
                 finally
                 {
@@ -150,33 +156,31 @@ namespace WowAutoFight
                 }
             }
         }
-        // Pure protocol parser; tests pass synthetic pixels without reading game windows.
-        public static Packet Decode(uint[] cells,uint recoveryCell,string expectedFlavor)
+        private static int Slot(int value,int start,int step,int count)
         {
-            if (cells==null || cells.Length!=9) return null;
-            if (!Near(cells[0],0,192,255) || !Near(cells[7],255,255,255)) return null;
-            string flavor=Near(cells[5],255,128,0)?"titan":Near(cells[5],128,0,255)?"forerver":null;
-            if (flavor==null || flavor!=expectedFlavor) return null;
-            int classId=(int)Math.Round(R(cells[4])/16.0);
-            if (classId<1 || classId>13 || Math.Abs(R(cells[4])-classId*16)>3
-                || Math.Abs(G(cells[4])-(255-classId*16))>3 || Math.Abs(B(cells[4])-85)>12) return null;
-            if (B(cells[6])<158 || B(cells[6])>182 || Math.Abs(R(cells[6])+G(cells[6])-255)>12) return null;
-            string action=Near(cells[1],255,96,0)?"opening":Near(cells[1],255,0,0)?"combat":Near(cells[1],0,192,192)?"waiting":
-                Near(cells[1],64,255,64)?"move-forward":Near(cells[1],64,128,255)?"move-backward":
-                Near(cells[1],255,192,64)?"move-left":Near(cells[1],128,64,255)?"move-right":
-                Near(cells[1],255,0,255)?"skin":Near(cells[1],0,255,0)?"loot":
-                Near(cells[1],0,0,255)?"idle":Near(cells[1],128,128,128)?"unknown":null;
-            string recovery=Near(recoveryCell,0,0,255)?"none":Near(recoveryCell,255,0,255)?"recover":
-                Near(recoveryCell,255,128,0)?"emergency":null;
-            bool combat=Near(cells[2],255,0,0), peaceful=Near(cells[2],0,255,0);
-            bool skin=R(cells[3])>128, busy=G(cells[3])>128;
-            if (action==null || recovery==null || (!combat && !peaceful) || !Near(cells[3],skin?255:0,busy?255:0,255)
-                || (action=="skin")!=skin || (combat && action!="combat" && action!="waiting" && action!="unknown")
-                || (recovery=="recover" && combat) || (recovery=="emergency" && !combat)
-                || (action=="unknown" && recovery=="none")
-                || B(cells[8])<90 || B(cells[8])>114 || Math.Abs(R(cells[8])+G(cells[8])-255)>12) return null;
-            return new Packet { Action=action, Recovery=recovery, Flavor=flavor, Combat=combat, Skin=skin, Busy=busy,
-                ClassId=classId, Heartbeat=R(cells[6]), EncounterId=R(cells[8]) };
+            int slot=(int)Math.Round((value-start)/(double)step);
+            return slot>=0 && slot<count && Math.Abs(value-(start+slot*step))<=2 ? slot : -1;
+        }
+        // Pure v4 parser: exactly two RGB colors with quantized channels and coherence checksum.
+        public static Packet Decode(uint[] cells,string expectedFlavor)
+        {
+            if (cells==null || cells.Length!=2 || cells[0]==0xffffffff || cells[1]==0xffffffff) return null;
+            int action=Slot(R(cells[0]),16,32,7), identity=Slot(G(cells[0]),16,8,26);
+            int encounter=Slot(B(cells[0]),4,8,32), aux=Slot(R(cells[1]),8,16,16);
+            int beat=Slot(G(cells[1]),8,16,16), check=Slot(B(cells[1]),8,16,16);
+            if (action<0 || identity<0 || encounter<0 || aux<0 || beat<0 || check<0
+                || check!=(action+identity+encounter+aux+beat+7)%16) return null;
+            string flavor=identity<13 ? "titan" : "forerver";
+            if (flavor!=expectedFlavor) return null;
+            string[] actions={"unknown","idle","opening","waiting","combat","loot","skin"};
+            string[] recoveries={"none","recover","emergency","unknown"};
+            string state=actions[action], recovery=recoveries[aux/4];
+            bool combat=(aux&2)!=0, busy=(aux&1)!=0;
+            if ((state=="unknown" && recovery=="none") || recovery=="unknown"
+                || (combat && state!="combat" && state!="waiting" && state!="unknown")
+                || (recovery=="recover" && combat) || (recovery=="emergency" && !combat)) return null;
+            return new Packet {Action=state,Recovery=recovery,Flavor=flavor,Combat=combat,Busy=busy,
+                Skin=state=="skin",ClassId=identity%13+1,Heartbeat=beat,EncounterId=encounter};
         }
         private static Input Key(ushort code,bool up)
         {

@@ -83,21 +83,23 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - 设置“咬钩匹配片段”分组采用DropDownList/OwnerDrawFixed/Flat灰底白字，显示序号/日期/来源/1秒时长；试听只播放所选短WAV一次，System.Media.SoundPlayer.Load后Play异步，一次一个播放器，切换选择/另一服试听/成功保存/取消/关闭/Dispose均Stop并Dispose，缺失文件提示不改选择，不退回180秒整段。PreviewStatus采用“试听片段”描述，避免1秒播放结束后仍显示正在播放。播放属于工具PID，游戏进程回环不包含它；弹窗继续暂停游戏切换/按键。UiTest使用模拟播放器，验证不得实际播放用户录音或采集游戏。
 - TitanAudioRecordingId/ForerverAudioRecordingId为新增两项固定INI键，必须为对应目录已知整数ID；两项同时缺省兼容旧14项，部分缺失/重复/未知ID拒绝整份配置。统一验证和原子保存后应用选择，草稿/取消/写入失败不应用；独立存储，保存不替换当前会话的匹配器/候选/已匹配信号/截止。Capture条目RecordingId显示实际使用的编号，TemplateSession记录钓鱼会话，只有新非零AudioSession才按所选ID加载；先Arm(0)，再锁内SetTemplate，再Arm新会话。道具保持引起的同一会话解除/重新Arm不得切换；载入失败停止本行，不回退。SetTemplate要求session=0并校验模板/门槛，清空已过期信号，捕获线程全部匹配仍在gate锁内。Audio.Recordings.UiTests.ps1验证编号/试听/INI/保存回滚/活动轮次和信号保留/下轮切换/版本及失败隔离；Audio.RecordingSwitch.Tests.ps1仅用未调用原生构造函数的内存对象及合成PCM验证实际C#切换保护，不创建采集线程。快捷方式安装检查五个运行文件，包含新Recordings模块。
 
-## autoFight（2026-10-12）
+## autoFight（2026-10-13）
 
-- 当前合集版本titan2.1.8、forerver2.2.7，两服独立维护fight_detector.lua；保留fightDetectorDB / rangeSpells，新增profiles[classId]恢复阈值。Core及钓鱼模块不变，战斗不读写wowDetectorDB、音频、图形或交互CVar。
+- 当前合集版本titan2.1.9、forerver2.2.8，两服独立维护fight_detector.lua；保留fightDetectorDB / rangeSpells，新增profiles[classId]恢复阈值。Core及钓鱼模块不变，战斗不读写wowDetectorDB、音频、图形或交互CVar。
 - autoFight.ps1、Engine.ps1、Native.cs、config.json的状态、输入、计时和配置与autofish隔离，只共享主题及标签。离开标签停止上一页，UiTest以模拟类型替代战斗原生操作，不加载战斗输入适配器。
-- 插件驱动主色opening / waiting / combat / idle / 四向move / loot / skin；恢复独立输出none / recover / emergency。v3九格为中心y=-64、x=-56..72、间距16、格宽10，新签名RGB0/192/255，第9格怪物会话RGB(N,255-N,102)，第4格R剥皮 / G忙碌 / B255；独立12px恢复点为x=+88、y=-64，蓝无需恢复、紫非战斗、橙紧急、灰未知。不要合并回主状态格，旧v1/v2两端不混用。
+- 双色块v4：插件只输出unknown / idle / opening / waiting / combat / loot / skin，移除全部移动UI及处理。中心y=-64、x=-16/+16，两格12px物理尺寸；主RGB=(16+32*action,16+8*identity,4+8*encounter)，副RGB=(8+16*aux,8+16*beat,8+16*checksum)。action=0..6；identity=classId-1+（forerver为13）；encounter模32；aux=recovery*4+combat*2+busy，recovery=none/recover/emergency/unknown即0..3；beat=floor(GetTime()*10)模16；checksum=(action+identity+encounter+aux+beat+7)模16。两块保留职业/版本/心跳/怪物身份，不混用旧协议，恢复未知/非法/校验失败拒绝读取；主状态未知但恢复需求明确时保留恢复。
 - HP进入 / 退出阈值默认非战斗80/95、紧急30/50；可选法力恢复默认关闭，只对法力职业生效。0关闭项，进入<退出，迟滞避免状态抖动。受限 / 不可读不推断。恢复优先于普通动作；施法 / 引导 / 战利品窗口阻止普通发键，紧急宏允许打断当前施法。
-- PC状态切换设置EntryPending，正常战斗 / 紧急恢复各用独立重试间隔；开怪成功后按怪物会话编号仅一次，随后等待接近且不发任何按键，非战斗恢复只在进入时发送一次；动作冷却不阻塞状态轮询。独立恢复清除后回到主状态。发键前重读主状态、恢复和忙碌；取得前台须新心跳，保持时监测并允许恢复 / 战斗抢占交互。
-- 自动移动选择规则用户尚未确定；只保留四个方向状态、快捷键及插件面板单次请求，默认不自动移动、不巡逻、不持久恢复请求。PC以非阻塞50ms计时按住100–2000ms，状态改变 / 超时 / 停止 / 刷新 / 关闭 / 设置 / 失焦 / 无效或冻结心跳均释放本模块按住的键，不让移动跨窗口。
-- 尸体交互按可拾取 → 无剩余战利品且可剥皮驱动；CanLootUnit同时读取hasLoot / canLoot，两项均明确且有权限才拾取，受限 / 不完整返回为unknown。有战利品而无权限时不交互、不判剥皮。LOOT_OPENED / LOOT_CLOSED维护忙碌，LOOT_READY / LOOT_SLOT_CLEARED及轮询刷新；两服独立实现。PC记录LastInteractionState，新拾取 / 剥皮阶段不继承上一阶段冷却，同阶段重新进入仍受NextInteractionAt限制；发键前仍要求非战斗、非忙碌及无需恢复。交互键沿用SkinKey，设置界面明确“拾取 / 剥皮交互键”，默认F7，按两服 / 职业保存；游戏内绑定交互；独立Loot.lua处理已打开窗口的自动拾取及拾取绑定确认，不改变CVar。
-- JSON v3顶层CommandIntervalMs保存战斗公共最小间隔（100–60000ms、默认500、UI步进100），两服各13职业保存九个键及五项计时、交互开关。v1只读迁移保留AttackKey为开怪及正常战斗、原间隔和交互，下次保存升级；取消 / 写入失败不应用草稿。缺省F5/F6/F8/F9、W/S/Q/E、F7，开怪每怪一次（旧OpeningIntervalMs字段仅保留兼容）、战斗500ms、紧急1500ms、移动400ms、交互3500ms。
+- PC普通/紧急恢复各次进入仅成功执行一次，由独立RecoveryState/RecoverySent门闩维护；只有退出或切换恢复类型重置，主状态/怪物变化不得重发；失败保留待执行。正常战斗保留重试间隔，开怪按怪物编号一次，waiting不发键。发键前重读主副色、忙碌和怪物编号；取得前台须新心跳。
+- 插件不包含移动功能。PC通用四向键由脚本行方向按钮请求一次，仅在idle/非忙碌/无需恢复执行，不自动巡逻。非阻塞50ms计时按住100–2000ms；状态变化/到期/停止/刷新/关闭/设置/失焦/无效或冻结心跳均释放本模块键。重复方向请求可重新执行。
+- 尸体交互按可拾取 → 无剩余战利品且可剥皮驱动；CanLootUnit同时读取hasLoot / canLoot，两项均明确且有权限才拾取，受限 / 不完整返回为unknown。有战利品而无权限时不交互、不判剥皮。LOOT_OPENED / LOOT_CLOSED维护忙碌，LOOT_READY / LOOT_SLOT_CLEARED及轮询刷新；两服独立实现。PC记录LastInteractionState，新拾取 / 剥皮阶段不继承上一阶段冷却，同阶段重新进入仍受NextInteractionAt限制；发键前仍要求非战斗、非忙碌及无需恢复。交互键沿用SkinKey，设置界面明确“拾取 / 剥皮交互键”，默认F7，按脚本Common通用保存；游戏内绑定交互；独立Loot.lua处理已打开窗口的自动拾取及拾取绑定确认，不改变CVar。
+- JSON v4：CommandIntervalMs保留公共100–60000ms间隔；Common保存四向键、移动时长、交互键/保持/开关，全部服务器职业共享。Profiles仅保留两服13职业的OpeningKey/CombatKey/RecoveryKey/EmergencyKey/CombatIntervalMs及身份；移除开怪/紧急恢复重试字段。v1–v3只读迁移，唯一非默认通用值优先保留，多种冲突自定义提示修正；下次原子保存升级，取消/失败不应用草稿。当前A/D与=自定义保留。
 - 本次Windows任务须执行解析、编译和模拟检查，提交并成功推送后同步两服及桌面快捷方式；不运行真实发键循环、采集游戏声音或结束游戏进程。
 
 - 钓鱼JumpEveryCycles独立保存到config.ini，0–1000000、默认0、步进1；旧INI缺省沿用当前值且不重写。每进程仅有效成功收竿计数，满N次在冷却 / 保持后有效红绿状态按空格，未知等待、黄色优先。保留绿色恢复跳跃，成功一次清除两种待跳并归零，失败重试；停止 / 刷新保留进程计数，改变N重置、重复保存不重置。设置原子写入成功才应用。JumpInterval引擎/UI模拟覆盖。
-- 战斗公共CommandGate跨窗口 / 职业 / 状态门控全部成功发键，不约束钓鱼；职业更长冷却和保持仍有效。松键不延迟且不消耗间隔；停止 / 刷新不重置LastSentAt，保存间隔也保留它。v1/v2只读迁移默认公共500ms，下次保存升级v3，全部字段成功写入才应用。AutoFight.Engine.Tests.ps1及UiTest模拟配置失败和全部状态跨窗口门控，生产Native.cs仅编译。
+- 战斗公共CommandGate跨窗口 / 职业 / 状态门控全部成功发键，不约束钓鱼；职业更长冷却和保持仍有效。松键不延迟且不消耗间隔；停止 / 刷新不重置LastSentAt，保存间隔也保留它。v1/v2只读迁移默认公共500ms，下次保存升级v4，全部字段成功写入才应用。AutoFight.Engine.Tests.ps1及UiTest模拟配置失败和全部状态跨窗口门控，生产Native.cs仅编译。
 - 两服各自Loot.lua监听LOOT_OPENED / LOOT_READY / LOOT_SLOT_CHANGED / LOOT_SLOT_CLEARED / LOOT_CLOSED，使用本客户端GetNumLootItems / GetLootSlotInfo第6项locked / LootSlot拾取未锁定槽位。LOOT_BIND_CONFIRM排队下一帧ConfirmLootSlot，成功才StaticPopup_Hide("LOOT_BIND", slot)；只确认拾取绑定，失败保留人工提示、受限不比较、不改变CVar或两模块设置。按槽位去重、关闭清空；Loot.Tests.lua分别模拟两服，ForeverCompatibility.Tests.lua按实际TOC加载完整模块。
 
 - 距离检测：两服独立fight_detector/Range.lua采用经典 / Forever已知敌对物品探针，档位5/10/15/20/25/30/35/40码，C_Item.IsItemInRange优先、全局接口仅缺省回退，先排除受限返回；缺失、异常、冲突为unknown。加载时预热物品数据，不使用、购买物品或读取怪物坐标。profiles[classId].DetectionRangeYards默认30，顶层AttackRangeYards默认5且为该客户端账号全局；旧rangeSpells保留。面板一次校验全部距离和恢复阈值后保存，非法不部分应用。
-- 开怪后跟踪GUID，玩家对该目标的伤害技能成功或进入战斗后只按攻击距离输出waiting / combat；退远回waiting，不能因进入战斗直接攻击。当前目标优先于其他近处姓名板；会话编号变化解除PC开怪一次标记，输入前重查编号。waitingRGB0/192/192，PC等待期间不发开怪 / 攻击 / 恢复 / 移动键，但按住键的释放仍立即执行。独立恢复色块保留，退出等待后恢复其优先处理。FightDistance.Tests.lua分别模拟两服；AutoFight.Distance.Tests.ps1仅调用生产C#纯Decode；UiTest覆盖生产PC调度与输入重查，严禁真实游戏输入验证。
+- 开怪后跟踪GUID，玩家对该目标的伤害技能成功或进入战斗后只按攻击距离输出waiting / combat；退远回waiting，不能因进入战斗直接攻击。当前目标优先于其他近处姓名板；会话编号变化解除PC开怪一次标记，输入前重查编号。waiting由v4动作3编码，PC等待期间不发开怪 / 攻击 / 恢复 / 移动键，但按住键的释放仍立即执行。副色块恢复信息保留，退出等待后恢复其优先处理。FightDistance.Tests.lua分别模拟两服；AutoFight.Distance.Tests.ps1仅调用生产C#纯Decode；UiTest覆盖生产PC调度与输入重查，严禁真实游戏输入验证。
+
+- 双块缩放：插件unit=UIParent:GetHeight()/GetPhysicalScreenSize高度，将尺寸/偏移换成12px及±16/-64物理像素，DISPLAY_SIZE_CHANGED/UI_SCALE_CHANGED及轮询重新计算。PC同一PMv2 DPI上下文每次读取客户区坐标，前后窗口尺寸/位置和色块一致才解码；不能缓存旧窗口中心。FightDistance / AutoFight.Distance分别验证Lua几何和C#采样，两者可用TEST_PIXEL_OUTPUT跨语言校验真实插件RGB。AutoFight.Recovery及完整UiTest验证一次恢复及通用草稿隔离，禁止真实游戏操作。

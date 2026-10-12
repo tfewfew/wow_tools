@@ -8,19 +8,52 @@ $script:autoFightStates = [ordered]@{
     'waiting'=@{Label='等待怪物接近'; Key=$null; Interval=$null}
     'combat'=@{Label='正常战斗'; Key='CombatKey'; Interval='CombatIntervalMs'}
     'recover'=@{Label='非战斗恢复'; Key='RecoveryKey'; Interval=$null}
-    'emergency'=@{Label='战斗紧急恢复'; Key='EmergencyKey'; Interval='EmergencyIntervalMs'}
+    'emergency'=@{Label='战斗紧急恢复'; Key='EmergencyKey'; Interval=$null}
     'move-forward'=@{Label='向前移动'; Key='MoveForwardKey'; Interval=$null}
     'move-backward'=@{Label='向后移动'; Key='MoveBackwardKey'; Interval=$null}
     'move-left'=@{Label='向左移动'; Key='MoveLeftKey'; Interval=$null}
     'move-right'=@{Label='向右移动'; Key='MoveRightKey'; Interval=$null}
     'loot'=@{Label='拾取'; Key='SkinKey'; Interval='InteractionHoldMs'}
     'skin'=@{Label='剥皮'; Key='SkinKey'; Interval='InteractionHoldMs'}
-    'idle'=@{Label='等待目标 / 移动间歇'; Key=$null; Interval=$null}
+    'idle'=@{Label='等待目标'; Key=$null; Interval=$null}
 }
-$script:autoFightKeyFields=@('OpeningKey','CombatKey','RecoveryKey','EmergencyKey','MoveForwardKey',
-    'MoveBackwardKey','MoveLeftKey','MoveRightKey','SkinKey')
-$script:autoFightProfileFields=@('Flavor','ClassId')+$script:autoFightKeyFields+@('OpeningIntervalMs',
-    'CombatIntervalMs','EmergencyIntervalMs','MovementHoldMs','InteractionHoldMs','SkinEnabled')
+$script:autoFightKeyFields=@('OpeningKey','CombatKey','RecoveryKey','EmergencyKey')
+$script:autoFightCommonKeyFields=@('MoveForwardKey','MoveBackwardKey','MoveLeftKey','MoveRightKey','SkinKey')
+$script:autoFightCommonFields=$script:autoFightCommonKeyFields+@('MovementHoldMs','InteractionHoldMs','SkinEnabled')
+$script:autoFightProfileFields=@('Flavor','ClassId')+$script:autoFightKeyFields+@('CombatIntervalMs')
+$script:autoFightLegacyFields=@('Flavor','ClassId')+$script:autoFightKeyFields+$script:autoFightCommonKeyFields+
+    @('OpeningIntervalMs','CombatIntervalMs','EmergencyIntervalMs','MovementHoldMs','InteractionHoldMs','SkinEnabled')
+function New-AutoFightCommon {
+    return [pscustomobject]@{MoveForwardKey='W';MoveBackwardKey='S';MoveLeftKey='Q';MoveRightKey='E';
+        SkinKey='F7';MovementHoldMs=400;InteractionHoldMs=3500;SkinEnabled=$true}
+}
+function Copy-AutoFightCommon($Common) {
+    $fields=[ordered]@{}
+    foreach ($field in $script:autoFightCommonFields) {$fields[$field]=$Common.$field}
+    return [pscustomobject]$fields
+}
+function ConvertTo-AutoFightCommon($Common) {
+    $actual=@($Common.PSObject.Properties.Name)
+    if ($actual.Count -ne $script:autoFightCommonFields.Count -or @($actual | Where-Object {$_ -notin $script:autoFightCommonFields}).Count) {
+        throw 'autoFight 通用配置字段不完整或包含未知字段。'
+    }
+    $fields=[ordered]@{}
+    foreach ($field in $script:autoFightCommonKeyFields) {$fields[$field]=(ConvertFrom-AutoFightBinding $Common.$field).Text}
+    if (@($script:autoFightCommonKeyFields[0..3] | ForEach-Object {$fields[$_]} | Select-Object -Unique).Count -ne 4) {
+        throw '四个移动方向必须绑定不同的按键。'
+    }
+    $fields.MovementHoldMs=Get-AutoFightInteger $Common.MovementHoldMs 100 2000 '移动按住时长 (ms)'
+    $fields.InteractionHoldMs=Get-AutoFightInteger $Common.InteractionHoldMs 1000 60000 '交互前台保持 (ms)'
+    if ($Common.SkinEnabled -isnot [bool]) {throw '拾取 / 剥皮交互开关必须为布尔值。'}
+    $fields.SkinEnabled=$Common.SkinEnabled
+    return [pscustomobject]$fields
+}
+function Get-AutoFightEffectiveProfile($Profile,$Common) {
+    $fields=[ordered]@{}
+    foreach ($field in $script:autoFightProfileFields) {$fields[$field]=$Profile.$field}
+    foreach ($field in $script:autoFightCommonFields) {$fields[$field]=$Common.$field}
+    return [pscustomobject]$fields
+}
 function New-AutoFightBinding([int]$Code,[bool]$Ctrl,[bool]$Shift,[bool]$Alt) {
     if (-not (($Code -ge 48 -and $Code -le 57) -or ($Code -ge 65 -and $Code -le 90) -or
         ($Code -ge 96 -and $Code -le 111) -or ($Code -ge 112 -and $Code -le 135) -or
@@ -58,10 +91,8 @@ function Get-AutoFightInteger($Value,[int]$Minimum,[int]$Maximum,[string]$Label)
     return [int]$number
 }
 function New-AutoFightProfile([string]$Flavor,[int]$ClassId) {
-    return [pscustomobject]@{Flavor=$Flavor; ClassId=$ClassId; OpeningKey='F5'; CombatKey='F6';
-        RecoveryKey='F8'; EmergencyKey='F9'; MoveForwardKey='W'; MoveBackwardKey='S'; MoveLeftKey='Q';
-        MoveRightKey='E'; SkinKey='F7'; OpeningIntervalMs=2000; CombatIntervalMs=500;
-        EmergencyIntervalMs=1500; MovementHoldMs=400; InteractionHoldMs=3500; SkinEnabled=$true}
+    return [pscustomobject]@{Flavor=$Flavor;ClassId=$ClassId;OpeningKey='F5';CombatKey='F6';
+        RecoveryKey='F8';EmergencyKey='F9';CombatIntervalMs=500}
 }
 function New-AutoFightProfiles {
     $profiles=@{}
@@ -79,10 +110,10 @@ function Copy-AutoFightProfiles($Profiles) {
     }
     return $copy
 }
-function ConvertTo-AutoFightProfiles($Items,[int]$Version=2) {
+function ConvertTo-AutoFightProfiles($Items,[int]$Version=4) {
     $result=@{}
     foreach ($item in @($Items)) {
-        $expected=$script:autoFightProfileFields
+        $expected=if ($Version -eq 4) {$script:autoFightProfileFields} else {$script:autoFightLegacyFields}
         if ($Version -eq 1) { $expected=@('Flavor','ClassId','AttackKey','SkinKey','AttackIntervalMs','InteractionHoldMs','SkinEnabled') }
         $actual=@($item.PSObject.Properties.Name)
         if ($actual.Count -ne $expected.Count -or @($actual | Where-Object { $_ -notin $expected }).Count) {
@@ -94,20 +125,22 @@ function ConvertTo-AutoFightProfiles($Items,[int]$Version=2) {
         if ($Version -eq 1) {
             $p=New-AutoFightProfile $item.Flavor $id
             $p.OpeningKey=$item.AttackKey; $p.CombatKey=$item.AttackKey
-            $p.CombatIntervalMs=$item.AttackIntervalMs; $p.SkinKey=$item.SkinKey
-            $p.InteractionHoldMs=$item.InteractionHoldMs; $p.SkinEnabled=$item.SkinEnabled
+            $p.CombatIntervalMs=$item.AttackIntervalMs
         }
         $fields=[ordered]@{Flavor=$p.Flavor; ClassId=$id}
         foreach ($field in $script:autoFightKeyFields) { $fields[$field]=(ConvertFrom-AutoFightBinding $p.$field).Text }
-        $directions=@($fields.MoveForwardKey,$fields.MoveBackwardKey,$fields.MoveLeftKey,$fields.MoveRightKey)
-        if (@($directions | Select-Object -Unique).Count -ne 4) { throw '四个移动方向必须绑定不同的按键。' }
-        if ($p.SkinEnabled -isnot [bool]) { throw '拾取 / 剥皮交互开关必须为布尔值。' }
-        $fields.OpeningIntervalMs=Get-AutoFightInteger $p.OpeningIntervalMs 100 60000 '开怪重试间隔 (ms)'
         $fields.CombatIntervalMs=Get-AutoFightInteger $p.CombatIntervalMs 100 10000 '正常战斗间隔 (ms)'
-        $fields.EmergencyIntervalMs=Get-AutoFightInteger $p.EmergencyIntervalMs 100 60000 '紧急恢复重试间隔 (ms)'
-        $fields.MovementHoldMs=Get-AutoFightInteger $p.MovementHoldMs 100 2000 '移动按住时长 (ms)'
-        $fields.InteractionHoldMs=Get-AutoFightInteger $p.InteractionHoldMs 1000 60000 '拾取 / 剥皮前台保持 (ms)'
-        $fields.SkinEnabled=$p.SkinEnabled
+        if ($Version -lt 4) {
+            $legacy=New-AutoFightCommon
+            foreach ($field in $script:autoFightCommonFields) {
+                if ($Version -gt 1 -or $field -in @('SkinKey','InteractionHoldMs','SkinEnabled')) {$legacy.$field=$item.$field}
+            }
+            $null=ConvertTo-AutoFightCommon $legacy
+            if ($Version -gt 1) {
+                $null=Get-AutoFightInteger $item.OpeningIntervalMs 100 60000 '旧开怪间隔'
+                $null=Get-AutoFightInteger $item.EmergencyIntervalMs 100 60000 '旧紧急恢复间隔'
+            }
+        }
         $key="$($p.Flavor):$id"
         if ($result.ContainsKey($key)) { throw "重复的职业配置：$key" }
         $result[$key]=[pscustomobject]$fields
@@ -126,46 +159,64 @@ function Complete-AutoFightCommand($Gate,[long]$Now,[bool]$Sent) {
     if ($Sent) { $Gate.LastSentAt=$Now }
 }
 function Read-AutoFightConfiguration([string]$Path) {
-    if (-not [IO.File]::Exists($Path)) { return [pscustomobject]@{Profiles=(New-AutoFightProfiles); CommandIntervalMs=500} }
+    if (-not [IO.File]::Exists($Path)) { return [pscustomobject]@{Profiles=(New-AutoFightProfiles);Common=(New-AutoFightCommon);CommandIntervalMs=500} }
     $document=[IO.File]::ReadAllText($Path,[Text.Encoding]::UTF8) | ConvertFrom-Json
-    if ($null -eq $document -or $document.Version -notin @(1,2,3)) {
-        throw '无法读取 autoFight 配置版本或内容。'
-    }
+    if ($null -eq $document -or $document.Version -notin @(1,2,3,4)) {throw '无法读取 autoFight 配置版本或内容。'}
     $expected=@('Version','Profiles')
-    if ($document.Version -eq 3) { $expected+='CommandIntervalMs' }
+    if ($document.Version -ge 3) {$expected+='CommandIntervalMs'}
+    if ($document.Version -eq 4) {$expected+='Common'}
     $actual=@($document.PSObject.Properties.Name)
-    if ($actual.Count -ne $expected.Count -or @($actual | Where-Object { $_ -notin $expected }).Count -or $null -eq $document.Profiles) {
+    if ($actual.Count -ne $expected.Count -or @($actual | Where-Object {$_ -notin $expected}).Count -or $null -eq $document.Profiles) {
         throw 'autoFight 配置字段不完整或包含未知字段。'
     }
     $interval=500
-    if ($document.Version -eq 3) { $interval=Get-AutoFightInteger $document.CommandIntervalMs 100 60000 '公共最小按键间隔 (ms)' }
-    return [pscustomobject]@{Profiles=(ConvertTo-AutoFightProfiles $document.Profiles $document.Version); CommandIntervalMs=$interval}
+    if ($document.Version -ge 3) {$interval=Get-AutoFightInteger $document.CommandIntervalMs 100 60000 '公共最小按键间隔 (ms)'}
+    $profiles=ConvertTo-AutoFightProfiles $document.Profiles $document.Version
+    $common=New-AutoFightCommon
+    if ($document.Version -eq 4) {$common=ConvertTo-AutoFightCommon $document.Common}
+    else {
+        # Prefer a unique user customization over untouched defaults. Ambiguous old values need correction.
+        foreach ($field in $script:autoFightCommonFields) {
+            $values=@($document.Profiles | Where-Object {$null -ne $_.$field -and $_.$field -ne $common.$field} |
+                ForEach-Object {$_.$field} | Select-Object -Unique)
+            if ($values.Count -gt 1) {throw "旧配置的 $field 有多个不同设置，请在通用设置中统一后保存。"}
+            if ($values.Count -eq 1) {$common.$field=$values[0]}
+        }
+        $common=ConvertTo-AutoFightCommon $common
+    }
+    return [pscustomobject]@{Profiles=$profiles;Common=$common;CommandIntervalMs=$interval}
 }
-function Read-AutoFightProfiles([string]$Path) { return (Read-AutoFightConfiguration $Path).Profiles }
-function Save-AutoFightProfiles([string]$Path,$Profiles,$CommandIntervalMs=500) {
+function Read-AutoFightProfiles([string]$Path) {return (Read-AutoFightConfiguration $Path).Profiles}
+function Save-AutoFightProfiles([string]$Path,$Profiles,$CommandIntervalMs=500,$Common=(New-AutoFightCommon)) {
     $valid=ConvertTo-AutoFightProfiles @($Profiles.Values)
+    $general=ConvertTo-AutoFightCommon $Common
     $interval=Get-AutoFightInteger $CommandIntervalMs 100 60000 '公共最小按键间隔 (ms)'
-    $items=@($valid.Keys | Sort-Object | ForEach-Object { $valid[$_] })
-    $json=[pscustomobject]@{Version=3; CommandIntervalMs=$interval; Profiles=$items} | ConvertTo-Json -Depth 5
+    $items=@($valid.Keys | Sort-Object | ForEach-Object {$valid[$_]})
+    $json=[pscustomobject]@{Version=4;CommandIntervalMs=$interval;Common=$general;Profiles=$items} | ConvertTo-Json -Depth 5
     $temporary=$Path+'.'+[Guid]::NewGuid().ToString('N')+'.tmp'
     try {
         [IO.File]::WriteAllText($temporary,$json,(New-Object Text.UTF8Encoding($false)))
-        if ([IO.File]::Exists($Path)) { [IO.File]::Replace($temporary,$Path,[System.Management.Automation.Language.NullString]::Value) }
-        else { [IO.File]::Move($temporary,$Path) }
-    }
-    finally { if ([IO.File]::Exists($temporary)) { [IO.File]::Delete($temporary) } }
+        if ([IO.File]::Exists($Path)) {[IO.File]::Replace($temporary,$Path,[System.Management.Automation.Language.NullString]::Value)}
+        else {[IO.File]::Move($temporary,$Path)}
+    } finally {if ([IO.File]::Exists($temporary)) {[IO.File]::Delete($temporary)}}
     return $valid
 }
 function New-AutoFightSession([long]$Now,[int]$ClassId) {
     return [pscustomobject]@{Id=[Guid]::NewGuid().ToString('N'); ClassId=$ClassId; Due=$Now;
         State=''; EnteredAt=$Now; EntryPending=$true; NextActionAt=$Now; NextInteractionAt=0L; LastInteractionState='';
-        EncounterId=-1; OpeningSent=$false}
+        EncounterId=-1; OpeningSent=$false;RecoveryState='none';RecoverySent=$false;MovementRequest=''}
 }
 function Update-AutoFightState($Session,$Packet,[long]$Now) {
+    if ($Session.RecoveryState -ne $Packet.Recovery) {
+        $Session.RecoveryState=$Packet.Recovery; $Session.RecoverySent=$false
+    }
     $changed=$Session.EncounterId -ne $Packet.EncounterId
     if ($changed) { $Session.EncounterId=$Packet.EncounterId; $Session.OpeningSent=$false }
     $state=if ($Packet.Action -eq 'waiting' -or ($Packet.Action -eq 'opening' -and $Session.OpeningSent)) { 'waiting' }
-        elseif ($Packet.Recovery -ne 'none') { $Packet.Recovery } else { $Packet.Action }
+        elseif ($Packet.Recovery -ne 'none') { $Packet.Recovery }
+        elseif ($Packet.Action -eq 'idle' -and -not $Packet.Busy -and $Session.MovementRequest) {'move-'+$Session.MovementRequest}
+        else { $Packet.Action }
+    if ($Packet.Action -ne 'idle' -or $Packet.Recovery -ne 'none' -or $Packet.Busy) {$Session.MovementRequest=''}
     if ($Session.State -eq $state -and -not $changed) { return $false }
     $Session.State=$state; $Session.EnteredAt=$Now; $Session.EntryPending=$true
     $Session.NextActionAt=$Now
@@ -176,6 +227,7 @@ function Get-AutoFightAction($Session,$Packet,$Profile,[long]$Now) {
     if (-not $script:autoFightStates.Contains($Session.State)) { return 'identity-changed' }
     # Waiting is deliberately quiet, including recovery keys. Key releases remain immediate.
     if ($Packet.Action -eq 'waiting' -or ($Packet.Action -eq 'opening' -and $Session.OpeningSent)) { return 'wait' }
+    if ($Session.State -in @('recover','emergency') -and $Session.RecoverySent) {return 'wait'}
     # Emergency macros may stop a current cast; all other handlers wait for busy to clear.
     if ($Packet.Busy -and $Session.State -ne 'emergency') { return 'wait' }
     $handler=$script:autoFightStates[$Session.State]
@@ -191,6 +243,8 @@ function Get-AutoFightAction($Session,$Packet,$Profile,[long]$Now) {
 }
 function Complete-AutoFightAction($Session,$Profile,[string]$Action,[long]$Now) {
     $Session.EntryPending=$false
+    if ($Action -in @('recover','emergency')) {$Session.RecoverySent=$true}
+    if ($Action.StartsWith('move-')) {$Session.MovementRequest=''}
     if ($Action -eq 'opening') { $Session.OpeningSent=$true }
     $interval=$script:autoFightStates[$Action].Interval
     $Session.NextActionAt=if ($interval) { $Now+$Profile.$interval } else { [long]::MaxValue }

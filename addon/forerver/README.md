@@ -1,6 +1,6 @@
 # forerver
 
-无限服的独立插件源码：`wow_tools/`，版本2.2.7，接口16001。目录拼写按用户约定为 `forerver`。安装后仍名为wow_tools，包含wowDetector、fight_detector、自动拾取及inner_graphic_config。
+无限服的独立插件源码：`wow_tools/`，版本2.2.8，接口16001。目录拼写按用户约定为 `forerver`。安装后仍名为wow_tools，包含wowDetector、fight_detector、自动拾取及inner_graphic_config。
 
 移植目标为本机 `_cn_beta_\Wow.exe` 1.60.1.70338；已核对相同构建的[Blizzard界面源码导出](https://github.com/Gethe/wow-ui-source/tree/943764493e6b16d63ded3ab304150d1f05e58b57)，不是只更换TOC号。
 
@@ -35,3 +35,5 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\skills\wow-tools\scrip
 2.2.7：fight_detector增加本职业检测 / 开怪距离（默认30码）和全局开始战斗距离（默认5码），以游戏码数配置，可选5 / 10 / 15 / 20 / 25 / 30 / 35 / 40。已发现的怪物在开怪后持续跟踪，远于攻击范围显示青色“等待怪物接近”；进入范围才显示红色攻击，退远后继续等待。PC每个怪物会话仅成功下发一次开怪键，等待时不发任何键。进入战斗不直接允许攻击；怪物会话编号由新协议v3第9格传递，工具与插件需一起更新。
 
 两服分别在fightDetectorDB.profiles[classId].DetectionRangeYards保存本职业检测范围，fightDetectorDB.AttackRangeYards保存该客户端账号的全局攻击范围；不会复制账号 / 客户端间的SavedVariables。旧rangeSpells配置保留，新检测不依赖已学会的测距技能。独立Range.lua采用敌对目标物品距离探针；缺失 / 受限 / 冲突 / 失败数据为未知。姓名板只涵盖客户端已暴露的单位，不能扫描所有附近怪物；开怪宏仍需自行选敌并施放伤害技能。FightDistance.Tests.lua分别验证两服，AutoFight.Distance.Tests.ps1验证生产C#纯协议解析及PC状态流程，不发送真实按键。
+
+2.2.8将战斗协议收敛为主、副两块12px色块，移除插件移动按钮及处理；PC移动/交互转为通用设置，职业只配置攻击和恢复，普通/紧急恢复每次进入只执行一次。动态按物理窗口与UI缩放定位，两服独立Lua5.1及完整脚本模拟检查通过；更新须/reload并重启wowAuto。

@@ -42,6 +42,7 @@ try {
     $script:autoFight.Timer.Stop()
     $script:autoFight.ConfigPath=$fightPath
     $script:autoFight.Profiles=New-AutoFightProfiles
+    $script:autoFight.Common=New-AutoFightCommon
     $script:autoFight.CommandGate=New-AutoFightCommandGate
     $script:autoFight.CommandGate.LastSentAt=100L
     $tabs.SelectedTab=$script:autoFight.Tab
@@ -55,24 +56,34 @@ try {
         }
         Assert-Ui ($dialog.Tag.CommandInterval.Value -eq 500 -and $dialog.Tag.CommandInterval.Increment -eq 100) 'Combat common interval default / 100 ms step incorrect.'
         $dialog.Tag.CommandInterval.Value=800
+        $dialog.Tag.Bindings.MoveLeftKey.Text='A';$dialog.Tag.Bindings.MoveRightKey.Text='D'
+        $dialog.Tag.Bindings.SkinKey.Text='='
+        $dialog.Tag.Numbers.MovementHoldMs.Value=600
         $dialog.Tag.Flavor.SelectedIndex=1; $dialog.Tag.Class.SelectedIndex=2
+        Assert-Ui ($dialog.Tag.Bindings.MoveLeftKey.Text -eq 'A' -and $dialog.Tag.Bindings.SkinKey.Text -eq '=' -and
+            $dialog.Tag.Numbers.MovementHoldMs.Value -eq 600 -and $script:autoFight.Common.MoveLeftKey -eq 'Q') 'Common draft lost on profile selection or applied early.'
         $dialog.Tag.Bindings.CombatKey.Text='Ctrl+7'
         Assert-Ui ($dialog.Tag.CommandInterval.Value -eq 800 -and $script:autoFight.CommandGate.IntervalMs -eq 500) 'Profile selection reset common draft or draft applied early.'
         $dialog.Tag.Save.PerformClick()
         Assert-Ui ($dialog.IsDisposed -or -not $dialog.Visible) 'Combat save did not close dialog.'
         $saved=Read-AutoFightConfiguration $fightPath
+        Assert-Ui ($saved.Common.MoveLeftKey -eq 'A' -and $saved.Common.SkinKey -eq '=' -and $saved.Common.MovementHoldMs -eq 600 -and
+            $null -eq $saved.Profiles['titan:1'].PSObject.Properties['MoveLeftKey'] -and $null -eq $dialog.Tag.Numbers.EmergencyIntervalMs) 'Common fields remain class-specific or obsolete recovery interval remains visible.'
         Assert-Ui ($saved.CommandIntervalMs -eq 800 -and $script:autoFight.Profiles['forerver:3'].CombatKey -eq 'Ctrl+7' -and $script:autoFight.Profiles['titan:3'].CombatKey -eq 'F6' -and $script:autoFight.CommandGate.LastSentAt -eq 100) 'Combat save lost common/profile isolation or reset last send.'
     } finally {$dialog.Dispose()}
     $dialog=New-AutoFightSettingsDialog
-    try {$dialog.Show($form); Assert-Ui ($dialog.Tag.CommandInterval.Value -eq 800) 'Combat reopen lost saved interval.'; $dialog.Tag.CommandInterval.Value=900; $dialog.Tag.Cancel.PerformClick()}
+    try {$dialog.Show($form); Assert-Ui ($dialog.Tag.CommandInterval.Value -eq 800 -and $dialog.Tag.Bindings.MoveLeftKey.Text -eq 'A') 'Combat reopen lost saved interval/common key.'; $dialog.Tag.CommandInterval.Value=900; $dialog.Tag.Bindings.MoveLeftKey.Text='Z'; $dialog.Tag.Cancel.PerformClick()}
     finally {$dialog.Dispose()}
     Assert-Ui ($script:autoFight.CommandGate.IntervalMs -eq 800) 'Combat cancel applied draft.'
+    Assert-Ui ($script:autoFight.Common.MoveLeftKey -eq 'A') 'Cancel applied common draft.'
     $locked=[IO.File]::Open($fightPath,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
     try {
         $dialog=New-AutoFightSettingsDialog
         try {
-            $dialog.Show($form); $dialog.Tag.CommandInterval.Value=1000; $dialog.Tag.Bindings.CombatKey.Text='F12'; $dialog.Tag.Save.PerformClick()
+            $dialog.Show($form); $dialog.Tag.CommandInterval.Value=1000; $dialog.Tag.Bindings.CombatKey.Text='F12'
+            $dialog.Tag.Bindings.MoveLeftKey.Text='Z';$dialog.Tag.Numbers.MovementHoldMs.Value=900;$dialog.Tag.Save.PerformClick()
             Assert-Ui ($dialog.Visible -and $dialog.Tag.Error.Text -ne '' -and $script:autoFight.CommandGate.IntervalMs -eq 800 -and $script:autoFight.Profiles['titan:1'].CombatKey -eq 'F6') 'Failed combat save partially applied draft.'
+            Assert-Ui ($script:autoFight.Common.MoveLeftKey -eq 'A' -and $script:autoFight.Common.MovementHoldMs -eq 600) 'Failed save partially applied common fields.'
         } finally {$dialog.Dispose()}
     } finally {$locked.Dispose()}
     $script:autoFight.Editor=$null
@@ -89,9 +100,10 @@ try {
     function Prepare-FightInput($Row,[string]$State,[long]$Now) {
         $script:autoFight.Clock.ElapsedMilliseconds=$Now
         [WowAutoFight.Native]::Current.Flavor=$Row.Client.Flavor
-        [WowAutoFight.Native]::Current.Action=$State
-        [WowAutoFight.Native]::Current.Recovery='none'
+        [WowAutoFight.Native]::Current.Action=if ($State.StartsWith('move-')) {'idle'} elseif ($State -in @('recover','emergency')) {'idle'} else {$State}
+        [WowAutoFight.Native]::Current.Recovery=if ($State -in @('recover','emergency')) {$State} else {'none'}
         $Row.Session=New-AutoFightSession $Now 1
+        if ($State.StartsWith('move-')) {$Row.Session.MovementRequest=$State.Substring(5)}
         $pending=New-AutoFightPending $Row $Row.Session $false 0
         $pending.Activated=$true; $pending.SampleAt=0; $pending.FirstBeat=0; $pending.FirstClass=1
         $script:autoFight.Pending=$pending
@@ -107,7 +119,7 @@ try {
     Assert-Ui ([WowAutoFight.Native]::Sends -eq 1) 'Cross-window emergency bypassed common interval.'
     Prepare-FightInput $fightRows[0] 'move-forward' 2000; Invoke-AutoFightTick
     Assert-Ui ([WowAutoFight.Native]::Sends -eq 2 -and [WowAutoFight.Native]::IsHolding) 'Movement start missing.'
-    [WowAutoFight.Native]::Current.Action='idle'; $script:autoFight.Clock.ElapsedMilliseconds=2001
+    [WowAutoFight.Native]::Current.Action='combat'; $script:autoFight.Clock.ElapsedMilliseconds=2001
     Invoke-AutoFightTick
     Assert-Ui (-not [WowAutoFight.Native]::IsHolding -and [WowAutoFight.Native]::Releases -eq 1 -and $script:autoFight.CommandGate.LastSentAt -eq 2000) 'Release was delayed or consumed common interval.'
     Stop-AutoFightAll
@@ -141,6 +153,44 @@ try {
     [WowAutoFight.Native]::Current.EncounterId=3; [WowAutoFight.Native]::ReadsUntilEncounterChange=2
     Tick-FightEncounter $fightRows[0] 'opening' 9000
     Assert-Ui ([WowAutoFight.Native]::Sends -eq 6) 'Encounter changed immediately before input but opener was sent.'
+    $baseline=[WowAutoFight.Native]::Sends
+    foreach ($mode in @('recover','emergency')) {
+        $base=if ($mode -eq 'recover') {10000L} else {20000L}
+        [WowAutoFight.Native]::Current.Combat=($mode -eq 'emergency')
+        Tick-FightEncounter $fightRows[0] 'idle' $base $mode
+        $baseline++
+        Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline) 'Production adapter did not send recovery entry.'
+        Tick-FightEncounter $fightRows[0] 'idle' ($base+2000) $mode
+        [WowAutoFight.Native]::Current.EncounterId++
+        Tick-FightEncounter $fightRows[0] 'combat' ($base+4000) $mode
+        Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline) 'Production adapter repeated recovery.'
+        Tick-FightEncounter $fightRows[0] 'idle' ($base+5000)
+        Tick-FightEncounter $fightRows[0] 'idle' ($base+6000) $mode
+        $baseline++
+        Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline) 'Production adapter did not reset on recovery exit.'
+        Tick-FightEncounter $fightRows[0] 'idle' ($base+7000)
+    }
+    [WowAutoFight.Native]::Current.Combat=$false
+    Prepare-FightInput $fightRows[0] 'idle' 30000
+    Update-AutoFightControls
+    $fightRows[0].MoveButtons[2].PerformClick()
+    Invoke-AutoFightTick
+    $baseline++
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline -and [WowAutoFight.Native]::IsHolding -and
+        $script:autoFight.ActiveHold.Until -eq 30600) 'Script movement button/common duration not dispatched.'
+    $script:autoFight.Clock.ElapsedMilliseconds=30600;Invoke-AutoFightTick
+    Assert-Ui (-not [WowAutoFight.Native]::IsHolding) 'Script movement did not release at deadline.'
+    $fightRows[0].MoveButtons[2].PerformClick()
+    Tick-FightEncounter $fightRows[0] 'idle' 31000
+    $baseline++
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline -and [WowAutoFight.Native]::IsHolding) 'Repeated manual direction request stayed latched off.'
+    Stop-AutoFightAll
+    Prepare-FightInput $fightRows[0] 'combat' 32000
+    Invoke-AutoFightTick
+    $cooldown=$fightRows[0].Session.NextActionAt
+    Update-AutoFightControls
+    $fightRows[0].MoveButtons[0].PerformClick()
+    Assert-Ui ($fightRows[0].Session.NextActionAt -eq $cooldown -and -not $fightRows[0].Session.EntryPending) 'Movement request reset combat cooldown.'
     Assert-Ui ($script:scheduler.JumpEveryCycles -eq $fishJump -and (Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $fishIniHash -and (Get-FileHash -LiteralPath $fightSource).Hash -eq $fightSourceHash) 'Combat changed fishing settings or source configuration.'
     Write-Output 'PASS: combat settings 100 ms step/common draft/profile isolation/save/cancel/locked failure; mocked production input gate for all states, cross-window, release, restart and send failure. No real native operations.'
     Write-Output 'PASS: production combat UI adapter opens once, stays quiet through waiting/combat/emergency, attacks on approach, reopens for new monster and rechecks encounter before input.'

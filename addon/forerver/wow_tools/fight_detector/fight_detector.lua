@@ -11,19 +11,17 @@ local pullObserved=false
 local state, combat, skin, busy = "disabled", false, false, false
 local health, mana, settings = nil, nil, nil
 local recovery="none"
-local recoveryColors={none={0,0,255}, recover={255,0,255}, emergency={255,128,0}, unknown={128,128,128}}
 local recoveryDescriptions={none="无需恢复", recover="非战斗恢复", emergency="战斗紧急恢复", unknown="恢复未知"}
-local recovering, emergency, movementStarted, requestedMovement = false, false, nil, nil
+local recovering, emergency = false, false
 local settingDefaults = { HealthEnter=80, HealthExit=95, ManaEnter=0, ManaExit=90,
     EmergencyEnter=30, EmergencyExit=50 }
-local colors = { disabled={128,128,128}, unknown={128,128,128}, idle={0,0,255},
-    opening={255,96,0}, waiting={0,192,192}, combat={255,0,0},
-    ["move-forward"]={64,255,64}, ["move-backward"]={64,128,255},
-    ["move-left"]={255,192,64}, ["move-right"]={128,64,255}, skin={255,0,255}, loot={0,255,0} }
-local descriptions = { disabled="已关闭", unknown="数据未知，暂停指令", idle="等待目标 / 移动间歇",
-    opening="发现怪物，开怪", waiting="等待怪物接近", combat="进入攻击距离", recover="非战斗恢复", emergency="战斗紧急恢复",
-    ["move-forward"]="向前移动", ["move-backward"]="向后移动", ["move-left"]="向左移动",
-    ["move-right"]="向右移动", skin="可以剥皮", loot="可以拾取" }
+-- Two-cell v4 protocol. Main RGB = action / client+class / encounter.
+-- Auxiliary RGB = recovery+combat+busy / heartbeat / checksum of both cells.
+local actionCodes={unknown=0,idle=1,opening=2,waiting=3,combat=4,loot=5,skin=6}
+local recoveryCodes={none=0,recover=1,emergency=2,unknown=3}
+local descriptions={disabled="已关闭",unknown="数据未知，暂停指令",idle="等待目标",
+    opening="发现怪物，开怪",waiting="等待怪物接近",combat="进入攻击距离",
+    loot="可以拾取",skin="可以剥皮"}
 
 local function Readable(value)
     return not (issecretvalue and issecretvalue(value))
@@ -46,7 +44,7 @@ local function Say(message)
 end
 
 local panel = CreateFrame("Frame", "wowToolsFightDetectorPanel", UIParent)
-panel:SetSize(560, 388)
+panel:SetSize(560, 312)
 panel:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 12, -16)
 panel:SetFrameStrata("HIGH")
 panel:SetClampedToScreen(true)
@@ -110,17 +108,8 @@ for i,row in ipairs(thresholdRows) do
         caption:SetPoint("LEFT",box,"RIGHT",5,0); caption:SetText(j==2 and "进入" or "退出")
     end
 end
-local moveButtons = {}
-for i,entry in ipairs({{"off","停止移动"},{"forward","前"},
-    {"backward","后"},{"left","左"},{"right","右"}}) do
-    local button=CreateFrame("Button",nil,panel,"UIPanelButtonTemplate")
-    button:SetSize(72,24); button:SetPoint("TOPLEFT",12+(i-1)*76,-266)
-    button:SetText(entry[2]); moveButtons[entry[1]]=button
-end
-local movementLabel=panel:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall")
-movementLabel:SetPoint("TOPLEFT",12,-300)
 local hint=panel:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall")
-hint:SetPoint("TOPLEFT",12,-320)
+hint:SetPoint("TOPLEFT",12,-266)
 hint:SetText("进入值须低于退出值；进入值 0 表示关闭该项恢复。")
 local start = CreateFrame("Button",nil,panel,"UIPanelButtonTemplate")
 start:SetSize(64,22)
@@ -132,69 +121,47 @@ close:SetPoint("BOTTOMRIGHT",-12,8)
 close:SetText("关闭")
 panel:Hide()
 
--- Nine 10px protocol v3 cells at y=-64; an independent 12px recovery cell is at x=+88.
--- Independent from wowDetector's center and +32px lure points.
-local signal = CreateFrame("Frame",nil,UIParent)
+-- Exactly two opaque cells, fixed in physical client pixels despite UI/window scaling.
+local signal=CreateFrame("Frame",nil,UIParent)
 signal:SetAllPoints(UIParent)
 signal:SetFrameStrata("TOOLTIP")
 signal:EnableMouse(false)
-local cells = {}
-for i=1,9 do cells[i]=signal:CreateTexture(nil,"OVERLAY") end
-local recoveryCell=signal:CreateTexture(nil,"OVERLAY")
-local function PaintCell(index,r,g,b)
-    cells[index]:SetColorTexture(r/255,g/255,b/255,1)
+local cells={signal:CreateTexture(nil,"OVERLAY"),signal:CreateTexture(nil,"OVERLAY")}
+for _,cell in ipairs(cells) do
+    if cell.SetSnapToPixelGrid then cell:SetSnapToPixelGrid(false) end
+    if cell.SetTexelSnappingBias then cell:SetTexelSnappingBias(0) end
 end
 local function PositionSignal()
-    local height, ok
-    local width
-    if type(GetPhysicalScreenSize)=="function" then
-        ok, width, height = pcall(GetPhysicalScreenSize)
+    local width,height,ok
+    if type(GetPhysicalScreenSize)=="function" then ok,width,height=pcall(GetPhysicalScreenSize) end
+    local logicalHeight=UIParent:GetHeight()
+    if not ok or not Readable(height) or not Readable(width) or type(height)~="number"
+        or type(width)~="number" or height<160 or width<160 or not Readable(logicalHeight)
+        or type(logicalHeight)~="number" or logicalHeight<=0 then signal:Hide(); return false end
+    local unit=logicalHeight/height
+    for i,cell in ipairs(cells) do
+        cell:ClearAllPoints()
+        cell:SetPoint("CENTER",UIParent,"CENTER",(i==1 and -16 or 16)*unit,64*unit)
+        cell:SetSize(12*unit,12*unit)
     end
-    local scale = signal:GetEffectiveScale()
-    if not ok or not Readable(height) or type(height)~="number" or height<=0
-        or not Readable(scale) or type(scale)~="number" or scale<=0 then
-        signal:Hide()
-        return false
-    end
-    local unit = 768/height/scale
-    for i=1,9 do
-        cells[i]:ClearAllPoints()
-        cells[i]:SetPoint("CENTER",UIParent,"CENTER",(-56+(i-1)*16)*unit,64*unit)
-        cells[i]:SetSize(10*unit,10*unit)
-    end
-    recoveryCell:ClearAllPoints()
-    recoveryCell:SetPoint("CENTER",UIParent,"CENTER",88*unit,64*unit)
-    recoveryCell:SetSize(12*unit,12*unit)
     if enabled and panel:IsShown() then signal:Show() else signal:Hide() end
     return true
 end
 local function Paint()
-    for i=1,9 do PaintCell(i,128,128,128) end
-    recoveryCell:SetColorTexture(.5,.5,.5,1)
     if enabled and classID and PositionSignal() then
-        PaintCell(1,0,192,255) -- v3: distance-gated actions and encounter identity
-        PaintCell(2,unpack(colors[state] or colors.unknown))
-        if combat~=nil then PaintCell(3,combat and 255 or 0,combat and 0 or 255,0) end
-        if skin~=nil then PaintCell(4,skin and 255 or 0,busy and 255 or 0,255) end
-        PaintCell(5,classID*16,255-classID*16,85)
-        if FLAVOR=="titan" then PaintCell(6,255,128,0) else PaintCell(6,128,0,255) end
-        local beat=math.floor(GetTime()*10)%256
-        PaintCell(7,beat,255-beat,170)
-        local c=recoveryColors[recovery] or recoveryColors.unknown
-        recoveryCell:SetColorTexture(c[1]/255,c[2]/255,c[3]/255,1)
-        PaintCell(8,255,255,255) -- protocol trailer
-        PaintCell(9,encounterSerial,255-encounterSerial,102)
-    else
-        signal:Hide()
-    end
+        local action=actionCodes[state] or 0
+        local identity=(FLAVOR=="titan" and 0 or 13)+classID-1
+        local encounter=encounterSerial%32
+        local aux=(recoveryCodes[recovery] or 3)*4+(combat and 2 or 0)+(busy and 1 or 0)
+        local beat=math.floor(GetTime()*10)%16
+        local check=(action+identity+encounter+aux+beat+7)%16
+        cells[1]:SetColorTexture((16+32*action)/255,(16+8*identity)/255,(4+8*encounter)/255,1)
+        cells[2]:SetColorTexture((8+16*aux)/255,(8+16*beat)/255,(8+16*check)/255,1)
+    else signal:Hide() end
     status:SetText((descriptions[state] or descriptions.unknown).." · 战斗："..
         (combat==nil and "未知" or (combat and "是" or "否"))..
         "\n"..(recoveryDescriptions[recovery] or "恢复未知").." · HP "..(health and math.floor(health).."%" or "?")..
         (mana and (" / MP "..math.floor(mana).."%") or "")..(busy and " · 忙碌" or ""))
-    movementLabel:SetText("移动规则待定；方向按钮仅请求一次移动，不自动巡逻。")
-    for mode,button in pairs(moveButtons) do
-        if mode~="off" and requestedMovement then button:Disable() else button:Enable() end
-    end
     if enabled then start:Disable() else start:Enable() end
 end
 
@@ -337,22 +304,13 @@ local function Vitals()
     end
     return true
 end
-local function Movement()
-    if not requestedMovement then return "idle" end
-    if not movementStarted or GetTime()-movementStarted>=2 then
-        movementStarted,requestedMovement=nil,nil
-        return "idle"
-    end
-    return "move-"..requestedMovement
-end
 local function SetState(value)
     state=value
-    if value~="idle" and not value:match("^move%-") then movementStarted,requestedMovement=nil,nil end
     Paint()
 end
 local function Stop()
     enabled,elapsed,state,combat,skin,busy=false,0,"disabled",false,false,false
-    recovering,emergency,movementStarted,requestedMovement=false,false,nil,nil
+    recovering,emergency=false,false
     health,mana,recovery=nil,nil,"none"
     SetEncounter(nil)
     signal:Hide()
@@ -385,7 +343,6 @@ local function Refresh()
         end
         recovery=recovering and "recover" or "none"
     end
-    if recovering then movementStarted,requestedMovement=nil,nil end
     if busy and not combat and (state=="skin" or state=="loot") then
         skin=state=="skin"; SetState(state); return
     end
@@ -407,11 +364,11 @@ local function Refresh()
     end
     if combat or unknown then SetState("unknown"); return end
     SetEncounter(nil)
-    SetState(recovering and "idle" or Movement())
+    SetState("idle")
 end
 local function SafeRefresh()
     local ok=pcall(Refresh)
-    if not ok then state,combat,skin,busy,recovery="unknown",nil,nil,false,"unknown"; movementStarted,requestedMovement=nil,nil; Paint() end
+    if not ok then state,combat,skin,busy,recovery="unknown",nil,nil,false,"unknown"; Paint() end
 end
 local function Start()
     if not initialized then return end
@@ -439,23 +396,11 @@ save:SetScript("OnClick",function()
     attackRange,settings=attack,draft
     fightDetectorDB.AttackRangeYards=attack
     fightDetectorDB.profiles[classID]=draft
-    recovering,emergency,movementStarted,requestedMovement=false,false,nil,nil
+    recovering,emergency=false,false
     input:ClearFocus(); attackInput:ClearFocus()
     for _,box in pairs(thresholds) do box:ClearFocus() end
     SafeRefresh()
 end)
-for mode,button in pairs(moveButtons) do
-    local selectedMode=mode
-    button:SetScript("OnClick",function()
-        if not initialized then return end
-        if selectedMode=="off" then movementStarted,requestedMovement=nil,nil
-        elseif enabled and combat==false and not busy then
-            requestedMovement,movementStarted=selectedMode,GetTime()
-        else Say("请先启动检测；仅可在非战斗、非忙碌时手动请求移动。"); return end
-        SafeRefresh()
-        Paint()
-    end)
-end
 start:SetScript("OnClick",Start)
 close:SetScript("OnClick",function() Stop(); panel:Hide() end)
 panel:SetScript("OnHide",function() Stop() end)
