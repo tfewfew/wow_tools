@@ -19,7 +19,7 @@ namespace WowAutoFight
     {
         public string Action, Flavor, Recovery;
         public bool Combat, Skin, Busy;
-        public int ClassId, Heartbeat, EncounterId;
+        public int ClassId, EncounterId;
     }
     public static class Native
     {
@@ -35,6 +35,11 @@ namespace WowAutoFight
         { public ushort Key, Scan; public uint Flags, Time; public UIntPtr Extra; }
         [StructLayout(LayoutKind.Sequential)] private struct Mouse
         { public int X, Y; public uint Data, Flags, Time; public UIntPtr Extra; }
+        [StructLayout(LayoutKind.Sequential)] private struct MonitorInfo
+        { public int size; public Rect monitor, work; public uint flags; }
+        [DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr h,out Rect rect);
+        [DllImport("user32.dll")] private static extern IntPtr MonitorFromWindow(IntPtr h,uint flags);
+        [DllImport("user32.dll", CharSet=CharSet.Auto)] private static extern bool GetMonitorInfo(IntPtr h,ref MonitorInfo info);
         [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
         [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
         [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr h);
@@ -118,6 +123,40 @@ namespace WowAutoFight
                 return true; // The timer waits and then verifies actual ownership.
             }
         }
+        public static string ClassifyWindowPosition(int left, int top, int right, int bottom,
+            int screenLeft, int screenTop, int screenRight, int screenBottom)
+        {
+            if (right <= left || bottom <= top || screenRight <= screenLeft || screenBottom <= screenTop)
+                return "位置未知";
+            double x = ((double)left + right) / 2, y = ((double)top + bottom) / 2;
+            double middleX = ((double)screenLeft + screenRight) / 2, middleY = ((double)screenTop + screenBottom) / 2;
+            if (Math.Abs(x - middleX) <= (screenRight - screenLeft) * 0.1
+                && Math.Abs(y - middleY) <= (screenBottom - screenTop) * 0.1) return "居中";
+            return (y < middleY ? (x < middleX ? "左上" : "右上") : (x < middleX ? "左下" : "右下"));
+        }
+
+        public static string ReadWindowPosition(Client client)
+        {
+            using (System.Diagnostics.Process target = System.Diagnostics.Process.GetProcessById(client.ProcessId))
+            {
+                if (!Matches(target, client)) return "位置未知";
+                IntPtr window = target.MainWindowHandle;
+                if (window == IntPtr.Zero) return "位置未知";
+                if (IsIconic(window)) return "最小化";
+                IntPtr oldContext = SetThreadDpiAwarenessContext(new IntPtr(-4));
+                try
+                {
+                    Rect rect;
+                    MonitorInfo info = new MonitorInfo();
+                    info.size = Marshal.SizeOf(typeof(MonitorInfo));
+                    if (!GetWindowRect(window, out rect) || !GetMonitorInfo(MonitorFromWindow(window, 2), ref info)) return "位置未知";
+                    return ClassifyWindowPosition(rect.Left, rect.Top, rect.Right, rect.Bottom,
+                        info.monitor.Left, info.monitor.Top, info.monitor.Right, info.monitor.Bottom);
+                }
+                finally { if (oldContext != IntPtr.Zero) SetThreadDpiAwarenessContext(oldContext); }
+            }
+        }
+
         public static IntPtr CurrentWindow() { return GetForegroundWindow(); }
         public static void Restore(IntPtr h) { if (h!=IntPtr.Zero && IsWindow(h)) SetForegroundWindow(h); }
         private static int R(uint c) { return (int)(c&255); }
@@ -126,7 +165,7 @@ namespace WowAutoFight
         public static int[] SampleOffsets(int width,int height)
         {
             if (width<210 || height<160) return null;
-            return new int[] {width/2-16,height/2-64,width/2+16,height/2-64};
+            return new int[] {width/2,height/2};
         }
         public static string LastReadError { get; private set; }
         private static Packet ReadFailed(string reason) { LastReadError=reason; return null; }
@@ -151,14 +190,13 @@ namespace WowAutoFight
                     dc=GetDC(IntPtr.Zero);
                     if (dc==IntPtr.Zero) return ReadFailed("无法读取屏幕");
                     memory=CreateCompatibleDC(dc);
-                    bitmap=CreateCompatibleBitmap(dc,33,1);
+                    bitmap=CreateCompatibleBitmap(dc,1,1);
                     if (memory==IntPtr.Zero || bitmap==IntPtr.Zero) return ReadFailed("无法创建取色快照");
                     original=SelectObject(memory,bitmap);
                     if (original==IntPtr.Zero || original==new IntPtr(-1)) return ReadFailed("无法准备取色快照");
-                    // Copy both sample points in ONE screen operation. Read only the immutable copy:
-                    // separate live GetPixel calls can straddle the normal 100ms heartbeat update.
-                    if (!BitBlt(memory,0,0,33,1,dc,point.X,point.Y,0x00CC0020)) return ReadFailed("无法截取色块");
-                    uint main=GetPixel(memory,0,0), aux=GetPixel(memory,32,0);
+                    // Read only the enlarged main cell at the physical client center.
+                    if (!BitBlt(memory,0,0,1,1,dc,point.X,point.Y,0x00CC0020)) return ReadFailed("无法截取色块");
+                    uint main=GetPixel(memory,0,0);
                     Rect after;
                     if (!GetClientRect(h,out after) || after.Right!=rect.Right || after.Bottom!=rect.Bottom
                         || !Foreground(c)) return ReadFailed("采样期间窗口尺寸或前台变化");
@@ -166,8 +204,8 @@ namespace WowAutoFight
                     Point afterPoint=new Point { X=afterSamples[0], Y=afterSamples[1] };
                     if (!ClientToScreen(h,ref afterPoint) || afterPoint.X!=point.X || afterPoint.Y!=point.Y)
                         return ReadFailed("采样期间窗口位置变化");
-                    Packet result=Decode(new uint[] {main,aux},c.Flavor);
-                    return result ?? ReadFailed("色块数据未知或编码不符，主RGB("+RGB(main)+") 副RGB("+RGB(aux)+")");
+                    Packet result=Decode(new uint[] {main},c.Flavor);
+                    return result ?? ReadFailed("色块数据未知或编码不符，主RGB("+RGB(main)+")");
                 }
                 finally
                 {
@@ -182,28 +220,28 @@ namespace WowAutoFight
         private static int Slot(int value,int start,int step,int count)
         {
             int slot=(int)Math.Round((value-start)/(double)step);
-            return slot>=0 && slot<count && Math.Abs(value-(start+slot*step))<=2 ? slot : -1;
+            return slot>=0 && slot<count && Math.Abs(value-(start+slot*step))<=1 ? slot : -1;
         }
-        // Pure v4 parser: exactly two RGB colors with quantized channels and coherence checksum.
+        // V5 uses only the main RGB. Auxiliary color and elapsed time have no bearing on validity.
         public static Packet Decode(uint[] cells,string expectedFlavor)
         {
-            if (cells==null || cells.Length!=2 || cells[0]==0xffffffff || cells[1]==0xffffffff) return null;
-            int action=Slot(R(cells[0]),16,32,7), identity=Slot(G(cells[0]),16,8,26);
-            int encounter=Slot(B(cells[0]),4,8,32), aux=Slot(R(cells[1]),8,16,16);
-            int beat=Slot(G(cells[1]),8,16,16), check=Slot(B(cells[1]),8,16,16);
-            if (action<0 || identity<0 || encounter<0 || aux<0 || beat<0 || check<0
-                || check!=(action+identity+encounter+aux+beat+7)%16) return null;
+            if (cells==null || cells.Length!=1 || cells[0]==0xffffffff) return null;
+            int actionRecovery=Slot(R(cells[0]),16,8,28);
+            int identityBusy=Slot(G(cells[0]),2,4,52), encounterCombat=Slot(B(cells[0]),2,4,64);
+            if (actionRecovery<0 || identityBusy<0 || encounterCombat<0) return null;
+            int action=actionRecovery/4, recoveryCode=actionRecovery%4;
+            int identity=identityBusy%26, classId=identity%13+1;
             string flavor=identity<13 ? "titan" : "forerver";
-            if (flavor!=expectedFlavor) return null;
+            if (flavor!=expectedFlavor || classId==10 || classId>11 || (flavor=="forerver" && classId==6)) return null;
             string[] actions={"unknown","idle","opening","waiting","combat","loot","skin"};
             string[] recoveries={"none","recover","emergency","unknown"};
-            string state=actions[action], recovery=recoveries[aux/4];
-            bool combat=(aux&2)!=0, busy=(aux&1)!=0;
+            string state=actions[action], recovery=recoveries[recoveryCode];
+            bool combat=encounterCombat>=32, busy=identityBusy>=26;
             if ((state=="unknown" && recovery=="none") || recovery=="unknown"
                 || (combat && state!="combat" && state!="waiting" && state!="unknown")
                 || (recovery=="recover" && combat) || (recovery=="emergency" && !combat)) return null;
             return new Packet {Action=state,Recovery=recovery,Flavor=flavor,Combat=combat,Busy=busy,
-                Skin=state=="skin",ClassId=identity%13+1,Heartbeat=beat,EncounterId=encounter};
+                Skin=state=="skin",ClassId=classId,EncounterId=encounterCombat%32};
         }
         private static Input Key(ushort code,bool up)
         {

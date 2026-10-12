@@ -2,29 +2,30 @@
 Add-Type -TypeDefinition @'
 namespace WowAutoFight {
     public class Packet {
-        public int ClassId=1, Heartbeat=1, EncounterId=1;
+        public int ClassId=1, EncounterId=1;
         public string Flavor="titan", Action="combat", Recovery="none";
         public bool Busy=false, Combat=false;
     }
     public static class Native {
         public static Packet Current=new Packet();
-        public static int Sends=0, Releases=0;
+        public static int Sends=0, Releases=0, LastCode=0;
         public static int ReadsUntilEncounterChange=0;
         public static int MissingReads=0;
         public static string LastReadError="模拟快照暂不可读";
         public static bool FailSend=false, IsHolding=false;
+        public static string Position="左上";
+        public static string ReadWindowPosition(object client) {return Position;}
         public static bool IsAlive(object client) { return true; }
         public static bool Foreground(object client) { return true; }
         public static bool Activate(object client) { return true; }
         public static object Read(object client) {
             if (MissingReads>0) { MissingReads--; return null; }
-            Current.Heartbeat++;
             if (ReadsUntilEncounterChange>0 && --ReadsUntilEncounterChange==0) Current.EncounterId++;
-            return new Packet {ClassId=Current.ClassId, Heartbeat=Current.Heartbeat, EncounterId=Current.EncounterId,
+            return new Packet {ClassId=Current.ClassId, EncounterId=Current.EncounterId,
                 Flavor=Current.Flavor, Action=Current.Action, Recovery=Current.Recovery, Busy=Current.Busy, Combat=Current.Combat};
         }
         public static bool Press(object client, ushort code, bool ctrl, bool shift, bool alt) {
-            if (FailSend) return false; Sends++; return true;
+            if (FailSend) return false; Sends++; LastCode=code; return true;
         }
         public static bool BeginHold(object client, ushort code, bool ctrl, bool shift, bool alt) {
             if (!Press(client,code,ctrl,shift,alt)) return false; IsHolding=true; return true;
@@ -52,51 +53,71 @@ try {
     $dialog=New-AutoFightSettingsDialog
     try {
         $dialog.Show($form)
+        [System.Windows.Forms.Application]::DoEvents()
+        Assert-Ui (-not $dialog.Tag.Pages.titan.Tab.HorizontalScroll.Visible -and
+            $dialog.Tag.Pages.titan.Bindings.CombatKey.Right -le $dialog.Tag.Pages.titan.Tab.ClientSize.Width) 'Default settings layout clips profession bindings.'
         if ($env:WOWAUTO_NEW_SETTINGS_PREVIEW_DIRECTORY) {
             $bitmap=New-Object Drawing.Bitmap($dialog.Width,$dialog.Height)
             try {$dialog.DrawToBitmap($bitmap,(New-Object Drawing.Rectangle(0,0,$dialog.Width,$dialog.Height))); $bitmap.Save((Join-Path $env:WOWAUTO_NEW_SETTINGS_PREVIEW_DIRECTORY 'combat-settings.png'),[Drawing.Imaging.ImageFormat]::Png)}
             finally {$bitmap.Dispose()}
         }
         Assert-Ui ($dialog.Tag.CommandInterval.Value -eq 500 -and $dialog.Tag.CommandInterval.Increment -eq 100) 'Combat common interval default / 100 ms step incorrect.'
+        Assert-Ui ($dialog.Tag.Tabs.TabPages.Count -eq 2 -and $dialog.Tag.Pages.titan.Class.Items.Count -eq 10 -and
+            $dialog.Tag.Pages.forerver.Class.Items.Count -eq 9 -and '武僧' -notin $dialog.Tag.Pages.titan.Class.Items -and
+            '死亡骑士' -notin $dialog.Tag.Pages.forerver.Class.Items) 'Version tabs / class availability incorrect.'
+        $dialog.Tag.Numbers.JumpIntervalSeconds.Value=20
         $dialog.Tag.CommandInterval.Value=800
         $dialog.Tag.Bindings.MoveLeftKey.Text='A';$dialog.Tag.Bindings.MoveRightKey.Text='D'
         $dialog.Tag.Bindings.SkinKey.Text='='
         $dialog.Tag.Numbers.MovementHoldMs.Value=600
-        $dialog.Tag.Flavor.SelectedIndex=1; $dialog.Tag.Class.SelectedIndex=2
+        $dialog.Tag.Tabs.SelectedIndex=1; $dialog.Tag.Pages.forerver.Class.SelectedIndex=2
         Assert-Ui ($dialog.Tag.Bindings.MoveLeftKey.Text -eq 'A' -and $dialog.Tag.Bindings.SkinKey.Text -eq '=' -and
             $dialog.Tag.Numbers.MovementHoldMs.Value -eq 600 -and $script:autoFight.Common.MoveLeftKey -eq 'Q') 'Common draft lost on profile selection or applied early.'
         $dialog.Tag.Bindings.CombatKey.Text='Ctrl+7'
+        $dialog.Tag.Tabs.SelectedIndex=0
+        Assert-Ui ($dialog.Tag.Class.SelectedIndex -eq 0 -and $dialog.Tag.Bindings.CombatKey.Text -eq 'F6') 'Tab changed the other server class or bindings.'
+        $dialog.Tag.Pages.titan.Class.SelectedIndex=9
+        Assert-Ui ($dialog.Tag.Pages.titan.CurrentKey -eq 'titan:11') 'Sparse class IDs interpreted as combo indices.'
+        $dialog.Tag.Tabs.SelectedIndex=1
+        Assert-Ui ($dialog.Tag.Class.SelectedIndex -eq 2 -and $dialog.Tag.Bindings.CombatKey.Text -eq 'Ctrl+7') 'Tab lost independently selected class / draft keys.'
         Assert-Ui ($dialog.Tag.CommandInterval.Value -eq 800 -and $script:autoFight.CommandGate.IntervalMs -eq 500) 'Profile selection reset common draft or draft applied early.'
         $dialog.Tag.Save.PerformClick()
         Assert-Ui ($dialog.IsDisposed -or -not $dialog.Visible) 'Combat save did not close dialog.'
         $saved=Read-AutoFightConfiguration $fightPath
         Assert-Ui ($saved.Common.MoveLeftKey -eq 'A' -and $saved.Common.SkinKey -eq '=' -and $saved.Common.MovementHoldMs -eq 600 -and
             $null -eq $saved.Profiles['titan:1'].PSObject.Properties['MoveLeftKey'] -and $null -eq $dialog.Tag.Numbers.EmergencyIntervalMs) 'Common fields remain class-specific or obsolete recovery interval remains visible.'
-        Assert-Ui ($saved.CommandIntervalMs -eq 800 -and $script:autoFight.Profiles['forerver:3'].CombatKey -eq 'Ctrl+7' -and $script:autoFight.Profiles['titan:3'].CombatKey -eq 'F6' -and $script:autoFight.CommandGate.LastSentAt -eq 100) 'Combat save lost common/profile isolation or reset last send.'
+        Assert-Ui ($saved.Common.JumpIntervalSeconds -eq 20 -and $saved.CommandIntervalMs -eq 800 -and $script:autoFight.Profiles['forerver:3'].CombatKey -eq 'Ctrl+7' -and $script:autoFight.Profiles['titan:3'].CombatKey -eq 'F6' -and $script:autoFight.CommandGate.LastSentAt -eq 100) 'Combat save lost common/profile isolation or reset last send.'
     } finally {$dialog.Dispose()}
     $dialog=New-AutoFightSettingsDialog
-    try {$dialog.Show($form); Assert-Ui ($dialog.Tag.CommandInterval.Value -eq 800 -and $dialog.Tag.Bindings.MoveLeftKey.Text -eq 'A') 'Combat reopen lost saved interval/common key.'; $dialog.Tag.CommandInterval.Value=900; $dialog.Tag.Bindings.MoveLeftKey.Text='Z'; $dialog.Tag.Cancel.PerformClick()}
+    try {$dialog.Show($form); Assert-Ui ($dialog.Tag.CommandInterval.Value -eq 800 -and $dialog.Tag.Bindings.MoveLeftKey.Text -eq 'A' -and $dialog.Tag.Numbers.JumpIntervalSeconds.Value -eq 20) 'Combat reopen lost saved interval/common key/jump.'; $dialog.Tag.CommandInterval.Value=900; $dialog.Tag.Bindings.MoveLeftKey.Text='Z'; $dialog.Tag.Numbers.JumpIntervalSeconds.Value=30; $dialog.Tag.Cancel.PerformClick()}
     finally {$dialog.Dispose()}
     Assert-Ui ($script:autoFight.CommandGate.IntervalMs -eq 800) 'Combat cancel applied draft.'
     Assert-Ui ($script:autoFight.Common.MoveLeftKey -eq 'A') 'Cancel applied common draft.'
+    Assert-Ui ($script:autoFight.Common.JumpIntervalSeconds -eq 20) 'Cancel applied jump draft.'
     $locked=[IO.File]::Open($fightPath,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
     try {
         $dialog=New-AutoFightSettingsDialog
         try {
             $dialog.Show($form); $dialog.Tag.CommandInterval.Value=1000; $dialog.Tag.Bindings.CombatKey.Text='F12'
-            $dialog.Tag.Bindings.MoveLeftKey.Text='Z';$dialog.Tag.Numbers.MovementHoldMs.Value=900;$dialog.Tag.Save.PerformClick()
+            $dialog.Tag.Bindings.MoveLeftKey.Text='Z';$dialog.Tag.Numbers.MovementHoldMs.Value=900;$dialog.Tag.Numbers.JumpIntervalSeconds.Value=30;$dialog.Tag.Save.PerformClick()
             Assert-Ui ($dialog.Visible -and $dialog.Tag.Error.Text -ne '' -and $script:autoFight.CommandGate.IntervalMs -eq 800 -and $script:autoFight.Profiles['titan:1'].CombatKey -eq 'F6') 'Failed combat save partially applied draft.'
             Assert-Ui ($script:autoFight.Common.MoveLeftKey -eq 'A' -and $script:autoFight.Common.MovementHoldMs -eq 600) 'Failed save partially applied common fields.'
+            Assert-Ui ($script:autoFight.Common.JumpIntervalSeconds -eq 20) 'Failed save partially applied jump setting.'
         } finally {$dialog.Dispose()}
     } finally {$locked.Dispose()}
     $script:autoFight.Editor=$null
+    $script:autoFight.Common.JumpIntervalSeconds=0
     $script:autoFight.Clock=[pscustomobject]@{ElapsedMilliseconds=999L}
     $script:autoFight.CommandGate=New-AutoFightCommandGate 1000
     Complete-AutoFightCommand $script:autoFight.CommandGate 0 $true
     $fightRows=@()
     foreach($flavor in @('titan','forerver')) {
+        [WowAutoFight.Native]::Position='左上'
         $client=[pscustomobject]@{Key=$flavor; ProcessId=1; Flavor=$flavor; Title='模拟战斗窗口'}
         $row=New-AutoFightRow $client $fightRows.Count
+        Assert-Ui ($row.Name.Text -match '左上') 'Process row omitted window position.'
+        [WowAutoFight.Native]::Position='右下'; Update-AutoFightRowName $row
+        Assert-Ui ($row.Name.Text -match '右下') 'Process position did not update.'
         $row.ClassId=1; $row.CanStart=$true; $script:autoFight.Rows[$flavor]=$row
         $script:autoFight.List.Controls.Add($row.Panel); $fightRows+=$row
     }
@@ -108,9 +129,19 @@ try {
         $Row.Session=New-AutoFightSession $Now 1
         if ($State.StartsWith('move-')) {$Row.Session.MovementRequest=$State.Substring(5)}
         $pending=New-AutoFightPending $Row $Row.Session $false 0
-        $pending.Activated=$true; $pending.SampleAt=0; $pending.FirstBeat=0; $pending.FirstClass=1
+        $pending.Activated=$true; $pending.SampleAt=0
         $script:autoFight.Pending=$pending
     }
+    $fightRows[0].CanStart=$false
+    [WowAutoFight.Native]::Current.Flavor='titan'
+    [WowAutoFight.Native]::Current.Action='idle'
+    $script:autoFight.Scan=[pscustomobject]@{Order=@($fightRows[0]);Index=0;OriginalWindow=[IntPtr]::Zero}
+    $script:autoFight.Pending=New-AutoFightPending $fightRows[0] $null $true 0
+    $script:autoFight.Pending.Activated=$true; $script:autoFight.Pending.SampleAt=0
+    Invoke-AutoFightTick
+    Assert-Ui ($fightRows[0].CanStart -and $script:autoFight.Scan.Index -eq 1 -and
+        -not $script:autoFight.Pending -and [WowAutoFight.Native]::Sends -eq 0) 'Stable main color required heartbeat or refresh emitted input.'
+    Complete-AutoFightScan
     foreach($state in @('opening','combat','recover','emergency','move-forward','move-backward','move-left','move-right','loot','skin')) {
         Prepare-FightInput $fightRows[0] $state 999
         Invoke-AutoFightTick
@@ -140,7 +171,7 @@ try {
         $script:autoFight.Clock.ElapsedMilliseconds=$Now
         [WowAutoFight.Native]::Current.Action=$Action; [WowAutoFight.Native]::Current.Recovery=$Recovery
         $pending=New-AutoFightPending $Row $Row.Session $false 0
-        $pending.Activated=$true; $pending.SampleAt=0; $pending.FirstBeat=0; $pending.FirstClass=1
+        $pending.Activated=$true; $pending.SampleAt=0
         $script:autoFight.Pending=$pending; Invoke-AutoFightTick
     }
     Tick-FightEncounter $fightRows[0] 'opening' 6000
@@ -221,9 +252,30 @@ try {
     Assert-Ui (-not $fightRows[0].Session -and -not $fightRows[0].CanStart -and
         $fightRows[0].Message -match '800ms.*模拟快照暂不可读' -and [WowAutoFight.Native]::Sends -eq $baseline) 'Persistent unreadability did not stop at deadline with diagnostic reason.'
     [WowAutoFight.Native]::MissingReads=0
+    $baseline=[WowAutoFight.Native]::Sends
+    $script:autoFight.Common.JumpIntervalSeconds=2
+    Prepare-FightInput $fightRows[0] 'idle' 50000
+    Invoke-AutoFightTick
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline -and $fightRows[0].Session.NextJumpAt -eq 52000) 'Jump interval fired on entry.'
+    Tick-FightEncounter $fightRows[0] 'idle' 51999
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline) 'Jump fired before interval.'
+    Tick-FightEncounter $fightRows[0] 'waiting' 52000
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline) 'Jump bypassed waiting state.'
+    [WowAutoFight.Native]::Current.Busy=$true
+    Tick-FightEncounter $fightRows[0] 'idle' 53000
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline) 'Jump interrupted busy state.'
+    [WowAutoFight.Native]::Current.Busy=$false
+    Tick-FightEncounter $fightRows[0] 'idle' 54000
+    $baseline++
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline -and $fightRows[0].Session.NextJumpAt -eq 56000 -and
+        [WowAutoFight.Native]::LastCode -eq 32 -and $script:autoFight.CommandGate.LastSentAt -eq 54000) 'Jump did not send Space / obey shared gate / reset successful interval.'
+    $script:autoFight.Common.JumpIntervalSeconds=0
+    Tick-FightEncounter $fightRows[0] 'idle' 60000
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline -and $fightRows[0].Session.NextJumpAt -eq [long]::MaxValue) 'Disabled jump remained scheduled.'
     Assert-Ui ($script:scheduler.JumpEveryCycles -eq $fishJump -and (Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $fishIniHash -and (Get-FileHash -LiteralPath $fightSource).Hash -eq $fightSourceHash) 'Combat changed fishing settings or source configuration.'
     Write-Output 'PASS: combat settings 100 ms step/common draft/profile isolation/save/cancel/locked failure; mocked production input gate for all states, cross-window, release, restart and send failure. No real native operations.'
     Write-Output 'PASS: production combat UI adapter opens once, stays quiet through waiting/combat/emergency, attacks on approach, reopens for new monster and rechecks encounter before input.'
+    Write-Output 'PASS: independent client tabs/class selection/sparse class IDs, supported classes, changing process positions, global jump save/cancel/failure/disabled/exact deadline/busy/wait deferral/Space/shared gate. Game operations mocked.'
 } finally {
     Close-AutoFightTab
     $tabs.SelectedTab=$tab

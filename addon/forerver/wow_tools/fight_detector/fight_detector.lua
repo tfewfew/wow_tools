@@ -15,8 +15,8 @@ local recoveryDescriptions={none="无需恢复", recover="非战斗恢复", emer
 local recovering, emergency = false, false
 local settingDefaults = { HealthEnter=80, HealthExit=95, ManaEnter=0, ManaExit=90,
     EmergencyEnter=30, EmergencyExit=50 }
--- Two-cell v4 protocol. Main RGB = action / client+class / encounter.
--- Auxiliary RGB = recovery+combat+busy / heartbeat / checksum of both cells.
+-- V5: main cell contains action, recovery, client/class, busy, combat and encounter.
+-- Auxiliary cell is a visual recovery hint only; there is no heartbeat.
 local actionCodes={unknown=0,idle=1,opening=2,waiting=3,combat=4,loot=5,skin=6}
 local recoveryCodes={none=0,recover=1,emergency=2,unknown=3}
 local descriptions={disabled="已关闭",unknown="数据未知，暂停指令",idle="等待目标",
@@ -141,8 +141,9 @@ local function PositionSignal()
     local unit=logicalHeight/height
     for i,cell in ipairs(cells) do
         cell:ClearAllPoints()
-        cell:SetPoint("CENTER",UIParent,"CENTER",(i==1 and -16 or 16)*unit,64*unit)
-        cell:SetSize(12*unit,12*unit)
+        cell:SetPoint("CENTER",UIParent,"CENTER",(i==1 and 0 or 32)*unit,0)
+        local size=(i==1 and 32 or 12)*unit
+        cell:SetSize(size,size)
     end
     if enabled and panel:IsShown() then signal:Show() else signal:Hide() end
     return true
@@ -152,11 +153,13 @@ local function Paint()
         local action=actionCodes[state] or 0
         local identity=(FLAVOR=="titan" and 0 or 13)+classID-1
         local encounter=encounterSerial%32
-        local aux=(recoveryCodes[recovery] or 3)*4+(combat and 2 or 0)+(busy and 1 or 0)
-        local beat=math.floor(GetTime()*10)%16
-        local check=(action+identity+encounter+aux+beat+7)%16
-        cells[1]:SetColorTexture((16+32*action)/255,(16+8*identity)/255,(4+8*encounter)/255,1)
-        cells[2]:SetColorTexture((8+16*aux)/255,(8+16*beat)/255,(8+16*check)/255,1)
+        local recover=recoveryCodes[recovery] or 3
+        cells[1]:SetColorTexture((16+8*(action*4+recover))/255,
+            (2+4*(identity+(busy and 26 or 0)))/255,
+            (2+4*(encounter+(combat and 32 or 0)))/255,1)
+        local hints={none={.15,.15,.15},recover={0,.4,1},emergency={1,.15,0},unknown={.5,.5,.5}}
+        local hint=hints[recovery] or hints.unknown
+        cells[2]:SetColorTexture(hint[1],hint[2],hint[3],1)
     else signal:Hide() end
     status:SetText((descriptions[state] or descriptions.unknown).." · 战斗："..
         (combat==nil and "未知" or (combat and "是" or "否"))..

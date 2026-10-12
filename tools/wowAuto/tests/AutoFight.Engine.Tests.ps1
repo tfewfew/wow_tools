@@ -5,7 +5,7 @@ function Assert-Fight($Condition,[string]$Label) { if (-not $Condition) { throw 
 $path=Join-Path ([IO.Path]::GetTempPath()) ('autoFight-'+[Guid]::NewGuid()+'.json')
 try {
     $config=Read-AutoFightConfiguration $path
-    Assert-Fight ($config.Profiles.Count -eq 26 -and $config.CommandIntervalMs -eq 500) 'Defaults incomplete.'
+    Assert-Fight ($config.Profiles.Count -eq 19 -and $config.CommandIntervalMs -eq 500) 'Defaults incomplete.'
     $profiles=$config.Profiles; $profiles['forerver:3'].CombatKey='Ctrl+7'
     $valid=Save-AutoFightProfiles $path $profiles 1200
     $config=Read-AutoFightConfiguration $path
@@ -21,6 +21,8 @@ try {
     }
     $oldProfiles=@($profiles.Values | ForEach-Object {
         $legacyProfile=Get-AutoFightEffectiveProfile $_ (New-AutoFightCommon)
+        $legacyProfile.PSObject.Properties.Remove('JumpKey')
+        $legacyProfile.PSObject.Properties.Remove('JumpIntervalSeconds')
         $legacyProfile | Add-Member NoteProperty OpeningIntervalMs 2000
         $legacyProfile | Add-Member NoteProperty EmergencyIntervalMs 1500
         $legacyProfile
@@ -57,6 +59,27 @@ try {
     try { $rejected=$false; try { $null=Save-AutoFightProfiles $path $profiles 1000 } catch {$rejected=$true}; Assert-Fight $rejected 'Locked save succeeded.' }
     finally { $locked.Dispose() }
     Assert-Fight ([IO.File]::ReadAllText($path) -ceq $original) 'Locked save corrupted JSON.'
+    $oldDocument=Get-Content -Raw (Join-Path $PSScriptRoot '..\autoFight.config.json') | ConvertFrom-Json
+    # Construct a real V4 document with all 26 old classes; loading drops unavailable profiles only.
+    $oldDocument.Version=4
+    $oldDocument.Common.PSObject.Properties.Remove('JumpIntervalSeconds')
+    $oldDocument.Profiles=@(foreach ($flavor in @('titan','forerver')) {foreach ($id in 1..13) {New-AutoFightProfile $flavor $id}})
+    $oldDocument.Profiles[4].RecoveryKey='Alt+9'
+    $legacyJson=$oldDocument | ConvertTo-Json -Depth 5
+    [IO.File]::WriteAllText($path,$legacyJson)
+    $migrated=Read-AutoFightConfiguration $path
+    Assert-Fight ($migrated.Profiles.Count -eq 19 -and -not $migrated.Profiles.ContainsKey('forerver:6') -and
+        $migrated.Profiles['titan:5'].RecoveryKey -eq 'Alt+9' -and $migrated.Common.JumpIntervalSeconds -eq 0 -and
+        [IO.File]::ReadAllText($path) -ceq $legacyJson) 'V4 read-only class/jump migration lost existing preferences.'
+    $migrated.Common.JumpIntervalSeconds=60
+    $null=Save-AutoFightProfiles $path $migrated.Profiles 700 $migrated.Common
+    Assert-Fight ((Read-AutoFightConfiguration $path).Common.JumpIntervalSeconds -eq 60) 'Jump roundtrip failed.'
+    $original=[IO.File]::ReadAllText($path)
+    foreach ($value in @(-1,3601,'1.5')) {
+        $migrated.Common.JumpIntervalSeconds=$value
+        $rejected=$false;try {$null=Save-AutoFightProfiles $path $migrated.Profiles 700 $migrated.Common} catch {$rejected=$true}
+        Assert-Fight ($rejected -and [IO.File]::ReadAllText($path) -ceq $original) 'Invalid jump partially saved.'
+    }
     $gate=New-AutoFightCommandGate 1000
     Assert-Fight (Test-AutoFightCommandReady $gate 0) 'Initial command blocked.'
     Complete-AutoFightCommand $gate 0 $true
@@ -78,5 +101,5 @@ try {
     $packet.Action='combat'; $null=Update-AutoFightState $session $packet 3000
     Complete-AutoFightAction $session $p 'combat' 3000
     Assert-Fight ((Get-AutoFightAction $session $packet $p 3499) -eq 'wait') 'Existing longer profile cooldown ignored.'
-    Write-Output 'PASS: combat common interval boundaries/all states, failed sends, edits, cooldown, JSON v1/v2/v3/v4 migration/custom common settings/conflict/isolation/invalid/atomic failure. No native input.'
+    Write-Output 'PASS: combat common interval boundaries/all states, failed sends, edits, cooldown, JSON v1/v2/v3/v4/v5 migration/custom common settings/conflict/isolation/invalid/atomic failure. No native input.'
 } finally { if ([IO.File]::Exists($path)) { [IO.File]::Delete($path) } }

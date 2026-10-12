@@ -80,14 +80,14 @@ for _,flavor in ipairs({"titan","forerver"}) do
         event("ADDON_LOADED","wow_tools")
         local detector
         for _,f in ipairs(frames) do if #f.textures==2 then detector=f end end
-        assert(detector,"Expected exactly two V4 signal cells")
+        assert(detector,"Expected exactly two V5 signal cells")
         return detector
     end
     local saved={rangeSpells={[1]=78},profiles={[3]={DetectionRangeYards=20}}}
     local signal=setup(1,saved)
     local function color(r,g,b)
         local expected={ ["128,128,128"]=0,["0,0,255"]=1,["255,96,0"]=2,["0,192,192"]=3,["255,0,0"]=4}
-        local code=(signal.textures[1].color[1]*255-16)/32
+        local code=math.floor((signal.textures[1].color[1]*255-16)/8/4)
         assert(code==expected[r..","..g..","..b],flavor..": unexpected main state code "..code)
         if output then
             local function pixel(cell)
@@ -98,7 +98,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
                 tostring(pixel(signal.textures[1]))," ",tostring(pixel(signal.textures[2])),"\n")
         end
     end
-    local function epoch() return signal.textures[1].color[3] end
+    local function epoch() return ((signal.textures[1].color[3]*255-2)/4)%32 end
     assert(edits[1].text=="30" and edits[2].text=="5" and warm>0,"Default distances / item-cache warmup failed: "..edits[1].text.." / "..edits[2].text.." / "..warm)
     assert(not WoWTools.FightRange.IsSupported(secret) and not WoWTools.FightRange.IsSupported(12))
     mobs.target={guid="Creature-A",distance=31}
@@ -106,11 +106,14 @@ for _,flavor in ipairs({"titan","forerver"}) do
     local function geometry()
         for i,cell in ipairs(signal.textures) do
             local unit=UIParent:GetHeight()/screenHeight
-            assert(math.abs(cell.point[4]/unit-(i==1 and -16 or 16))<.001
-                and math.abs(cell.point[5]/unit-64)<.001 and math.abs(cell.width/unit-12)<.001,
+            assert(math.abs(cell.point[4]/unit-(i==1 and 0 or 32))<.001
+                and math.abs(cell.point[5]/unit)<.001 and math.abs(cell.width/unit-(i==1 and 32 or 12))<.001,
                 "Physical geometry did not survive window/UI scaling")
         end
     end
+    local stable={unpack(signal.textures[1].color)}
+    tick()
+    for i=1,3 do assert(signal.textures[1].color[i]==stable[i],"Unchanged state still depends on heartbeat") end
     geometry()
     for _,size in ipairs({{1280,720,.5},{2560,1440,1.25},{1279,719,.85},{1920,1080,1}}) do
         screenWidth,screenHeight,uiScale=unpack(size)
@@ -138,7 +141,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     missing=false; conflicting=true; tick(); color(128,128,128)
     conflicting=false; mobs.target.guid=secret; tick(); color(128,128,128)
     mobs.target.guid="Creature-C"; health=20; mobs.target.distance=20; tick(); color(0,192,192)
-    local aux=(signal.textures[2].color[1]*255-8)/16; assert(math.floor(aux/4)==2,"Recovery signal lost during waiting")
+    local recover=((signal.textures[1].color[1]*255-16)/8)%4; assert(recover==2,"Recovery signal lost during waiting")
     health=100; mobs.target.dead=true; combat=false; tick(); color(0,0,255)
     mobs.target={guid="Creature-D",distance=29}; tick(); color(255,96,0)
     local save
