@@ -168,7 +168,7 @@ local function PositionSignal()
     local unit=logicalHeight/height
     for i,cell in ipairs(cells) do
         cell:ClearAllPoints()
-        cell:SetPoint("CENTER",UIParent,"CENTER",(i==1 and 0 or 32)*unit,0)
+        cell:SetPoint("CENTER",WoWTools.detectorAnchor,"CENTER",(i==1 and 0 or 32)*unit,0)
         local size=(i==1 and 32 or 12)*unit
         cell:SetSize(size,size)
     end
@@ -417,6 +417,7 @@ end
 local function Start()
     if not initialized then return end
     if Bool(UnitIsDeadOrGhost,"player")~=false then Say("死亡或存活状态未知，无法启动。"); return end
+    WoWTools.ActivateDetector("fight_detector")
     panel:Show()
     enabled,elapsed=true,0
     SafeRefresh()

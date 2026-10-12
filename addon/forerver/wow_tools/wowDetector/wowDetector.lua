@@ -11,7 +11,7 @@ panel:SetClampedToScreen(true)
 panel:SetMovable(true)
 panel:EnableMouse(true)
 panel:RegisterForDrag("LeftButton")
-panel:SetPoint("LEFT", UIParent, "CENTER", -20, 0)
+panel:SetPoint("LEFT", WoWTools.detectorAnchor, "CENTER", -20, 0)
 panel:Hide()
 
 local background = panel:CreateTexture(nil, "BACKGROUND")
@@ -160,7 +160,7 @@ local function CenterIndicator()
     panel:StopMovingOrSizing()
     panel:ClearAllPoints()
     -- The indicator center is 20 UI units from the panel's left edge.
-    panel:SetPoint("LEFT", UIParent, "CENTER", -20, 0)
+    panel:SetPoint("LEFT", WoWTools.detectorAnchor, "CENTER", -20, 0)
     if initialized then SavePosition() end
     Say("色块已移至画面正中心。")
 end
@@ -173,6 +173,7 @@ local function SetEnabled(value)
             Say("角色死亡或处于灵魂状态，无法启动检测。")
             return
         end
+        WoWTools.ActivateDetector("wowDetector")
         if not enabled then
             local ok, reason = WoWTools.audio.Start()
             if not ok then Say(reason) end
@@ -355,6 +356,7 @@ WoWTools.modules.wowDetector = {
         if panel:IsShown() then CloseMonitor() else OpenMonitor() end
     end,
     Show = OpenMonitor,
+    Hide = CloseMonitor,
     IsShown = function() return panel:IsShown() end,
     GetLureState = GetLureState,
 }
