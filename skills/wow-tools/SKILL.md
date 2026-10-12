@@ -85,7 +85,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 ## autoFight（2026-10-13）
 
-- 当前合集版本titan2.1.11、forerver2.2.10，两服独立维护fight_detector.lua；保留fightDetectorDB / rangeSpells，新增profiles[classId]恢复阈值。Core及钓鱼模块不变，战斗不读写wowDetectorDB、音频、图形或交互CVar。
+- 当前合集版本titan2.1.12、forerver2.2.11，两服独立维护fight_detector.lua；保留fightDetectorDB / rangeSpells，新增profiles[classId]恢复阈值。战斗不读写wowDetectorDB、音频、图形或交互CVar。
 - autoFight.ps1、Engine.ps1、Native.cs、config.json的状态、输入、计时和配置与autofish隔离，只共享主题及标签。离开标签停止上一页，UiTest以模拟类型替代战斗原生操作，不加载战斗输入适配器。
 - 战斗v5只读取主色块：主32×32物理像素位于客户区正中心，副12×12位于中心右32px，只作恢复提示。无心跳、双块校验或颜色变化要求。主RGB=(16+8*(action*4+recovery),2+4*(identity+busy*26),2+4*(encounter+combat*32))；action=0..6为unknown/idle/opening/waiting/combat/loot/skin；新增target动作分别使用保留R240/248/8对应none/recover/emergency，G/B不变。recovery=0..3为none/recover/emergency/unknown；identity=classId-1+（forerver为13）；encounter模32。通道偏差最多1，拒绝非法字段/组合、版本或职业不符、未知恢复及旧协议；射程未知但恢复明确仍可执行恢复。
 - HP进入 / 退出阈值默认非战斗80/95、紧急30/50；可选法力恢复默认关闭，只对法力职业生效。0关闭项，进入<退出，迟滞避免状态抖动。受限 / 不可读不推断。恢复优先于普通动作；施法 / 引导 / 战利品窗口阻止普通发键，紧急宏允许打断当前施法。
@@ -97,7 +97,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 - 钓鱼JumpEveryCycles按成功收竿循环次数独立保存到config.ini，0–1000000、默认0、步进1，不改为秒计时。满N次在冷却 / 保持后有效红绿状态按空格，未知等待、黄色优先。PostReelJumpAllowed只由本次任务已登记且成功发送的收竿赋予；正在钓鱼、收竿失败、无咬钩超时、停止后重新开始不得立即跳跃。停止 / 刷新保留计数，继承待跳须等下一次成功收竿；成功跳跃/抛竿/停止/超时清除权限。保留成功收竿后绿色恢复跳跃，成功一次清除两种待跳并归零，失败重试。改变N重置、重复保存不重置，原子保存成功才应用。JumpInterval及完整UiTest模拟覆盖两服待跳继承/钓鱼中不跳/失败/超时/下一次成功收竿及原有优先级。
 - 战斗公共CommandGate跨窗口 / 职业 / 状态门控全部成功发键，不约束钓鱼；职业更长冷却和保持仍有效。松键不延迟且不消耗间隔；停止 / 刷新不重置LastSentAt，保存间隔也保留它。v1/v2只读迁移默认公共500ms，下次保存升级v5，全部字段成功写入才应用。AutoFight.Engine.Tests.ps1及UiTest模拟配置失败和全部状态跨窗口门控，生产Native.cs仅编译。
-- 两服各自Loot.lua监听LOOT_OPENED / LOOT_READY / LOOT_SLOT_CHANGED / LOOT_SLOT_CLEARED / LOOT_CLOSED，使用本客户端GetNumLootItems / GetLootSlotInfo第6项locked / LootSlot拾取未锁定槽位。LOOT_BIND_CONFIRM排队下一帧ConfirmLootSlot，成功才StaticPopup_Hide("LOOT_BIND", slot)；只确认拾取绑定，失败保留人工提示、受限不比较、不改变CVar或两模块设置。按槽位去重、关闭清空；Loot.Tests.lua分别模拟两服，ForeverCompatibility.Tests.lua按实际TOC加载完整模块。
+- 两服各自Loot.lua监听LOOT_OPENED / LOOT_READY / LOOT_SLOT_CHANGED / LOOT_SLOT_CLEARED / LOOT_CLOSED，使用本客户端GetNumLootItems / GetLootSlotInfo第6项locked / LootSlot拾取未锁定槽位。wowDetector及fight_detector通过IsEnabled返回实际开关，不能用面板可见性代替。任一检测开启时，所有来源和品质的LOOT_BIND_CONFIRM均排队下一帧ConfirmLootSlot；事件及每个槽位执行前都重新读取两模块开关，全部关闭时取消确认，另一检测继续开启则保持。缺失 / 异常 / 受限开关不视为开启，不阻断另一模块的有效true。成功才StaticPopup_Hide("LOOT_BIND", slot)；只确认拾取绑定，失败保留人工提示、受限不比较、不改变CVar或两模块设置。按槽位去重、关闭清空；Loot.Tests.lua分别模拟两服全部开关组合、全部槽位、延迟中关闭 / 切换 / 重启、处理途中关闭及API失败，钓鱼与战斗模拟验证真实IsEnabled启动 / 关闭 / 死亡 / 钓鱼hide行为；ForeverCompatibility.Tests.lua按实际TOC加载完整模块。
 
 - 距离检测：两服独立fight_detector/Range.lua采用经典 / Forever已知敌对物品探针，档位5/10/15/20/25/30/35/40码，C_Item.IsItemInRange优先、全局接口仅缺省回退，先排除受限返回；缺失、异常、冲突为unknown。加载时预热物品数据，不使用、购买物品或读取怪物坐标。profiles[classId].DetectionRangeYards默认30，顶层AttackRangeYards默认5且为该客户端账号全局；旧rangeSpells保留。面板一次校验全部距离和恢复阈值后保存，非法不部分应用。
 - 开怪后跟踪GUID，玩家对该目标的伤害技能成功或进入战斗后只按攻击距离输出waiting / combat；退远回waiting，不能因进入战斗直接攻击。锁定的GUID优先于当前目标及其他近处姓名板；会话编号变化解除PC开怪一次标记，输入前重查编号。waiting由v5动作3编码，PC等待期间不发开怪 / 攻击 / 恢复 / 移动键，但按住键的释放仍立即执行。主色块恢复字段保留，退出等待后恢复其优先处理。FightDistance.Tests.lua分别模拟两服；AutoFight.Distance.Tests.ps1仅调用生产C#纯Decode；UiTest覆盖生产PC调度与输入重查，严禁真实游戏输入验证。

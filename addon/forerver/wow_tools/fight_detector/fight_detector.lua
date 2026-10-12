@@ -450,6 +450,7 @@ close:SetScript("OnClick",function() Stop(); panel:Hide() end)
 panel:SetScript("OnHide",function() Stop() end)
 signal:Hide()
 WoWTools.modules.fight_detector={
+    IsEnabled=function() return enabled end,
     IsShown=function() return panel:IsShown() end,
     Show=Start,
     Hide=function() Stop(); panel:Hide() end,

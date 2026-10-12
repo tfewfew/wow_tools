@@ -4,6 +4,11 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     local secret = setmetatable({}, {__eq=function() error("restricted comparison") end,
         __tostring=function() error("restricted output") end})
     function issecretvalue(value) return rawequal(value, secret) end
+    local fishing, fighting = true, false
+    WoWTools={modules={
+        wowDetector={IsEnabled=function() return fishing end},
+        fight_detector={IsEnabled=function() return fighting end},
+    }}
     function CreateFrame()
         frame = {events={}, scripts={}}
         function frame:RegisterEvent(event) self.events[event]=true end
@@ -32,7 +37,7 @@ for _, flavor in ipairs({"titan", "forerver"}) do
         items[slot]={}; event("LOOT_SLOT_CLEARED",slot)
     end
     function StaticPopup_Hide(which, slot)
-        assert(which=="LOOT_BIND" and slot==1, "Hid an unrelated popup")
+        assert(which=="LOOT_BIND" and type(slot)=="number", "Hid an unrelated popup")
         hidden[#hidden+1]=slot
     end
     function SetCVar() error("Changed CVar") end
@@ -62,5 +67,36 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     assert(#calls==5 and #confirms==2 and #hidden==2, "New available data did not recover loot")
     event("LOOT_CLOSED"); ConfirmLootSlot=nil; event("LOOT_BIND_CONFIRM",1); tick()
     assert(#hidden==2, "Missing confirmation API hid prompt")
-    print("PASS: "..flavor.." loot, locked/restricted/API-failure handling, slot updates, deferred binding deduplication, close cancellation and exact popup. APIs mocked.")
+    ConfirmLootSlot=function(slot) confirms[#confirms+1]=slot end
+    for _, enabled in ipairs({{false,false},{true,false},{false,true},{true,true}}) do
+        fishing,fighting=enabled[1],enabled[2]
+        local before, hiddenBefore=#confirms,#hidden
+        for slot=1,4 do event("LOOT_BIND_CONFIRM",slot); event("LOOT_BIND_CONFIRM",slot) end
+        assert(#confirms==before,"Confirmed before popup creation")
+        tick()
+        local expected=(fishing or fighting) and 4 or 0
+        assert(#confirms==before+expected and #hidden==hiddenBefore+expected,
+            flavor..": detector OR gate or all-slot confirmation failed")
+        tick(); assert(#confirms==before+expected,"Duplicate confirmation per frame")
+    end
+    fishing,fighting=true,false
+    event("LOOT_BIND_CONFIRM",1)
+    fishing=false
+    local before=#confirms
+    tick(); assert(#confirms==before,"Detection stopped but queued binding was confirmed")
+    fighting=true; tick(); assert(#confirms==before,"Cancelled confirmation survived restart")
+    fishing=true; fighting=false; event("LOOT_BIND_CONFIRM",2)
+    fishing=false; fighting=true; tick()
+    assert(#confirms==before+1,"Other active detector did not preserve pending confirmation")
+    fishing,fighting=secret,false; event("LOOT_BIND_CONFIRM",3); tick()
+    assert(#confirms==before+1,"Restricted detector flag enabled confirmation")
+    WoWTools.modules.wowDetector.IsEnabled=function() error("flag unavailable") end
+    fighting=true; event("LOOT_BIND_CONFIRM",4); tick()
+    assert(#confirms==before+2,"Failed first detector blocked active second detector")
+    ConfirmLootSlot=function(slot) confirms[#confirms+1]=slot; fighting=false end
+    event("LOOT_BIND_CONFIRM",1); event("LOOT_BIND_CONFIRM",2); tick()
+    assert(#confirms==before+3,"Later slots were confirmed after both detectors stopped during processing")
+    WoWTools=nil; event("LOOT_BIND_CONFIRM",1); tick()
+    assert(#confirms==before+3,"Unloaded detectors enabled confirmation")
+    print("PASS: "..flavor.." loot and all binding slots with fishing/combat/either/both/off gates, deferred stop/switch/restart, restricted/missing APIs, deduplication and exact popup. APIs mocked.")
 end

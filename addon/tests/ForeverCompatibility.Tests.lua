@@ -277,6 +277,14 @@ menuEntries[1].onSelect()
 assert(not panel.shown, "Monitor close did not hide")
 menuEntries[1].onSelect()
 assert(panel.shown and wowDetectorDB.locked, "Monitor open did not start/lock")
+assert(WoWTools.modules.wowDetector.IsEnabled(),"Forever active fishing not exposed to loot")
+SlashCmdList.WOWDETECTOR("off")
+assert(not WoWTools.modules.wowDetector.IsEnabled(),"Forever visible disabled panel enables loot")
+SlashCmdList.WOWDETECTOR("on")
+SlashCmdList.WOWDETECTOR("hide")
+assert(WoWTools.modules.wowDetector.IsEnabled(),"Forever hidden active fishing disables loot")
+dead=true; panel.scripts.OnEvent(panel,"PLAYER_DEAD")
+assert(not WoWTools.modules.wowDetector.IsEnabled(),"Forever death leaves loot enabled")
 local fpsApplied = false
 for _, control in ipairs(widgets) do
     if control.definition and control.definition.action then

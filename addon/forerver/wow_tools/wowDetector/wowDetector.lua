@@ -350,6 +350,7 @@ end
 Paint("disabled")
 
 WoWTools.modules.wowDetector = {
+    IsEnabled = function() return enabled end,
     Toggle = function()
         if panel:IsShown() then CloseMonitor() else OpenMonitor() end
     end,

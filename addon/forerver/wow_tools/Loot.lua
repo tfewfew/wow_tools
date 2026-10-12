@@ -1,10 +1,22 @@
 -- Forever 16001: global loot APIs verified against build 1.60.1.70338.
--- Looting is independent from fishing/combat settings and never changes CVars.
+-- Binding confirmation is active while either detector runs; never changes CVars.
 local opened, scanPending = false, false
 local attempted, confirmations = {}, {}
 local frame = CreateFrame("Frame")
 local function Readable(value)
     return not (issecretvalue and issecretvalue(value))
+end
+local function DetectionEnabled()
+    local modules = WoWTools and WoWTools.modules
+    if type(modules) ~= "table" then return false end
+    for _, name in ipairs({"wowDetector", "fight_detector"}) do
+        local module = modules[name]
+        if type(module) == "table" and type(module.IsEnabled) == "function" then
+            local ok, enabled = pcall(module.IsEnabled)
+            if ok and Readable(enabled) and enabled == true then return true end
+        end
+    end
+    return false
 end
 local function ValidSlot(value)
     return Readable(value) and type(value) == "number" and value >= 1
@@ -20,7 +32,7 @@ frame:SetScript("OnEvent", function(_, event, slot)
     elseif event == "LOOT_OPENED" then
         opened, scanPending, attempted = true, true, {}
     elseif event == "LOOT_BIND_CONFIRM" then
-        if ValidSlot(slot) then confirmations[slot] = true end
+        if DetectionEnabled() and ValidSlot(slot) then confirmations[slot] = true end
     elseif event == "LOOT_SLOT_CLEARED" then
         if ValidSlot(slot) then attempted[slot] = true end
         scanPending = opened
@@ -35,7 +47,7 @@ frame:SetScript("OnUpdate", function()
     local pending = confirmations
     confirmations = {}
     for slot in pairs(pending) do
-        if type(ConfirmLootSlot) == "function" then
+        if DetectionEnabled() and type(ConfirmLootSlot) == "function" then
             local ok, result = pcall(ConfirmLootSlot, slot)
             if ok and Readable(result) and result ~= false and type(StaticPopup_Hide) == "function" then
                 pcall(StaticPopup_Hide, "LOOT_BIND", slot)

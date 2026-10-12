@@ -85,6 +85,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
         dofile(root.."/addon/"..flavor.."/wow_tools/fight_detector/Range.lua")
         dofile(root.."/addon/"..flavor.."/wow_tools/fight_detector/fight_detector.lua")
         event("ADDON_LOADED","wow_tools")
+        assert(not WoWTools.modules.fight_detector.IsEnabled(),"Initial combat flag enables loot")
         local detector
         for _,f in ipairs(frames) do if #f.textures==2 then detector=f end end
         assert(detector,"Expected exactly two V5 signal cells")
@@ -110,6 +111,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     assert(not WoWTools.FightRange.IsSupported(secret) and not WoWTools.FightRange.IsSupported(12))
     mobs.target={guid="Creature-A",distance=31}
     SlashCmdList.FIGHTDETECTOR("on"); color(0,0,255)
+    assert(WoWTools.modules.fight_detector.IsEnabled(),"Running combat flag disables loot")
     local function geometry()
         for i,cell in ipairs(signal.textures) do
             local unit=UIParent:GetHeight()/screenHeight
@@ -168,6 +170,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     C_Item.IsItemInRange=nil; IsItemInRange=function(item,unit) return check(item,unit) and 1 or 0 end
     tick(); color(255,0,0); C_Item.IsItemInRange=check; IsItemInRange=nil
     dead=true; event("PLAYER_DEAD"); assert(not signal.shown,"Death did not stop detector")
+    assert(not WoWTools.modules.fight_detector.IsEnabled(),"Combat death leaves loot enabled")
     dead,combat=false,false; mobs={}
     setup(3,saved); assert(edits[1].text=="20" and edits[2].text=="10","Class-specific detection/global attack load failed")
     for _,b in ipairs(buttons) do if b.text=="保存" then save=b end end
@@ -189,6 +192,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     assert(math.floor(signal.textures[1].color[1]*255+.5)==240 and epoch()==selectedEpoch,"Lost target did not request locked focus")
     mobs.focus=nil; tick(); color(128,128,128) -- Never target an unrelated focus in combat.
     SlashCmdList.FIGHTDETECTOR("off"); assert(override,"Combat attempted protected unbind")
+    assert(not WoWTools.modules.fight_detector.IsEnabled(),"Combat close leaves loot enabled")
     combat=false; event("PLAYER_REGEN_ENABLED"); assert(not override,"Deferred override cleanup missing")
     print("PASS: "..flavor.." yard probes, 30/5 defaults, exact thresholds, opening/wait/approach/retreat, target identity, unknown/secret/failure/conflict, legacy fallback, settings scope/validation and death. Game APIs mocked.")
 end
