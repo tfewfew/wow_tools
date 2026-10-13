@@ -94,31 +94,55 @@ function Test-GameActionHold([long]$Now) {
     return ($Now -lt $script:scheduler.ReelHoldUntil -or $Now -lt $script:scheduler.ItemHoldUntil -or
         ($script:autoFight -and ($script:autoFight.ActiveHold -or [WowAutoFight.Native]::IsHolding)))
 }
+function Test-GameActionUsesFocus($Event) {
+    # These callbacks can change the foreground themselves, without the activation precheck.
+    return $Event.Foreground -or $Event.Kind -in @('Scan.Activate','Rotation.Activate','Scan.Restore','Process.Close','Process.Kill')
+}
 function Invoke-GameActionQueue([long]$Now,[switch]$SafetyOnly) {
     if ($script:gameActions.Current -and -not $SafetyOnly) {return}
-    foreach ($event in @($script:gameActions.Events)) {
-        if (-not (Test-GameActionValid $event)) {[void]$script:gameActions.Events.Remove($event);$event.Cancelled=$true}
-        elseif ($event.Domain -eq 'Fight') {
-            # The shared combat gate delays eligibility before any window activation.
-            $gate=$script:autoFight.CommandGate
-            $ready=if ($gate.LastSentAt -lt 0) {$event.RequestedDue} else {$gate.LastSentAt+$gate.IntervalMs}
-            $event.Due=[Math]::Max($event.RequestedDue,$ready)
+    $clock=$script:schedulerClock
+    $clockAtEntry=if ($clock) {[long]$clock.ElapsedMilliseconds} else {0L}
+    $batchAt=if (-not $UiTest -and $clock -is [Diagnostics.Stopwatch]) {[Math]::Max($Now,$clockAtEntry)} else {$Now}
+    $deferred=@{}
+    while ($true) {
+        # Inputs take time. Re-evaluate deadlines and holds using the current monotonic time.
+        $Now=$batchAt
+        if ($clock) {$Now += [Math]::Max(0,([long]$clock.ElapsedMilliseconds-$clockAtEntry))}
+        foreach ($event in @($script:gameActions.Events)) {
+            if (-not (Test-GameActionValid $event)) {[void]$script:gameActions.Events.Remove($event);$event.Cancelled=$true}
+            elseif ($event.Domain -eq 'Fight') {
+                $gate=$script:autoFight.CommandGate
+                $ready=if ($gate.LastSentAt -lt 0) {$event.RequestedDue} else {$gate.LastSentAt+$gate.IntervalMs}
+                $event.Due=[Math]::Max($event.RequestedDue,$ready)
+            }
+        }
+        $focus=$script:gameActions.Focus
+        if ($focus -and ($focus.Cancelled -or -not $script:gameActions.Events.Contains($focus))) {
+            $script:gameActions.Focus=$null;$focus=$null
+        }
+        $held=Test-GameActionHold $Now
+        $eligible=@($script:gameActions.Events | Where-Object {
+            $_.Due -le $Now -and (-not $deferred.ContainsKey($_.Sequence) -or $Now -ge $deferred[$_.Sequence]) -and
+            (-not $SafetyOnly -or $_.Domain -eq 'Safety') -and
+            (-not $held -or $_.Domain -in @('Safety','Hold')) -and
+            (-not $script:editingSettings -or $_.Domain -eq 'Safety') -and
+            (-not $focus -or $_ -eq $focus -or -not (Test-GameActionUsesFocus $_) -or $_.Priority -lt $focus.Priority)
+        } | Sort-Object Priority,Due,Sequence)
+        if (-not $eligible.Count) {return}
+        $event=$eligible[0]
+        if ($focus -and $focus -ne $event -and (Test-GameActionUsesFocus $event)) {
+            # Higher priority foreground work preempts an activation; reads leave it intact.
+            $focus.ReadyAt=0L;$focus.FocusUntil=0L;$script:gameActions.Focus=$null
+            [void]$deferred.Remove($focus.Sequence)
+        }
+        $completed=Invoke-QueuedGameAction $event $Now
+        if (-not $completed) {
+            # No sleep or retry loop for a pending activation. Continue independent work.
+            $deferred[$event.Sequence]=if ($Now -lt $event.ReadyAt) {$event.ReadyAt} else {[Math]::Max($Now+1,$event.FocusUntil)}
         }
     }
-    $held=Test-GameActionHold $Now
-    $eligible=@($script:gameActions.Events | Where-Object {
-        $_.Due -le $Now -and (-not $SafetyOnly -or $_.Domain -eq 'Safety') -and
-        (-not $held -or $_.Domain -in @('Safety','Hold')) -and
-        (-not $script:editingSettings -or $_.Domain -eq 'Safety')
-    } | Sort-Object Priority,Due,Sequence)
-    if (-not $eligible.Count) {return}
-    $event=$eligible[0];$focus=$script:gameActions.Focus
-    # A pending activation owns the foreground until settled. Only higher priority work can preempt it.
-    if ($focus -and -not $focus.Cancelled -and $eligible -contains $focus -and $focus.Priority -le $event.Priority) {$event=$focus}
-    if ($focus -and $focus -ne $event -and -not $SafetyOnly) {
-        # Preempted activation gets a fresh settle/timeout when it resumes, even after a long hold.
-        $focus.ReadyAt=0L;$focus.FocusUntil=0L;$script:gameActions.Focus=$null
-    }
+}
+function Invoke-QueuedGameAction($event,[long]$Now) {
     $previous=$script:gameActions.Current;$script:gameActions.Current=$event
     try {
         if ($event.Foreground) {
@@ -136,14 +160,18 @@ function Invoke-GameActionQueue([long]$Now,[switch]$SafetyOnly) {
                     $event.ReadyAt=$Now+200;$event.FocusUntil=$Now+800
                     $script:gameActions.Focus=$event
                 }
-                return
+                return $false
             }
-            if ($script:gameActions.Focus -eq $event -and $Now -lt $event.ReadyAt) {return}
+            if ($script:gameActions.Focus -eq $event -and $Now -lt $event.ReadyAt) {return $false}
         }
-        if (-not (Test-GameActionValid $event)) {return}
+        if (-not (Test-GameActionValid $event)) {
+            $event.Cancelled=$true;[void]$script:gameActions.Events.Remove($event)
+            if ($script:gameActions.Focus -eq $event) {$script:gameActions.Focus=$null}
+            return $true
+        }
         [void]$script:gameActions.Events.Remove($event)
         if ($script:gameActions.Focus -eq $event) {$script:gameActions.Focus=$null}
-        & $event.Execute $event $Now
+        $null = & $event.Execute $event $Now
         [void]$script:gameActions.History.Add([pscustomobject]@{Kind=$event.Kind;Key=$event.Key;Priority=$event.Priority;At=$Now})
         while ($script:gameActions.History.Count -gt 200) {$script:gameActions.History.RemoveAt(0)}
     }
@@ -166,6 +194,7 @@ function Invoke-GameActionQueue([long]$Now,[switch]$SafetyOnly) {
         else {Write-Warning $reason}
     }
     finally {$script:gameActions.Current=$previous}
+    return $true
 }
 
 function Submit-FishingActions([long]$Now) {
