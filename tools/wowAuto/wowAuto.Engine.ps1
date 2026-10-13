@@ -9,7 +9,7 @@ function New-WowAutoState {
         MinimumMs=$MinimumMs; MaximumMs=$MaximumMs; LastInterval=-1; ForceNextCast=$false; ReelDelayMs=0
         AwaitingFishingTransition=$false; SawIdle=$false
         CheckReelGreen=$false; CycleJumpPending=$false; PostReelJumpAllowed=$false
-        UseItem=$false; ItemDue=0L; ItemRetryAt=0L; InitialItemPending=$false
+        UseItem=$false; ItemDue=0L; ItemRetryAt=0L; InitialItemPending=$false; ItemUsedOnce=$false
         ItemStatus=''
         FocusRetryAt=0L; FocusResumeStatus=''
         UseAudio=$false; AudioReady=$true; AudioSession=0L; FishingStartedAt=0L; AudioReelPending=$false; AudioTimeoutMs=35000
@@ -73,11 +73,12 @@ function Set-WowAutoItemEnabled($Scheduler, [string]$Key, [bool]$Enabled, [long]
     $state.ItemDue=if ($Enabled) { $Now } else { 0L }
     $state.ItemRetryAt=0L
     $state.InitialItemPending=$Enabled
+    $state.ItemUsedOnce=$false
     $state.ItemStatus=if ($Enabled) { '等待鱼饵附魔检测。' } else { '' }
 }
 function Complete-WowAutoItemCheck($Scheduler, [string]$Key, [long]$Now, [string]$Lure, [string]$Color) {
     $state=$Scheduler.Tasks[$Key]
-    if ($null -eq $state -or -not $state.Running -or -not $state.UseItem) { return 'Continue' }
+    if ($null -eq $state -or -not $state.Running -or -not $state.UseItem -or $state.ItemUsedOnce) { return 'Continue' }
     $state.ItemDue=$Now+1000
     if ($Color -notin @('red','green') -or $Lure -notin @('present','missing')) {
         $state.InitialItemPending=$true
@@ -106,13 +107,14 @@ function Complete-WowAutoItemCheck($Scheduler, [string]$Key, [long]$Now, [string
 }
 function Complete-WowAutoItem($Scheduler, [string]$Key, [long]$Now, [bool]$Sent) {
     $state=$Scheduler.Tasks[$Key]
-    if ($null -eq $state -or -not $state.Running -or -not $state.UseItem) { return }
+    if ($null -eq $state -or -not $state.Running -or -not $state.UseItem -or $state.ItemUsedOnce) { return }
     if ($Sent) {
-        $state.InitialItemPending=$true
+        $state.ItemUsedOnce=$true
+        $state.InitialItemPending=$false
         $Scheduler.ItemHoldUntil=$Now+3000
-        $state.ItemDue=$Now+3000
-        $state.ItemRetryAt=$Now+5000
-        $state.ItemStatus='道具已发送，等待3秒并重新确认鱼竿附魔。'
+        $state.ItemDue=0L
+        $state.ItemRetryAt=0L
+        $state.ItemStatus='道具已使用一次，本次任务不再补用。'
     } else { $state.ItemRetryAt=$Now+500; $state.ItemDue=$Now+500 }
 }
 function Get-WowAutoCycleCount($Scheduler, [string]$Key) {
@@ -186,7 +188,7 @@ function Get-WowAutoWork($Scheduler, [long]$Now) {
     }
     $item=@($Scheduler.Order | Where-Object {
         $s=$Scheduler.Tasks[$_]
-        $s.Running -and $s.AudioReady -and $s.UseItem -and $s.FocusRetryAt -eq 0 -and $s.Mode -in @('Ready','Casting') -and $s.ItemDue -le $Now
+        $s.Running -and $s.AudioReady -and $s.UseItem -and -not $s.ItemUsedOnce -and $s.FocusRetryAt -eq 0 -and $s.Mode -in @('Ready','Casting') -and $s.ItemDue -le $Now
     } | Sort-Object { $Scheduler.Tasks[$_].ItemDue })
     if ($item.Count -gt 0) {
         return [pscustomobject]@{ Key=$item[0]; Kind='Item'; Due=$Scheduler.Tasks[$item[0]].ItemDue }

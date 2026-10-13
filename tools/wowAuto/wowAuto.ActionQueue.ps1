@@ -71,7 +71,7 @@ function Test-GameActionValid($Event) {
             }
             if ($work.Kind -eq 'FocusRetry') {return $state.FocusRetryAt -eq $work.Due -and $state.FocusRetryAt -gt 0}
             if ($state.FocusRetryAt -gt 0 -or $state.Mode -notin @('Ready','Casting')) {return $false}
-            if ($work.Kind -eq 'Item') {return $state.UseItem -and $state.ItemDue -eq $work.Due}
+            if ($work.Kind -eq 'Item') {return $state.UseItem -and -not $state.ItemUsedOnce -and $state.ItemDue -eq $work.Due}
             return $state.NextDue -eq $work.Due -and -not $state.InitialItemPending
         }
         'Fight' {return -not $script:autoFight.Editing -and [object]::ReferenceEquals($Event.Data.Row.Session,$Event.Owner)}

@@ -22,6 +22,12 @@ $fakeOcr=[pscustomobject]@{Lines=@([pscustomobject]@{Text='选择服务器';X=0.
     Names=@([pscustomobject]@{Text='咆史呀嘞';X=0.20;Y=0.40;W=0.10;H=0.03});NamesBounds=[pscustomobject]@{X=0.79;Y=0;W=0.21;H=0.84}}
 $ambiguousScreen=ConvertFrom-RotationOcr $fakeOcr $ambiguousPlan
 if ($ambiguousScreen.Kind -ne 'menu' -or @($ambiguousScreen.Targets | Where-Object {-not $_.Ambiguous}).Count) {throw 'Ambiguous OCR text could become a selectable target.'}
+$anchors=$fakeOcr.Lines
+foreach ($anchor in $anchors) {
+    $fakeOcr.Lines=@($anchor)
+    if ((ConvertFrom-RotationOcr $fakeOcr $ambiguousPlan).Kind -ne 'menu') {throw 'A single positioned menu anchor was rejected.'}
+}
+$fakeOcr.Lines=$anchors
 $source=[IO.File]::ReadAllText((Join-Path $tool 'wowAuto.Rotation.Ocr.ps1'))
 function Read-TestOcr($Bitmap) {
     $pipeline=[powershell]::Create()

@@ -184,8 +184,6 @@ function Send-RotationAction($Row,[string]$Action,$Target=$null) {
     if ($UiTest) {$script:rotation.Actions+=,[pscustomobject]@{Key=$Row.Key;Action=$Action;Target=$Target};return $true}
     switch ($Action) {
         'logout' {$sent=[WowAuto.NativeInput]::SendRotationCommand($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,'logout',0)}
-        'top' {[WowAutoRotation.Native]::MouseAction($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,0.88,0.45,12000,$false);$sent=$true}
-        'scroll' {[WowAutoRotation.Native]::MouseAction($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,0.88,0.65,-600,$false);$sent=$true}
         'doubleclick' {
             if (-not $Target -or -not $Target.Name) {throw '未定位完整角色名。'}
             if (-not [WowAutoRotation.Native]::SnapshotMatches($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,$Target.Width,$Target.Height)) {return $false}
@@ -235,7 +233,7 @@ function ConvertFrom-RotationOcr($Ocr,$Plan,[switch]$MenuWasConfirmed) {
             }
         }
     }
-    if ($server -and $enter -and $targets.Count) {
+    if ($server -or $enter) {
         return [pscustomobject]@{Kind='menu';Targets=$targets;RoleName=$null}
     }
     return [pscustomobject]@{Kind='unknown';Targets=@();RoleName=$null}
@@ -243,6 +241,8 @@ function ConvertFrom-RotationOcr($Ocr,$Plan,[switch]$MenuWasConfirmed) {
 function Read-RotationScreen($Row,$Plan,[switch]$MenuWasConfirmed) {
     if ($UiTest) {
         if (-not $Row.Process.PSObject.Properties['RotationOcrReads']) {$Row.Process | Add-Member NoteProperty RotationOcrReads 0}
+        if (-not $Row.Process.PSObject.Properties['RotationCursorParks']) {$Row.Process | Add-Member NoteProperty RotationCursorParks 0}
+        $Row.Process.RotationCursorParks++
         $Row.Process.RotationOcrReads++
         return $Row.Process.RotationScreen
     }
@@ -267,7 +267,16 @@ function Read-RotationScreen($Row,$Plan,[switch]$MenuWasConfirmed) {
     # Limit capture starts; completion polling must never create another in-flight OCR task.
     $sampleAt=$script:schedulerClock.ElapsedMilliseconds
     if ($sampleAt -lt $script:rotation.NextOcrAt) {return [pscustomobject]@{Kind='pending'}}
-    $bitmap=[WowAutoRotation.Native]::Capture($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath)
+    Assert-GameActionContext
+    try {
+        [WowAutoRotation.Native]::ParkCursor($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath)
+        $bitmap=[WowAutoRotation.Native]::Capture($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath)
+    } catch {
+        if (-not (Test-RowProcessIdentity $Row) -or $Row.Process.HasExited) {throw}
+        if (-not (Test-WorkerForeground $Row)) {throw '角色切换窗口暂时失去前台。'}
+        if ($_.Exception.Message -match 'Window moved during (cursor parking|capture)|Client geometry unavailable') {return [pscustomobject]@{Kind='pending'}}
+        throw
+    }
     $script:rotation.NextOcrAt=$sampleAt+[long]$script:rotation.OcrIntervalMs
     $pipeline=[powershell]::Create()
     try {
@@ -293,7 +302,7 @@ function Invoke-RotationTick([long]$Now) {
             if ($script:rotation.Active[$entry.Row.Key] -ne $entry) {continue}
             $phase=if ($logout) {'logout-activate'} else {'activate'}
             $script:rotation.Current=[pscustomobject]@{Entry=$entry;Row=$entry.Row;Phase=$phase;Due=$Now;Deadline=($Now+180000);FocusUntil=0L;
-                Stable=0;LastLogout=$entry.LastLogout;Candidate=$null;Pages=0;Signature='';Repeated=0;MonitorEnabled=$false}
+                Stable=0;LastLogout=$entry.LastLogout;Candidate=$null;FindMisses=0;MonitorEnabled=$false}
             $script:rotation.NextOcrAt=0L
             break
         }
@@ -390,17 +399,18 @@ function Invoke-RotationTick([long]$Now) {
             'menu' {
                 if ($screen.Kind -eq 'menu') {
                     $work.Stable++
-                    if ($work.Stable -ge 3) {$null=Send-RotationAction $row 'top';$work.Phase='find';$work.Stable=0}
+                    if ($work.Stable -ge 3) {$work.Phase='find';$work.Stable=0}
                 } else {
                     $work.Stable=0
-                    Set-RowStatusText $row '步骤1/3：等待OCR确认选择服务器、进入魔兽世界及角色列表。'
+                    Set-RowStatusText $row '步骤1/3：等待OCR识别选择服务器或进入魔兽世界。'
                 }
             }
             'find' {
-                if ($screen.Kind -ne 'menu') {$work.Stable=0;Set-RowStatusText $row '选角锚点未完整识别，等待重新识别。';break}
+                if ($screen.Kind -ne 'menu') {$work.Stable=0;Set-RowStatusText $row '选角锚点未识别，等待重新识别。';break}
                 $targets=@($screen.Targets | Where-Object {$_.Name -ceq $name -and -not $_.Ambiguous})
                 if ($targets.Count -gt 1) {throw '列表出现多个相同名称，未双击。'}
                 if ($targets.Count -eq 1) {
+                    $work.FindMisses=0
                     $target=$targets[0]
                     if ($work.Candidate -and [Math]::Abs($target.X-$work.Candidate.X) -lt 0.005 -and [Math]::Abs($target.Y-$work.Candidate.Y) -lt 0.005) {$work.Stable++} else {$work.Stable=1}
                     $work.Candidate=$target
@@ -416,11 +426,9 @@ function Invoke-RotationTick([long]$Now) {
                     }
                 } else {
                     $work.Candidate=$null;$work.Stable=0
-                    $signature=($screen.Targets.Name -join '|')
-                    if ($signature -ceq $work.Signature) {$work.Repeated++} else {$work.Repeated=0}
-                    $work.Signature=$signature
-                    if ($work.Repeated -ge 2 -or $work.Pages -ge 40) {throw ('角色列表未找到完整名称“'+$name+'”；请核对名称及服务器。')}
-                    $null=Send-RotationAction $row 'scroll';$work.Pages++
+                    $work.FindMisses++
+                    if ($work.FindMisses -ge 3) {throw ('第一页未找到角色“'+$name+'”；请将角色放在第一页并核对名称及服务器。')}
+                    Set-RowStatusText $row ('第一页未找到“'+$name+'”，再次识别同一页（'+$work.FindMisses+'/3）。')
                 }
             }
         }

@@ -1835,7 +1835,7 @@ function Invoke-SchedulerTick([long]$Now,$QueuedWork=$null) {
             return
         }
         $sent=$true
-        if ($row.State.UseItem -and $work.Kind -ne 'Reel') {
+        if ($row.State.UseItem -and -not $row.State.ItemUsedOnce -and $work.Kind -ne 'Reel') {
             $lure=Read-LureColor $row
             if ($lure -eq 'not-foreground') { Pause-RowForFocus $row $Now '检测鱼饵时失去前台焦点。'; return }
             $itemAction=Complete-WowAutoItemCheck $script:scheduler $work.Key $Now $lure $color

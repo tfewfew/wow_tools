@@ -4,6 +4,8 @@ Add-Type -Path (Join-Path $PSScriptRoot '..\wowAuto.Rotation.Native.cs') -Refere
 foreach ($size in @(@(800,600),@(1280,720),@(1579,937),@(3840,2160))) {
     $bounds=[WowAutoRotation.Native]::LoginPointBounds($size[0],$size[1])
     if ($size[0]-$bounds.Right -ne 16 -or $size[1]-$bounds.Bottom -ne 16 -or $bounds.Width -ne 16 -or $bounds.Height -ne 16) {throw 'Inset sampling geometry differs from addons.'}
+    $park=[WowAutoRotation.Native]::CursorParkPoint($size[0],$size[1])
+    if ($park.X -lt 16 -or $park.X -gt $size[0]*0.1 -or $park.Y -lt $size[1]*0.9 -or $park.Y -ge $size[1]) {throw 'OCR cursor parking is outside the client lower-left region.'}
 }
 $clipped=New-Object Drawing.Bitmap(16,16)
 $client=New-Object Drawing.Bitmap(160,120)
@@ -26,4 +28,4 @@ try {
     $sample=$client.Clone($bounds,[Drawing.Imaging.PixelFormat]::Format32bppArgb)
     try {if ([WowAutoRotation.Native]::HasLoginPoint($sample)) {throw 'Occluded point accepted.'}} finally {$sample.Dispose()}
 } finally {$graphics.Dispose();$clipped.Dispose();$client.Dispose()}
-Write-Output 'PASS: physical inset across client sizes, rounded-corner rejection, relocated white point and occlusion rejection. Synthetic bitmaps only; no game capture/input.'
+Write-Output 'PASS: physical inset and OCR cursor parking across client sizes, rounded-corner rejection, relocated white point and occlusion rejection. Synthetic bitmaps only; no game capture/input.'
