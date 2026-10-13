@@ -54,6 +54,14 @@ foreach ($profile in $profiles) {
         $relative=$file.FullName.Substring($profile.Source.Length + 1)
         Copy-Verified $file.FullName (Join-Path $profile.Target $relative) (Join-Path "$($profile.Flavor)\wow_tools" $relative)
     }
+    # Retire the exact former login-marker module after the new TOC is verified.
+    $retiredRotation=Join-Path $profile.Target 'Rotation.lua'
+    if (-not (Test-Path -LiteralPath (Join-Path $profile.Source 'Rotation.lua')) -and (Test-Path -LiteralPath $retiredRotation -PathType Leaf)) {
+        $retiredBackup=Join-Path $backup "$($profile.Flavor)\retired-Rotation.lua"
+        Copy-Item -LiteralPath $retiredRotation -Destination $retiredBackup
+        if ((Get-FileHash -LiteralPath $retiredRotation).Hash -ne (Get-FileHash -LiteralPath $retiredBackup).Hash) {throw 'Retired rotation marker backup failed.'}
+        Remove-Item -LiteralPath $retiredRotation
+    }
 }
 & (Join-Path $PSScriptRoot 'install-desktop-shortcut.ps1') `
     -ToolRoot (Join-Path $repo 'tools\wowAuto') -DesktopPath $desktop -BackupPath (Join-Path $backup 'Desktop')

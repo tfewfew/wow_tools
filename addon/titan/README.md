@@ -33,3 +33,5 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\skills\wow-tools\scrip
 2.1.16：新增独立Rotation.lua，以共享主色块确认角色进入世界、脱战及轮换请求编号；正常开启钓鱼 / 战斗监控即清理标记。桌面wowAuto支持每进程三角色槽位及全局秒间隔，菜单标定 / 位次导航由桌面脚本完成，插件不操作角色选择界面。新增wowRotationDB保存退出 / 登录期间的编号。Rotation.Tests.lua及完整UiTest模拟验证，不切换真实角色；更新需/reload并重启wowAuto。
 
 2.1.17：修复未开启监控时登录仍显示色块。轮换确认标记仅响应明确请求，180秒过期，重载及开启监控清除；废弃默认编号0。首次从选角菜单登录由脚本请求确认，匹配编号后才执行任务。
+
+2.1.18：移除Rotation.lua登录色块及wowRotationDB。角色切换由桌面OCR识别系统公告和列表中的完整角色名，快速双击名称登录；不再设置角色位次和总数。两服分别移除自己的标记源码，原钓鱼 / 战斗检测协议保持不变。

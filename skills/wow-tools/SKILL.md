@@ -25,7 +25,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 ## 行为约定
 
-- titan版基于原2.1.1独立维护，当前2.1.17/接口38002。forerver版当前2.2.16/接口16001按无限服1.60.1.70338的Blizzard导出源码943764493e6b16d63ded3ab304150d1f05e58b57移植；以后跟随对应分支源码核对API，不能仅改TOC号。
+- titan版基于原2.1.1独立维护，当前2.1.18/接口38002。forerver版当前2.2.17/接口16001按无限服1.60.1.70338的Blizzard导出源码943764493e6b16d63ded3ab304150d1f05e58b57移植；以后跟随对应分支源码核对API，不能仅改TOC号。
 - forerver在Init.lua后加载Compatibility.lua：ItemLocation主手槽16及C_Item.GetItemID/GetItemInfoInstant识别鱼竿，C_Item.GetWeaponEnchantInfo(Enum.WeaponSlot.MainHand)返回列表，只接受有效Temporary附魔，排除Permanent/Imbue；失败或受限/不完整数据为unknown。UnitChannelInfo的技能ID在第8项，绿色只认钓鱼引导；先用issecretvalue排除受限返回再比较/输出，受限引导使主色块灰色。注册WEAPON_ENCHANT_CHANGED并每0.1秒刷新。菜单使用MenuUtil.CreateContextMenu；画面模块移动FramerateFrame整体，不再依赖FramerateLabel全局。未提供的CVar继续禁用，禁止加载时自动改变图形设置。forever测试覆盖全TOC加载，不发送游戏按键。
 - wowAuto同时识别时光服_classic_titan_/WowClassic.exe 3.80.和无限服_cn_beta_/Wow.exe 1.60.，允许游戏根目录位于其他盘符，但产品目录名须匹配。GetClientFlavor同时核对可执行文件名、父目录与构建前缀；未知/无法读取/零售服不加入列表。每行Client保存Flavor、Label、ExecutablePath；启动、取色、焦点切换、发键及正常/超时退出均核对PID、StartTime、路径与客户端身份。C#方法接收启动Ticks和预期路径，不能退回只按Wow进程名操作。
 
@@ -85,7 +85,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 ## autoFight（2026-10-13）
 
-- 当前合集版本titan2.1.17、forerver2.2.16，两服独立维护fight_detector.lua；保留fightDetectorDB / rangeSpells，新增profiles[classId]恢复阈值。战斗通过模块接口关闭钓鱼以恢复音频，不直接读写wowDetectorDB、音频、图形或交互CVar。
+- 当前合集版本titan2.1.18、forerver2.2.17，两服独立维护fight_detector.lua；保留fightDetectorDB / rangeSpells，新增profiles[classId]恢复阈值。战斗通过模块接口关闭钓鱼以恢复音频，不直接读写wowDetectorDB、音频、图形或交互CVar。
 - autoFight.ps1、Engine.ps1、Native.cs、config.json的状态、输入、计时和配置与autofish隔离，通过wowAuto.Unified.ps1共享进程行、设置宿主和统一输入调度；不再有独立主标签或独立运行计时器，UiTest以模拟类型替代战斗原生操作，不加载战斗输入适配器。
 - 战斗v5只读取主色块：主32×32物理像素位于客户区正中心，副12×12位于中心右32px，只作恢复提示。无心跳、双块校验或颜色变化要求。主RGB=(16+8*(action*4+recovery),2+4*(identity+busy*26),2+4*(encounter+combat*32))；action=0..6为unknown/idle/opening/waiting/combat/loot/skin；新增target动作分别使用保留R240/248/8对应none/recover/emergency，G/B不变。recovery=0..3为none/recover/emergency/unknown；identity=classId-1+（forerver为13）；encounter模32。通道偏差最多1，拒绝非法字段/组合、版本或职业不符、未知恢复及旧协议；射程未知但恢复明确仍可执行恢复。
 - HP进入 / 退出阈值默认非战斗80/95、紧急30/50；可选法力恢复默认关闭，只对法力职业生效。0关闭项，进入<退出，迟滞避免状态抖动。受限 / 不可读不推断。恢复优先于普通动作；施法 / 引导 / 战利品窗口阻止普通发键，紧急宏允许打断当前施法。
@@ -122,12 +122,14 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - wowAuto.Unified.ps1通过单一计时器协调两套状态机和前台输入；到期钓鱼收竿及收竿 / 道具保持优先，期间战斗可只读后台检测。战斗激活待输入及移动 / 交互保持期间，钓鱼不抢焦点。战斗公共CommandGate保留，钓鱼成功收竿跳跃限制不变。
 - Unified.UiTests随完整UiTest模拟混合两服模式、激活 / 命令 / 采样顺序、失败隔离、手动全部开始、模式保存失败回滚、重建 / PID复用、非法 / 旧INI、两页独立保存 / 取消和混合收竿优先。真实用户INI / JSON哈希不得改变；禁止真实游戏按键 / 音频 / 结束游戏验证。
 
-## 三槽位角色编排（2026-10-13）
+## 三槽位角色编排与OCR（2026-10-13）
 
-- 每个进程三槽，Character=0..65（0为空）、Mode=fish/fight，循环跳过空槽；单有效槽每次仍logout并重新登录，不优化为继续当前角色。全部空保留旧单角色模式。开始从首个有效槽位完整选角登录，不假定当前角色一致。
-- rotation.config.json v1独立原子保存IntervalSeconds=0..604800和PID:StartTicks的Plans / Menu标定，不改变原INI / 战斗JSON。旧无文件按空槽 / 0秒，非法配置阻止编排；取消 / 保存失败不应用，PID复用不继承。设置顶部提供全局秒间隔，两任务Tab保留。编排修改成功后停止本行，间隔变更重计同一个全局截止，相同保存不重计。
-- 第一个已开始编排进程建立全局时钟，到期先停所有参与进程的动作与监听再逐窗切换，不创建独立进程周期。无重叠批次、长切换跳过已错过周期；手动停止 / 刷新 / 关闭取消后续，不撤回已提交退出。角色切换清除本进程CompletedCycles / CyclesSinceJump，原成功收竿跳跃约束不改。
-- 角色选择菜单不加载普通插件；不得通过注入或调用游戏内SelectCharacter操作。首次由用户手动打开菜单并滚至首位，输入实际角色总数，以截图标定固定文字矩形与第一角色位置。标定只读截图，运行核对身份 / 前台 / 客户区几何 / 遮挡，按归一化比例适配同宽高比缩放；布局 / 宽高比改变需重标定。连续三次确认菜单，再滚顶部 / 点击首角色 / Down导航 / Enter；每步确认菜单，非法 / 黑图 / 未知 / 失焦拒绝继续。角色号按当前列表位次，超出用户标定总数拒绝，不跨服菜单或按名字猜测。
-- 两服独立Rotation.lua临时复用共享主色块中心，RGB=(20+token,231,157)，combat时B181；未请求时普通登录 / 重载不显示色块，废弃token=0；arm 1..200在wowRotationDB账号变量跨logout保存，附带180秒有效期，旧版无有效期的编号清除，重载清除请求。PLAYER_LEAVING_WORLD隐藏，PLAYER_ENTERING_WORLD仅恢复有效请求，由始终可运行watcher核对GUID / 存活 / combat / 物理尺寸再显示；受限数据不推断，启动任一监控即清理标记，不新增第三个位置。插件只确认世界状态，桌面脚本处理菜单。两服当前2.1.17 / 2.2.16，TOC各自新增Rotation.lua与SavedVariables，不覆盖另一服旧源码。
-- 桌面轮换停止任务后固定命令stopcasting / wowrotate arm / logout；战斗等待脱战，正常退出倒计时 / 加载等待，180秒超时停止本行，不杀进程、不盲目选角。从已打开菜单开始时没有预存请求：仅在已核验选角并发送Enter后，菜单消失且等待至少3秒，允许每3秒发送一次只请求标记的probe（不发送stopcasting），直到加载后的插件响应；菜单匹配时不发命令。此阶段未知图像仅允许确认请求，不允许选角 / logout / 任务按键。登入世界须与本次1..200请求编号连续两次匹配后开启对应监控，主色验证再自动开始槽任务；此自动开始只用于用户已启动的编排，普通刷新仍手动开始。角色轮换队列独占前台，先释放移动键，释放失败暂停后续输入。
-- Rotation.UiTests使用实际调度与模拟进程 / 图像 / 输入，覆盖三槽 / 单槽 / 空槽、全局同批停止、角色任务、顺序、加载 / 战斗 / 焦点 / 超时 / 取消、计数与配置隔离；Rotation.Tests.lua分别用两服真实文件验证令牌 / 事件 / 存活 / 受限 / 缩放 / 标记清理。Native只编译及合成图像纯函数验证，禁止真实切换角色 / 游戏按键 / 音频 / 终止进程测试。快捷方式检查Rotation模块 / Native / JSON运行依赖；推送成功后才部署两服并提醒reload及重新标定。
+- 每进程三槽，完整Name / Mode=fish或fight，名称留空为空槽，循环跳过空槽，单槽仍退出并重新登录。移除Character位次、Count总数、Menu截图标定、方向键 / Enter导航。
+- rotation.config.json v2独立原子保存IntervalSeconds=0..604800及PID:StartTicks名称槽位。v1需用户改填名称，不自动按位置猜测；本次根据用户录制的真实时光服列表，将现有2 / 4号槽转换为双持船橘二咪 / 咆史呀嘞，保留间隔与模式。未知配置不运行；草稿、取消、失败及PID复用隔离。
+- 共用一个全局秒周期，到期先停止全部参与进程的动作，再逐窗退出 / 选角 / 登录 / 开启槽位监控。无重叠批次，过期完成后等待完整周期；0关闭后续定时切换，相同间隔保存不重计。停止 / 刷新 / 关闭取消后续动作，角色切换清除CompletedCycles / CyclesSinceJump，原成功收竿后跳跃约束不改。
+- 使用Windows内置zh-Hans-CN OCR，wowAuto.Rotation.Ocr.ps1在独立runspace识别屏幕与文字预处理图，不接收窗口输入，不产生临时截图文件。缺少语言组件即停止报错；状态未知不猜测。运行时只采集身份 / 前台 / 尺寸 / 遮挡校验后的游戏客户区；结果超过3秒或窗口缩放即丢弃，停止时清理runspace。源码快捷方式核对Ocr模块存在。
+- 角色选择初次必须同时匹配左侧系统公告和右侧列表中至少一个配置全名，连续三次确认后滚顶部；目标名称精确匹配且位置连续两次一致后快速双击，点击间隔40ms。名字不做近似或部分匹配。当前列表页缺少目标时，只在已通过配置名锚点确认的同一角色列表中滚动搜索；仍须公告及可读列表名，最多40页 / 无进展停止，不需要角色总数。重名拒绝双击，未知 / 加载 / 失焦不输入。
+- 登录完成用录制画面的血条百分比与左侧统计面板文字连续三次确认；能识别角色名时追加核对，识别出其他配置名即停止。小字号名字不可读时，以已精确双击的列表名称及完整游戏画面锚点确认，不要求插件标记。HUD须保持演示中的锚点可见，布局改变导致无法确认则180秒超时停止。普通游戏画面请求stopcasting / logout，战斗时由游戏拒绝正常退出，30秒重试；不注入、不操作GlueLua、不结束进程。
+- 两服独立移除Rotation.lua / wowRotationDB及Init标记清理，不再存在登录确认色块、arm或probe输入。合集版本titan2.1.18 / forerver2.2.17，原钓鱼 / 战斗主副色块协议保持。同步先复制并核验新TOC，再备份并移除安装目录中确切的旧Rotation.lua，不能删除其他插件文件。
+- 用户授权录制由用户手动执行的角色切换；第一次gdigrab窗口抓取返回GPU停留帧，已改为可见客户区录制并核验更新后重录。录屏 / 图像 / OCR输出放.local-backups，不上传或提交。当前只有时光服真实画面依据，无限服仍需实际界面验证，不把时光服视频冒充无限服验证。
+- Rotation.UiTests使用模拟进程 / OCR / 输入覆盖三槽、单槽、名称快速双击、全局同批停止、加载 / 失焦 / 超时 / 取消、原子配置与计数重置；Rotation.Ocr.Tests使用生产异步OCR识别生成文字，可通过SampleDirectory验证本次真实时光服关键帧及0.67缩放。Rotation.Tests.lua各自核对无标记加载 / 保存及检测互斥。验证不得运行真实游戏输入、切角、音频或结束进程；测试通过、提交推送成功后才部署并提醒reload及重启工具。

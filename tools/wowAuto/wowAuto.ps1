@@ -311,14 +311,13 @@ namespace WowAuto
         }
         public static string RotationCommand(string action,int token)
         {
-            if((action=="arm" || action=="probe") && token>=1 && token<=200) return "/wowrotate arm "+token;
             if(action=="logout") return "/logout";
             throw new ArgumentException("Unknown rotation command.");
         }
         public static bool SendRotationCommand(int pid,long ticks,string path,string action,int token)
         {
             string command=RotationCommand(action,token);
-            if(action=="arm" && !SendChatCommand(pid,ticks,path,"/stopcasting")) return false;
+            if(action=="logout" && !SendChatCommand(pid,ticks,path,"/stopcasting")) return false;
             return SendChatCommand(pid,ticks,path,command);
         }
         private static bool SendChatCommand(int pid,long ticks,string path,string command)
@@ -1176,7 +1175,7 @@ function Set-RowControls($Row) {
     $exiting = $script:pendingGameExits.ContainsKey($Row.Key)
     $eligible = $Row.Validated -and -not $exiting -and -not $script:scanning -and $null -ne $Row.StartTime -and -not $Row.Exited
     if ($Row.TaskMode -eq 'fight') {$eligible=$eligible -and $Row.FightRow -and $Row.FightRow.CanStart -and $script:autoFight.ConfigReady}
-    if (Test-RowHasRotation $Row) {$eligible=-not $exiting -and -not $Row.Exited -and -not $script:scanning -and $script:rotation.ConfigReady -and $null -ne (Get-RowRotationPlan $Row).Menu}
+    if (Test-RowHasRotation $Row) {$eligible=-not $exiting -and -not $Row.Exited -and -not $script:scanning -and $script:rotation.ConfigReady}
     $eligible=$eligible -and -not $script:editingSettings
     $Row.Start.Enabled = $eligible -and -not $running
     $Row.Stop.Enabled = $eligible -or $exiting

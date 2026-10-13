@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
 using System.Runtime.InteropServices;
 
 namespace WowAutoRotation {
@@ -49,7 +51,10 @@ namespace WowAutoRotation {
                 return bitmap;
             } catch {if(bitmap!=null) bitmap.Dispose();throw;} finally {if(old!=IntPtr.Zero) SetThreadDpiAwarenessContext(old);}
         }
-        public static void MouseAction(int pid,long ticks,string path,double x,double y,bool scroll) {
+        public static void ValidateSnapshot(int pid,long ticks,string path,int width,int height) {
+            Rect r;if(!GetClientRect(Window(pid,ticks,path),out r) || r.R!=width || r.B!=height) throw new InvalidOperationException("Window resized during OCR.");
+        }
+        public static void MouseAction(int pid,long ticks,string path,double x,double y,int wheel,bool doubleClick) {
             IntPtr old=SetThreadDpiAwarenessContext(new IntPtr(-4));
             try {
                 IntPtr h=Window(pid,ticks,path);Rect r;Point p=new Point();
@@ -58,35 +63,51 @@ namespace WowAutoRotation {
                 if(GetAncestor(WindowFromPoint(p),2)!=h || !SetCursorPos(p.X,p.Y)) throw new InvalidOperationException("Target point is obscured.");
                 Window(pid,ticks,path);
                 Input[] inputs;
-                if(scroll) {var wheel=new Input();wheel.Data.Mouse.Flags=0x800;wheel.Data.Mouse.Value=120*100;inputs=new[]{wheel};}
+                if(wheel!=0) {var input=new Input();input.Data.Mouse.Flags=0x800;input.Data.Mouse.Value=unchecked((uint)wheel);inputs=new[]{input};}
                 else {var down=new Input();down.Data.Mouse.Flags=2;var up=new Input();up.Data.Mouse.Flags=4;inputs=new[]{down,up};}
                 if(SendInput((uint)inputs.Length,inputs,Marshal.SizeOf(typeof(Input)))!=inputs.Length) {
-                    if(!scroll) {var up=new Input();up.Data.Mouse.Flags=4;SendInput(1,new[]{up},Marshal.SizeOf(typeof(Input)));}
+                    if(wheel==0) {var up=new Input();up.Data.Mouse.Flags=4;SendInput(1,new[]{up},Marshal.SizeOf(typeof(Input)));}
                     throw new InvalidOperationException("Mouse input failed.");
+                }
+                if(wheel==0 && doubleClick) {
+                    System.Threading.Thread.Sleep(40);
+                    Window(pid,ticks,path);
+                    if(GetAncestor(WindowFromPoint(p),2)!=h || SendInput((uint)inputs.Length,inputs,Marshal.SizeOf(typeof(Input)))!=inputs.Length) {
+                        var up=new Input();up.Data.Mouse.Flags=4;SendInput(1,new[]{up},Marshal.SizeOf(typeof(Input)));
+                        throw new InvalidOperationException("Double-click interrupted.");
+                    }
                 }
             } finally {if(old!=IntPtr.Zero) SetThreadDpiAwarenessContext(old);}
         }
-        // Fixed-location visual fingerprint, normalized to client dimensions. Never accepts flat/black patches.
-        public static int[] Fingerprint(Bitmap b,double x,double y,double width,double height) {
-            if(x<0 || y<0 || width<=0 || height<=0 || x+width>1 || y+height>1) throw new ArgumentException("Invalid patch.");
-            var values=new int[16*8*3];int i=0;
-            for(int row=0;row<8;row++) for(int col=0;col<16;col++) {
-                int px=Math.Min(b.Width-1,(int)((x+width*(col+0.5)/16)*b.Width));
-                int py=Math.Min(b.Height-1,(int)((y+height*(row+0.5)/8)*b.Height));
-                Color c=b.GetPixel(px,py);values[i++]=c.R;values[i++]=c.G;values[i++]=c.B;
+        public static byte[] Png(Bitmap b) {
+            using(var stream=new MemoryStream()) {b.Save(stream,ImageFormat.Png);return stream.ToArray();}
+        }
+        // The demonstration's yellow names remain readable over the selected-row highlight.
+        // This is OCR preprocessing of text, never a detector/state color protocol.
+        public static byte[] NamesPng(Bitmap b) {
+            return TextPng(b,0.79,0.21,0.84,false);
+        }
+        public static byte[] WorldPng(Bitmap b) {
+            return TextPng(b,0,0.25,0.50,true);
+        }
+        static byte[] TextPng(Bitmap b,double fractionX,double width,double fraction,bool white) {
+            int left=(int)(b.Width*fractionX),height=Math.Max(1,(int)(b.Height*fraction));
+            using(var crop=new Bitmap(Math.Max(1,(int)(b.Width*width)),height,PixelFormat.Format32bppArgb)) {
+                using(var g=Graphics.FromImage(crop)) g.DrawImage(b,new Rectangle(0,0,crop.Width,height),new Rectangle(left,0,crop.Width,height),GraphicsUnit.Pixel);
+                var data=crop.LockBits(new Rectangle(0,0,crop.Width,height),ImageLockMode.ReadWrite,PixelFormat.Format32bppArgb);
+                try {
+                    var pixels=new byte[data.Stride*height];Marshal.Copy(data.Scan0,pixels,0,pixels.Length);
+                    for(int y=0;y<height;y++) for(int x=0;x<crop.Width;x++) {
+                        int i=y*data.Stride+x*4;
+                        bool text=white?pixels[i+2]>100 && pixels[i+1]>100 && pixels[i]>100:pixels[i+2]>180 && pixels[i+1]>130 && pixels[i]<120;
+                        byte value=(byte)(text?0:255);
+                        pixels[i]=pixels[i+1]=pixels[i+2]=value;pixels[i+3]=255;
+                    }
+                    Marshal.Copy(pixels,0,data.Scan0,pixels.Length);
+                } finally {crop.UnlockBits(data);}
+                double scale=Math.Min(white?3.0:2.0,9000.0/Math.Max(crop.Width,height));
+                using(var larger=new Bitmap(crop,new Size(Math.Max(1,(int)(crop.Width*scale)),Math.Max(1,(int)(height*scale))))) return Png(larger);
             }
-            return values;
-        }
-        public static bool Matches(int[] expected,int[] actual) {
-            if(expected==null || actual==null || expected.Length!=384 || actual.Length!=384) return false;
-            double sum=0,squares=0,diff=0;for(int i=0;i<expected.Length;i++){sum+=expected[i];squares+=expected[i]*expected[i];diff+=Math.Abs(expected[i]-actual[i]);}
-            double mean=sum/expected.Length;
-            return squares/expected.Length-mean*mean>=180 && diff/expected.Length<=12;
-        }
-        public static int ReadyToken(Bitmap b) {
-            Color c=b.GetPixel(b.Width/2,b.Height/2);
-            if(Math.Abs(c.G-231)>1 || Math.Abs(c.B-157)>1 || c.R<21 || c.R>220) return -1;
-            return c.R-20;
         }
     }
 }

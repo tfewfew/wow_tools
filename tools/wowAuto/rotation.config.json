@@ -1,23 +1,22 @@
 {
-    "Version":  1,
-    "IntervalSeconds":  20,
-    "Plans":  {
-                  "29224:639273923472729950":  {
-                                                   "Slots":  [
-                                                                 {
-                                                                     "Character":  2,
-                                                                     "Mode":  "fish"
-                                                                 },
-                                                                 {
-                                                                     "Character":  4,
-                                                                     "Mode":  "fish"
-                                                                 },
-                                                                 {
-                                                                     "Character":  0,
-                                                                     "Mode":  "fish"
-                                                                 }
-                                                             ],
-                                                   "Menu":  null
-                                               }
-              }
+  "Version": 2,
+  "IntervalSeconds": 20,
+  "Plans": {
+    "29224:639273923472729950": {
+      "Slots": [
+        {
+          "Mode": "fish",
+          "Name": "双持船橘二咪"
+        },
+        {
+          "Mode": "fish",
+          "Name": "咆史呀嘞"
+        },
+        {
+          "Mode": "fish",
+          "Name": ""
+        }
+      ]
+    }
+  }
 }
