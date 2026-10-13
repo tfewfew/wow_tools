@@ -167,16 +167,16 @@ Add-GameAction -Id other-input -Kind Fight.Combat -Domain Test -Key other -Row $
 }
 Invoke-GameActionQueue 0
 Assert-Queue ($script:activations -eq 1 -and $script:gameActions.Focus) 'Foreground activation fixture did not start.'
-$script:rotation=[pscustomobject]@{Current=$null;Queue=(New-Object Collections.Queue)}
-$script:rotation.Queue.Enqueue('first');$script:rotation.Queue.Enqueue('second')
+$script:rotation=[pscustomobject]@{Current=$null;LogoutQueue=(New-Object Collections.Queue);Queue=(New-Object Collections.Queue)}
+$script:rotation.LogoutQueue.Enqueue('first');$script:rotation.Queue.Enqueue('second')
 Add-GameAction -Id release -Kind Safety.Release -Domain Safety -Due 50 -Execute {
     param($event,$now) [void]$script:seen.Add('release')
 }
 Add-GameAction -Id rotation -Kind Rotation.Activate -Domain Rotation -Due 50 -Execute {
-    param($event,$now) [void]$script:seen.Add([string]$script:rotation.Queue.Dequeue());$script:testFocus='rotation'
+    param($event,$now) [void]$script:seen.Add([string]$script:rotation.LogoutQueue.Dequeue());$script:testFocus='rotation'
 }
 Invoke-GameActionQueue 50
-Assert-Queue (($script:seen -join ',') -eq 'release,first' -and $script:rotation.Queue.Count -eq 1 -and
+Assert-Queue (($script:seen -join ',') -eq 'release,first' -and $script:rotation.LogoutQueue.Count -eq 0 -and $script:rotation.Queue.Count -eq 1 -and
     $script:activations -eq 1 -and -not $script:gameActions.Focus) 'Rotation did not displace a pending nonrotation activation or keep the next process exclusive.'
 Add-GameAction -Id rotation -Kind Rotation.Activate -Domain Rotation -Due 100 -Execute {
     param($event,$now) [void]$script:seen.Add([string]$script:rotation.Queue.Dequeue());$script:testFocus='rotation'

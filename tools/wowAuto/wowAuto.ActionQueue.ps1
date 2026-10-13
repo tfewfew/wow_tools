@@ -77,7 +77,8 @@ function Test-GameActionValid($Event) {
         'Fight' {return -not $script:autoFight.Editing -and [object]::ReferenceEquals($Event.Data.Row.Session,$Event.Owner)}
         'Hold' {return [object]::ReferenceEquals($script:autoFight.ActiveHold,$Event.Owner)}
         'Rotation' {
-            if (-not $Event.Owner) {return -not $script:rotation.Current -and $script:rotation.Queue.Count -gt 0}
+            if (-not $Event.Owner) {return -not $script:rotation.Current -and
+                ($script:rotation.LogoutQueue.Count -gt 0 -or $script:rotation.Queue.Count -gt 0)}
             return [object]::ReferenceEquals($script:rotation.Current,$Event.Owner) -and
                 [object]::ReferenceEquals($script:rotation.Active[$Event.Key],$Event.Owner.Entry) -and $Event.Owner.Phase -eq $Event.Data
         }
@@ -124,7 +125,8 @@ function Invoke-GameActionQueue([long]$Now,[switch]$SafetyOnly) {
         $held=Test-GameActionHold $Now
         # A rotation batch owns the foreground through every process's selection and
         # login. A row that finishes early may run, but its queued input must wait.
-        $rotationBusy=$script:rotation -and ($script:rotation.Current -or $script:rotation.Queue.Count -gt 0)
+        $rotationBusy=$script:rotation -and ($script:rotation.Current -or $script:rotation.LogoutQueue.Count -gt 0 -or
+            $script:rotation.Queue.Count -gt 0)
         if ($rotationBusy -and $focus -and $focus.Domain -notin @('Rotation','Safety','Hold','Process')) {
             $focus.ReadyAt=0L;$focus.FocusUntil=0L
             $script:gameActions.Focus=$null;$focus=$null
@@ -244,19 +246,21 @@ function Submit-CombatAction($Row,$Session,[string]$Action,[long]$Now) {
     }
 }
 function Submit-RotationAction([long]$Now) {
-    if (-not $script:rotation.Current -and -not $script:rotation.Queue.Count -and $script:rotation.NextAt -and $Now -ge $script:rotation.NextAt) {Begin-RotationBatch $Now}
+    if (-not $script:rotation.Current -and -not $script:rotation.LogoutQueue.Count -and -not $script:rotation.Queue.Count -and
+        $script:rotation.NextAt -and $Now -ge $script:rotation.NextAt) {Begin-RotationBatch $Now}
     $work=$script:rotation.Current
     if (-not $work) {
-        if ($script:rotation.Queue.Count) {
+        if ($script:rotation.LogoutQueue.Count -or $script:rotation.Queue.Count) {
             Add-GameAction -Id rotation -Kind Rotation.Activate -Domain Rotation -Due $Now -Execute {param($event,$now) $null=Invoke-RotationTick $now}
         }
         return
     }
     $kind=switch ($work.Phase) {
-        'activate' {'Rotation.Activate'} 'inspect' {'Rotation.Logout'} 'menu' {'Rotation.Menu'} 'find' {'Rotation.Select'}
+        'logout-activate' {'Rotation.Activate'} 'logout-inspect' {'Rotation.Logout'}
+        'activate' {'Rotation.Activate'} 'menu' {'Rotation.Menu'} 'find' {'Rotation.Select'}
         'login' {'Rotation.Login'} 'validate' {if ($work.MonitorEnabled) {'Rotation.Validate'} else {'Rotation.Enable'}}
     }
-    Add-GameAction -Id rotation -Kind $kind -Domain Rotation -Key $work.Row.Key -Row $work.Row -Owner $work -Due $work.Due -Data $work.Phase -Foreground ($work.Phase -ne 'activate') -Execute {param($event,$now) $null=Invoke-RotationTick $now}
+    Add-GameAction -Id rotation -Kind $kind -Domain Rotation -Key $work.Row.Key -Row $work.Row -Owner $work -Due $work.Due -Data $work.Phase -Foreground ($work.Phase -notin @('activate','logout-activate')) -Execute {param($event,$now) $null=Invoke-RotationTick $now}
 }
 function Submit-RefreshAction([long]$Now,[long]$ScanNow=-1) {
     if (-not $script:scanning) {return}
