@@ -70,9 +70,17 @@ function Test-UnifiedTaskRunning($Row) {
 function Test-UnifiedRowRunning($Row) {
     return ($script:rotation -and $script:rotation.Active.ContainsKey($Row.Key)) -or (Test-UnifiedTaskRunning $Row)
 }
+function Test-RowLoginPoint($Row) {
+    if ($UiTest) {
+        if ($Row.Process.PSObject.Properties['LoginPointPresent']) {return [bool]$Row.Process.LoginPointPresent}
+        return $true
+    }
+    return [WowAutoRotation.Native]::LoginPoint($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath)
+}
 function Send-ScanDetectorCommand($Row) {
     $Row.Process.Refresh()
     if ($Row.Process.HasExited -or -not (Test-RowProcessIdentity $Row) -or -not (Test-WorkerForeground $Row)) {return $false}
+    if (-not (Test-RowLoginPoint $Row)) {throw '未检测到插件左下角常驻白点，未开启钓鱼 / 战斗监控。'}
     $command=[WowAuto.NativeInput]::DetectorCommand($Row.TaskMode)
     if ($UiTest) {
         if ($Row.Process.PSObject.Properties['CommandAllowed'] -and -not $Row.Process.CommandAllowed) {return $false}
@@ -83,6 +91,7 @@ function Send-ScanDetectorCommand($Row) {
 }
 function Read-ScanFightPacket($Row) {
     if (-not (Test-RowProcessIdentity $Row) -or $Row.Process.HasExited) {throw '战斗进程身份已变化。'}
+    if (-not (Test-RowLoginPoint $Row)) {return $null}
     Ensure-UnifiedFightRow $Row
     if ($UiTest) {$script:detectorSamples+=,$Row.Key}
     return [WowAutoFight.Native]::Read($Row.FightRow.Client)

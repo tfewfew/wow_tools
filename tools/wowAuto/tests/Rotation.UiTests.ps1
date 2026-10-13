@@ -13,6 +13,7 @@ function Step-RotationTest([long]$Now,[string]$Screen='automatic') {
     $work=$script:rotation.Current
     if ($work) {
         $kind=if ($Screen -ne 'automatic') {$Screen} elseif ($work.Phase -in @('menu','find')) {'menu'} else {'world'}
+        $work.Row.Process | Add-Member NoteProperty LoginPointPresent ($kind -eq 'world') -Force
         $work.Row.Process.RotationScreen=[pscustomobject]@{Kind=$kind;RoleName=$work.Entry.Plan.Slots[$work.Entry.Index].Name;Targets=@($work.Entry.Plan.Slots | Where-Object {$_.Name} | ForEach-Object {[pscustomobject]@{Name=$_.Name;X=0.84;Y=0.20}})}
         if ($work.Row.TaskMode -eq 'fight') {[WowAutoFight.Native]::Current.Flavor=$work.Row.Client.Flavor;[WowAutoFight.Native]::Current.ClassId=1}
     }
@@ -93,7 +94,7 @@ try {
     Step-RotationTest $now 'unknown';$now+=300;Step-RotationTest $now 'pending';$now+=300
     Assert-Ui (-not $b.State.Running -and $script:rotation.Actions.Count -eq $before) 'Loading used a readiness color/chat request or started work.'
     Complete-RotationTest ([ref]$now)
-    Assert-Ui $b.State.Running 'OCR confirmed login did not start task.'
+    Assert-Ui $b.State.Running 'Permanent login point did not start task.'
     $deadline=$script:rotation.NextAt;Save-RotationConfiguration 20
     Assert-Ui ($script:rotation.NextAt -eq $deadline) 'Saving unchanged interval reset global deadline.'
     Save-RotationConfiguration 0
@@ -102,7 +103,7 @@ try {
     $b.Process.CommandAllowed=$false;Start-Row $b;$now=220000L;Complete-RotationTest ([ref]$now)
     Assert-Ui (-not $script:rotation.Active.ContainsKey($b.Key) -and -not (Test-UnifiedTaskRunning $b)) 'Failed monitor command started character task.'
     $b.Process.CommandAllowed=$true
-    # Partial/duplicate names cannot receive a double-click; another logged-in role cannot run.
+    # Partial/duplicate names cannot receive a double-click; login uses the point, never OCR names.
     $now=230000L;Reach-RotationTestPhase $a 'find' ([ref]$now)
     for ($i=0;$i -lt 3;$i++) {
         $a.Process.RotationScreen=[pscustomobject]@{Kind='menu';RoleName=$null;Targets=@([pscustomobject]@{Name='双持船橘二';X=0.84;Y=0.2})}
@@ -115,8 +116,11 @@ try {
     Assert-Ui (-not $script:rotation.Active.ContainsKey($a.Key)) 'Duplicate names did not stop selection.'
     $now=250000L;Reach-RotationTestPhase $a 'login' ([ref]$now)
     $a.Process.RotationScreen=[pscustomobject]@{Kind='world';RoleName='咆史呀嘞';Targets=@()}
-    $script:schedulerClock.ElapsedMilliseconds=$now;$null=Invoke-RotationTick $now
-    Assert-Ui (-not $script:rotation.Active.ContainsKey($a.Key) -and -not (Test-UnifiedTaskRunning $a)) 'Different role began the task.'
+    $a.Process.LoginPointPresent=$false;$reads=$a.Process.RotationOcrReads
+    $script:schedulerClock.ElapsedMilliseconds=$now;$null=Invoke-RotationTick $now;$now+=300
+    Assert-Ui ($script:rotation.Current.Phase -eq 'login' -and -not (Test-UnifiedTaskRunning $a) -and $a.Process.RotationOcrReads -eq $reads) 'Login used OCR or started without the point.'
+    Complete-RotationTest ([ref]$now)
+    Assert-Ui ((Test-UnifiedTaskRunning $a) -and $a.Process.RotationOcrReads -eq $reads) 'Login/enable stages ran OCR or failed to use the point.'
     # Embedded settings and editor use isolated drafts; saves require atomic persistence.
     $dialog=New-RotationEditor $a
     try {
@@ -144,20 +148,32 @@ try {
         [pscustomobject]@{Text='双持船橘二咪';X=0.10;Y=0.20;W=0.25;H=0.02})}
     $screen=ConvertFrom-RotationOcr $ocr $plan
     Assert-Ui ($screen.Kind -eq 'menu' -and $screen.Targets[0].Name -ceq '双持船橘二咪' -and $screen.Targets[0].X -gt 0.79) 'OCR anchors did not localize configured name.'
+    $ocr | Add-Member NoteProperty NamesBounds ([pscustomobject]@{X=0.70;Y=0;W=0.30;H=0.84})
+    $mapped=ConvertFrom-RotationOcr $ocr $plan
+    Assert-Ui ([Math]::Abs($mapped.Targets[0].X-(0.70+0.30*(0.10+0.25/2))) -lt 0.00001) 'OCR crop mapping ignored client aspect ratio.'
+    $ocr.PSObject.Properties.Remove('NamesBounds')
     $ocr.Lines=@();Assert-Ui ((ConvertFrom-RotationOcr $ocr $plan).Kind -eq 'unknown') 'Name alone accepted as menu.'
     $ocr.Lines=@([pscustomobject]@{Text='系统公告';X=0.06;Y=0.20;W=0.1;H=0.02});$ocr.Names[0].Text='双持船橘二'
     Assert-Ui ((ConvertFrom-RotationOcr $ocr $plan).Kind -eq 'unknown') 'Partial name accepted as configured menu anchor.'
     $ocr.Lines=@([pscustomobject]@{Text='100%';X=0.04;Y=0.03},[pscustomobject]@{Text='开怪：未记录';X=0.01;Y=0.25},[pscustomobject]@{Text='1双持船橘二咪';X=0.04;Y=0.32});$ocr.Names=@()
     $screen=ConvertFrom-RotationOcr $ocr $plan
-    Assert-Ui ($screen.Kind -eq 'world' -and $screen.RoleName -ceq '双持船橘二咪') 'OCR failed to confirm world and expected role.'
+    Assert-Ui ($screen.Kind -eq 'unknown') 'Removed HUD login recognition is still active.'
     $bitmap=New-Object Drawing.Bitmap(800,500)
     try {
         $graphics=[Drawing.Graphics]::FromImage($bitmap)
         try {$graphics.Clear([Drawing.Color]::FromArgb(97,231,157))} finally {$graphics.Dispose()}
         Assert-Ui ([WowAutoRotation.Native]::Png($bitmap).Length -gt 0 -and [WowAutoRotation.Native]::NamesPng($bitmap).Length -gt 0) 'Pure OCR preprocessing failed.'
     } finally {$bitmap.Dispose()}
+    $point=New-Object Drawing.Bitmap(16,16)
+    try {
+        $g=[Drawing.Graphics]::FromImage($point)
+        try {$g.Clear([Drawing.Color]::White)} finally {$g.Dispose()}
+        Assert-Ui ([WowAutoRotation.Native]::HasLoginPoint($point)) 'Solid white login point rejected.'
+        $point.SetPixel(8,8,[Drawing.Color]::Black)
+        Assert-Ui (-not [WowAutoRotation.Native]::HasLoginPoint($point)) 'Non-solid point accepted.'
+    } finally {$point.Dispose()}
     foreach ($p in $sourceHashes.Keys) {Assert-Ui ((Get-FileHash $p).Hash -eq $sourceHashes[$p]) 'Tests changed real user configuration.'}
-    Write-Output 'PASS: name/empty/single/wrap slots, shared deadline/all-stop batch, exact-name double-click, partial/duplicate/no-progress rejection, different-role/loading/pending/focus/timeout/stop/settings isolation, per-role fish/fight, counter reset, atomic drafts and PID reuse. All game input and OCR mocked.'
+    Write-Output 'PASS: name/empty/single/wrap slots, shared deadline/all-stop batch, exact-name double-click, partial/duplicate/no-progress rejection, permanent-point login/no OCR after selection/loading/pending/focus/timeout/stop/settings isolation, per-role fish/fight, counter reset, atomic drafts and PID reuse. All game input and OCR mocked.'
 } finally {
     Stop-AllRows;Close-AutoFightTab
     if ([IO.File]::Exists($script:rotation.Path)) {[IO.File]::Delete($script:rotation.Path)}

@@ -51,8 +51,40 @@ namespace WowAutoRotation {
                 return bitmap;
             } catch {if(bitmap!=null) bitmap.Dispose();throw;} finally {if(old!=IntPtr.Zero) SetThreadDpiAwarenessContext(old);}
         }
+        public static bool SnapshotMatches(int pid,long ticks,string path,int width,int height) {
+            IntPtr old=SetThreadDpiAwarenessContext(new IntPtr(-4));
+            try {Rect r;return GetClientRect(Window(pid,ticks,path),out r) && r.R==width && r.B==height;}
+            finally {if(old!=IntPtr.Zero) SetThreadDpiAwarenessContext(old);}
+        }
         public static void ValidateSnapshot(int pid,long ticks,string path,int width,int height) {
-            Rect r;if(!GetClientRect(Window(pid,ticks,path),out r) || r.R!=width || r.B!=height) throw new InvalidOperationException("Window resized during OCR.");
+            if(!SnapshotMatches(pid,ticks,path,width,height)) throw new InvalidOperationException("Window resized during OCR.");
+        }
+        public static bool HasLoginPoint(Bitmap sample) {
+            if(sample==null || sample.Width!=16 || sample.Height!=16) return false;
+            // Avoid rounded edge pixels; require a solid white interior, not one coincidental pixel.
+            for(int y=2;y<14;y++) for(int x=2;x<14;x++) {
+                Color c=sample.GetPixel(x,y);
+                if(c.R<245 || c.G<245 || c.B<245) return false;
+            }
+            return true;
+        }
+        public static bool LoginPoint(int pid,long ticks,string path) {
+            IntPtr old=SetThreadDpiAwarenessContext(new IntPtr(-4));
+            try {
+                IntPtr h=Window(pid,ticks,path);Rect r;Point origin=new Point();
+                if(!GetClientRect(h,out r) || r.R<16 || r.B<16 || !ClientToScreen(h,ref origin)) throw new InvalidOperationException("Client geometry unavailable.");
+                Point center=new Point{X=origin.X+8,Y=origin.Y+r.B-8};
+                if(GetAncestor(WindowFromPoint(center),2)!=h) throw new InvalidOperationException("Login point is covered.");
+                bool present;
+                using(var sample=new Bitmap(16,16,PixelFormat.Format32bppArgb)) {
+                    using(Graphics g=Graphics.FromImage(sample)) g.CopyFromScreen(origin.X,origin.Y+r.B-16,0,0,sample.Size);
+                    present=HasLoginPoint(sample);
+                }
+                Rect after;Point next=new Point();
+                if(Window(pid,ticks,path)!=h || !GetClientRect(h,out after) || !ClientToScreen(h,ref next) ||
+                    after.R!=r.R || after.B!=r.B || next.X!=origin.X || next.Y!=origin.Y) return false;
+                return present;
+            } finally {if(old!=IntPtr.Zero) SetThreadDpiAwarenessContext(old);}
         }
         public static void MouseAction(int pid,long ticks,string path,double x,double y,int wheel,bool doubleClick) {
             IntPtr old=SetThreadDpiAwarenessContext(new IntPtr(-4));
@@ -71,7 +103,10 @@ namespace WowAutoRotation {
                 }
                 if(wheel==0 && doubleClick) {
                     System.Threading.Thread.Sleep(40);
-                    Window(pid,ticks,path);
+                    Rect next;Point origin=new Point();
+                    if(Window(pid,ticks,path)!=h || !GetClientRect(h,out next) || !ClientToScreen(h,ref origin) ||
+                        next.R!=r.R || next.B!=r.B || origin.X+(int)Math.Round(x*r.R)!=p.X || origin.Y+(int)Math.Round(y*r.B)!=p.Y)
+                        throw new InvalidOperationException("Window moved during double-click.");
                     if(GetAncestor(WindowFromPoint(p),2)!=h || SendInput((uint)inputs.Length,inputs,Marshal.SizeOf(typeof(Input)))!=inputs.Length) {
                         var up=new Input();up.Data.Mouse.Flags=4;SendInput(1,new[]{up},Marshal.SizeOf(typeof(Input)));
                         throw new InvalidOperationException("Double-click interrupted.");
@@ -84,16 +119,26 @@ namespace WowAutoRotation {
         }
         // The demonstration's yellow names remain readable over the selected-row highlight.
         // This is OCR preprocessing of text, never a detector/state color protocol.
+        public static Rectangle NamesRegion(Bitmap b) {
+            // Character-list UI is anchored to the right and scales with client height.
+            int width=Math.Min(b.Width,Math.Max(1,(int)Math.Ceiling(b.Height*(0.21*16.0/9.0))));
+            return new Rectangle(b.Width-width,0,width,Math.Max(1,(int)Math.Floor(b.Height*0.84)));
+        }
         public static byte[] NamesPng(Bitmap b) {
-            return TextPng(b,0.79,0.21,0.84,false);
+            return TextPng(b,NamesRegion(b),false);
         }
-        public static byte[] WorldPng(Bitmap b) {
-            return TextPng(b,0,0.25,0.50,true);
+        public static byte[] OcrPng(Bitmap b,int maximumDimension) {
+            if(maximumDimension<1) throw new ArgumentOutOfRangeException("maximumDimension");
+            // Enlarge small windows for text recognition, cap both axes at the engine's actual limit.
+            double scale=Math.Min(Math.Max(1.0,1080.0/b.Height),maximumDimension/(double)Math.Max(b.Width,b.Height));
+            int width=Math.Max(1,Math.Min(maximumDimension,(int)Math.Floor(b.Width*scale)));
+            int height=Math.Max(1,Math.Min(maximumDimension,(int)Math.Floor(b.Height*scale)));
+            using(var resized=new Bitmap(b,new Size(width,height))) return Png(resized);
         }
-        static byte[] TextPng(Bitmap b,double fractionX,double width,double fraction,bool white) {
-            int left=(int)(b.Width*fractionX),height=Math.Max(1,(int)(b.Height*fraction));
-            using(var crop=new Bitmap(Math.Max(1,(int)(b.Width*width)),height,PixelFormat.Format32bppArgb)) {
-                using(var g=Graphics.FromImage(crop)) g.DrawImage(b,new Rectangle(0,0,crop.Width,height),new Rectangle(left,0,crop.Width,height),GraphicsUnit.Pixel);
+        static byte[] TextPng(Bitmap b,Rectangle region,bool white) {
+            int height=region.Height;
+            using(var crop=new Bitmap(region.Width,height,PixelFormat.Format32bppArgb)) {
+                using(var g=Graphics.FromImage(crop)) g.DrawImage(b,new Rectangle(0,0,crop.Width,height),region,GraphicsUnit.Pixel);
                 var data=crop.LockBits(new Rectangle(0,0,crop.Width,height),ImageLockMode.ReadWrite,PixelFormat.Format32bppArgb);
                 try {
                     var pixels=new byte[data.Stride*height];Marshal.Copy(data.Scan0,pixels,0,pixels.Length);

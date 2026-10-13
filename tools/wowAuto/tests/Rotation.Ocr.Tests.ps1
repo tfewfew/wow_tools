@@ -24,7 +24,7 @@ function Read-TestImage($Bitmap) {
     } finally {$pipeline.Stop();$pipeline.Dispose()}
 }
 if ($SampleDirectory) {
-    $samples=@(@(22,'menu',''),@(33,'menu',''),@(27,'world','双持船橘二咪'),@(39,'world','咆史呀嘞'),@(23,'unknown',''))
+    $samples=@(@(22,'menu',''),@(33,'menu',''),@(27,'unknown',''),@(39,'unknown',''),@(23,'unknown',''))
     foreach ($sample in $samples) {
         $original=New-Object Drawing.Bitmap((Join-Path $SampleDirectory ('frame-{0:D3}.jpg' -f [int]$sample[0])))
         try {

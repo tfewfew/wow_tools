@@ -57,6 +57,7 @@ function Invoke-AutoFightHold([long]$Now) {
             Set-AutoFightStatus $row '失去前台，释放移动键并继续后台监测。'
             return
         }
+        if (-not (Test-AutoFightLoginPoint $row)) {throw '插件常驻登录白点不存在，已停止战斗任务。'}
         $packet=[WowAutoFight.Native]::Read($row.Client)
         if ($null -eq $packet) { throw '保持期间检测关闭或协议不可读，已释放移动键。' }
         if ($packet.ClassId -ne $hold.Session.ClassId) { throw '职业发生变化，已释放移动键。' }
@@ -91,6 +92,11 @@ function Stop-AutoFightAll {
     if ($script:autoFight.Scan) { Complete-AutoFightScan }
     foreach ($row in @($script:autoFight.Rows.Values)) { Stop-AutoFightRow $row }
     Update-AutoFightControls
+}
+function Test-AutoFightLoginPoint($Row) {
+    if ($Row.PSObject.Properties['ParentRow']) {return Test-RowLoginPoint $Row.ParentRow}
+    if ($UiTest) {return $true}
+    return [WowAutoRotation.Native]::LoginPoint($Row.Client.ProcessId,$Row.Client.StartTicks,$Row.Client.Path)
 }
 function Start-AutoFightRow($Row) {
     if (-not $Row.CanStart -or $script:autoFight.Scan -or -not $script:autoFight.ConfigReady -or $Row.Session) { return }
@@ -216,6 +222,7 @@ function Invoke-AutoFightTick([bool]$AllowInput=$true) {
             else { Stop-AutoFightRow $row '进程已退出或身份改变。' }
             Update-AutoFightControls; return
         }
+        if (-not (Test-AutoFightLoginPoint $row)) {throw '插件常驻登录白点不存在，已停止战斗任务。'}
         $packet=[WowAutoFight.Native]::Read($row.Client)
         if ($null -eq $packet) {
             if ($pending.ReadFailureSince -lt 0) {$pending.ReadFailureSince=$now}

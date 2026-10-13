@@ -1278,6 +1278,7 @@ function Stop-Row($Row, [string]$Reason = '已停止，当前等待已取消。'
 function Start-Row($Row,[switch]$TaskOnly) {
     try {
         if (-not $TaskOnly -and (Test-RowHasRotation $Row)) {Start-RowRotation $Row;return}
+        if ($TaskOnly -and -not (Test-RowLoginPoint $Row)) {throw '常驻登录白点不存在，未启动任务。'}
         if ($Row.TaskMode -eq 'fight') {
             if (-not $Row.Validated -or $script:scanning -or $script:editingSettings) {throw '请刷新并通过战斗色块检测。'}
             Start-AutoFightRow $Row.FightRow; return
@@ -1771,6 +1772,7 @@ function Invoke-SchedulerTick([long]$Now) {
             if ($Now -ge $pending.Timeout) { Pause-RowForFocus $row $Now '无法获得前台焦点。' }
             return
         }
+        if (-not (Test-RowLoginPoint $row)) {throw '插件常驻登录白点不存在，已停止钓鱼任务。'}
         if ($work.Kind -eq 'FocusRetry') {
             Resume-WowAutoFocus $script:scheduler $work.Key
             $script:pendingWork=$null

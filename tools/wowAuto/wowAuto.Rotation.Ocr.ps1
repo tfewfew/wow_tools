@@ -1,14 +1,16 @@
 param([byte[]]$ScreenBytes,[byte[]]$NamesBytes)
 $ErrorActionPreference='Stop'
 # Runs in an isolated PowerShell runspace. No window input or disk image files.
-$worldBytes=$null
+$namesBounds=$null
 if ('WowAutoRotation.Native' -as [type]) {
     $imageStream=New-Object IO.MemoryStream(,$ScreenBytes)
     $image=$null
     try {
         $image=New-Object Drawing.Bitmap($imageStream)
+        $region=[WowAutoRotation.Native]::NamesRegion($image)
+        $namesBounds=[pscustomobject]@{X=$region.X/[double]$image.Width;Y=$region.Y/[double]$image.Height;
+            W=$region.Width/[double]$image.Width;H=$region.Height/[double]$image.Height}
         if (-not $NamesBytes) {$NamesBytes=[WowAutoRotation.Native]::NamesPng($image)}
-        $worldBytes=[WowAutoRotation.Native]::WorldPng($image)
     }
     finally {if ($image) {$image.Dispose()};$imageStream.Dispose()}
 }
@@ -27,6 +29,12 @@ function Wait-OcrOperation($Operation,[type]$ResultType) {
 $engine=[Windows.Media.Ocr.OcrEngine]::TryCreateFromLanguage((New-Object Windows.Globalization.Language 'zh-Hans-CN'))
 if (-not $engine) {throw 'Windows Chinese OCR is unavailable. Install the Simplified Chinese OCR language feature.'}
 function Read-OcrImage([byte[]]$Bytes) {
+    $sourceStream=New-Object IO.MemoryStream(,$Bytes)
+    $sourceImage=$null
+    try {
+        $sourceImage=New-Object Drawing.Bitmap($sourceStream)
+        $Bytes=[WowAutoRotation.Native]::OcrPng($sourceImage,[int][Windows.Media.Ocr.OcrEngine]::MaxImageDimension)
+    } finally {if ($sourceImage) {$sourceImage.Dispose()};$sourceStream.Dispose()}
     $stream=New-Object Windows.Storage.Streams.InMemoryRandomAccessStream
     $bitmap=$null
     try {
@@ -50,10 +58,4 @@ function Read-OcrImage([byte[]]$Bytes) {
     } finally {if ($bitmap) {$bitmap.Dispose()};$stream.Dispose()}
 }
 $lines=@(Read-OcrImage $ScreenBytes)
-if ($worldBytes) {
-    foreach ($line in @(Read-OcrImage $worldBytes)) {
-        $line.X*=0.25;$line.W*=0.25;$line.Y*=0.50;$line.H*=0.50
-        $lines+=,$line
-    }
-}
-[pscustomobject]@{Lines=$lines;Names=@(Read-OcrImage $NamesBytes)} | ConvertTo-Json -Depth 5 -Compress
+[pscustomobject]@{Lines=$lines;Names=@(Read-OcrImage $NamesBytes);NamesBounds=$namesBounds} | ConvertTo-Json -Depth 5 -Compress
