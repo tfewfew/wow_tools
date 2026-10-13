@@ -436,6 +436,8 @@ namespace WowAuto {
 '@
 }
 . (Join-Path $PSScriptRoot 'wowAuto.Engine.ps1')
+. (Join-Path $PSScriptRoot 'wowAuto.ActionQueue.ps1')
+Initialize-GameActionQueue (Join-Path $PSScriptRoot 'action-priorities.json')
 if (-not ('WowAuto.Audio.ProcessCapture' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'wowAuto.Audio.cs') }
 [System.Windows.Forms.Application]::EnableVisualStyles()
 $script:rows = @{}
@@ -458,6 +460,7 @@ $script:scanning = $false
 $script:scanClock = [System.Diagnostics.Stopwatch]::StartNew()
 $script:scanOriginalWindow = [IntPtr]::Zero
 $script:scanOrder = @()
+$script:scanGeneration = 0L
 $script:restored = $false
 $script:editingSettings = $false
 $script:versionRanges = @{
@@ -1261,6 +1264,7 @@ function Update-RowStatus($Row) {
 }
 
 function Stop-Row($Row, [string]$Reason = '已停止，当前等待已取消。', [switch]$CancelExit, [switch]$KeepRotation) {
+    Remove-GameActions -Key $Row.Key -IncludeProcess:$CancelExit
     if (-not $KeepRotation) {Stop-RowRotation $Row}
     if ($Row.FightRow -and $script:autoFight) {Stop-AutoFightRow $Row.FightRow $Reason}
     if ($script:audioCaptures.ContainsKey($Row.Key)) {
@@ -1276,6 +1280,7 @@ function Stop-Row($Row, [string]$Reason = '已停止，当前等待已取消。'
 }
 
 function Start-Row($Row,[switch]$TaskOnly) {
+    Remove-GameActions -Domain Restore
     try {
         if (-not $TaskOnly -and (Test-RowHasRotation $Row)) {Start-RowRotation $Row;return}
         if ($TaskOnly -and -not (Test-RowLoginPoint $Row)) {throw '常驻登录白点不存在，未启动任务。'}
@@ -1431,6 +1436,7 @@ function Refresh-ProcessRows {
     return $true
 }
 function Activate-ScanRow($Row) {
+    Assert-GameActionContext
     if ($UiTest) {
         $script:scanOrder += $Row.Process.Id
         if ($Row.Process.FocusAllowed) {$script:workerFocus=$Row.Process.Id}
@@ -1462,10 +1468,11 @@ function Finish-RefreshScan {
     foreach ($row in $script:rows.Values) { Set-RowControls $row }
     $passed = @($script:rows.Values | Where-Object { $_.Validated }).Count
     $countLabel.Text = "进程 $($script:rows.Count) · 验证通过 $passed"
-    if ($UiTest) { $script:restored = $true }
-    elseif ($script:scanOriginalWindow -ne [IntPtr]::Zero) {
-        $restored = [WowAuto.NativeInput]::RestoreAfterScan($script:scanOriginalWindow)
-        if (-not $restored) { $countLabel.Text += ' 请手动切回工具窗口。' }
+    Add-GameAction -Id restore -Kind Scan.Restore -Domain Restore -Owner $script:scanGeneration -Due $script:schedulerClock.ElapsedMilliseconds -Data $script:scanOriginalWindow -Execute {
+        param($event,$now)
+        Assert-GameActionContext
+        if ($UiTest) {$script:restored=$true}
+        elseif ($event.Data -ne [IntPtr]::Zero -and -not [WowAuto.NativeInput]::RestoreAfterScan($event.Data)) {$countLabel.Text+=' 请手动切回工具窗口。'}
     }
     $script:scanOriginalWindow = [IntPtr]::Zero
     Update-BatchControls
@@ -1473,6 +1480,8 @@ function Finish-RefreshScan {
 
 function Begin-RefreshScan {
     if ($script:scanning -or $script:editingSettings) { return }
+    Remove-GameActions -IncludeProcess
+    $script:scanGeneration++
     $script:pendingGameExits.Clear()
     $script:scanning = $true
     $startAllButton.Enabled = $false
@@ -1502,10 +1511,18 @@ function Begin-RefreshScan {
     $script:scanDue = 0L
     $script:scanClock.Restart()
     if ($script:scanQueue.Count -eq 0) { Finish-RefreshScan; return }
-    if (-not $UiTest) { $scanTimer.Start() }
+    # The shared 25ms dispatcher drives refresh too; no second action timer.
 }
 
 function Invoke-RefreshScan([long]$Now) {
+    if (-not $script:gameActions.Current) {
+        if ($UiTest) {
+            Submit-RefreshAction $Now -ScanNow $Now
+            Invoke-GameActionQueue $Now
+            if (-not $script:scanning) {Invoke-GameActionQueue ([Math]::Max($Now,$script:schedulerClock.ElapsedMilliseconds))}
+        } else {Submit-RefreshAction $script:schedulerClock.ElapsedMilliseconds}
+        return
+    }
     if (-not $script:scanning -or $Now -lt $script:scanDue) { return }
     # Manual refresh also waits out an in-progress post-reel foreground hold.
     if ($script:schedulerClock.ElapsedMilliseconds -lt $script:scheduler.ReelHoldUntil -or
@@ -1590,6 +1607,7 @@ function Update-BatchControls {
     $stopAllButton.Enabled = $script:scanning -or $script:pendingGameExits.Count -gt 0 -or @($script:rows.Values | Where-Object {Test-UnifiedRowRunning $_}).Count -gt 0
 }
 function Stop-AllRows {
+    Remove-GameActions -IncludeProcess
     if ($script:scanning) {Finish-RefreshScan}
     $script:pendingGameExits.Clear()
     foreach ($row in @($script:rows.Values)) { Stop-Row $row }
@@ -1610,6 +1628,7 @@ $list.Add_SizeChanged({
 })
 
 function Activate-WorkerRow($Row) {
+    Assert-GameActionContext
     if ($UiTest) {
         $script:workerFocus = $Row.Process.Id
         $script:workerActivations += $Row.Process.Id
@@ -1622,6 +1641,7 @@ function Test-WorkerForeground($Row) {
     return [WowAuto.NativeInput]::IsTargetForeground($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath)
 }
 function Send-WorkerKey($Row, [string]$Action) {
+    Assert-GameActionContext
     $binding=$script:keyBindings[$Action]
     if ($Action -eq 'Jump') { $binding=[pscustomobject]@{ Code=32; Ctrl=$false; Shift=$false; Alt=$false } }
     if ($null -eq $binding) { throw "未配置按键：$Action" }
@@ -1633,6 +1653,20 @@ function Send-WorkerKey($Row, [string]$Action) {
     return [WowAuto.NativeInput]::PressChord($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath, [System.UInt16]$Number, $binding.Ctrl, $binding.Shift, $binding.Alt)
 }
 function Close-WorkerGame($Row) {
+    $cycles=Get-WowAutoCycleCount $script:scheduler $Row.Key
+    $Row.Validated=$false
+    if (-not (Test-WowAutoExitAllowed $script:scheduler $Row.Key)) {
+        Stop-Row $Row "背包已满：有效循环 $cycles 次，未超过500次；保留进程，停止本行。"
+        return
+    }
+    Stop-Row $Row '背包已满，停止动作并排队请求正常退出。'
+    Add-GameAction -Id ('close:'+$Row.Key) -Kind Process.Close -Domain Process -Key $Row.Key -Row $Row -Due $script:schedulerClock.ElapsedMilliseconds -Execute {
+        param($event,$now) Invoke-CloseWorkerGame $event.Row
+    }
+    if ($UiTest -and -not $script:gameActions.Current) {Invoke-GameActionQueue $script:schedulerClock.ElapsedMilliseconds}
+}
+function Invoke-CloseWorkerGame($Row) {
+    Assert-GameActionContext
     $cycles=Get-WowAutoCycleCount $script:scheduler $Row.Key
     $Row.Validated=$false
     if (-not (Test-WowAutoExitAllowed $script:scheduler $Row.Key)) {
@@ -1669,8 +1703,15 @@ function Close-WorkerGame($Row) {
         }
     }
 }
-function Invoke-GameExitChecks([long]$Now) {
+function Invoke-GameExitChecks([long]$Now,[string]$OnlyKey='') {
+    if (-not $script:gameActions.Current) {
+        Submit-GameExitActions $Now
+        if ($UiTest) {Invoke-GameActionQueue $Now}
+        return
+    }
+    Assert-GameActionContext
     foreach ($key in @($script:pendingGameExits.Keys)) {
+        if ($OnlyKey -and $key -ne $OnlyKey) {continue}
         $exit=$script:pendingGameExits[$key]
         if ($Now -lt $exit.NextCheck -and $Now -lt $exit.Due) { continue }
         $exit.NextCheck=$Now+500
@@ -1741,10 +1782,18 @@ function Update-AudioCaptures([long]$Now) {
     }
 }
 
-function Invoke-SchedulerTick([long]$Now) {
+function Invoke-SchedulerTick([long]$Now,$QueuedWork=$null) {
+    if (-not $script:gameActions.Current) {
+        Submit-FishingActions $Now
+        if ($UiTest) {Invoke-GameActionQueue $Now}
+        return
+    }
     if ($script:scanning -or $script:editingSettings) { return }
     Update-AudioCaptures $Now
-    $work=Get-WowAutoWork $script:scheduler $Now
+    if ($QueuedWork -and -not (Test-GameActionValid $script:gameActions.Current)) {
+        $script:pendingWork=$null;return
+    }
+    $work=if ($QueuedWork) {$QueuedWork} else {Get-WowAutoWork $script:scheduler $Now}
     if ($null -eq $work) { return }
     $row=$script:rows[$work.Key]
     if ($null -eq $row) { Stop-WowAutoTask $script:scheduler $work.Key; return }
@@ -1868,8 +1917,7 @@ function Invoke-SchedulerTick([long]$Now) {
 $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 25
 $timer.Add_Tick({
-    Invoke-GameExitChecks $script:schedulerClock.ElapsedMilliseconds
-    if (-not $script:scanning) { Invoke-UnifiedTick $script:schedulerClock.ElapsedMilliseconds }
+    Invoke-UnifiedTick $script:schedulerClock.ElapsedMilliseconds
     foreach ($row in @($script:rows.Values)) { Update-RowStatus $row }
     Update-BatchControls
 })
@@ -1877,6 +1925,8 @@ $positionTimer = New-Object System.Windows.Forms.Timer
 $positionTimer.Interval = 1000
 $positionTimer.Add_Tick({ Update-WindowPositions })
 $form.Add_FormClosing({
+    Remove-GameActions -IncludeProcess
+    $script:gameActions.Closing=$true
     if ($script:autoFight) { Stop-AutoFightAll }
     $script:pendingGameExits.Clear()
     $timer.Stop()

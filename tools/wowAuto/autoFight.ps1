@@ -1,4 +1,4 @@
-﻿# Loaded only by the host UI. All state, configuration, timers and native adapters are independent.
+﻿# Combat state and configuration are independent; game input uses the host action queue.
 . (Join-Path $PSScriptRoot 'autoFight.Engine.ps1')
 if (-not ('WowAutoFight.Native' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'autoFight.Native.cs') }
 
@@ -36,6 +36,16 @@ function Update-AutoFightControls {
     $script:autoFight.StopAll.Enabled=$running -or $busy
 }
 function Release-AutoFightHold {
+    if (-not $script:gameActions.Current -or $script:gameActions.Current.Kind -ne 'Safety.Release') {
+        $result=[pscustomobject]@{Success=$false}
+        Add-GameAction -Id release -Kind Safety.Release -Domain Safety -Due 0 -Data $result -Execute {
+            param($event,$now) $event.Data.Success=Release-AutoFightHold
+        }
+        # Safety releases use the same executor, including synchronous Stop/settings/close paths.
+        Invoke-GameActionQueue $script:autoFight.Clock.ElapsedMilliseconds -SafetyOnly
+        return $result.Success
+    }
+    Assert-GameActionContext
     $hold=$script:autoFight.ActiveHold
     try { [WowAutoFight.Native]::ReleaseHold() }
     catch { $script:autoFight.Summary.Text='释放移动键失败，暂停调度并继续重试：'+$_.Exception.Message; return $false }
@@ -71,6 +81,7 @@ function Invoke-AutoFightHold([long]$Now) {
     }
 }
 function Stop-AutoFightRow($Row,[string]$Reason='已停止，战斗任务已取消。') {
+    Remove-GameActions -Key $Row.Client.Key -Domain Fight
     if (($script:autoFight.ActiveHold -and $script:autoFight.ActiveHold.Row -eq $Row) -or
         (-not $script:autoFight.ActiveHold -and [WowAutoFight.Native]::IsHolding)) { [void](Release-AutoFightHold) }
     $Row.Session=$null
@@ -193,14 +204,22 @@ function Finish-AutoFightPending([long]$Now) {
         $pending.Session.Due=[Math]::Max($pending.Session.Due,($Now+250))
     }
 }
-function Invoke-AutoFightTick([bool]$AllowInput=$true) {
+function Invoke-AutoFightTick([bool]$AllowInput=$true,[switch]$PlanOnly,[string]$ExpectedAction='') {
+    if (-not $PlanOnly -and -not $script:gameActions.Current) {
+        Invoke-AutoFightTick -PlanOnly
+        if ($UiTest) {
+            Submit-HoldAction $script:autoFight.Clock.ElapsedMilliseconds
+            Invoke-GameActionQueue $script:autoFight.Clock.ElapsedMilliseconds
+        }
+        return
+    }
     $now=$script:autoFight.Clock.ElapsedMilliseconds
     if ($now -ge $script:autoFight.PositionAt) {
         foreach ($positionRow in @($script:autoFight.Rows.Values)) {Update-AutoFightRowName $positionRow}
         $script:autoFight.PositionAt=$now+1000
     }
-    if ($script:autoFight.ActiveHold) { Invoke-AutoFightHold $now; return }
-    if ([WowAutoFight.Native]::IsHolding) { [void](Release-AutoFightHold); return }
+    if ($script:autoFight.ActiveHold) {if (-not $PlanOnly) {Invoke-AutoFightHold $now};return}
+    if ([WowAutoFight.Native]::IsHolding) {if (-not $PlanOnly) {[void](Release-AutoFightHold)};return}
     if ($script:autoFight.Editing -or $script:autoFight.Tabs.SelectedTab -ne $script:autoFight.Tab) { return }
     if (-not $script:autoFight.Pending) {
         if ($script:autoFight.Scan) {
@@ -257,12 +276,19 @@ function Invoke-AutoFightTick([bool]$AllowInput=$true) {
         }
         $action=Get-AutoFightAction $session $packet $profile $now
         if ($action -eq 'identity-changed') { $row.CanStart=$false; Stop-AutoFightRow $row '角色职业或协议状态改变，请刷新。'; return }
+        if ($ExpectedAction -and $action -ne $ExpectedAction) {Finish-AutoFightPending $now;return}
         if ($action -eq 'wait') {
+            if ($PlanOnly) {Remove-GameActions -Key $row.Client.Key -Domain Fight}
             $detail=if ($session.State -eq 'waiting') { '不下发按键，等待进入攻击距离' }
                 elseif ($packet.Busy) { '施法 / 交互中，等待' } else { '等待下一次状态处理' }
             Set-AutoFightStatus $row ($script:autoFightStates[$session.State].Label+" · $detail · $combatText")
             Finish-AutoFightPending $now; return
         }
+        if ($PlanOnly) {
+            Submit-CombatAction $row $session $action $now
+            Finish-AutoFightPending $now;return
+        }
+        Assert-GameActionContext
         # Detection never requires focus. Activate only when an input is actually due.
         if (-not $AllowInput) {Finish-AutoFightPending $now; return}
         if (-not (Test-AutoFightCommandReady $script:autoFight.CommandGate $now)) {Finish-AutoFightPending $now; return}
@@ -556,8 +582,12 @@ function Initialize-AutoFightTab($Tabs,$Owner,[switch]$Unified) {
     $buttons.StartAll.Add_Click({ foreach ($row in @($script:autoFight.Rows.Values | Sort-Object Order)) { Start-AutoFightRow $row } })
     $buttons.StopAll.Add_Click({ Stop-AutoFightAll })
     $script:autoFight.Timer.Interval=50
-    $script:autoFight.Timer.Add_Tick({ Invoke-AutoFightTick })
-    if ($Unified) {$script:autoFight.Tab=$Tabs.TabPages[0]}
+    $script:autoFight.Timer.Add_Tick({
+        Submit-HoldAction $script:autoFight.Clock.ElapsedMilliseconds
+        Invoke-AutoFightTick -PlanOnly
+        Invoke-GameActionQueue $script:autoFight.Clock.ElapsedMilliseconds
+    })
+    if ($Unified) {$script:autoFight.Tab=$Tabs.TabPages[0];$script:autoFight.Clock=$script:schedulerClock}
     else {$Tabs.TabPages.Add($tab); $script:autoFight.Timer.Start()}
     Update-AutoFightControls
 }

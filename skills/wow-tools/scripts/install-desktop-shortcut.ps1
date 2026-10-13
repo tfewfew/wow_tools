@@ -7,7 +7,7 @@ $ErrorActionPreference = 'Stop'
 $toolPath = [IO.Path]::GetFullPath($ToolRoot)
 $desktopPathResolved = [IO.Path]::GetFullPath($DesktopPath)
 $backupPathResolved = [IO.Path]::GetFullPath($BackupPath)
-foreach ($name in @('wowAuto.bat', 'wowAuto.ps1', 'wowAuto.Engine.ps1', 'wowAuto.Audio.cs', 'wowAuto.Recordings.ps1', 'wowAuto.Unified.ps1',
+foreach ($name in @('wowAuto.bat', 'wowAuto.ps1', 'wowAuto.Engine.ps1', 'wowAuto.ActionQueue.ps1', 'action-priorities.json', 'wowAuto.Audio.cs', 'wowAuto.Recordings.ps1', 'wowAuto.Unified.ps1',
     'wowAuto.Rotation.ps1', 'wowAuto.Rotation.Native.cs', 'wowAuto.Rotation.Ocr.ps1', 'rotation.config.json',
     'autoFight.ps1', 'autoFight.Engine.ps1', 'autoFight.Native.cs', 'autoFight.config.json')) {
     if (-not (Test-Path -LiteralPath (Join-Path $toolPath $name) -PathType Leaf)) {

@@ -78,6 +78,7 @@ function Test-RowLoginPoint($Row) {
     return [WowAutoRotation.Native]::LoginPoint($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath)
 }
 function Send-ScanDetectorCommand($Row) {
+    Assert-GameActionContext
     $Row.Process.Refresh()
     if ($Row.Process.HasExited -or -not (Test-RowProcessIdentity $Row) -or -not (Test-WorkerForeground $Row)) {return $false}
     if (-not (Test-RowLoginPoint $Row)) {throw '未检测到插件左下角常驻白点，未开启钓鱼 / 战斗监控。'}
@@ -97,27 +98,21 @@ function Read-ScanFightPacket($Row) {
     return [WowAutoFight.Native]::Read($Row.FightRow.Client)
 }
 function Invoke-UnifiedTick([long]$Now) {
-    if ($script:scanning -or $script:editingSettings) {return}
-    if (Invoke-RotationTick $Now) {return}
-    Update-AudioCaptures $Now
-    if (-not $script:autoFight -or -not $script:autoFight.Unified) {Invoke-SchedulerTick $Now; return}
-    if ($script:autoFight.ActiveHold -or [WowAutoFight.Native]::IsHolding) {Invoke-AutoFightTick; return}
-    $hold=$Now -lt $script:scheduler.ReelHoldUntil -or $Now -lt $script:scheduler.ItemHoldUntil
-    $reels=@($script:scheduler.Events | Where-Object {
-        $_.Kind -eq 'Reel' -and $_.Due -le $Now -and $script:scheduler.Tasks[$_.Key] -and
-        $script:scheduler.Tasks[$_.Key].Running -and $script:scheduler.Tasks[$_.Key].FocusRetryAt -eq 0
-    })
-    if ($hold -or $reels.Count -gt 0 -or $script:pendingWork) {
-        if ($script:autoFight.Pending) {$script:autoFight.Pending.Activated=$false}
-        Invoke-AutoFightTick $false
-        Invoke-SchedulerTick $Now
-        return
+    Submit-HoldAction $Now
+    Submit-GameExitActions $Now
+    if (-not $script:editingSettings) {
+        if ($script:scanning) {Submit-RefreshAction $Now}
+        else {
+            Submit-RotationAction $Now
+            if ($script:autoFight -and $script:autoFight.Unified -and -not $script:autoFight.ActiveHold) {
+                # Observe every due combat row before choosing any foreground action.
+                $count=[Math]::Max(1,$script:autoFight.Rows.Count)
+                for ($i=0;$i -lt $count;$i++) {Invoke-AutoFightTick -PlanOnly}
+            }
+            Submit-FishingActions $Now
+        }
     }
-    $last=$script:autoFight.CommandGate.LastSentAt
-    Invoke-AutoFightTick
-    if ($script:autoFight.ActiveHold -or ($script:autoFight.Pending -and $script:autoFight.Pending.Activated) -or
-        $script:autoFight.CommandGate.LastSentAt -ne $last) {return}
-    Invoke-SchedulerTick $Now
+    Invoke-GameActionQueue $Now
 }
 function New-UnifiedSettingsDialog {
     if (-not $script:autoFight) {throw '战斗设置模块未加载。'}

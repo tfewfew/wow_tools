@@ -95,6 +95,7 @@ function Add-RotationRow($Row) {
     $Row.Panel.Controls.AddRange([System.Windows.Forms.Control[]]@($button,$label));Update-RotationRow $Row
 }
 function Stop-RowRotation($Row) {
+    Remove-GameActions -Key $Row.Key -Domain Rotation
     if (-not $script:rotation) {return}
     if ($script:rotation.OcrWork -and $script:rotation.OcrWork.Key -eq $Row.Key) {Stop-RotationOcr}
     $script:rotation.Active.Remove($Row.Key)
@@ -124,6 +125,7 @@ function Begin-RotationBatch([long]$Now) {
     if ($script:rotation.IntervalSeconds) {$script:rotation.NextAt=$Now+[long]$script:rotation.IntervalSeconds*1000}
 }
 function Send-RotationAction($Row,[string]$Action,$Target=$null) {
+    Assert-GameActionContext
     if (-not (Test-RowProcessIdentity $Row) -or $Row.Process.HasExited -or -not (Test-WorkerForeground $Row)) {throw '角色切换期间进程身份或前台已变化。'}
     if ($UiTest) {$script:rotation.Actions+=,[pscustomobject]@{Key=$Row.Key;Action=$Action;Target=$Target};return $true}
     switch ($Action) {
@@ -203,6 +205,11 @@ function Read-RotationScreen($Row,$Plan,[switch]$MenuWasConfirmed) {
     return [pscustomobject]@{Kind='pending'}
 }
 function Invoke-RotationTick([long]$Now) {
+    if (-not $script:gameActions.Current) {
+        Submit-RotationAction $Now
+        if ($UiTest) {Invoke-GameActionQueue $Now}
+        return [bool]($script:rotation.Current -or $script:rotation.Queue.Count)
+    }
     if ($script:scanning -or $script:editingSettings) {return $false}
     if (-not $script:rotation.Current -and -not $script:rotation.Queue.Count -and $script:rotation.NextAt -and $Now -ge $script:rotation.NextAt) {Begin-RotationBatch $Now}
     if (-not $script:rotation.Current) {
