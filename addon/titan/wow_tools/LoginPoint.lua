@@ -19,11 +19,12 @@ local function Position()
     local scale=point:GetEffectiveScale()
     if not ok or not Readable(width) or not Readable(height) or not Readable(scale)
         or type(width)~="number" or type(height)~="number" or type(scale)~="number"
-        or width<16 or height<16 or scale<=0 then point:Hide(); return end
+        or width<48 or height<48 or scale<=0 then point:Hide(); return end
     -- WoW's 768 reference height and effective UI scale convert to physical client pixels.
     local unit=768/height/scale
     point:ClearAllPoints()
-    point:SetPoint("BOTTOMLEFT",UIParent,"BOTTOMLEFT",0,0)
+    -- Windows rounds the visible client corners. Keep the full point inside them.
+    point:SetPoint("BOTTOMLEFT",UIParent,"BOTTOMLEFT",16*unit,16*unit)
     point:SetSize(16*unit,16*unit)
     point:Show()
 end

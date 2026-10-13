@@ -68,16 +68,22 @@ namespace WowAutoRotation {
             }
             return true;
         }
+        public static Rectangle LoginPointBounds(int width,int height) {
+            if(width<48 || height<48) throw new ArgumentException("Client too small for login point.");
+            // Match both addons: 16 physical pixels away from the rounded client edges.
+            return new Rectangle(16,height-32,16,16);
+        }
         public static bool LoginPoint(int pid,long ticks,string path) {
             IntPtr old=SetThreadDpiAwarenessContext(new IntPtr(-4));
             try {
                 IntPtr h=Window(pid,ticks,path);Rect r;Point origin=new Point();
-                if(!GetClientRect(h,out r) || r.R<16 || r.B<16 || !ClientToScreen(h,ref origin)) throw new InvalidOperationException("Client geometry unavailable.");
-                Point center=new Point{X=origin.X+8,Y=origin.Y+r.B-8};
+                if(!GetClientRect(h,out r) || r.R<48 || r.B<48 || !ClientToScreen(h,ref origin)) throw new InvalidOperationException("Client geometry unavailable.");
+                Rectangle bounds=LoginPointBounds(r.R,r.B);
+                Point center=new Point{X=origin.X+bounds.X+8,Y=origin.Y+bounds.Y+8};
                 if(GetAncestor(WindowFromPoint(center),2)!=h) throw new InvalidOperationException("Login point is covered.");
                 bool present;
                 using(var sample=new Bitmap(16,16,PixelFormat.Format32bppArgb)) {
-                    using(Graphics g=Graphics.FromImage(sample)) g.CopyFromScreen(origin.X,origin.Y+r.B-16,0,0,sample.Size);
+                    using(Graphics g=Graphics.FromImage(sample)) g.CopyFromScreen(origin.X+bounds.X,origin.Y+bounds.Y,0,0,sample.Size);
                     present=HasLoginPoint(sample);
                 }
                 Rect after;Point next=new Point();

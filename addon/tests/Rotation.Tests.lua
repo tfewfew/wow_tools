@@ -44,7 +44,8 @@ for _,flavor in ipairs({"titan","forerver"}) do
             events.scripts.OnEvent(events,"PLAYER_ENTERING_WORLD")
             assert(point.shown,"Point absent with detectors disabled")
             assert(math.abs(point.width*scale*height/768-16)<.0001 and math.abs(point.height*scale*height/768-16)<.0001,"Point is not 16 physical pixels")
-            assert(point.point[1]=="BOTTOMLEFT" and point.point[3]=="BOTTOMLEFT" and point.point[4]==0 and point.point[5]==0,"Point does not follow client bottom-left")
+            assert(point.point[1]=="BOTTOMLEFT" and point.point[3]=="BOTTOMLEFT","Point does not follow client bottom-left")
+            assert(math.abs(point.point[4]*scale*height/768-16)<.0001 and math.abs(point.point[5]*scale*height/768-16)<.0001,"Point is not inset 16 physical pixels from rounded corners")
             assert(point.texture.color[1]==1 and point.texture.color[2]==1 and point.texture.color[3]==1,"Point is not white")
         end
     end
