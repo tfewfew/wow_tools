@@ -24,7 +24,7 @@ local function Position()
     local unit=768/height/scale
     point:ClearAllPoints()
     -- Windows rounds the visible client corners. Keep the full point inside them.
-    point:SetPoint("BOTTOMLEFT",UIParent,"BOTTOMLEFT",16*unit,16*unit)
+    point:SetPoint("BOTTOMRIGHT",UIParent,"BOTTOMRIGHT",-16*unit,16*unit)
     point:SetSize(16*unit,16*unit)
     point:Show()
 end

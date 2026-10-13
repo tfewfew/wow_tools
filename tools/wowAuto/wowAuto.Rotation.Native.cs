@@ -71,7 +71,7 @@ namespace WowAutoRotation {
         public static Rectangle LoginPointBounds(int width,int height) {
             if(width<48 || height<48) throw new ArgumentException("Client too small for login point.");
             // Match both addons: 16 physical pixels away from the rounded client edges.
-            return new Rectangle(16,height-32,16,16);
+            return new Rectangle(width-32,height-32,16,16);
         }
         public static bool LoginPoint(int pid,long ticks,string path) {
             IntPtr old=SetThreadDpiAwarenessContext(new IntPtr(-4));
@@ -132,6 +132,9 @@ namespace WowAutoRotation {
         }
         public static byte[] NamesPng(Bitmap b) {
             return TextPng(b,NamesRegion(b),false);
+        }
+        public static byte[] AnchorsPng(Bitmap b) {
+            return TextPng(b,new Rectangle(0,0,b.Width,b.Height),false);
         }
         public static byte[] OcrPng(Bitmap b,int maximumDimension) {
             if(maximumDimension<1) throw new ArgumentOutOfRangeException("maximumDimension");

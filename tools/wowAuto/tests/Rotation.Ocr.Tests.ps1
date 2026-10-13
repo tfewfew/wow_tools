@@ -1,4 +1,4 @@
-﻿param([string]$SampleDirectory)
+﻿param([string]$SampleDirectory,[string]$ImagePath)
 $ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.Drawing
 $tool=Split-Path $PSScriptRoot -Parent
@@ -23,7 +23,20 @@ function Read-TestImage($Bitmap) {
         ConvertFrom-RotationOcr ($result[0] | ConvertFrom-Json) $plan
     } finally {$pipeline.Stop();$pipeline.Dispose()}
 }
-if ($SampleDirectory) {
+if ($ImagePath) {
+    $plan.Slots[1].Name='吔史呀嘞'
+    $original=New-Object Drawing.Bitmap($ImagePath)
+    try {
+        foreach ($scale in @(1.0,0.67,1.5)) {
+            $bitmap=New-Object Drawing.Bitmap($original,(New-Object Drawing.Size([int]($original.Width*$scale),[int]($original.Height*$scale))))
+            try {
+                $screen=Read-TestImage $bitmap
+                if ($screen.Kind -ne 'menu' -or -not @($screen.Targets | Where-Object {$_.Name -ceq '双持船橘二咪'}).Count) {throw ('Attached screenshot did not match anchors/names: '+($screen | ConvertTo-Json -Depth 4 -Compress))}
+                Write-Output ('PASS: attached menu screenshot at scale '+$scale+' matches both button anchors and exact name.')
+            } finally {$bitmap.Dispose()}
+        }
+    } finally {$original.Dispose()}
+} elseif ($SampleDirectory) {
     $samples=@(@(22,'menu',''),@(33,'menu',''),@(27,'unknown',''),@(39,'unknown',''),@(23,'unknown',''))
     foreach ($sample in $samples) {
         $original=New-Object Drawing.Bitmap((Join-Path $SampleDirectory ('frame-{0:D3}.jpg' -f [int]$sample[0])))
@@ -44,7 +57,8 @@ if ($SampleDirectory) {
     $font=New-Object Drawing.Font('Microsoft YaHei',30)
     try {
         $graphics.Clear([Drawing.Color]::Black)
-        $graphics.DrawString('系统公告',$font,[Drawing.Brushes]::White,80,300)
+        $graphics.DrawString('选择服务器',$font,[Drawing.Brushes]::Yellow,1980,80)
+        $graphics.DrawString('进入魔兽世界',$font,[Drawing.Brushes]::Yellow,1030,1280)
         $graphics.DrawString('双持船橘二咪',$font,[Drawing.Brushes]::Yellow,1940,260)
         $graphics.DrawString('咆史呀嘞',$font,[Drawing.Brushes]::Yellow,1940,450)
         $screen=Read-TestImage $bitmap

@@ -1061,7 +1061,7 @@ $intro = New-Object System.Windows.Forms.Label
 $intro.Dock = 'Top'
 $intro.Height = 44
 $intro.Padding = New-Object System.Windows.Forms.Padding(12, 12, 0, 0)
-$intro.Text = '每行选择钓鱼或战斗；刷新会开启对应插件检测，再读取色块；检测通过后手动开始。'
+$intro.Text = '每行通过角色编排设置名称和任务；刷新按首个有效槽位开启检测，开始后按编排运行；未编排默认钓鱼。'
 $headings = New-Object System.Windows.Forms.Panel
 $headings.Dock = 'Top'
 $headings.Height = 32
@@ -1184,8 +1184,6 @@ function Set-RowControls($Row) {
     $Row.Stop.Enabled = $running -or $eligible -or $exiting
     $Row.ItemCheck.Visible=$Row.TaskMode -ne 'fight'
     $Row.ItemCheck.Enabled = $Row.TaskMode -ne 'fight' -and -not $script:scanning -and -not $exiting -and -not $Row.Exited -and $null -ne $Row.StartTime
-    $Row.ModeBox.Enabled=-not $script:scanning -and -not $script:editingSettings -and -not $Row.Exited -and $null -ne $Row.StartTime
-    if (Test-RowHasRotation $Row) {$Row.ModeBox.Enabled=$false}
     Update-RotationRow $Row
     if ($Row.FightRow) {foreach ($button in $Row.FightRow.MoveButtons) {
         $button.Visible=$Row.TaskMode -eq 'fight'; $button.Enabled=$running -and $Row.TaskMode -eq 'fight' -and -not $script:scanning -and -not $script:editingSettings
@@ -1391,7 +1389,7 @@ function New-ProcessRow($Process, $StartTime, [string]$Key, $Client) {
         Update-RowStatus $changedRow
     })
     if ($null -eq $StartTime) { $row.StatusMessage = '无法读取进程信息，请检查权限后刷新。' }
-    Add-ProcessModeControl $row
+    Add-ProcessTaskControls $row
     Update-RowStatus $row
     return $row
 }

@@ -2,6 +2,7 @@ param([byte[]]$ScreenBytes,[byte[]]$NamesBytes)
 $ErrorActionPreference='Stop'
 # Runs in an isolated PowerShell runspace. No window input or disk image files.
 $namesBounds=$null
+$anchorsBytes=$null
 if ('WowAutoRotation.Native' -as [type]) {
     $imageStream=New-Object IO.MemoryStream(,$ScreenBytes)
     $image=$null
@@ -11,6 +12,7 @@ if ('WowAutoRotation.Native' -as [type]) {
         $namesBounds=[pscustomobject]@{X=$region.X/[double]$image.Width;Y=$region.Y/[double]$image.Height;
             W=$region.Width/[double]$image.Width;H=$region.Height/[double]$image.Height}
         if (-not $NamesBytes) {$NamesBytes=[WowAutoRotation.Native]::NamesPng($image)}
+        $anchorsBytes=[WowAutoRotation.Native]::AnchorsPng($image)
     }
     finally {if ($image) {$image.Dispose()};$imageStream.Dispose()}
 }
@@ -58,4 +60,5 @@ function Read-OcrImage([byte[]]$Bytes) {
     } finally {if ($bitmap) {$bitmap.Dispose()};$stream.Dispose()}
 }
 $lines=@(Read-OcrImage $ScreenBytes)
+if ($anchorsBytes) {$lines+=@(Read-OcrImage $anchorsBytes)}
 [pscustomobject]@{Lines=$lines;Names=@(Read-OcrImage $NamesBytes);NamesBounds=$namesBounds} | ConvertTo-Json -Depth 5 -Compress

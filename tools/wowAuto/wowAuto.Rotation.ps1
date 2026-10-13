@@ -3,7 +3,7 @@ if (-not ('WowAutoRotation.Native' -as [type])) {
     Add-Type -Path (Join-Path $PSScriptRoot 'wowAuto.Rotation.Native.cs') -ReferencedAssemblies System.Drawing
 }
 $script:rotation=[pscustomobject]@{Path=(Join-Path $PSScriptRoot 'rotation.config.json');IntervalSeconds=0;OcrIntervalMs=1000;NextOcrAt=0L;Plans=@{};
-    Active=@{};Queue=(New-Object Collections.Queue);Current=$null;NextAt=0L;ConfigReady=$true;Error='';Actions=@();OcrWork=$null;
+    Active=@{};Queue=(New-Object Collections.Queue);Current=$null;NextAt=0L;ConfigReady=$true;Error='';Actions=@();OcrWork=$null;NameHistory=@();
     OcrSource=([IO.File]::ReadAllText((Join-Path $PSScriptRoot 'wowAuto.Rotation.Ocr.ps1')))}
 function New-RotationPlan {
     return [pscustomobject]@{Slots=@(1..3 | ForEach-Object {[pscustomobject]@{Name='';Mode='fish'}})}
@@ -23,6 +23,17 @@ function Get-RotationOcrInterval($Value) {
     }
     return $number
 }
+function Get-RotationNameHistory($Plans=$script:rotation.Plans,$History=$script:rotation.NameHistory) {
+    $names=New-Object 'System.Collections.Generic.List[string]'
+    foreach ($name in @($History)) {
+        if ($name -isnot [string] -or -not $name -or $name.Length -gt 24 -or $name -match '[^\p{L}\p{M}]') {throw '历史角色名称无效。'}
+        if (-not $names.Contains($name)) {$names.Add($name)}
+    }
+    foreach ($key in @($Plans.Keys | Sort-Object)) {
+        foreach ($slot in $Plans[$key].Slots) {if ($slot.Name -and -not $names.Contains($slot.Name)) {$names.Add($slot.Name)}}
+    }
+    return $names.ToArray()
+}
 function Save-RotationConfiguration($Interval=$script:rotation.IntervalSeconds,$Plans=$script:rotation.Plans,$OcrIntervalMs=$script:rotation.OcrIntervalMs) {
     $n=0
     if (-not [int]::TryParse([string]$Interval,[ref]$n) -or $n -lt 0 -or $n -gt 604800) {throw '轮换间隔须为0–604800秒，0关闭定时轮换。'}
@@ -33,7 +44,8 @@ function Save-RotationConfiguration($Interval=$script:rotation.IntervalSeconds,$
             -not [long]::TryParse($matches[2],[ref]$ticks) -or $ticks -gt [datetime]::MaxValue.Ticks) {throw '进程编排标识无效。'}
         Test-RotationPlan $Plans[$key]
     }
-    $payload=[ordered]@{Version=2;IntervalSeconds=$n;OcrIntervalMs=$ocrInterval;Plans=$Plans}
+    $nextHistory=@(Get-RotationNameHistory $Plans @(Get-RotationNameHistory))
+    $payload=[ordered]@{Version=2;IntervalSeconds=$n;OcrIntervalMs=$ocrInterval;NameHistory=$nextHistory;Plans=$Plans}
     $temporary=$script:rotation.Path+'.'+[Guid]::NewGuid().ToString('N')+'.tmp'
     try {
         [IO.File]::WriteAllText($temporary,($payload | ConvertTo-Json -Depth 10),(New-Object Text.UTF8Encoding($false)))
@@ -41,7 +53,7 @@ function Save-RotationConfiguration($Interval=$script:rotation.IntervalSeconds,$
         else {[IO.File]::Move($temporary,$script:rotation.Path)}
     } finally {if ([IO.File]::Exists($temporary)) {[IO.File]::Delete($temporary)}}
     $changed=$script:rotation.IntervalSeconds -ne $n
-    $script:rotation.IntervalSeconds=$n;$script:rotation.OcrIntervalMs=$ocrInterval;$script:rotation.Plans=$Plans;$script:rotation.ConfigReady=$true;$script:rotation.Error=''
+    $script:rotation.IntervalSeconds=$n;$script:rotation.OcrIntervalMs=$ocrInterval;$script:rotation.Plans=$Plans;$script:rotation.NameHistory=$nextHistory;$script:rotation.ConfigReady=$true;$script:rotation.Error=''
     if ($changed) {$script:rotation.NextAt=if ($n -and $script:rotation.Active.Count) {$script:schedulerClock.ElapsedMilliseconds+[long]$n*1000} else {0L}}
     foreach ($r in $script:rows.Values) {Update-RotationRow $r}
 }
@@ -51,7 +63,7 @@ function Import-RotationConfiguration {
         $c=[IO.File]::ReadAllText($script:rotation.Path) | ConvertFrom-Json
         if ($c.Version -eq 1) {throw '旧角色号配置须改填角色名称后保存；不会按位次猜测名称。'}
         if ($c.Version -ne 2 -or $null -eq $c.IntervalSeconds -or -not $c.Plans -or
-            @($c.PSObject.Properties.Name | Where-Object {$_ -notin @('Version','IntervalSeconds','OcrIntervalMs','Plans')}).Count) {throw '编排配置格式无效。'}
+            @($c.PSObject.Properties.Name | Where-Object {$_ -notin @('Version','IntervalSeconds','OcrIntervalMs','NameHistory','Plans')}).Count) {throw '编排配置格式无效。'}
         $n=0;if (-not [int]::TryParse([string]$c.IntervalSeconds,[ref]$n) -or $n -lt 0 -or $n -gt 604800) {throw '编排间隔无效。'}
         $ocrInterval=1000
         if ($c.PSObject.Properties['OcrIntervalMs']) {$ocrInterval=Get-RotationOcrInterval $c.OcrIntervalMs}
@@ -62,7 +74,13 @@ function Import-RotationConfiguration {
                 -not [long]::TryParse($matches[2],[ref]$t) -or $t -gt [datetime]::MaxValue.Ticks) {throw '编排进程标识无效。'}
             Test-RotationPlan $prop.Value;$plans[$prop.Name]=$prop.Value
         }
-        $script:rotation.IntervalSeconds=$n;$script:rotation.OcrIntervalMs=$ocrInterval;$script:rotation.Plans=$plans;$script:rotation.ConfigReady=$true;$script:rotation.Error=''
+        $history=@()
+        if ($c.PSObject.Properties['NameHistory']) {
+            if ($c.NameHistory -isnot [array]) {throw '历史角色名称必须为列表。'}
+            $history=@($c.NameHistory)
+        }
+        $history=@(Get-RotationNameHistory $plans $history)
+        $script:rotation.IntervalSeconds=$n;$script:rotation.OcrIntervalMs=$ocrInterval;$script:rotation.Plans=$plans;$script:rotation.NameHistory=$history;$script:rotation.ConfigReady=$true;$script:rotation.Error=''
     } catch {$script:rotation.ConfigReady=$false;$script:rotation.Error='编排配置读取失败：'+$_.Exception.Message}
 }
 function Get-RotationNextSlot($Plan,[int]$Current) {
@@ -87,7 +105,7 @@ function Update-RotationRow($Row) {
 }
 function Add-RotationRow($Row) {
     $Row.Panel.Height=190
-    $button=New-Object WowAuto.DimButton;$button.Text='角色编排';$button.SetBounds(252,102,130,32);Set-UiButtonStyle $button
+    $button=New-Object WowAuto.DimButton;$button.Text='角色编排';$button.SetBounds(12,102,130,32);Set-UiButtonStyle $button
     $label=New-Object System.Windows.Forms.Label;$label.SetBounds(12,146,1180,35);$label.AutoEllipsis=$true
     $Row | Add-Member NoteProperty RotationButton $button
     $Row | Add-Member NoteProperty RotationLabel $label
@@ -148,11 +166,14 @@ function Stop-RotationOcr {
 }
 function ConvertFrom-RotationOcr($Ocr,$Plan,[switch]$MenuWasConfirmed) {
     $configured=@($Plan.Slots | Where-Object {$_.Name} | ForEach-Object {$_.Name} | Select-Object -Unique)
-    $announcement=@($Ocr.Lines | Where-Object {$_.X -lt 0.25 -and $_.Text -eq '系统公告'}).Count -gt 0
     $bounds=if ($Ocr.PSObject.Properties['NamesBounds'] -and $Ocr.NamesBounds) {$Ocr.NamesBounds} else {[pscustomobject]@{X=0.79;Y=0;W=0.21;H=0.84}}
+    $server=@($Ocr.Lines | Where-Object {$_.X -gt 0.65 -and $_.Y -lt 0.15 -and $_.Text -match '^[0一_—\-口□]*选择服务器[一_—\-口□]*$'}).Count -gt 0
+    # The name-text pass also isolates the yellow server button from its border.
+    $server=$server -or @($Ocr.Names | Where-Object {$_.Text -eq '选择服务器' -and ($bounds.X+$_.X*$bounds.W) -gt 0.65 -and ($bounds.Y+$_.Y*$bounds.H) -lt 0.15}).Count -gt 0
+    $enter=@($Ocr.Lines | Where-Object {$_.X -gt 0.25 -and $_.X -lt 0.70 -and $_.Y -gt 0.85 -and $_.Text -match '^[0一_—\-口□]*进入魔兽世界[一_—\-口□]*$'}).Count -gt 0
     $targets=@(foreach ($line in $Ocr.Names) {
         $y=$bounds.Y+$line.Y*$bounds.H
-        if ($y -lt 0.08 -or $y -gt 0.80 -or $line.Text -notmatch '^[\p{L}\p{M}]+$') {continue}
+        if ($y -lt 0.08 -or $y -gt 0.80 -or ($y -lt 0.15 -and $line.Text -eq '选择服务器') -or $line.Text -notmatch '^[\p{L}\p{M}]+$') {continue}
         [pscustomobject]@{Name=$line.Text;X=($bounds.X+$bounds.W*($line.X+$line.W/2));Y=($y+$bounds.H*$line.H/2)}
     })
     # The normal pass can recover names whose font is not yellow. Never fuzzy-match.
@@ -161,8 +182,7 @@ function ConvertFrom-RotationOcr($Ocr,$Plan,[switch]$MenuWasConfirmed) {
             $targets+=,[pscustomobject]@{Name=$line.Text;X=($line.X+$line.W/2);Y=($line.Y+$line.H/2)}
         }
     }
-    $match=@($targets | Where-Object {$_.Name -cin $configured}).Count -gt 0
-    if ($announcement -and ($match -or ($MenuWasConfirmed -and $targets.Count))) {
+    if ($server -and $enter -and $targets.Count) {
         return [pscustomobject]@{Kind='menu';Targets=$targets;RoleName=$null}
     }
     return [pscustomobject]@{Kind='unknown';Targets=@();RoleName=$null}
@@ -255,13 +275,11 @@ function Invoke-RotationTick([long]$Now) {
         if ($work.Phase -eq 'login') {
             if (Test-RowLoginPoint $row) {$work.Stable++} else {$work.Stable=0}
             if ($work.Stable -ge 3) {
-                $row.TaskMode=$entry.Plan.Slots[$entry.Index].Mode;$script:updatingPreferenceControls=$true
-                try {$row.ModeBox.SelectedIndex=if ($row.TaskMode -eq 'fight') {1} else {0}} finally {$script:updatingPreferenceControls=$false}
-                if ($row.TaskMode -eq 'fight') {Ensure-UnifiedFightRow $row}
+                Set-RowTaskMode $row $entry.Plan.Slots[$entry.Index].Mode
                 $work.Phase='validate';$work.Due=$Now
             } else {
                 $work.Due=$Now+300
-                Set-RowStatusText $row ('步骤2/3：等待“'+$name+'”进入游戏并连续三次确认左下角常驻白点。')
+                Set-RowStatusText $row ('步骤2/3：等待“'+$name+'”进入游戏并连续三次确认右下角常驻白点。')
             }
             return $true
         }
@@ -300,7 +318,7 @@ function Invoke-RotationTick([long]$Now) {
                     if ($work.Stable -ge 3) {$null=Send-RotationAction $row 'top';$work.Phase='find';$work.Stable=0}
                 } else {
                     $work.Stable=0
-                    Set-RowStatusText $row '步骤1/3：等待OCR确认系统公告及角色列表。'
+                    Set-RowStatusText $row '步骤1/3：等待OCR确认选择服务器、进入魔兽世界及角色列表。'
                 }
             }
             'find' {
@@ -368,11 +386,13 @@ function New-RotationEditor($Row) {
     $dialog.BackColor=$script:uiColors.Background;$dialog.ForeColor=$script:uiColors.Text;$dialog.AutoScaleMode='Dpi'
     $dialog.StartPosition='CenterParent';$dialog.ClientSize=New-Object Drawing.Size(750,355)
     $plan=Copy-RotationPlan (Get-RowRotationPlan $Row)
-    $hint=New-Object System.Windows.Forms.Label;$hint.Text='填写角色完整名称，留空为空槽。OCR确认系统公告与列表名称后，快速双击该名称登录。';$hint.SetBounds(15,15,720,52);$dialog.Controls.Add($hint)
+    $hint=New-Object System.Windows.Forms.Label;$hint.Text='输入完整名称或选择历史名称，留空为空槽。OCR确认选择服务器、进入魔兽世界后，快速双击名称登录。';$hint.SetBounds(15,15,720,52);$dialog.Controls.Add($hint)
     $controls=@()
     for ($i=0;$i -lt 3;$i++) {
         $label=New-Object System.Windows.Forms.Label;$label.Text='槽位 '+($i+1)+' · 角色名称';$label.SetBounds(20,(75+$i*48),190,30)
-        $text=New-Object System.Windows.Forms.TextBox;$text.MaxLength=24;$text.Text=$plan.Slots[$i].Name;$text.SetBounds(220,(70+$i*48),270,34)
+        $text=New-Object System.Windows.Forms.ComboBox;$text.DropDownStyle='DropDown';$text.MaxLength=24
+        $text.Items.AddRange([object[]]@(Get-RotationNameHistory));$text.Text=$plan.Slots[$i].Name;$text.SetBounds(220,(70+$i*48),270,34)
+        $text.FlatStyle='Flat';$text.AutoCompleteMode='Suggest';$text.AutoCompleteSource='ListItems'
         $text.BackColor=$script:uiColors.Input;$text.ForeColor=$script:uiColors.Text
         $mode=New-Object System.Windows.Forms.ComboBox;$mode.DropDownStyle='DropDownList';$mode.Items.AddRange([object[]]@('钓鱼','战斗'));$mode.SelectedIndex=if ($plan.Slots[$i].Mode -eq 'fight') {1} else {0};$mode.SetBounds(525,(70+$i*48),170,34)
         $mode.BackColor=$script:uiColors.Input;$mode.ForeColor=$script:uiColors.Text;$mode.FlatStyle='Flat';$mode.DrawMode='OwnerDrawFixed';$mode.ItemHeight=26
@@ -385,7 +405,7 @@ function New-RotationEditor($Row) {
         $dialog.Controls.AddRange([System.Windows.Forms.Control[]]@($label,$text,$mode));$controls+=,[pscustomobject]@{Name=$text;Mode=$mode}
     }
     $errorLabel=New-Object System.Windows.Forms.Label;$errorLabel.SetBounds(20,223,710,70)
-    $errorLabel.Text='不需要角色号、角色总数或菜单标定。登录后通过左下角16×16常驻白点确认，开启钓鱼 / 战斗前再次检查白点。'
+    $errorLabel.Text='不需要角色号、角色总数或菜单标定。登录后通过右下角16×16常驻白点确认，开启钓鱼 / 战斗前再次检查白点。'
     $save=New-Object WowAuto.DimButton;$save.Text='保存编排';$save.SetBounds(430,300,135,36);Set-UiButtonStyle $save $true
     $cancel=New-Object WowAuto.DimButton;$cancel.Text='取消';$cancel.SetBounds(585,300,125,36);Set-UiButtonStyle $cancel
     $dialog.Tag=[pscustomobject]@{Row=$Row;Plan=$plan;Slots=$controls;Error=$errorLabel;Save=$save}
@@ -397,6 +417,9 @@ function New-RotationEditor($Row) {
             $next=$script:rotation.Plans.Clone();$next[$editor.Row.Key]=Copy-RotationPlan $editor.Plan
             Save-RotationConfiguration -Plans $next
             Stop-Row $editor.Row '编排已保存，任务停止；点击开始从首个有效槽位运行。' -CancelExit
+            $editor.Row.Validated=$false
+            $index=Get-RotationNextSlot $editor.Plan -1
+            Set-RowTaskMode $editor.Row $(if ($index -ge 0) {$editor.Plan.Slots[$index].Mode} else {'fish'})
             $sender.Tag.Close()
         } catch {$editor.Error.Text=$_.Exception.Message}
     })

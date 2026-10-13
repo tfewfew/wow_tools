@@ -1,49 +1,21 @@
 ﻿# Shared process UI and foreground scheduling; detector engines retain their own state.
 $script:detectorCommands=@()
 $script:detectorSamples=@()
-function Add-ProcessModeControl($Row) {
-    $Row.Panel.Height=148
-    $label=New-Object System.Windows.Forms.Label
-    $label.Text='模式'; $label.SetBounds(6,106,50,28); $Row.Panel.Controls.Add($label)
-    $combo=New-Object System.Windows.Forms.ComboBox
-    $combo.DropDownStyle='DropDownList'; $combo.FlatStyle='Flat'
-    $combo.BackColor=$script:uiColors.Input; $combo.ForeColor=$script:uiColors.Text
-    $combo.DrawMode='OwnerDrawFixed'; $combo.ItemHeight=26
-    $combo.Add_DrawItem({param($sender,$e)
-        if ($e.Index -lt 0) {return}
-        $brush=New-Object Drawing.SolidBrush($sender.BackColor)
-        try {$e.Graphics.FillRectangle($brush,$e.Bounds)} finally {$brush.Dispose()}
-        [System.Windows.Forms.TextRenderer]::DrawText($e.Graphics,[string]$sender.Items[$e.Index],$sender.Font,$e.Bounds,[Drawing.Color]::White)
-    })
-    $combo.Items.AddRange([object[]]@('钓鱼','战斗')); $combo.SetBounds(62,102,180,32)
-    $mode=if ($script:processModePreferences.ContainsKey($Row.Key)) {$script:processModePreferences[$Row.Key]} else {'fish'}
-    $Row | Add-Member NoteProperty TaskMode $mode
-    $Row | Add-Member NoteProperty ModeBox $combo
+function Set-RowTaskMode($Row,[string]$Mode) {
+    if ($Mode -cnotin @('fish','fight')) {throw '任务须为钓鱼或战斗。'}
+    if ($Row.TaskMode -ne $Mode) {
+        if (Test-UnifiedTaskRunning $Row) {Stop-Row $Row '任务已切换，停止原任务并等待重新验证。' -CancelExit}
+        $Row.TaskMode=$Mode;$Row.Validated=$false;$Row.State=$null;$Row.StatusSnapshot=$null
+        if ($Row.FightRow) {$Row.FightRow.CanStart=$false}
+    }
+    if ($Mode -eq 'fight' -and $script:autoFight -and $script:autoFight.Unified) {Ensure-UnifiedFightRow $Row}
+    Set-RowControls $Row
+}
+function Add-ProcessTaskControls($Row) {
+    $Row | Add-Member NoteProperty TaskMode 'fish'
     $Row | Add-Member NoteProperty FightRow $null
-    $combo.SelectedIndex=if ($mode -eq 'fight') {1} else {0}
-    $combo.Tag=$Row; $Row.Panel.Controls.Add($combo)
-    $combo.Add_SelectedIndexChanged({param($sender,$e)
-        $row=$sender.Tag; $mode=if ($sender.SelectedIndex -eq 1) {'fight'} else {'fish'}
-        if ($script:updatingPreferenceControls -or $row.TaskMode -eq $mode) {return}
-        try {
-            if ($script:scanning -or $script:editingSettings) {throw '刷新或设置期间不能切换模式。'}
-            if ($mode -eq 'fight' -and (-not $script:autoFight -or -not $script:autoFight.Unified)) {throw '战斗模块未加载。'}
-            $nextModes=$script:processModePreferences.Clone(); $nextModes[$row.Key]=$mode
-            Save-PreferenceSwitches -ProcessModePreferences $nextModes
-            Stop-Row $row '模式已切换，请刷新验证后开始。' -CancelExit
-            $row.TaskMode=$mode; $row.Validated=$false; $row.State=$null; $row.StatusSnapshot=$null
-            if ($row.FightRow) {$row.FightRow.CanStart=$false}
-            if ($mode -eq 'fight') {Ensure-UnifiedFightRow $row}
-            Set-RowStatusText $row '模式已切换，请刷新开启对应检测并验证。'
-        }
-        catch {
-            $script:updatingPreferenceControls=$true
-            try {$sender.SelectedIndex=if ($row.TaskMode -eq 'fight') {1} else {0}} finally {$script:updatingPreferenceControls=$false}
-            Set-RowStatusText $row ('模式未改变：'+$_.Exception.Message)
-        }
-        Set-RowControls $row; Update-BatchControls
-    })
-    if ($mode -eq 'fight' -and $script:autoFight -and $script:autoFight.Unified) {Ensure-UnifiedFightRow $Row}
+    $plan=Get-RowRotationPlan $Row;$index=Get-RotationNextSlot $plan -1
+    if ($index -ge 0) {Set-RowTaskMode $Row $plan.Slots[$index].Mode}
     Add-RotationRow $Row
 }
 function Ensure-UnifiedFightRow($Row) {
@@ -81,7 +53,7 @@ function Send-ScanDetectorCommand($Row) {
     Assert-GameActionContext
     $Row.Process.Refresh()
     if ($Row.Process.HasExited -or -not (Test-RowProcessIdentity $Row) -or -not (Test-WorkerForeground $Row)) {return $false}
-    if (-not (Test-RowLoginPoint $Row)) {throw '未检测到插件左下角常驻白点，未开启钓鱼 / 战斗监控。'}
+    if (-not (Test-RowLoginPoint $Row)) {throw '未检测到插件右下角常驻白点，未开启钓鱼 / 战斗监控。'}
     $command=[WowAuto.NativeInput]::DetectorCommand($Row.TaskMode)
     if ($UiTest) {
         if ($Row.Process.PSObject.Properties['CommandAllowed'] -and -not $Row.Process.CommandAllowed) {return $false}

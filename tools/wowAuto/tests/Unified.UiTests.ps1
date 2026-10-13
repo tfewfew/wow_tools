@@ -6,6 +6,9 @@ Initialize-AutoFightTab $tabs $form -Unified
 $fightConfigPath=Join-Path ([IO.Path]::GetTempPath()) ('wowAuto-unified-'+[Guid]::NewGuid()+'.json')
 $script:autoFight.ConfigPath=$fightConfigPath
 $sourceIni=Join-Path (Split-Path $PSScriptRoot -Parent) 'config.ini'
+$savedRotationPath=$script:rotation.Path;$savedRotationPlans=$script:rotation.Plans;$savedRotationHistory=$script:rotation.NameHistory
+$script:rotation.Path=Join-Path ([IO.Path]::GetTempPath()) ('wowAuto-unified-roles-'+[Guid]::NewGuid()+'.json')
+$script:rotation.Plans=@{};$script:rotation.NameHistory=@()
 $sourceFight=Join-Path (Split-Path $PSScriptRoot -Parent) 'autoFight.config.json'
 $iniHash=(Get-FileHash $sourceIni).Hash; $fightHash=(Get-FileHash $sourceFight).Hash
 try {
@@ -31,10 +34,9 @@ try {
     $null=Refresh-ProcessRows
     $combat=@($script:rows.Values | Where-Object {$_.Process.Id -eq 701})[0]
     $fishing=@($script:rows.Values | Where-Object {$_.Process.Id -eq 702})[0]
-    Assert-Ui ($tabs.TabPages.Count -eq 1 -and $combat.ModeBox.SelectedIndex -eq 0) 'Main UI still has two task tabs or incorrect default.'
-    $combat.ModeBox.SelectedIndex=1
+    Assert-Ui ($tabs.TabPages.Count -eq 1 -and -not $combat.PSObject.Properties['ModeBox'] -and -not @($combat.Panel.Controls | Where-Object {$_ -is [System.Windows.Forms.ComboBox]}).Count) 'Main UI still has two task tabs or incorrect default.'
+    Set-RowTaskMode $combat fight
     Assert-Ui ($combat.TaskMode -eq 'fight' -and $combat.FightRow -and -not $combat.Validated) 'Mode selector failed to attach combat engine.'
-    Assert-Ui ((Read-WowAutoSettingsIni $script:settingsPath).ProcessModePreferences[$combat.Key] -eq 'fight') 'Process mode not persisted.'
     [WowAutoFight.Native]::Current.Flavor='titan'; [WowAutoFight.Native]::Current.Action='idle'
     [WowAutoFight.Native]::Current.Recovery='none'; [WowAutoFight.Native]::Current.ClassId=1
     [WowAutoFight.Native]::IsForeground=$true; [WowAutoFight.Native]::FailSend=$false
@@ -55,12 +57,9 @@ try {
     Assert-Ui ($script:detectorSamples.Count -eq 2 -and [WowAutoFight.Native]::Sends -eq $sends -and $script:workerKeys.Count -eq $keys) 'Refresh performed unexpected actions.'
     $startAllButton.PerformClick()
     Assert-Ui ($combat.FightRow.Session -and $fishing.State.Running) 'Start All failed to dispatch both modes.'
-    $combat.ModeBox.SelectedIndex=0
+    Set-RowTaskMode $combat fish
     Assert-Ui (-not $combat.FightRow.Session -and $fishing.State.Running -and -not $combat.Validated) 'Switching mode stopped another row or retained combat task.'
-    $combat.ModeBox.SelectedIndex=1
-    $locked=[IO.File]::Open($script:settingsPath,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
-    try {$combat.ModeBox.SelectedIndex=0; Assert-Ui ($combat.TaskMode -eq 'fight' -and $combat.ModeBox.SelectedIndex -eq 1) 'Failed mode save changed selection.'}
-    finally {$locked.Dispose()}
+    Set-RowTaskMode $combat fight
     Stop-AllRows
     $combat.Process.CommandAllowed=$false; $script:detectorSamples=@()
     Begin-RefreshScan; Complete-TestScan
@@ -148,21 +147,25 @@ try {
         $legacy=Read-WowAutoSettingsIni $script:settingsPath
         Assert-Ui ($legacy.ProcessModePreferences.Count -eq 0 -and (Get-FileHash $script:settingsPath).Hash -eq $oldHash) 'Legacy mode-free INI was rejected or rewritten.'
     } finally {[IO.File]::WriteAllText($script:settingsPath,$validIni)}
+    $plan=New-RotationPlan;$plan.Slots[0].Name='测试角色';$plan.Slots[0].Mode='fight'
+    $plans=@{};$plans[$combat.Key]=$plan;Save-RotationConfiguration -Plans $plans
     # Same-process refresh/reconstruction remembers mode; PID reuse inherits neither mode nor task.
     $null=Refresh-ProcessRows
     Assert-Ui ($script:rows[$combat.Key].TaskMode -eq 'fight') 'Refresh lost process mode.'
     $script:autoFight.Rows.Remove($combat.Key); $script:rows.Remove($combat.Key); $combat.Panel.Dispose()
     $script:processModePreferences=@{}; Import-VersionWaitSettings; $null=Refresh-ProcessRows
     $combat=@($script:rows.Values | Where-Object {$_.Process.Id -eq 701})[0]
-    Assert-Ui ($combat.TaskMode -eq 'fight' -and $combat.ModeBox.SelectedIndex -eq 1) 'Restart did not restore persisted mode.'
+    Assert-Ui ($combat.TaskMode -eq 'fight' -and -not $combat.PSObject.Properties['ModeBox']) 'Restart did not restore persisted mode.'
     $oldKey=$combat.Key
     $combat.Process.StartTime=$combat.Process.StartTime.AddSeconds(1)
     $null=Refresh-ProcessRows
     $replacement=@($script:rows.Values | Where-Object {$_.Process.Id -eq 701})[0]
     Assert-Ui ($replacement.TaskMode -eq 'fish' -and -not $replacement.FightRow -and -not $script:autoFight.Rows.ContainsKey($oldKey)) 'Reused PID inherited mode/combat adapter.'
     Assert-Ui ((Get-FileHash $sourceIni).Hash -eq $iniHash -and (Get-FileHash $sourceFight).Hash -eq $fightHash) 'Unified tests changed user source configuration.'
-    Write-Output 'PASS: unified process selector/settings tabs, mixed command-before-sample refresh, focus/command failure, manual start, mode save/rollback/refresh/PID reuse and mixed-mode foreground/reel priority. All game input, pixels and audio mocked.'
+    Write-Output 'PASS: unified process selector/settings tabs, mixed command-before-sample refresh, focus/command failure, manual start, slot-mode refresh/reconstruction/PID reuse without a process mode selector and mixed-mode foreground/reel priority. All game input, pixels and audio mocked.'
 } finally {
     Stop-AllRows; Close-AutoFightTab
+    if ([IO.File]::Exists($script:rotation.Path)) {[IO.File]::Delete($script:rotation.Path)}
+    $script:rotation.Path=$savedRotationPath;$script:rotation.Plans=$savedRotationPlans;$script:rotation.NameHistory=$savedRotationHistory
     if ([IO.File]::Exists($fightConfigPath)) {[IO.File]::Delete($fightConfigPath)}
 }

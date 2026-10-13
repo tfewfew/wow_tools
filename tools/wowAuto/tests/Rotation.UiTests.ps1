@@ -50,6 +50,7 @@ try {
     Assert-Ui ($script:rotation.ConfigReady -and $script:rotation.Plans[$a.Key].Slots[2].Name -ceq '咆史呀嘞' -and (Get-FileHash $script:rotation.Path).Hash -eq $hash) 'Saved rotation config did not reload read-only.'
     $locked=[IO.File]::Open($script:rotation.Path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
     try {$failed=$false;try {Save-RotationConfiguration 30} catch {$failed=$true};Assert-Ui ($failed -and $script:rotation.IntervalSeconds -eq 20) 'Locked config applied interval.'} finally {$locked.Dispose()}
+    Assert-Ui ($script:rotation.NameHistory -contains '双持船橘二咪' -and $script:rotation.NameHistory -contains '咆史呀嘞') 'Saved name history was not restored.'
     $draft=Copy-RotationPlan $plan;$draft.Slots[0].Name='错误 名称'
     $rejected=$false;try {Test-RotationPlan $draft} catch {$rejected=$true};Assert-Ui $rejected 'Whitespace in name accepted.'
     $draft.Slots[0].Name='/logout';$rejected=$false;try {Test-RotationPlan $draft} catch {$rejected=$true};Assert-Ui $rejected 'Command in name accepted.'
@@ -79,8 +80,9 @@ try {
     Assert-Ui ($script:rotation.Actions.Count -eq $before) 'Settings failed to pause orchestration.'
     Step-RotationTest 210000 'unknown'
     Assert-Ui (-not $script:rotation.Active.ContainsKey($a.Key) -and -not (Test-UnifiedTaskRunning $a)) 'Timeout restarted work.'
-    Start-Row $b;Step-RotationTest 211000;$script:workerFocus=-1;Step-RotationTest 211300
+    Start-Row $b;Step-RotationTest 211000;$script:workerFocus=-1;$b.Process.FocusAllowed=$false;Step-RotationTest 211300
     Assert-Ui (-not $script:rotation.Active.ContainsKey($b.Key)) 'Lost focus did not stop transition.'
+    $b.Process.FocusAllowed=$true
     Stop-AllRows;$script:rotation.Actions=@();Start-Row $a;Stop-Row $a;Step-RotationTest 212000
     Assert-Ui (-not $script:rotation.Current -and -not $script:rotation.Actions.Count) 'Stopped queued work still ran.'
     # Starting in the menu only scrolls and double-clicks the actual OCR name.
@@ -124,12 +126,39 @@ try {
     # Embedded settings and editor use isolated drafts; saves require atomic persistence.
     $dialog=New-RotationEditor $a
     try {
+        Assert-Ui ($dialog.Tag.Slots[0].Name -is [System.Windows.Forms.ComboBox] -and $dialog.Tag.Slots[0].Name.DropDownStyle -eq 'DropDown' -and $dialog.Tag.Slots[0].Name.Items.Contains('双持船橘二咪')) 'Editable history dropdown missing.'
         $dialog.Tag.Slots[0].Name.Text='持剑腕豪';Assert-Ui ($script:rotation.Plans[$a.Key].Slots[0].Name -ceq '双持船橘二咪') 'Editor draft leaked.'
         if ($env:WOWAUTO_UNIFIED_PREVIEW_DIRECTORY) {
             $dialog.Show($form);[System.Windows.Forms.Application]::DoEvents()
             $image=New-Object Drawing.Bitmap($dialog.Width,$dialog.Height)
             try {$dialog.DrawToBitmap($image,(New-Object Drawing.Rectangle(0,0,$image.Width,$image.Height)));$image.Save((Join-Path $env:WOWAUTO_UNIFIED_PREVIEW_DIRECTORY 'rotation-editor.png'),[Drawing.Imaging.ImageFormat]::Png)} finally {$image.Dispose()}
         }
+    } finally {$dialog.Dispose()}
+    # Exercise actual save/cancel and a locked config with an editable history combo.
+    $savedPlans=$script:rotation.Plans.Clone()
+    $historyBefore=($script:rotation.NameHistory -join '|')
+    $dialog=New-RotationEditor $a
+    try {
+        $dialog.Show($form);[System.Windows.Forms.Application]::DoEvents()
+        $dialog.Tag.Slots[0].Name.SelectedItem='小船长'
+        Assert-Ui ($dialog.Tag.Slots[0].Name.Text -ceq '小船长') 'History selection did not fill the editable field.'
+        $dialog.Tag.Slots[0].Name.Text='测试新角色';$dialog.Tag.Slots[0].Mode.SelectedIndex=1
+        $locked=[IO.File]::Open($script:rotation.Path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
+        try {$dialog.Tag.Save.PerformClick()} finally {$locked.Dispose()}
+        Assert-Ui ($dialog.Visible -and ($script:rotation.NameHistory -join '|') -ceq $historyBefore -and $script:rotation.Plans[$a.Key].Slots[0].Name -ceq '双持船橘二咪') 'Failed save applied draft/history.'
+        $dialog.Tag.Save.PerformClick()
+        Assert-Ui (-not $dialog.Visible -and $script:rotation.NameHistory -contains '测试新角色' -and $a.TaskMode -eq 'fight' -and -not $a.Validated) 'Saved role name/history did not select its task mode.'
+    } finally {$dialog.Dispose()}
+    Save-RotationConfiguration -Plans $savedPlans
+    Set-RowTaskMode $a fish
+    $script:rotation.NameHistory=@();Import-RotationConfiguration
+    Assert-Ui ($script:rotation.NameHistory -contains '测试新角色') 'Removed slot name was not retained after reload.'
+    $dialog=New-RotationEditor $a
+    try {
+        $dialog.Show($form);[System.Windows.Forms.Application]::DoEvents()
+        Assert-Ui ($dialog.Tag.Slots[1].Name.Items.Contains('测试新角色')) 'Reopened dropdown lost a historical name.'
+        $dialog.Tag.Slots[0].Name.Text='取消的新名字';$dialog.Close()
+        Assert-Ui ($script:rotation.NameHistory -notcontains '取消的新名字' -and $script:rotation.Plans[$a.Key].Slots[0].Name -ceq '双持船橘二咪') 'Cancel remembered an unsaved name.'
     } finally {$dialog.Dispose()}
     $dialog=New-UnifiedSettingsDialog
     try {
@@ -144,7 +173,7 @@ try {
         $failed=$false;try {$null=[WowAuto.NativeInput]::RotationCommand($action,77)} catch {$failed=$true};Assert-Ui $failed 'Removed/arbitrary command accepted.'
     }
     # Classify real-shaped OCR output, using both spatial anchors and exact names.
-    $ocr=[pscustomobject]@{Lines=@([pscustomobject]@{Text='系统公告';X=0.06;Y=0.20;W=0.1;H=0.02});Names=@(
+    $ocr=[pscustomobject]@{Lines=@([pscustomobject]@{Text='选择服务器';X=0.82;Y=0.07;W=0.10;H=0.02},[pscustomobject]@{Text='进入魔兽世界';X=0.44;Y=0.93;W=0.13;H=0.02});Names=@(
         [pscustomobject]@{Text='双持船橘二咪';X=0.10;Y=0.20;W=0.25;H=0.02})}
     $screen=ConvertFrom-RotationOcr $ocr $plan
     Assert-Ui ($screen.Kind -eq 'menu' -and $screen.Targets[0].Name -ceq '双持船橘二咪' -and $screen.Targets[0].X -gt 0.79) 'OCR anchors did not localize configured name.'
@@ -152,9 +181,11 @@ try {
     $mapped=ConvertFrom-RotationOcr $ocr $plan
     Assert-Ui ([Math]::Abs($mapped.Targets[0].X-(0.70+0.30*(0.10+0.25/2))) -lt 0.00001) 'OCR crop mapping ignored client aspect ratio.'
     $ocr.PSObject.Properties.Remove('NamesBounds')
+    $anchors=$ocr.Lines
+    $ocr.Lines=@($anchors[0]);Assert-Ui ((ConvertFrom-RotationOcr $ocr $plan).Kind -eq 'unknown') 'One anchor alone accepted.'
     $ocr.Lines=@();Assert-Ui ((ConvertFrom-RotationOcr $ocr $plan).Kind -eq 'unknown') 'Name alone accepted as menu.'
-    $ocr.Lines=@([pscustomobject]@{Text='系统公告';X=0.06;Y=0.20;W=0.1;H=0.02});$ocr.Names[0].Text='双持船橘二'
-    Assert-Ui ((ConvertFrom-RotationOcr $ocr $plan).Kind -eq 'unknown') 'Partial name accepted as configured menu anchor.'
+    $ocr.Lines=@([pscustomobject]@{Text='选择服务器';X=0.82;Y=0.07;W=0.10;H=0.02},[pscustomobject]@{Text='进入魔兽世界';X=0.44;Y=0.93;W=0.13;H=0.02});$ocr.Names[0].Text='双持船橘二'
+    Assert-Ui (-not @((ConvertFrom-RotationOcr $ocr $plan).Targets | Where-Object {$_.Name -ceq '双持船橘二咪'}).Count) 'Partial name accepted as exact target.'
     $ocr.Lines=@([pscustomobject]@{Text='100%';X=0.04;Y=0.03},[pscustomobject]@{Text='开怪：未记录';X=0.01;Y=0.25},[pscustomobject]@{Text='1双持船橘二咪';X=0.04;Y=0.32});$ocr.Names=@()
     $screen=ConvertFrom-RotationOcr $ocr $plan
     Assert-Ui ($screen.Kind -eq 'unknown') 'Removed HUD login recognition is still active.'
