@@ -17,6 +17,11 @@ function Set-AutoFightStatus($Row,[string]$Message) {
     $Row.Status.SetStatusText(($Row.History -join [Environment]::NewLine))
 }
 function Update-AutoFightControls {
+    if ($script:autoFight.Unified) {
+        foreach ($parentRow in @($script:rows.Values)) {Set-RowControls $parentRow}
+        Update-BatchControls
+        return
+    }
     $busy=$null -ne $script:autoFight.Scan
     $script:autoFight.Refresh.Enabled=-not $busy -and -not $script:autoFight.Editing
     $script:autoFight.Settings.Enabled=-not $busy -and -not $script:autoFight.Editing
@@ -179,7 +184,7 @@ function Finish-AutoFightPending([long]$Now) {
         $pending.Session.Due=[Math]::Max($pending.Session.Due,($Now+250))
     }
 }
-function Invoke-AutoFightTick {
+function Invoke-AutoFightTick([bool]$AllowInput=$true) {
     $now=$script:autoFight.Clock.ElapsedMilliseconds
     if ($now -ge $script:autoFight.PositionAt) {
         foreach ($positionRow in @($script:autoFight.Rows.Values)) {Update-AutoFightRowName $positionRow}
@@ -250,6 +255,7 @@ function Invoke-AutoFightTick {
             Finish-AutoFightPending $now; return
         }
         # Detection never requires focus. Activate only when an input is actually due.
+        if (-not $AllowInput) {Finish-AutoFightPending $now; return}
         if (-not (Test-AutoFightCommandReady $script:autoFight.CommandGate $now)) {Finish-AutoFightPending $now; return}
         if (-not [WowAutoFight.Native]::Foreground($row.Client)) {
             if (-not $pending.Activated) {
@@ -346,7 +352,7 @@ function New-AutoFightKeyBox {
     })
     return $box
 }
-function New-AutoFightSettingsDialog {
+function New-AutoFightSettingsDialog([switch]$Embedded) {
     $dialog=New-Object WowAuto.DimForm
     $dialog.AutoScaleMode='Dpi'
     $dialog.Text='autoFight · 通用设置 / 职业攻击与恢复'; $dialog.StartPosition='CenterParent'
@@ -362,7 +368,7 @@ function New-AutoFightSettingsDialog {
     $dialog.Controls.Add($body); $dialog.Controls.Add($footer)
     $editor=[pscustomobject]@{Draft=(Copy-AutoFightProfiles $script:autoFight.Profiles); Common=(Copy-AutoFightCommon $script:autoFight.Common); Loading=$true;
         Pages=@{};Tabs=$null;Class=$null;CommonBindings=@{};CommonNumbers=@{};Bindings=@{};Numbers=@{};
-        SkinEnabled=$null;CommandInterval=$null;Save=$null;Cancel=$null;Error=$null}
+        SkinEnabled=$null;CommandInterval=$null;Save=$null;Cancel=$null;Error=$null;Embedded=[bool]$Embedded;Saved=$false}
     $script:autoFight.Editor=$editor
     $profileTabs=New-Object WowAuto.DimTabControl
     $profileTabs.HeaderBackground=[Drawing.Color]::Black
@@ -476,7 +482,9 @@ function New-AutoFightSettingsDialog {
                 if ($row.Session) {Set-AutoFightJumpInterval $row.Session $script:autoFight.Common.JumpIntervalSeconds $script:autoFight.Clock.ElapsedMilliseconds}
             }
             $script:autoFight.Summary.Text='状态按键已保存；下次执行使用新配置，已有截止时间保留。'
-            $sender.FindForm().Close()
+            $script:autoFight.Editor.Saved=$true
+            if (-not $script:autoFight.Editor.Embedded) {$sender.FindForm().Close()}
+            else {$sender.Tag.Text='战斗设置已保存。'}
         }
         catch { $sender.Tag.Text=$_.Exception.Message }
     })
@@ -498,7 +506,7 @@ function Show-AutoFightSettings {
     try { [void]$dialog.ShowDialog($script:autoFight.Owner) }
     finally { $script:autoFight.Editor=$null; $script:autoFight.Editing=$false; $dialog.Dispose(); Update-AutoFightControls }
 }
-function Initialize-AutoFightTab($Tabs,$Owner) {
+function Initialize-AutoFightTab($Tabs,$Owner,[switch]$Unified) {
     $tab=New-Object System.Windows.Forms.TabPage
     $tab.Text='autoFight'; $tab.BackColor=[Drawing.Color]::FromArgb(58,58,58); $tab.ForeColor=[Drawing.Color]::White
     $toolbar=New-Object System.Windows.Forms.FlowLayoutPanel
@@ -524,6 +532,7 @@ function Initialize-AutoFightTab($Tabs,$Owner) {
         ConfigPath=(Join-Path $PSScriptRoot 'autoFight.config.json'); Profiles=(New-AutoFightProfiles); Common=(New-AutoFightCommon); ConfigReady=$true;
         Tab=$tab; Tabs=$Tabs; Owner=$Owner; List=$list; Refresh=$buttons.Refresh; StartAll=$buttons.StartAll;
         StopAll=$buttons.StopAll; Settings=$buttons.Settings; Summary=$summary;
+        Unified=[bool]$Unified; DetachedTab=$tab;
         CommandGate=(New-AutoFightCommandGate); Clock=[Diagnostics.Stopwatch]::StartNew(); Timer=(New-Object System.Windows.Forms.Timer)}
     try {
         $config=Read-AutoFightConfiguration $script:autoFight.ConfigPath
@@ -536,8 +545,8 @@ function Initialize-AutoFightTab($Tabs,$Owner) {
     $buttons.StopAll.Add_Click({ Stop-AutoFightAll })
     $script:autoFight.Timer.Interval=50
     $script:autoFight.Timer.Add_Tick({ Invoke-AutoFightTick })
-    $Tabs.TabPages.Add($tab)
-    $script:autoFight.Timer.Start()
+    if ($Unified) {$script:autoFight.Tab=$Tabs.TabPages[0]}
+    else {$Tabs.TabPages.Add($tab); $script:autoFight.Timer.Start()}
     Update-AutoFightControls
 }
 function Close-AutoFightTab {
@@ -545,5 +554,6 @@ function Close-AutoFightTab {
     $script:autoFight.Timer.Stop()
     Stop-AutoFightAll
     $script:autoFight.Timer.Dispose()
+    if ($script:autoFight.Unified) {$script:autoFight.DetachedTab.Dispose()}
     $script:autoFight=$null
 }

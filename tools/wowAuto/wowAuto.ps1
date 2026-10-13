@@ -285,6 +285,30 @@ namespace WowAuto
             }
             return true;
         }
+
+        // Send only the two addon start commands, never arbitrary chat text or macros.
+        public static bool SendDetectorCommand(int processId, long startTicks, string path, string mode)
+        {
+            string command = DetectorCommand(mode);
+            if (!PressChord(processId,startTicks,path,13,false,false,false)) return false;
+            if (!PressChord(processId,startTicks,path,65,true,false,false)) return false;
+            if (!IsTargetForeground(processId,startTicks,path)) return false;
+            var inputs = new System.Collections.Generic.List<INPUT>();
+            foreach (char character in command) {
+                INPUT down = new INPUT(); down.type=1;
+                down.data.keyboard.wScan=character; down.data.keyboard.dwFlags=4;
+                INPUT up=down; up.data.keyboard.dwFlags=6;
+                inputs.Add(down); inputs.Add(up);
+            }
+            Send(inputs.ToArray());
+            return PressChord(processId,startTicks,path,13,false,false,false);
+        }
+        public static string DetectorCommand(string mode)
+        {
+            if (mode=="fish") return "/wowdetector on";
+            if (mode=="fight") return "/fightdetector on";
+            throw new ArgumentException("Unknown detector mode.");
+        }
     }
 }
 "@
@@ -464,6 +488,7 @@ $script:keyBindings=@{
 }
 $script:audioDetectionEnabled=-not $UiTest
 $script:processItemPreferences=@{}
+$script:processModePreferences=@{}
 $script:updatingPreferenceControls=$false
 $script:requiredSettingsKeys = @('TitanMinimumMs','TitanMaximumMs','ForerverMinimumMs','ForerverMaximumMs','FocusRetryIntervalMs')
 $script:audioSettingsKeys = @('TitanAudioThresholdPercent','ForerverAudioThresholdPercent')
@@ -473,7 +498,7 @@ $script:preferenceSettingsKeys = @('ReelHoldMs','CastKey','ReelKey','ItemKey','A
 $script:settingsKeys = $script:requiredSettingsKeys + $script:audioSettingsKeys + $script:audioTimeoutSettingsKeys + $script:recordingSettingsKeys + $script:preferenceSettingsKeys + @('StatusLogLimit','JumpEveryCycles')
 $script:settingsWarning = ''
 function Read-WowAutoSettingsIni([string]$Path) {
-    $values=@{}; $items=@{}; $seen=@{}; $lineNumber=0
+    $values=@{}; $items=@{}; $modes=@{}; $seen=@{}; $lineNumber=0
     foreach ($sourceLine in [IO.File]::ReadAllLines($Path)) {
         $lineNumber++; $line=$sourceLine.Trim()
         if ($line -eq '' -or $line.StartsWith(';') -or $line.StartsWith('#')) { continue }
@@ -481,6 +506,13 @@ function Read-WowAutoSettingsIni([string]$Path) {
         $key=$matches[1]; $value=$matches[2]
         if ($seen.ContainsKey($key)) { throw "config.ini 存在重复配置项：$key。" }
         $seen[$key]=$true
+        if ($key -match '^Mode_([1-9]\d*)_([1-9]\d*)$') {
+            $modePid=0; $modeTicks=0L
+            if (-not [int]::TryParse($matches[1],[ref]$modePid) -or -not [long]::TryParse($matches[2],[ref]$modeTicks) -or
+                $modeTicks -gt [datetime]::MaxValue.Ticks -or $value -cnotin @('fish','fight')) {throw '进程任务模式配置无效。'}
+            $modes["${modePid}:$modeTicks"]=$value
+            continue
+        }
         if ($key -match '^UseItem_([1-9]\d*)_([1-9]\d*)$') {
             $pidValue=0; $ticksValue=0L
             if (-not [int]::TryParse($matches[1],[ref]$pidValue) -or -not [long]::TryParse($matches[2],[ref]$ticksValue) -or $ticksValue -gt [datetime]::MaxValue.Ticks) { throw '道具勾选的进程标识无效。' }
@@ -522,6 +554,7 @@ function Read-WowAutoSettingsIni([string]$Path) {
     if (-not $values.ContainsKey('StatusLogLimit')) { $values.StatusLogLimit=$script:statusLogLimit }
     if (-not $values.ContainsKey('JumpEveryCycles')) { $values.JumpEveryCycles=$script:scheduler.JumpEveryCycles }
     $values.ProcessItemPreferences=$items
+    $values.ProcessModePreferences=$modes
     return $values
 }
 function Update-VersionSummary {
@@ -533,7 +566,7 @@ function Update-VersionSummary {
 function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $ForerverMaximum, [bool]$Persist=$true, $FocusRetryIntervalMs=$script:scheduler.FocusRetryIntervalMs,
     $TitanAudioThresholdPercent=$script:audioThresholds.titan, $ForerverAudioThresholdPercent=$script:audioThresholds.forerver,
     $ReelHoldMs=$script:scheduler.ReelHoldMs, $KeyBindings=$script:keyBindings, $AudioDetectionEnabled=$script:audioDetectionEnabled,
-    $ProcessItemPreferences=$script:processItemPreferences,
+    $ProcessItemPreferences=$script:processItemPreferences, $ProcessModePreferences=$script:processModePreferences,
     $TitanAudioTimeoutMs=$script:versionRanges.titan.AudioTimeoutMs, $ForerverAudioTimeoutMs=$script:versionRanges.forerver.AudioTimeoutMs,
     $TitanAudioRecordingId=$script:audioRecordingSelections.titan, $ForerverAudioRecordingId=$script:audioRecordingSelections.forerver,
     $StatusLogLimit=$script:statusLogLimit, $JumpEveryCycles=$script:scheduler.JumpEveryCycles) {
@@ -580,6 +613,14 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
         if (-not [int]::TryParse($matches[1],[ref]$pidValue) -or -not [long]::TryParse($matches[2],[ref]$ticksValue) -or $ticksValue -gt [datetime]::MaxValue.Ticks) { throw '道具勾选的进程标识无效。' }
         $nextItems[$key]=[bool](ConvertTo-PreferenceFlag $ProcessItemPreferences[$key])
     }
+    $nextModes=@{}
+    foreach ($key in $ProcessModePreferences.Keys) {
+        if ($key -notmatch '^([1-9]\d*):([1-9]\d*)$') {throw '进程任务模式标识无效。'}
+        $modePid=0; $modeTicks=0L
+        if (-not [int]::TryParse($matches[1],[ref]$modePid) -or -not [long]::TryParse($matches[2],[ref]$modeTicks) -or
+            $modeTicks -gt [datetime]::MaxValue.Ticks -or $ProcessModePreferences[$key] -cnotin @('fish','fight')) {throw '进程任务模式配置无效。'}
+        $nextModes[$key]=$ProcessModePreferences[$key]
+    }
     if ($Persist) {
         $directory=Split-Path $script:settingsPath -Parent
         New-Item -ItemType Directory -Path $directory -Force | Out-Null
@@ -599,6 +640,7 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
                 '; Shortcuts use Ctrl/Shift/Alt plus a key; UseItem_PID_StartTicks stores process choices.')
             foreach ($key in $script:settingsKeys) { $lines += "$key=$($values[$key])" }
             foreach ($key in @($nextItems.Keys | Sort-Object)) { $lines += "UseItem_$($key.Replace(':','_'))=$([int]$nextItems[$key])" }
+            foreach ($key in @($nextModes.Keys | Sort-Object)) { $lines += "Mode_$($key.Replace(':','_'))=$($nextModes[$key])" }
             [IO.File]::WriteAllText($temporary,($lines -join "`r`n")+"`r`n",(New-Object Text.UTF8Encoding($false)))
             # Windows PowerShell 5.1 converts ordinary $null to an empty string here.
             # File.Replace requires an actual null backup filename, not an empty path.
@@ -620,6 +662,7 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
     $script:keyBindings=$nextBindings
     $script:audioDetectionEnabled=[bool]$nextAudio
     $script:processItemPreferences=$nextItems
+    $script:processModePreferences=$nextModes
     Sync-PreferenceControls
     # Update future waits for every running task of the same version; existing events keep their due time.
     foreach ($row in $script:rows.Values) {
@@ -645,7 +688,7 @@ function Import-VersionWaitSettings {
         $saved=Read-WowAutoSettingsIni $script:settingsPath
         $bindings=@{}
         foreach ($action in @('Cast','Reel','Item')) { $bindings[$action]=ConvertFrom-KeyBindingText $saved[($action+'Key')] }
-        Set-VersionWaitRanges $saved.TitanMinimumMs $saved.TitanMaximumMs $saved.ForerverMinimumMs $saved.ForerverMaximumMs -Persist $false -FocusRetryIntervalMs $saved.FocusRetryIntervalMs -TitanAudioThresholdPercent $saved.TitanAudioThresholdPercent -ForerverAudioThresholdPercent $saved.ForerverAudioThresholdPercent -ReelHoldMs $saved.ReelHoldMs -KeyBindings $bindings -AudioDetectionEnabled $saved.AudioDetectionEnabled -ProcessItemPreferences $saved.ProcessItemPreferences -TitanAudioTimeoutMs $saved.TitanAudioTimeoutMs -ForerverAudioTimeoutMs $saved.ForerverAudioTimeoutMs -TitanAudioRecordingId $saved.TitanAudioRecordingId -ForerverAudioRecordingId $saved.ForerverAudioRecordingId -StatusLogLimit $saved.StatusLogLimit -JumpEveryCycles $saved.JumpEveryCycles
+        Set-VersionWaitRanges $saved.TitanMinimumMs $saved.TitanMaximumMs $saved.ForerverMinimumMs $saved.ForerverMaximumMs -Persist $false -FocusRetryIntervalMs $saved.FocusRetryIntervalMs -TitanAudioThresholdPercent $saved.TitanAudioThresholdPercent -ForerverAudioThresholdPercent $saved.ForerverAudioThresholdPercent -ReelHoldMs $saved.ReelHoldMs -KeyBindings $bindings -AudioDetectionEnabled $saved.AudioDetectionEnabled -ProcessItemPreferences $saved.ProcessItemPreferences -ProcessModePreferences $saved.ProcessModePreferences -TitanAudioTimeoutMs $saved.TitanAudioTimeoutMs -ForerverAudioTimeoutMs $saved.ForerverAudioTimeoutMs -TitanAudioRecordingId $saved.TitanAudioRecordingId -ForerverAudioRecordingId $saved.ForerverAudioRecordingId -StatusLogLimit $saved.StatusLogLimit -JumpEveryCycles $saved.JumpEveryCycles
     }
     catch { $script:settingsWarning="config.ini 读取失败，保留当前配置：$($_.Exception.Message)" }
 }
@@ -661,9 +704,9 @@ function Sync-PreferenceControls {
     }
     finally { $script:updatingPreferenceControls=$previousGuard }
 }
-function Save-PreferenceSwitches($AudioDetectionEnabled=$script:audioDetectionEnabled, $ProcessItemPreferences=$script:processItemPreferences) {
+function Save-PreferenceSwitches($AudioDetectionEnabled=$script:audioDetectionEnabled, $ProcessItemPreferences=$script:processItemPreferences, $ProcessModePreferences=$script:processModePreferences) {
     $t=$script:versionRanges.titan; $f=$script:versionRanges.forerver
-    Set-VersionWaitRanges $t.MinimumMs $t.MaximumMs $f.MinimumMs $f.MaximumMs -AudioDetectionEnabled $AudioDetectionEnabled -ProcessItemPreferences $ProcessItemPreferences
+    Set-VersionWaitRanges $t.MinimumMs $t.MaximumMs $f.MinimumMs $f.MaximumMs -AudioDetectionEnabled $AudioDetectionEnabled -ProcessItemPreferences $ProcessItemPreferences -ProcessModePreferences $ProcessModePreferences
 }
 if (-not $UiTest) { Import-VersionWaitSettings }
 $script:uiColors=@{
@@ -722,7 +765,7 @@ $tabs.ForeColor = $script:uiColors.Text
 $tabs.SizeMode = 'Fixed'
 $tabs.ItemSize = New-Object System.Drawing.Size(112,32)
 $tab = New-Object System.Windows.Forms.TabPage
-$tab.Text = 'autofish'
+$tab.Text = '进程任务'
 $tab.BackColor = $script:uiColors.Background
 $tab.ForeColor = $script:uiColors.Text
 $tabs.TabPages.Add($tab)
@@ -790,7 +833,7 @@ function Set-KeyBinding($InputBox, [int]$Code, [bool]$Ctrl, [bool]$Shift, [bool]
     $InputBox.Text=$binding.Text
 }
 
-function New-WaitSettingsDialog {
+function New-WaitSettingsDialog([switch]$Embedded) {
     $dialog=New-Object WowAuto.DimForm
     $dialog.Text='自动钓鱼设置'
     $dialog.Font=$form.Font
@@ -970,10 +1013,12 @@ function New-WaitSettingsDialog {
             }
             Set-VersionWaitRanges $fields.titan.Minimum.Text.Trim() $fields.titan.Maximum.Text.Trim() $fields.forerver.Minimum.Text.Trim() $fields.forerver.Maximum.Text.Trim() -FocusRetryIntervalMs $settingsDialog.Tag.FocusRetry.Text.Trim() -TitanAudioThresholdPercent $fields.titan.AudioThreshold.Text.Trim() -ForerverAudioThresholdPercent $fields.forerver.AudioThreshold.Text.Trim() -ReelHoldMs $nextHold -KeyBindings $nextBindings -TitanAudioTimeoutMs $fields.titan.AudioTimeout.Text.Trim() -ForerverAudioTimeoutMs $fields.forerver.AudioTimeout.Text.Trim() -TitanAudioRecordingId $settingsDialog.Tag.Recordings.titan.Selection.SelectedItem.Id -ForerverAudioRecordingId $settingsDialog.Tag.Recordings.forerver.Selection.SelectedItem.Id -StatusLogLimit $settingsDialog.Tag.StatusLogLimit.Text.Trim() -JumpEveryCycles $settingsDialog.Tag.JumpEveryCycles.Text.Trim()
             Stop-AudioPreview $settingsDialog
-            $settingsDialog.DialogResult='OK'
+            if ($settingsDialog.Tag.Embedded) {$settingsDialog.Tag.Error.Text='钓鱼设置已保存。'}
+            else {$settingsDialog.DialogResult='OK'}
         }
         catch { $settingsDialog.Tag.Error.Text=$_.Exception.Message }
     })
+    $dialog.Tag | Add-Member NoteProperty Embedded ([bool]$Embedded)
     return $dialog
 }
 $settingsButton.Add_Click({
@@ -981,7 +1026,8 @@ $settingsButton.Add_Click({
     # A modal editor must not lose focus to automatic game activation.
     $script:editingSettings=$true
     $dialog=$null
-    try { $dialog=New-WaitSettingsDialog; [void]$dialog.ShowDialog($form) }
+    try { $dialog=New-UnifiedSettingsDialog; [void]$dialog.ShowDialog($form) }
+    catch {$settingsSummary.Text='设置未打开：'+$_.Exception.Message}
     finally { if ($null -ne $dialog) { $dialog.Dispose() }; $script:editingSettings=$false; Update-BatchControls }
 })
 
@@ -989,7 +1035,7 @@ $intro = New-Object System.Windows.Forms.Label
 $intro.Dock = 'Top'
 $intro.Height = 44
 $intro.Padding = New-Object System.Windows.Forms.Padding(12, 12, 0, 0)
-$intro.Text = '先刷新检测，再全部开始：音频匹配后随机等待再收竿；取消音频勾选则变绿后计时。'
+$intro.Text = '每行选择钓鱼或战斗；刷新会开启对应插件检测，再读取色块；检测通过后手动开始。'
 $headings = New-Object System.Windows.Forms.Panel
 $headings.Dock = 'Top'
 $headings.Height = 32
@@ -1086,6 +1132,11 @@ function Read-RowWindowPosition($Row) {
     catch { return '位置未知' }
 }
 function Update-RowName($Row) {
+    if ($Row.TaskMode -eq 'fight' -and $Row.FightRow) {
+        $class=if ($Row.FightRow.ClassId) {$script:autoFightClasses[[string]$Row.FightRow.ClassId]} else {'等待插件识别'}
+        $Row.Name.Text="$($Row.Caption)`r`nPID $($Row.Process.Id) · $($Row.Client.Label) · $($Row.Position)`r`n职业：$class"
+        return
+    }
     $cycles=Get-WowAutoCycleCount $script:scheduler $Row.Key
     $Row.Name.Text="$($Row.Caption)`r`nPID $($Row.Process.Id) · $($Row.Client.Label) · $($Row.Position) · 循环 $cycles"
 }
@@ -1097,15 +1148,23 @@ function Update-WindowPositions {
 }
 
 function Set-RowControls($Row) {
-    $running = $null -ne $Row.State -and $Row.State.Running
+    $running = Test-UnifiedRowRunning $Row
     $exiting = $script:pendingGameExits.ContainsKey($Row.Key)
     $eligible = $Row.Validated -and -not $exiting -and -not $script:scanning -and $null -ne $Row.StartTime -and -not $Row.Exited
+    if ($Row.TaskMode -eq 'fight') {$eligible=$eligible -and $Row.FightRow -and $Row.FightRow.CanStart -and $script:autoFight.ConfigReady}
+    $eligible=$eligible -and -not $script:editingSettings
     $Row.Start.Enabled = $eligible -and -not $running
     $Row.Stop.Enabled = $eligible -or $exiting
-    $Row.ItemCheck.Enabled = -not $script:scanning -and -not $exiting -and -not $Row.Exited -and $null -ne $Row.StartTime
+    $Row.ItemCheck.Visible=$Row.TaskMode -ne 'fight'
+    $Row.ItemCheck.Enabled = $Row.TaskMode -ne 'fight' -and -not $script:scanning -and -not $exiting -and -not $Row.Exited -and $null -ne $Row.StartTime
+    $Row.ModeBox.Enabled=-not $script:scanning -and -not $script:editingSettings -and -not $Row.Exited -and $null -ne $Row.StartTime
+    if ($Row.FightRow) {foreach ($button in $Row.FightRow.MoveButtons) {
+        $button.Visible=$Row.TaskMode -eq 'fight'; $button.Enabled=$running -and $Row.TaskMode -eq 'fight' -and -not $script:scanning -and -not $script:editingSettings
+    }}
 }
 
 function Set-RowStatusText($Row, [string]$Message) {
+    if ($Row.TaskMode -eq 'fight' -and $Row.FightRow) {Set-AutoFightStatus $Row.FightRow $Message; Set-RowControls $Row; return}
     $Row.StatusMessage=$Message
     if ($null -ne $Row.State) { $Row.State.Status=$Message }
     Update-RowStatus $Row
@@ -1113,6 +1172,7 @@ function Set-RowStatusText($Row, [string]$Message) {
 
 function Update-RowStatus($Row) {
     Update-RowName $Row
+    if ($Row.TaskMode -eq 'fight') {Set-RowControls $Row; return}
     $text=$Row.StatusMessage
     $statusKey=$text
     if ($null -ne $Row.State) {
@@ -1175,6 +1235,7 @@ function Update-RowStatus($Row) {
 }
 
 function Stop-Row($Row, [string]$Reason = '已停止，当前等待已取消。', [switch]$CancelExit) {
+    if ($Row.FightRow -and $script:autoFight) {Stop-AutoFightRow $Row.FightRow $Reason}
     if ($script:audioCaptures.ContainsKey($Row.Key)) {
         $script:audioCaptures[$Row.Key].Capture.Dispose()
         $script:audioCaptures.Remove($Row.Key)
@@ -1189,6 +1250,10 @@ function Stop-Row($Row, [string]$Reason = '已停止，当前等待已取消。'
 
 function Start-Row($Row) {
     try {
+        if ($Row.TaskMode -eq 'fight') {
+            if (-not $Row.Validated -or $script:scanning -or $script:editingSettings) {throw '请刷新并通过战斗色块检测。'}
+            Start-AutoFightRow $Row.FightRow; return
+        }
         if ($script:pendingGameExits.ContainsKey($Row.Key)) { throw '正在等待游戏退出，请先停止以取消超时保护。' }
         if (-not $Row.Validated -or $script:scanning -or $script:editingSettings) { throw '请先关闭设置，并刷新通过红色/绿色检测。' }
         if ($null -ne $Row.State -and $Row.State.Running) { return }
@@ -1292,6 +1357,7 @@ function New-ProcessRow($Process, $StartTime, [string]$Key, $Client) {
         Update-RowStatus $changedRow
     })
     if ($null -eq $StartTime) { $row.StatusMessage = '无法读取进程信息，请检查权限后刷新。' }
+    Add-ProcessModeControl $row
     Update-RowStatus $row
     return $row
 }
@@ -1320,6 +1386,7 @@ function Refresh-ProcessRows {
         foreach ($key in @($script:rows.Keys)) {
             if (-not $next.ContainsKey($key)) {
                 Stop-Row $script:rows[$key] '进程已退出，已停止。'
+                if ($script:autoFight -and $script:autoFight.Unified) {$script:autoFight.Rows.Remove($key)}
                 $script:rows[$key].Panel.Dispose()
             }
         }
@@ -1337,6 +1404,7 @@ function Refresh-ProcessRows {
 function Activate-ScanRow($Row) {
     if ($UiTest) {
         $script:scanOrder += $Row.Process.Id
+        if ($Row.Process.FocusAllowed) {$script:workerFocus=$Row.Process.Id}
         return $Row.Process.FocusAllowed
     }
     return [WowAuto.NativeInput]::ActivateForScan($Row.Process.Id, $Row.StartTime.Ticks, $Row.Client.ExecutablePath)
@@ -1347,7 +1415,7 @@ function Read-ScanColor($Row) {
     if ($Row.Process.HasExited -or -not (Test-RowProcessIdentity $Row)) {
         throw '进程已退出或身份改变。'
     }
-    if ($UiTest) { return $Row.Process.ScanColor }
+    if ($UiTest) {$script:detectorSamples+=,$Row.Key; return $Row.Process.ScanColor }
     if (-not [WowAuto.NativeInput]::IsTargetForeground($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath)) { return 'not-foreground' }
     return [WowAuto.NativeInput]::ReadCenterColor($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath)
 }
@@ -1364,7 +1432,7 @@ function Finish-RefreshScan {
     $refreshButton.Enabled = $true
     foreach ($row in $script:rows.Values) { Set-RowControls $row }
     $passed = @($script:rows.Values | Where-Object { $_.Validated }).Count
-    $countLabel.Text = "进程 $($script:rows.Count) · 红/绿通过 $passed"
+    $countLabel.Text = "进程 $($script:rows.Count) · 验证通过 $passed"
     if ($UiTest) { $script:restored = $true }
     elseif ($script:scanOriginalWindow -ne [IntPtr]::Zero) {
         $restored = [WowAuto.NativeInput]::RestoreAfterScan($script:scanOriginalWindow)
@@ -1382,7 +1450,7 @@ function Begin-RefreshScan {
     $script:pendingWork = $null
     $refreshButton.Enabled = $false
     $script:scanOriginalWindow = if ($UiTest) { [IntPtr]::Zero } else { [WowAuto.NativeInput]::CurrentWindow() }
-    # Stop all work before changing focus; scanning must never trigger input or termination.
+    # Stop all automation first; refresh sends only the requested detector start command.
     foreach ($row in $script:rows.Values) {
         $row.Validated = $false
         Stop-Row $row '刷新前已停止，等待重新检测。'
@@ -1396,7 +1464,8 @@ function Begin-RefreshScan {
     foreach ($row in $script:scanQueue) {
         $row.Validated = $false
         $row.State = $null
-        Set-RowStatusText $row '等待前台颜色检测。'
+        if ($row.FightRow) {$row.FightRow.CanStart=$false}
+        Set-RowStatusText $row '等待切换窗口、开启对应监控，再检测色块。'
         Set-RowControls $row
     }
     $script:scanIndex = 0
@@ -1419,9 +1488,31 @@ function Invoke-RefreshScan([long]$Now) {
             $countLabel.Text = "检测中：$($script:scanIndex + 1)/$($script:scanQueue.Count)，PID $($row.Process.Id)"
             if ($null -eq $row.StartTime -or -not (Activate-ScanRow $row)) { throw '无法激活游戏窗口。' }
             Set-RowStatusText $row '正在切换到前台并等待画面刷新。'
-            $script:scanPhase = 'Sample'
+            $script:scanPhase = 'Command'
             $script:scanDue = $Now + 200
             $script:scanTimeout = $Now + 800
+            return
+        }
+        if ($script:scanPhase -eq 'Command') {
+            if (-not (Test-WorkerForeground $row)) {
+                if ($Now -lt $script:scanTimeout) {$script:scanDue=$Now+100; return}
+                throw '未取得前台焦点，未发送监控指令。'
+            }
+            if (-not (Send-ScanDetectorCommand $row)) {throw '开启监控指令发送失败，未进行色块检测。'}
+            Set-RowStatusText $row '已发送对应监控开启命令，等待色块更新。'
+            $script:scanPhase='Sample'; $script:scanDue=$Now+200; $script:scanTimeout=$Now+1000
+            return
+        }
+        if ($row.TaskMode -eq 'fight') {
+            $packet=Read-ScanFightPacket $row
+            if ($packet -and $packet.Flavor -eq $row.Client.Flavor) {
+                $row.Validated=$true; $row.FightRow.CanStart=$true; $row.FightRow.ClassId=$packet.ClassId
+                Update-RowName $row; Set-RowStatusText $row '战斗监控已开启并识别职业，可以开始。'
+            }
+            elseif ($Now -lt $script:scanTimeout) {$script:scanDue=$Now+100; return}
+            else {Set-RowStatusText $row ('战斗监控开启后未读到有效主色块：'+[WowAutoFight.Native]::LastReadError)}
+            Set-RowControls $row; $script:scanIndex++; $script:scanPhase='Activate'; $script:scanDue=$Now
+            if ($script:scanIndex -ge $script:scanQueue.Count) {Finish-RefreshScan}
             return
         }
         $color = Read-ScanColor $row
@@ -1462,13 +1553,15 @@ $scanTimer.Add_Tick({
 })
 $refreshButton.Add_Click({ Begin-RefreshScan })
 function Update-BatchControls {
-    $eligible = @($script:rows.Values | Where-Object { $_.Validated -and -not $_.Exited -and ($null -eq $_.State -or -not $_.State.Running) })
+    $eligible = @($script:rows.Values | Where-Object { $_.Validated -and -not $_.Exited -and -not (Test-UnifiedRowRunning $_) -and
+        ($_.TaskMode -ne 'fight' -or ($_.FightRow.CanStart -and $script:autoFight.ConfigReady)) })
     $startAllButton.Enabled = -not $script:scanning -and -not $script:editingSettings -and $eligible.Count -gt 0
     $settingsButton.Enabled = -not $script:scanning -and -not $script:editingSettings
     $audioCheck.Enabled = -not $script:scanning -and -not $script:editingSettings -and $script:scheduler.Tasks.Count -eq 0
-    $stopAllButton.Enabled = $script:scheduler.Tasks.Count -gt 0 -or $script:pendingGameExits.Count -gt 0
+    $stopAllButton.Enabled = $script:scanning -or $script:pendingGameExits.Count -gt 0 -or @($script:rows.Values | Where-Object {Test-UnifiedRowRunning $_}).Count -gt 0
 }
 function Stop-AllRows {
+    if ($script:scanning) {Finish-RefreshScan}
     $script:pendingGameExits.Clear()
     foreach ($row in @($script:rows.Values)) { Stop-Row $row }
     $script:pendingWork=$null
@@ -1746,7 +1839,7 @@ $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 25
 $timer.Add_Tick({
     Invoke-GameExitChecks $script:schedulerClock.ElapsedMilliseconds
-    if (-not $script:scanning) { Invoke-SchedulerTick $script:schedulerClock.ElapsedMilliseconds }
+    if (-not $script:scanning) { Invoke-UnifiedTick $script:schedulerClock.ElapsedMilliseconds }
     foreach ($row in @($script:rows.Values)) { Update-RowStatus $row }
     Update-BatchControls
 })
@@ -1763,20 +1856,12 @@ $form.Add_FormClosing({
     foreach ($row in $script:rows.Values) { Stop-Row $row }
 })
 
-# The tab container is the only integration point; autoFight owns its entire runtime.
+. (Join-Path $PSScriptRoot 'wowAuto.Unified.ps1')
+# One process list and one timer coordinate input across both detector engines.
 if (-not $UiTest) {
     try {
         . (Join-Path $PSScriptRoot 'autoFight.ps1')
-        Initialize-AutoFightTab $tabs $form
-        $tabs.Add_Selecting({ param($sender,$eventArgs)
-            if ($script:autoFight -and $eventArgs.TabPage -ne $sender.SelectedTab) {
-                if ($eventArgs.TabPage -eq $script:autoFight.Tab) {
-                    Stop-AllRows
-                    if ($script:scanning) { Finish-RefreshScan }
-                }
-                else { Stop-AutoFightAll }
-            }
-        })
+        Initialize-AutoFightTab $tabs $form -Unified
     }
     catch {
         if ($script:autoFight) { Close-AutoFightTab }
@@ -1823,6 +1908,7 @@ try {
             . (Join-Path $PSScriptRoot 'tests\StatusLog.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\JumpInterval.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\AutoFight.UiTests.ps1')
+            . (Join-Path $PSScriptRoot 'tests\Unified.UiTests.ps1')
         }
         if ($PreviewPath) {
             [System.Windows.Forms.Application]::DoEvents()
