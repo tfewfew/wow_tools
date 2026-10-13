@@ -1,6 +1,7 @@
 {
   "Version": 2,
   "IntervalSeconds": 20,
+  "OcrIntervalMs": 1000,
   "Plans": {
     "29224:639273923472729950": {
       "Slots": [

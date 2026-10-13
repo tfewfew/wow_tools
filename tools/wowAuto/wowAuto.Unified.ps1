@@ -117,7 +117,7 @@ function New-UnifiedSettingsDialog {
     $hostDialog=New-Object WowAuto.DimForm
     $hostDialog.Text='wowAuto · 设置'; $hostDialog.StartPosition='CenterParent'; $hostDialog.AutoScaleMode='Dpi'
     $hostDialog.Font=$form.Font; $hostDialog.BackColor=$script:uiColors.Background
-    $hostDialog.ClientSize=New-Object Drawing.Size(1000,882); $hostDialog.MinimumSize=New-Object Drawing.Size(700,500)
+    $hostDialog.ClientSize=New-Object Drawing.Size(1000,934); $hostDialog.MinimumSize=New-Object Drawing.Size(700,500)
     $area=[System.Windows.Forms.Screen]::FromControl($form).WorkingArea
     $hostDialog.Size=New-Object Drawing.Size([Math]::Min($hostDialog.Width,$area.Width),[Math]::Min($hostDialog.Height,$area.Height))
     $settingTabs=New-Object WowAuto.DimTabControl

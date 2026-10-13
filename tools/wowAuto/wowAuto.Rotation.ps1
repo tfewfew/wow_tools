@@ -2,7 +2,7 @@
 if (-not ('WowAutoRotation.Native' -as [type])) {
     Add-Type -Path (Join-Path $PSScriptRoot 'wowAuto.Rotation.Native.cs') -ReferencedAssemblies System.Drawing
 }
-$script:rotation=[pscustomobject]@{Path=(Join-Path $PSScriptRoot 'rotation.config.json');IntervalSeconds=0;Plans=@{};
+$script:rotation=[pscustomobject]@{Path=(Join-Path $PSScriptRoot 'rotation.config.json');IntervalSeconds=0;OcrIntervalMs=1000;NextOcrAt=0L;Plans=@{};
     Active=@{};Queue=(New-Object Collections.Queue);Current=$null;NextAt=0L;ConfigReady=$true;Error='';Actions=@();OcrWork=$null;
     OcrSource=([IO.File]::ReadAllText((Join-Path $PSScriptRoot 'wowAuto.Rotation.Ocr.ps1')))}
 function New-RotationPlan {
@@ -16,16 +16,24 @@ function Test-RotationPlan($Plan) {
             $slot.Name -match '[\s\p{C}]' -or $slot.Name -match '[^\p{L}\p{M}]' -or $slot.Mode -cnotin @('fish','fight')) {throw '角色名须为完整名称（不含空格，最多24字）；留空表示空槽，任务须为钓鱼或战斗。'}
     }
 }
-function Save-RotationConfiguration($Interval=$script:rotation.IntervalSeconds,$Plans=$script:rotation.Plans) {
+function Get-RotationOcrInterval($Value) {
+    $number=0
+    if (-not [int]::TryParse([string]$Value,[ref]$number) -or $number -lt 100 -or $number -gt 60000 -or ($number % 100) -ne 0) {
+        throw 'OCR采样周期须为100–60000ms的整数，步进100ms。'
+    }
+    return $number
+}
+function Save-RotationConfiguration($Interval=$script:rotation.IntervalSeconds,$Plans=$script:rotation.Plans,$OcrIntervalMs=$script:rotation.OcrIntervalMs) {
     $n=0
     if (-not [int]::TryParse([string]$Interval,[ref]$n) -or $n -lt 0 -or $n -gt 604800) {throw '轮换间隔须为0–604800秒，0关闭定时轮换。'}
+    $ocrInterval=Get-RotationOcrInterval $OcrIntervalMs
     foreach ($key in $Plans.Keys) {
         $p=0;$ticks=0L
         if ($key -notmatch '^([1-9]\d*):([1-9]\d*)$' -or -not [int]::TryParse($matches[1],[ref]$p) -or
             -not [long]::TryParse($matches[2],[ref]$ticks) -or $ticks -gt [datetime]::MaxValue.Ticks) {throw '进程编排标识无效。'}
         Test-RotationPlan $Plans[$key]
     }
-    $payload=[ordered]@{Version=2;IntervalSeconds=$n;Plans=$Plans}
+    $payload=[ordered]@{Version=2;IntervalSeconds=$n;OcrIntervalMs=$ocrInterval;Plans=$Plans}
     $temporary=$script:rotation.Path+'.'+[Guid]::NewGuid().ToString('N')+'.tmp'
     try {
         [IO.File]::WriteAllText($temporary,($payload | ConvertTo-Json -Depth 10),(New-Object Text.UTF8Encoding($false)))
@@ -33,7 +41,7 @@ function Save-RotationConfiguration($Interval=$script:rotation.IntervalSeconds,$
         else {[IO.File]::Move($temporary,$script:rotation.Path)}
     } finally {if ([IO.File]::Exists($temporary)) {[IO.File]::Delete($temporary)}}
     $changed=$script:rotation.IntervalSeconds -ne $n
-    $script:rotation.IntervalSeconds=$n;$script:rotation.Plans=$Plans;$script:rotation.ConfigReady=$true;$script:rotation.Error=''
+    $script:rotation.IntervalSeconds=$n;$script:rotation.OcrIntervalMs=$ocrInterval;$script:rotation.Plans=$Plans;$script:rotation.ConfigReady=$true;$script:rotation.Error=''
     if ($changed) {$script:rotation.NextAt=if ($n -and $script:rotation.Active.Count) {$script:schedulerClock.ElapsedMilliseconds+[long]$n*1000} else {0L}}
     foreach ($r in $script:rows.Values) {Update-RotationRow $r}
 }
@@ -43,8 +51,10 @@ function Import-RotationConfiguration {
         $c=[IO.File]::ReadAllText($script:rotation.Path) | ConvertFrom-Json
         if ($c.Version -eq 1) {throw '旧角色号配置须改填角色名称后保存；不会按位次猜测名称。'}
         if ($c.Version -ne 2 -or $null -eq $c.IntervalSeconds -or -not $c.Plans -or
-            @($c.PSObject.Properties.Name | Where-Object {$_ -notin @('Version','IntervalSeconds','Plans')}).Count) {throw '编排配置格式无效。'}
+            @($c.PSObject.Properties.Name | Where-Object {$_ -notin @('Version','IntervalSeconds','OcrIntervalMs','Plans')}).Count) {throw '编排配置格式无效。'}
         $n=0;if (-not [int]::TryParse([string]$c.IntervalSeconds,[ref]$n) -or $n -lt 0 -or $n -gt 604800) {throw '编排间隔无效。'}
+        $ocrInterval=1000
+        if ($c.PSObject.Properties['OcrIntervalMs']) {$ocrInterval=Get-RotationOcrInterval $c.OcrIntervalMs}
         $plans=@{}
         foreach ($prop in $c.Plans.PSObject.Properties) {
             $p=0;$t=0L
@@ -52,7 +62,7 @@ function Import-RotationConfiguration {
                 -not [long]::TryParse($matches[2],[ref]$t) -or $t -gt [datetime]::MaxValue.Ticks) {throw '编排进程标识无效。'}
             Test-RotationPlan $prop.Value;$plans[$prop.Name]=$prop.Value
         }
-        $script:rotation.IntervalSeconds=$n;$script:rotation.Plans=$plans;$script:rotation.ConfigReady=$true;$script:rotation.Error=''
+        $script:rotation.IntervalSeconds=$n;$script:rotation.OcrIntervalMs=$ocrInterval;$script:rotation.Plans=$plans;$script:rotation.ConfigReady=$true;$script:rotation.Error=''
     } catch {$script:rotation.ConfigReady=$false;$script:rotation.Error='编排配置读取失败：'+$_.Exception.Message}
 }
 function Get-RotationNextSlot($Plan,[int]$Current) {
@@ -88,7 +98,7 @@ function Stop-RowRotation($Row) {
     if (-not $script:rotation) {return}
     if ($script:rotation.OcrWork -and $script:rotation.OcrWork.Key -eq $Row.Key) {Stop-RotationOcr}
     $script:rotation.Active.Remove($Row.Key)
-    if ($script:rotation.Current -and $script:rotation.Current.Row.Key -eq $Row.Key) {$script:rotation.Current=$null}
+    if ($script:rotation.Current -and $script:rotation.Current.Row.Key -eq $Row.Key) {$script:rotation.Current=$null;$script:rotation.NextOcrAt=0L}
     if (-not $script:rotation.Active.Count) {$script:rotation.NextAt=0L}
     Update-RotationRow $Row
 }
@@ -129,7 +139,7 @@ function Send-RotationAction($Row,[string]$Action,$Target=$null) {
     if (-not $sent) {throw '角色切换输入失败。'}
 }
 function Stop-RotationOcr {
-    $work=$script:rotation.OcrWork;$script:rotation.OcrWork=$null
+    $work=$script:rotation.OcrWork;$script:rotation.OcrWork=$null;$script:rotation.NextOcrAt=0L
     if ($work) {try {$work.Pipeline.Stop()} finally {$work.Pipeline.Dispose()}}
 }
 function ConvertFrom-RotationOcr($Ocr,$Plan,[switch]$MenuWasConfirmed) {
@@ -176,7 +186,11 @@ function Read-RotationScreen($Row,$Plan,[switch]$MenuWasConfirmed) {
             return ConvertFrom-RotationOcr ($result[0] | ConvertFrom-Json) $Plan -MenuWasConfirmed:$MenuWasConfirmed
         } finally {$work.Pipeline.Dispose()}
     }
+    # Limit capture starts; completion polling must never create another in-flight OCR task.
+    $sampleAt=$script:schedulerClock.ElapsedMilliseconds
+    if ($sampleAt -lt $script:rotation.NextOcrAt) {return [pscustomobject]@{Kind='pending'}}
     $bitmap=[WowAutoRotation.Native]::Capture($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath)
+    $script:rotation.NextOcrAt=$sampleAt+[long]$script:rotation.OcrIntervalMs
     $pipeline=[powershell]::Create()
     try {
         $null=$pipeline.AddScript($script:rotation.OcrSource).AddArgument([WowAutoRotation.Native]::Png($bitmap))
@@ -194,6 +208,7 @@ function Invoke-RotationTick([long]$Now) {
             if ($script:rotation.Active[$entry.Row.Key] -ne $entry) {continue}
             $script:rotation.Current=[pscustomobject]@{Entry=$entry;Row=$entry.Row;Phase='activate';Due=$Now;Deadline=($Now+180000);
                 Stable=0;LastLogout=-30000L;Candidate=$null;Pages=0;Signature='';Repeated=0}
+            $script:rotation.NextOcrAt=0L
             break
         }
     }
@@ -294,16 +309,26 @@ function Invoke-RotationTick([long]$Now) {
 }
 
 function New-RotationIntervalControls($SettingsOwner) {
-    $bar=New-Object System.Windows.Forms.Panel;$bar.Dock='Top';$bar.Height=52;$bar.BackColor=$script:uiColors.Surface;$bar.ForeColor=$script:uiColors.Text
+    $bar=New-Object System.Windows.Forms.Panel;$bar.Dock='Top';$bar.Height=104;$bar.BackColor=$script:uiColors.Surface;$bar.ForeColor=$script:uiColors.Text
     $label=New-Object System.Windows.Forms.Label;$label.Text='全局角色轮换（秒，0关闭）';$label.SetBounds(12,12,285,30)
     $value=New-Object System.Windows.Forms.NumericUpDown;$value.Minimum=0;$value.Maximum=604800;$value.Value=$script:rotation.IntervalSeconds;$value.SetBounds(300,8,130,32)
     $value.BackColor=$script:uiColors.Input;$value.ForeColor=$script:uiColors.Text
-    $save=New-Object WowAuto.DimButton;$save.Text='保存轮换间隔';$save.SetBounds(450,8,170,34);Set-UiButtonStyle $save
+    $ocrLabel=New-Object System.Windows.Forms.Label;$ocrLabel.Text='OCR 采样周期（ms）';$ocrLabel.SetBounds(12,64,285,30)
+    $ocrValue=New-Object System.Windows.Forms.NumericUpDown
+    $ocrValue.Minimum=100;$ocrValue.Maximum=60000;$ocrValue.Increment=100;$ocrValue.Value=$script:rotation.OcrIntervalMs;$ocrValue.SetBounds(300,60,130,32)
+    $ocrValue.BackColor=$script:uiColors.Input;$ocrValue.ForeColor=$script:uiColors.Text
+    $hint=New-Object System.Windows.Forms.Label;$hint.Text='全局共用，默认1000ms，步进100ms。';$hint.SetBounds(450,64,515,30)
+    $save=New-Object WowAuto.DimButton;$save.Text='保存全局设置';$save.SetBounds(450,8,170,34);Set-UiButtonStyle $save
     $errorLabel=New-Object System.Windows.Forms.Label;$errorLabel.SetBounds(635,12,330,30);$errorLabel.AutoEllipsis=$true;$errorLabel.Text=$script:rotation.Error
-    $save.Tag=[pscustomobject]@{Value=$value;Error=$errorLabel}
-    $save.Add_Click({param($sender,$e) try {Save-RotationConfiguration $sender.Tag.Value.Value;$sender.Tag.Error.Text='已保存。'} catch {$sender.Tag.Error.Text=$_.Exception.Message}})
-    $bar.Controls.AddRange([System.Windows.Forms.Control[]]@($label,$value,$save,$errorLabel));$SettingsOwner.Controls.Add($bar);$bar.SendToBack()
-    return [pscustomobject]@{Value=$value;Save=$save;Error=$errorLabel}
+    $save.Tag=[pscustomobject]@{Value=$value;OcrValue=$ocrValue;Error=$errorLabel}
+    $save.Add_Click({param($sender,$e)
+        try {
+            Save-RotationConfiguration -Interval $sender.Tag.Value.Value -OcrIntervalMs $sender.Tag.OcrValue.Value
+            $sender.Tag.Error.Text='已保存。'
+        } catch {$sender.Tag.Error.Text=$_.Exception.Message}
+    })
+    $bar.Controls.AddRange([System.Windows.Forms.Control[]]@($label,$value,$ocrLabel,$ocrValue,$hint,$save,$errorLabel));$SettingsOwner.Controls.Add($bar);$bar.SendToBack()
+    return [pscustomobject]@{Value=$value;OcrValue=$ocrValue;Save=$save;Error=$errorLabel}
 }
 function New-RotationEditor($Row) {
     $dialog=New-Object WowAuto.DimForm;$dialog.Text='PID '+$Row.Process.Id+' · 三槽位角色编排';$dialog.Font=$form.Font
