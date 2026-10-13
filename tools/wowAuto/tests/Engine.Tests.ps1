@@ -87,8 +87,8 @@ Assert-Equal (Get-WowAutoWork $itemQueue 200).Key 'itemA' 'Earlier enchant check
 $null=Complete-WowAutoItemCheck $itemQueue 'itemA' 200 'present' 'red'
 Assert-Equal (Get-WowAutoWork $itemQueue 200).Key 'itemB' 'Second row checks after present enchant'
 Complete-WowAutoItem $itemQueue 'itemB' 200 $true
-Assert-Equal $itemB.ItemUsedOnce $true 'Successful item latches one use for this task'
-Assert-Equal $itemB.InitialItemPending $false 'Successful item releases casting after hold'
+Assert-Equal $itemB.ItemConfirmUntil 5200 'Sent item starts a five-second confirmation deadline'
+Assert-Equal $itemB.InitialItemPending $true 'Unconfirmed item keeps casting gated'
 Assert-Equal ($null -eq (Get-WowAutoWork $itemQueue 3199)) $true 'Initial item holds all tasks for three seconds'
 $null=Complete-WowAutoItemCheck $itemQueue 'itemA' 600000 'present' 'green'
 $null=Complete-WowAutoPoll $itemQueue 'itemA' 600000 'green'
@@ -96,13 +96,16 @@ Assert-Equal (Get-WowAutoWork $itemQueue 600100).Kind 'Reel' 'Due reel outranks 
 Complete-WowAutoReel $itemQueue 'itemA' 600100 $true
 Assert-Equal ($null -eq (Get-WowAutoWork $itemQueue 600199)) $true 'Item respects foreground hold'
 $itemWork=Get-WowAutoWork $itemQueue 600200
-Assert-Equal $itemWork.Kind 'Poll' 'Used item does not schedule another enchant check'
-Assert-Equal $itemWork.Key 'itemB' 'Cooldown row defers regular fishing work'
+Assert-Equal $itemWork.Kind 'Item' 'Unconfirmed item remains scheduled for a final check'
+Assert-Equal $itemWork.Key 'itemB' 'Overdue confirmation belongs to the original row'
+Assert-Equal (Complete-WowAutoItemCheck $itemQueue 'itemB' 600200 'missing' 'red') 'Continue' 'Unconfirmed item times out and continues fishing'
+Assert-Equal $itemB.ItemDetectionDisabled $true 'Timed-out item disables detection for this task'
 Complete-WowAutoItem $itemQueue 'itemB' 600200 $false
 Assert-Equal $itemQueue.ItemHoldUntil 3200 'Duplicate item completion does not extend hold'
 Complete-WowAutoItem $itemQueue 'itemB' 600201 $true
-Assert-Equal $itemB.ItemUsedOnce $true 'Duplicate item completion cannot reset one-use latch'
+Assert-Equal $itemB.ItemDetectionDisabled $true 'Duplicate completion cannot restart disabled detection'
 Assert-Equal (Get-WowAutoWork $itemQueue 603201).Key 'itemA' 'Another row can still check its own item'
+Assert-Equal (Complete-WowAutoItemCheck $itemQueue 'itemA' 603201 'missing' 'red') 'UseItem' 'Missing enchant requests a new item'
 Complete-WowAutoItem $itemQueue 'itemA' 603201 $true
 Assert-Equal ($null -eq (Get-WowAutoWork $itemQueue 606200)) $true 'Other row item holds all work for full three seconds'
 Set-WowAutoItemEnabled $itemQueue 'itemA' $false 603202

@@ -66,16 +66,18 @@ $script:workerFocus=$row.Process.Id
 $script:workerKeys=@()
 Invoke-SchedulerTick $due
 Assert-Ui (($script:workerKeys -join ',') -eq "$($row.Process.Id):113") 'Item did not send configured key.'
-Assert-Ui ($row.State.ItemUsedOnce -and -not $row.State.InitialItemPending) 'Successful item did not set the one-use latch.'
+Assert-Ui ($row.State.ItemConfirmUntil -eq ($due+5000) -and $row.State.InitialItemPending) 'Sent item did not start confirmation.'
 $keysBefore=$script:workerKeys.Count
 $focusBefore=$script:workerActivations.Count
 Invoke-SchedulerTick ($due+2999)
 Assert-Ui ($script:workerKeys.Count -eq $keysBefore -and $script:workerActivations.Count -eq $focusBefore) 'Item wait allowed input or window switching.'
 Invoke-SchedulerTick ($due+3000)
-Assert-Ui ($script:workerKeys.Count -eq $keysBefore+1 -and $script:workerKeys[-1] -eq "$($row.Process.Id):48") 'Casting did not resume after three seconds with lure still missing.'
+Assert-Ui ($script:workerKeys.Count -eq $keysBefore -and $row.State.InitialItemPending) 'Unconfirmed item resumed casting before timeout.'
+Invoke-SchedulerTick ($due+5000)
+Assert-Ui ($row.State.ItemDetectionDisabled -and $script:workerKeys.Count -eq $keysBefore+1 -and $script:workerKeys[-1] -eq "$($row.Process.Id):48") 'Timed-out item did not disable detection and resume casting.'
 $row.SlotUseItem=$false
 Set-WowAutoItemEnabled $script:scheduler $row.Key $false $script:schedulerClock.ElapsedMilliseconds
 Assert-Ui (-not $row.State.UseItem -and $row.State.ItemDue -eq 0) 'Engine cancellation left item scheduled.'
 Stop-AllRows
 $script:keyBindings=$savedKeyBindings
-Write-Output 'PASS: settings-only key editors, draft key capture/punctuation/chords, save/cancel/error isolation/reopening, slot item preference, one-time item dispatch and full hold. Native input mocked.'
+Write-Output 'PASS: settings-only key editors, draft key capture/punctuation/chords, save/cancel/error isolation/reopening, slot item preference, item confirmation timeout and full hold. Native input mocked.'

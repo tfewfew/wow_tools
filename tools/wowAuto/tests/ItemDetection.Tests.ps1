@@ -14,14 +14,15 @@ Complete-WowAutoReel $q 'A' 200 $true
 Assert-Item ($null -eq (Get-WowAutoWork $q 299)) 'Enchant check interrupted post-reel hold.'
 Assert-Item ((Complete-WowAutoItemCheck $q 'B' 300 'missing' 'red') -eq 'UseItem') 'Missing enchant did not request item.'
 Complete-WowAutoItem $q 'B' 300 $true
-Assert-Item ($q.ItemHoldUntil -eq 3300 -and $b.ItemUsedOnce -and -not $b.InitialItemPending) 'One-time item omitted full hold or left casting gated.'
+Assert-Item ($q.ItemHoldUntil -eq 3300 -and $b.ItemConfirmUntil -eq 5300 -and $b.InitialItemPending) 'Item attempt omitted the hold or confirmation deadline.'
 Assert-Item ($null -eq (Get-WowAutoWork $q 3299)) 'Other work interrupted three seconds.'
-Assert-Item ((Complete-WowAutoItemCheck $q 'B' 3300 'missing' 'red') -eq 'Continue' -and -not $b.InitialItemPending) 'Missing enchant retried after one successful item use.'
-$next=Get-WowAutoWork $q 3300
-Assert-Item ($next.Kind -ne 'Item' -or $next.Key -ne 'B') 'One-time item remained queued after the hold.'
-Complete-WowAutoItem $q 'B' 5300 $true
-Assert-Item ($q.ItemHoldUntil -eq 3300 -and $b.ItemUsedOnce) 'Duplicate completion repeated the item hold.'
-Assert-Item ((Complete-WowAutoItemCheck $q 'B' 5800 'present' 'red') -eq 'Continue' -and -not $b.InitialItemPending -and $b.ItemRetryAt -eq 0) 'One-time item blocked casting.'
+Assert-Item ((Complete-WowAutoItemCheck $q 'B' 3300 'missing' 'red') -eq 'Wait' -and $b.InitialItemPending) 'Unconfirmed item allowed casting or immediate reuse.'
+Assert-Item ((Complete-WowAutoItemCheck $q 'B' 5300 'present' 'red') -eq 'Continue' -and -not $b.InitialItemPending -and $b.ItemConfirmUntil -eq 0) 'Confirmation at the deadline was rejected.'
+Assert-Item ((Complete-WowAutoItemCheck $q 'B' 6300 'missing' 'red') -eq 'UseItem') 'Expired enchant did not request another item.'
+Complete-WowAutoItem $q 'B' 6300 $true
+Assert-Item ($b.ItemConfirmUntil -eq 11300 -and $q.ItemHoldUntil -eq 9300) 'Later item attempt did not start a new deadline and hold.'
+Assert-Item ((Complete-WowAutoItemCheck $q 'B' 11300 'unknown' 'red') -eq 'Continue' -and $b.ItemDetectionDisabled -and -not $b.InitialItemPending) 'Unconfirmed item did not disable detection at timeout.'
+Assert-Item ($b.ItemDue -eq 0 -and (Complete-WowAutoItemCheck $q 'B' 12000 'missing' 'red') -eq 'Continue') 'Disabled detection scheduled another item.'
 Set-WowAutoItemEnabled $q 'B' $false 5801
 Assert-Item (-not $b.InitialItemPending -and $b.ItemDue -eq 0 -and $b.ItemStatus -eq '') 'Disable retained enchant gate.'
 Assert-Item ($a.UseItem) 'Disabling B changed A selection.'
@@ -44,7 +45,7 @@ Set-WowAutoItemEnabled $q 'B' $false 101
 Assert-Item ($q.ItemHoldUntil -eq 3100 -and $a.UseItem -and -not $b.UseItem) 'Unchecking B shortened shared hold or changed A.'
 Assert-Item ($null -eq (Get-WowAutoWork $q 3099)) 'Other process interrupted shared item hold.'
 Assert-Item ((Get-WowAutoWork $q 3100).Key -eq 'A') 'Checked process did not resume check after hold.'
-Assert-Item (-not $b.ItemUsedOnce) 'Disabling item failed to reset the one-use latch.'
+Assert-Item (-not $b.ItemDetectionDisabled -and $b.ItemConfirmUntil -eq 0) 'Disabling item failed to reset detection state.'
 Stop-WowAutoTask $q 'A'
 $fresh=Add-WowAutoTask $q 'A' 100 100 3200
 Assert-Item (-not $fresh.UseItem -and -not $fresh.InitialItemPending) 'New session inherited old item selection.'
@@ -53,10 +54,20 @@ $retryQueue=New-WowAutoScheduler
 $retry=Add-WowAutoTask $retryQueue 'retry' 100 100 0 -UseItem $true
 Assert-Item ((Complete-WowAutoItemCheck $retryQueue 'retry' 0 'missing' 'red') -eq 'UseItem') 'Fresh task did not request the missing item.'
 Complete-WowAutoItem $retryQueue 'retry' 0 $false
-Assert-Item (-not $retry.ItemUsedOnce -and $retry.InitialItemPending -and $retry.ItemDue -eq 500 -and $retryQueue.ItemHoldUntil -eq 0) 'Failed send consumed the one-use allowance or added a hold.'
+Assert-Item ($retry.ItemConfirmUntil -eq 5000 -and $retry.InitialItemPending -and $retry.ItemDue -eq 500 -and $retryQueue.ItemHoldUntil -eq 0) 'Failed send omitted the deadline or added a hold.'
 Assert-Item ((Get-WowAutoWork $retryQueue 500).Kind -eq 'Item') 'Failed item send did not retry.'
 Complete-WowAutoItem $retryQueue 'retry' 500 $true
-Assert-Item ($retry.ItemUsedOnce -and $retryQueue.ItemHoldUntil -eq 3500) 'Successful retry did not latch one use.'
+Assert-Item ($retry.ItemConfirmUntil -eq 5000 -and $retryQueue.ItemHoldUntil -eq 3500) 'Successful retry reset the original deadline.'
 $fresh=Add-WowAutoTask $retryQueue 'retry' 100 100 4000 -UseItem $true
-Assert-Item (-not $fresh.ItemUsedOnce -and $fresh.ItemDue -eq 4000) 'A new task inherited the previous item-use latch.'
-Write-Output 'PASS: enchant presence/missing/unknown, channel deferral, reel priority, row isolation, one successful use per task, full hold, failed-send retry and checkbox cancellation.'
+Assert-Item (-not $fresh.ItemDetectionDisabled -and $fresh.ItemConfirmUntil -eq 0 -and $fresh.ItemDue -eq 4000) 'A new task inherited the previous item attempt.'
+
+$failureQueue=New-WowAutoScheduler
+$failure=Add-WowAutoTask $failureQueue 'failure' 100 100 0 -UseItem $true
+Complete-WowAutoItem $failureQueue 'failure' 0 $false
+foreach ($at in @(500,1000,1500,2000,2500,3000,3500,4000,4500)) {
+    Assert-Item ((Complete-WowAutoItemCheck $failureQueue 'failure' $at 'missing' 'red') -eq 'UseItem') 'Failed send did not retry before timeout.'
+    Complete-WowAutoItem $failureQueue 'failure' $at $false
+}
+Assert-Item ((Complete-WowAutoItemCheck $failureQueue 'failure' 5000 'missing' 'red') -eq 'Continue' -and $failure.ItemDetectionDisabled) 'Failed sends did not stop at the original five-second deadline.'
+Assert-Item ((Get-WowAutoWork $failureQueue 5000).Kind -eq 'Poll') 'Timed-out item prevented fishing from continuing.'
+Write-Output 'PASS: enchant confirmation, later replenishment, five-second timeout, failed-send retries, channel deferral, reel priority, row isolation and checkbox cancellation.'
