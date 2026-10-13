@@ -724,8 +724,8 @@ function Sync-PreferenceControls {
     try {
         if ($null -ne $audioCheck) { $audioCheck.Checked=$script:audioDetectionEnabled }
         foreach ($row in $script:rows.Values) {
-            $row.ItemCheck.Checked=$script:processItemPreferences.ContainsKey($row.Key) -and $script:processItemPreferences[$row.Key]
-            Set-WowAutoItemEnabled $script:scheduler $row.Key $row.ItemCheck.Checked $script:schedulerClock.ElapsedMilliseconds
+            # Legacy INI choices are read for migration; live task choices belong to the current slot.
+            Set-WowAutoItemEnabled $script:scheduler $row.Key $row.SlotUseItem $script:schedulerClock.ElapsedMilliseconds
         }
     }
     finally { $script:updatingPreferenceControls=$previousGuard }
@@ -1182,8 +1182,7 @@ function Set-RowControls($Row) {
     $eligible=$eligible -and -not $script:editingSettings
     $Row.Start.Enabled = $eligible -and -not $running
     $Row.Stop.Enabled = $running -or $eligible -or $exiting
-    $Row.ItemCheck.Visible=$Row.TaskMode -ne 'fight'
-    $Row.ItemCheck.Enabled = $Row.TaskMode -ne 'fight' -and -not $script:scanning -and -not $exiting -and -not $Row.Exited -and $null -ne $Row.StartTime
+    if ($Row.PSObject.Properties['AccountBox']) {$Row.AccountBox.Enabled=-not $script:scanning -and -not $script:editingSettings -and -not $running -and -not $exiting}
     Update-RotationRow $Row
     if ($Row.FightRow) {foreach ($button in $Row.FightRow.MoveButtons) {
         $button.Visible=$Row.TaskMode -eq 'fight'; $button.Enabled=$running -and $Row.TaskMode -eq 'fight' -and -not $script:scanning -and -not $script:editingSettings
@@ -1298,7 +1297,7 @@ function Start-Row($Row,[switch]$TaskOnly) {
         }
         $template=$null
         if ($audioCheck.Checked -and $script:audioUseTemplate) { $template=Get-AudioTemplate $Row.Client.Flavor }
-        $Row.State = Add-WowAutoTask $script:scheduler $Row.Key $newState.MinimumMs $newState.MaximumMs $script:schedulerClock.ElapsedMilliseconds -UseItem $Row.ItemCheck.Checked -UseAudio $audioCheck.Checked -AudioTimeoutMs $range.AudioTimeoutMs
+        $Row.State = Add-WowAutoTask $script:scheduler $Row.Key $newState.MinimumMs $newState.MaximumMs $script:schedulerClock.ElapsedMilliseconds -UseItem $Row.SlotUseItem -UseAudio $audioCheck.Checked -AudioTimeoutMs $range.AudioTimeoutMs
         if ($Row.State.UseAudio) {
             if ($UiTest) {
                 $capture=[pscustomobject]@{Status='Listening'; Error=''; Peak=0.0; Similarity=0.0; Rejected=0; Session=0L; Bite=0L; Disposed=$false; MinimumSimilarity=$script:audioThresholds[$Row.Client.Flavor]/100.0; Template=$template; TemplateChanges=0}
@@ -1339,12 +1338,6 @@ function New-ProcessRow($Process, $StartTime, [string]$Key, $Client) {
     Set-UiButtonStyle $stop
     $stop.Enabled = $false
     $panel.Controls.Add($stop)
-    $rowItemCheck = New-Object WowAuto.DimCheckBox
-    $rowItemCheck.Text = '使用钓鱼道具'
-    $rowItemCheck.SetBounds(540, 37, 150, 32)
-    $rowItemCheck.FlatStyle='Flat'
-    $rowItemCheck.Checked=$script:processItemPreferences.ContainsKey($Key) -and $script:processItemPreferences[$Key]
-    $panel.Controls.Add($rowItemCheck)
     $status = New-Object WowAuto.DimStatusLog
     $status.SetBounds(710, 12, $panel.Width - 722, 82)
     $status.Anchor = 'Top, Left, Right'
@@ -1360,7 +1353,7 @@ function New-ProcessRow($Process, $StartTime, [string]$Key, $Client) {
         Key=$Key; Process=$Process; StartTime=$StartTime; Client=$Client; Position='位置未知'
         Exited=$false; Validated=$false; Caption=[IO.Path]::GetFileName($Client.ExecutablePath)
         Panel=$panel; Name=$nameLabel
-        Start=$start; Stop=$stop; ItemCheck=$rowItemCheck; Status=$status; State=$null
+        Start=$start; Stop=$stop; Status=$status; State=$null
         StatusMessage='尚未验证，请点击刷新进程。'
         StatusSnapshot=$null; StatusTimestamp=''; CurrentStatusText=''; StatusHistory=(New-Object 'System.Collections.Generic.List[string]')
 
@@ -1368,26 +1361,8 @@ function New-ProcessRow($Process, $StartTime, [string]$Key, $Client) {
     # Sender.Tag keeps handlers bound to their own row, not a shared loop variable.
     $start.Tag = $row
     $stop.Tag = $row
-    $rowItemCheck.Tag = $row
     $start.Add_Click({ param($sender, $eventArgs) Start-Row $sender.Tag })
     $stop.Add_Click({ param($sender, $eventArgs) Stop-Row $sender.Tag -CancelExit })
-    $rowItemCheck.Add_CheckedChanged({ param($sender, $eventArgs)
-        if ($script:updatingPreferenceControls) { return }
-        $changedRow=$sender.Tag
-        try {
-            $nextItems=$script:processItemPreferences.Clone()
-            $nextItems[$changedRow.Key]=$sender.Checked
-            Save-PreferenceSwitches -ProcessItemPreferences $nextItems
-        }
-        catch {
-            $script:updatingPreferenceControls=$true
-            try { $sender.Checked=$script:processItemPreferences.ContainsKey($changedRow.Key) -and $script:processItemPreferences[$changedRow.Key] }
-            finally { $script:updatingPreferenceControls=$false }
-            $script:settingsWarning='config.ini 保存失败，道具选项未改变：'+$_.Exception.Message
-            Update-VersionSummary
-        }
-        Update-RowStatus $changedRow
-    })
     if ($null -eq $StartTime) { $row.StatusMessage = '无法读取进程信息，请检查权限后刷新。' }
     Add-ProcessTaskControls $row
     Update-RowStatus $row
@@ -1405,6 +1380,7 @@ function Refresh-ProcessRows {
             $key = if ($null -ne $started) { "$($process.Id):$($started.Ticks)" } else { "$($process.Id):unknown" }
             $row = $script:rows[$key]
             if ($null -eq $row) { $row = New-ProcessRow $process $started $key $process.WowAutoClient }
+            else {Update-RowAccountChoices $row}
             $row.Process=$process
             $row.Client=$process.WowAutoClient
             $row.Position=Read-RowWindowPosition $row
@@ -1935,6 +1911,7 @@ $form.Add_FormClosing({
 })
 
 . (Join-Path $PSScriptRoot 'wowAuto.Unified.ps1')
+. (Join-Path $PSScriptRoot 'wowAuto.Accounts.ps1')
 . (Join-Path $PSScriptRoot 'wowAuto.Rotation.ps1')
 # One process list and one timer coordinate input across both detector engines.
 if (-not $UiTest) {
@@ -1989,6 +1966,7 @@ try {
             . (Join-Path $PSScriptRoot 'tests\AutoFight.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Unified.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Rotation.UiTests.ps1')
+            . (Join-Path $PSScriptRoot 'tests\Accounts.UiTests.ps1')
         }
         if ($PreviewPath) {
             [System.Windows.Forms.Application]::DoEvents()

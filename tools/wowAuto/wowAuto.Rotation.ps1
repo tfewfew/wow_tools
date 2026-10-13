@@ -3,15 +3,17 @@ if (-not ('WowAutoRotation.Native' -as [type])) {
     Add-Type -Path (Join-Path $PSScriptRoot 'wowAuto.Rotation.Native.cs') -ReferencedAssemblies System.Drawing
 }
 $script:rotation=[pscustomobject]@{Path=(Join-Path $PSScriptRoot 'rotation.config.json');IntervalSeconds=0;OcrIntervalMs=1000;NextOcrAt=0L;Plans=@{};
-    Active=@{};Queue=(New-Object Collections.Queue);Current=$null;NextAt=0L;ConfigReady=$true;Error='';Actions=@();OcrWork=$null;NameHistory=@();
+    Active=@{};Queue=(New-Object Collections.Queue);Current=$null;NextAt=0L;ConfigReady=$true;Error='';Actions=@();OcrWork=$null;NameHistory=@();GameDirectories=@{titan=$(if ($UiTest) {''} else {'C:\Program Files (x86)\World of Warcraft\_classic_titan_'});forerver=$(if ($UiTest) {''} else {'C:\Program Files (x86)\World of Warcraft\_cn_beta_'})};
     OcrSource=([IO.File]::ReadAllText((Join-Path $PSScriptRoot 'wowAuto.Rotation.Ocr.ps1')))}
 function New-RotationPlan {
-    return [pscustomobject]@{Slots=@(1..3 | ForEach-Object {[pscustomobject]@{Name='';Mode='fish'}})}
+    return [pscustomobject]@{Slots=@(1..3 | ForEach-Object {[pscustomobject]@{Name='';Mode='fish';UseItem=$false}})}
 }
 function Copy-RotationPlan($Plan) {return ($Plan | ConvertTo-Json -Depth 8 | ConvertFrom-Json)}
 function Test-RotationPlan($Plan) {
     if (-not $Plan -or @($Plan.Slots).Count -ne 3) {throw '每个进程必须配置三个槽位。'}
+    if ($Plan.PSObject.Properties['Account'] -and ($Plan.Account -isnot [string] -or $Plan.Account -match '[\\/\p{C}]' -or $Plan.Account.Length -gt 128)) {throw '子战网标识无效。'}
     foreach ($slot in $Plan.Slots) {
+        if ($slot.PSObject.Properties['UseItem'] -and $slot.UseItem -isnot [bool]) {throw '槽位道具开关须为布尔值。'}
         if ($null -eq $slot.Name -or $slot.Name -isnot [string] -or $slot.Name.Length -gt 24 -or
             $slot.Name -match '[\s\p{C}]' -or $slot.Name -match '[^\p{L}\p{M}]' -or $slot.Mode -cnotin @('fish','fight')) {throw '角色名须为完整名称（不含空格，最多24字）；留空表示空槽，任务须为钓鱼或战斗。'}
     }
@@ -34,7 +36,7 @@ function Get-RotationNameHistory($Plans=$script:rotation.Plans,$History=$script:
     }
     return $names.ToArray()
 }
-function Save-RotationConfiguration($Interval=$script:rotation.IntervalSeconds,$Plans=$script:rotation.Plans,$OcrIntervalMs=$script:rotation.OcrIntervalMs) {
+function Save-RotationConfiguration($Interval=$script:rotation.IntervalSeconds,$Plans=$script:rotation.Plans,$OcrIntervalMs=$script:rotation.OcrIntervalMs,$GameDirectories=$script:rotation.GameDirectories) {
     $n=0
     if (-not [int]::TryParse([string]$Interval,[ref]$n) -or $n -lt 0 -or $n -gt 604800) {throw '轮换间隔须为0–604800秒，0关闭定时轮换。'}
     $ocrInterval=Get-RotationOcrInterval $OcrIntervalMs
@@ -44,8 +46,9 @@ function Save-RotationConfiguration($Interval=$script:rotation.IntervalSeconds,$
             -not [long]::TryParse($matches[2],[ref]$ticks) -or $ticks -gt [datetime]::MaxValue.Ticks) {throw '进程编排标识无效。'}
         Test-RotationPlan $Plans[$key]
     }
+    $roots=ConvertTo-RotationGameDirectories $GameDirectories
     $nextHistory=@(Get-RotationNameHistory $Plans @(Get-RotationNameHistory))
-    $payload=[ordered]@{Version=2;IntervalSeconds=$n;OcrIntervalMs=$ocrInterval;NameHistory=$nextHistory;Plans=$Plans}
+    $payload=[ordered]@{Version=2;IntervalSeconds=$n;OcrIntervalMs=$ocrInterval;NameHistory=$nextHistory;GameDirectories=$roots;Plans=$Plans}
     $temporary=$script:rotation.Path+'.'+[Guid]::NewGuid().ToString('N')+'.tmp'
     try {
         [IO.File]::WriteAllText($temporary,($payload | ConvertTo-Json -Depth 10),(New-Object Text.UTF8Encoding($false)))
@@ -53,7 +56,7 @@ function Save-RotationConfiguration($Interval=$script:rotation.IntervalSeconds,$
         else {[IO.File]::Move($temporary,$script:rotation.Path)}
     } finally {if ([IO.File]::Exists($temporary)) {[IO.File]::Delete($temporary)}}
     $changed=$script:rotation.IntervalSeconds -ne $n
-    $script:rotation.IntervalSeconds=$n;$script:rotation.OcrIntervalMs=$ocrInterval;$script:rotation.Plans=$Plans;$script:rotation.NameHistory=$nextHistory;$script:rotation.ConfigReady=$true;$script:rotation.Error=''
+    $script:rotation.IntervalSeconds=$n;$script:rotation.OcrIntervalMs=$ocrInterval;$script:rotation.Plans=$Plans;$script:rotation.GameDirectories=$roots;$script:rotation.NameHistory=$nextHistory;$script:rotation.ConfigReady=$true;$script:rotation.Error=''
     if ($changed) {$script:rotation.NextAt=if ($n -and $script:rotation.Active.Count) {$script:schedulerClock.ElapsedMilliseconds+[long]$n*1000} else {0L}}
     foreach ($r in $script:rows.Values) {Update-RotationRow $r}
 }
@@ -63,16 +66,25 @@ function Import-RotationConfiguration {
         $c=[IO.File]::ReadAllText($script:rotation.Path) | ConvertFrom-Json
         if ($c.Version -eq 1) {throw '旧角色号配置须改填角色名称后保存；不会按位次猜测名称。'}
         if ($c.Version -ne 2 -or $null -eq $c.IntervalSeconds -or -not $c.Plans -or
-            @($c.PSObject.Properties.Name | Where-Object {$_ -notin @('Version','IntervalSeconds','OcrIntervalMs','NameHistory','Plans')}).Count) {throw '编排配置格式无效。'}
+            @($c.PSObject.Properties.Name | Where-Object {$_ -notin @('Version','IntervalSeconds','OcrIntervalMs','NameHistory','GameDirectories','Plans')}).Count) {throw '编排配置格式无效。'}
         $n=0;if (-not [int]::TryParse([string]$c.IntervalSeconds,[ref]$n) -or $n -lt 0 -or $n -gt 604800) {throw '编排间隔无效。'}
         $ocrInterval=1000
         if ($c.PSObject.Properties['OcrIntervalMs']) {$ocrInterval=Get-RotationOcrInterval $c.OcrIntervalMs}
+        $roots=$script:rotation.GameDirectories
+        if ($c.PSObject.Properties['GameDirectories']) {$roots=ConvertTo-RotationGameDirectories $c.GameDirectories}
         $plans=@{}
         foreach ($prop in $c.Plans.PSObject.Properties) {
             $p=0;$t=0L
             if ($prop.Name -notmatch '^([1-9]\d*):([1-9]\d*)$' -or -not [int]::TryParse($matches[1],[ref]$p) -or
                 -not [long]::TryParse($matches[2],[ref]$t) -or $t -gt [datetime]::MaxValue.Ticks) {throw '编排进程标识无效。'}
-            Test-RotationPlan $prop.Value;$plans[$prop.Name]=$prop.Value
+            Test-RotationPlan $prop.Value
+            foreach ($slot in $prop.Value.Slots) {
+                if (-not $slot.PSObject.Properties['UseItem']) {
+                    $enabled=$script:processItemPreferences.ContainsKey($prop.Name) -and $script:processItemPreferences[$prop.Name] -and $slot.Mode -eq 'fish'
+                    $slot | Add-Member NoteProperty UseItem ([bool]$enabled)
+                }
+            }
+            $plans[$prop.Name]=$prop.Value
         }
         $history=@()
         if ($c.PSObject.Properties['NameHistory']) {
@@ -80,7 +92,7 @@ function Import-RotationConfiguration {
             $history=@($c.NameHistory)
         }
         $history=@(Get-RotationNameHistory $plans $history)
-        $script:rotation.IntervalSeconds=$n;$script:rotation.OcrIntervalMs=$ocrInterval;$script:rotation.Plans=$plans;$script:rotation.NameHistory=$history;$script:rotation.ConfigReady=$true;$script:rotation.Error=''
+        $script:rotation.IntervalSeconds=$n;$script:rotation.OcrIntervalMs=$ocrInterval;$script:rotation.Plans=$plans;$script:rotation.GameDirectories=$roots;$script:rotation.NameHistory=$history;$script:rotation.ConfigReady=$true;$script:rotation.Error=''
     } catch {$script:rotation.ConfigReady=$false;$script:rotation.Error='编排配置读取失败：'+$_.Exception.Message}
 }
 function Get-RotationNextSlot($Plan,[int]$Current) {
@@ -124,7 +136,7 @@ function Stop-RowRotation($Row) {
 function Start-RowRotation($Row) {
     if ($script:scanning -or $script:editingSettings -or -not $script:rotation.ConfigReady) {throw '请关闭设置，修复编排配置后开始。'}
     if ($script:rotation.Active.ContainsKey($Row.Key)) {return}
-    $plan=Get-RowRotationPlan $Row;Test-RotationPlan $plan
+    $plan=Get-RowRotationPlan $Row;Test-RotationPlan $plan;Test-RowAccountPlan $Row $plan
     $index=Get-RotationNextSlot $plan -1
     Stop-Row $Row '开始角色编排，准备登录第一个有效槽位。' -CancelExit
     $entry=[pscustomobject]@{Row=$Row;Plan=(Copy-RotationPlan $plan);Index=$index}
@@ -275,7 +287,7 @@ function Invoke-RotationTick([long]$Now) {
         if ($work.Phase -eq 'login') {
             if (Test-RowLoginPoint $row) {$work.Stable++} else {$work.Stable=0}
             if ($work.Stable -ge 3) {
-                Set-RowTaskMode $row $entry.Plan.Slots[$entry.Index].Mode
+                Set-RowSlotTask $row $entry.Plan.Slots[$entry.Index]
                 $work.Phase='validate';$work.Due=$Now
             } else {
                 $work.Due=$Now+300
@@ -384,14 +396,17 @@ function New-RotationIntervalControls($SettingsOwner) {
 function New-RotationEditor($Row) {
     $dialog=New-Object WowAuto.DimForm;$dialog.Text='PID '+$Row.Process.Id+' · 三槽位角色编排';$dialog.Font=$form.Font
     $dialog.BackColor=$script:uiColors.Background;$dialog.ForeColor=$script:uiColors.Text;$dialog.AutoScaleMode='Dpi'
-    $dialog.StartPosition='CenterParent';$dialog.ClientSize=New-Object Drawing.Size(750,355)
+    $dialog.StartPosition='CenterParent';$dialog.ClientSize=New-Object Drawing.Size(950,355)
+    Update-RowAccountChoices $Row
+    $names=@(Get-RowAccountNames $Row)
     $plan=Copy-RotationPlan (Get-RowRotationPlan $Row)
-    $hint=New-Object System.Windows.Forms.Label;$hint.Text='输入完整名称或选择历史名称，留空为空槽。OCR确认选择服务器、进入魔兽世界后，快速双击名称登录。';$hint.SetBounds(15,15,720,52);$dialog.Controls.Add($hint)
+    foreach ($slot in $plan.Slots) {if (-not $slot.PSObject.Properties['UseItem']) {$slot | Add-Member NoteProperty UseItem $false}}
+    $hint=New-Object System.Windows.Forms.Label;$hint.Text='子战网：'+$Row.AccountName+'。输入或选择该子战网本地记录中的完整角色名；留空为空槽，每槽独立选择任务与钓鱼道具。';$hint.SetBounds(15,15,920,52);$dialog.Controls.Add($hint)
     $controls=@()
     for ($i=0;$i -lt 3;$i++) {
         $label=New-Object System.Windows.Forms.Label;$label.Text='槽位 '+($i+1)+' · 角色名称';$label.SetBounds(20,(75+$i*48),190,30)
         $text=New-Object System.Windows.Forms.ComboBox;$text.DropDownStyle='DropDown';$text.MaxLength=24
-        $text.Items.AddRange([object[]]@(Get-RotationNameHistory));$text.Text=$plan.Slots[$i].Name;$text.SetBounds(220,(70+$i*48),270,34)
+        $text.Items.AddRange([object[]]$names);$text.Text=$plan.Slots[$i].Name;$text.SetBounds(220,(70+$i*48),270,34)
         $text.FlatStyle='Flat';$text.AutoCompleteMode='Suggest';$text.AutoCompleteSource='ListItems'
         $text.BackColor=$script:uiColors.Input;$text.ForeColor=$script:uiColors.Text
         $mode=New-Object System.Windows.Forms.ComboBox;$mode.DropDownStyle='DropDownList';$mode.Items.AddRange([object[]]@('钓鱼','战斗'));$mode.SelectedIndex=if ($plan.Slots[$i].Mode -eq 'fight') {1} else {0};$mode.SetBounds(525,(70+$i*48),170,34)
@@ -402,24 +417,27 @@ function New-RotationEditor($Row) {
             try {$e.Graphics.FillRectangle($brush,$e.Bounds)} finally {$brush.Dispose()}
             [System.Windows.Forms.TextRenderer]::DrawText($e.Graphics,[string]$sender.Items[$e.Index],$sender.Font,$e.Bounds,[Drawing.Color]::White)
         })
-        $dialog.Controls.AddRange([System.Windows.Forms.Control[]]@($label,$text,$mode));$controls+=,[pscustomobject]@{Name=$text;Mode=$mode}
+        $item=New-Object WowAuto.DimCheckBox;$item.Text='钓鱼道具';$item.SetBounds(720,(70+$i*48),190,34);$item.FlatStyle='Flat';$item.Checked=[bool]$plan.Slots[$i].UseItem;$item.Enabled=$mode.SelectedIndex -eq 0
+        $mode.Tag=$item;$mode.Add_SelectedIndexChanged({param($sender,$e) $sender.Tag.Enabled=$sender.SelectedIndex -eq 0})
+        $dialog.Controls.AddRange([System.Windows.Forms.Control[]]@($label,$text,$mode,$item));$controls+=,[pscustomobject]@{Name=$text;Mode=$mode;UseItem=$item}
     }
-    $errorLabel=New-Object System.Windows.Forms.Label;$errorLabel.SetBounds(20,223,710,70)
-    $errorLabel.Text='不需要角色号、角色总数或菜单标定。登录后通过右下角16×16常驻白点确认，开启钓鱼 / 战斗前再次检查白点。'
+    $errorLabel=New-Object System.Windows.Forms.Label;$errorLabel.SetBounds(20,223,910,70)
+    $errorLabel.Text='下拉框仅显示所选子战网的本地角色记录；旧名称仍保留在输入框，保存前须改成该子战网中的名称。战斗槽不使用钓鱼道具。'
     $save=New-Object WowAuto.DimButton;$save.Text='保存编排';$save.SetBounds(430,300,135,36);Set-UiButtonStyle $save $true
     $cancel=New-Object WowAuto.DimButton;$cancel.Text='取消';$cancel.SetBounds(585,300,125,36);Set-UiButtonStyle $cancel
     $dialog.Tag=[pscustomobject]@{Row=$Row;Plan=$plan;Slots=$controls;Error=$errorLabel;Save=$save}
     $save.Tag=$dialog;$save.Add_Click({param($sender,$e)
         $editor=$sender.Tag.Tag
         try {
-            for ($i=0;$i -lt 3;$i++) {$editor.Plan.Slots[$i].Name=$editor.Slots[$i].Name.Text.Trim();$editor.Plan.Slots[$i].Mode=if ($editor.Slots[$i].Mode.SelectedIndex -eq 1) {'fight'} else {'fish'}}
-            Test-RotationPlan $editor.Plan
+            for ($i=0;$i -lt 3;$i++) {$editor.Plan.Slots[$i].Name=$editor.Slots[$i].Name.Text.Trim();$editor.Plan.Slots[$i].Mode=if ($editor.Slots[$i].Mode.SelectedIndex -eq 1) {'fight'} else {'fish'};$editor.Plan.Slots[$i].UseItem=$editor.Slots[$i].UseItem.Checked -and $editor.Plan.Slots[$i].Mode -eq 'fish'}
+            $editor.Plan | Add-Member NoteProperty Account $editor.Row.AccountName -Force
+            Test-RotationPlan $editor.Plan;Test-RowAccountPlan $editor.Row $editor.Plan
             $next=$script:rotation.Plans.Clone();$next[$editor.Row.Key]=Copy-RotationPlan $editor.Plan
             Save-RotationConfiguration -Plans $next
             Stop-Row $editor.Row '编排已保存，任务停止；点击开始从首个有效槽位运行。' -CancelExit
             $editor.Row.Validated=$false
             $index=Get-RotationNextSlot $editor.Plan -1
-            Set-RowTaskMode $editor.Row $(if ($index -ge 0) {$editor.Plan.Slots[$index].Mode} else {'fish'})
+            if ($index -ge 0) {Set-RowSlotTask $editor.Row $editor.Plan.Slots[$index]} else {Set-RowSlotTask $editor.Row ([pscustomobject]@{Mode='fish';UseItem=$false})}
             $sender.Tag.Close()
         } catch {$editor.Error.Text=$_.Exception.Message}
     })

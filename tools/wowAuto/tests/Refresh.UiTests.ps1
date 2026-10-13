@@ -33,13 +33,13 @@ $b.Start.PerformClick()
 Assert-Ui ($a.State.Running -and $b.State.Running -and $b.State.MinimumMs -eq 2345 -and $a.State.MinimumMs -eq 9000) 'Version-based start/ranges failed.'
 $a.Stop.PerformClick()
 Assert-Ui (-not $a.State.Running -and $b.State.Running) 'Stop affected another row.'
-$a.ItemCheck.Checked=$true
+$a.SlotUseItem=$true
 $script:scheduler.CompletedCycles[$a.Key]=123
 $refreshButton.PerformClick()
 Assert-Ui (-not $b.State.Running -and -not $b.Start.Enabled -and -not $b.Stop.Enabled) 'Refresh did not stop and lock active row.'
 Complete-TestScan
 Assert-Ui ($script:rows[$b.Key] -eq $b -and $script:versionRanges.forerver.MinimumMs -eq 2345 -and $null -eq $b.State) 'Refresh did not preserve version range/stopped row.'
-Assert-Ui ($a.ItemCheck.Checked -and -not $b.ItemCheck.Checked) 'Refresh did not preserve per-process checkbox selection.'
+Assert-Ui ($a.SlotUseItem -and -not $b.SlotUseItem) 'Refresh did not preserve current slot item choice.'
 Assert-Ui ((Get-WowAutoCycleCount $script:scheduler $a.Key) -eq 123) 'Refresh cleared process cycle count.'
 $a.Process.ScanColor = 'unknown'
 $b.Process.FocusAllowed = $false
@@ -59,7 +59,7 @@ $refreshButton.PerformClick()
 Complete-TestScan
 $fresh = @($script:rows.Values | Where-Object { $_.Process.Id -eq 101 })[0]
 Assert-Ui ($fresh -ne $a -and $null -eq $fresh.State) 'Reused PID inherited old session.'
-Assert-Ui (-not $fresh.ItemCheck.Checked) 'Reused PID inherited old item selection.'
+Assert-Ui (-not $fresh.SlotUseItem) 'Reused PID inherited old item selection.'
 Assert-Ui ((Get-WowAutoCycleCount $script:scheduler $fresh.Key) -eq 0) 'Reused PID inherited cycle count.'
 $saved = $script:mockProcesses
 $script:mockProcesses = @()

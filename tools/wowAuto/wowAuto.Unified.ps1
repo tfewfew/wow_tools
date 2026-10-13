@@ -14,9 +14,11 @@ function Set-RowTaskMode($Row,[string]$Mode) {
 function Add-ProcessTaskControls($Row) {
     $Row | Add-Member NoteProperty TaskMode 'fish'
     $Row | Add-Member NoteProperty FightRow $null
+    $Row | Add-Member NoteProperty SlotUseItem $false
     $plan=Get-RowRotationPlan $Row;$index=Get-RotationNextSlot $plan -1
-    if ($index -ge 0) {Set-RowTaskMode $Row $plan.Slots[$index].Mode}
+    if ($index -ge 0) {Set-RowSlotTask $Row $plan.Slots[$index]}
     Add-RotationRow $Row
+    Add-RowAccountControls $Row
 }
 function Ensure-UnifiedFightRow($Row) {
     if ($Row.FightRow) {return}
@@ -116,7 +118,8 @@ function New-UnifiedSettingsDialog {
     $fish.Tag.Cancel.Add_Click({param($sender,$e) $sender.Tag.Parent.Parent.FindForm().Close()})
     $fight.Tag.Cancel.Tag=$hostDialog; $fight.Tag.Cancel.Add_Click({param($sender,$e) $sender.Tag.Close()})
     $settingTabs.Add_SelectedIndexChanged({if ($script:unifiedSettingsHost) {Stop-AudioPreview $script:unifiedSettingsHost.Tag.Fish}})
-    $hostDialog.Tag=[pscustomobject]@{Tabs=$settingTabs;Fish=$fish;Fight=$fight}
+    $directories=New-GameDirectorySettingsPage;$settingTabs.TabPages.Add($directories)
+    $hostDialog.Tag=[pscustomobject]@{Tabs=$settingTabs;Fish=$fish;Fight=$fight;Directories=$directories}
     $hostDialog.Tag | Add-Member NoteProperty Rotation (New-RotationIntervalControls $hostDialog)
     $script:unifiedSettingsHost=$hostDialog
     $hostDialog.Add_FormClosed({

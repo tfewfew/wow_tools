@@ -1,4 +1,4 @@
-# Runs only in -UiTest with two simulated game processes and an inert scheduler clock.
+﻿# Runs only in -UiTest with inert slot preferences and explicit engine-level item mutations.
 Stop-AllRows
 $processItemRows=@($script:rows.Values | Sort-Object { $_.Process.Id })
 $itemA=$processItemRows[0]; $itemB=$processItemRows[1]
@@ -9,12 +9,14 @@ try {
     $script:workerKeys=@(); $script:workerActivations=@()
     foreach ($r in $processItemRows) {
         $r.State=$null; $r.Exited=$false; $r.Validated=$true
-        $r.ItemCheck.Checked=$false
+        $r.SlotUseItem=$false
+        Set-WowAutoItemEnabled $script:scheduler $r.Key $false $script:schedulerClock.ElapsedMilliseconds
         $r.Process.HasExited=$false; $r.Process.FocusAllowed=$true
         $r.Process.ScanColor='red'; $r.Process.LureColor='unknown'
         Update-RowStatus $r
     }
-    $itemA.ItemCheck.Checked=$true
+    $itemA.SlotUseItem=$true
+    Set-WowAutoItemEnabled $script:scheduler $itemA.Key $true $script:schedulerClock.ElapsedMilliseconds
     Update-BatchControls
     $startAllButton.PerformClick()
     Assert-Ui ($itemA.State.UseItem -and -not $itemB.State.UseItem) 'Start All ignored individual item selections.'
@@ -28,13 +30,15 @@ try {
 
     $savedADue=$itemA.State.ItemDue
     $script:schedulerClock.ElapsedMilliseconds=1300
-    $itemB.ItemCheck.Checked=$true
+    $itemB.SlotUseItem=$true
+    Set-WowAutoItemEnabled $script:scheduler $itemB.Key $true $script:schedulerClock.ElapsedMilliseconds
     Assert-Ui ($itemB.State.UseItem -and $itemB.State.ItemDue -eq 1300 -and $itemA.State.ItemDue -eq $savedADue) 'Enabling B changed A schedule.'
     $itemB.Process.LureColor='missing'
     Invoke-SchedulerTick 1300
     Assert-Ui ($script:workerKeys[-1] -eq "$($itemB.Process.Id):189" -and $script:scheduler.ItemHoldUntil -eq 4300) 'Selected process did not apply missing lure.'
     $script:schedulerClock.ElapsedMilliseconds=1400
-    $itemB.ItemCheck.Checked=$false
+    $itemB.SlotUseItem=$false
+    Set-WowAutoItemEnabled $script:scheduler $itemB.Key $false $script:schedulerClock.ElapsedMilliseconds
     Assert-Ui (-not $itemB.State.UseItem -and $itemB.State.ItemDue -eq 0 -and $itemA.State.UseItem) 'Disabling B changed A or left checks queued.'
     $keyCount=$script:workerKeys.Count; $activationCount=$script:workerActivations.Count
     Invoke-SchedulerTick 4299
@@ -48,10 +52,10 @@ try {
     Stop-Row $itemA
     $script:schedulerClock.ElapsedMilliseconds=4800
     Start-Row $itemA
-    Assert-Ui ($itemA.ItemCheck.Checked -and $itemA.State.UseItem -and $itemA.State.ItemDue -eq 4800) 'Restart lost the process selection or reused an old item deadline.'
+    Assert-Ui ($itemA.SlotUseItem -and $itemA.State.UseItem -and $itemA.State.ItemDue -eq 4800) 'Restart lost the process selection or reused an old item deadline.'
 } finally {
     Stop-AllRows
-    foreach ($r in $processItemRows) { $r.ItemCheck.Checked=$false }
+    foreach ($r in $processItemRows) { $r.SlotUseItem=$false }
     $script:schedulerClock=$savedProcessItemClock
 }
-Write-Output 'PASS: individual Start All selection, unchecked unknown-lure isolation, runtime toggles, per-process item dispatch, shared full hold and restart. All native actions mocked.'
+Write-Output 'PASS: individual Start All selection, unchecked unknown-lure isolation, engine-level cancellation, per-process item dispatch, shared full hold and restart. All native actions mocked.'

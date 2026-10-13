@@ -117,7 +117,7 @@ try {
     $audioCheck.Checked=$true
     $t=@($script:rows.Values | Where-Object {$_.Client.Flavor -eq 'titan'})[0]
     $f=@($script:rows.Values | Where-Object {$_.Client.Flavor -eq 'forerver'})[0]
-    foreach($row in @($t,$f)) {$row.Validated=$true; $row.Exited=$false; $row.Process.HasExited=$false; $row.Process.FocusAllowed=$true; $row.Process.ScanColor='green'; $row.ItemCheck.Checked=$false; Start-Row $row; $row.State.AudioReady=$true; $null=Complete-WowAutoPoll $script:scheduler $row.Key 1000 'green'}
+    foreach($row in @($t,$f)) {$row.Validated=$true; $row.Exited=$false; $row.Process.HasExited=$false; $row.Process.FocusAllowed=$true; $row.Process.ScanColor='green'; $row.SlotUseItem=$false; Start-Row $row; $row.State.AudioReady=$true; $null=Complete-WowAutoPoll $script:scheduler $row.Key 1000 'green'}
     Update-AudioCaptures 1000
     $tEntry=$script:audioCaptures[$t.Key]; $fEntry=$script:audioCaptures[$f.Key]
     Assert-Ui ($tEntry.RecordingId -eq 2 -and $tEntry.Capture.Template.Compare($tones['titan:2']) -gt 0.99 -and $fEntry.Capture.Template.Compare($tones['forerver:1']) -gt 0.99) 'Tasks loaded the wrong recording/client feature.'

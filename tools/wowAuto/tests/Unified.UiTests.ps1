@@ -34,7 +34,7 @@ try {
     $null=Refresh-ProcessRows
     $combat=@($script:rows.Values | Where-Object {$_.Process.Id -eq 701})[0]
     $fishing=@($script:rows.Values | Where-Object {$_.Process.Id -eq 702})[0]
-    Assert-Ui ($tabs.TabPages.Count -eq 1 -and -not $combat.PSObject.Properties['ModeBox'] -and -not @($combat.Panel.Controls | Where-Object {$_ -is [System.Windows.Forms.ComboBox]}).Count) 'Main UI still has two task tabs or incorrect default.'
+    Assert-Ui ($tabs.TabPages.Count -eq 1 -and -not $combat.PSObject.Properties['ModeBox'] -and @($combat.Panel.Controls | Where-Object {$_ -is [System.Windows.Forms.ComboBox]}).Count -eq 1) 'Main UI still has two task tabs or incorrect default.'
     Set-RowTaskMode $combat fight
     Assert-Ui ($combat.TaskMode -eq 'fight' -and $combat.FightRow -and -not $combat.Validated) 'Mode selector failed to attach combat engine.'
     [WowAutoFight.Native]::Current.Flavor='titan'; [WowAutoFight.Native]::Current.Action='idle'
@@ -101,7 +101,7 @@ try {
     $dialog=New-UnifiedSettingsDialog
     try {
         $dialog.Show($form); [System.Windows.Forms.Application]::DoEvents()
-        Assert-Ui ($dialog.Tag.Tabs.TabPages.Count -eq 2 -and $dialog.Tag.Tabs.TabPages[0].Text -eq '自动钓鱼' -and $dialog.Tag.Tabs.TabPages[1].Text -eq '自动战斗') 'Settings pages not combined.'
+        Assert-Ui ($dialog.Tag.Tabs.TabPages.Count -eq 3 -and $dialog.Tag.Tabs.TabPages[0].Text -eq '自动钓鱼' -and $dialog.Tag.Tabs.TabPages[1].Text -eq '自动战斗') 'Settings pages not combined.'
         $savedTarget=$script:autoFight.Common.TargetKey
         $dialog.Tag.Fight.Tag.CommonBindings.TargetKey.Text='Ctrl+Tab'
         $before=$script:versionRanges.titan.MinimumMs

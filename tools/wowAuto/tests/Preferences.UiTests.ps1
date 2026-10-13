@@ -37,7 +37,7 @@ try {
     }
     finally { $dialog.Dispose() }
     $audioCheck.Checked=$true
-    $preferenceA.ItemCheck.Checked=$true; $preferenceB.ItemCheck.Checked=$false
+    $legacyChoices=@{};$legacyChoices[$preferenceA.Key]=$true;$legacyChoices[$preferenceB.Key]=$false;Save-PreferenceSwitches -ProcessItemPreferences $legacyChoices
     $saved=Read-WowAutoSettingsIni $script:settingsPath
     Assert-Ui ($saved.ReelHoldMs -eq 420 -and $saved.CastKey -eq 'Ctrl+1' -and $saved.ReelKey -eq 'Shift+=' -and $saved.ItemKey -eq 'Alt+-' -and $saved.AudioDetectionEnabled -eq 1) 'Hold/keys/audio mode were not persisted.'
     Assert-Ui ($saved.ProcessItemPreferences[$preferenceA.Key] -and -not $saved.ProcessItemPreferences[$preferenceB.Key]) 'Process choices were not persisted independently.'
@@ -49,18 +49,18 @@ try {
     Sync-PreferenceControls
     Import-VersionWaitSettings
     Assert-Ui ($script:settingsWarning -eq '' -and $script:scheduler.ReelHoldMs -eq 420 -and $script:keyBindings.Cast.Text -eq 'Ctrl+1' -and $script:keyBindings.Reel.Text -eq 'Shift+=' -and $script:keyBindings.Item.Text -eq 'Alt+-') 'Startup loader lost hold or shortcut preferences.'
-    Assert-Ui ($audioCheck.Checked -and $preferenceA.ItemCheck.Checked -and -not $preferenceB.ItemCheck.Checked -and $script:scheduler.Tasks.Count -eq 0) 'Startup loader lost checkbox preferences or started a task.'
+    Assert-Ui ($audioCheck.Checked -and $script:processItemPreferences[$preferenceA.Key] -and -not $script:processItemPreferences[$preferenceB.Key] -and $script:scheduler.Tasks.Count -eq 0) 'Startup loader lost checkbox preferences or started a task.'
     $restoredRow=New-ProcessRow $preferenceA.Process $preferenceA.StartTime $preferenceA.Key $preferenceA.Client
     $newStart=$preferenceA.StartTime.AddSeconds(1)
     $reusedRow=New-ProcessRow $preferenceA.Process $newStart "$($preferenceA.Process.Id):$($newStart.Ticks)" $preferenceA.Client
-    try { Assert-Ui ($restoredRow.ItemCheck.Checked -and -not $reusedRow.ItemCheck.Checked -and -not $restoredRow.Start.Enabled) 'Recreated row lost its selection or a reused PID inherited it.' }
+    try { Assert-Ui (-not $restoredRow.SlotUseItem -and -not $reusedRow.SlotUseItem -and -not $restoredRow.Start.Enabled) 'Recreated row lost its selection or a reused PID inherited it.' }
     finally { $restoredRow.Panel.Dispose(); $reusedRow.Panel.Dispose() }
     $beforeHash=(Get-FileHash -LiteralPath $script:settingsPath).Hash
     $locked=[IO.File]::Open($script:settingsPath,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
     try {
         $audioCheck.Checked=$false
-        $preferenceA.ItemCheck.Checked=$false
-        Assert-Ui ($audioCheck.Checked -and $script:audioDetectionEnabled -and $preferenceA.ItemCheck.Checked -and $script:processItemPreferences[$preferenceA.Key]) 'Failed checkbox write was applied instead of rolled back.'
+        $failed=$false;try {Save-PreferenceSwitches -ProcessItemPreferences @{}} catch {$failed=$true};Assert-Ui $failed "Locked legacy INI should reject save."
+        Assert-Ui ($audioCheck.Checked -and $script:audioDetectionEnabled -and $script:processItemPreferences[$preferenceA.Key] -and $script:processItemPreferences[$preferenceA.Key]) 'Failed checkbox write was applied instead of rolled back.'
         $dialog=New-WaitSettingsDialog
         try {
             $dialog.Show($form)
@@ -86,7 +86,7 @@ try {
         [IO.File]::WriteAllText($script:settingsPath,$invalid)
         $invalidHash=(Get-FileHash -LiteralPath $script:settingsPath).Hash
         Import-VersionWaitSettings
-        Assert-Ui ($script:settingsWarning -ne '' -and $script:scheduler.ReelHoldMs -eq 420 -and $script:keyBindings.Cast.Text -eq 'Ctrl+1' -and $audioCheck.Checked -and $preferenceA.ItemCheck.Checked) 'Invalid preferences partially applied.'
+        Assert-Ui ($script:settingsWarning -ne '' -and $script:scheduler.ReelHoldMs -eq 420 -and $script:keyBindings.Cast.Text -eq 'Ctrl+1' -and $audioCheck.Checked -and $script:processItemPreferences[$preferenceA.Key]) 'Invalid preferences partially applied.'
         Assert-Ui ((Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $invalidHash) 'Loader rewrote an invalid preference file.'
     }
     foreach ($legacyCount in @(5,7)) {
@@ -95,7 +95,7 @@ try {
         [IO.File]::WriteAllText($script:settingsPath,($legacyLines -join "`r`n")+"`r`n")
         $legacyHash=(Get-FileHash -LiteralPath $script:settingsPath).Hash
         Import-VersionWaitSettings
-        Assert-Ui ($script:settingsWarning -eq '' -and $script:scheduler.ReelHoldMs -eq 420 -and $script:keyBindings.Reel.Text -eq 'Shift+=' -and $audioCheck.Checked -and -not $preferenceA.ItemCheck.Checked) 'Legacy INI compatibility lost defaults or kept unrecorded process choices.'
+        Assert-Ui ($script:settingsWarning -eq '' -and $script:scheduler.ReelHoldMs -eq 420 -and $script:keyBindings.Reel.Text -eq 'Shift+=' -and $audioCheck.Checked -and -not $script:processItemPreferences[$preferenceA.Key]) 'Legacy INI compatibility lost defaults or kept unrecorded process choices.'
         Assert-Ui ((Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $legacyHash) 'Startup rewrote a legacy INI.'
     }
     Assert-Ui ($script:workerKeys.Count -eq $keysBefore -and $script:workerActivations.Count -eq $focusBefore -and $script:scheduler.Tasks.Count -eq 0) 'Preference restoration sent game input, switched focus or started work.'
@@ -105,4 +105,4 @@ finally {
     Set-VersionWaitRanges @savedPreferences
 }
 Assert-Ui ((Get-FileHash -LiteralPath $preferenceSourcePath).Hash -eq $preferenceSourceHash) 'Preference tests modified the source config.ini.'
-Write-Output 'PASS: all supported key/chord round-trips, full INI hold/keys/audio/per-process choices, startup and row restoration, PID reuse isolation, locked-write checkbox rollback, malformed/partial/duplicate validation, legacy 5/7-key compatibility. No game actions.'
+Write-Output 'PASS: all supported key/chord round-trips, full INI hold/keys/audio/per-process choices, legacy INI restoration without a per-process checkbox, PID reuse isolation, locked-write rollback, malformed/partial/duplicate validation, legacy 5/7-key compatibility. No game actions.'

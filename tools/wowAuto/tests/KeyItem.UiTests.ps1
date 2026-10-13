@@ -2,9 +2,8 @@
 $script:scheduler=New-WowAutoScheduler
 $script:pendingWork=$null
 foreach ($r in $script:rows.Values) {
-    Assert-Ui (-not $r.ItemCheck.Checked) 'Process items must default off.'
-    Assert-Ui ($r.ItemCheck.Parent -eq $r.Panel -and $r.ItemCheck.Left -gt $r.Stop.Right -and
-        $r.ItemCheck.Right -lt $r.Status.Left) 'Item checkbox is outside its process row or overlaps controls.'
+    Assert-Ui (-not $r.SlotUseItem) 'Process items must default off.'
+    Assert-Ui (-not $r.PSObject.Properties['ItemCheck']) 'Per-process item checkbox remains.'
 }
 Assert-Ui (@($toolbar.Controls | Where-Object { $_ -is [System.Windows.Forms.TextBox] }).Count -eq 0) 'Key editors remain in the toolbar.'
 $savedKeyBindings=$script:keyBindings
@@ -54,12 +53,13 @@ finally {
     elseif ([IO.File]::Exists($script:settingsPath)) { [IO.File]::Delete($script:settingsPath) }
 }
 $row=@($script:rows.Values)[0]
-$row.ItemCheck.Checked=$true
+$row.SlotUseItem=$true
+Set-WowAutoItemEnabled $script:scheduler $row.Key $true $script:schedulerClock.ElapsedMilliseconds
 $row.Process.HasExited=$false; $row.Exited=$false; $row.Validated=$true
 $row.Process.FocusAllowed=$true; $row.Process.ScanColor='red'
 $row.Process.LureColor='missing'
 Start-Row $row
-Assert-Ui $row.State.UseItem 'Process checkbox did not enable item scheduling.'
+Assert-Ui $row.State.UseItem 'Slot preference did not enable item scheduling.'
 $due=$row.State.ItemDue
 Assert-Ui ($due -le $script:schedulerClock.ElapsedMilliseconds -and $row.State.InitialItemPending) 'Start did not immediately queue an item.'
 $script:workerFocus=$row.Process.Id
@@ -74,8 +74,9 @@ Assert-Ui ($script:workerKeys.Count -eq $keysBefore -and $script:workerActivatio
 $row.Process.LureColor='present'
 Invoke-SchedulerTick ($due+3000)
 Assert-Ui ($script:workerKeys.Count -eq $keysBefore+1 -and $script:workerKeys[-1] -eq "$($row.Process.Id):48") 'Casting did not resume after three seconds.'
-$row.ItemCheck.Checked=$false
-Assert-Ui (-not $row.State.UseItem -and $row.State.ItemDue -eq 0) 'Unchecking left item scheduled.'
+$row.SlotUseItem=$false
+Set-WowAutoItemEnabled $script:scheduler $row.Key $false $script:schedulerClock.ElapsedMilliseconds
+Assert-Ui (-not $row.State.UseItem -and $row.State.ItemDue -eq 0) 'Engine cancellation left item scheduled.'
 Stop-AllRows
 $script:keyBindings=$savedKeyBindings
-Write-Output 'PASS: settings-only key editors, draft key capture/punctuation/chords, save/cancel/error isolation/reopening, checkbox binding, configured item dispatch, full hold and confirmation. Native input mocked.'
+Write-Output 'PASS: settings-only key editors, draft key capture/punctuation/chords, save/cancel/error isolation/reopening, slot item preference, configured item dispatch, full hold and confirmation. Native input mocked.'

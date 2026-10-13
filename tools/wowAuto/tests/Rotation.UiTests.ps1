@@ -40,8 +40,17 @@ try {
     }
     $null=Refresh-ProcessRows
     $clients=@($script:rows.Values | Sort-Object {$_.Process.Id});$a=$clients[0];$b=$clients[1]
-    $plan=New-RotationPlan;$plan.Slots[0].Name='双持船橘二咪';$plan.Slots[2].Name='咆史呀嘞';$plan.Slots[2].Mode='fight'
-    $single=New-RotationPlan;$single.Slots[1].Name='小船长'
+    $accountFixture=Join-Path ([IO.Path]::GetTempPath()) ('wowAuto-accounts-'+[Guid]::NewGuid())
+    $savedRoots=$script:rotation.GameDirectories.Clone()
+    foreach ($row in @($a,$b)) {
+        $product=if ($row.Client.Flavor -eq 'titan') {'_classic_titan_'} else {'_cn_beta_'}
+        $game=Join-Path $accountFixture $product;$script:rotation.GameDirectories[$row.Client.Flavor]=$game
+        $row.Process.ExecutablePath=Join-Path $game ([IO.Path]::GetFileName($row.Process.ExecutablePath));$row.Client.ExecutablePath=$row.Process.ExecutablePath
+        foreach ($name in @('双持船橘二咪','咆史呀嘞','小船长','持剑腕豪','测试新角色')) {[void][IO.Directory]::CreateDirectory((Join-Path $game ('WTF\Account\ACCOUNT#1\Realm\'+$name)))}
+        [void][IO.Directory]::CreateDirectory((Join-Path $game 'WTF\Account\ACCOUNT#2\Realm\别的账号角色'))
+    }
+    $plan=New-RotationPlan;$plan | Add-Member NoteProperty Account 'ACCOUNT#1';$plan.Slots[0].UseItem=$true;$plan.Slots[0].Name='双持船橘二咪';$plan.Slots[2].Name='咆史呀嘞';$plan.Slots[2].Mode='fight'
+    $single=New-RotationPlan;$single | Add-Member NoteProperty Account 'ACCOUNT#1';$single.Slots[1].Name='小船长'
     Assert-Ui ((Get-RotationNextSlot $plan -1) -eq 0 -and (Get-RotationNextSlot $plan 0) -eq 2 -and (Get-RotationNextSlot $plan 2) -eq 0) 'Empty slot not skipped/wrapped.'
     Assert-Ui ((Get-RotationNextSlot $single 1) -eq 1 -and (Get-RotationNextSlot (New-RotationPlan) -1) -eq -1) 'Single/all-empty slot behavior wrong.'
     $plans=@{};$plans[$a.Key]=$plan;$plans[$b.Key]=$single
@@ -55,10 +64,12 @@ try {
     $rejected=$false;try {Test-RotationPlan $draft} catch {$rejected=$true};Assert-Ui $rejected 'Whitespace in name accepted.'
     $draft.Slots[0].Name='/logout';$rejected=$false;try {Test-RotationPlan $draft} catch {$rejected=$true};Assert-Ui $rejected 'Command in name accepted.'
     $script:scheduler.CompletedCycles[$a.Key]=501;$script:scheduler.CyclesSinceJump[$a.Key]=5
+    Update-RowAccountChoices $a;Update-RowAccountChoices $b
     Start-Row $a;Start-Row $b
     Assert-Ui ($script:rotation.Active.Count -eq 2 -and -not (Test-UnifiedTaskRunning $a) -and $script:rotation.NextAt -eq 20000) 'Start bypassed role selection or timers are not global.'
     $now=0L;Complete-RotationTest ([ref]$now)
     Assert-Ui ((Test-UnifiedTaskRunning $a) -and (Test-UnifiedTaskRunning $b) -and (Get-WowAutoCycleCount $script:scheduler $a.Key) -eq 0 -and [long]$script:scheduler.CyclesSinceJump[$a.Key] -eq 0) 'Initial role login/task start or character counter reset failed.'
+    Assert-Ui ($a.State.UseItem -and -not $b.State.UseItem) 'Initial per-slot item choices did not reach engine.'
     $actions=@($script:rotation.Actions | Where-Object {$_.Key -eq $a.Key})
     Assert-Ui (($actions.Action -join ',') -eq 'logout,top,doubleclick') 'Name-based double-click ordering wrong.'
     $oldCount=$script:rotation.Actions.Count
@@ -67,6 +78,7 @@ try {
     Step-RotationTest 20000
     Assert-Ui (-not (Test-UnifiedTaskRunning $a) -and -not (Test-UnifiedTaskRunning $b) -and $script:rotation.Active[$a.Key].Index -eq 2 -and $script:rotation.Active[$b.Key].Index -eq 1) 'Batch did not stop all tasks or cycle slots atomically.'
     $now=20300L;Complete-RotationTest ([ref]$now)
+    Assert-Ui (-not $a.SlotUseItem) 'Combat slot inherited fishing item.'
     Assert-Ui ($a.TaskMode -eq 'fight' -and $a.FightRow.Session -and $b.State.Running) 'Per-slot task modes not started.'
     $actions=@($script:rotation.Actions | Select-Object -Skip $oldCount | Where-Object {$_.Key -eq $b.Key})
     Assert-Ui (@($actions | Where-Object {$_.Action -eq 'logout'}).Count -eq 1 -and @($actions | Where-Object {$_.Action -eq 'doubleclick'}).Count -eq 1) 'Single configured character did not log out and log back in.'
@@ -126,7 +138,7 @@ try {
     # Embedded settings and editor use isolated drafts; saves require atomic persistence.
     $dialog=New-RotationEditor $a
     try {
-        Assert-Ui ($dialog.Tag.Slots[0].Name -is [System.Windows.Forms.ComboBox] -and $dialog.Tag.Slots[0].Name.DropDownStyle -eq 'DropDown' -and $dialog.Tag.Slots[0].Name.Items.Contains('双持船橘二咪')) 'Editable history dropdown missing.'
+        Assert-Ui ($dialog.Tag.Slots[0].Name -is [System.Windows.Forms.ComboBox] -and $dialog.Tag.Slots[0].Name.DropDownStyle -eq 'DropDown' -and $dialog.Tag.Slots[0].Name.Items.Contains('双持船橘二咪') -and -not $dialog.Tag.Slots[0].Name.Items.Contains('别的账号角色')) 'Editable account dropdown missing.'
         $dialog.Tag.Slots[0].Name.Text='持剑腕豪';Assert-Ui ($script:rotation.Plans[$a.Key].Slots[0].Name -ceq '双持船橘二咪') 'Editor draft leaked.'
         if ($env:WOWAUTO_UNIFIED_PREVIEW_DIRECTORY) {
             $dialog.Show($form);[System.Windows.Forms.Application]::DoEvents()
@@ -163,7 +175,7 @@ try {
     $dialog=New-UnifiedSettingsDialog
     try {
         $dialog.Show($form);[System.Windows.Forms.Application]::DoEvents()
-        Assert-Ui ($dialog.Tag.Rotation.Value.Value -eq 20 -and $dialog.Tag.Tabs.TabPages.Count -eq 2 -and $dialog.Tag.Tabs.Top -ge 52) 'Global interval missing/covered or settings tabs changed.'
+        Assert-Ui ($dialog.Tag.Rotation.Value.Value -eq 20 -and $dialog.Tag.Tabs.TabPages.Count -eq 3 -and $dialog.Tag.Tabs.Top -ge 52) 'Global interval missing/covered or settings tabs changed.'
     } finally {$dialog.Dispose()}
     $a.Process.StartTime=$a.Process.StartTime.AddSeconds(1);$null=Refresh-ProcessRows
     $replacement=@($script:rows.Values | Where-Object {$_.Process.Id -eq $a.Process.Id})[0]
@@ -209,4 +221,10 @@ try {
     Stop-AllRows;Close-AutoFightTab
     if ([IO.File]::Exists($script:rotation.Path)) {[IO.File]::Delete($script:rotation.Path)}
     $script:rotation.Path=$oldRotationPath
+    if ($savedRoots) {$script:rotation.GameDirectories=$savedRoots}
+    if ($accountFixture) {
+        $cleanup=[IO.Path]::GetFullPath($accountFixture)
+        if (-not $cleanup.StartsWith([IO.Path]::GetFullPath([IO.Path]::GetTempPath()),[StringComparison]::OrdinalIgnoreCase) -or (Split-Path $cleanup -Leaf) -notlike 'wowAuto-accounts-*') {throw 'Unsafe temporary fixture cleanup path.'}
+        if ([IO.Directory]::Exists($cleanup)) {[IO.Directory]::Delete($cleanup,$true)}
+    }
 }

@@ -12,7 +12,7 @@ try {
     $b=@($audioRows | Where-Object { $_.Client.Flavor -eq 'forerver' })[0]
     foreach ($row in @($a,$b)) {
         $row.Validated=$true; $row.Exited=$false; $row.Process.HasExited=$false
-        $row.Process.FocusAllowed=$true; $row.Process.ScanColor='green'; $row.ItemCheck.Checked=$false
+        $row.Process.FocusAllowed=$true; $row.Process.ScanColor='green'; $row.SlotUseItem=$false
         Start-Row $row
     }
     $ca=$script:audioCaptures[$a.Key].Capture; $cb=$script:audioCaptures[$b.Key].Capture

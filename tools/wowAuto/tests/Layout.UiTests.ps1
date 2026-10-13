@@ -6,8 +6,8 @@ if (@($toolbar.Controls | Where-Object { $_ -is [System.Windows.Forms.NumericUpD
 if (@($toolbar.Controls | Where-Object { $_ -is [System.Windows.Forms.CheckBox] -and $_ -ne $audioCheck }).Count) { throw 'Global item checkbox remains in toolbar.' }
 if (-not $toolbar.ClientRectangle.Contains($audioCheck.Bounds)) { throw 'Audio mode checkbox is clipped.' }
 foreach ($row in $script:rows.Values) {
-    if (-not $row.Panel.ClientRectangle.Contains($row.ItemCheck.Bounds) -or $row.Status.Left -le $row.ItemCheck.Right) {
-        throw 'Per-process item checkbox is clipped or overlaps status.'
+    if (-not $row.Panel.ClientRectangle.Contains($row.AccountBox.Bounds) -or $row.AccountBox.Left -le $row.RotationButton.Right) {
+        throw 'Subaccount selector is clipped or overlaps rotation button.'
     }
 }
 $screenArea=[System.Windows.Forms.Screen]::FromControl($form).WorkingArea
