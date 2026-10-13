@@ -46,7 +46,7 @@ try {
     Assert-Ui ($stampRow.CurrentStatusText.StartsWith('[10:00:25] ')) 'Item hold exit kept old timestamp.'
 
     $script:stampTime='10:00:26'; Stop-Row $stampRow 'Waiting for game exit.'
-    $script:pendingGameExits[$stampRow.Key]=[pscustomobject]@{Due=36000L}
+    $script:pendingGameExits[$stampRow.Key]=[pscustomobject]@{Due=36000L;Requested=$true}
     Update-RowStatus $stampRow
     $script:stampTime='10:00:27'; $script:schedulerClock.ElapsedMilliseconds=7000
     Update-RowStatus $stampRow

@@ -225,9 +225,12 @@ try {
     Assert-Ui ($script:workerActivations.Count -eq $activationsBefore -and $f.State.FocusRetryAt -eq 6000) 'Configured retry activated too early.'
     Invoke-SchedulerTick 6000; Invoke-SchedulerTick 6200; Invoke-SchedulerTick 6201
     Assert-Ui ($f.State.FocusRetryAt -eq 0 -and $script:workerKeys[-1] -eq "$($f.Process.Id):48") 'Infinite task did not recover/cast.'
-    $script:scheduler.CompletedCycles[$f.Key]=501
+    $script:scheduler.CompletedCycles[$f.Key]=0
+    $fullPlan=New-RotationPlan;$fullPlan.Slots[0].Name='测试角色'
+    $script:rotation.Active[$f.Key]=[pscustomobject]@{Row=$f;Plan=$fullPlan;Index=0;ExcludedNames=@()}
     Close-WorkerGame $f
-    Assert-Ui ($script:pendingGameExits.ContainsKey($f.Key) -and -not $f.State.Running) 'Infinite yellow exit guard did not register.'
+    Assert-Ui ($script:pendingGameExits.ContainsKey($f.Key) -and -not $f.State.Running -and
+        -not $script:rotation.Active.ContainsKey($f.Key)) 'Exhausted Infinite plan did not request exit independently of reel count.'
     $f.Process.FileVersion='12.1.0.69933'
     $killCount=$script:workerKilled.Count
     Invoke-GameExitChecks 31000

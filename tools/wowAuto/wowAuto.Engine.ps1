@@ -119,9 +119,6 @@ function Get-WowAutoCycleCount($Scheduler, [string]$Key) {
     if ($Scheduler.CompletedCycles.ContainsKey($Key)) { return [long]$Scheduler.CompletedCycles[$Key] }
     return 0L
 }
-function Test-WowAutoExitAllowed($Scheduler, [string]$Key) {
-    return (Get-WowAutoCycleCount $Scheduler $Key) -gt 500
-}
 function Remove-WowAutoEvents($Scheduler, [string]$Key) {
     for ($i=$Scheduler.Events.Count-1; $i -ge 0; $i--) {
         if ($Scheduler.Events[$i].Key -eq $Key) { $Scheduler.Events.RemoveAt($i) }
@@ -227,10 +224,7 @@ function Complete-WowAutoPoll($Scheduler, [string]$Key, [long]$Now, [string]$Col
     $state=$Scheduler.Tasks[$Key]
     if ($null -eq $state -or -not $state.Running) { return 'None' }
     if ($Color -eq 'yellow') {
-        $canExit=Test-WowAutoExitAllowed $Scheduler $Key
-        $reason=if ($canExit) { '背包已满且有效循环超过500次，正在请求游戏正常退出。' } else { '背包已满，有效循环未超过500次；保留进程并停止本行。' }
-        Stop-WowAutoTask $Scheduler $Key $reason
-        if ($canExit) { return 'ExitGame' }
+        Stop-WowAutoTask $Scheduler $Key '背包已满，停止当前钓鱼任务。'
         return 'Stop'
     }
     if ($Color -eq 'red') { $state.SawIdle=$true; $state.CheckReelGreen=$false }

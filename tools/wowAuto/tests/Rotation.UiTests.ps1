@@ -177,6 +177,40 @@ try {
         $dialog.Show($form);[System.Windows.Forms.Application]::DoEvents()
         Assert-Ui ($dialog.Tag.Rotation.Value.Value -eq 20 -and $dialog.Tag.Tabs.TabPages.Count -eq 3 -and $dialog.Tag.Tabs.Top -ge 52) 'Global interval missing/covered or settings tabs changed.'
     } finally {$dialog.Dispose()}
+    # Bag-full exclusion is per process and per character, independent of reel count.
+    Stop-AllRows
+    $fishPlans=$script:rotation.Plans.Clone();$fishPlan=Copy-RotationPlan $fishPlans[$a.Key]
+    $fishPlan.Slots[2].Mode='fish';$fishPlans[$a.Key]=$fishPlan
+    Save-RotationConfiguration -Plans $fishPlans
+    $duplicate=Copy-RotationPlan $fishPlan;$duplicate.Slots[2].Name=$duplicate.Slots[0].Name
+    Assert-Ui ((Get-RotationNextSlot $duplicate 0 @($duplicate.Slots[0].Name)) -eq -1) 'Duplicate slots did not exclude the entire full character.'
+    Start-Row $a;Start-Row $b
+    $now=300000L;Complete-RotationTest ([ref]$now)
+    $closedBefore=$script:workerClosed.Count
+    $script:scheduler.CompletedCycles[$a.Key]=501
+    Close-WorkerGame $a
+    Assert-Ui ($script:rotation.Active.ContainsKey($a.Key) -and $script:rotation.Active[$a.Key].Index -eq 2 -and
+        $script:rotation.Active[$a.Key].ExcludedNames -ccontains '双持船橘二咪' -and $script:rotation.Queue.Count -gt 0 -and
+        -not $a.State.Running -and $b.State.Running -and $script:workerClosed.Count -eq $closedBefore -and
+        -not $script:pendingGameExits.ContainsKey($a.Key)) 'One full character closed its process or stopped another row.'
+    Complete-RotationTest ([ref]$now)
+    Assert-Ui ($a.State.Running -and $script:rotation.Active[$a.Key].Index -eq 2 -and
+        (Get-WowAutoCycleCount $script:scheduler $a.Key) -eq 0 -and $script:rotation.Plans[$a.Key].Slots[0].Name -ceq '双持船橘二咪') 'Remaining character did not start or runtime exclusion changed saved plan.'
+    $batchAt=$script:rotation.NextAt;Step-RotationTest $batchAt
+    Assert-Ui ($script:rotation.Active[$a.Key].Index -eq 2) 'Global batch selected the excluded character.'
+    $now=$batchAt+300;Complete-RotationTest ([ref]$now)
+    $script:scheduler.CompletedCycles[$a.Key]=0
+    Close-WorkerGame $a
+    Assert-Ui (-not $script:rotation.Active.ContainsKey($a.Key) -and $script:pendingGameExits.ContainsKey($a.Key) -and
+        $script:workerClosed.Count -eq $closedBefore+1 -and $b.State.Running) 'Final full character did not close only its own process.'
+    Stop-AllRows;Save-RotationConfiguration -Plans $savedPlans
+    # Yellow during post-login validation must also skip that role, not wait until timeout.
+    $now=340000L;Reach-RotationTestPhase $a 'validate' ([ref]$now)
+    $a.Process.ScanColor='yellow'
+    Step-RotationTest $now;$now+=300;Step-RotationTest $now;$now+=300
+    Assert-Ui ($script:rotation.Active.ContainsKey($a.Key) -and $script:rotation.Active[$a.Key].Index -eq 2 -and
+        $script:rotation.Queue.Count -gt 0 -and -not $script:rotation.Current) 'Full bag during validation did not skip to the next role.'
+    $a.Process.ScanColor='red';Stop-AllRows
     $a.Process.StartTime=$a.Process.StartTime.AddSeconds(1);$null=Refresh-ProcessRows
     $replacement=@($script:rows.Values | Where-Object {$_.Process.Id -eq $a.Process.Id})[0]
     Assert-Ui (-not (Test-RowHasRotation $replacement)) 'Reused PID inherited character plan.'

@@ -84,13 +84,9 @@ foreach ($count in @(0,500,501)) {
     Assert-Ui (-not $a.State.Running) 'Yellow did not stop current row.'
     Assert-Ui $b.State.Running 'Yellow affected another row.'
     Assert-Ui (@($script:scheduler.Events | Where-Object { $_.Key -eq $a.Key }).Count -eq 0) 'Yellow left pending events.'
-    if ($count -le 500) {
-        Assert-Ui (-not $a.Process.HasExited -and $script:workerClosed.Count -eq $closedBefore -and -not $a.Validated) 'Low-count yellow terminated game or left it enabled.'
-    }
-    else {
-        Assert-Ui (-not $a.Process.HasExited -and -not $a.Exited -and -not $a.Validated -and $script:workerClosed.Count -eq $closedBefore+1) '501 cycles must request normal exit without claiming immediate termination.'
-    }
+    Assert-Ui (-not $a.Process.HasExited -and $script:workerClosed.Count -eq $closedBefore -and -not $a.Validated -and
+        -not $script:pendingGameExits.ContainsKey($a.Key)) 'Unplanned yellow task closed the game or used reel count.'
 }
 Stop-AllRows
 Assert-Ui ($script:pendingGameExits.Count -eq 0) 'Stop all did not cancel pending exit protection.'
-Write-Output 'PASS: yellow preserves game at 0/500 cycles, requests normal exit at 501, clears only target events, leaves other task running. Close requests mocked.'
+Write-Output 'PASS: unplanned yellow stops only the current task at every reel count; other rows keep running. Close requests mocked.'

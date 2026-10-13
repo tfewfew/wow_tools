@@ -95,8 +95,11 @@ function Import-RotationConfiguration {
         $script:rotation.IntervalSeconds=$n;$script:rotation.OcrIntervalMs=$ocrInterval;$script:rotation.Plans=$plans;$script:rotation.GameDirectories=$roots;$script:rotation.NameHistory=$history;$script:rotation.ConfigReady=$true;$script:rotation.Error=''
     } catch {$script:rotation.ConfigReady=$false;$script:rotation.Error='编排配置读取失败：'+$_.Exception.Message}
 }
-function Get-RotationNextSlot($Plan,[int]$Current) {
-    for ($i=1;$i -le 3;$i++) {$index=($Current+$i)%3;if ($Plan.Slots[$index].Name) {return $index}}
+function Get-RotationNextSlot($Plan,[int]$Current,[string[]]$ExcludedNames=@()) {
+    for ($i=1;$i -le 3;$i++) {
+        $index=($Current+$i)%3;$name=$Plan.Slots[$index].Name
+        if ($name -and $name -cnotin $ExcludedNames) {return $index}
+    }
     return -1
 }
 function Get-RowRotationPlan($Row) {
@@ -107,9 +110,10 @@ function Test-RowHasRotation($Row) {return (Get-RotationNextSlot (Get-RowRotatio
 function Update-RotationRow($Row) {
     if (-not $Row.PSObject.Properties['RotationLabel']) {return}
     $plan=Get-RowRotationPlan $Row
+    $excluded=if ($script:rotation.Active.ContainsKey($Row.Key)) {@($script:rotation.Active[$Row.Key].ExcludedNames)} else {@()}
     $labels=for ($i=0;$i -lt 3;$i++) {
         $slot=$plan.Slots[$i];$mode=if ($slot.Mode -eq 'fight') {'战斗'} else {'钓鱼'}
-        if ($slot.Name) {"槽$($i+1)：$($slot.Name) / $mode"} else {"槽$($i+1)：空"}
+        if ($slot.Name) {"槽$($i+1)：$($slot.Name) / $mode$(if ($slot.Name -cin $excluded) {'（包满跳过）'})"} else {"槽$($i+1)：空"}
     }
     $Row.RotationLabel.Text=($labels -join '    ')
     if ($script:rotation.Active.ContainsKey($Row.Key)) {$Row.RotationLabel.Text+='    当前槽：'+($script:rotation.Active[$Row.Key].Index+1)}
@@ -139,7 +143,7 @@ function Start-RowRotation($Row) {
     $plan=Get-RowRotationPlan $Row;Test-RotationPlan $plan;Test-RowAccountPlan $Row $plan
     $index=Get-RotationNextSlot $plan -1
     Stop-Row $Row '开始角色编排，准备登录第一个有效槽位。' -CancelExit
-    $entry=[pscustomobject]@{Row=$Row;Plan=(Copy-RotationPlan $plan);Index=$index}
+    $entry=[pscustomobject]@{Row=$Row;Plan=(Copy-RotationPlan $plan);Index=$index;ExcludedNames=@()}
     $script:rotation.Active[$Row.Key]=$entry;$script:rotation.Queue.Enqueue($entry)
     if (-not $script:rotation.NextAt -and $script:rotation.IntervalSeconds) {$script:rotation.NextAt=$script:schedulerClock.ElapsedMilliseconds+[long]$script:rotation.IntervalSeconds*1000}
     Update-RotationRow $Row
@@ -149,10 +153,27 @@ function Begin-RotationBatch([long]$Now) {
     $entries=@($script:rotation.Active.Values | Sort-Object {$_.Row.Process.Id})
     foreach ($entry in $entries) {
         Stop-Row $entry.Row '全局轮换到期，停止动作并切换下一角色。' -CancelExit -KeepRotation
-        $entry.Index=Get-RotationNextSlot $entry.Plan $entry.Index
+        $entry.Index=Get-RotationNextSlot $entry.Plan $entry.Index $entry.ExcludedNames
         $script:rotation.Queue.Enqueue($entry);Update-RotationRow $entry.Row
     }
     if ($script:rotation.IntervalSeconds) {$script:rotation.NextAt=$Now+[long]$script:rotation.IntervalSeconds*1000}
+}
+function Exclude-FullRotationRole($Row) {
+    if (-not $script:rotation.Active.ContainsKey($Row.Key)) {return 'NoPlan'}
+    $entry=$script:rotation.Active[$Row.Key]
+    $name=$entry.Plan.Slots[$entry.Index].Name
+    if ($name -cnotin $entry.ExcludedNames) {$entry.ExcludedNames+=,$name}
+    $next=Get-RotationNextSlot $entry.Plan $entry.Index $entry.ExcludedNames
+    if ($next -lt 0) {return 'Exhausted'}
+    Stop-Row $Row ('背包已满：“'+$name+'”已移出本进程轮换，准备切换下一角色。') -KeepRotation
+    if ($script:rotation.Current -and $script:rotation.Current.Row.Key -eq $Row.Key) {
+        $script:rotation.Current=$null;$script:rotation.NextOcrAt=0L
+    }
+    $entry.Index=$next
+    $script:rotation.Queue.Enqueue($entry)
+    Update-RotationRow $Row
+    Set-RowStatusText $Row ('背包已满：“'+$name+'”已跳过，下一角色为“'+$entry.Plan.Slots[$next].Name+'”。')
+    return 'Next'
 }
 function Send-RotationAction($Row,[string]$Action,$Target=$null) {
     Assert-GameActionContext
@@ -328,7 +349,11 @@ function Invoke-RotationTick([long]$Now) {
                 $packet=Read-ScanFightPacket $row
                 if (-not $packet -or $packet.Flavor -ne $row.Client.Flavor) {$work.Due=$Now+300;return $true}
                 $row.FightRow.CanStart=$true;$row.FightRow.ClassId=$packet.ClassId
-            } elseif ((Read-ScanColor $row) -notin @('red','green')) {$work.Due=$Now+300;return $true}
+            } else {
+                $color=Read-ScanColor $row
+                if ($color -eq 'yellow') {Close-WorkerGame $row;return $true}
+                if ($color -notin @('red','green')) {$work.Due=$Now+300;return $true}
+            }
             $row.Validated=$true
             foreach ($table in @($script:scheduler.CompletedCycles,$script:scheduler.CyclesSinceJump)) {if ($null -ne $table) {$table.Remove($row.Key)}}
             Start-Row $row -TaskOnly

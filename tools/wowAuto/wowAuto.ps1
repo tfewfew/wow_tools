@@ -1207,8 +1207,11 @@ function Update-RowStatus($Row) {
         # Track state transitions and new deadlines, excluding the live countdown text.
         $statusKey="$text|$($Row.State.Mode)|$($Row.State.Deadline)|$($Row.State.FocusRetryAt)|$($Row.State.ReelDelayMs)"
         if ($script:pendingGameExits.ContainsKey($Row.Key)) {
-            $left=[Math]::Max(0,$script:pendingGameExits[$Row.Key].Due-$script:schedulerClock.ElapsedMilliseconds)
-            $text += "`r`n退出超时保护：剩余 $left ms；停止可取消。"
+            $exit=$script:pendingGameExits[$Row.Key]
+            if ($exit.Requested) {
+                $left=[Math]::Max(0,$exit.Due-$script:schedulerClock.ElapsedMilliseconds)
+                $text += "`r`n退出超时保护：剩余 $left ms；停止可取消。"
+            } else {$text += "`r`n正在排队请求游戏正常退出；停止可取消。"}
         }
         if ($Row.State.Running -and $Row.State.FocusRetryAt -gt 0) {
             $left=[Math]::Max(0,$Row.State.FocusRetryAt-$script:schedulerClock.ElapsedMilliseconds)
@@ -1627,53 +1630,51 @@ function Send-WorkerKey($Row, [string]$Action) {
     return [WowAuto.NativeInput]::PressChord($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath, [System.UInt16]$Number, $binding.Ctrl, $binding.Shift, $binding.Alt)
 }
 function Close-WorkerGame($Row) {
-    $cycles=Get-WowAutoCycleCount $script:scheduler $Row.Key
+    $result=Exclude-FullRotationRole $Row
+    if ($result -eq 'Next') {return}
     $Row.Validated=$false
-    if (-not (Test-WowAutoExitAllowed $script:scheduler $Row.Key)) {
-        Stop-Row $Row "背包已满：有效循环 $cycles 次，未超过500次；保留进程，停止本行。"
+    if ($result -eq 'NoPlan') {
+        Stop-Row $Row '背包已满：没有角色编排，保留进程并停止本行。'
         return
     }
-    Stop-Row $Row '背包已满，停止动作并排队请求正常退出。'
-    Add-GameAction -Id ('close:'+$Row.Key) -Kind Process.Close -Domain Process -Key $Row.Key -Row $Row -Due $script:schedulerClock.ElapsedMilliseconds -Execute {
+    $exit=[pscustomobject]@{Process=$Row.Process;StartTime=$Row.StartTime;Row=$Row;
+        Due=0L;NextCheck=0L;Requested=$false}
+    $script:pendingGameExits[$Row.Key]=$exit
+    Stop-Row $Row '该进程所有编排角色背包已满，停止任务并请求游戏正常退出。'
+    Add-GameAction -Id ('close:'+$Row.Key) -Kind Process.Close -Domain Process -Key $Row.Key -Row $Row -Owner $exit -Due $script:schedulerClock.ElapsedMilliseconds -Execute {
         param($event,$now) Invoke-CloseWorkerGame $event.Row
     }
     if ($UiTest -and -not $script:gameActions.Current) {Invoke-GameActionQueue $script:schedulerClock.ElapsedMilliseconds}
 }
 function Invoke-CloseWorkerGame($Row) {
     Assert-GameActionContext
-    $cycles=Get-WowAutoCycleCount $script:scheduler $Row.Key
+    $exit=$script:pendingGameExits[$Row.Key]
+    if (-not $exit -or $exit.Requested) {return}
     $Row.Validated=$false
-    if (-not (Test-WowAutoExitAllowed $script:scheduler $Row.Key)) {
-        Stop-Row $Row "背包已满：有效循环 $cycles 次，未超过500次；保留进程，停止本行。"
-        return
-    }
-    Stop-Row $Row "背包已满：有效循环 $cycles 次，已停止本行，正在请求游戏正常退出。"
     try {
         $Row.Process.Refresh()
         if ($Row.Process.HasExited) {
+            $script:pendingGameExits.Remove($Row.Key)
             $Row.Exited=$true
-            Stop-Row $Row "背包已满：有效循环 $cycles 次，游戏进程已退出。"
+            Stop-Row $Row '所有编排角色背包已满，游戏进程已退出。'
             return
         }
         if (-not (Test-RowProcessIdentity $Row)) {
             throw '进程身份已改变，未发送退出请求。'
         }
-        if ($script:pendingGameExits.ContainsKey($Row.Key)) { return }
-        $script:pendingGameExits[$Row.Key]=[pscustomobject]@{
-            Process=$Row.Process; StartTime=$Row.StartTime; Row=$Row
-            Due=$script:schedulerClock.ElapsedMilliseconds+30000; NextCheck=0L
-        }
+        $exit.Requested=$true;$exit.Due=$script:schedulerClock.ElapsedMilliseconds+30000;$exit.NextCheck=0L
         if ($UiTest) { $script:workerClosed += $Row.Process.Id; $requested=$true }
         else { $requested=$Row.Process.CloseMainWindow() }
         if (-not $requested) { throw '游戏窗口未接受正常关闭请求，30秒后检查并强制结束。' }
-        Stop-Row $Row "背包已满：有效循环 $cycles 次，已发送正常退出请求，等待游戏完成退出；30秒超时后强制结束。"
+        Stop-Row $Row '所有编排角色背包已满：已发送正常退出请求，等待游戏完成退出；30秒超时后强制结束。'
     }
     catch {
-        Stop-Row $Row ("背包已满：有效循环 $cycles 次，正常退出请求失败；本行已停止。"+$_.Exception.Message)
+        if (-not $exit.Requested) {$script:pendingGameExits.Remove($Row.Key)}
+        Stop-Row $Row ('所有编排角色背包已满：正常退出请求失败；本行已停止。'+$_.Exception.Message)
     }
     finally {
-        if ($script:pendingGameExits.ContainsKey($Row.Key)) {
-            $script:pendingGameExits[$Row.Key].Due=$script:schedulerClock.ElapsedMilliseconds+30000
+        if ($exit.Requested -and [object]::ReferenceEquals($script:pendingGameExits[$Row.Key],$exit)) {
+            $exit.Due=$script:schedulerClock.ElapsedMilliseconds+30000
         }
     }
 }
@@ -1687,6 +1688,7 @@ function Invoke-GameExitChecks([long]$Now,[string]$OnlyKey='') {
     foreach ($key in @($script:pendingGameExits.Keys)) {
         if ($OnlyKey -and $key -ne $OnlyKey) {continue}
         $exit=$script:pendingGameExits[$key]
+        if (-not $exit.Requested) {continue}
         if ($Now -lt $exit.NextCheck -and $Now -lt $exit.Due) { continue }
         $exit.NextCheck=$Now+500
         try {

@@ -22,7 +22,7 @@ try {
     Set-RowStatusText $b 'independent-history'
     Assert-Ui ($b.StatusHistory.Count -eq 1 -and ($a.StatusHistory -join '|') -ceq $stableHistory) 'Another process changed this process history.'
     $audioCheck.Checked=$true
-    foreach($row in @($a,$b)) {$row.Validated=$true; $row.Exited=$false; $row.Process.HasExited=$false; $row.ItemCheck.Checked=$false}
+    foreach($row in @($a,$b)) {$row.Validated=$true; $row.Exited=$false; $row.Process.HasExited=$false; $row.SlotUseItem=$false}
     Start-Row $a; $a.State.AudioReady=$true
     $null=Complete-WowAutoPoll $script:scheduler $a.Key 1000 'green'
     Update-RowStatus $a

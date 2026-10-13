@@ -84,7 +84,8 @@ function Test-GameActionValid($Event) {
         'Scan' {return $script:scanning -and $script:scanGeneration -eq $Event.Owner -and $script:scanIndex -eq $Event.Data.Index -and $script:scanPhase -eq $Event.Data.Phase}
         'Restore' {return -not $script:scanning -and $script:scanGeneration -eq $Event.Owner}
         'Process' {
-            if ($Event.Kind -eq 'Process.Close') {return [object]::ReferenceEquals($script:rows[$Event.Key],$Event.Row)}
+            if ($Event.Kind -eq 'Process.Close') {return [object]::ReferenceEquals($script:rows[$Event.Key],$Event.Row) -and
+                [object]::ReferenceEquals($script:pendingGameExits[$Event.Key],$Event.Owner)}
             return [object]::ReferenceEquals($script:pendingGameExits[$Event.Key],$Event.Owner)
         }
     }
@@ -264,6 +265,7 @@ function Submit-RefreshAction([long]$Now,[long]$ScanNow=-1) {
 function Submit-GameExitActions([long]$Now) {
     foreach ($key in @($script:pendingGameExits.Keys)) {
         $exit=$script:pendingGameExits[$key]
+        if (-not $exit.Requested) {continue}
         $kind=if ($Now -ge $exit.Due) {'Process.Kill'} else {'Process.Observe'}
         Add-GameAction -Id ('exit:'+$key) -Kind $kind -Domain Process -Key $key -Row $exit.Row -Owner $exit -Due ([Math]::Min($exit.NextCheck,$exit.Due)) -Execute {
             param($event,$now) Invoke-GameExitChecks $now -OnlyKey $event.Key

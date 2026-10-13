@@ -53,7 +53,7 @@ $null=Complete-WowAutoPoll $q 'A' 100 'green'
 Stop-WowAutoTask $q 'A'
 $fresh=Add-WowAutoTask $q 'A' 8000 13000 110
 Assert-Equal (Get-WowAutoWork $q 200).Kind 'Poll' 'Restart cannot inherit old timer'
-Assert-Equal (Complete-WowAutoPoll $q 'A' 200 'yellow') 'Stop' 'Low-count yellow preserves process'
+Assert-Equal (Complete-WowAutoPoll $q 'A' 200 'yellow') 'Stop' 'Yellow always stops the current fishing task'
 Assert-Equal $fresh.Running $false 'Yellow clears running state'
 $x=Add-WowAutoTask $q 'X' 100 100 0
 $y=Add-WowAutoTask $q 'Y' 100 100 0
@@ -72,10 +72,8 @@ Assert-Equal (Get-WowAutoCycleCount $q 'Y') 1 'Successful retry counts once'
 Stop-WowAutoTask $q 'Y'
 $null=Add-WowAutoTask $q 'Y' 100 100 200
 Assert-Equal (Get-WowAutoCycleCount $q 'Y') 1 'Stop and restart retain process count'
-foreach ($count in @(0,499,500,501)) {
-    $q.CompletedCycles['Y']=$count
-    Assert-Equal (Test-WowAutoExitAllowed $q 'Y') ($count -gt 500) 'Strict greater-than threshold'
-}
+$q.CompletedCycles['Y']=501
+Assert-Equal (Complete-WowAutoPoll $q 'Y' 250 'yellow') 'Stop' 'Yellow never exits based on reel count'
 Assert-Equal (Get-WowAutoCycleCount $q 'new-process-identity') 0 'New process starts at zero'
 $previous=-1
 $itemQueue=New-WowAutoScheduler
