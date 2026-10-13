@@ -1,18 +1,29 @@
-﻿param([string]$SampleDirectory,[string]$ImagePath)
+﻿param([string]$SampleDirectory,[string]$ImagePath,[switch]$Generated)
 $ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.Drawing
 $tool=Split-Path $PSScriptRoot -Parent
 Add-Type -Path (Join-Path $tool 'wowAuto.Rotation.Native.cs') -ReferencedAssemblies System.Drawing
 $parseTokens=$null;$parseErrors=$null
 $ast=[System.Management.Automation.Language.Parser]::ParseFile((Join-Path $tool 'wowAuto.Rotation.ps1'),[ref]$parseTokens,[ref]$parseErrors)
-foreach ($name in @('New-RotationPlan','ConvertFrom-RotationOcr')) {
+foreach ($name in @('New-RotationPlan','Resolve-RotationOcrName','ConvertFrom-RotationOcr')) {
     $fn=$ast.Find({param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name},$true)
     if (-not $fn) {throw 'OCR classifier function missing.'}
     Invoke-Expression $fn.Extent.Text
 }
 $plan=New-RotationPlan;$plan.Slots[0].Name='双持船橘二咪';$plan.Slots[1].Name='咆史呀嘞'
+$oneError=Resolve-RotationOcrName '咆史呀嘞' @('吔史呀嘞')
+$twoErrors=Resolve-RotationOcrName '咆史呀吼' @('吔史呀嘞')
+$shortName=Resolve-RotationOcrName '史呀嘞' @('吔史呀嘞')
+$ambiguous=Resolve-RotationOcrName '咆史呀嘞' @('吔史呀嘞','咆史呀嘞')
+if ($oneError.Name -cne '吔史呀嘞' -or $oneError.Ambiguous -or $twoErrors.Name -cne '咆史呀吼' -or
+    $shortName.Name -cne '史呀嘞' -or -not $ambiguous.Ambiguous) {throw 'N-1 OCR name matching accepted a wrong length, two errors, or an ambiguous name.'}
+$ambiguousPlan=New-RotationPlan;$ambiguousPlan.Slots[0].Name='吔史呀嘞';$ambiguousPlan.Slots[1].Name='咆史呀嘞'
+$fakeOcr=[pscustomobject]@{Lines=@([pscustomobject]@{Text='选择服务器';X=0.86;Y=0.08},[pscustomobject]@{Text='进入魔兽世界';X=0.45;Y=0.91});
+    Names=@([pscustomobject]@{Text='咆史呀嘞';X=0.20;Y=0.40;W=0.10;H=0.03});NamesBounds=[pscustomobject]@{X=0.79;Y=0;W=0.21;H=0.84}}
+$ambiguousScreen=ConvertFrom-RotationOcr $fakeOcr $ambiguousPlan
+if ($ambiguousScreen.Kind -ne 'menu' -or @($ambiguousScreen.Targets | Where-Object {-not $_.Ambiguous}).Count) {throw 'Ambiguous OCR text could become a selectable target.'}
 $source=[IO.File]::ReadAllText((Join-Path $tool 'wowAuto.Rotation.Ocr.ps1'))
-function Read-TestImage($Bitmap) {
+function Read-TestOcr($Bitmap) {
     $pipeline=[powershell]::Create()
     try {
         $null=$pipeline.AddScript($source).AddArgument([WowAutoRotation.Native]::Png($Bitmap))
@@ -20,9 +31,26 @@ function Read-TestImage($Bitmap) {
         while (-not $async.IsCompleted) {if ($watch.ElapsedMilliseconds -gt 10000) {throw 'OCR exceeded test timeout.'};Start-Sleep -Milliseconds 25}
         $result=$pipeline.EndInvoke($async)
         if ($pipeline.Streams.Error.Count) {throw $pipeline.Streams.Error[0].ToString()}
-        ConvertFrom-RotationOcr ($result[0] | ConvertFrom-Json) $plan
+        return ($result[0] | ConvertFrom-Json)
     } finally {$pipeline.Stop();$pipeline.Dispose()}
 }
+function Read-TestImage($Bitmap) {ConvertFrom-RotationOcr (Read-TestOcr $Bitmap) $plan}
+function Assert-ScreenshotOcr($Ocr,$Screen,[double]$Scale) {
+    $server=@($Ocr.Lines | Where-Object {$_.Text -match '^[0一_—\-口□]*选择服务器[一_—\-口□]*$' -and $_.X -gt 0.65 -and $_.Y -lt 0.15})
+    $enter=@($Ocr.Lines | Where-Object {$_.Text -match '^[0一_—\-口□]*进入魔兽世界[一_—\-口□]*$' -and $_.X -gt 0.25 -and $_.X -lt 0.70 -and $_.Y -gt 0.85})
+    if (-not $server.Count -or -not $enter.Count) {
+        $candidates=@($Ocr.Lines | Where-Object {($_.X -gt 0.65 -and $_.Y -lt 0.15) -or ($_.X -gt 0.25 -and $_.X -lt 0.70 -and $_.Y -gt 0.85)} | ForEach-Object {$_.Text})
+        throw ('Screenshot button anchors were not recognized at scale '+$Scale+': '+($candidates -join '|'))
+    }
+    $first=@($Screen.Targets | Where-Object {$_.Name -ceq '双持船橘二咪' -and -not $_.Ambiguous})
+    $second=@($Screen.Targets | Where-Object {$_.Name -ceq '吔史呀嘞' -and -not $_.Ambiguous})
+    # The 0.67x downsample drops source glyph pixels; it must remain fail-closed.
+    $expectedSecond=if ($Scale -eq 0.67) {0} else {1}
+    if ($Screen.Kind -ne 'menu' -or $first.Count -ne 1 -or $second.Count -ne $expectedSecond) {
+        throw ('Screenshot character names were not recognized at scale '+$Scale+': '+($Screen | ConvertTo-Json -Depth 4 -Compress))
+    }
+}
+if (-not $ImagePath -and -not $SampleDirectory -and -not $Generated) {$ImagePath=Join-Path $PSScriptRoot 'fixtures/titan-character-select-20261014.png'}
 if ($ImagePath) {
     $plan.Slots[1].Name='吔史呀嘞'
     $original=New-Object Drawing.Bitmap($ImagePath)
@@ -30,9 +58,10 @@ if ($ImagePath) {
         foreach ($scale in @(1.0,0.67,1.5)) {
             $bitmap=New-Object Drawing.Bitmap($original,(New-Object Drawing.Size([int]($original.Width*$scale),[int]($original.Height*$scale))))
             try {
-                $screen=Read-TestImage $bitmap
-                if ($screen.Kind -ne 'menu' -or -not @($screen.Targets | Where-Object {$_.Name -ceq '双持船橘二咪'}).Count) {throw ('Attached screenshot did not match anchors/names: '+($screen | ConvertTo-Json -Depth 4 -Compress))}
-                Write-Output ('PASS: attached menu screenshot at scale '+$scale+' matches both button anchors and exact name.')
+                $ocr=Read-TestOcr $bitmap;$screen=ConvertFrom-RotationOcr $ocr $plan
+                Assert-ScreenshotOcr $ocr $screen $scale
+                $status=if ($scale -eq 0.67) {'unreadable second name safely withheld'} else {'both names resolved'}
+                Write-Output ('PASS: attached menu screenshot at scale '+$scale+' matches both button anchors; '+$status+'.')
             } finally {$bitmap.Dispose()}
         }
     } finally {$original.Dispose()}

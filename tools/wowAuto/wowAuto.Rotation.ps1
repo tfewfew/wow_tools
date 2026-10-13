@@ -176,6 +176,19 @@ function Stop-RotationOcr {
     $work=$script:rotation.OcrWork;$script:rotation.OcrWork=$null;$script:rotation.NextOcrAt=0L
     if ($work) {try {$work.Pipeline.Stop()} finally {$work.Pipeline.Dispose()}}
 }
+function Resolve-RotationOcrName([string]$Text,[string[]]$Configured) {
+    # OCR may misread one glyph. Keep the text length and every other position exact.
+    $matches=@(foreach ($name in $Configured) {
+        if ($Text.Length -ne $name.Length -or $name.Length -lt 2) {continue}
+        $different=0
+        for ($i=0;$i -lt $name.Length;$i++) {
+            if ($Text[$i] -cne $name[$i]) {$different++;if ($different -gt 1) {break}}
+        }
+        if ($different -le 1) {$name}
+    })
+    if ($matches.Count -eq 1) {return [pscustomobject]@{Name=$matches[0];Ambiguous=$false}}
+    return [pscustomobject]@{Name=$Text;Ambiguous=($matches.Count -gt 1)}
+}
 function ConvertFrom-RotationOcr($Ocr,$Plan,[switch]$MenuWasConfirmed) {
     $configured=@($Plan.Slots | Where-Object {$_.Name} | ForEach-Object {$_.Name} | Select-Object -Unique)
     $bounds=if ($Ocr.PSObject.Properties['NamesBounds'] -and $Ocr.NamesBounds) {$Ocr.NamesBounds} else {[pscustomobject]@{X=0.79;Y=0;W=0.21;H=0.84}}
@@ -186,12 +199,16 @@ function ConvertFrom-RotationOcr($Ocr,$Plan,[switch]$MenuWasConfirmed) {
     $targets=@(foreach ($line in $Ocr.Names) {
         $y=$bounds.Y+$line.Y*$bounds.H
         if ($y -lt 0.08 -or $y -gt 0.80 -or ($y -lt 0.15 -and $line.Text -eq '选择服务器') -or $line.Text -notmatch '^[\p{L}\p{M}]+$') {continue}
-        [pscustomobject]@{Name=$line.Text;X=($bounds.X+$bounds.W*($line.X+$line.W/2));Y=($y+$bounds.H*$line.H/2)}
+        $match=Resolve-RotationOcrName $line.Text $configured
+        [pscustomobject]@{Name=$match.Name;Ambiguous=$match.Ambiguous;X=($bounds.X+$bounds.W*($line.X+$line.W/2));Y=($y+$bounds.H*$line.H/2)}
     })
-    # The normal pass can recover names whose font is not yellow. Never fuzzy-match.
+    # The normal pass can recover names that yellow-text preprocessing misread twice.
     foreach ($line in $Ocr.Lines) {
-        if ($line.X -gt $bounds.X -and $line.Y -gt 0.08 -and $line.Y -lt 0.80 -and $line.Text -cin $configured -and $line.Text -cnotin $targets.Name) {
-            $targets+=,[pscustomobject]@{Name=$line.Text;X=($line.X+$line.W/2);Y=($line.Y+$line.H/2)}
+        if ($line.X -gt $bounds.X -and $line.Y -gt 0.08 -and $line.Y -lt 0.80) {
+            $match=Resolve-RotationOcrName $line.Text $configured
+            if (-not $match.Ambiguous -and $match.Name -cin $configured -and $match.Name -cnotin $targets.Name) {
+                $targets+=,[pscustomobject]@{Name=$match.Name;Ambiguous=$false;X=($line.X+$line.W/2);Y=($line.Y+$line.H/2)}
+            }
         }
     }
     if ($server -and $enter -and $targets.Count) {
@@ -335,7 +352,7 @@ function Invoke-RotationTick([long]$Now) {
             }
             'find' {
                 if ($screen.Kind -ne 'menu') {$work.Stable=0;Set-RowStatusText $row '选角锚点未完整识别，等待重新识别。';break}
-                $targets=@($screen.Targets | Where-Object {$_.Name -ceq $name})
+                $targets=@($screen.Targets | Where-Object {$_.Name -ceq $name -and -not $_.Ambiguous})
                 if ($targets.Count -gt 1) {throw '列表出现多个相同名称，未双击。'}
                 if ($targets.Count -eq 1) {
                     $target=$targets[0]
