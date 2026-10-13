@@ -122,11 +122,19 @@ function Invoke-GameActionQueue([long]$Now,[switch]$SafetyOnly) {
             $script:gameActions.Focus=$null;$focus=$null
         }
         $held=Test-GameActionHold $Now
+        # A rotation batch owns the foreground through every process's selection and
+        # login. A row that finishes early may run, but its queued input must wait.
+        $rotationBusy=$script:rotation -and ($script:rotation.Current -or $script:rotation.Queue.Count -gt 0)
+        if ($rotationBusy -and $focus -and $focus.Domain -notin @('Rotation','Safety','Hold','Process')) {
+            $focus.ReadyAt=0L;$focus.FocusUntil=0L
+            $script:gameActions.Focus=$null;$focus=$null
+        }
         $eligible=@($script:gameActions.Events | Where-Object {
             $_.Due -le $Now -and (-not $deferred.ContainsKey($_.Sequence) -or $Now -ge $deferred[$_.Sequence]) -and
             (-not $SafetyOnly -or $_.Domain -eq 'Safety') -and
             (-not $held -or $_.Domain -in @('Safety','Hold')) -and
             (-not $script:editingSettings -or $_.Domain -eq 'Safety') -and
+            (-not $rotationBusy -or $_.Domain -in @('Rotation','Safety','Hold','Process')) -and
             (-not $focus -or $_ -eq $focus -or -not (Test-GameActionUsesFocus $_) -or $_.Priority -lt $focus.Priority)
         } | Sort-Object Priority,Due,Sequence)
         if (-not $eligible.Count) {return}

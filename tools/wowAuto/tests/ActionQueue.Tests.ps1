@@ -4,7 +4,7 @@ function Assert-Queue($Condition,[string]$Message) {if (-not $Condition) {throw 
 function Reset-TestQueue {
     Initialize-GameActionQueue (Join-Path $PSScriptRoot '..\action-priorities.json')
     $script:scheduler=[pscustomobject]@{ReelHoldUntil=0L;ItemHoldUntil=0L;Tasks=@{};Events=@()}
-    $script:autoFight=$null;$script:editingSettings=$false;$script:seen=New-Object Collections.ArrayList
+    $script:autoFight=$null;$script:rotation=$null;$script:editingSettings=$false;$script:seen=New-Object Collections.ArrayList
     $script:schedulerClock=[pscustomobject]@{ElapsedMilliseconds=0L}
     $script:testFocus='';$script:activations=0;$script:stopped=0
 }
@@ -160,4 +160,37 @@ try {
     Assert-Queue (($script:seen -join ',') -eq 'a,b') 'Second combat command did not resume at its deadline.'
 } finally {${function:Test-GameActionHold}=$savedHold;$script:autoFight=$null}
 
-Write-Output 'PASS: draining due work, callback enqueue/reprioritization, clock refresh, new holds, combat gate, shared priority/deadline/FIFO queue, deduplication, cancellation, holds, safety release, focus preemption and process identity. Inert callbacks only.'
+Reset-TestQueue
+$other=New-TestRow other
+Add-GameAction -Id other-input -Kind Fight.Combat -Domain Test -Key other -Row $other -Due 0 -Foreground $true -Execute {
+    param($event,$now) [void]$script:seen.Add('other-input')
+}
+Invoke-GameActionQueue 0
+Assert-Queue ($script:activations -eq 1 -and $script:gameActions.Focus) 'Foreground activation fixture did not start.'
+$script:rotation=[pscustomobject]@{Current=$null;Queue=(New-Object Collections.Queue)}
+$script:rotation.Queue.Enqueue('first');$script:rotation.Queue.Enqueue('second')
+Add-GameAction -Id release -Kind Safety.Release -Domain Safety -Due 50 -Execute {
+    param($event,$now) [void]$script:seen.Add('release')
+}
+Add-GameAction -Id rotation -Kind Rotation.Activate -Domain Rotation -Due 50 -Execute {
+    param($event,$now) [void]$script:seen.Add([string]$script:rotation.Queue.Dequeue());$script:testFocus='rotation'
+}
+Invoke-GameActionQueue 50
+Assert-Queue (($script:seen -join ',') -eq 'release,first' -and $script:rotation.Queue.Count -eq 1 -and
+    $script:activations -eq 1 -and -not $script:gameActions.Focus) 'Rotation did not displace a pending nonrotation activation or keep the next process exclusive.'
+Add-GameAction -Id rotation -Kind Rotation.Activate -Domain Rotation -Due 100 -Execute {
+    param($event,$now) [void]$script:seen.Add([string]$script:rotation.Queue.Dequeue());$script:testFocus='rotation'
+    $script:rotation.Current=[pscustomobject]@{Phase='login'}
+}
+Invoke-GameActionQueue 100
+Assert-Queue (($script:seen -join ',') -eq 'release,first,second' -and $script:activations -eq 1 -and
+    $script:rotation.Queue.Count -eq 0 -and $script:rotation.Current) 'Other input ran while the last selected role was still logging in.'
+$script:rotation.Current=$null
+Invoke-GameActionQueue 100
+Assert-Queue ($script:activations -eq 2 -and $script:gameActions.Focus) 'Queued input did not resume after all role logins completed.'
+Invoke-GameActionQueue 299
+Assert-Queue ($script:seen.Count -eq 3) 'Resumed input skipped its fresh foreground settle delay.'
+Invoke-GameActionQueue 300
+Assert-Queue (($script:seen -join ',') -eq 'release,first,second,other-input') 'Queued input was lost after rotation completed.'
+
+Write-Output 'PASS: draining due work, callback enqueue/reprioritization, clock refresh, new holds, combat gate, shared priority/deadline/FIFO queue, deduplication, cancellation, holds, safety release, rotation foreground exclusivity, focus preemption and process identity. Inert callbacks only.'
