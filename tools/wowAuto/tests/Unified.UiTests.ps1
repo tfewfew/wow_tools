@@ -70,7 +70,7 @@ try {
     Assert-Ui (-not $combat.Validated -and -not @($script:detectorCommands | Where-Object {$_.Key -eq $combat.Key}).Count) 'Focus failure still sent command.'
     $combat.Process.FocusAllowed=$true
     Begin-RefreshScan; Complete-TestScan
-    # A due fishing reel has priority; both post-reel holds and combat holds retain focus.
+    # Due combat precedes a fishing reel; activation settling and post-reel holds still apply.
     Stop-AllRows; $audioCheck.Checked=$false
     $script:scheduler=New-WowAutoScheduler
     $script:autoFight.CommandGate=New-AutoFightCommandGate
@@ -85,11 +85,18 @@ try {
     $script:schedulerClock.ElapsedMilliseconds=1000
     $sends=[WowAutoFight.Native]::Sends; $keys=$script:workerKeys.Count
     Invoke-UnifiedTick 1000
-    Assert-Ui ([WowAutoFight.Native]::Sends -eq $sends -and $script:workerKeys.Count -eq $keys+1 -and $script:workerKeys[-1] -eq "$($fishing.Process.Id):$($script:keyBindings.Reel.Code)") 'Combat preempted due fishing reel.'
-    $script:schedulerClock.ElapsedMilliseconds=1001; Invoke-UnifiedTick 1001
-    Assert-Ui ([WowAutoFight.Native]::Sends -eq $sends) 'Combat stole post-reel foreground hold.'
-    $script:schedulerClock.ElapsedMilliseconds=1250; Invoke-UnifiedTick 1250
-    Assert-Ui ([WowAutoFight.Native]::Sends -eq $sends+1 -and (Get-WowAutoCycleCount $script:scheduler $fishing.Key) -eq 1) 'Combat starved or fishing cycle state changed.'
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $sends -and $script:workerKeys.Count -eq $keys -and $script:workerFocus -eq $combat.Process.Id) 'Due combat did not take priority over reel or skipped activation settling.'
+    $script:schedulerClock.ElapsedMilliseconds=1199; Invoke-UnifiedTick 1199
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $sends -and $script:workerKeys.Count -eq $keys) 'Input preceded activation settling.'
+    $script:schedulerClock.ElapsedMilliseconds=1200; Invoke-UnifiedTick 1200
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $sends+1 -and $script:workerKeys.Count -eq $keys) 'Combat did not execute before due reel.'
+    $script:schedulerClock.ElapsedMilliseconds=1225; Invoke-UnifiedTick 1225
+    $script:schedulerClock.ElapsedMilliseconds=1424; Invoke-UnifiedTick 1424
+    Assert-Ui ($script:workerKeys.Count -eq $keys) 'Reel skipped its resumed activation settling.'
+    $script:schedulerClock.ElapsedMilliseconds=1425; Invoke-UnifiedTick 1425
+    Assert-Ui ($script:workerKeys.Count -eq $keys+1 -and $script:workerKeys[-1] -eq "$($fishing.Process.Id):$($script:keyBindings.Reel.Code)" -and (Get-WowAutoCycleCount $script:scheduler $fishing.Key) -eq 1) 'Due reel was lost after combat or cycle state changed.'
+    $script:schedulerClock.ElapsedMilliseconds=1426; Invoke-UnifiedTick 1426
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $sends+1 -and $script:workerFocus -eq $fishing.Process.Id) 'Combat stole post-reel foreground hold.'
     Stop-AllRows
     $script:editingSettings=$true
     $dialog=New-UnifiedSettingsDialog
