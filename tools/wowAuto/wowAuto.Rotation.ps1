@@ -179,7 +179,8 @@ function Exclude-FullRotationRole($Row) {
 }
 function Send-RotationAction($Row,[string]$Action,$Target=$null) {
     Assert-GameActionContext
-    if (-not (Test-RowProcessIdentity $Row) -or $Row.Process.HasExited -or -not (Test-WorkerForeground $Row)) {throw '角色切换期间进程身份或前台已变化。'}
+    if (-not (Test-RowProcessIdentity $Row) -or $Row.Process.HasExited) {throw '角色切换期间进程身份已变化。'}
+    if (-not (Test-WorkerForeground $Row)) {throw '角色切换窗口暂时失去前台。'}
     if ($UiTest) {$script:rotation.Actions+=,[pscustomobject]@{Key=$Row.Key;Action=$Action;Target=$Target};return $true}
     switch ($Action) {
         'logout' {$sent=[WowAuto.NativeInput]::SendRotationCommand($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,'logout',0)}
@@ -291,7 +292,7 @@ function Invoke-RotationTick([long]$Now) {
             $entry=if ($logout) {$script:rotation.LogoutQueue.Dequeue()} else {$script:rotation.Queue.Dequeue()}
             if ($script:rotation.Active[$entry.Row.Key] -ne $entry) {continue}
             $phase=if ($logout) {'logout-activate'} else {'activate'}
-            $script:rotation.Current=[pscustomobject]@{Entry=$entry;Row=$entry.Row;Phase=$phase;Due=$Now;Deadline=($Now+180000);
+            $script:rotation.Current=[pscustomobject]@{Entry=$entry;Row=$entry.Row;Phase=$phase;Due=$Now;Deadline=($Now+180000);FocusUntil=0L;
                 Stable=0;LastLogout=$entry.LastLogout;Candidate=$null;Pages=0;Signature='';Repeated=0;MonitorEnabled=$false}
             $script:rotation.NextOcrAt=0L
             break
@@ -306,11 +307,23 @@ function Invoke-RotationTick([long]$Now) {
         if ($Now -ge $work.Deadline) {throw '角色切换超过180秒；检查战斗、登录及OCR识别后手动开始。'}
         if ($script:autoFight -and ($script:autoFight.ActiveHold -or [WowAutoFight.Native]::IsHolding)) {if (-not (Release-AutoFightHold)) {return $true}}
         if ($work.Phase -in @('logout-activate','activate')) {
-            if (-not (Activate-ScanRow $row)) {throw '无法激活角色切换窗口。'}
+            if (-not (Activate-ScanRow $row)) {
+                if (-not $work.FocusUntil) {$work.FocusUntil=$Now+5000}
+                if ($Now -ge $work.FocusUntil) {throw '连续5秒无法激活角色切换窗口。'}
+                $work.Due=[Math]::Min($Now+500,$work.FocusUntil);return $true
+            }
             $work.Phase=if ($work.Phase -eq 'logout-activate') {'logout-inspect'} else {'menu'}
             $work.Due=$Now+200;return $true
         }
-        if (-not (Test-WorkerForeground $row)) {throw '角色切换窗口失去前台，已停止本行。'}
+        if (-not (Test-WorkerForeground $row)) {
+            if (-not $work.FocusUntil) {$work.FocusUntil=$Now+5000}
+            if ($Now -ge $work.FocusUntil) {throw '连续5秒未能取得角色切换窗口前台。'}
+            $activated=Activate-ScanRow $row
+            $delay=if ($activated) {200} else {500}
+            $work.Due=[Math]::Min($Now+$delay,$work.FocusUntil)
+            return $true
+        }
+        $work.FocusUntil=0L
         # First issue logout to every queued process. OCR starts only after this queue drains.
         if ($work.Phase -eq 'logout-inspect') {
             if (Test-RowLoginPoint $row) {
@@ -414,6 +427,11 @@ function Invoke-RotationTick([long]$Now) {
         $work.Due=$Now+300
     } catch {
         $reason=$_.Exception.Message
+        if ($reason -eq '角色切换窗口暂时失去前台。') {
+            if (-not $work.FocusUntil) {$work.FocusUntil=$Now+5000}
+            if ($Now -lt $work.FocusUntil) {$work.Due=[Math]::Min($Now+500,$work.FocusUntil);return $true}
+            $reason='连续5秒未能取得角色切换窗口前台。'
+        }
         Stop-Row $row ('角色编排停止：'+$reason) -CancelExit
         $row.Validated=$false;if ($row.FightRow) {$row.FightRow.CanStart=$false}
         $script:rotation.Current=$null

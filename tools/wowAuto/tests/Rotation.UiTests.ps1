@@ -111,7 +111,18 @@ try {
     Step-RotationTest $script:rotation.Current.Deadline 'unknown'
     Assert-Ui (-not $script:rotation.Active.ContainsKey($a.Key) -and -not (Test-UnifiedTaskRunning $a)) 'Timeout restarted work.'
     Start-Row $b;Step-RotationTest 211000;$script:workerFocus=-1;$b.Process.FocusAllowed=$false;Step-RotationTest 211300
-    Assert-Ui (-not $script:rotation.Active.ContainsKey($b.Key)) 'Lost focus did not stop transition.'
+    Assert-Ui ($script:rotation.Active.ContainsKey($b.Key) -and $script:rotation.Current.FocusUntil -eq 216300) 'First failed activation stopped rotation or missed the five-second deadline.'
+    Step-RotationTest 211799
+    Assert-Ui ($script:rotation.Active.ContainsKey($b.Key)) 'Rotation stopped before the next focus retry.'
+    $b.Process.FocusAllowed=$true
+    Step-RotationTest 211800
+    Assert-Ui ($script:rotation.Active.ContainsKey($b.Key) -and $script:rotation.Current.Phase -eq 'logout-inspect') 'Temporary activation failure did not recover.'
+
+    Stop-AllRows;Start-Row $b;Step-RotationTest 212000;$script:workerFocus=-1;$b.Process.FocusAllowed=$false;Step-RotationTest 212300
+    Step-RotationTest 217299
+    Assert-Ui ($script:rotation.Active.ContainsKey($b.Key)) 'Rotation failed before five seconds of focus retries.'
+    Step-RotationTest 217300
+    Assert-Ui (-not $script:rotation.Active.ContainsKey($b.Key)) 'Persistent focus failure did not stop rotation after five seconds.'
     $b.Process.FocusAllowed=$true
     Stop-AllRows;$script:rotation.Actions=@();Start-Row $a;Stop-Row $a;Step-RotationTest 212000
     Assert-Ui (-not $script:rotation.Current -and -not $script:rotation.Actions.Count) 'Stopped queued work still ran.'

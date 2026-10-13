@@ -6,7 +6,7 @@ function Reset-TestQueue {
     $script:scheduler=[pscustomobject]@{ReelHoldUntil=0L;ItemHoldUntil=0L;Tasks=@{};Events=@()}
     $script:autoFight=$null;$script:rotation=$null;$script:editingSettings=$false;$script:seen=New-Object Collections.ArrayList
     $script:schedulerClock=[pscustomobject]@{ElapsedMilliseconds=0L}
-    $script:testFocus='';$script:activations=0;$script:stopped=0
+    $script:testFocus='';$script:activations=0;$script:stopped=0;$script:activateAllowed=$true;$script:focusOnActivate=$true
 }
 function Add-TestAction([string]$Id,[string]$Kind,[long]$Due,$Owner=$null) {
     Add-GameAction -Id $Id -Kind $Kind -Domain Test -Owner $Owner -Due $Due -Execute {
@@ -15,7 +15,7 @@ function Add-TestAction([string]$Id,[string]$Kind,[long]$Due,$Owner=$null) {
 }
 function Test-RowProcessIdentity($Row) {return $Row.Process.SameIdentity}
 function Test-WorkerForeground($Row) {return $script:testFocus -eq $Row.Key}
-function Activate-WorkerRow($Row) {Assert-GameActionContext;$script:activations++;$script:testFocus=$Row.Key;return $true}
+function Activate-WorkerRow($Row) {Assert-GameActionContext;$script:activations++;if (-not $script:activateAllowed) {return $false};if ($script:focusOnActivate) {$script:testFocus=$Row.Key};return $true}
 function Stop-Row($Row,[string]$Reason,[switch]$CancelExit) {$script:stopped++}
 function New-TestRow([string]$Key) {
     $process=[pscustomobject]@{HasExited=$false;SameIdentity=$true}
@@ -193,4 +193,57 @@ Assert-Queue ($script:seen.Count -eq 3) 'Resumed input skipped its fresh foregro
 Invoke-GameActionQueue 300
 Assert-Queue (($script:seen -join ',') -eq 'release,first,second,other-input') 'Queued input was lost after rotation completed.'
 
-Write-Output 'PASS: draining due work, callback enqueue/reprioritization, clock refresh, new holds, combat gate, shared priority/deadline/FIFO queue, deduplication, cancellation, holds, safety release, rotation foreground exclusivity, focus preemption and process identity. Inert callbacks only.'
+Reset-TestQueue
+$row=New-TestRow rotation
+$entry=[pscustomobject]@{Row=$row}
+$work=[pscustomobject]@{Entry=$entry;Phase='menu';FocusUntil=0L}
+$script:rotation=[pscustomobject]@{Current=$work;Active=@{rotation=$entry};LogoutQueue=(New-Object Collections.Queue);Queue=(New-Object Collections.Queue)}
+$script:activateAllowed=$false
+Add-GameAction -Id rotation -Kind Rotation.Menu -Domain Rotation -Key rotation -Row $row -Owner $work -Due 0 -Data menu -Foreground $true -Execute {
+    param($event,$now) [void]$script:seen.Add('menu')
+}
+Invoke-GameActionQueue 0
+Assert-Queue ($script:activations -eq 1 -and $script:stopped -eq 0 -and $work.FocusUntil -eq 5000) 'Rotation did not begin a five-second focus window.'
+Invoke-GameActionQueue 499
+Assert-Queue ($script:activations -eq 1) 'Rotation retried activation before the retry interval.'
+Invoke-GameActionQueue 500
+Assert-Queue ($script:activations -eq 2 -and $script:stopped -eq 0) 'Rotation did not retry a rejected activation.'
+$script:activateAllowed=$true
+Invoke-GameActionQueue 1000
+Invoke-GameActionQueue 1199
+Assert-Queue ($script:seen.Count -eq 0 -and $script:stopped -eq 0) 'Recovered rotation skipped foreground settling.'
+Invoke-GameActionQueue 1200
+Assert-Queue ($script:seen.Count -eq 1 -and $script:activations -eq 3 -and $script:stopped -eq 0) 'Rotation did not recover within five seconds.'
+
+Reset-TestQueue
+$row=New-TestRow rotation
+$entry=[pscustomobject]@{Row=$row}
+$work=[pscustomobject]@{Entry=$entry;Phase='menu';FocusUntil=0L}
+$script:rotation=[pscustomobject]@{Current=$work;Active=@{rotation=$entry};LogoutQueue=(New-Object Collections.Queue);Queue=(New-Object Collections.Queue)}
+$script:focusOnActivate=$false
+Add-GameAction -Id rotation -Kind Rotation.Menu -Domain Rotation -Key rotation -Row $row -Owner $work -Due 0 -Data menu -Foreground $true -Execute {
+    param($event,$now) [void]$script:seen.Add('menu')
+}
+Invoke-GameActionQueue 0
+Invoke-GameActionQueue 500
+Assert-Queue ($script:activations -eq 2 -and $script:stopped -eq 0) 'Accepted activation without foreground was not retried.'
+$script:focusOnActivate=$true
+Invoke-GameActionQueue 1000
+Invoke-GameActionQueue 1200
+Assert-Queue ($script:seen.Count -eq 1 -and $script:stopped -eq 0) 'Rotation did not confirm foreground after retry.'
+
+Reset-TestQueue
+$row=New-TestRow rotation
+$entry=[pscustomobject]@{Row=$row}
+$work=[pscustomobject]@{Entry=$entry;Phase='menu';FocusUntil=0L}
+$script:rotation=[pscustomobject]@{Current=$work;Active=@{rotation=$entry};LogoutQueue=(New-Object Collections.Queue);Queue=(New-Object Collections.Queue)}
+$script:activateAllowed=$false
+Add-GameAction -Id rotation -Kind Rotation.Menu -Domain Rotation -Key rotation -Row $row -Owner $work -Due 0 -Data menu -Foreground $true -Execute {
+    param($event,$now) [void]$script:seen.Add('menu')
+}
+for ($at=0;$at -lt 5000;$at+=500) {Invoke-GameActionQueue $at}
+Assert-Queue ($script:activations -eq 10 -and $script:stopped -eq 0 -and $script:seen.Count -eq 0) 'Rotation stopped before the full five seconds.'
+Invoke-GameActionQueue 5000
+Assert-Queue ($script:stopped -eq 1 -and $script:gameActions.Events.Count -eq 0 -and $script:activations -eq 10) 'Rotation did not fail at the five-second deadline.'
+
+Write-Output 'PASS: draining due work, callback enqueue/reprioritization, clock refresh, new holds, combat gate, shared priority/deadline/FIFO queue, deduplication, cancellation, holds, safety release, rotation foreground exclusivity/five-second focus retry, focus preemption and process identity. Inert callbacks only.'

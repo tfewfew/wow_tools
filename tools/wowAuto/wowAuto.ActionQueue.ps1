@@ -46,7 +46,7 @@ function Add-GameAction([string]$Id,[string]$Kind,[string]$Domain,[string]$Key,$
     $script:gameActions.Sequence++
     $event=[pscustomobject]@{Id=$Id;Kind=$Kind;Domain=$Domain;Key=$Key;Row=$Row;Owner=$Owner;Due=$Due;RequestedDue=$Due;
         Priority=$script:gameActions.Priorities[$Kind];Sequence=$script:gameActions.Sequence;
-        Execute=$Execute;Data=$Data;Foreground=$Foreground;Cancelled=$false;ReadyAt=0L;FocusUntil=0L}
+        Execute=$Execute;Data=$Data;Foreground=$Foreground;Cancelled=$false;ReadyAt=0L;FocusUntil=0L;NextActivateAt=0L}
     [void]$script:gameActions.Events.Add($event)
 }
 function Remove-GameActions([string]$Key,[switch]$IncludeProcess,[string]$Domain='') {
@@ -128,7 +128,7 @@ function Invoke-GameActionQueue([long]$Now,[switch]$SafetyOnly) {
         $rotationBusy=$script:rotation -and ($script:rotation.Current -or $script:rotation.LogoutQueue.Count -gt 0 -or
             $script:rotation.Queue.Count -gt 0)
         if ($rotationBusy -and $focus -and $focus.Domain -notin @('Rotation','Safety','Hold','Process')) {
-            $focus.ReadyAt=0L;$focus.FocusUntil=0L
+            $focus.ReadyAt=0L;$focus.FocusUntil=0L;$focus.NextActivateAt=0L
             $script:gameActions.Focus=$null;$focus=$null
         }
         $eligible=@($script:gameActions.Events | Where-Object {
@@ -143,13 +143,13 @@ function Invoke-GameActionQueue([long]$Now,[switch]$SafetyOnly) {
         $event=$eligible[0]
         if ($focus -and $focus -ne $event -and (Test-GameActionUsesFocus $event)) {
             # Higher priority foreground work preempts an activation; reads leave it intact.
-            $focus.ReadyAt=0L;$focus.FocusUntil=0L;$script:gameActions.Focus=$null
+            $focus.ReadyAt=0L;$focus.FocusUntil=0L;$focus.NextActivateAt=0L;$script:gameActions.Focus=$null
             [void]$deferred.Remove($focus.Sequence)
         }
         $completed=Invoke-QueuedGameAction $event $Now
         if (-not $completed) {
             # No sleep or retry loop for a pending activation. Continue independent work.
-            $deferred[$event.Sequence]=if ($Now -lt $event.ReadyAt) {$event.ReadyAt} else {[Math]::Max($Now+1,$event.FocusUntil)}
+            $deferred[$event.Sequence]=if ($Now -lt $event.ReadyAt) {$event.ReadyAt} elseif ($Now -lt $event.NextActivateAt) {$event.NextActivateAt} else {$Now+1}
         }
     }
 }
@@ -164,15 +164,28 @@ function Invoke-QueuedGameAction($event,[long]$Now) {
             }
             elseif (-not [WowAutoFight.Native]::IsAlive($event.Data.Row.Client)) {throw '战斗进程身份已改变。'}
             if (-not (Test-GameActionForeground $event)) {
+                $rotation=$event.Domain -eq 'Rotation'
+                $needsActivation=$script:gameActions.Focus -ne $event -or -not $event.FocusUntil
+                if ($rotation -and -not $event.FocusUntil) {
+                    $event.FocusUntil=if ($event.Owner -and $event.Owner.FocusUntil) {$event.Owner.FocusUntil} else {$Now+5000}
+                    if ($event.Owner) {$event.Owner.FocusUntil=$event.FocusUntil}
+                }
                 if ($event.FocusUntil -and $Now -ge $event.FocusUntil) {throw '排队动作未能取得前台。'}
-                if ($script:gameActions.Focus -ne $event -or -not $event.FocusUntil) {
-                    $activated=if ($row.PSObject.Properties['Process']) {Activate-WorkerRow $row} else {[WowAutoFight.Native]::Activate($event.Data.Row.Client)}
-                    if (-not $activated) {throw '无法切换到排队动作的游戏窗口。'}
-                    $event.ReadyAt=$Now+200;$event.FocusUntil=$Now+800
+                if ($rotation) {$event.ReadyAt=0L}
+                if ($needsActivation) {
                     $script:gameActions.Focus=$event
+                }
+                if (($rotation -and $Now -ge $event.NextActivateAt) -or (-not $rotation -and $needsActivation)) {
+                    $activated=if ($row.PSObject.Properties['Process']) {Activate-WorkerRow $row} else {[WowAutoFight.Native]::Activate($event.Data.Row.Client)}
+                    if (-not $activated -and -not $rotation) {throw '无法切换到排队动作的游戏窗口。'}
+                    if ($rotation) {
+                        $event.NextActivateAt=$Now+500
+                        if ($activated) {$event.ReadyAt=$Now+200}
+                    } else {$event.ReadyAt=$Now+200;$event.FocusUntil=$Now+800}
                 }
                 return $false
             }
+            if ($event.Domain -eq 'Rotation' -and $script:gameActions.Focus -eq $event -and -not $event.ReadyAt) {$event.ReadyAt=$Now+200}
             if ($script:gameActions.Focus -eq $event -and $Now -lt $event.ReadyAt) {return $false}
         }
         if (-not (Test-GameActionValid $event)) {
