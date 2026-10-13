@@ -25,7 +25,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 ## 行为约定
 
-- titan版基于原2.1.1独立维护，当前2.1.15/接口38002。forerver版当前2.2.14/接口16001按无限服1.60.1.70338的Blizzard导出源码943764493e6b16d63ded3ab304150d1f05e58b57移植；以后跟随对应分支源码核对API，不能仅改TOC号。
+- titan版基于原2.1.1独立维护，当前2.1.16/接口38002。forerver版当前2.2.15/接口16001按无限服1.60.1.70338的Blizzard导出源码943764493e6b16d63ded3ab304150d1f05e58b57移植；以后跟随对应分支源码核对API，不能仅改TOC号。
 - forerver在Init.lua后加载Compatibility.lua：ItemLocation主手槽16及C_Item.GetItemID/GetItemInfoInstant识别鱼竿，C_Item.GetWeaponEnchantInfo(Enum.WeaponSlot.MainHand)返回列表，只接受有效Temporary附魔，排除Permanent/Imbue；失败或受限/不完整数据为unknown。UnitChannelInfo的技能ID在第8项，绿色只认钓鱼引导；先用issecretvalue排除受限返回再比较/输出，受限引导使主色块灰色。注册WEAPON_ENCHANT_CHANGED并每0.1秒刷新。菜单使用MenuUtil.CreateContextMenu；画面模块移动FramerateFrame整体，不再依赖FramerateLabel全局。未提供的CVar继续禁用，禁止加载时自动改变图形设置。forever测试覆盖全TOC加载，不发送游戏按键。
 - wowAuto同时识别时光服_classic_titan_/WowClassic.exe 3.80.和无限服_cn_beta_/Wow.exe 1.60.，允许游戏根目录位于其他盘符，但产品目录名须匹配。GetClientFlavor同时核对可执行文件名、父目录与构建前缀；未知/无法读取/零售服不加入列表。每行Client保存Flavor、Label、ExecutablePath；启动、取色、焦点切换、发键及正常/超时退出均核对PID、StartTime、路径与客户端身份。C#方法接收启动Ticks和预期路径，不能退回只按Wow进程名操作。
 
@@ -36,7 +36,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - titan 2.1.3及forerver 2.2.2绿色须同时满足钓鱼引导及当前可交互软目标：UnitGUID(softinteract)有值且UnitIsInteractable(softinteract)为真，不依赖可能排除GameObject的UnitExists。抛竿施法及无引导显示红色；引导中无交互目标为红色“等待交互”，接口缺失/失败/受限为灰色；黄色仍优先。PLAYER_SOFT_INTERACT_CHANGED及时刷新并每0.1秒补查，不缓存上一轮成功；不比较事件中的受限GUID参数。用户测试前须启用游戏交互键，不自动改变softTargetInteract；status输出可读目标状态/名称/GUID/CVar。不限定目标为自己的鱼漂、不宣称咬钩或扫描所有附近对象；forerver使用独立Compatibility.lua保留受限读取保护。LureDetection.Tests.lua及ForeverCompatibility.Tests.lua分别模拟覆盖组合条件、目标出现/消失、轮询、未知及背包/死亡/关闭优先级。
 - wowDetector 使用PLAYER_DEAD及UnitIsDeadOrGhost检测角色死亡/灵魂状态，优先停止监测、清空状态与计时、解除位置锁定并显示关闭状态；保留面板显隐，不改panelHidden。死亡时禁止启动，复活事件不得自动重启；进入世界及监测刷新补充检查。只重置插件，不宣称能直接停止外部wowAuto。
 - “启动”按钮和 on 命令将色块中心对齐客户区中心、保存位置并锁定；关闭时解锁。无独立居中按钮，center 命令仍兼容。运行中不允许拖动或用 unlock 解锁；登录或重载默认关闭且解锁。
-- wowAuto主界面及设置采用炭灰及低饱和度灰蓝：背景RGB58/58/58、行/工具栏面RGB72/72/72、输入及状态框RGB50/50/50、所有文字RGB255/255/255（含禁用按钮/复选框及设置错误提示）、普通按钮RGB86/86/86、开始/保存强调按钮RGB88/100/112。主窗口及设置使用DimForm，通过DwmSetWindowAttribute按窗口设置系统标题栏黑底白字（20为深色模式、35为黑色标题栏、36为白色文字），在OnHandleCreated中处理句柄重建；不修改Windows全局主题，不移除原生标题栏，保留拖动/缩放及原有窗口按钮。35/36由Windows11支持，旧系统不支持时仍可打开工具并保留系统标题栏。正文字体12pt、页脚11pt、标题23pt；行高148、状态框82，统一设置窗口1000x830以完整显示放大文字。DimTabControl保留原TabControl页选择及布局，自绘黑色标签栏背景，选中进程任务标签采用低饱和度暗蓝RGB54/78/98区分，保留白字；DimButton/DimCheckBox保留原按钮及复选框语义，补绘禁用状态的白字，禁止为改变文字颜色而放开禁用权限；按钮、输入框、分组文字及错误提示统一适配深灰背景，避免恢复大面积纯白。KeyItem.UiTests.ps1覆盖设置内输入框/实际KeyDown事件、草稿隔离、取消/校验失败/保存/重新打开及已配置按键的模拟下发；预览检查主界面和设置布局，不发送真实按键。
+- wowAuto主界面及设置采用炭灰及低饱和度灰蓝：背景RGB58/58/58、行/工具栏面RGB72/72/72、输入及状态框RGB50/50/50、所有文字RGB255/255/255（含禁用按钮/复选框及设置错误提示）、普通按钮RGB86/86/86、开始/保存强调按钮RGB88/100/112。主窗口及设置使用DimForm，通过DwmSetWindowAttribute按窗口设置系统标题栏黑底白字（20为深色模式、35为黑色标题栏、36为白色文字），在OnHandleCreated中处理句柄重建；不修改Windows全局主题，不移除原生标题栏，保留拖动/缩放及原有窗口按钮。35/36由Windows11支持，旧系统不支持时仍可打开工具并保留系统标题栏。正文字体12pt、页脚11pt、标题23pt；行高190、状态框82，统一设置窗口1000x882以完整显示放大文字。DimTabControl保留原TabControl页选择及布局，自绘黑色标签栏背景，选中进程任务标签采用低饱和度暗蓝RGB54/78/98区分，保留白字；DimButton/DimCheckBox保留原按钮及复选框语义，补绘禁用状态的白字，禁止为改变文字颜色而放开禁用权限；按钮、输入框、分组文字及错误提示统一适配深灰背景，避免恢复大面积纯白。KeyItem.UiTests.ps1覆盖设置内输入框/实际KeyDown事件、草稿隔离、取消/校验失败/保存/重新打开及已配置按键的模拟下发；预览检查主界面和设置布局，不发送真实按键。
 - wowAuto 的统一进程任务页包含刷新进程、全部开始、全部停止按钮，按已识别的两服进程生成独立控制行，每行包含模式下拉菜单（钓鱼/战斗）、进程信息、开始/停止和状态框；钓鱼显示道具勾选，战斗显示方向按钮，移除逐进程范围输入。PID后显示时光服/无限服及窗口位置。初始按钮锁定。刷新先停止所有任务并清空事件，再按PID和启动时间更新列表，保留存活行的道具勾选，等待范围属于版本配置，移除已退出行；复用PID不得继承状态、模式或勾选。窗口宽度随新增列适配，屏幕容不下时列表允许滚动。
 - 用户授权刷新扫描轮流切换游戏窗口到前台，约200ms后核对前台并发送所选模式的开启命令（fish为/wowdetector on、fight为/fightdetector on），再等待约200ms读取中心色，未识别有限重试。钓鱼红/绿或战斗有效主色及职业才开放按钮，黄/灰/未知/切换或命令失败保持锁定；刷新只发送开启命令，不执行任务按键或结束游戏。完成后尝试恢复原前台，任务需手动重新开始。
 - 用户已授权运行时自动切换窗口。全部开始只将通过验证的行加入统一调度队列；只有调度目标在前台时发送按键。任务共享单调时钟，不能因切到后台取消收竿事件。
@@ -85,7 +85,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 ## autoFight（2026-10-13）
 
-- 当前合集版本titan2.1.15、forerver2.2.14，两服独立维护fight_detector.lua；保留fightDetectorDB / rangeSpells，新增profiles[classId]恢复阈值。战斗通过模块接口关闭钓鱼以恢复音频，不直接读写wowDetectorDB、音频、图形或交互CVar。
+- 当前合集版本titan2.1.16、forerver2.2.15，两服独立维护fight_detector.lua；保留fightDetectorDB / rangeSpells，新增profiles[classId]恢复阈值。战斗通过模块接口关闭钓鱼以恢复音频，不直接读写wowDetectorDB、音频、图形或交互CVar。
 - autoFight.ps1、Engine.ps1、Native.cs、config.json的状态、输入、计时和配置与autofish隔离，通过wowAuto.Unified.ps1共享进程行、设置宿主和统一输入调度；不再有独立主标签或独立运行计时器，UiTest以模拟类型替代战斗原生操作，不加载战斗输入适配器。
 - 战斗v5只读取主色块：主32×32物理像素位于客户区正中心，副12×12位于中心右32px，只作恢复提示。无心跳、双块校验或颜色变化要求。主RGB=(16+8*(action*4+recovery),2+4*(identity+busy*26),2+4*(encounter+combat*32))；action=0..6为unknown/idle/opening/waiting/combat/loot/skin；新增target动作分别使用保留R240/248/8对应none/recover/emergency，G/B不变。recovery=0..3为none/recover/emergency/unknown；identity=classId-1+（forerver为13）；encounter模32。通道偏差最多1，拒绝非法字段/组合、版本或职业不符、未知恢复及旧协议；射程未知但恢复明确仍可执行恢复。
 - HP进入 / 退出阈值默认非战斗80/95、紧急30/50；可选法力恢复默认关闭，只对法力职业生效。0关闭项，进入<退出，迟滞避免状态抖动。受限 / 不可读不推断。恢复优先于普通动作；施法 / 引导 / 战利品窗口阻止普通发键，紧急宏允许打断当前施法。
@@ -121,3 +121,13 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - 刷新停止全部任务，逐行激活 / 核对前台，200ms后发送对应检测开启命令，成功后再等待200ms才读色；身份 / 焦点 / 命令失败不采样、不开放开始按钮。只允许两个固定开启命令，游戏聊天使用Enter。完成尝试恢复原前台；手动开始后才能执行任务。插件两服源码本次不变，不混用安装副本。
 - wowAuto.Unified.ps1通过单一计时器协调两套状态机和前台输入；到期钓鱼收竿及收竿 / 道具保持优先，期间战斗可只读后台检测。战斗激活待输入及移动 / 交互保持期间，钓鱼不抢焦点。战斗公共CommandGate保留，钓鱼成功收竿跳跃限制不变。
 - Unified.UiTests随完整UiTest模拟混合两服模式、激活 / 命令 / 采样顺序、失败隔离、手动全部开始、模式保存失败回滚、重建 / PID复用、非法 / 旧INI、两页独立保存 / 取消和混合收竿优先。真实用户INI / JSON哈希不得改变；禁止真实游戏按键 / 音频 / 结束游戏验证。
+
+## 三槽位角色编排（2026-10-13）
+
+- 每个进程三槽，Character=0..65（0为空）、Mode=fish/fight，循环跳过空槽；单有效槽每次仍logout并重新登录，不优化为继续当前角色。全部空保留旧单角色模式。开始从首个有效槽位完整选角登录，不假定当前角色一致。
+- rotation.config.json v1独立原子保存IntervalSeconds=0..604800和PID:StartTicks的Plans / Menu标定，不改变原INI / 战斗JSON。旧无文件按空槽 / 0秒，非法配置阻止编排；取消 / 保存失败不应用，PID复用不继承。设置顶部提供全局秒间隔，两任务Tab保留。编排修改成功后停止本行，间隔变更重计同一个全局截止，相同保存不重计。
+- 第一个已开始编排进程建立全局时钟，到期先停所有参与进程的动作与监听再逐窗切换，不创建独立进程周期。无重叠批次、长切换跳过已错过周期；手动停止 / 刷新 / 关闭取消后续，不撤回已提交退出。角色切换清除本进程CompletedCycles / CyclesSinceJump，原成功收竿跳跃约束不改。
+- 角色选择菜单不加载普通插件；不得通过注入或调用游戏内SelectCharacter操作。首次由用户手动打开菜单并滚至首位，输入实际角色总数，以截图标定固定文字矩形与第一角色位置。标定只读截图，运行核对身份 / 前台 / 客户区几何 / 遮挡，按归一化比例适配同宽高比缩放；布局 / 宽高比改变需重标定。连续三次确认菜单，再滚顶部 / 点击首角色 / Down导航 / Enter；每步确认菜单，非法 / 黑图 / 未知 / 失焦拒绝继续。角色号按当前列表位次，超出用户标定总数拒绝，不跨服菜单或按名字猜测。
+- 两服独立Rotation.lua临时复用共享主色块中心，RGB=(20+token,231,157)，combat时B181；token=0新登录，arm 1..200在wowRotationDB账号变量跨logout保存。PLAYER_LEAVING_WORLD隐藏，PLAYER_ENTERING_WORLD后由始终可运行watcher核对GUID / 存活 / combat / 物理尺寸再显示；受限数据不推断，启动任一监控即清理标记，不新增第三个位置。插件只确认世界状态，桌面脚本处理菜单。两服当前2.1.16 / 2.2.15，TOC各自新增Rotation.lua与SavedVariables，不覆盖另一服旧源码。
+- 桌面轮换停止任务后固定命令stopcasting / wowrotate arm / logout；战斗等待脱战，正常退出倒计时 / 加载等待，180秒超时停止本行，不杀进程、不盲目选角。登入世界请求编号连续两次确认后开启对应监控，主色验证再自动开始槽任务；此自动开始只用于用户已启动的编排，普通刷新仍手动开始。角色轮换队列独占前台，先释放移动键，释放失败暂停后续输入。
+- Rotation.UiTests使用实际调度与模拟进程 / 图像 / 输入，覆盖三槽 / 单槽 / 空槽、全局同批停止、角色任务、顺序、加载 / 战斗 / 焦点 / 超时 / 取消、计数与配置隔离；Rotation.Tests.lua分别用两服真实文件验证令牌 / 事件 / 存活 / 受限 / 缩放 / 标记清理。Native只编译及合成图像纯函数验证，禁止真实切换角色 / 游戏按键 / 音频 / 终止进程测试。快捷方式检查Rotation模块 / Native / JSON运行依赖；推送成功后才部署两服并提醒reload及重新标定。

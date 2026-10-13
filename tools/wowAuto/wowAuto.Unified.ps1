@@ -44,6 +44,7 @@ function Add-ProcessModeControl($Row) {
         Set-RowControls $row; Update-BatchControls
     })
     if ($mode -eq 'fight' -and $script:autoFight -and $script:autoFight.Unified) {Ensure-UnifiedFightRow $Row}
+    Add-RotationRow $Row
 }
 function Ensure-UnifiedFightRow($Row) {
     if ($Row.FightRow) {return}
@@ -62,9 +63,12 @@ function Ensure-UnifiedFightRow($Row) {
     $oldPanel.Dispose()
     $Row.Status.SetStatusText(($fight.History -join [Environment]::NewLine))
 }
-function Test-UnifiedRowRunning($Row) {
+function Test-UnifiedTaskRunning($Row) {
     if ($Row.TaskMode -eq 'fight') {return $Row.FightRow -and $null -ne $Row.FightRow.Session}
     return $null -ne $Row.State -and $Row.State.Running
+}
+function Test-UnifiedRowRunning($Row) {
+    return ($script:rotation -and $script:rotation.Active.ContainsKey($Row.Key)) -or (Test-UnifiedTaskRunning $Row)
 }
 function Send-ScanDetectorCommand($Row) {
     $Row.Process.Refresh()
@@ -85,6 +89,7 @@ function Read-ScanFightPacket($Row) {
 }
 function Invoke-UnifiedTick([long]$Now) {
     if ($script:scanning -or $script:editingSettings) {return}
+    if (Invoke-RotationTick $Now) {return}
     Update-AudioCaptures $Now
     if (-not $script:autoFight -or -not $script:autoFight.Unified) {Invoke-SchedulerTick $Now; return}
     if ($script:autoFight.ActiveHold -or [WowAutoFight.Native]::IsHolding) {Invoke-AutoFightTick; return}
@@ -112,7 +117,7 @@ function New-UnifiedSettingsDialog {
     $hostDialog=New-Object WowAuto.DimForm
     $hostDialog.Text='wowAuto · 设置'; $hostDialog.StartPosition='CenterParent'; $hostDialog.AutoScaleMode='Dpi'
     $hostDialog.Font=$form.Font; $hostDialog.BackColor=$script:uiColors.Background
-    $hostDialog.ClientSize=New-Object Drawing.Size(1000,830); $hostDialog.MinimumSize=New-Object Drawing.Size(700,500)
+    $hostDialog.ClientSize=New-Object Drawing.Size(1000,882); $hostDialog.MinimumSize=New-Object Drawing.Size(700,500)
     $area=[System.Windows.Forms.Screen]::FromControl($form).WorkingArea
     $hostDialog.Size=New-Object Drawing.Size([Math]::Min($hostDialog.Width,$area.Width),[Math]::Min($hostDialog.Height,$area.Height))
     $settingTabs=New-Object WowAuto.DimTabControl
@@ -136,6 +141,7 @@ function New-UnifiedSettingsDialog {
     $fight.Tag.Cancel.Tag=$hostDialog; $fight.Tag.Cancel.Add_Click({param($sender,$e) $sender.Tag.Close()})
     $settingTabs.Add_SelectedIndexChanged({if ($script:unifiedSettingsHost) {Stop-AudioPreview $script:unifiedSettingsHost.Tag.Fish}})
     $hostDialog.Tag=[pscustomobject]@{Tabs=$settingTabs;Fish=$fish;Fight=$fight}
+    $hostDialog.Tag | Add-Member NoteProperty Rotation (New-RotationIntervalControls $hostDialog)
     $script:unifiedSettingsHost=$hostDialog
     $hostDialog.Add_FormClosed({
         $script:unifiedSettingsHost=$null; $script:autoFight.Editor=$null; $script:autoFight.Editing=$false

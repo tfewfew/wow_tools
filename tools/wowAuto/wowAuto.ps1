@@ -309,6 +309,30 @@ namespace WowAuto
             if (mode=="fight") return "/fightdetector on";
             throw new ArgumentException("Unknown detector mode.");
         }
+        public static string RotationCommand(string action,int token)
+        {
+            if(action=="arm" && token>=1 && token<=200) return "/wowrotate arm "+token;
+            if(action=="logout") return "/logout";
+            throw new ArgumentException("Unknown rotation command.");
+        }
+        public static bool SendRotationCommand(int pid,long ticks,string path,string action,int token)
+        {
+            string command=RotationCommand(action,token);
+            if(action=="arm" && !SendChatCommand(pid,ticks,path,"/stopcasting")) return false;
+            return SendChatCommand(pid,ticks,path,command);
+        }
+        private static bool SendChatCommand(int pid,long ticks,string path,string command)
+        {
+            if(!PressChord(pid,ticks,path,13,false,false,false) || !PressChord(pid,ticks,path,65,true,false,false)) return false;
+            if(!IsTargetForeground(pid,ticks,path)) return false;
+            var inputs=new System.Collections.Generic.List<INPUT>();
+            foreach(char c in command) {
+                INPUT down=new INPUT();down.type=1;down.data.keyboard.wScan=c;down.data.keyboard.dwFlags=4;
+                INPUT up=down;up.data.keyboard.dwFlags=6;inputs.Add(down);inputs.Add(up);
+            }
+            Send(inputs.ToArray());
+            return PressChord(pid,ticks,path,13,false,false,false);
+        }
     }
 }
 "@
@@ -1152,12 +1176,15 @@ function Set-RowControls($Row) {
     $exiting = $script:pendingGameExits.ContainsKey($Row.Key)
     $eligible = $Row.Validated -and -not $exiting -and -not $script:scanning -and $null -ne $Row.StartTime -and -not $Row.Exited
     if ($Row.TaskMode -eq 'fight') {$eligible=$eligible -and $Row.FightRow -and $Row.FightRow.CanStart -and $script:autoFight.ConfigReady}
+    if (Test-RowHasRotation $Row) {$eligible=-not $exiting -and -not $Row.Exited -and -not $script:scanning -and $script:rotation.ConfigReady -and $null -ne (Get-RowRotationPlan $Row).Menu}
     $eligible=$eligible -and -not $script:editingSettings
     $Row.Start.Enabled = $eligible -and -not $running
     $Row.Stop.Enabled = $eligible -or $exiting
     $Row.ItemCheck.Visible=$Row.TaskMode -ne 'fight'
     $Row.ItemCheck.Enabled = $Row.TaskMode -ne 'fight' -and -not $script:scanning -and -not $exiting -and -not $Row.Exited -and $null -ne $Row.StartTime
     $Row.ModeBox.Enabled=-not $script:scanning -and -not $script:editingSettings -and -not $Row.Exited -and $null -ne $Row.StartTime
+    if (Test-RowHasRotation $Row) {$Row.ModeBox.Enabled=$false}
+    Update-RotationRow $Row
     if ($Row.FightRow) {foreach ($button in $Row.FightRow.MoveButtons) {
         $button.Visible=$Row.TaskMode -eq 'fight'; $button.Enabled=$running -and $Row.TaskMode -eq 'fight' -and -not $script:scanning -and -not $script:editingSettings
     }}
@@ -1234,7 +1261,8 @@ function Update-RowStatus($Row) {
     Set-RowControls $Row
 }
 
-function Stop-Row($Row, [string]$Reason = '已停止，当前等待已取消。', [switch]$CancelExit) {
+function Stop-Row($Row, [string]$Reason = '已停止，当前等待已取消。', [switch]$CancelExit, [switch]$KeepRotation) {
+    if (-not $KeepRotation) {Stop-RowRotation $Row}
     if ($Row.FightRow -and $script:autoFight) {Stop-AutoFightRow $Row.FightRow $Reason}
     if ($script:audioCaptures.ContainsKey($Row.Key)) {
         $script:audioCaptures[$Row.Key].Capture.Dispose()
@@ -1248,8 +1276,9 @@ function Stop-Row($Row, [string]$Reason = '已停止，当前等待已取消。'
     Update-RowStatus $Row
 }
 
-function Start-Row($Row) {
+function Start-Row($Row,[switch]$TaskOnly) {
     try {
+        if (-not $TaskOnly -and (Test-RowHasRotation $Row)) {Start-RowRotation $Row;return}
         if ($Row.TaskMode -eq 'fight') {
             if (-not $Row.Validated -or $script:scanning -or $script:editingSettings) {throw '请刷新并通过战斗色块检测。'}
             Start-AutoFightRow $Row.FightRow; return
@@ -1553,8 +1582,8 @@ $scanTimer.Add_Tick({
 })
 $refreshButton.Add_Click({ Begin-RefreshScan })
 function Update-BatchControls {
-    $eligible = @($script:rows.Values | Where-Object { $_.Validated -and -not $_.Exited -and -not (Test-UnifiedRowRunning $_) -and
-        ($_.TaskMode -ne 'fight' -or ($_.FightRow.CanStart -and $script:autoFight.ConfigReady)) })
+    foreach ($controlRow in $script:rows.Values) {Set-RowControls $controlRow}
+    $eligible = @($script:rows.Values | Where-Object { $_.Start.Enabled })
     $startAllButton.Enabled = -not $script:scanning -and -not $script:editingSettings -and $eligible.Count -gt 0
     $settingsButton.Enabled = -not $script:scanning -and -not $script:editingSettings
     $audioCheck.Enabled = -not $script:scanning -and -not $script:editingSettings -and $script:scheduler.Tasks.Count -eq 0
@@ -1570,7 +1599,7 @@ function Stop-AllRows {
 $startAllButton.Add_Click({
     if ($script:scanning) { return }
     foreach ($row in @($script:rows.Values | Sort-Object { $_.Process.Id })) {
-        if ($row.Validated -and -not $row.Exited) { Start-Row $row }
+        if ($row.Start.Enabled) { Start-Row $row }
     }
     Update-BatchControls
 })
@@ -1857,6 +1886,7 @@ $form.Add_FormClosing({
 })
 
 . (Join-Path $PSScriptRoot 'wowAuto.Unified.ps1')
+. (Join-Path $PSScriptRoot 'wowAuto.Rotation.ps1')
 # One process list and one timer coordinate input across both detector engines.
 if (-not $UiTest) {
     try {
@@ -1909,6 +1939,7 @@ try {
             . (Join-Path $PSScriptRoot 'tests\JumpInterval.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\AutoFight.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Unified.UiTests.ps1')
+            . (Join-Path $PSScriptRoot 'tests\Rotation.UiTests.ps1')
         }
         if ($PreviewPath) {
             [System.Windows.Forms.Application]::DoEvents()

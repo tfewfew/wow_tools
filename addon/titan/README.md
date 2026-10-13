@@ -29,3 +29,5 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\skills\wow-tools\scrip
 两服分别在fightDetectorDB.profiles[classId].DetectionRangeYards保存本职业检测范围，fightDetectorDB.AttackRangeYards保存该客户端账号的全局攻击范围；不会复制账号 / 客户端间的SavedVariables。旧rangeSpells配置保留，新检测不依赖已学会的测距技能。独立Range.lua采用敌对目标物品距离探针；缺失 / 受限 / 冲突 / 失败数据为未知。姓名板只涵盖客户端已暴露的单位，不能扫描所有附近怪物；开怪宏仍需自行选敌并施放伤害技能。FightDistance.Tests.lua分别验证两服，AutoFight.Distance.Tests.ps1验证生产C#纯协议解析及PC状态流程，不发送真实按键。
 
 2.1.9将战斗协议收敛为主、副两块12px色块，移除插件移动按钮及处理；PC移动/交互转为通用设置，职业只配置攻击和恢复，普通/紧急恢复每次进入只执行一次。动态按物理窗口与UI缩放定位，两服独立Lua5.1及完整脚本模拟检查通过；更新须/reload并重启wowAuto。
+
+2.1.16：新增独立Rotation.lua，以共享主色块确认角色进入世界、脱战及轮换请求编号；正常开启钓鱼 / 战斗监控即清理标记。桌面wowAuto支持每进程三角色槽位及全局秒间隔，菜单标定 / 位次导航由桌面脚本完成，插件不操作角色选择界面。新增wowRotationDB保存退出 / 登录期间的编号。Rotation.Tests.lua及完整UiTest模拟验证，不切换真实角色；更新需/reload并重启wowAuto。

@@ -2,9 +2,9 @@
 ## Title: wow_tools (Forever)
 ## Notes-zhCN: 无限服工具合集：wowDetector 钓鱼检测、fight_detector 战斗检测与 inner_graphic_config 内部画面设置。
 ## Author: Ray
-## Version: 2.2.14
+## Version: 2.2.15
 ## X-WoWTools-Flavor: forerver
-## SavedVariables: wowDetectorDB, fightDetectorDB
+## SavedVariables: wowDetectorDB, fightDetectorDB, wowRotationDB
 
 Init.lua
 Compatibility.lua
@@ -15,3 +15,4 @@ fight_detector\Range.lua
 fight_detector\fight_detector.lua
 inner_graphic_config\Core.lua
 Core.lua
+Rotation.lua
