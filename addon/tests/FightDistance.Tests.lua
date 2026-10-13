@@ -64,8 +64,8 @@ for _,flavor in ipairs({"titan","forerver"}) do
     local autoFocus=true
     function UnitGUID(unit) local mob=mobs[unit]; if unit=="focus" and not mob and autoFocus then mob=mobs.target end; return mob and mob.guid end
     function InCombatLockdown() return combat end
-    local override
-    function SetOverrideBindingClick(_,_,key,name) assert(not combat); assert(key=="F10" and name=="wowToolsFightTargetButton"); override=true end
+    local override,overrideKey
+    function SetOverrideBindingClick(_,_,key,name) assert(not combat); assert(name=="wowToolsFightTargetButton"); override=true; overrideKey=key end
     function ClearOverrideBindings() assert(not combat); override=false end
     function UnitAffectingCombat() return combat end
     function UnitHealth() return health end
@@ -144,6 +144,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     end
     for _,b in ipairs(buttons) do assert(b.text~="前" and b.text~="停止移动","Plugin still creates movement buttons") end
     mobs.target.distance=30; restricted=true; tick(); color(255,96,0) -- 5yd probe must not block opening.
+    assert(overrideKey=="TAB","Default target key is not Tab")
     restricted=false; local first=epoch()
     event("UNIT_SPELLCAST_SUCCEEDED","player",secret,123); color(255,96,0)
     event("UNIT_SPELLCAST_SUCCEEDED","player",secret,secret); color(255,96,0)
@@ -214,6 +215,24 @@ for _,flavor in ipairs({"titan","forerver"}) do
     health=secret; tick(); color(128,128,128)
     health=100; tick(); color(0,0,255)
     SlashCmdList.FIGHTDETECTOR("off")
+    -- Target binding is account-wide, persisted, and only changed outside combat.
+    local targetInput=names.wowToolsFightTargetKeyInput
+    for _,b in ipairs(buttons) do if b.text=="保存" then save=b end end
+    assert(targetInput.text=="Tab","Target key was moved into a class profile")
+    mobs.target={guid="Creature-KEY",distance=5}; mobs.focus=mobs.target
+    SlashCmdList.FIGHTDETECTOR("on")
+    targetInput:SetText("ctrl+Tab"); save.scripts.OnClick()
+    assert(saved.TargetKey=="Ctrl+Tab" and overrideKey=="CTRL-TAB" and override,"Configured target binding not applied")
+    combat=true; targetInput:SetText("F10"); edits[2]:SetText("20"); save.scripts.OnClick()
+    assert(saved.TargetKey=="Ctrl+Tab" and saved.AttackRangeYards==15 and overrideKey=="CTRL-TAB",
+        "Combat binding change partially saved or touched protected binding")
+    combat=false; targetInput:SetText("Ctrl+Ctrl+Tab"); save.scripts.OnClick()
+    assert(saved.AttackRangeYards==15 and saved.TargetKey=="Ctrl+Tab","Invalid target key partially saved")
+    targetInput:SetText("Alt+Shift+F10"); save.scripts.OnClick()
+    assert(saved.TargetKey=="Shift+Alt+F10" and overrideKey=="ALT-SHIFT-F10","Modifier ordering differs from WoW")
+    SlashCmdList.FIGHTDETECTOR("off"); assert(not override,"Configured binding did not restore")
+    setup(3,saved)
+    assert(names.wowToolsFightTargetKeyInput.text=="Shift+Alt+F10","Target key did not persist across class/reload")
     print("PASS: "..flavor.." yard probes, 30/5 defaults, exact thresholds, opening/wait/approach/retreat, target identity, unknown/secret/failure/conflict, legacy fallback, settings scope/validation and death. Game APIs mocked.")
 end
 if output then output:close() end

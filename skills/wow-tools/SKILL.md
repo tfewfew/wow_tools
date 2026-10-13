@@ -25,7 +25,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 ## 行为约定
 
-- titan版基于原2.1.1独立维护，当前2.1.8/接口38002。forerver版当前2.2.7/接口16001按无限服1.60.1.70338的Blizzard导出源码943764493e6b16d63ded3ab304150d1f05e58b57移植；以后跟随对应分支源码核对API，不能仅改TOC号。
+- titan版基于原2.1.1独立维护，当前2.1.15/接口38002。forerver版当前2.2.14/接口16001按无限服1.60.1.70338的Blizzard导出源码943764493e6b16d63ded3ab304150d1f05e58b57移植；以后跟随对应分支源码核对API，不能仅改TOC号。
 - forerver在Init.lua后加载Compatibility.lua：ItemLocation主手槽16及C_Item.GetItemID/GetItemInfoInstant识别鱼竿，C_Item.GetWeaponEnchantInfo(Enum.WeaponSlot.MainHand)返回列表，只接受有效Temporary附魔，排除Permanent/Imbue；失败或受限/不完整数据为unknown。UnitChannelInfo的技能ID在第8项，绿色只认钓鱼引导；先用issecretvalue排除受限返回再比较/输出，受限引导使主色块灰色。注册WEAPON_ENCHANT_CHANGED并每0.1秒刷新。菜单使用MenuUtil.CreateContextMenu；画面模块移动FramerateFrame整体，不再依赖FramerateLabel全局。未提供的CVar继续禁用，禁止加载时自动改变图形设置。forever测试覆盖全TOC加载，不发送游戏按键。
 - wowAuto同时识别时光服_classic_titan_/WowClassic.exe 3.80.和无限服_cn_beta_/Wow.exe 1.60.，允许游戏根目录位于其他盘符，但产品目录名须匹配。GetClientFlavor同时核对可执行文件名、父目录与构建前缀；未知/无法读取/零售服不加入列表。每行Client保存Flavor、Label、ExecutablePath；启动、取色、焦点切换、发键及正常/超时退出均核对PID、StartTime、路径与客户端身份。C#方法接收启动Ticks和预期路径，不能退回只按Wow进程名操作。
 
@@ -85,18 +85,18 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 ## autoFight（2026-10-13）
 
-- 当前合集版本titan2.1.14、forerver2.2.13，两服独立维护fight_detector.lua；保留fightDetectorDB / rangeSpells，新增profiles[classId]恢复阈值。战斗通过模块接口关闭钓鱼以恢复音频，不直接读写wowDetectorDB、音频、图形或交互CVar。
+- 当前合集版本titan2.1.15、forerver2.2.14，两服独立维护fight_detector.lua；保留fightDetectorDB / rangeSpells，新增profiles[classId]恢复阈值。战斗通过模块接口关闭钓鱼以恢复音频，不直接读写wowDetectorDB、音频、图形或交互CVar。
 - autoFight.ps1、Engine.ps1、Native.cs、config.json的状态、输入、计时和配置与autofish隔离，只共享主题及标签。离开标签停止上一页，UiTest以模拟类型替代战斗原生操作，不加载战斗输入适配器。
 - 战斗v5只读取主色块：主32×32物理像素位于客户区正中心，副12×12位于中心右32px，只作恢复提示。无心跳、双块校验或颜色变化要求。主RGB=(16+8*(action*4+recovery),2+4*(identity+busy*26),2+4*(encounter+combat*32))；action=0..6为unknown/idle/opening/waiting/combat/loot/skin；新增target动作分别使用保留R240/248/8对应none/recover/emergency，G/B不变。recovery=0..3为none/recover/emergency/unknown；identity=classId-1+（forerver为13）；encounter模32。通道偏差最多1，拒绝非法字段/组合、版本或职业不符、未知恢复及旧协议；射程未知但恢复明确仍可执行恢复。
 - HP进入 / 退出阈值默认非战斗80/95、紧急30/50；可选法力恢复默认关闭，只对法力职业生效。0关闭项，进入<退出，迟滞避免状态抖动。受限 / 不可读不推断。恢复优先于普通动作；施法 / 引导 / 战利品窗口阻止普通发键，紧急宏允许打断当前施法。
 - PC普通/紧急恢复各次进入仅成功执行一次，由独立RecoveryState/RecoverySent门闩维护；只有退出或切换恢复类型重置，主状态/怪物变化不得重发；失败保留待执行。正常战斗保留重试间隔，开怪按怪物编号一次，waiting不发键。取得前台等待200ms，发键前重读主色、忙碌和怪物编号；无心跳验证。
 - 插件不包含移动功能。PC通用四向键由脚本行方向按钮请求一次，仅在idle/非忙碌/无需恢复执行，不自动巡逻。非阻塞50ms计时按住100–2000ms；状态变化/到期/停止/刷新/关闭/设置/失焦/主色无效均释放本模块键。重复方向请求可重新执行。
 - 尸体交互按可拾取 → 无剩余战利品且可剥皮驱动；CanLootUnit同时读取hasLoot / canLoot，两项均明确且有权限才拾取，受限 / 不完整返回为unknown。有战利品而无权限时不交互、不判剥皮。LOOT_OPENED / LOOT_CLOSED维护忙碌，LOOT_READY / LOOT_SLOT_CLEARED及轮询刷新；两服独立实现。PC记录LastInteractionState，新拾取 / 剥皮阶段不继承上一阶段冷却，同阶段重新进入仍受NextInteractionAt限制；发键前仍要求非战斗、非忙碌及无需恢复。交互键沿用SkinKey，设置界面明确“拾取 / 剥皮交互键”，默认F7，按脚本Common通用保存；游戏内绑定交互；独立Loot.lua处理已打开窗口的自动拾取及拾取绑定确认，不改变CVar。
-- JSON v5：CommandIntervalMs保留公共100–60000ms间隔；Common保存四向键、移动时长、交互键/保持/开关及JumpIntervalSeconds，全部服务器职业共享。Profiles只包含时光服10职业、无限服9职业的OpeningKey/CombatKey/RecoveryKey/EmergencyKey/CombatIntervalMs及身份；两服排除10/12/13职业，无限服另排除6。设置分别有时光服/无限服Tab，每页独立职业下拉框及按键，按真实职业ID映射德鲁伊11，切换保留草稿及选择。v1–v4只读迁移，下次原子保存升级；删除不可用职业，其余自定义保留，旧跳跃默认0；取消/失败不应用。
+- JSON v6：CommandIntervalMs保留公共100–60000ms间隔；Common保存TargetKey（默认Tab）、四向键、移动时长、交互键/保持/开关及JumpIntervalSeconds，全部服务器职业共享。Profiles只包含时光服10职业、无限服9职业的OpeningKey/CombatKey/RecoveryKey/EmergencyKey/CombatIntervalMs及身份；两服排除10/12/13职业，无限服另排除6。设置分别有时光服/无限服Tab，每页独立职业下拉框及按键，按真实职业ID映射德鲁伊11，切换保留草稿及选择。v1–v5只读迁移，下次原子保存升级；删除不可用职业，其余自定义保留，旧跳跃默认0；取消/失败不应用。
 - 本次Windows任务须执行解析、编译和模拟检查，提交并成功推送后同步两服及桌面快捷方式；不运行真实发键循环、采集游戏声音或结束游戏进程。
 
 - 钓鱼JumpEveryCycles按成功收竿循环次数独立保存到config.ini，0–1000000、默认0、步进1，不改为秒计时。满N次在冷却 / 保持后有效红绿状态按空格，未知等待、黄色优先。PostReelJumpAllowed只由本次任务已登记且成功发送的收竿赋予；正在钓鱼、收竿失败、无咬钩超时、停止后重新开始不得立即跳跃。停止 / 刷新保留计数，继承待跳须等下一次成功收竿；成功跳跃/抛竿/停止/超时清除权限。保留成功收竿后绿色恢复跳跃，成功一次清除两种待跳并归零，失败重试。改变N重置、重复保存不重置，原子保存成功才应用。JumpInterval及完整UiTest模拟覆盖两服待跳继承/钓鱼中不跳/失败/超时/下一次成功收竿及原有优先级。
-- 战斗公共CommandGate跨窗口 / 职业 / 状态门控全部成功发键，不约束钓鱼；职业更长冷却和保持仍有效。松键不延迟且不消耗间隔；停止 / 刷新不重置LastSentAt，保存间隔也保留它。v1/v2只读迁移默认公共500ms，下次保存升级v5，全部字段成功写入才应用。AutoFight.Engine.Tests.ps1及UiTest模拟配置失败和全部状态跨窗口门控，生产Native.cs仅编译。
+- 战斗公共CommandGate跨窗口 / 职业 / 状态门控全部成功发键，不约束钓鱼；职业更长冷却和保持仍有效。松键不延迟且不消耗间隔；停止 / 刷新不重置LastSentAt，保存间隔也保留它。v1/v2只读迁移默认公共500ms，下次保存升级v6，全部字段成功写入才应用。AutoFight.Engine.Tests.ps1及UiTest模拟配置失败和全部状态跨窗口门控，生产Native.cs仅编译。
 - 两服各自Loot.lua监听LOOT_OPENED / LOOT_READY / LOOT_SLOT_CHANGED / LOOT_SLOT_CLEARED / LOOT_CLOSED，使用本客户端GetNumLootItems / GetLootSlotInfo第6项locked / LootSlot拾取未锁定槽位。wowDetector及fight_detector通过IsEnabled返回实际开关，不能用面板可见性代替。任一检测开启时，所有来源和品质的LOOT_BIND_CONFIRM均排队下一帧ConfirmLootSlot；事件及每个槽位执行前都重新读取两模块开关，全部关闭时取消确认，另一检测继续开启则保持。缺失 / 异常 / 受限开关不视为开启，不阻断另一模块的有效true。成功才StaticPopup_Hide("LOOT_BIND", slot)；只确认拾取绑定，失败保留人工提示、受限不比较、不改变CVar或两模块设置。按槽位去重、关闭清空；Loot.Tests.lua分别模拟两服全部开关组合、全部槽位、延迟中关闭 / 切换 / 重启、处理途中关闭及API失败，钓鱼与战斗模拟验证真实IsEnabled启动 / 关闭 / 死亡 / 钓鱼hide行为；ForeverCompatibility.Tests.lua按实际TOC加载完整模块。
 
 - 距离检测：两服独立fight_detector/Range.lua采用经典 / Forever已知敌对物品探针，档位5/10/15/20/25/30/35/40码，C_Item.IsItemInRange优先、全局接口仅缺省回退，先排除受限返回；缺失、异常、冲突为unknown。加载时预热物品数据，不使用、购买物品或读取怪物坐标。profiles[classId].DetectionRangeYards默认30，顶层AttackRangeYards默认5且为该客户端账号全局；旧rangeSpells保留。面板一次校验全部距离和恢复阈值后保存，非法不部分应用。
@@ -105,9 +105,11 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - 战斗色块缩放：unit=UIParent:GetHeight()/GetPhysicalScreenSize高度，将主/副尺寸转换为32/12px，主偏移0，副偏移+32px；DISPLAY_SIZE_CHANGED/UI_SCALE_CHANGED及轮询重算。PC同一PMv2 DPI上下文每次读取客户区中心；无遮挡中心核对WindowFromPoint所属窗口再取像素，遮挡 / 失败时PrintWindow客户区渲染快照取中心；前后窗口尺寸/位置一致才解码，不缓存旧中心，不读取副块或验证心跳。暂时不可读暂停发键并保留会话/恢复门闩，连续800ms失败才停并显示LastReadError及主RGB；保持移动时立即释放。两服FightDistance及AutoFight.Distance跨语言验证v5主RGB/几何/职业/非法/稳定颜色。进程行按监视器位置显示四角/居中/最小化，每秒更新，与钓鱼规则相同。
 - 自动战斗全局JumpIntervalSeconds=0..3600秒，默认0关闭，Common共享两服职业，各活动进程独立从启动计时。到期在idle/combat且非忙碌/无需恢复、无移动请求时发一次Space；等待接近/恢复/移动/交互保持延后，主色及前台复查和公共CommandGate仍约束。成功从完成时刻重计，失败不消耗，不重置攻击冷却/恢复门闩。成功保存不同值重新计时，相同值保留；停止/刷新取消，重启重计。AutoFight.Jump及完整UiTest模拟验证边界/优先级/失败/独立性/保存隔离，禁止真实游戏按键。
 
-- 2026-10-13选目标与后台检测：两服独立准备SecureActionButtonTemplate宏，检测期间F10临时override binding；非战斗按具体unit选择并设focus，combat只选focus。绑定 / 属性仅脱战修改，关闭时若战斗锁定则PLAYER_REGEN_ENABLED补清理。脚本内置TargetKey=F10、500ms重试，与公共门控合用；其他动作禁止裸F10。输出target后只执行选目标，目标与focus GUID均确认才输出opening / combat，战斗不因手动换目标替换encounter，选回不重置OpeningSent；focus不匹配时unknown，保留恢复优先处理。请脱战启动并准备首个怪物，焦点用于本模块锁定。
+- 2026-10-13选目标与后台检测：两服独立准备SecureActionButtonTemplate宏，检测期间TargetKey临时override binding（默认TAB）；非战斗按具体unit选择并设focus，combat只选focus。绑定 / 属性仅脱战修改，关闭时若战斗锁定则PLAYER_REGEN_ENABLED补清理。脚本Common.TargetKey默认Tab、500ms重试，与公共门控合用；所有职业及公共动作禁止使用相同选目标键，拒绝裸Space（全局跳跃）和无WoW映射的Separator。两服插件fightDetectorDB.TargetKey账号全局独立保存，面板文本输入Tab/F10/Ctrl+Tab等；必须与脚本公共配置一致，不能声称自动同步。键文本规范化为PC Ctrl+Shift+Alt及WoW ALT-CTRL-SHIFT-前缀，脱战才可修改绑定；战斗中变更拒绝整次保存，非法文本不部分应用。旧v1–v5脚本配置只读迁移默认Tab，下次保存JSON v6；插件缺省Tab。F10不再固定保留，只有选为TargetKey时受冲突约束。输出target后只执行选目标，目标与focus GUID均确认才输出opening / combat，战斗不因手动换目标替换encounter，选回不重置OpeningSent；focus不匹配时unknown，保留恢复优先处理。请脱战启动并准备首个怪物，焦点用于本模块锁定。
 - 战斗刷新 / 状态 / 职业 / 位置 / 发键前重读全部不以Foreground作为检测前提，扫描不Activate也不Restore，只有实际动作到期才激活并等待200ms，Press / BeginHold仍验证前台。交互保持可后台读色，移动失焦释放并继续监测。最小化 / 后台渲染黑图 / 非法色暂停，800ms规则保留，不以切换前台作为检测回退。FightDistance模拟安全属性禁战斗写入、nameplate先选再开、战斗错选 / 目标丢失 / focus失效、关闭脱战解绑；UiTest模拟后台刷新 / 待机无焦点变化、选目标取得焦点 / 200ms / 确认 / 重试 / 开怪门闩，Native只编译及纯Decode，不实际截游戏或发键。
 
 - 两服Init.lua各自创建WoWTools.detectorAnchor在UIParent正中心，钓鱼CenterIndicator把主色中心对齐该锚点，战斗主 / 副块均锚定它；主中心重合，副中心均为主右32物理px，副12px。保留各自颜色协议与主块尺寸，不能为位置重叠改坏脚本解码。WoWTools.ActivateDetector在成功启动前停止并隐藏另一个检测，钓鱼SetEnabled(true)和战斗Start统一调用，覆盖命令 / 按钮 / 小地图 / 菜单；钓鱼模块Hide=CloseMonitor，隐藏但enabled仍为true的钓鱼同样要停止并恢复音频快照，战斗停用清理会话并按既有战斗锁定规则延后解绑。死亡 / 未初始化等拒绝启动先返回，不停用原模块；仅钓鱼show / hide显隐不抢占当前检测。DetectorExclusion.Tests.lua分别用两服真实模块模拟双向切换、所有入口、显隐 / 失败 / 音频恢复 / 安全解绑，以及各窗口 / UI缩放下主副共同定位。
 
 - 非战斗主块主体使用钓鱼等待红RGB255/0/0，仅combat明确false且state/recovery均非unknown时应用，覆盖待机/选目标/开怪/等待接近/恢复/尸体交互。主32px内部正中心2×2物理px的OVERLAY子层1纹理保留v5数据，PC仍只读原主中心像素；外部仍为两个色块，无副块读取或心跳。战斗/未知隐藏内部纹理并用原编码铺满主块；恢复副块不变。内部区域与共享锚点重合，按相同unit换算，保留缩放及奇偶客户区中心采样。FightDistance.Tests.lua输出实际主中心颜色供C#解码，DetectorExclusion比较切换前的钓鱼等待红，不能误比较关闭后的灰色。
+
+- 选目标键配置验证：AutoFight.Engine覆盖v5只读迁移/默认Tab/组合键往返/全19职业共享/非法及动态冲突/原子保存；完整UiTest覆盖实际PreviewKeyDown/KeyDown录入Tab组合键（Tab必须IsInputKey，不能只移动焦点）、跨Tab/职业保留草稿、保存/重开/取消/锁定失败及生产选目标流程使用配置键。FightDistance分别验证两服TAB默认覆盖、CTRL-TAB/ALT-SHIFT-F10规范化、战斗和非法设置拒绝整次保存、切换职业/重载保存及停用恢复原绑定，所有操作模拟。

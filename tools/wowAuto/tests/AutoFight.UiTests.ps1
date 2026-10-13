@@ -9,6 +9,7 @@ namespace WowAutoFight {
     public static class Native {
         public static Packet Current=new Packet();
         public static int Sends=0, Releases=0, LastCode=0;
+        public static bool LastCtrl=false,LastShift=false,LastAlt=false;
         public static int ReadsUntilEncounterChange=0;
         public static int MissingReads=0;
         public static string LastReadError="模拟快照暂不可读";
@@ -27,7 +28,7 @@ namespace WowAutoFight {
                 Flavor=Current.Flavor, Action=Current.Action, Recovery=Current.Recovery, Busy=Current.Busy, Combat=Current.Combat};
         }
         public static bool Press(object client, ushort code, bool ctrl, bool shift, bool alt) {
-            if (FailSend) return false; Sends++; LastCode=code; return true;
+            if (FailSend) return false; Sends++; LastCode=code; LastCtrl=ctrl; LastShift=shift; LastAlt=alt; return true;
         }
         public static bool BeginHold(object client, ushort code, bool ctrl, bool shift, bool alt) {
             if (!Press(client,code,ctrl,shift,alt)) return false; IsHolding=true; return true;
@@ -64,6 +65,15 @@ try {
             finally {$bitmap.Dispose()}
         }
         Assert-Ui ($dialog.Tag.CommandInterval.Value -eq 500 -and $dialog.Tag.CommandInterval.Increment -eq 100) 'Combat common interval default / 100 ms step incorrect.'
+        Assert-Ui ($dialog.Tag.Bindings.TargetKey.Text -eq 'Tab' -and $dialog.Tag.CommonBindings.ContainsKey('TargetKey')) 'Target key is not common/default Tab.'
+        $previewKey=New-Object System.Windows.Forms.PreviewKeyDownEventArgs([System.Windows.Forms.Keys]::Tab)
+        $previewMethod=[System.Windows.Forms.Control].GetMethod('OnPreviewKeyDown',[Reflection.BindingFlags]'Instance,NonPublic')
+        $null=$previewMethod.Invoke($dialog.Tag.Bindings.TargetKey,@($previewKey.PSObject.BaseObject))
+        Assert-Ui $previewKey.IsInputKey 'Tab moved focus instead of being recordable.'
+        $keyEvent=New-Object System.Windows.Forms.KeyEventArgs([System.Windows.Forms.Keys]::Control -bor [System.Windows.Forms.Keys]::Tab)
+        $keyMethod=[System.Windows.Forms.Control].GetMethod('OnKeyDown',[Reflection.BindingFlags]'Instance,NonPublic')
+        $null=$keyMethod.Invoke($dialog.Tag.Bindings.TargetKey,@($keyEvent.PSObject.BaseObject))
+        Assert-Ui ($dialog.Tag.Bindings.TargetKey.Text -eq 'Ctrl+Tab' -and $script:autoFight.Common.TargetKey -eq 'Tab') 'Target key recording applied early.'
         Assert-Ui ($dialog.Tag.Tabs.TabPages.Count -eq 2 -and $dialog.Tag.Pages.titan.Class.Items.Count -eq 10 -and
             $dialog.Tag.Pages.forerver.Class.Items.Count -eq 9 -and '武僧' -notin $dialog.Tag.Pages.titan.Class.Items -and
             '死亡骑士' -notin $dialog.Tag.Pages.forerver.Class.Items) 'Version tabs / class availability incorrect.'
@@ -74,6 +84,7 @@ try {
         $dialog.Tag.Numbers.MovementHoldMs.Value=600
         $dialog.Tag.Tabs.SelectedIndex=1; $dialog.Tag.Pages.forerver.Class.SelectedIndex=2
         Assert-Ui ($dialog.Tag.Bindings.MoveLeftKey.Text -eq 'A' -and $dialog.Tag.Bindings.SkinKey.Text -eq '=' -and
+            $dialog.Tag.Bindings.TargetKey.Text -eq 'Ctrl+Tab' -and
             $dialog.Tag.Numbers.MovementHoldMs.Value -eq 600 -and $script:autoFight.Common.MoveLeftKey -eq 'Q') 'Common draft lost on profile selection or applied early.'
         $dialog.Tag.Bindings.CombatKey.Text='Ctrl+7'
         $dialog.Tag.Tabs.SelectedIndex=0
@@ -86,25 +97,29 @@ try {
         $dialog.Tag.Save.PerformClick()
         Assert-Ui ($dialog.IsDisposed -or -not $dialog.Visible) 'Combat save did not close dialog.'
         $saved=Read-AutoFightConfiguration $fightPath
+        Assert-Ui ($saved.Common.TargetKey -eq 'Ctrl+Tab' -and $script:autoFight.Common.TargetKey -eq 'Ctrl+Tab') 'Saved target key lost common configuration.'
         Assert-Ui ($saved.Common.MoveLeftKey -eq 'A' -and $saved.Common.SkinKey -eq '=' -and $saved.Common.MovementHoldMs -eq 600 -and
             $null -eq $saved.Profiles['titan:1'].PSObject.Properties['MoveLeftKey'] -and $null -eq $dialog.Tag.Numbers.EmergencyIntervalMs) 'Common fields remain class-specific or obsolete recovery interval remains visible.'
         Assert-Ui ($saved.Common.JumpIntervalSeconds -eq 20 -and $saved.CommandIntervalMs -eq 800 -and $script:autoFight.Profiles['forerver:3'].CombatKey -eq 'Ctrl+7' -and $script:autoFight.Profiles['titan:3'].CombatKey -eq 'F6' -and $script:autoFight.CommandGate.LastSentAt -eq 100) 'Combat save lost common/profile isolation or reset last send.'
     } finally {$dialog.Dispose()}
     $dialog=New-AutoFightSettingsDialog
-    try {$dialog.Show($form); Assert-Ui ($dialog.Tag.CommandInterval.Value -eq 800 -and $dialog.Tag.Bindings.MoveLeftKey.Text -eq 'A' -and $dialog.Tag.Numbers.JumpIntervalSeconds.Value -eq 20) 'Combat reopen lost saved interval/common key/jump.'; $dialog.Tag.CommandInterval.Value=900; $dialog.Tag.Bindings.MoveLeftKey.Text='Z'; $dialog.Tag.Numbers.JumpIntervalSeconds.Value=30; $dialog.Tag.Cancel.PerformClick()}
+    try {$dialog.Show($form); Assert-Ui ($dialog.Tag.CommandInterval.Value -eq 800 -and $dialog.Tag.Bindings.TargetKey.Text -eq 'Ctrl+Tab' -and $dialog.Tag.Bindings.MoveLeftKey.Text -eq 'A' -and $dialog.Tag.Numbers.JumpIntervalSeconds.Value -eq 20) 'Combat reopen lost saved interval/common key/jump.'; $dialog.Tag.Bindings.TargetKey.Text='F10'; $dialog.Tag.CommandInterval.Value=900; $dialog.Tag.Bindings.MoveLeftKey.Text='Z'; $dialog.Tag.Numbers.JumpIntervalSeconds.Value=30; $dialog.Tag.Cancel.PerformClick()}
     finally {$dialog.Dispose()}
     Assert-Ui ($script:autoFight.CommandGate.IntervalMs -eq 800) 'Combat cancel applied draft.'
     Assert-Ui ($script:autoFight.Common.MoveLeftKey -eq 'A') 'Cancel applied common draft.'
+    Assert-Ui ($script:autoFight.Common.TargetKey -eq 'Ctrl+Tab') 'Cancel applied target draft.'
     Assert-Ui ($script:autoFight.Common.JumpIntervalSeconds -eq 20) 'Cancel applied jump draft.'
     $locked=[IO.File]::Open($fightPath,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
     try {
         $dialog=New-AutoFightSettingsDialog
         try {
             $dialog.Show($form); $dialog.Tag.CommandInterval.Value=1000; $dialog.Tag.Bindings.CombatKey.Text='F12'
+            $dialog.Tag.Bindings.TargetKey.Text='F10'
             $dialog.Tag.Bindings.MoveLeftKey.Text='Z';$dialog.Tag.Numbers.MovementHoldMs.Value=900;$dialog.Tag.Numbers.JumpIntervalSeconds.Value=30;$dialog.Tag.Save.PerformClick()
             Assert-Ui ($dialog.Visible -and $dialog.Tag.Error.Text -ne '' -and $script:autoFight.CommandGate.IntervalMs -eq 800 -and $script:autoFight.Profiles['titan:1'].CombatKey -eq 'F6') 'Failed combat save partially applied draft.'
             Assert-Ui ($script:autoFight.Common.MoveLeftKey -eq 'A' -and $script:autoFight.Common.MovementHoldMs -eq 600) 'Failed save partially applied common fields.'
             Assert-Ui ($script:autoFight.Common.JumpIntervalSeconds -eq 20) 'Failed save partially applied jump setting.'
+            Assert-Ui ($script:autoFight.Common.TargetKey -eq 'Ctrl+Tab') 'Failed save partially applied target setting.'
         } finally {$dialog.Dispose()}
     } finally {$locked.Dispose()}
     $script:autoFight.Editor=$null
@@ -293,7 +308,7 @@ try {
     Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline) 'Target key sent before focus settle.'
     $script:autoFight.Clock.ElapsedMilliseconds=62200;Invoke-AutoFightTick
     $baseline++
-    Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline -and [WowAutoFight.Native]::LastCode -eq 121 -and -not $fightRows[0].Session.OpeningSent) 'Selection did not send reserved F10 independently of opener.'
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline -and [WowAutoFight.Native]::LastCode -eq 9 -and [WowAutoFight.Native]::LastCtrl -and -not $fightRows[0].Session.OpeningSent) 'Selection did not send configured Ctrl+Tab independently of opener.'
     Tick-FightEncounter $fightRows[0] 'target' 64000
     $baseline++
     Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline -and -not $fightRows[0].Session.OpeningSent) 'Unconfirmed target opened or could not retry.'

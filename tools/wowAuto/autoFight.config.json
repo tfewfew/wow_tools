@@ -1,5 +1,5 @@
 {
-    "Version":  5,
+    "Version":  6,
     "CommandIntervalMs":  1000,
     "Common":  {
                    "MoveForwardKey":  "W",
@@ -7,6 +7,7 @@
                    "MoveLeftKey":  "A",
                    "MoveRightKey":  "D",
                    "SkinKey":  "=",
+                   "TargetKey":  "Tab",
                    "MovementHoldMs":  400,
                    "InteractionHoldMs":  3500,
                    "SkinEnabled":  true,

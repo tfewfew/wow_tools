@@ -338,6 +338,7 @@ function Select-AutoFightDraftProfile([string]$Flavor) {
 function New-AutoFightKeyBox {
     $box=New-Object System.Windows.Forms.TextBox; $box.ReadOnly=$true
     $box.BackColor=[Drawing.Color]::FromArgb(50,50,50); $box.ForeColor=[Drawing.Color]::White
+    $box.Add_PreviewKeyDown({param($sender,$eventArgs) $eventArgs.IsInputKey=$true})
     $box.Add_KeyDown({param($sender,$eventArgs)
         $binding=New-AutoFightBinding ([int]$eventArgs.KeyCode) $eventArgs.Control $eventArgs.Shift $eventArgs.Alt
         if ($null -ne $binding) {$sender.Text=$binding.Text}
@@ -412,7 +413,7 @@ function New-AutoFightSettingsDialog {
     }
     $profileTabs.Add_SelectedIndexChanged({if (-not $script:autoFight.Editor.Loading) {Set-AutoFightEditorAliases}})
     $heading=New-Object System.Windows.Forms.Label; $heading.Text='通用设置：全部服务器与职业'; $heading.SetBounds(16,230,810,26); $body.Controls.Add($heading)
-    $keyLabels=@('开怪战斗键','正常战斗键','非战斗恢复键','战斗紧急恢复键','向前移动键','向后移动键','向左移动键','向右移动键','拾取 / 剥皮交互键')
+    $keyLabels=@('开怪战斗键','正常战斗键','非战斗恢复键','战斗紧急恢复键','向前移动键','向后移动键','向左移动键','向右移动键','拾取 / 剥皮交互键','选中 / 锁定目标键')
     $allKeyFields=$script:autoFightKeyFields+$script:autoFightCommonKeyFields
     for ($i=4;$i -lt $allKeyFields.Count;$i++) {
         $field=$allKeyFields[$i]
@@ -453,7 +454,7 @@ function New-AutoFightSettingsDialog {
     $jump.BackColor=[Drawing.Color]::FromArgb(50,50,50); $jump.ForeColor=[Drawing.Color]::White
     $jump.SetBounds(360,522,168,32); $body.Controls.Add($jump); $editor.CommonNumbers.JumpIntervalSeconds=$jump
     $hint=New-Object System.Windows.Forms.Label
-    $hint.Text="F10 保留用于选目标；确认后每只怪开怪一次，战斗通过焦点锁定。`r`n检测支持后台窗口；需要发键时取得前台并复查主色。`r`n检测 / 攻击距离在插件面板设置；等待接近期间不发攻击键。`r`n公共间隔约束所有战斗指令；普通 / 紧急恢复每次进入只执行一次。`r`n移动由方向按钮请求；跳跃按各进程计时，忙碌或恢复时延后。"
+    $hint.Text="选目标键默认 Tab；须与游戏插件面板的全局选目标键一致。`r`n确认后每只怪开怪一次，战斗通过焦点锁定；检测支持后台窗口。`r`n检测 / 攻击距离在插件面板设置；等待接近期间不发攻击键。`r`n公共间隔约束所有战斗指令；普通 / 紧急恢复每次进入只执行一次。`r`n移动由方向按钮请求；跳跃按各进程计时，忙碌或恢复时延后。"
     $hint.SetBounds(16,568,812,144); $body.Controls.Add($hint)
     $errorLabel=New-Object System.Windows.Forms.Label
     $errorLabel.SetBounds(16,4,($footer.ClientSize.Width-32),30); $errorLabel.Anchor='Top, Left, Right'; $errorLabel.AutoEllipsis=$true

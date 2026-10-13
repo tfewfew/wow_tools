@@ -23,14 +23,14 @@ $script:autoFightStates = [ordered]@{
     'jump'=@{Label='定时跳跃'; Key='JumpKey'; Interval=$null}
 }
 $script:autoFightKeyFields=@('OpeningKey','CombatKey','RecoveryKey','EmergencyKey')
-$script:autoFightCommonKeyFields=@('MoveForwardKey','MoveBackwardKey','MoveLeftKey','MoveRightKey','SkinKey')
+$script:autoFightCommonKeyFields=@('MoveForwardKey','MoveBackwardKey','MoveLeftKey','MoveRightKey','SkinKey','TargetKey')
 $script:autoFightCommonFields=$script:autoFightCommonKeyFields+@('MovementHoldMs','InteractionHoldMs','SkinEnabled','JumpIntervalSeconds')
 $script:autoFightProfileFields=@('Flavor','ClassId')+$script:autoFightKeyFields+@('CombatIntervalMs')
-$script:autoFightLegacyFields=@('Flavor','ClassId')+$script:autoFightKeyFields+$script:autoFightCommonKeyFields+
+$script:autoFightLegacyFields=@('Flavor','ClassId')+$script:autoFightKeyFields+@($script:autoFightCommonKeyFields | Where-Object {$_ -ne 'TargetKey'})+
     @('OpeningIntervalMs','CombatIntervalMs','EmergencyIntervalMs','MovementHoldMs','InteractionHoldMs','SkinEnabled')
 function New-AutoFightCommon {
     return [pscustomobject]@{MoveForwardKey='W';MoveBackwardKey='S';MoveLeftKey='Q';MoveRightKey='E';
-        SkinKey='F7';MovementHoldMs=400;InteractionHoldMs=3500;SkinEnabled=$true;JumpIntervalSeconds=0}
+        SkinKey='F7';TargetKey='Tab';MovementHoldMs=400;InteractionHoldMs=3500;SkinEnabled=$true;JumpIntervalSeconds=0}
 }
 function Copy-AutoFightCommon($Common) {
     $fields=[ordered]@{}
@@ -45,7 +45,12 @@ function ConvertTo-AutoFightCommon($Common) {
     $fields=[ordered]@{}
     foreach ($field in $script:autoFightCommonKeyFields) {
         $fields[$field]=(ConvertFrom-AutoFightBinding $Common.$field).Text
-        if ($fields[$field] -eq 'F10') {throw 'F10 保留用于选中 / 锁定战斗目标，请为其他动作选择不同按键。'}
+    }
+    # WoW has no keyboard separator binding; plain Space is reserved for global jumping.
+    $target=ConvertFrom-AutoFightBinding $fields.TargetKey
+    if ($target.Code -eq 108 -or $target.Text -eq 'Space') {throw '选目标键不支持数字键盘分隔符或单独空格。'}
+    foreach ($field in $script:autoFightCommonKeyFields) {
+        if ($field -ne 'TargetKey' -and $fields[$field] -eq $fields.TargetKey) {throw "选目标键不能与 $field 相同。"}
     }
     if (@($script:autoFightCommonKeyFields[0..3] | ForEach-Object {$fields[$_]} | Select-Object -Unique).Count -ne 4) {
         throw '四个移动方向必须绑定不同的按键。'
@@ -62,7 +67,7 @@ function Get-AutoFightEffectiveProfile($Profile,$Common) {
     foreach ($field in $script:autoFightProfileFields) {$fields[$field]=$Profile.$field}
     foreach ($field in $script:autoFightCommonFields) {$fields[$field]=$Common.$field}
     $fields.JumpKey='Space'
-    $fields.TargetKey='F10'; $fields.TargetIntervalMs=500
+    $fields.TargetIntervalMs=500
     return [pscustomobject]$fields
 }
 function New-AutoFightBinding([int]$Code,[bool]$Ctrl,[bool]$Shift,[bool]$Alt) {
@@ -121,7 +126,7 @@ function Copy-AutoFightProfiles($Profiles) {
     }
     return $copy
 }
-function ConvertTo-AutoFightProfiles($Items,[int]$Version=5) {
+function ConvertTo-AutoFightProfiles($Items,[int]$Version=6) {
     $result=@{}
     foreach ($item in @($Items)) {
         $expected=if ($Version -ge 4) {$script:autoFightProfileFields} else {$script:autoFightLegacyFields}
@@ -145,13 +150,12 @@ function ConvertTo-AutoFightProfiles($Items,[int]$Version=5) {
         $fields=[ordered]@{Flavor=$p.Flavor; ClassId=$id}
         foreach ($field in $script:autoFightKeyFields) {
             $fields[$field]=(ConvertFrom-AutoFightBinding $p.$field).Text
-            if ($fields[$field] -eq 'F10') {throw 'F10 保留用于选中 / 锁定战斗目标，请为其他动作选择不同按键。'}
         }
         $fields.CombatIntervalMs=Get-AutoFightInteger $p.CombatIntervalMs 100 10000 '正常战斗间隔 (ms)'
         if ($Version -lt 4) {
             $legacy=New-AutoFightCommon
             foreach ($field in $script:autoFightCommonFields) {
-                if ($field -ne 'JumpIntervalSeconds' -and ($Version -gt 1 -or $field -in @('SkinKey','InteractionHoldMs','SkinEnabled'))) {$legacy.$field=$item.$field}
+                if ($field -notin @('JumpIntervalSeconds','TargetKey') -and ($Version -gt 1 -or $field -in @('SkinKey','InteractionHoldMs','SkinEnabled'))) {$legacy.$field=$item.$field}
             }
             $null=ConvertTo-AutoFightCommon $legacy
             if ($Version -gt 1) {
@@ -179,7 +183,7 @@ function Complete-AutoFightCommand($Gate,[long]$Now,[bool]$Sent) {
 function Read-AutoFightConfiguration([string]$Path) {
     if (-not [IO.File]::Exists($Path)) { return [pscustomobject]@{Profiles=(New-AutoFightProfiles);Common=(New-AutoFightCommon);CommandIntervalMs=500} }
     $document=[IO.File]::ReadAllText($Path,[Text.Encoding]::UTF8) | ConvertFrom-Json
-    if ($null -eq $document -or $document.Version -notin @(1,2,3,4,5)) {throw '无法读取 autoFight 配置版本或内容。'}
+    if ($null -eq $document -or $document.Version -notin @(1,2,3,4,5,6)) {throw '无法读取 autoFight 配置版本或内容。'}
     $expected=@('Version','Profiles')
     if ($document.Version -ge 3) {$expected+='CommandIntervalMs'}
     if ($document.Version -ge 4) {$expected+='Common'}
@@ -193,6 +197,7 @@ function Read-AutoFightConfiguration([string]$Path) {
     $common=New-AutoFightCommon
     if ($document.Version -ge 4) {
         if ($document.Version -eq 4) {$document.Common | Add-Member NoteProperty JumpIntervalSeconds 0}
+        if ($document.Version -le 5) {$document.Common | Add-Member NoteProperty TargetKey 'Tab'}
         $common=ConvertTo-AutoFightCommon $document.Common
     }
     else {
@@ -205,15 +210,24 @@ function Read-AutoFightConfiguration([string]$Path) {
         }
         $common=ConvertTo-AutoFightCommon $common
     }
+    Test-AutoFightTargetConflicts $profiles $common
     return [pscustomobject]@{Profiles=$profiles;Common=$common;CommandIntervalMs=$interval}
+}
+function Test-AutoFightTargetConflicts($Profiles,$Common) {
+    foreach ($profile in $Profiles.Values) {
+        foreach ($field in $script:autoFightKeyFields) {
+            if ($profile.$field -eq $Common.TargetKey) {throw "选目标键与 $($profile.Flavor) 职业 $($profile.ClassId) 的 $field 冲突。"}
+        }
+    }
 }
 function Read-AutoFightProfiles([string]$Path) {return (Read-AutoFightConfiguration $Path).Profiles}
 function Save-AutoFightProfiles([string]$Path,$Profiles,$CommandIntervalMs=500,$Common=(New-AutoFightCommon)) {
     $valid=ConvertTo-AutoFightProfiles @($Profiles.Values)
     $general=ConvertTo-AutoFightCommon $Common
+    Test-AutoFightTargetConflicts $valid $general
     $interval=Get-AutoFightInteger $CommandIntervalMs 100 60000 '公共最小按键间隔 (ms)'
     $items=@($valid.Keys | Sort-Object | ForEach-Object {$valid[$_]})
-    $json=[pscustomobject]@{Version=5;CommandIntervalMs=$interval;Common=$general;Profiles=$items} | ConvertTo-Json -Depth 5
+    $json=[pscustomobject]@{Version=6;CommandIntervalMs=$interval;Common=$general;Profiles=$items} | ConvertTo-Json -Depth 5
     $temporary=$Path+'.'+[Guid]::NewGuid().ToString('N')+'.tmp'
     try {
         [IO.File]::WriteAllText($temporary,$json,(New-Object Text.UTF8Encoding($false)))

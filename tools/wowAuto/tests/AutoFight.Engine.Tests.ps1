@@ -5,7 +5,7 @@ function Assert-Fight($Condition,[string]$Label) { if (-not $Condition) { throw 
 $path=Join-Path ([IO.Path]::GetTempPath()) ('autoFight-'+[Guid]::NewGuid()+'.json')
 try {
     $config=Read-AutoFightConfiguration $path
-    Assert-Fight ($config.Profiles.Count -eq 19 -and $config.CommandIntervalMs -eq 500) 'Defaults incomplete.'
+    Assert-Fight ($config.Profiles.Count -eq 19 -and $config.CommandIntervalMs -eq 500 -and $config.Common.TargetKey -eq 'Tab') 'Defaults incomplete.'
     $profiles=$config.Profiles; $profiles['forerver:3'].CombatKey='Ctrl+7'
     $valid=Save-AutoFightProfiles $path $profiles 1200
     $config=Read-AutoFightConfiguration $path
@@ -52,7 +52,7 @@ try {
     $rejected=$false;try {$null=Save-AutoFightProfiles $path $roundtrip.Profiles 700 $badCommon} catch {$rejected=$true}
     Assert-Fight ($rejected -and [IO.File]::ReadAllText($path) -ceq $original) 'Invalid common draft partially saved.'
     $reserved=Copy-AutoFightProfiles $roundtrip.Profiles
-    $reserved['titan:1'].OpeningKey='F10'
+    $reserved['titan:1'].OpeningKey='Tab'
     $rejected=$false;try {$null=Save-AutoFightProfiles $path $reserved 700} catch {$rejected=$true}
     Assert-Fight ($rejected -and [IO.File]::ReadAllText($path) -ceq $original) 'Target override key accepted as opener.'
     $v1=@($profiles.Values | ForEach-Object { [pscustomobject]@{Flavor=$_.Flavor; ClassId=$_.ClassId; AttackKey='Alt+8'; SkinKey='F7'; AttackIntervalMs=700; InteractionHoldMs=3500; SkinEnabled=$true} })
@@ -69,6 +69,7 @@ try {
     # Construct a real V4 document with all 26 old classes; loading drops unavailable profiles only.
     $oldDocument.Version=4
     $oldDocument.Common.PSObject.Properties.Remove('JumpIntervalSeconds')
+    $oldDocument.Common.PSObject.Properties.Remove('TargetKey')
     $oldDocument.Profiles=@(foreach ($flavor in @('titan','forerver')) {foreach ($id in 1..13) {New-AutoFightProfile $flavor $id}})
     $oldDocument.Profiles[4].RecoveryKey='Alt+9'
     $legacyJson=$oldDocument | ConvertTo-Json -Depth 5
@@ -86,6 +87,37 @@ try {
         $rejected=$false;try {$null=Save-AutoFightProfiles $path $migrated.Profiles 700 $migrated.Common} catch {$rejected=$true}
         Assert-Fight ($rejected -and [IO.File]::ReadAllText($path) -ceq $original) 'Invalid jump partially saved.'
     }
+    $oldJson=Get-Content -Raw $path | ConvertFrom-Json
+    $oldJson.Version=5; $oldJson.Common.PSObject.Properties.Remove('TargetKey')
+    $v5=$oldJson | ConvertTo-Json -Depth 5; [IO.File]::WriteAllText($path,$v5)
+    $targetConfig=Read-AutoFightConfiguration $path
+    Assert-Fight ($targetConfig.Common.TargetKey -eq 'Tab' -and [IO.File]::ReadAllText($path) -ceq $v5) 'V5 target migration rewrote preferences.'
+    $targetConfig.Common.TargetKey='Ctrl+Tab'
+    $null=Save-AutoFightProfiles $path $targetConfig.Profiles 700 $targetConfig.Common
+    $targetConfig=Read-AutoFightConfiguration $path
+    Assert-Fight ($targetConfig.Common.TargetKey -eq 'Ctrl+Tab' -and (Get-Content -Raw $path | ConvertFrom-Json).Version -eq 6) 'Target key roundtrip failed.'
+    foreach ($profile in $targetConfig.Profiles.Values) {
+        Assert-Fight ((Get-AutoFightEffectiveProfile $profile $targetConfig.Common).TargetKey -eq 'Ctrl+Tab') 'Target key not shared by all servers/classes.'
+    }
+    $original=[IO.File]::ReadAllText($path)
+    foreach ($key in @('Space','Separator','W','F5','Ctrl+Ctrl+Tab','invalid')) {
+        $targetConfig.Common.TargetKey=$key
+        $rejected=$false;try {$null=Save-AutoFightProfiles $path $targetConfig.Profiles 700 $targetConfig.Common} catch {$rejected=$true}
+        Assert-Fight ($rejected -and [IO.File]::ReadAllText($path) -ceq $original) 'Invalid/conflicting target key partially saved.'
+    }
+    $targetConfig.Common.TargetKey='F10'
+    $null=Save-AutoFightProfiles $path $targetConfig.Profiles 700 $targetConfig.Common
+    Assert-Fight ((Read-AutoFightConfiguration $path).Common.TargetKey -eq 'F10') 'Custom F10 target key rejected.'
+    $original=[IO.File]::ReadAllText($path)
+    $badDocument=$original | ConvertFrom-Json
+    $badDocument.Common.PSObject.Properties.Remove('TargetKey')
+    [IO.File]::WriteAllText($path,($badDocument | ConvertTo-Json -Depth 5))
+    $rejected=$false;try {$null=Read-AutoFightConfiguration $path} catch {$rejected=$true}
+    Assert-Fight $rejected 'V6 missing target key accepted.'
+    [IO.File]::WriteAllText($path,$original)
+    $targetConfig.Profiles['forerver:11'].EmergencyKey='F10'
+    $rejected=$false;try {$null=Save-AutoFightProfiles $path $targetConfig.Profiles 700 $targetConfig.Common} catch {$rejected=$true}
+    Assert-Fight ($rejected -and [IO.File]::ReadAllText($path) -ceq $original) 'Other server/class target conflict accepted.'
     $gate=New-AutoFightCommandGate 1000
     Assert-Fight (Test-AutoFightCommandReady $gate 0) 'Initial command blocked.'
     Complete-AutoFightCommand $gate 0 $true
@@ -107,5 +139,5 @@ try {
     $packet.Action='combat'; $null=Update-AutoFightState $session $packet 3000
     Complete-AutoFightAction $session $p 'combat' 3000
     Assert-Fight ((Get-AutoFightAction $session $packet $p 3499) -eq 'wait') 'Existing longer profile cooldown ignored.'
-    Write-Output 'PASS: combat common interval boundaries/all states, failed sends, edits, cooldown, JSON v1/v2/v3/v4/v5 migration/custom common settings/conflict/isolation/invalid/atomic failure. No native input.'
+    Write-Output 'PASS: combat common interval boundaries/all states, failed sends, edits, cooldown, JSON v1-v6 migration/custom common settings/conflict/isolation/invalid/atomic failure; default Tab and shared configurable target key. No native input.'
 } finally { if ([IO.File]::Exists($path)) { [IO.File]::Delete($path) } }
