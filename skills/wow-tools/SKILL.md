@@ -130,6 +130,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - 选角要求左侧系统公告及右侧至少一个配置全名连续三次确认，再滚顶；目标名精确匹配且比例坐标连续两次稳定后双击，间隔40ms。当前页无目标时在已确认列表内滚动，最多40页 / 无进展停止，重名拒绝点击。首次所有配置名均在屏幕外仍无法通过锚点确认。
 - 两服独立LoginPoint.lua在Init后加载，当前合集titan2.1.19 / forerver2.2.18。最左下角16×16物理像素、纯白RGB255/255/255、鼠标穿透、高层级，独立于任何检测开关或面板，不保存请求编号；PLAYER_ENTERING_WORLD显示，PLAYER_LEAVING_WORLD / LOGOUT隐藏。768/画面高度/有效缩放换算，尺寸 / UI事件及100ms轮询重定位；常驻白点只确认世界就绪，不编码角色身份。不要恢复旧Rotation.lua、wowRotationDB或arm / probe命令。
 - login每300ms检测白点，连续三次存在后进入validate；validate再次检查，缺失回login且不使能。Send-ScanDetectorCommand是钓鱼 / 战斗监控开启的公共入口，必须先检查白点；轮换自动启动前再次检查，普通钓鱼 / 战斗前台调度也在按键前检查。白点读样核对身份 / 前台 / 遮挡 / 几何，取客户区左下16×16的内部12×12近白区域，不按桌面绝对坐标读取。
+- 战斗白点复核只在需要实际发键、取得前台并满足激活等待后执行；不得放到后台Native.Read之前或后台交互保持轮询内。白点读取要求前台，后台读取会误报并将CanStart置false，导致单行开始被锁。Test-AutoFightLoginPoint显式核对前台，模拟用例覆盖后台监测 / 刷新 / 保持不误锁及前台白点缺失不发键。Set-RowControls的停止条件须包含running，启动资格失效时仍可停止已有任务。
 - OCR用Windows zh-Hans-CN，独立runspace，只有选角整图及名字预处理图；移除世界HUD识别。小窗口放大、按OcrEngine.MaxImageDimension限制输入两轴，角色名区域按客户区高度计算宽度并右对齐，NamesBounds记录实际裁剪比例，适配宽高比变化后输出0–1相对坐标。鼠标坐标用DPI感知的当前客户区物理原点及尺寸映射；识别结果附带原始客户区宽高，缩放时丢弃重识别，点击前复核尺寸，双击中几何变化中止输入。禁止缩放后的旧坐标直接下发。
 - NextOcrAt限制同次选角两次截图启动的最小间隔，默认1000ms；异步未完成时100ms轮询，不重叠。保留动作后300ms等待、3秒完成结果过期及全流程180秒超时，保存新周期不重算已登记截止。白点等待与任务使能阶段按300ms轮询，不受OCR周期影响。
 - 用户本次要求mac开发后直接提交推送、无需任何验证，跳过语法 / 编译 / 模拟 / OCR / UI / 游戏验证及Windows同步。已调整既有Rotation.UiTests / Ocr.Tests / Rotation.Tests.lua用例与新流程一致，但没有运行；两端更新后游戏/reload并重启wowAuto。

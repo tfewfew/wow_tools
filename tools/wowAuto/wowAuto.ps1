@@ -1178,7 +1178,7 @@ function Set-RowControls($Row) {
     if (Test-RowHasRotation $Row) {$eligible=-not $exiting -and -not $Row.Exited -and -not $script:scanning -and $script:rotation.ConfigReady}
     $eligible=$eligible -and -not $script:editingSettings
     $Row.Start.Enabled = $eligible -and -not $running
-    $Row.Stop.Enabled = $eligible -or $exiting
+    $Row.Stop.Enabled = $running -or $eligible -or $exiting
     $Row.ItemCheck.Visible=$Row.TaskMode -ne 'fight'
     $Row.ItemCheck.Enabled = $Row.TaskMode -ne 'fight' -and -not $script:scanning -and -not $exiting -and -not $Row.Exited -and $null -ne $Row.StartTime
     $Row.ModeBox.Enabled=-not $script:scanning -and -not $script:editingSettings -and -not $Row.Exited -and $null -ne $Row.StartTime

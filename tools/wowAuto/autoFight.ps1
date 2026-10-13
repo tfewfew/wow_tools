@@ -57,7 +57,6 @@ function Invoke-AutoFightHold([long]$Now) {
             Set-AutoFightStatus $row '失去前台，释放移动键并继续后台监测。'
             return
         }
-        if (-not (Test-AutoFightLoginPoint $row)) {throw '插件常驻登录白点不存在，已停止战斗任务。'}
         $packet=[WowAutoFight.Native]::Read($row.Client)
         if ($null -eq $packet) { throw '保持期间检测关闭或协议不可读，已释放移动键。' }
         if ($packet.ClassId -ne $hold.Session.ClassId) { throw '职业发生变化，已释放移动键。' }
@@ -94,8 +93,12 @@ function Stop-AutoFightAll {
     Update-AutoFightControls
 }
 function Test-AutoFightLoginPoint($Row) {
+    if (-not [WowAutoFight.Native]::Foreground($Row.Client)) {throw '常驻登录白点必须在目标窗口取得前台后检查。'}
     if ($Row.PSObject.Properties['ParentRow']) {return Test-RowLoginPoint $Row.ParentRow}
-    if ($UiTest) {return $true}
+    if ($UiTest) {
+        if ($Row.Client.PSObject.Properties['LoginPointPresent']) {return [bool]$Row.Client.LoginPointPresent}
+        return $true
+    }
     return [WowAutoRotation.Native]::LoginPoint($Row.Client.ProcessId,$Row.Client.StartTicks,$Row.Client.Path)
 }
 function Start-AutoFightRow($Row) {
@@ -222,7 +225,6 @@ function Invoke-AutoFightTick([bool]$AllowInput=$true) {
             else { Stop-AutoFightRow $row '进程已退出或身份改变。' }
             Update-AutoFightControls; return
         }
-        if (-not (Test-AutoFightLoginPoint $row)) {throw '插件常驻登录白点不存在，已停止战斗任务。'}
         $packet=[WowAutoFight.Native]::Read($row.Client)
         if ($null -eq $packet) {
             if ($pending.ReadFailureSince -lt 0) {$pending.ReadFailureSince=$now}
@@ -273,6 +275,9 @@ function Invoke-AutoFightTick([bool]$AllowInput=$true) {
             return
         }
         if ($pending.Activated -and $now -lt $pending.SampleAt) {return}
+        # Background monitoring cannot call the foreground-only login-point reader.
+        # Check only after activation has settled and before any actual command is sent.
+        if (-not (Test-AutoFightLoginPoint $row)) {throw '插件常驻登录白点不存在，已停止战斗任务。'}
         $handler=$script:autoFightStates[$action]
         $keyField=$handler.Key
         $binding=ConvertFrom-AutoFightBinding $profile.$keyField

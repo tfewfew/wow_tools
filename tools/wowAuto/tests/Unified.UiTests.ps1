@@ -75,6 +75,9 @@ try {
     $script:scheduler=New-WowAutoScheduler
     $script:autoFight.CommandGate=New-AutoFightCommandGate
     $combat.FightRow.CanStart=$true; $combat.Validated=$true; Start-Row $combat
+    $combat.FightRow.CanStart=$false;$combat.Validated=$false;Set-RowControls $combat
+    Assert-Ui (-not $combat.Start.Enabled -and $combat.Stop.Enabled) 'Running row lost stop control when readiness became invalid.'
+    $combat.FightRow.CanStart=$true;$combat.Validated=$true;Set-RowControls $combat
     $fishing.State=Add-WowAutoTask $script:scheduler $fishing.Key 1000 1000 0 -UseItem $false -UseAudio $false
     $null=Complete-WowAutoPoll $script:scheduler $fishing.Key 0 'green'
     $fishing.Process.ScanColor='green'; $script:workerFocus=$fishing.Process.Id

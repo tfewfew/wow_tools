@@ -335,8 +335,14 @@ try {
     $script:autoFight.Clock.ElapsedMilliseconds=70001;Invoke-AutoFightTick
     Assert-Ui ($fightRows[0].Session -and -not [WowAutoFight.Native]::IsHolding -and -not $script:autoFight.ActiveHold) 'Movement focus loss did not release and retain background monitoring.'
     [WowAutoFight.Native]::IsForeground=$true
+    $fightRows[0].Client | Add-Member NoteProperty LoginPointPresent $false
+    Prepare-FightInput $fightRows[0] 'target' 72000;Invoke-AutoFightTick
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline -and -not $fightRows[0].Session -and -not $fightRows[0].CanStart -and -not $fightRows[0].Start.Enabled) 'Missing foreground login point permitted input.'
+    $fightRows[0].Client.LoginPointPresent=$true;$fightRows[0].CanStart=$true;Update-AutoFightControls
+    Assert-Ui $fightRows[0].Start.Enabled 'Validated stopped row remained locked after refresh readiness was restored.'
     Assert-Ui ($script:scheduler.JumpEveryCycles -eq $fishJump -and (Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $fishIniHash -and (Get-FileHash -LiteralPath $fightSource).Hash -eq $fightSourceHash) 'Combat changed fishing settings or source configuration.'
     Write-Output 'PASS: combat settings 100 ms step/common draft/profile isolation/save/cancel/locked failure; mocked production input gate for all states, cross-window, release, restart and send failure. No real native operations.'
+    Write-Output 'PASS: foreground-only login-point guard is not called during background sampling, refresh or interaction hold; missing point blocks foreground input and restored readiness unlocks start.'
     Write-Output 'PASS: production combat UI adapter opens once, stays quiet through waiting/combat/emergency, attacks on approach, reopens for new monster and rechecks encounter before input.'
     Write-Output 'PASS: independent client tabs/class selection/sparse class IDs, supported classes, changing process positions, global jump save/cancel/failure/disabled/exact deadline/busy/wait deferral/Space/shared gate. Game operations mocked.'
 } finally {
