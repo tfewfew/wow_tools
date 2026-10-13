@@ -85,7 +85,7 @@ namespace WowAutoRotation {
         }
         public static int ReadyToken(Bitmap b) {
             Color c=b.GetPixel(b.Width/2,b.Height/2);
-            if(Math.Abs(c.G-231)>1 || Math.Abs(c.B-157)>1 || c.R<20 || c.R>220) return -1;
+            if(Math.Abs(c.G-231)>1 || Math.Abs(c.B-157)>1 || c.R<21 || c.R>220) return -1;
             return c.R-20;
         }
     }

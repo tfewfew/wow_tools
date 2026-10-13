@@ -1,5 +1,23 @@
 {
-  "Version": 1,
-  "IntervalSeconds": 0,
-  "Plans": {}
+    "Version":  1,
+    "IntervalSeconds":  20,
+    "Plans":  {
+                  "29224:639273923472729950":  {
+                                                   "Slots":  [
+                                                                 {
+                                                                     "Character":  2,
+                                                                     "Mode":  "fish"
+                                                                 },
+                                                                 {
+                                                                     "Character":  4,
+                                                                     "Mode":  "fish"
+                                                                 },
+                                                                 {
+                                                                     "Character":  0,
+                                                                     "Mode":  "fish"
+                                                                 }
+                                                             ],
+                                                   "Menu":  null
+                                               }
+              }
 }

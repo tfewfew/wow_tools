@@ -21,6 +21,13 @@ local function SafeBoolean(fn, ...)
     return nil
 end
 local function Update()
+    local now = SafeValue(time)
+    local token = wowRotationDB and wowRotationDB.Token
+    local expires = wowRotationDB and wowRotationDB.Expires
+    if type(now) ~= "number" or type(token) ~= "number" or token < 1 or token > 200 or token ~= math.floor(token) or type(expires) ~= "number" or expires <= now or expires > now + 180 then
+        active = false
+        if wowRotationDB then wowRotationDB.Token, wowRotationDB.Expires = nil, nil end
+    end
     if not active or not inWorld then frame:Hide(); return end
     local guid = SafeValue(UnitGUID, "player")
     local dead = SafeBoolean(UnitIsDeadOrGhost, "player")
@@ -34,8 +41,6 @@ local function Update()
     if issecretvalue and (issecretvalue(height) or issecretvalue(uiHeight)) then frame:Hide(); return end
     if not guid or dead ~= false or type(combat) ~= "boolean" or type(height) ~= "number" or height <= 0 or type(uiHeight) ~= "number" or uiHeight <= 0 then frame:Hide(); return end
     frame:SetSize(32 * uiHeight / height, 32 * uiHeight / height)
-    local token = tonumber(wowRotationDB and wowRotationDB.Token) or 0
-    if token < 0 or token > 200 or token ~= math.floor(token) then token = 0 end
     texture:SetColorTexture((20 + token) / 255, 231 / 255, (combat and 181 or 157) / 255, 1)
     frame:Show()
 end
@@ -43,15 +48,18 @@ WoWTools.Rotation = {}
 function WoWTools.Rotation.Hide()
     active = false
     frame:Hide()
-    if wowRotationDB then wowRotationDB.Token = nil end
+    if wowRotationDB then wowRotationDB.Token, wowRotationDB.Expires = nil, nil end
 end
 SLASH_WOWROTATE1 = "/wowrotate"
 SlashCmdList.WOWROTATE = function(message)
     local token = tonumber(message:match("^arm%s+(%d+)$"))
     if message == "clear" then WoWTools.Rotation.Hide(); return end
     if not token or token < 1 or token > 200 or token ~= math.floor(token) then return end
+    local now = SafeValue(time)
+    if type(now) ~= "number" then return end
     wowRotationDB = wowRotationDB or {}
     wowRotationDB.Token = token
+    wowRotationDB.Expires = now + 180
     for _, name in ipairs({"wowDetector", "fight_detector"}) do
         local module = WoWTools.modules[name]
         if module then module.Hide() end
@@ -61,9 +69,12 @@ SlashCmdList.WOWROTATE = function(message)
 end
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 frame:RegisterEvent("PLAYER_LEAVING_WORLD")
-frame:SetScript("OnEvent", function(_, event)
+frame:SetScript("OnEvent", function(_, event, _, isReloadingUi)
     inWorld = event == "PLAYER_ENTERING_WORLD"
-    if inWorld then active = true end
+    if inWorld then
+        if isReloadingUi then WoWTools.Rotation.Hide() end
+        active = wowRotationDB and wowRotationDB.Token ~= nil or false
+    end
     Update()
 end)
 local watcher = CreateFrame("Frame")

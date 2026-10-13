@@ -12,7 +12,7 @@ function Step-RotationTest([long]$Now,[string]$Screen='automatic') {
     $script:schedulerClock.ElapsedMilliseconds=$Now
     $work=$script:rotation.Current
     if ($work) {
-        $kind=if ($Screen -ne 'automatic') {$Screen} elseif ($work.Phase -in @('menu','first','select')) {'menu'} else {'world'}
+        $kind=if ($Screen -ne 'automatic') {$Screen} elseif ($work.Phase -in @('menu','first','select')) {'menu'} elseif ($work.Phase -eq 'login' -and -not $work.Armed -and -not $work.ProbeSent) {'unknown'} else {'world'}
         $work.Row.Process.RotationScreen=[pscustomobject]@{Kind=$kind;Token=$work.Entry.Token}
         if ($work.Row.TaskMode -eq 'fight') {[WowAutoFight.Native]::Current.Flavor=$work.Row.Client.Flavor;[WowAutoFight.Native]::Current.ClassId=1}
     }
@@ -78,7 +78,21 @@ try {
     # Starting from an already open menu does not type chat commands into the menu.
     Stop-AllRows;$script:rotation.Actions=@();Start-Row $b
     Step-RotationTest 213000;Step-RotationTest 213300 'menu'
-    $now=213600L;Complete-RotationTest ([ref]$now)
+    $now=213600L
+    while ($script:rotation.Current.Phase -ne 'login') {Step-RotationTest $now;$now+=300}
+    $probeAt=$script:rotation.Current.ProbeAt
+    Step-RotationTest $probeAt 'menu'
+    Assert-Ui (-not @($script:rotation.Actions | Where-Object {$_.Action -eq 'probe'}).Count) 'Readiness probe typed into verified menu.'
+    Step-RotationTest ($probeAt+300) 'unknown'
+    Assert-Ui (@($script:rotation.Actions | Where-Object {$_.Action -eq 'probe'}).Count -eq 1 -and -not $b.State.Running) 'Initial menu login skipped explicit readiness request.'
+    $script:rotation.Current.Row.Process.RotationScreen=[pscustomobject]@{Kind='world';Token=0}
+    $null=Invoke-RotationTick ($probeAt+600)
+    Assert-Ui (-not $b.State.Running -and $script:rotation.Current.Phase -eq 'login') 'Legacy token zero started monitoring.'
+    Step-RotationTest ($probeAt+900) 'unknown'
+    Assert-Ui (@($script:rotation.Actions | Where-Object {$_.Action -eq 'probe'}).Count -eq 1) 'Readiness requests were not throttled.'
+    Step-RotationTest ($probeAt+3300) 'unknown'
+    Assert-Ui (@($script:rotation.Actions | Where-Object {$_.Action -eq 'probe'}).Count -eq 2) 'Loading ignored request was not retried.'
+    $now=$probeAt+3600;Complete-RotationTest ([ref]$now)
     Assert-Ui ($b.State.Running -and -not @($script:rotation.Actions | Where-Object {$_.Action -in @('arm','logout')}).Count) 'Initial menu start typed logout/arm into menu.'
     $deadline=$script:rotation.NextAt;Save-RotationConfiguration 20
     Assert-Ui ($script:rotation.NextAt -eq $deadline) 'Saving unchanged interval reset global deadline.'
@@ -107,6 +121,7 @@ try {
     $replacement=@($script:rows.Values | Where-Object {$_.Process.Id -eq $a.Process.Id})[0]
     Assert-Ui (-not (Test-RowHasRotation $replacement)) 'Reused PID inherited character plan.'
     Assert-Ui ([WowAuto.NativeInput]::RotationCommand('arm',200) -eq '/wowrotate arm 200' -and [WowAuto.NativeInput]::RotationCommand('logout',0) -eq '/logout') 'Rotation command mapping wrong.'
+    Assert-Ui ([WowAuto.NativeInput]::RotationCommand('probe',77) -eq '/wowrotate arm 77') 'Readiness-only command mapping wrong.'
     $bitmap=New-Object Drawing.Bitmap(800,500)
     try {
         $graphics=[Drawing.Graphics]::FromImage($bitmap)
@@ -117,6 +132,8 @@ try {
         $graphics=[Drawing.Graphics]::FromImage($bitmap)
         try {$graphics.Clear([Drawing.Color]::FromArgb(97,231,157))} finally {$graphics.Dispose()}
         Assert-Ui ([WowAutoRotation.Native]::ReadyToken($bitmap) -eq 77) 'World-entry native RGB token mismatches Lua.'
+        $bitmap.SetPixel(400,250,[Drawing.Color]::FromArgb(20,231,157))
+        Assert-Ui ([WowAutoRotation.Native]::ReadyToken($bitmap) -eq -1) 'Legacy automatic token zero accepted.'
     } finally {$bitmap.Dispose()}
     $failed=$false;try {$null=[WowAuto.NativeInput]::RotationCommand('delete',1)} catch {$failed=$true};Assert-Ui $failed 'Arbitrary rotation command accepted.'
     foreach ($p in $sourceHashes.Keys) {Assert-Ui ((Get-FileHash $p).Hash -eq $sourceHashes[$p]) 'Tests changed real user configuration.'}

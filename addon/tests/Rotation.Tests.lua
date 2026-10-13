@@ -2,6 +2,8 @@
 local root = TEST_ROOT or "."
 for _, flavor in ipairs({"titan", "forerver"}) do
     local frames, combat, dead, secret, width, height, uiHeight = {}, false, false, {}, 1920, 1080, 768
+    local now = 1000
+    function time() return now end
     local function widget()
         local o = {shown = true, scripts = {}, textures = {}}
         function o:SetScript(event, fn) self.scripts[event] = fn end
@@ -34,8 +36,11 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     local marker, watcher = frames[2], frames[3]
     assert(not marker.shown, "Marker shown before entering world")
     marker.scripts.OnEvent(marker, "PLAYER_ENTERING_WORLD")
-    local color = marker.textures[1].color
-    assert(marker.shown and math.floor(color[1]*255+0.5)==20 and color[2]*255==231 and color[3]*255==157, "World-ready marker token 0 invalid")
+    watcher.scripts.OnUpdate(watcher,0.1)
+    assert(not marker.shown, "Ordinary login showed marker without an explicit request")
+    wowRotationDB = {Token=77} -- Old saved tokens must not enable a marker.
+    marker.scripts.OnEvent(marker,"PLAYER_ENTERING_WORLD")
+    assert(not marker.shown and wowRotationDB.Token==nil,"Legacy token enabled default marker")
     SlashCmdList.WOWROTATE("arm 77")
     assert(stops==2 and wowRotationDB.Token==77 and marker.shown, "Arm did not close both detectors")
     combat=true; watcher.scripts.OnUpdate(watcher,0.1)
@@ -55,7 +60,16 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     SlashCmdList.WOWROTATE("arm 201"); assert(wowRotationDB.Token==77,"Invalid command changed token")
     WoWTools.ActivateDetector("wowDetector")
     assert(not marker.shown and wowRotationDB.Token==nil,"Detector activation did not remove shared marker")
+    marker.scripts.OnEvent(marker,"PLAYER_ENTERING_WORLD")
+    watcher.scripts.OnUpdate(watcher,0.1)
+    assert(not marker.shown,"World event resurrected cleared marker")
+    SlashCmdList.WOWROTATE("arm 77")
+    now=now+180; watcher.scripts.OnUpdate(watcher,0.1)
+    assert(not marker.shown and wowRotationDB.Token==nil,"Abandoned request did not expire")
+    SlashCmdList.WOWROTATE("arm 77")
+    marker.scripts.OnEvent(marker,"PLAYER_ENTERING_WORLD",false,true)
+    assert(not marker.shown and wowRotationDB.Token==nil,"Reload restored stale request")
     marker.scripts.OnEvent(marker,"PLAYER_ENTERING_WORLD"); SlashCmdList.WOWROTATE("clear")
     assert(not marker.shown,"Clear did not hide marker")
-    print("PASS: " .. flavor .. " world-entry token, combat/death/restricted-data gates, logout/login persistence, physical scaling, hidden recovery and detector cleanup. APIs mocked.")
+    print("PASS: " .. flavor .. " hidden default login/reload, request expiry, world-entry token, combat/death/restricted-data gates, logout/login persistence, physical scaling, hidden recovery and detector cleanup. APIs mocked.")
 end

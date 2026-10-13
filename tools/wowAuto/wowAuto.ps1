@@ -311,7 +311,7 @@ namespace WowAuto
         }
         public static string RotationCommand(string action,int token)
         {
-            if(action=="arm" && token>=1 && token<=200) return "/wowrotate arm "+token;
+            if((action=="arm" || action=="probe") && token>=1 && token<=200) return "/wowrotate arm "+token;
             if(action=="logout") return "/logout";
             throw new ArgumentException("Unknown rotation command.");
         }

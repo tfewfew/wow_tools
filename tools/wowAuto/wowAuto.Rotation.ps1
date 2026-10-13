@@ -126,6 +126,7 @@ function Send-RotationAction($Row,[string]$Action,[int]$Value=0) {
     if ($UiTest) {$script:rotation.Actions+=,[pscustomobject]@{Key=$Row.Key;Action=$Action;Value=$Value};return}
     switch ($Action) {
         'arm' {$sent=[WowAuto.NativeInput]::SendRotationCommand($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,'arm',$Value)}
+        'probe' {$sent=[WowAuto.NativeInput]::SendRotationCommand($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,'probe',$Value)}
         'logout' {$sent=[WowAuto.NativeInput]::SendRotationCommand($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,'logout',0)}
         'top' {$m=(Get-RowRotationPlan $Row).Menu;[WowAutoRotation.Native]::MouseAction($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,$m.FirstX,$m.FirstY,$true);$sent=$true}
         'first' {$m=(Get-RowRotationPlan $Row).Menu;[WowAutoRotation.Native]::MouseAction($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,$m.FirstX,$m.FirstY,$false);$sent=$true}
@@ -159,7 +160,7 @@ function Invoke-RotationTick([long]$Now) {
         while ($script:rotation.Queue.Count) {
             $entry=$script:rotation.Queue.Dequeue()
             if ($script:rotation.Active[$entry.Row.Key] -ne $entry) {continue}
-            $script:rotation.Current=[pscustomobject]@{Entry=$entry;Row=$entry.Row;Phase='activate';Due=$Now;Deadline=($Now+180000);Stable=0;Down=0;LastLogout=-30000L;Armed=$false}
+            $script:rotation.Current=[pscustomobject]@{Entry=$entry;Row=$entry.Row;Phase='activate';Due=$Now;Deadline=($Now+180000);Stable=0;Down=0;LastLogout=-30000L;Armed=$false;ProbeAt=0L;ProbeSent=$false}
             break
         }
     }
@@ -209,10 +210,10 @@ function Invoke-RotationTick([long]$Now) {
             'select' {
                 if ($screen.Kind -ne 'menu') {throw '选角期间界面已改变，未登录。'}
                 if ($work.Down -gt 0) {Send-RotationAction $row 'down';$work.Down--}
-                else {Send-RotationAction $row 'enter';$work.Phase='login';$work.Stable=0;Set-RowStatusText $row ('正在登录角色'+$entry.Plan.Slots[$entry.Index].Character+'，等待进入世界。')}
+                else {Send-RotationAction $row 'enter';$work.Phase='login';$work.Stable=0;$work.ProbeAt=$Now+3000;Set-RowStatusText $row ('正在登录角色'+$entry.Plan.Slots[$entry.Index].Character+'，等待进入世界。')}
             }
             'login' {
-                if ($screen.Kind -eq 'world' -and (($work.Armed -and $screen.Token -eq $entry.Token) -or (-not $work.Armed -and $screen.Token -ge 0))) {
+                if ($screen.Kind -eq 'world' -and $screen.Token -eq $entry.Token -and ($work.Armed -or $work.ProbeSent)) {
                     $work.Stable++
                     if ($work.Stable -ge 2) {
                         $row.TaskMode=$entry.Plan.Slots[$entry.Index].Mode
@@ -222,7 +223,15 @@ function Invoke-RotationTick([long]$Now) {
                         if (-not (Send-ScanDetectorCommand $row)) {throw '登录后监控开启命令失败。'}
                         $work.Phase='validate';$work.Due=$Now+300;return $true
                     }
-                } else {$work.Stable=0}
+                } else {
+                    $work.Stable=0
+                    # An initial menu login has no persisted arm request. Ask only for
+                    # readiness after our verified Enter, never navigate an unknown screen.
+                    if (-not $work.Armed -and $screen.Kind -ne 'menu' -and $Now -ge $work.ProbeAt) {
+                        Send-RotationAction $row 'probe' $entry.Token
+                        $work.ProbeSent=$true;$work.ProbeAt=$Now+3000
+                    }
+                }
             }
             'validate' {
                 if ($row.TaskMode -eq 'fight') {
