@@ -45,12 +45,18 @@ namespace WowAutoRotation {
                 return new Size(r.R-r.L,r.B-r.T);
             } finally {if(old!=IntPtr.Zero) SetThreadDpiAwarenessContext(old);}
         }
+        public static bool ClientSizeWithinTolerance(int expectedWidth,int expectedHeight,int width,int height) {
+            if(expectedWidth<=0 || expectedHeight<=0 || width<=0 || height<=0) return false;
+            // Compare each axis with the original system snapshot; exactly 5% is allowed.
+            return Math.Abs((long)width-expectedWidth)*100L<=(long)expectedWidth*5L &&
+                Math.Abs((long)height-expectedHeight)*100L<=(long)expectedHeight*5L;
+        }
         public static Bitmap Capture(int pid,long ticks,string path,int expectedWidth,int expectedHeight) {
             IntPtr old=SetThreadDpiAwarenessContext(new IntPtr(-4)); Bitmap bitmap=null;
             try {
                 IntPtr h=Window(pid,ticks,path); Rect r; Point p=new Point();
                 if(!GetClientRect(h,out r) || r.R<=0 || r.B<=0 || !ClientToScreen(h,ref p)) throw new InvalidOperationException("Client geometry unavailable.");
-                if(r.R!=expectedWidth || r.B!=expectedHeight) throw new InvalidOperationException("Client resized before capture.");
+                if(!ClientSizeWithinTolerance(expectedWidth,expectedHeight,r.R,r.B)) throw new InvalidOperationException("Client resized before capture.");
                 // Reject an overlay covering either the center or corners of the game client.
                 foreach(var probe in new [] {new Point{X=p.X+r.R/2,Y=p.Y+r.B/2},new Point{X=p.X+2,Y=p.Y+2},new Point{X=p.X+r.R-3,Y=p.Y+r.B-3}})
                     if(GetAncestor(WindowFromPoint(probe),2)!=h) throw new InvalidOperationException("Game client is covered.");
@@ -118,8 +124,8 @@ namespace WowAutoRotation {
                     throw new ArgumentOutOfRangeException("Character click intervals must be 100-250 ms.");
                 IntPtr h=Window(pid,ticks,path);Rect r;Point p=new Point();
                 if(x<=0 || x>=1 || y<=0 || y>=1 || !GetClientRect(h,out r) || !ClientToScreen(h,ref p)) throw new ArgumentException("Invalid client point.");
-                // Recheck cached dimensions in the same transaction that maps and sends the clicks.
-                if(r.R!=expectedWidth || r.B!=expectedHeight) return false;
+                // Apply the same 5% tolerance, then map cached ratios using the current dimensions.
+                if(!ClientSizeWithinTolerance(expectedWidth,expectedHeight,r.R,r.B)) return false;
                 p.X+=(int)Math.Round(x*r.R);p.Y+=(int)Math.Round(y*r.B);
                 if(GetAncestor(WindowFromPoint(p),2)!=h || !SetCursorPos(p.X,p.Y)) throw new InvalidOperationException("Target point is obscured.");
                 Window(pid,ticks,path);

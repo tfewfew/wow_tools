@@ -158,7 +158,7 @@ function Get-RotationClientSize($Row) {
 function Test-RotationClientSize($Row,$Expected) {
     if (-not $Expected -or $Expected.Width -le 0 -or $Expected.Height -le 0) {return $false}
     $current=Get-RotationClientSize $Row
-    return $current.Width -eq $Expected.Width -and $current.Height -eq $Expected.Height
+    return [WowAutoRotation.Native]::ClientSizeWithinTolerance($Expected.Width,$Expected.Height,$current.Width,$current.Height)
 }
 function Test-RotationTargetSnapshot($Row,$Target) {
     if (-not $Target -or $Target.ProcessKey -ne $Row.Key -or

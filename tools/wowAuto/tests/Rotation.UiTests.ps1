@@ -271,7 +271,7 @@ try {
     Assert-Ui ($script:rotation.Active.ContainsKey($a.Key) -and $script:rotation.Active[$a.Key].Index -eq 2 -and
         $script:rotation.LogoutQueue.Count -gt 0 -and -not $script:rotation.Current) 'Full bag during validation did not skip to the next role.'
     $a.Process.ScanColor='red';Stop-AllRows
-    # Geometry changes after preparation must return to OCR, never click stale coordinates.
+    # Geometry changes beyond 5% after preparation must return to OCR.
     $now=350000L;Reach-RotationTestPhase $a 'click' ([ref]$now)
     $cached=$script:rotation.Current.Entry.PreparedTarget;$deadline=$script:rotation.Current.Deadline
     $a.Process | Add-Member NoteProperty RotationWidth 900 -Force
@@ -293,12 +293,29 @@ try {
     $a.Process.RotationScreen=[pscustomobject]@{Kind='unknown';Targets=@();Width=1;Height=1}
     Assert-Ui ((Test-RotationTargetSnapshot $a $target) -and $a.Process.RotationSizeReads -eq $sizeReads+1 -and
         $a.Process.RotationOcrReads -eq $ocrReads) 'Size validation used OCR or invalidated a moved window.'
-    $a.Process | Add-Member NoteProperty RotationHeight 501 -Force
-    Assert-Ui (-not (Test-RotationTargetSnapshot $a $target)) 'Height-only system size change was ignored.'
-    $a.Process.PSObject.Properties.Remove('RotationHeight')
+    # Both axes must stay within the original size's inclusive 5% range.
+    foreach ($sizeCase in @(
+        [pscustomobject]@{Width=801;Height=501;Valid=$true}
+        [pscustomobject]@{Width=840;Height=525;Valid=$true}
+        [pscustomobject]@{Width=864;Height=525;Valid=$false}
+        [pscustomobject]@{Width=760;Height=475;Valid=$true}
+        [pscustomobject]@{Width=841;Height=500;Valid=$false}
+        [pscustomobject]@{Width=759;Height=500;Valid=$false}
+        [pscustomobject]@{Width=800;Height=526;Valid=$false}
+        [pscustomobject]@{Width=800;Height=474;Valid=$false}
+        [pscustomobject]@{Width=0;Height=500;Valid=$false}
+        [pscustomobject]@{Width=800;Height=0;Valid=$false}
+    )) {
+        $a.Process | Add-Member NoteProperty RotationWidth $sizeCase.Width -Force
+        $a.Process | Add-Member NoteProperty RotationHeight $sizeCase.Height -Force
+        Assert-Ui ((Test-RotationTargetSnapshot $a $target) -eq $sizeCase.Valid) ('Unexpected size tolerance result: '+$sizeCase.Width+'x'+$sizeCase.Height)
+    }
+    Assert-Ui ($target.ClientSize.Width -eq 800 -and $target.ClientSize.Height -eq 500) 'Tolerance checks changed the original cached size.'
+    $a.Process.RotationWidth=840;$a.Process.RotationHeight=525
     Step-RotationTest $now;$now+=300
     Assert-Ui (@($script:rotation.Actions | Where-Object {$_.Action -eq 'tripleclick'}).Count -eq 1 -and
-        $a.Process.RotationOcrReads -eq $ocrReads) 'Unchanged system size did not reuse prepared coordinates.'
+        $a.Process.RotationOcrReads -eq $ocrReads) 'Size changes within 5% did not reuse prepared coordinates.'
+    $a.Process.PSObject.Properties.Remove('RotationWidth');$a.Process.PSObject.Properties.Remove('RotationHeight')
     $a.Process.PSObject.Properties.Remove('RotationLeft');$a.Process.PSObject.Properties.Remove('RotationTop')
     Complete-RotationTest ([ref]$now)
     # Stopping a row with prepared coordinates removes only that row's later stages.
