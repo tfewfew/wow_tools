@@ -144,16 +144,27 @@ function Reset-RotationEntry($Entry) {
     Remove-RotationQueuedRow $Entry.Row
     $Entry.PreparedTarget=$null;$Entry.PreparedSlot=-1;$Entry.SelectionDeadline=0L
 }
-function Test-RotationTargetSnapshot($Row,$Target) {
-    if (-not $Target -or $Target.ProcessKey -ne $Row.Key -or $Target.Width -le 0 -or $Target.Height -le 0 -or
-        $Target.X -le 0 -or $Target.X -ge 1 -or $Target.Y -le 0 -or $Target.Y -ge 1 -or
-        $Target.MenuRow -lt 1 -or $Target.MenuRow -gt 10) {return $false}
+function Get-RotationClientSize($Row) {
+    # A system observation independent of the bitmap and OCR output. Position is not compared.
     if ($UiTest) {
+        if (-not $Row.Process.PSObject.Properties['RotationSizeReads']) {$Row.Process | Add-Member NoteProperty RotationSizeReads 0}
+        $Row.Process.RotationSizeReads++
         $width=if ($Row.Process.PSObject.Properties['RotationWidth']) {$Row.Process.RotationWidth} else {800}
         $height=if ($Row.Process.PSObject.Properties['RotationHeight']) {$Row.Process.RotationHeight} else {500}
-        return $Target.Width -eq $width -and $Target.Height -eq $height
+        return [pscustomobject]@{Width=$width;Height=$height}
     }
-    return [WowAutoRotation.Native]::SnapshotMatches($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,$Target.Width,$Target.Height)
+    return [WowAutoRotation.Native]::ReadClientSize($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath)
+}
+function Test-RotationClientSize($Row,$Expected) {
+    if (-not $Expected -or $Expected.Width -le 0 -or $Expected.Height -le 0) {return $false}
+    $current=Get-RotationClientSize $Row
+    return $current.Width -eq $Expected.Width -and $current.Height -eq $Expected.Height
+}
+function Test-RotationTargetSnapshot($Row,$Target) {
+    if (-not $Target -or $Target.ProcessKey -ne $Row.Key -or
+        $Target.X -le 0 -or $Target.X -ge 1 -or $Target.Y -le 0 -or $Target.Y -ge 1 -or
+        $Target.MenuRow -lt 1 -or $Target.MenuRow -gt 10) {return $false}
+    return Test-RotationClientSize $Row $Target.ClientSize
 }
 function Retry-RotationRecognition($Work,[string]$Reason) {
     $entry=$Work.Entry
@@ -232,7 +243,7 @@ function Send-RotationAction($Row,[string]$Action,$Target=$null) {
     switch ($Action) {
         'logout' {$sent=[WowAuto.NativeInput]::SendRotationCommand($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,'logout',0)}
         'tripleclick' {
-            $sent=[WowAutoRotation.Native]::ClickCharacter($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,$Target.X,$Target.Y,$Target.Width,$Target.Height,$intervals[0],$intervals[1])
+            $sent=[WowAutoRotation.Native]::ClickCharacter($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,$Target.X,$Target.Y,$Target.ClientSize.Width,$Target.ClientSize.Height,$intervals[0],$intervals[1])
             if (-not $sent) {return $false}
         }
         default {throw '未知编排动作。'}
@@ -309,16 +320,14 @@ function ConvertFrom-RotationOcr($Ocr,$Plan,[switch]$MenuWasConfirmed) {
 }
 function Read-RotationScreen($Row,$Plan,[switch]$MenuWasConfirmed) {
     if ($UiTest) {
+        $clientSize=Get-RotationClientSize $Row
         if (-not $Row.Process.PSObject.Properties['RotationOcrReads']) {$Row.Process | Add-Member NoteProperty RotationOcrReads 0}
         if (-not $Row.Process.PSObject.Properties['RotationCursorParks']) {$Row.Process | Add-Member NoteProperty RotationCursorParks 0}
         $Row.Process.RotationCursorParks++
         $Row.Process.RotationOcrReads++
         $screen=$Row.Process.RotationScreen
         foreach ($target in @($screen.Targets)) {
-            $width=if ($Row.Process.PSObject.Properties['RotationWidth']) {$Row.Process.RotationWidth} else {800}
-            $height=if ($Row.Process.PSObject.Properties['RotationHeight']) {$Row.Process.RotationHeight} else {500}
-            $target | Add-Member NoteProperty Width $width -Force
-            $target | Add-Member NoteProperty Height $height -Force
+            $target | Add-Member NoteProperty ClientSize $clientSize -Force
         }
         return $screen
     }
@@ -330,12 +339,11 @@ function Read-RotationScreen($Row,$Plan,[switch]$MenuWasConfirmed) {
         try {
             $result=$work.Pipeline.EndInvoke($work.Async)
             if ($work.Pipeline.Streams.Error.Count) {throw $work.Pipeline.Streams.Error[0].ToString()}
-            if (-not [WowAutoRotation.Native]::SnapshotMatches($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,$work.Width,$work.Height)) {return [pscustomobject]@{Kind='pending'}}
+            if (-not (Test-RotationClientSize $Row $work.ClientSize)) {return [pscustomobject]@{Kind='pending'}}
             if ($script:schedulerClock.ElapsedMilliseconds-$work.At -gt 3000) {return [pscustomobject]@{Kind='pending'}}
             $screen=ConvertFrom-RotationOcr ($result[0] | ConvertFrom-Json) $Plan -MenuWasConfirmed:$MenuWasConfirmed
             foreach ($target in @($screen.Targets)) {
-                $target | Add-Member NoteProperty Width $work.Width
-                $target | Add-Member NoteProperty Height $work.Height
+                $target | Add-Member NoteProperty ClientSize $work.ClientSize
             }
             return $screen
         } finally {$work.Pipeline.Dispose()}
@@ -346,11 +354,12 @@ function Read-RotationScreen($Row,$Plan,[switch]$MenuWasConfirmed) {
     Assert-GameActionContext
     try {
         [WowAutoRotation.Native]::ParkCursor($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath)
-        $bitmap=[WowAutoRotation.Native]::Capture($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath)
+        $clientSize=Get-RotationClientSize $Row
+        $bitmap=[WowAutoRotation.Native]::Capture($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,$clientSize.Width,$clientSize.Height)
     } catch {
         if (-not (Test-RowProcessIdentity $Row) -or $Row.Process.HasExited) {throw}
         if (-not (Test-WorkerForeground $Row)) {throw '角色切换窗口暂时失去前台。'}
-        if ($_.Exception.Message -match 'Window moved during (cursor parking|capture)|Client geometry unavailable') {return [pscustomobject]@{Kind='pending'}}
+        if ($_.Exception.Message -match 'Window moved during (cursor parking|capture)|Client geometry unavailable|Client resized before capture') {return [pscustomobject]@{Kind='pending'}}
         throw
     }
     $script:rotation.NextOcrAt=$sampleAt+[long]$script:rotation.OcrIntervalMs
@@ -358,7 +367,7 @@ function Read-RotationScreen($Row,$Plan,[switch]$MenuWasConfirmed) {
     try {
         $null=$pipeline.AddScript($script:rotation.OcrSource).AddArgument([WowAutoRotation.Native]::Png($bitmap))
         $script:rotation.OcrWork=[pscustomobject]@{Key=$Row.Key;Pipeline=$pipeline;Async=$pipeline.BeginInvoke();
-            Width=$bitmap.Width;Height=$bitmap.Height;At=$script:schedulerClock.ElapsedMilliseconds}
+            ClientSize=$clientSize;At=$script:schedulerClock.ElapsedMilliseconds}
     } catch {$pipeline.Dispose();throw} finally {$bitmap.Dispose()}
     return [pscustomobject]@{Kind='pending'}
 }
@@ -518,7 +527,7 @@ function Invoke-RotationTick([long]$Now) {
                     $work.Candidate=$target
                     if ($work.Stable -ge 2) {
                         $entry.PreparedTarget=[pscustomobject]@{ProcessKey=$row.Key;Name=$name;MenuRow=$target.MenuRow;
-                            X=$target.X;Y=$target.Y;Width=$target.Width;Height=$target.Height;PreparedAt=$Now}
+                            X=$target.X;Y=$target.Y;ClientSize=$target.ClientSize;PreparedAt=$Now}
                         $entry.PreparedSlot=$entry.Index
                         Stop-RotationOcr
                         $script:rotation.ClickQueue.Enqueue($entry);$script:rotation.Current=$null

@@ -36,11 +36,21 @@ namespace WowAutoRotation {
                 return p.MainWindowHandle;
             }
         }
-        public static Bitmap Capture(int pid,long ticks,string path) {
+        public static Size ReadClientSize(int pid,long ticks,string path) {
+            IntPtr old=SetThreadDpiAwarenessContext(new IntPtr(-4));
+            try {
+                Rect r;
+                if(!GetClientRect(Window(pid,ticks,path),out r) || r.R<=r.L || r.B<=r.T)
+                    throw new InvalidOperationException("Client geometry unavailable.");
+                return new Size(r.R-r.L,r.B-r.T);
+            } finally {if(old!=IntPtr.Zero) SetThreadDpiAwarenessContext(old);}
+        }
+        public static Bitmap Capture(int pid,long ticks,string path,int expectedWidth,int expectedHeight) {
             IntPtr old=SetThreadDpiAwarenessContext(new IntPtr(-4)); Bitmap bitmap=null;
             try {
                 IntPtr h=Window(pid,ticks,path); Rect r; Point p=new Point();
                 if(!GetClientRect(h,out r) || r.R<=0 || r.B<=0 || !ClientToScreen(h,ref p)) throw new InvalidOperationException("Client geometry unavailable.");
+                if(r.R!=expectedWidth || r.B!=expectedHeight) throw new InvalidOperationException("Client resized before capture.");
                 // Reject an overlay covering either the center or corners of the game client.
                 foreach(var probe in new [] {new Point{X=p.X+r.R/2,Y=p.Y+r.B/2},new Point{X=p.X+2,Y=p.Y+2},new Point{X=p.X+r.R-3,Y=p.Y+r.B-3}})
                     if(GetAncestor(WindowFromPoint(probe),2)!=h) throw new InvalidOperationException("Game client is covered.");
@@ -50,14 +60,6 @@ namespace WowAutoRotation {
                 if(Window(pid,ticks,path)!=h || !GetClientRect(h,out after) || !ClientToScreen(h,ref q) || after.R!=r.R || after.B!=r.B || p.X!=q.X || p.Y!=q.Y) throw new InvalidOperationException("Window moved during capture.");
                 return bitmap;
             } catch {if(bitmap!=null) bitmap.Dispose();throw;} finally {if(old!=IntPtr.Zero) SetThreadDpiAwarenessContext(old);}
-        }
-        public static bool SnapshotMatches(int pid,long ticks,string path,int width,int height) {
-            IntPtr old=SetThreadDpiAwarenessContext(new IntPtr(-4));
-            try {Rect r;return GetClientRect(Window(pid,ticks,path),out r) && r.R==width && r.B==height;}
-            finally {if(old!=IntPtr.Zero) SetThreadDpiAwarenessContext(old);}
-        }
-        public static void ValidateSnapshot(int pid,long ticks,string path,int width,int height) {
-            if(!SnapshotMatches(pid,ticks,path,width,height)) throw new InvalidOperationException("Window resized during OCR.");
         }
         public static bool HasLoginPoint(Bitmap sample) {
             if(sample==null || sample.Width!=16 || sample.Height!=16) return false;

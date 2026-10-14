@@ -35,7 +35,7 @@ function Prepare-RotationTestBatch([ref]$Now,[int]$Count) {
     Assert-Ui ($iterations -lt 100 -and -not $script:rotation.Current -and $script:rotation.ClickQueue.Count -eq $Count -and $script:rotation.LoginQueue.Count -eq 0) 'Position preparation did not finish as a separate batch.'
     foreach ($entry in @($script:rotation.ClickQueue.ToArray())) {
         Assert-Ui ($entry.PreparedTarget.ProcessKey -eq $entry.Row.Key -and $entry.PreparedSlot -eq $entry.Index -and
-            $entry.PreparedTarget.Name -ceq $entry.Plan.Slots[$entry.Index].Name -and $entry.PreparedTarget.Width -gt 0) 'Prepared target lost process/slot/geometry identity.'
+            $entry.PreparedTarget.Name -ceq $entry.Plan.Slots[$entry.Index].Name -and $entry.PreparedTarget.ClientSize.Width -gt 0) 'Prepared target lost process/slot/geometry identity.'
     }
 }
 function Click-RotationTestBatch([ref]$Now,[int]$Count) {
@@ -281,9 +281,26 @@ try {
         -not @($script:rotation.Actions | Where-Object {$_.Action -eq 'tripleclick'}).Count) 'Resized window used cached coordinates.'
     Prepare-RotationTestBatch ([ref]$now) 1
     $prepared=$script:rotation.ClickQueue.Peek()
-    Assert-Ui ($prepared.PreparedTarget.Width -eq 900 -and $cached.Width -eq 800 -and $prepared.SelectionDeadline -eq $deadline) 'Resize did not replace its snapshot or reset the timeout.'
+    Assert-Ui ($prepared.PreparedTarget.ClientSize.Width -eq 900 -and $cached.ClientSize.Width -eq 800 -and $prepared.SelectionDeadline -eq $deadline) 'Resize did not replace its snapshot or reset the timeout.'
     Click-RotationTestBatch ([ref]$now) 1;Complete-RotationTest ([ref]$now)
     $a.Process.PSObject.Properties.Remove('RotationWidth')
+    # Geometry validation reads system metadata only; OCR fields and position do not participate.
+    $now=360000L;Reach-RotationTestPhase $a 'click' ([ref]$now)
+    $target=$script:rotation.Current.Entry.PreparedTarget
+    $a.Process | Add-Member NoteProperty RotationLeft (-1920) -Force
+    $a.Process | Add-Member NoteProperty RotationTop 300 -Force
+    $ocrReads=$a.Process.RotationOcrReads;$sizeReads=$a.Process.RotationSizeReads
+    $a.Process.RotationScreen=[pscustomobject]@{Kind='unknown';Targets=@();Width=1;Height=1}
+    Assert-Ui ((Test-RotationTargetSnapshot $a $target) -and $a.Process.RotationSizeReads -eq $sizeReads+1 -and
+        $a.Process.RotationOcrReads -eq $ocrReads) 'Size validation used OCR or invalidated a moved window.'
+    $a.Process | Add-Member NoteProperty RotationHeight 501 -Force
+    Assert-Ui (-not (Test-RotationTargetSnapshot $a $target)) 'Height-only system size change was ignored.'
+    $a.Process.PSObject.Properties.Remove('RotationHeight')
+    Step-RotationTest $now;$now+=300
+    Assert-Ui (@($script:rotation.Actions | Where-Object {$_.Action -eq 'tripleclick'}).Count -eq 1 -and
+        $a.Process.RotationOcrReads -eq $ocrReads) 'Unchanged system size did not reuse prepared coordinates.'
+    $a.Process.PSObject.Properties.Remove('RotationLeft');$a.Process.PSObject.Properties.Remove('RotationTop')
+    Complete-RotationTest ([ref]$now)
     # Stopping a row with prepared coordinates removes only that row's later stages.
     Stop-AllRows;$script:rotation.Actions=@();Start-Row $a;Start-Row $b;$now=370000L
     Prepare-RotationTestBatch ([ref]$now) 2
@@ -345,7 +362,7 @@ try {
         Assert-Ui (-not [WowAutoRotation.Native]::HasLoginPoint($point)) 'Non-solid point accepted.'
     } finally {$point.Dispose()}
     foreach ($p in $sourceHashes.Keys) {Assert-Ui ((Get-FileHash $p).Hash -eq $sourceHashes[$p]) 'Tests changed real user configuration.'}
-    Write-Output 'PASS: name/empty/single/wrap slots, all-process logout then all-position preparation then all-clicks before login checks, cached geometry resize/re-recognition and stopped-cache cancellation, shared deadline/all-stop batch, first-page three-click selection with precomputed random intervals and OCR row logs, cursor parking, either menu anchor, partial/duplicate/no-progress rejection, permanent-point login/no OCR after selection/loading/pending/focus/timeout/stop/settings isolation, per-role fish/fight, counter reset, atomic drafts and PID reuse. All game input and OCR mocked.'
+    Write-Output 'PASS: name/empty/single/wrap slots, all-process logout then all-position preparation then all-clicks before login checks, independent system-size validation without OCR or position comparison, width/height resize/re-recognition and stopped-cache cancellation, shared deadline/all-stop batch, first-page three-click selection with precomputed random intervals and OCR row logs, cursor parking, either menu anchor, partial/duplicate/no-progress rejection, permanent-point login/no OCR after selection/loading/pending/focus/timeout/stop/settings isolation, per-role fish/fight, counter reset, atomic drafts and PID reuse. All game input and OCR mocked.'
 } finally {
     Stop-AllRows;Close-AutoFightTab
     if ([IO.File]::Exists($script:rotation.Path)) {[IO.File]::Delete($script:rotation.Path)}
