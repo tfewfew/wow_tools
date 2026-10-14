@@ -267,7 +267,9 @@ try {
     # Yellow during post-login validation must also skip that role, not wait until timeout.
     $now=340000L;Reach-RotationTestPhase $a 'validate' ([ref]$now)
     $a.Process.ScanColor='yellow'
-    Step-RotationTest $now;$now+=300;Step-RotationTest $now;$now+=300
+    for ($attempt=0;$attempt -lt 8 -and $script:rotation.Active.ContainsKey($a.Key) -and $script:rotation.Active[$a.Key].Index -ne 2;$attempt++) {
+        Step-RotationTest $now;$now+=300
+    }
     Assert-Ui ($script:rotation.Active.ContainsKey($a.Key) -and $script:rotation.Active[$a.Key].Index -eq 2 -and
         $script:rotation.LogoutQueue.Count -gt 0 -and -not $script:rotation.Current) 'Full bag during validation did not skip to the next role.'
     $a.Process.ScanColor='red';Stop-AllRows

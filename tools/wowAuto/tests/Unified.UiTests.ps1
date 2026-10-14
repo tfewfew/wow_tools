@@ -47,10 +47,12 @@ try {
     Invoke-RefreshScan 0
     Assert-Ui ($script:detectorCommands.Count -eq 0 -and $script:detectorSamples.Count -eq 0) 'Command/sample preceded activation.'
     Invoke-RefreshScan 200
-    Assert-Ui ($script:detectorCommands.Count -eq 1 -and $script:detectorCommands[0].Command -eq '/fightdetector on' -and $script:detectorSamples.Count -eq 0) 'Combat detector not enabled before sampling.'
-    Invoke-UnifiedTick 250
-    Assert-Ui ([WowAutoFight.Native]::Sends -eq $sends -and $script:workerKeys.Count -eq $keys) 'Refresh ran an attack or fishing action.'
+    Assert-Ui ($script:detectorCommands.Count -eq 0 -and $script:detectorSamples.Count -eq 0) 'Command/sample preceded foreground settling.'
     Invoke-RefreshScan 400
+    Assert-Ui ($script:detectorCommands.Count -eq 1 -and $script:detectorCommands[0].Command -eq '/fightdetector on' -and $script:detectorSamples.Count -eq 0) 'Combat detector not enabled before sampling.'
+    Invoke-UnifiedTick 450
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $sends -and $script:workerKeys.Count -eq $keys) 'Refresh ran an attack or fishing action.'
+    Invoke-RefreshScan 600
     Complete-TestScan
     Assert-Ui ($combat.Validated -and $combat.FightRow.CanStart -and $fishing.Validated -and $script:restored) 'Mixed-mode refresh/foreground restoration failed.'
     Assert-Ui ($script:detectorCommands.Count -eq 2 -and $script:detectorCommands[1].Command -eq '/wowdetector on') 'Fishing refresh sent incorrect command.'
