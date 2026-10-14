@@ -17,6 +17,7 @@
     "Rotation.Logout": 50,
     "Rotation.Menu": 50,
     "Rotation.Select": 50,
+    "Rotation.Click": 50,
     "Fight.Loot": 55,
     "Fight.Skin": 55,
     "Fight.Target": 60,

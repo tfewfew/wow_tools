@@ -109,13 +109,15 @@ namespace WowAutoRotation {
                     throw new InvalidOperationException("Window moved during cursor parking.");
             } finally {if(old!=IntPtr.Zero) SetThreadDpiAwarenessContext(old);}
         }
-        public static void ClickCharacter(int pid,long ticks,string path,double x,double y,int firstDelayMs,int secondDelayMs) {
+        public static bool ClickCharacter(int pid,long ticks,string path,double x,double y,int expectedWidth,int expectedHeight,int firstDelayMs,int secondDelayMs) {
             IntPtr old=SetThreadDpiAwarenessContext(new IntPtr(-4));
             try {
                 if(firstDelayMs<100 || firstDelayMs>250 || secondDelayMs<100 || secondDelayMs>250)
                     throw new ArgumentOutOfRangeException("Character click intervals must be 100-250 ms.");
                 IntPtr h=Window(pid,ticks,path);Rect r;Point p=new Point();
                 if(x<=0 || x>=1 || y<=0 || y>=1 || !GetClientRect(h,out r) || !ClientToScreen(h,ref p)) throw new ArgumentException("Invalid client point.");
+                // Recheck cached dimensions in the same transaction that maps and sends the clicks.
+                if(r.R!=expectedWidth || r.B!=expectedHeight) return false;
                 p.X+=(int)Math.Round(x*r.R);p.Y+=(int)Math.Round(y*r.B);
                 if(GetAncestor(WindowFromPoint(p),2)!=h || !SetCursorPos(p.X,p.Y)) throw new InvalidOperationException("Target point is obscured.");
                 Window(pid,ticks,path);
@@ -134,6 +136,7 @@ namespace WowAutoRotation {
                         throw new InvalidOperationException("Character clicks interrupted.");
                     }
                 }
+                return true;
             } finally {if(old!=IntPtr.Zero) SetThreadDpiAwarenessContext(old);}
         }
         public static byte[] Png(Bitmap b) {

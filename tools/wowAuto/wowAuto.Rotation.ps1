@@ -3,7 +3,7 @@ if (-not ('WowAutoRotation.Native' -as [type])) {
     Add-Type -Path (Join-Path $PSScriptRoot 'wowAuto.Rotation.Native.cs') -ReferencedAssemblies System.Drawing
 }
 $script:rotation=[pscustomobject]@{Path=(Join-Path $PSScriptRoot 'rotation.config.json');IntervalSeconds=0;OcrIntervalMs=1000;NextOcrAt=0L;Plans=@{};
-    Active=@{};LogoutQueue=(New-Object Collections.Queue);Queue=(New-Object Collections.Queue);Current=$null;NextAt=0L;ConfigReady=$true;Error='';Actions=@();OcrWork=$null;NameHistory=@();GameDirectories=@{titan=$(if ($UiTest) {''} else {'C:\Program Files (x86)\World of Warcraft\_classic_titan_'});forerver=$(if ($UiTest) {''} else {'C:\Program Files (x86)\World of Warcraft\_cn_beta_'})};
+    Active=@{};LogoutQueue=(New-Object Collections.Queue);Queue=(New-Object Collections.Queue);ClickQueue=(New-Object Collections.Queue);LoginQueue=(New-Object Collections.Queue);Current=$null;NextAt=0L;ConfigReady=$true;Error='';Actions=@();OcrWork=$null;NameHistory=@();GameDirectories=@{titan=$(if ($UiTest) {''} else {'C:\Program Files (x86)\World of Warcraft\_classic_titan_'});forerver=$(if ($UiTest) {''} else {'C:\Program Files (x86)\World of Warcraft\_cn_beta_'})};
     OcrSource=([IO.File]::ReadAllText((Join-Path $PSScriptRoot 'wowAuto.Rotation.Ocr.ps1')))}
 function New-RotationPlan {
     return [pscustomobject]@{Slots=@(1..3 | ForEach-Object {[pscustomobject]@{Name='';Mode='fish';UseItem=$false}})}
@@ -128,13 +128,51 @@ function Add-RotationRow($Row) {
     $button.Tag=$Row;$button.Add_Click({param($sender,$e) Show-RotationEditor $sender.Tag})
     $Row.Panel.Controls.AddRange([System.Windows.Forms.Control[]]@($button,$label));Update-RotationRow $Row
 }
+function Remove-RotationQueuedRow($Row) {
+    # Remove stopped/replaced stages immediately, including cached coordinates awaiting clicks.
+    foreach ($queueName in @('LogoutQueue','Queue','ClickQueue','LoginQueue')) {
+        $queue=$script:rotation.$queueName
+        $count=$queue.Count
+        for ($i=0;$i -lt $count;$i++) {
+            $entry=$queue.Dequeue()
+            if ($entry.Row.Key -ne $Row.Key) {$queue.Enqueue($entry)}
+            else {$entry.PreparedTarget=$null;$entry.PreparedSlot=-1}
+        }
+    }
+}
+function Reset-RotationEntry($Entry) {
+    Remove-RotationQueuedRow $Entry.Row
+    $Entry.PreparedTarget=$null;$Entry.PreparedSlot=-1;$Entry.SelectionDeadline=0L
+}
+function Test-RotationTargetSnapshot($Row,$Target) {
+    if (-not $Target -or $Target.ProcessKey -ne $Row.Key -or $Target.Width -le 0 -or $Target.Height -le 0 -or
+        $Target.X -le 0 -or $Target.X -ge 1 -or $Target.Y -le 0 -or $Target.Y -ge 1 -or
+        $Target.MenuRow -lt 1 -or $Target.MenuRow -gt 10) {return $false}
+    if ($UiTest) {
+        $width=if ($Row.Process.PSObject.Properties['RotationWidth']) {$Row.Process.RotationWidth} else {800}
+        $height=if ($Row.Process.PSObject.Properties['RotationHeight']) {$Row.Process.RotationHeight} else {500}
+        return $Target.Width -eq $width -and $Target.Height -eq $height
+    }
+    return [WowAutoRotation.Native]::SnapshotMatches($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,$Target.Width,$Target.Height)
+}
+function Retry-RotationRecognition($Work,[string]$Reason) {
+    $entry=$Work.Entry
+    Stop-RotationOcr
+    $entry.PreparedTarget=$null;$entry.PreparedSlot=-1
+    $script:rotation.Queue.Enqueue($entry)
+    $script:rotation.Current=$null
+    Set-RowStatusText $Work.Row ('步骤2/5：'+$Reason+'，重新识别角色位置后再点击。')
+}
 function Stop-RowRotation($Row) {
     Remove-GameActions -Key $Row.Key -Domain Rotation
     if (-not $script:rotation) {return}
     if ($script:rotation.OcrWork -and $script:rotation.OcrWork.Key -eq $Row.Key) {Stop-RotationOcr}
+    $entry=$script:rotation.Active[$Row.Key]
+    if ($entry) {$entry.PreparedTarget=$null;$entry.PreparedSlot=-1;$entry.SelectionDeadline=0L}
+    Remove-RotationQueuedRow $Row
     $script:rotation.Active.Remove($Row.Key)
     if ($script:rotation.Current -and $script:rotation.Current.Row.Key -eq $Row.Key) {$script:rotation.Current=$null;$script:rotation.NextOcrAt=0L}
-    if (-not $script:rotation.Active.Count) {$script:rotation.NextAt=0L;$script:rotation.LogoutQueue.Clear();$script:rotation.Queue.Clear()}
+    if (-not $script:rotation.Active.Count) {$script:rotation.NextAt=0L;$script:rotation.LogoutQueue.Clear();$script:rotation.Queue.Clear();$script:rotation.ClickQueue.Clear();$script:rotation.LoginQueue.Clear()}
     Update-RotationRow $Row
 }
 function Start-RowRotation($Row) {
@@ -143,7 +181,7 @@ function Start-RowRotation($Row) {
     $plan=Get-RowRotationPlan $Row;Test-RotationPlan $plan;Test-RowAccountPlan $Row $plan
     $index=Get-RotationNextSlot $plan -1
     Stop-Row $Row '开始角色编排，准备登录第一个有效槽位。' -CancelExit
-    $entry=[pscustomobject]@{Row=$Row;Plan=(Copy-RotationPlan $plan);Index=$index;ExcludedNames=@();LastLogout=-30000L}
+    $entry=[pscustomobject]@{Row=$Row;Plan=(Copy-RotationPlan $plan);Index=$index;ExcludedNames=@();LastLogout=-30000L;PreparedTarget=$null;PreparedSlot=-1;SelectionDeadline=0L}
     $script:rotation.Active[$Row.Key]=$entry;$script:rotation.LogoutQueue.Enqueue($entry)
     if (-not $script:rotation.NextAt -and $script:rotation.IntervalSeconds) {$script:rotation.NextAt=$script:schedulerClock.ElapsedMilliseconds+[long]$script:rotation.IntervalSeconds*1000}
     Update-RotationRow $Row
@@ -153,6 +191,7 @@ function Begin-RotationBatch([long]$Now) {
     $entries=@($script:rotation.Active.Values | Sort-Object {$_.Row.Process.Id})
     foreach ($entry in $entries) {
         Stop-Row $entry.Row '全局轮换到期，停止动作并切换下一角色。' -CancelExit -KeepRotation
+        Reset-RotationEntry $entry
         $entry.Index=Get-RotationNextSlot $entry.Plan $entry.Index $entry.ExcludedNames
         $entry.LastLogout=-30000L
         $script:rotation.LogoutQueue.Enqueue($entry);Update-RotationRow $entry.Row
@@ -170,6 +209,7 @@ function Exclude-FullRotationRole($Row) {
     if ($script:rotation.Current -and $script:rotation.Current.Row.Key -eq $Row.Key) {
         $script:rotation.Current=$null;$script:rotation.NextOcrAt=0L
     }
+    Reset-RotationEntry $entry
     $entry.Index=$next
     $entry.LastLogout=-30000L
     $script:rotation.LogoutQueue.Enqueue($entry)
@@ -184,6 +224,7 @@ function Send-RotationAction($Row,[string]$Action,$Target=$null) {
     $intervals=$null
     if ($Action -eq 'tripleclick') {
         if (-not $Target -or -not $Target.Name) {throw '未定位完整角色名。'}
+        if (-not (Test-RotationTargetSnapshot $Row $Target)) {return $false}
         # Draw both intervals before the first click so one selection is one input transaction.
         $intervals=@((Get-Random -Minimum 100 -Maximum 251),(Get-Random -Minimum 100 -Maximum 251))
     }
@@ -191,8 +232,8 @@ function Send-RotationAction($Row,[string]$Action,$Target=$null) {
     switch ($Action) {
         'logout' {$sent=[WowAuto.NativeInput]::SendRotationCommand($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,'logout',0)}
         'tripleclick' {
-            if (-not [WowAutoRotation.Native]::SnapshotMatches($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,$Target.Width,$Target.Height)) {return $false}
-            [WowAutoRotation.Native]::ClickCharacter($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,$Target.X,$Target.Y,$intervals[0],$intervals[1]);$sent=$true
+            $sent=[WowAutoRotation.Native]::ClickCharacter($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,$Target.X,$Target.Y,$Target.Width,$Target.Height,$intervals[0],$intervals[1])
+            if (-not $sent) {return $false}
         }
         default {throw '未知编排动作。'}
     }
@@ -233,7 +274,7 @@ function Get-RotationOcrLog($Screen,[string]$Name) {
     })
     $list=if ($recognized.Count) {$recognized -join '、'} else {'未识别到角色名'}
     $matched=@($Screen.Targets | Where-Object {$_.Name -ceq $Name -and -not $_.Ambiguous})
-    $selection=if ($matched.Count -eq 1) {'准备点击第'+$matched[0].MenuRow+'个角色槽位（'+$Name+'）'} else {'目标“'+$Name+'”未唯一定位，暂不点击'}
+    $selection=if ($matched.Count -eq 1) {'已定位第'+$matched[0].MenuRow+'个角色槽位（'+$Name+'）'} else {'目标“'+$Name+'”未唯一定位，暂不点击'}
     return 'OCR角色列表：'+$list+'；'+$selection+'。'
 }
 function ConvertFrom-RotationOcr($Ocr,$Plan,[switch]$MenuWasConfirmed) {
@@ -272,7 +313,14 @@ function Read-RotationScreen($Row,$Plan,[switch]$MenuWasConfirmed) {
         if (-not $Row.Process.PSObject.Properties['RotationCursorParks']) {$Row.Process | Add-Member NoteProperty RotationCursorParks 0}
         $Row.Process.RotationCursorParks++
         $Row.Process.RotationOcrReads++
-        return $Row.Process.RotationScreen
+        $screen=$Row.Process.RotationScreen
+        foreach ($target in @($screen.Targets)) {
+            $width=if ($Row.Process.PSObject.Properties['RotationWidth']) {$Row.Process.RotationWidth} else {800}
+            $height=if ($Row.Process.PSObject.Properties['RotationHeight']) {$Row.Process.RotationHeight} else {500}
+            $target | Add-Member NoteProperty Width $width -Force
+            $target | Add-Member NoteProperty Height $height -Force
+        }
+        return $screen
     }
     $work=$script:rotation.OcrWork
     if ($work) {
@@ -318,18 +366,22 @@ function Invoke-RotationTick([long]$Now) {
     if (-not $script:gameActions.Current) {
         Submit-RotationAction $Now
         if ($UiTest) {Invoke-GameActionQueue $Now}
-        return [bool]($script:rotation.Current -or $script:rotation.LogoutQueue.Count -or $script:rotation.Queue.Count)
+        return [bool](Test-RotationWorkPending)
     }
     if ($script:scanning -or $script:editingSettings) {return $false}
-    if (-not $script:rotation.Current -and -not $script:rotation.LogoutQueue.Count -and -not $script:rotation.Queue.Count -and
+    if (-not (Test-RotationWorkPending) -and
         $script:rotation.NextAt -and $Now -ge $script:rotation.NextAt) {Begin-RotationBatch $Now}
     if (-not $script:rotation.Current) {
-        while ($script:rotation.LogoutQueue.Count -or $script:rotation.Queue.Count) {
-            $logout=$script:rotation.LogoutQueue.Count -gt 0
-            $entry=if ($logout) {$script:rotation.LogoutQueue.Dequeue()} else {$script:rotation.Queue.Dequeue()}
-            if ($script:rotation.Active[$entry.Row.Key] -ne $entry) {continue}
-            $phase=if ($logout) {'logout-activate'} else {'activate'}
-            $script:rotation.Current=[pscustomobject]@{Entry=$entry;Row=$entry.Row;Phase=$phase;Due=$Now;Deadline=($Now+180000);FocusUntil=0L;
+        while (Test-RotationWorkPending) {
+            # Stage barriers: every logout, every position, every click, then login checks.
+            if ($script:rotation.LogoutQueue.Count) {$entry=$script:rotation.LogoutQueue.Dequeue();$phase='logout-activate'}
+            elseif ($script:rotation.Queue.Count) {$entry=$script:rotation.Queue.Dequeue();$phase='activate'}
+            elseif ($script:rotation.ClickQueue.Count) {$entry=$script:rotation.ClickQueue.Dequeue();$phase='click-activate'}
+            else {$entry=$script:rotation.LoginQueue.Dequeue();$phase='login-activate'}
+            if (-not [object]::ReferenceEquals($script:rotation.Active[$entry.Row.Key],$entry)) {continue}
+            if ($phase -eq 'activate' -and -not $entry.SelectionDeadline) {$entry.SelectionDeadline=$Now+180000}
+            $deadline=if ($phase -eq 'logout-activate') {$Now+180000} else {$entry.SelectionDeadline}
+            $script:rotation.Current=[pscustomobject]@{Entry=$entry;Row=$entry.Row;Phase=$phase;Due=$Now;Deadline=$deadline;FocusUntil=0L;
                 Stable=0;LastLogout=$entry.LastLogout;Candidate=$null;FindMisses=0;MonitorEnabled=$false}
             $script:rotation.NextOcrAt=0L
             break
@@ -343,13 +395,13 @@ function Invoke-RotationTick([long]$Now) {
         if ($row.Process.HasExited -or -not (Test-RowProcessIdentity $row)) {throw '角色轮换进程已退出或身份改变。'}
         if ($Now -ge $work.Deadline) {throw '角色切换超过180秒；检查战斗、登录及OCR识别后手动开始。'}
         if ($script:autoFight -and ($script:autoFight.ActiveHold -or [WowAutoFight.Native]::IsHolding)) {if (-not (Release-AutoFightHold)) {return $true}}
-        if ($work.Phase -in @('logout-activate','activate')) {
+        if ($work.Phase -in @('logout-activate','activate','click-activate','login-activate')) {
             if (-not (Activate-ScanRow $row)) {
                 if (-not $work.FocusUntil) {$work.FocusUntil=$Now+5000}
                 if ($Now -ge $work.FocusUntil) {throw '连续5秒无法激活角色切换窗口。'}
                 $work.Due=[Math]::Min($Now+500,$work.FocusUntil);return $true
             }
-            $work.Phase=if ($work.Phase -eq 'logout-activate') {'logout-inspect'} else {'menu'}
+            $work.Phase=switch ($work.Phase) {'logout-activate' {'logout-inspect'} 'click-activate' {'click'} 'login-activate' {'login'} default {'menu'}}
             $work.Due=$Now+200;return $true
         }
         if (-not (Test-WorkerForeground $row)) {
@@ -369,17 +421,37 @@ function Invoke-RotationTick([long]$Now) {
             $row.Validated=$false
             $script:rotation.Queue.Enqueue($entry)
             $script:rotation.Current=$null
-            Set-RowStatusText $row '步骤1/3：已处理本进程登出，等待所有进程完成登出请求后再逐个选角。'
+            Set-RowStatusText $row '步骤1/5：已处理本进程登出，等待所有进程完成登出请求后再批量识别角色位置。'
+            return $true
+        }
+        if ($work.Phase -eq 'click') {
+            # This phase performs no OCR. Prepared coordinates belong to this entry and slot.
+            $target=$entry.PreparedTarget
+            if (-not $target -or $entry.PreparedSlot -ne $entry.Index -or $target.Name -cne $name) {
+                Retry-RotationRecognition $work '缓存角色位置已失效';return $true
+            }
+            if (Test-RowLoginPoint $row) {
+                $entry.PreparedTarget=$null;$entry.PreparedSlot=-1
+                $script:rotation.LogoutQueue.Enqueue($entry);$script:rotation.Current=$null
+                Set-RowStatusText $row '步骤1/5：窗口已离开选角界面，重新登出并定位目标角色。'
+                return $true
+            }
+            if (-not (Send-RotationAction $row 'tripleclick' $target)) {
+                Retry-RotationRecognition $work '窗口尺寸变化';return $true
+            }
+            $entry.PreparedTarget=$null;$entry.PreparedSlot=-1
+            $script:rotation.LoginQueue.Enqueue($entry);$script:rotation.Current=$null
+            Set-RowStatusText $row ('步骤3/5：已三次点击第'+$target.MenuRow+'个角色槽位“'+$name+'”，继续点击其他进程，全部点击后确认登录。')
             return $true
         }
         if ($work.Phase -eq 'menu' -and (Test-RowLoginPoint $row)) {
             $work.Stable=0
             if ($Now-$work.LastLogout -ge 30000) {$null=Send-RotationAction $row 'logout';$work.LastLogout=$Now}
             $work.Due=$Now+300
-            Set-RowStatusText $row '步骤1/3：等待退出倒计时 / 脱战，每30秒重试退出。'
+            Set-RowStatusText $row '步骤2/5：等待退出倒计时 / 脱战，每30秒重试退出。'
             return $true
         }
-        # Stage 2: login is checked only by the permanent addon point, never OCR or HUD text.
+        # Every window has been clicked before login checks begin; OCR remains stopped.
         if ($work.Phase -eq 'login') {
             if (Test-RowLoginPoint $row) {$work.Stable++} else {$work.Stable=0}
             if ($work.Stable -ge 3) {
@@ -387,11 +459,11 @@ function Invoke-RotationTick([long]$Now) {
                 $work.Phase='validate';$work.Due=$Now
             } else {
                 $work.Due=$Now+300
-                Set-RowStatusText $row ('步骤2/3：等待“'+$name+'”进入游戏并连续三次确认右下角常驻白点。')
+                Set-RowStatusText $row ('步骤4/5：等待“'+$name+'”进入游戏并连续三次确认右下角常驻白点。')
             }
             return $true
         }
-        # Stage 3: recheck the point before enabling either detector and before starting its task.
+        # Recheck the point before enabling either detector and before starting its task.
         if ($work.Phase -eq 'validate') {
             if (-not (Test-RowLoginPoint $row)) {
                 $work.Phase='login';$work.Stable=0;$work.MonitorEnabled=$false;$work.Due=$Now+300
@@ -400,7 +472,7 @@ function Invoke-RotationTick([long]$Now) {
             if (-not $work.MonitorEnabled) {
                 if (-not (Send-ScanDetectorCommand $row)) {throw '登录后监控开启命令失败。'}
                 $work.MonitorEnabled=$true;$work.Due=$Now+300
-                Set-RowStatusText $row '步骤3/3：白点确认通过，已开启监控，等待任务色块。'
+                Set-RowStatusText $row '步骤5/5：白点确认通过，已开启监控，等待任务色块。'
                 return $true
             }
             if ($row.TaskMode -eq 'fight') {
@@ -418,7 +490,8 @@ function Invoke-RotationTick([long]$Now) {
             if (-not (Test-UnifiedTaskRunning $row)) {throw '角色任务未能启动。'}
             Set-RowStatusText $row ('槽'+($entry.Index+1)+' / '+$name+' 已确认登录并开始任务。')
             $script:rotation.Current=$null
-            if (-not $script:rotation.Queue.Count -and $script:rotation.NextAt -and $script:rotation.NextAt -le $Now) {$script:rotation.NextAt=$Now+[long]$script:rotation.IntervalSeconds*1000}
+            $entry.SelectionDeadline=0L
+            if (-not (Test-RotationWorkPending) -and $script:rotation.NextAt -and $script:rotation.NextAt -le $Now) {$script:rotation.NextAt=$Now+[long]$script:rotation.IntervalSeconds*1000}
             Update-RotationRow $row;return $true
         }
         $screen=Read-RotationScreen $row $entry.Plan -MenuWasConfirmed:($work.Phase -eq 'find')
@@ -430,7 +503,7 @@ function Invoke-RotationTick([long]$Now) {
                     if ($work.Stable -ge 3) {$work.Phase='find';$work.Stable=0}
                 } else {
                     $work.Stable=0
-                    Set-RowStatusText $row '步骤1/3：等待OCR识别选择服务器或进入魔兽世界。'
+                    Set-RowStatusText $row '步骤2/5：等待OCR识别选择服务器或进入魔兽世界。'
                 }
             }
             'find' {
@@ -444,14 +517,13 @@ function Invoke-RotationTick([long]$Now) {
                     if ($work.Candidate -and [Math]::Abs($target.X-$work.Candidate.X) -lt 0.005 -and [Math]::Abs($target.Y-$work.Candidate.Y) -lt 0.005) {$work.Stable++} else {$work.Stable=1}
                     $work.Candidate=$target
                     if ($work.Stable -ge 2) {
-                        if (-not (Send-RotationAction $row 'tripleclick' $target)) {
-                            $work.Stable=0;$work.Candidate=$null;$work.Due=$Now+100
-                            Set-RowStatusText $row '窗口缩放，重新OCR定位角色名。'
-                            return $true
-                        }
+                        $entry.PreparedTarget=[pscustomobject]@{ProcessKey=$row.Key;Name=$name;MenuRow=$target.MenuRow;
+                            X=$target.X;Y=$target.Y;Width=$target.Width;Height=$target.Height;PreparedAt=$Now}
+                        $entry.PreparedSlot=$entry.Index
                         Stop-RotationOcr
-                        $work.Phase='login';$work.Stable=0
-                        Set-RowStatusText $row ('步骤2/3：已三次点击第'+$target.MenuRow+'个角色槽位“'+$name+'”，OCR结束，等待常驻白点。')
+                        $script:rotation.ClickQueue.Enqueue($entry);$script:rotation.Current=$null
+                        Set-RowStatusText $row ('步骤2/5：已缓存第'+$target.MenuRow+'个角色槽位“'+$name+'”的点击位置，等待所有进程识别完成后统一点击。')
+                        return $true
                     }
                 } else {
                     $work.Candidate=$null;$work.Stable=0

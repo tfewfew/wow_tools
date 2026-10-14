@@ -167,7 +167,7 @@ Add-GameAction -Id other-input -Kind Fight.Combat -Domain Test -Key other -Row $
 }
 Invoke-GameActionQueue 0
 Assert-Queue ($script:activations -eq 1 -and $script:gameActions.Focus) 'Foreground activation fixture did not start.'
-$script:rotation=[pscustomobject]@{Current=$null;LogoutQueue=(New-Object Collections.Queue);Queue=(New-Object Collections.Queue)}
+$script:rotation=[pscustomobject]@{Current=$null;LogoutQueue=(New-Object Collections.Queue);Queue=(New-Object Collections.Queue);ClickQueue=(New-Object Collections.Queue);LoginQueue=(New-Object Collections.Queue)}
 $script:rotation.LogoutQueue.Enqueue('first');$script:rotation.Queue.Enqueue('second')
 Add-GameAction -Id release -Kind Safety.Release -Domain Safety -Due 50 -Execute {
     param($event,$now) [void]$script:seen.Add('release')
@@ -186,6 +186,13 @@ Invoke-GameActionQueue 100
 Assert-Queue (($script:seen -join ',') -eq 'release,first,second' -and $script:activations -eq 1 -and
     $script:rotation.Queue.Count -eq 0 -and $script:rotation.Current) 'Other input ran while the last selected role was still logging in.'
 $script:rotation.Current=$null
+$script:rotation.ClickQueue.Enqueue('cached-target')
+Invoke-GameActionQueue 100
+Assert-Queue ($script:activations -eq 1 -and (Test-RotationWorkPending)) 'Other input ran while prepared clicks were pending.'
+$script:rotation.ClickQueue.Clear();$script:rotation.LoginQueue.Enqueue('clicked-target')
+Invoke-GameActionQueue 100
+Assert-Queue ($script:activations -eq 1 -and (Test-RotationWorkPending)) 'Other input ran while clicked roles awaited login checks.'
+$script:rotation.LoginQueue.Clear()
 Invoke-GameActionQueue 100
 Assert-Queue ($script:activations -eq 2 -and $script:gameActions.Focus) 'Queued input did not resume after all role logins completed.'
 Invoke-GameActionQueue 299
@@ -197,7 +204,7 @@ Reset-TestQueue
 $row=New-TestRow rotation
 $entry=[pscustomobject]@{Row=$row}
 $work=[pscustomobject]@{Entry=$entry;Phase='menu';FocusUntil=0L}
-$script:rotation=[pscustomobject]@{Current=$work;Active=@{rotation=$entry};LogoutQueue=(New-Object Collections.Queue);Queue=(New-Object Collections.Queue)}
+$script:rotation=[pscustomobject]@{Current=$work;Active=@{rotation=$entry};LogoutQueue=(New-Object Collections.Queue);Queue=(New-Object Collections.Queue);ClickQueue=(New-Object Collections.Queue);LoginQueue=(New-Object Collections.Queue)}
 $script:activateAllowed=$false
 Add-GameAction -Id rotation -Kind Rotation.Menu -Domain Rotation -Key rotation -Row $row -Owner $work -Due 0 -Data menu -Foreground $true -Execute {
     param($event,$now) [void]$script:seen.Add('menu')
@@ -219,7 +226,7 @@ Reset-TestQueue
 $row=New-TestRow rotation
 $entry=[pscustomobject]@{Row=$row}
 $work=[pscustomobject]@{Entry=$entry;Phase='menu';FocusUntil=0L}
-$script:rotation=[pscustomobject]@{Current=$work;Active=@{rotation=$entry};LogoutQueue=(New-Object Collections.Queue);Queue=(New-Object Collections.Queue)}
+$script:rotation=[pscustomobject]@{Current=$work;Active=@{rotation=$entry};LogoutQueue=(New-Object Collections.Queue);Queue=(New-Object Collections.Queue);ClickQueue=(New-Object Collections.Queue);LoginQueue=(New-Object Collections.Queue)}
 $script:focusOnActivate=$false
 Add-GameAction -Id rotation -Kind Rotation.Menu -Domain Rotation -Key rotation -Row $row -Owner $work -Due 0 -Data menu -Foreground $true -Execute {
     param($event,$now) [void]$script:seen.Add('menu')
@@ -236,7 +243,7 @@ Reset-TestQueue
 $row=New-TestRow rotation
 $entry=[pscustomobject]@{Row=$row}
 $work=[pscustomobject]@{Entry=$entry;Phase='menu';FocusUntil=0L}
-$script:rotation=[pscustomobject]@{Current=$work;Active=@{rotation=$entry};LogoutQueue=(New-Object Collections.Queue);Queue=(New-Object Collections.Queue)}
+$script:rotation=[pscustomobject]@{Current=$work;Active=@{rotation=$entry};LogoutQueue=(New-Object Collections.Queue);Queue=(New-Object Collections.Queue);ClickQueue=(New-Object Collections.Queue);LoginQueue=(New-Object Collections.Queue)}
 $script:activateAllowed=$false
 Add-GameAction -Id rotation -Kind Rotation.Menu -Domain Rotation -Key rotation -Row $row -Owner $work -Due 0 -Data menu -Foreground $true -Execute {
     param($event,$now) [void]$script:seen.Add('menu')

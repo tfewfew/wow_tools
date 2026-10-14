@@ -6,13 +6,13 @@ $sourceHashes=@{}
 foreach ($p in @($sourceRotation,(Join-Path (Split-Path $PSScriptRoot -Parent) 'config.ini'),(Join-Path (Split-Path $PSScriptRoot -Parent) 'autoFight.config.json'))) {$sourceHashes[$p]=(Get-FileHash $p).Hash}
 $oldRotationPath=$script:rotation.Path
 $script:rotation.Path=Join-Path ([IO.Path]::GetTempPath()) ('wowAuto-rotation-'+[Guid]::NewGuid()+'.json')
-$script:rotation.Plans=@{};$script:rotation.IntervalSeconds=0;$script:rotation.Active.Clear();$script:rotation.LogoutQueue.Clear();$script:rotation.Queue.Clear();$script:rotation.Current=$null
+$script:rotation.Plans=@{};$script:rotation.IntervalSeconds=0;$script:rotation.Active.Clear();$script:rotation.LogoutQueue.Clear();$script:rotation.Queue.Clear();$script:rotation.ClickQueue.Clear();$script:rotation.LoginQueue.Clear();$script:rotation.Current=$null
 $script:scheduler=New-WowAutoScheduler;$script:schedulerClock=[pscustomobject]@{ElapsedMilliseconds=0L};$script:autoFight.Clock=$script:schedulerClock
 function Step-RotationTest([long]$Now,[string]$Screen='automatic') {
     $script:schedulerClock.ElapsedMilliseconds=$Now
     $work=$script:rotation.Current
     if ($work) {
-        $kind=if ($Screen -ne 'automatic') {$Screen} elseif ($work.Phase -in @('menu','find')) {'menu'} else {'world'}
+        $kind=if ($Screen -ne 'automatic') {$Screen} elseif ($work.Phase -in @('menu','find','click-activate','click')) {'menu'} else {'world'}
         $work.Row.Process | Add-Member NoteProperty LoginPointPresent ($kind -eq 'world') -Force
         $work.Row.Process.RotationScreen=[pscustomobject]@{Kind=$kind;RoleName=$work.Entry.Plan.Slots[$work.Entry.Index].Name;Targets=@(for ($slotIndex=0;$slotIndex -lt 3;$slotIndex++) {if ($work.Entry.Plan.Slots[$slotIndex].Name) {[pscustomobject]@{Name=$work.Entry.Plan.Slots[$slotIndex].Name;RawName=$work.Entry.Plan.Slots[$slotIndex].Name;MenuRow=($slotIndex+1);X=0.84;Y=(0.119+$slotIndex*0.0743)}}})}
         if ($work.Row.TaskMode -eq 'fight') {[WowAutoFight.Native]::Current.Flavor=$work.Row.Client.Flavor;[WowAutoFight.Native]::Current.ClassId=1}
@@ -21,8 +21,32 @@ function Step-RotationTest([long]$Now,[string]$Screen='automatic') {
 }
 function Complete-RotationTest([ref]$Now) {
     $iterations=0
-    while (($script:rotation.Current -or $script:rotation.LogoutQueue.Count -or $script:rotation.Queue.Count) -and $iterations++ -lt 200) {Step-RotationTest $Now.Value;$Now.Value+=300}
+    while ((Test-RotationWorkPending) -and $iterations++ -lt 200) {Step-RotationTest $Now.Value;$Now.Value+=300}
     Assert-Ui ($iterations -lt 200) 'Rotation failed to finish.'
+}
+function Prepare-RotationTestBatch([ref]$Now,[int]$Count) {
+    $clicks=@($script:rotation.Actions | Where-Object {$_.Action -eq 'tripleclick'}).Count
+    $iterations=0
+    while (($script:rotation.LogoutQueue.Count -or $script:rotation.Queue.Count -or
+        ($script:rotation.Current -and $script:rotation.Current.Phase -in @('logout-activate','logout-inspect','activate','menu','find'))) -and $iterations++ -lt 100) {
+        Step-RotationTest $Now.Value;$Now.Value+=300
+        Assert-Ui (@($script:rotation.Actions | Where-Object {$_.Action -eq 'tripleclick'}).Count -eq $clicks) 'Clicked a role before every process had a prepared position.'
+    }
+    Assert-Ui ($iterations -lt 100 -and -not $script:rotation.Current -and $script:rotation.ClickQueue.Count -eq $Count -and $script:rotation.LoginQueue.Count -eq 0) 'Position preparation did not finish as a separate batch.'
+    foreach ($entry in @($script:rotation.ClickQueue.ToArray())) {
+        Assert-Ui ($entry.PreparedTarget.ProcessKey -eq $entry.Row.Key -and $entry.PreparedSlot -eq $entry.Index -and
+            $entry.PreparedTarget.Name -ceq $entry.Plan.Slots[$entry.Index].Name -and $entry.PreparedTarget.Width -gt 0) 'Prepared target lost process/slot/geometry identity.'
+    }
+}
+function Click-RotationTestBatch([ref]$Now,[int]$Count) {
+    $reads=0;foreach ($entry in @($script:rotation.ClickQueue.ToArray())) {$reads+=$entry.Row.Process.RotationOcrReads}
+    $entries=@($script:rotation.ClickQueue.ToArray());$iterations=0
+    while (($script:rotation.ClickQueue.Count -or ($script:rotation.Current -and $script:rotation.Current.Phase -in @('click-activate','click'))) -and $iterations++ -lt 60) {
+        Step-RotationTest $Now.Value;$Now.Value+=300
+        foreach ($entry in $entries) {Assert-Ui (-not (Test-UnifiedTaskRunning $entry.Row)) 'Started a task before all prepared clicks completed.'}
+    }
+    $after=0;foreach ($entry in $entries) {$after+=$entry.Row.Process.RotationOcrReads}
+    Assert-Ui ($iterations -lt 60 -and -not $script:rotation.Current -and $script:rotation.LoginQueue.Count -eq $Count -and $after -eq $reads) 'Click batch performed OCR or waited for login before clicking every process.'
 }
 function Reach-RotationTestPhase($Row,[string]$Phase,[ref]$Now) {
     Stop-AllRows;$script:rotation.Actions=@();Start-Row $Row
@@ -76,13 +100,16 @@ try {
         ($script:rotation.Actions.Action -join ',') -eq 'logout,logout' -and
         ($script:rotation.Actions.Key -join ',') -eq "$($a.Key),$($b.Key)" -and $script:rotation.Queue.Count -eq 2 -and
         $a.Process.RotationOcrReads -eq 0 -and $b.Process.RotationOcrReads -eq 0) 'Started OCR/login before requesting logout from every process.'
+    Prepare-RotationTestBatch ([ref]$now) 2
+    Click-RotationTestBatch ([ref]$now) 2
+    Assert-Ui (($script:rotation.Actions.Action -join ',') -eq 'logout,logout,tripleclick,tripleclick') 'All-process phase barriers or click order changed.'
     Complete-RotationTest ([ref]$now)
     Assert-Ui ((Test-UnifiedTaskRunning $a) -and (Test-UnifiedTaskRunning $b) -and (Get-WowAutoCycleCount $script:scheduler $a.Key) -eq 0 -and [long]$script:scheduler.CyclesSinceJump[$a.Key] -eq 0) 'Initial role login/task start or character counter reset failed.'
     Assert-Ui ($a.State.UseItem -and -not $b.State.UseItem) 'Initial per-slot item choices did not reach engine.'
     $actions=@($script:rotation.Actions | Where-Object {$_.Key -eq $a.Key})
     Assert-Ui (($actions.Action -join ',') -eq 'logout,tripleclick' -and $a.Process.RotationCursorParks -eq $a.Process.RotationOcrReads) 'First-page three-click selection or pre-OCR cursor parking was skipped.'
     Assert-Ui ($actions[-1].Intervals.Count -eq 2 -and @($actions[-1].Intervals | Where-Object {$_ -ge 100 -and $_ -le 250}).Count -eq 2 -and $actions[-1].Target.MenuRow -eq 1) 'Three-click intervals or fixed role row were not prepared.'
-    Assert-Ui (@($a.StatusHistory | Where-Object {$_ -match 'OCR角色列表：' -and $_ -match '第1个角色槽位 双持船橘二咪' -and $_ -match '第3个角色槽位 咆史呀嘞' -and $_ -match '准备点击第1个角色槽位'}).Count -gt 0) 'OCR role list and selected row missing from status log.'
+    Assert-Ui (@($a.StatusHistory | Where-Object {$_ -match 'OCR角色列表：' -and $_ -match '第1个角色槽位 双持船橘二咪' -and $_ -match '第3个角色槽位 咆史呀嘞' -and $_ -match '已定位第1个角色槽位'}).Count -gt 0) 'OCR role list and selected row missing from status log.'
     $oldCount=$script:rotation.Actions.Count
     Step-RotationTest 19999
     Assert-Ui ($script:rotation.Actions.Count -eq $oldCount -and -not $script:rotation.Current) 'Switched before global deadline.'
@@ -97,6 +124,8 @@ try {
         (@($script:rotation.Actions | Select-Object -Skip $oldCount -First 2 | ForEach-Object Action) -join ',') -eq 'logout,logout' -and
         $script:rotation.Queue.Count -eq 2 -and
         $a.Process.RotationOcrReads+$b.Process.RotationOcrReads -eq $ocrBefore) 'Timed batch selected a role before sending all logout requests.'
+    Prepare-RotationTestBatch ([ref]$now) 2
+    Click-RotationTestBatch ([ref]$now) 2
     Complete-RotationTest ([ref]$now)
     Assert-Ui (-not $a.SlotUseItem) 'Combat slot inherited fishing item.'
     Assert-Ui ($a.TaskMode -eq 'fight' -and $a.FightRow.Session -and $b.State.Running) 'Per-slot task modes not started.'
@@ -242,6 +271,29 @@ try {
     Assert-Ui ($script:rotation.Active.ContainsKey($a.Key) -and $script:rotation.Active[$a.Key].Index -eq 2 -and
         $script:rotation.LogoutQueue.Count -gt 0 -and -not $script:rotation.Current) 'Full bag during validation did not skip to the next role.'
     $a.Process.ScanColor='red';Stop-AllRows
+    # Geometry changes after preparation must return to OCR, never click stale coordinates.
+    $now=350000L;Reach-RotationTestPhase $a 'click' ([ref]$now)
+    $cached=$script:rotation.Current.Entry.PreparedTarget;$deadline=$script:rotation.Current.Deadline
+    $a.Process | Add-Member NoteProperty RotationWidth 900 -Force
+    Step-RotationTest $now;$now+=300
+    Assert-Ui (-not $script:rotation.Current -and $script:rotation.Queue.Count -eq 1 -and
+        -not $script:rotation.Active[$a.Key].PreparedTarget -and
+        -not @($script:rotation.Actions | Where-Object {$_.Action -eq 'tripleclick'}).Count) 'Resized window used cached coordinates.'
+    Prepare-RotationTestBatch ([ref]$now) 1
+    $prepared=$script:rotation.ClickQueue.Peek()
+    Assert-Ui ($prepared.PreparedTarget.Width -eq 900 -and $cached.Width -eq 800 -and $prepared.SelectionDeadline -eq $deadline) 'Resize did not replace its snapshot or reset the timeout.'
+    Click-RotationTestBatch ([ref]$now) 1;Complete-RotationTest ([ref]$now)
+    $a.Process.PSObject.Properties.Remove('RotationWidth')
+    # Stopping a row with prepared coordinates removes only that row's later stages.
+    Stop-AllRows;$script:rotation.Actions=@();Start-Row $a;Start-Row $b;$now=370000L
+    Prepare-RotationTestBatch ([ref]$now) 2
+    $stoppedEntry=$script:rotation.Active[$a.Key]
+    Stop-Row $a
+    Assert-Ui ($script:rotation.ClickQueue.Count -eq 1 -and -not $stoppedEntry.PreparedTarget -and
+        $stoppedEntry.PreparedSlot -eq -1 -and $script:rotation.Active.ContainsKey($b.Key)) 'Stopping cached work retained a click or removed another process.'
+    Click-RotationTestBatch ([ref]$now) 1;Complete-RotationTest ([ref]$now)
+    Assert-Ui (-not @($script:rotation.Actions | Where-Object {$_.Key -eq $a.Key -and $_.Action -eq 'tripleclick'}).Count -and $b.State.Running) 'Stopped cached target was clicked after another process resumed.'
+    Stop-AllRows
     $a.Process.StartTime=$a.Process.StartTime.AddSeconds(1);$null=Refresh-ProcessRows
     $replacement=@($script:rows.Values | Where-Object {$_.Process.Id -eq $a.Process.Id})[0]
     Assert-Ui (-not (Test-RowHasRotation $replacement)) 'Reused PID inherited character plan.'
@@ -258,7 +310,7 @@ try {
     $mapped=ConvertFrom-RotationOcr $ocr $plan
     Assert-Ui ([Math]::Abs($mapped.Targets[0].X-0.85) -lt 0.00001 -and $mapped.Targets[0].MenuRow -eq 2 -and
         [Math]::Abs($mapped.Targets[0].Y-(0.119+0.0743)) -lt 0.00001) 'OCR name did not map to the fixed second character row.'
-    Assert-Ui ((Get-RotationOcrLog $mapped '双持船橘二咪') -match '第2个角色槽位 双持船橘二咪；准备点击第2个角色槽位') 'OCR log omitted the identified click row.'
+    Assert-Ui ((Get-RotationOcrLog $mapped '双持船橘二咪') -match '第2个角色槽位 双持船橘二咪；已定位第2个角色槽位') 'OCR log omitted the identified click row.'
     $ocr.Names[0].Text='双持船橘二咩'
     $corrected=ConvertFrom-RotationOcr $ocr $plan
     Assert-Ui ((Get-RotationOcrLog $corrected '双持船橘二咪') -match '双持船橘二咩→双持船橘二咪') 'OCR log concealed the original misread name.'
@@ -293,7 +345,7 @@ try {
         Assert-Ui (-not [WowAutoRotation.Native]::HasLoginPoint($point)) 'Non-solid point accepted.'
     } finally {$point.Dispose()}
     foreach ($p in $sourceHashes.Keys) {Assert-Ui ((Get-FileHash $p).Hash -eq $sourceHashes[$p]) 'Tests changed real user configuration.'}
-    Write-Output 'PASS: name/empty/single/wrap slots, all-process logout before any OCR/login, shared deadline/all-stop batch, first-page three-click selection with precomputed random intervals and OCR row logs, cursor parking, either menu anchor, partial/duplicate/no-progress rejection, permanent-point login/no OCR after selection/loading/pending/focus/timeout/stop/settings isolation, per-role fish/fight, counter reset, atomic drafts and PID reuse. All game input and OCR mocked.'
+    Write-Output 'PASS: name/empty/single/wrap slots, all-process logout then all-position preparation then all-clicks before login checks, cached geometry resize/re-recognition and stopped-cache cancellation, shared deadline/all-stop batch, first-page three-click selection with precomputed random intervals and OCR row logs, cursor parking, either menu anchor, partial/duplicate/no-progress rejection, permanent-point login/no OCR after selection/loading/pending/focus/timeout/stop/settings isolation, per-role fish/fight, counter reset, atomic drafts and PID reuse. All game input and OCR mocked.'
 } finally {
     Stop-AllRows;Close-AutoFightTab
     if ([IO.File]::Exists($script:rotation.Path)) {[IO.File]::Delete($script:rotation.Path)}
