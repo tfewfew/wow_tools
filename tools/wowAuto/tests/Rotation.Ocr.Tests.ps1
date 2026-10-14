@@ -5,7 +5,7 @@ $tool=Split-Path $PSScriptRoot -Parent
 Add-Type -Path (Join-Path $tool 'wowAuto.Rotation.Native.cs') -ReferencedAssemblies System.Drawing
 $parseTokens=$null;$parseErrors=$null
 $ast=[System.Management.Automation.Language.Parser]::ParseFile((Join-Path $tool 'wowAuto.Rotation.ps1'),[ref]$parseTokens,[ref]$parseErrors)
-foreach ($name in @('New-RotationPlan','Resolve-RotationOcrName','ConvertFrom-RotationOcr')) {
+foreach ($name in @('New-RotationPlan','Resolve-RotationOcrName','Get-RotationMenuRow','ConvertFrom-RotationOcr')) {
     $fn=$ast.Find({param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name},$true)
     if (-not $fn) {throw 'OCR classifier function missing.'}
     Invoke-Expression $fn.Extent.Text
@@ -41,7 +41,7 @@ function Read-TestOcr($Bitmap) {
     } finally {$pipeline.Stop();$pipeline.Dispose()}
 }
 function Read-TestImage($Bitmap) {ConvertFrom-RotationOcr (Read-TestOcr $Bitmap) $plan}
-function Assert-ScreenshotOcr($Ocr,$Screen,[double]$Scale) {
+function Assert-ScreenshotOcr($Ocr,$Screen,[double]$Scale,$Bitmap) {
     $server=@($Ocr.Lines | Where-Object {$_.Text -match '^[0一_—\-口□]*选择服务器[一_—\-口□]*$' -and $_.X -gt 0.65 -and $_.Y -lt 0.15})
     $enter=@($Ocr.Lines | Where-Object {$_.Text -match '^[0一_—\-口□]*进入魔兽世界[一_—\-口□]*$' -and $_.X -gt 0.25 -and $_.X -lt 0.70 -and $_.Y -gt 0.85})
     if (-not $server.Count -or -not $enter.Count) {
@@ -55,22 +55,35 @@ function Assert-ScreenshotOcr($Ocr,$Screen,[double]$Scale) {
     if ($Screen.Kind -ne 'menu' -or $first.Count -ne 1 -or $second.Count -ne $expectedSecond) {
         throw ('Screenshot character names were not recognized at scale '+$Scale+': '+($Screen | ConvertTo-Json -Depth 4 -Compress))
     }
+    if ($first[0].MenuRow -ne 2 -or ($second.Count -and $second[0].MenuRow -ne 4)) {throw ('Original screenshot character row indices shifted at scale '+$Scale+'.')}
+    foreach ($item in @(@($first[0],255.0),@($(if ($second.Count) {$second[0]} else {$null}),420.0))) {
+        if (-not $item[0]) {continue}
+        $clickX=$item[0].X*$Bitmap.Width
+        $clickY=$item[0].Y*$Bitmap.Height
+        $expectedY=($item[1]-44)*$Bitmap.Height/1104.0
+        if ($clickX -le 1470*$Bitmap.Width/1869.0 -or $clickX -ge 1855*$Bitmap.Width/1869.0 -or
+            [Math]::Abs($clickY-$expectedY) -gt 5*$Scale) {throw ('Original screenshot fixed-row click missed the list at scale '+$Scale+'.')}
+    }
 }
-if (-not $ImagePath -and -not $SampleDirectory -and -not $Generated) {$ImagePath=Join-Path $PSScriptRoot 'fixtures/titan-character-select-20261014.png'}
+$runRepositoryFixtures=(-not $ImagePath -and -not $SampleDirectory -and -not $Generated)
+if ($runRepositoryFixtures) {$ImagePath=Join-Path $PSScriptRoot 'fixtures/titan-character-select-20261014.png'}
 if ($ImagePath) {
     $plan.Slots[1].Name='吔史呀嘞'
     $original=New-Object Drawing.Bitmap($ImagePath)
+    $client=$null
     try {
+        if ($runRepositoryFixtures) {$client=$original.Clone((New-Object Drawing.Rectangle(0,44,$original.Width,($original.Height-44))),[Drawing.Imaging.PixelFormat]::Format32bppArgb)}
+        else {$client=$original}
         foreach ($scale in @(1.0,0.67,1.5)) {
-            $bitmap=New-Object Drawing.Bitmap($original,(New-Object Drawing.Size([int]($original.Width*$scale),[int]($original.Height*$scale))))
+            $bitmap=New-Object Drawing.Bitmap($client,(New-Object Drawing.Size([int]($client.Width*$scale),[int]($client.Height*$scale))))
             try {
                 $ocr=Read-TestOcr $bitmap;$screen=ConvertFrom-RotationOcr $ocr $plan
-                Assert-ScreenshotOcr $ocr $screen $scale
+                Assert-ScreenshotOcr $ocr $screen $scale $bitmap
                 $status=if ($scale -eq 0.67) {'unreadable second name safely withheld'} else {'both names resolved'}
                 Write-Output ('PASS: attached menu screenshot at scale '+$scale+' matches both button anchors; '+$status+'.')
             } finally {$bitmap.Dispose()}
         }
-    } finally {$original.Dispose()}
+    } finally {if ($client -and $client -ne $original) {$client.Dispose()};$original.Dispose()}
 } elseif ($SampleDirectory) {
     $samples=@(@(22,'menu',''),@(33,'menu',''),@(27,'unknown',''),@(39,'unknown',''),@(23,'unknown',''))
     foreach ($sample in $samples) {
@@ -100,4 +113,54 @@ if ($ImagePath) {
         if ($screen.Kind -ne 'menu' -or @($screen.Targets | Where-Object {$_.Name -cin @('双持船橘二咪','咆史呀嘞')}).Count -ne 2) {throw 'Generated Chinese OCR anchors failed.'}
         Write-Output 'PASS: production asynchronous Windows Chinese OCR and name preprocessing. Generated image only; no game capture or input.'
     } finally {$font.Dispose();$graphics.Dispose();$bitmap.Dispose()}
+}
+if ($runRepositoryFixtures) {
+    # Visually measured yellow-name centers in the original screenshots, including
+    # the 44-pixel title bar. OCR must select their fixed row, not click its word box.
+    $windowedFixtures=@(
+        [pscustomobject]@{File='titan-character-select-windowed-a-20261014.png';PanelLeft=1305;PanelRight=1615;Names=@(
+            [pscustomobject]@{Name='乌木力奇';Row=1;Y=158.5},
+            [pscustomobject]@{Name='铁皮小橘';Row=2;Y=229.5},
+            [pscustomobject]@{Name='米勒麦格';Row=3;Y=300.5})},
+        [pscustomobject]@{File='titan-character-select-windowed-b-20261014.png';PanelLeft=1433;PanelRight=1806;Names=@(
+            [pscustomobject]@{Name='超级小船';Row=1;Y=171.5},
+            [pscustomobject]@{Name='加洲铁肘';Row=2;Y=251.5},
+            [pscustomobject]@{Name='洋芋巴巴';Row=3;Y=331.5},
+            [pscustomobject]@{Name='阁灵德渥';Row=4;Y=410.5})}
+    )
+    foreach ($fixture in $windowedFixtures) {
+        $original=New-Object Drawing.Bitmap((Join-Path $PSScriptRoot ('fixtures/'+$fixture.File)))
+        $titleBarHeight=44
+        $client=$null
+        try {
+            # Production Capture records the game client, excluding Windows chrome.
+            $client=$original.Clone((New-Object Drawing.Rectangle(0,$titleBarHeight,$original.Width,($original.Height-$titleBarHeight))),[Drawing.Imaging.PixelFormat]::Format32bppArgb)
+            # OCR classification accepts a candidate set independently of the runtime's
+            # three-slot scheduler; the second screenshot deliberately checks four names.
+            $fixturePlan=[pscustomobject]@{Slots=@($fixture.Names | ForEach-Object {[pscustomobject]@{Name=$_.Name}})}
+            foreach ($scale in @(1.0,1.5)) {
+                $bitmap=New-Object Drawing.Bitmap($client,(New-Object Drawing.Size([int]($client.Width*$scale),[int]($client.Height*$scale))))
+                try {
+                    $ocr=Read-TestOcr $bitmap
+                    $screen=ConvertFrom-RotationOcr $ocr $fixturePlan
+                    if ($screen.Kind -ne 'menu') {throw ('Selection anchors were not recognized in '+$fixture.File+' at scale '+$scale+'.')}
+                    foreach ($expected in $fixture.Names) {
+                        $matches=@($screen.Targets | Where-Object {$_.Name -ceq $expected.Name -and -not $_.Ambiguous})
+                        if ($matches.Count -ne 1) {throw ('Expected one OCR target for '+$expected.Name+' in '+$fixture.File+' at scale '+$scale+': '+($screen | ConvertTo-Json -Depth 4 -Compress))}
+                        if ($matches[0].MenuRow -ne $expected.Row) {throw ('Wrong character row for '+$expected.Name+' in '+$fixture.File+' at scale '+$scale+'.')}
+                        $actualX=$matches[0].X*$bitmap.Width
+                        $actualY=$matches[0].Y*$bitmap.Height
+                        $centerY=($expected.Y-$titleBarHeight)*$bitmap.Height/$client.Height
+                        $tolerance=5*$scale
+                        $panelLeft=$fixture.PanelLeft*$bitmap.Width/$client.Width
+                        $panelRight=$fixture.PanelRight*$bitmap.Width/$client.Width
+                        if ($actualX -le $panelLeft -or $actualX -ge $panelRight -or [Math]::Abs($actualY-$centerY) -gt $tolerance) {
+                            throw ('Row click missed '+$expected.Name+' in '+$fixture.File+' at scale '+$scale+': got '+[Math]::Round($actualX,2)+','+[Math]::Round($actualY,2)+' expected row '+$expected.Row+' Y='+[Math]::Round($centerY,2)+'.')
+                        }
+                    }
+                    Write-Output ('PASS: '+$fixture.File+' at scale '+$scale+' recognizes all '+$fixture.Names.Count+' names and clicks each fixed row center within '+$tolerance+' client pixels.')
+                } finally {$bitmap.Dispose()}
+            }
+        } finally {if ($client) {$client.Dispose()};$original.Dispose()}
+    }
 }

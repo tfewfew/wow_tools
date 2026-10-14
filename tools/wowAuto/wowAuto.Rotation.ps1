@@ -211,6 +211,15 @@ function Resolve-RotationOcrName([string]$Text,[string[]]$Configured) {
     if ($matches.Count -eq 1) {return [pscustomobject]@{Name=$matches[0];Ambiguous=$false}}
     return [pscustomobject]@{Name=$Text;Ambiguous=($matches.Count -gt 1)}
 }
+function Get-RotationMenuRow($Bounds,[double]$TextY) {
+    # The first-page character rows occupy fixed, height-scaled positions. OCR
+    # identifies the row; the click uses its stable center instead of an OCR box.
+    $first=0.119;$step=0.0743
+    $index=[int][Math]::Round(($TextY-$first)/$step,[MidpointRounding]::AwayFromZero)+1
+    $centerY=$first+($index-1)*$step
+    if ($index -lt 1 -or $index -gt 10 -or [Math]::Abs($TextY-$centerY) -gt 0.02) {return $null}
+    return [pscustomobject]@{Index=$index;X=($Bounds.X+$Bounds.W/2);Y=$centerY}
+}
 function ConvertFrom-RotationOcr($Ocr,$Plan,[switch]$MenuWasConfirmed) {
     $configured=@($Plan.Slots | Where-Object {$_.Name} | ForEach-Object {$_.Name} | Select-Object -Unique)
     $bounds=if ($Ocr.PSObject.Properties['NamesBounds'] -and $Ocr.NamesBounds) {$Ocr.NamesBounds} else {[pscustomobject]@{X=0.79;Y=0;W=0.21;H=0.84}}
@@ -219,17 +228,20 @@ function ConvertFrom-RotationOcr($Ocr,$Plan,[switch]$MenuWasConfirmed) {
     $server=$server -or @($Ocr.Names | Where-Object {$_.Text -eq '选择服务器' -and ($bounds.X+$_.X*$bounds.W) -gt 0.65 -and ($bounds.Y+$_.Y*$bounds.H) -lt 0.15}).Count -gt 0
     $enter=@($Ocr.Lines | Where-Object {$_.X -gt 0.25 -and $_.X -lt 0.70 -and $_.Y -gt 0.85 -and $_.Text -match '^[0一_—\-口□]*进入魔兽世界[一_—\-口□]*$'}).Count -gt 0
     $targets=@(foreach ($line in $Ocr.Names) {
-        $y=$bounds.Y+$line.Y*$bounds.H
+        $y=$bounds.Y+($line.Y+$line.H/2)*$bounds.H
         if ($y -lt 0.08 -or $y -gt 0.80 -or ($y -lt 0.15 -and $line.Text -eq '选择服务器') -or $line.Text -notmatch '^[\p{L}\p{M}]+$') {continue}
+        $row=Get-RotationMenuRow $bounds $y
+        if (-not $row) {continue}
         $match=Resolve-RotationOcrName $line.Text $configured
-        [pscustomobject]@{Name=$match.Name;Ambiguous=$match.Ambiguous;X=($bounds.X+$bounds.W*($line.X+$line.W/2));Y=($y+$bounds.H*$line.H/2)}
+        [pscustomobject]@{Name=$match.Name;Ambiguous=$match.Ambiguous;MenuRow=$row.Index;X=$row.X;Y=$row.Y}
     })
     # The normal pass can recover names that yellow-text preprocessing misread twice.
     foreach ($line in $Ocr.Lines) {
         if ($line.X -gt $bounds.X -and $line.Y -gt 0.08 -and $line.Y -lt 0.80) {
             $match=Resolve-RotationOcrName $line.Text $configured
             if (-not $match.Ambiguous -and $match.Name -cin $configured -and $match.Name -cnotin $targets.Name) {
-                $targets+=,[pscustomobject]@{Name=$match.Name;Ambiguous=$false;X=($line.X+$line.W/2);Y=($line.Y+$line.H/2)}
+                $row=Get-RotationMenuRow $bounds ($line.Y+$line.H/2)
+                if ($row) {$targets+=,[pscustomobject]@{Name=$match.Name;Ambiguous=$false;MenuRow=$row.Index;X=$row.X;Y=$row.Y}}
             }
         }
     }

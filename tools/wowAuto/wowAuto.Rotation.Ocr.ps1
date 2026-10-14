@@ -48,14 +48,25 @@ function Read-OcrImage([byte[]]$Bytes) {
         $decoder=Wait-OcrOperation ([Windows.Graphics.Imaging.BitmapDecoder]::CreateAsync($stream)) ([Windows.Graphics.Imaging.BitmapDecoder])
         $bitmap=Wait-OcrOperation ($decoder.GetSoftwareBitmapAsync()) ([Windows.Graphics.Imaging.SoftwareBitmap])
         $result=Wait-OcrOperation ($engine.RecognizeAsync($bitmap)) ([Windows.Media.Ocr.OcrResult])
+        # Windows OCR reports word rectangles in its deskewed coordinate space when
+        # TextAngle is nonzero. Rotate their centers back before converting to client
+        # proportions; otherwise a window-size change can shift clicks by many pixels.
+        $radians=([double]$result.TextAngle)*[Math]::PI/180.0
+        $cosine=[Math]::Cos($radians);$sine=[Math]::Sin($radians)
+        $halfWidth=$bitmap.PixelWidth/2.0;$halfHeight=$bitmap.PixelHeight/2.0
         return @(foreach ($line in $result.Lines) {
             $words=@($line.Words);if (-not $words.Count) {continue}
             $x=($words | ForEach-Object {$_.BoundingRect.X} | Measure-Object -Minimum).Minimum
             $y=($words | ForEach-Object {$_.BoundingRect.Y} | Measure-Object -Minimum).Minimum
             $right=($words | ForEach-Object {$_.BoundingRect.X+$_.BoundingRect.Width} | Measure-Object -Maximum).Maximum
             $bottom=($words | ForEach-Object {$_.BoundingRect.Y+$_.BoundingRect.Height} | Measure-Object -Maximum).Maximum
-            [pscustomobject]@{Text=($line.Text -replace '\s','');X=$x/$bitmap.PixelWidth;Y=$y/$bitmap.PixelHeight;
-                W=($right-$x)/$bitmap.PixelWidth;H=($bottom-$y)/$bitmap.PixelHeight}
+            $centerX=($x+$right)/2.0;$centerY=($y+$bottom)/2.0
+            $imageX=$halfWidth+($centerX-$halfWidth)*$cosine-($centerY-$halfHeight)*$sine
+            $imageY=$halfHeight+($centerX-$halfWidth)*$sine+($centerY-$halfHeight)*$cosine
+            $imageW=[Math]::Abs(($right-$x)*$cosine)+[Math]::Abs(($bottom-$y)*$sine)
+            $imageH=[Math]::Abs(($right-$x)*$sine)+[Math]::Abs(($bottom-$y)*$cosine)
+            [pscustomobject]@{Text=($line.Text -replace '\s','');X=($imageX-$imageW/2.0)/$bitmap.PixelWidth;
+                Y=($imageY-$imageH/2.0)/$bitmap.PixelHeight;W=$imageW/$bitmap.PixelWidth;H=$imageH/$bitmap.PixelHeight}
         })
     } finally {if ($bitmap) {$bitmap.Dispose()};$stream.Dispose()}
 }

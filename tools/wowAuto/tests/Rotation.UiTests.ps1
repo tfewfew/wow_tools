@@ -254,7 +254,11 @@ try {
     Assert-Ui ($screen.Kind -eq 'menu' -and $screen.Targets[0].Name -ceq '双持船橘二咪' -and $screen.Targets[0].X -gt 0.79) 'OCR anchors did not localize configured name.'
     $ocr | Add-Member NoteProperty NamesBounds ([pscustomobject]@{X=0.70;Y=0;W=0.30;H=0.84})
     $mapped=ConvertFrom-RotationOcr $ocr $plan
-    Assert-Ui ([Math]::Abs($mapped.Targets[0].X-(0.70+0.30*(0.10+0.25/2))) -lt 0.00001) 'OCR crop mapping ignored client aspect ratio.'
+    Assert-Ui ([Math]::Abs($mapped.Targets[0].X-0.85) -lt 0.00001 -and $mapped.Targets[0].MenuRow -eq 2 -and
+        [Math]::Abs($mapped.Targets[0].Y-(0.119+0.0743)) -lt 0.00001) 'OCR name did not map to the fixed second character row.'
+    $ocr.Names[0].X=0.30;$ocr.Names[0].W=0.10
+    $otherWordBox=ConvertFrom-RotationOcr $ocr $plan
+    Assert-Ui ($otherWordBox.Targets[0].X -eq $mapped.Targets[0].X -and $otherWordBox.Targets[0].Y -eq $mapped.Targets[0].Y) 'Character click moved with OCR word-box width.'
     $ocr.PSObject.Properties.Remove('NamesBounds')
     $anchors=$ocr.Lines
     $ocr.Lines=@($anchors[0]);Assert-Ui ((ConvertFrom-RotationOcr $ocr $plan).Kind -eq 'menu') 'Server anchor alone was rejected.'
