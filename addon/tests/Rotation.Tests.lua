@@ -8,7 +8,8 @@ for _,flavor in ipairs({"titan","forerver"}) do
     local frames={}
     local width,height,scale=1280,720,1
     UIParent={}
-    function GetPhysicalScreenSize() return width,height end
+    local positionReads=0
+    function GetPhysicalScreenSize() positionReads=positionReads+1; return width,height end
     function issecretvalue() return false end
     function CreateFrame(_,name)
         local f={scripts={},shown=true}
@@ -49,13 +50,18 @@ for _,flavor in ipairs({"titan","forerver"}) do
             assert(point.texture.color[1]==1 and point.texture.color[2]==1 and point.texture.color[3]==1,"Point is not white")
         end
     end
+    local reads=positionReads
+    events.scripts.OnUpdate(events,.5)
+    assert(positionReads==reads,"Permanent point recalculated before one second")
+    events.scripts.OnUpdate(events,.5)
+    assert(positionReads==reads+1,"Permanent point did not recalculate after one second")
     local stopped=0
     WoWTools.modules.wowDetector={IsEnabled=function() return true end,Hide=function() stopped=stopped+1 end}
     WoWTools.modules.fight_detector={IsEnabled=function() return false end,IsShown=function() return false end}
     WoWTools.ActivateDetector("fight_detector")
     assert(stopped==1 and point.shown,"Detector switch hid permanent point or broke exclusion")
     events.scripts.OnEvent(events,"PLAYER_LEAVING_WORLD")
-    assert(not point.shown,"Point remains visible while loading")
+    assert(not point.shown and not events.scripts.OnUpdate,"Point remains visible or polls while loading")
     events.scripts.OnEvent(events,"PLAYER_ENTERING_WORLD")
     events.scripts.OnEvent(events,"PLAYER_LOGOUT")
     assert(not point.shown,"Point remains visible after logout")

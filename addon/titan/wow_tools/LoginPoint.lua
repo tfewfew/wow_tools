@@ -33,13 +33,14 @@ for _,event in ipairs({"PLAYER_ENTERING_WORLD","PLAYER_LEAVING_WORLD","PLAYER_LO
     "DISPLAY_SIZE_CHANGED","UI_SCALE_CHANGED"}) do
     pcall(events.RegisterEvent,events,event)
 end
-events:SetScript("OnEvent",function(_,event)
-    if event=="PLAYER_ENTERING_WORLD" then inWorld=true
-    elseif event=="PLAYER_LEAVING_WORLD" or event=="PLAYER_LOGOUT" then inWorld=false end
-    Position()
-end)
-events:SetScript("OnUpdate",function(_,delta)
-    if not inWorld then return end
+local function Poll(_,delta)
     elapsed=elapsed+delta
-    if elapsed>=.1 then elapsed=0; Position() end
+    if elapsed>=1 then elapsed=0; Position() end
+end
+events:SetScript("OnEvent",function(_,event)
+    if event=="PLAYER_ENTERING_WORLD" then inWorld=true; elapsed=0; events:SetScript("OnUpdate",Poll)
+    elseif event=="PLAYER_LEAVING_WORLD" or event=="PLAYER_LOGOUT" then
+        inWorld=false; elapsed=0; events:SetScript("OnUpdate",nil)
+    end
+    Position()
 end)

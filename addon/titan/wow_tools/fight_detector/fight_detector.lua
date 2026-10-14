@@ -11,6 +11,7 @@ local encounterGUID, encounterSerial = nil, 0
 local interactionGUID = nil
 local state, combat, skin, busy = "disabled", false, false, false
 local health, mana, settings = nil, nil, nil
+local events, SetActiveEvents
 local recovery="none"
 local recoveryDescriptions={none="无需恢复", recover="非战斗恢复", emergency="战斗紧急恢复", unknown="恢复未知"}
 local recovering, emergency = false, false
@@ -409,11 +410,13 @@ local function SetState(value)
 end
 local function Stop()
     enabled,elapsed,state,combat,skin,busy=false,0,"disabled",false,false,false
+    if SetActiveEvents then SetActiveEvents(false) end
     recovering,emergency=false,false
     health,mana,recovery=nil,nil,"none"
     SetEncounter(nil)
     interactionGUID=nil
     PrepareTarget(nil,nil)
+    if InCombatLockdown() then events:RegisterEvent("PLAYER_REGEN_ENABLED") end
     signal:Hide()
     Paint()
 end
@@ -479,16 +482,33 @@ local function Refresh()
     SetState("idle")
 end
 local function SafeRefresh()
-    if not enabled and not InCombatLockdown() then PrepareTarget(nil,nil) end
+    if not enabled then return end
     local ok=pcall(Refresh)
     if not ok then state,combat,skin,busy,recovery="unknown",nil,nil,false,"unknown"; Paint() end
+end
+local function ResetWorldState()
+    lootOpen=false
+    nameplates={}
+    range.WarmCache()
+    if C_NamePlate and C_NamePlate.GetNamePlates then
+        local ok,plates=pcall(C_NamePlate.GetNamePlates)
+        if ok and type(plates)=="table" then
+            for _,plate in ipairs(plates) do
+                local token=plate.namePlateUnitToken
+                if Readable(token) and type(token)=="string" then nameplates[token]=true end
+            end
+        end
+    end
 end
 local function Start()
     if not initialized then return end
     if Bool(UnitIsDeadOrGhost,"player")~=false then Say("死亡或存活状态未知，无法启动。"); return end
+    enabled=true
     WoWTools.ActivateDetector("fight_detector")
     panel:Show()
     enabled,elapsed=true,0
+    ResetWorldState()
+    SetActiveEvents(true)
     SafeRefresh()
 end
 save:SetScript("OnClick",function()
@@ -535,15 +555,14 @@ WoWTools.modules.fight_detector={
     Hide=function() Stop(); panel:Hide() end,
     Toggle=function() if panel:IsShown() then Stop(); panel:Hide() else Start() end end,
 }
-local events=CreateFrame("Frame")
-for _,event in ipairs({"ADDON_LOADED","PLAYER_ENTERING_WORLD","PLAYER_DEAD","PLAYER_LOGOUT",
+events=CreateFrame("Frame")
+events:RegisterEvent("ADDON_LOADED")
+local activeEvents={"PLAYER_ENTERING_WORLD","PLAYER_DEAD","PLAYER_LOGOUT",
     "PLAYER_REGEN_DISABLED","PLAYER_REGEN_ENABLED","PLAYER_TARGET_CHANGED","PLAYER_FOCUS_CHANGED","PLAYER_SOFT_ENEMY_CHANGED",
     "PLAYER_SOFT_INTERACT_CHANGED","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED",
     "LOOT_OPENED","LOOT_CLOSED","LOOT_READY","LOOT_SLOT_CLEARED",
     "UNIT_HEALTH","UNIT_MAXHEALTH","UNIT_POWER_UPDATE",
-    "UNIT_MAXPOWER","UNIT_DISPLAYPOWER","DISPLAY_SIZE_CHANGED","UI_SCALE_CHANGED","GET_ITEM_INFO_RECEIVED"}) do
-    pcall(events.RegisterEvent,events,event)
-end
+    "UNIT_MAXPOWER","UNIT_DISPLAYPOWER","DISPLAY_SIZE_CHANGED","UI_SCALE_CHANGED","GET_ITEM_INFO_RECEIVED"}
 events:SetScript("OnEvent",function(_,event,arg)
     if event=="ADDON_LOADED" then
         if arg~="wow_tools" then return end
@@ -557,7 +576,6 @@ events:SetScript("OnEvent",function(_,event,arg)
         local storedKey,storedBinding=NormalizeTargetKey(fightDetectorDB.TargetKey)
         targetKey,targetBinding=storedKey or "Tab",storedBinding or "TAB"
         targetInput:SetText(targetKey)
-        range.WarmCache()
         local stored=fightDetectorDB.profiles[id]
         settings={DetectionRangeYards=range.DefaultDetection}
         for key,value in pairs(settingDefaults) do settings[key]=value end
@@ -575,6 +593,7 @@ events:SetScript("OnEvent",function(_,event,arg)
         for field,box in pairs(thresholds) do box:SetText(tostring(settings[field])) end
         initialized=true
         Stop()
+    elseif not enabled and event~="PLAYER_REGEN_ENABLED" then return
     elseif event=="LOOT_OPENED" then
         lootOpen=true
         SafeRefresh()
@@ -586,27 +605,27 @@ events:SetScript("OnEvent",function(_,event,arg)
     elseif event=="NAME_PLATE_UNIT_REMOVED" then
         if Readable(arg) and type(arg)=="string" then nameplates[arg]=nil end
     elseif event=="PLAYER_ENTERING_WORLD" then
-        lootOpen=false
-        nameplates={}
-        range.WarmCache()
-        if C_NamePlate and C_NamePlate.GetNamePlates then
-            local ok,plates=pcall(C_NamePlate.GetNamePlates)
-            if ok and type(plates)=="table" then
-                for _,plate in ipairs(plates) do
-                    local token=plate.namePlateUnitToken
-                    if Readable(token) and type(token)=="string" then nameplates[token]=true end
-                end
-            end
-        end
+        ResetWorldState()
         SafeRefresh()
     elseif event=="PLAYER_DEAD" or event=="PLAYER_LOGOUT" then lootOpen=false; Stop()
+    elseif event=="PLAYER_REGEN_ENABLED" and not enabled then
+        PrepareTarget(nil,nil)
+        events:UnregisterEvent("PLAYER_REGEN_ENABLED")
     else SafeRefresh() end
 end)
-events:SetScript("OnUpdate",function(_,delta)
+local function Poll(_,delta)
     if not enabled then return end
     elapsed=elapsed+delta
     if elapsed>=.1 then elapsed=0; SafeRefresh() end
-end)
+end
+SetActiveEvents=function(active)
+    for _,event in ipairs(activeEvents) do
+        if active then pcall(events.RegisterEvent,events,event)
+        else pcall(events.UnregisterEvent,events,event) end
+    end
+    events:SetScript("OnUpdate",active and Poll or nil)
+    if WoWTools.UpdateLootActivation then WoWTools.UpdateLootActivation() end
+end
 SLASH_FIGHTDETECTOR1="/fightdetector"
 SlashCmdList.FIGHTDETECTOR=function(message)
     local command=(message or ""):lower():match("^%s*(.-)%s*$")

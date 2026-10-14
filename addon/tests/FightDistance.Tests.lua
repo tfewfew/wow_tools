@@ -30,6 +30,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
         function o:RegisterForClicks() end
         function o:SetAttribute(key,value) assert(not combat,"Secure attribute changed during combat"); self[key]=value end
         function o:RegisterEvent(event) self.events[event]=true end
+        function o:UnregisterEvent(event) self.events[event]=nil end
         function o:CreateTexture() local t=widget(); self.textures[#self.textures+1]=t; return t end
         function o:CreateFontString() return widget() end
         function o:SetPoint(...) self.point={...} end
@@ -134,10 +135,11 @@ for _,flavor in ipairs({"titan","forerver"}) do
         end
     end
     local function epoch() return ((signal.textures[3].color[3]*255-2)/4)%32 end
-    assert(edits[1].text=="30" and edits[2].text=="5" and warm>0,"Default distances / item-cache warmup failed: "..edits[1].text.." / "..edits[2].text.." / "..warm)
+    assert(edits[1].text=="30" and edits[2].text=="5" and warm==0,"Inactive detector warmed item cache")
     assert(not WoWTools.FightRange.IsSupported(secret) and not WoWTools.FightRange.IsSupported(12))
     mobs.target={guid="Creature-A",distance=31}
     SlashCmdList.FIGHTDETECTOR("on"); color(0,0,255)
+    assert(warm>0,"Starting detector did not warm item cache")
     assert(WoWTools.modules.fight_detector.IsEnabled(),"Running combat flag disables loot")
     local function geometry()
         for i,cell in ipairs(signal.textures) do
@@ -226,8 +228,9 @@ for _,flavor in ipairs({"titan","forerver"}) do
     -- Unselected nearby nameplate must request selection before opening.
     autoFocus=false
     mobs={nameplate1={guid="Creature-NEW",distance=10}}
-    signal=setup(1,saved); event("NAME_PLATE_UNIT_ADDED","nameplate1")
+    signal=setup(1,saved)
     SlashCmdList.FIGHTDETECTOR("on")
+    event("NAME_PLATE_UNIT_ADDED","nameplate1"); tick()
     assert(math.floor(signal.textures[3].color[1]*255+.5)==240 and override,"Unselected nameplate opened without target key")
     assert(names.wowToolsFightTargetButton.macrotext:find("nocombat,@nameplate1",1,true),"Selected wrong unit token")
     local selectedEpoch=epoch()

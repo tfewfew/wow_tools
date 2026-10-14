@@ -4,6 +4,7 @@ local elapsed = 0
 local initialized = false
 local state = "disabled"
 local freeSlots = nil
+local updates, SetActiveEvents
 local panel = CreateFrame("Frame", "wowDetectorPanel", UIParent)
 panel:SetSize(280, 40)
 panel:SetFrameStrata("HIGH")
@@ -22,6 +23,8 @@ indicator:SetSize(24, 24)
 indicator:SetPoint("TOPLEFT", 8, -8)
 local lureIndicator = panel:CreateTexture(nil, "ARTWORK")
 lureIndicator:SetColorTexture(0.5, 0.5, 0.5, 1)
+lureIndicator:SetPoint("CENTER", indicator, "CENTER", 32, 0)
+lureIndicator:SetSize(12, 12)
 local function PositionLureIndicator()
     -- wowAuto reads exactly 32 physical screen pixels to the right of the main point.
     -- Like Blizzard's PixelUtil, include the viewport's 768-unit reference height.
@@ -40,7 +43,6 @@ local function PositionLureIndicator()
     lureIndicator:Show()
     return true
 end
-PositionLureIndicator()
 local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 label:SetPoint("LEFT", lureIndicator, "RIGHT", 10, 0)
 local toggle = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
@@ -79,6 +81,7 @@ local function ResetAfterDeath()
     WoWTools.audio.Restore()
     enabled = false
     elapsed = 0
+    if SetActiveEvents then SetActiveEvents(false) end
     freeSlots = nil
     panel:StopMovingOrSizing()
     wowDetectorDB.locked = false
@@ -128,8 +131,6 @@ local function Refresh()
         return
     end
     if not enabled then
-        PaintLure()
-        if state ~= "disabled" then Paint("disabled") end
         return
     end
     PaintLure()
@@ -167,14 +168,16 @@ end
 
 local function SetEnabled(value)
     if not initialized then return end
+    local wasEnabled = enabled
     if value then
         if UnitIsDeadOrGhost("player") then
             ResetAfterDeath()
             Say("角色死亡或处于灵魂状态，无法启动检测。")
             return
         end
+        enabled = true
         WoWTools.ActivateDetector("wowDetector")
-        if not enabled then
+        if not wasEnabled then
             local ok, reason = WoWTools.audio.Start()
             if not ok then Say(reason) end
         end
@@ -185,8 +188,10 @@ local function SetEnabled(value)
         panel:StopMovingOrSizing()
         wowDetectorDB.locked = false
     end
+    if value ~= wasEnabled then elapsed = 0 end
     enabled = value
-    Refresh()
+    SetActiveEvents(value)
+    if value then Refresh() else Paint("disabled") end
     toggle:SetText(enabled and "关闭" or "启动")
     Say(enabled and "已启动并锁定位置：绿色=钓鱼引导且有可交互目标，红色=未钓鱼或等待交互，黄色=普通背包已满。请启用游戏交互键。" or "已关闭并解锁，可以拖动面板。")
 end
@@ -227,35 +232,31 @@ toggle:SetScript("OnClick", function()
 end)
 
 -- Keep state updates active even while the control panel is hidden.
-local updates = CreateFrame("Frame")
-updates:SetScript("OnUpdate", function(_, delta)
+updates = CreateFrame("Frame")
+local function Poll(_, delta)
     if not enabled then return end
     elapsed = elapsed + delta
     if elapsed >= 0.1 then
         elapsed = 0
         Refresh()
     end
-end)
+end
 
 panel:RegisterEvent("ADDON_LOADED")
-panel:RegisterEvent("PLAYER_ENTERING_WORLD")
-panel:RegisterEvent("PLAYER_DEAD")
 panel:RegisterEvent("PLAYER_LOGOUT")
-panel:RegisterEvent("PLAYER_ALIVE")
-panel:RegisterEvent("PLAYER_UNGHOST")
-panel:RegisterEvent("BAG_UPDATE_DELAYED")
-panel:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
-panel:RegisterEvent("UNIT_INVENTORY_CHANGED")
-panel:RegisterEvent("WEAPON_ENCHANT_CHANGED")
-panel:RegisterEvent("UI_SCALE_CHANGED")
-panel:RegisterEvent("DISPLAY_SIZE_CHANGED")
-panel:RegisterEvent("PLAYER_SOFT_INTERACT_CHANGED")
-panel:RegisterEvent("UNIT_SPELLCAST_START")
-panel:RegisterEvent("UNIT_SPELLCAST_STOP")
-panel:RegisterEvent("UNIT_SPELLCAST_CHANNEL_START")
-panel:RegisterEvent("UNIT_SPELLCAST_CHANNEL_STOP")
-panel:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
-panel:RegisterEvent("UNIT_SPELLCAST_FAILED")
+local activeEvents = {"PLAYER_ENTERING_WORLD", "PLAYER_DEAD", "PLAYER_ALIVE", "PLAYER_UNGHOST",
+    "BAG_UPDATE_DELAYED", "PLAYER_EQUIPMENT_CHANGED", "UNIT_INVENTORY_CHANGED",
+    "WEAPON_ENCHANT_CHANGED", "UI_SCALE_CHANGED", "DISPLAY_SIZE_CHANGED",
+    "PLAYER_SOFT_INTERACT_CHANGED", "UNIT_SPELLCAST_START", "UNIT_SPELLCAST_STOP",
+    "UNIT_SPELLCAST_CHANNEL_START", "UNIT_SPELLCAST_CHANNEL_STOP",
+    "UNIT_SPELLCAST_INTERRUPTED", "UNIT_SPELLCAST_FAILED"}
+SetActiveEvents = function(active)
+    for _, event in ipairs(activeEvents) do
+        if active then panel:RegisterEvent(event) else panel:UnregisterEvent(event) end
+    end
+    updates:SetScript("OnUpdate", active and Poll or nil)
+    if WoWTools.UpdateLootActivation then WoWTools.UpdateLootActivation() end
+end
 panel:SetScript("OnEvent", function(_, event, unit)
     if event == "ADDON_LOADED" then
         if unit ~= "wow_tools" then return end
@@ -275,8 +276,16 @@ panel:SetScript("OnEvent", function(_, event, unit)
         wowDetectorDB.panelHidden = true
         panel:Hide()
         Say("已加载，默认隐藏且检测关闭。小地图入口打开界面，或输入 /wowdetector on。")
+    elseif not enabled and event ~= "PLAYER_LOGOUT" then
+        return
     elseif event == "PLAYER_LOGOUT" then
         WoWTools.audio.Restore()
+        enabled = false
+        elapsed = 0
+        freeSlots = nil
+        wowDetectorDB.locked = false
+        SetActiveEvents(false)
+        Paint("disabled")
     elseif event == "PLAYER_DEAD" then
         ResetAfterDeath()
     elseif event == "PLAYER_ENTERING_WORLD" and UnitIsDeadOrGhost("player") then
@@ -319,6 +328,7 @@ SlashCmdList.WOWDETECTOR = function(message)
     elseif command == "reset" or command == "center" then
         CenterIndicator()
     elseif command == "status" then
+        if not enabled then Say("监测=关闭；钓鱼状态读取未启动。") return end
         Refresh()
         local name, id = Compat.GetChannelInfo()
         local lure, reason = GetLureState()

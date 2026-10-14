@@ -90,7 +90,8 @@ for _, flavor in ipairs({ "titan", "forerver" }) do
     dead = false
     SlashCmdList.WOWDETECTOR("on"); event("PLAYER_LOGOUT")
     unchanged(original)
-    assert(wowDetectorDB.audioSnapshot == nil, "Logout/reload did not restore audio")
+    assert(wowDetectorDB.audioSnapshot == nil and not WoWTools.modules.wowDetector.IsEnabled(),
+        "Logout/reload did not stop fishing and restore audio")
     -- Recover an old saved snapshot before defaulting to disabled on addon load.
     values.Sound_MasterVolume = "1"
     wowDetectorDB.audioSnapshot = {Sound_MasterVolume="0.19", ArbitraryCVar="evil"}

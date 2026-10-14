@@ -12,6 +12,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
         local o={parent=parent,scripts={},events={},textures={},shown=true,text="",attributes={}}
         function o:SetScript(event,fn) self.scripts[event]=fn end
         function o:RegisterEvent(event) self.events[event]=true end
+        function o:UnregisterEvent(event) self.events[event]=nil end
         function o:CreateTexture() local t=widget(self); self.textures[#self.textures+1]=t; return t end
         function o:CreateFontString() return widget(self) end
         function o:SetPoint(...) self.point={...} end
@@ -73,6 +74,8 @@ for _,flavor in ipairs({"titan","forerver"}) do
     local addon=root.."/addon/"..flavor.."/wow_tools/"
     dofile(addon.."Init.lua")
     if flavor=="forerver" then dofile(addon.."Compatibility.lua") end
+    dofile(addon.."Loot.lua")
+    local lootFrame=frames[#frames]
     dofile(addon.."wowDetector/Audio.lua")
     dofile(addon.."wowDetector/wowDetector.lua")
     dofile(addon.."fight_detector/Range.lua")
@@ -88,11 +91,27 @@ for _,flavor in ipairs({"titan","forerver"}) do
     event("ADDON_LOADED","wow_tools")
     local fish,fight=WoWTools.modules.wowDetector,WoWTools.modules.fight_detector
     local fishPanel,fightPanel=names.wowDetectorPanel,names.wowToolsFightDetectorPanel
+    local fightEvents
+    for _,frame in ipairs(frames) do
+        if frame~=fishPanel and frame.events.ADDON_LOADED then fightEvents=frame end
+    end
+    assert(fightEvents,"Missing combat lifecycle frame")
     local signal
     for _,frame in ipairs(frames) do if #frame.textures==3 and frame~=fishPanel then signal=frame end end
     assert(signal,"Missing combat signal")
     local function state(fishing,fighting)
         assert(fish.IsEnabled()==fishing and fight.IsEnabled()==fighting,flavor..": mutually exclusive state failed")
+        assert(not not fishPanel.events.BAG_UPDATE_DELAYED==fishing and
+            not not fightEvents.events.NAME_PLATE_UNIT_ADDED==fighting,
+            flavor..": inactive detector retained business event subscriptions")
+        assert((not not lootFrame.events.LOOT_OPENED)==(fishing or fighting) and
+            (not not lootFrame.scripts.OnUpdate)==(fishing or fighting),
+            flavor..": loot subscription did not follow the active detector")
+        if not fishing and not fighting then
+            for _,frame in ipairs(frames) do
+                assert(not frame.scripts.OnUpdate,flavor..": inactive detector retained polling")
+            end
+        end
         if fishing then assert(not fight.IsShown() and not signal:IsShown(),"Inactive combat pixels remained visible") end
         if fighting then assert(not fish.IsShown() and signal:IsShown(),"Inactive fishing pixels remained visible") end
     end
@@ -117,11 +136,15 @@ for _,flavor in ipairs({"titan","forerver"}) do
     end
     state(false,false)
     SlashCmdList.WOWDETECTOR("on"); state(true,false)
+    local lootStops=0
+    local oldUnregister=lootFrame.UnregisterEvent
+    lootFrame.UnregisterEvent=function(self,name) lootStops=lootStops+1; oldUnregister(self,name) end
     assert(wowDetectorDB.audioSnapshot and sound.Sound_MasterVolume=="1")
     local fishingWaiting={unpack(fishPanel.textures[2].color)}
     assert(fishingWaiting[1]==1 and fishingWaiting[2]==0 and fishingWaiting[3]==0,
         "Fishing waiting is not red")
     SlashCmdList.FIGHTDETECTOR("on"); state(false,true); restored(); geometry()
+    assert(lootStops==0,"Switching detectors briefly disabled loot processing")
     assert(not wowDetectorDB.locked and wowDetectorDB.panelHidden,"Fishing switch did not unlock/hide")
     for i=1,3 do assert(signal.textures[1].color[i]==fishingWaiting[i],
         "Noncombat body color differs from fishing waiting") end

@@ -10,6 +10,7 @@ local function widget(name)
     local object = { scripts = {}, events = {}, textures = {}, shown = true }
     function object:SetScript(event, callback) self.scripts[event] = callback end
     function object:RegisterEvent(event) self.events[event] = true end
+    function object:UnregisterEvent(event) self.events[event] = nil end
     function object:CreateTexture()
         local texture = widget()
         self.textures[#self.textures + 1] = texture

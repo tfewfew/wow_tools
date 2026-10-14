@@ -1,5 +1,5 @@
 -- Titan 38002: loot APIs and LOOT_BIND popup data verified against classic_titan.
--- Binding confirmation is active while either detector runs; never changes CVars.
+-- Automatic looting and binding confirmation run only while a detector is enabled.
 local opened, scanPending = false, false
 local attempted, confirmations = {}, {}
 local frame = CreateFrame("Frame")
@@ -22,11 +22,14 @@ local function ValidSlot(value)
     return Readable(value) and type(value) == "number" and value >= 1
         and value <= 1000 and value == math.floor(value)
 end
-for _, event in ipairs({"LOOT_OPENED", "LOOT_READY", "LOOT_SLOT_CHANGED", "LOOT_SLOT_CLEARED",
-    "LOOT_BIND_CONFIRM", "LOOT_CLOSED"}) do
-    frame:RegisterEvent(event)
-end
+local active = false
+local lootEvents = {"LOOT_OPENED", "LOOT_READY", "LOOT_SLOT_CHANGED", "LOOT_SLOT_CLEARED",
+    "LOOT_BIND_CONFIRM", "LOOT_CLOSED"}
 frame:SetScript("OnEvent", function(_, event, slot)
+    if not DetectionEnabled() then
+        if WoWTools and WoWTools.UpdateLootActivation then WoWTools.UpdateLootActivation() end
+        return
+    end
     if event == "LOOT_CLOSED" then
         opened, scanPending, attempted, confirmations = false, false, {}, {}
     elseif event == "LOOT_OPENED" then
@@ -41,7 +44,11 @@ frame:SetScript("OnEvent", function(_, event, slot)
         scanPending = opened
     end
 end)
-frame:SetScript("OnUpdate", function()
+local function Poll()
+    if not DetectionEnabled() then
+        if WoWTools and WoWTools.UpdateLootActivation then WoWTools.UpdateLootActivation() end
+        return
+    end
     if not scanPending and not next(confirmations) then return end
     -- Defer confirmation until Blizzard's event handler has created the popup.
     local pending = confirmations
@@ -72,4 +79,17 @@ frame:SetScript("OnUpdate", function()
             end
         end
     end
-end)
+end
+function WoWTools.UpdateLootActivation()
+    local shouldActivate = DetectionEnabled()
+    if shouldActivate == active then return end
+    active = shouldActivate
+    if active then
+        for _, event in ipairs(lootEvents) do frame:RegisterEvent(event) end
+        frame:SetScript("OnUpdate", Poll)
+    else
+        for _, event in ipairs(lootEvents) do frame:UnregisterEvent(event) end
+        frame:SetScript("OnUpdate", nil)
+        opened, scanPending, attempted, confirmations = false, false, {}, {}
+    end
+end

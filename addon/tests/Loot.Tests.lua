@@ -12,11 +12,12 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     function CreateFrame()
         frame = {events={}, scripts={}}
         function frame:RegisterEvent(event) self.events[event]=true end
+        function frame:UnregisterEvent(event) self.events[event]=nil end
         function frame:SetScript(event, fn) self.scripts[event]=fn end
         return frame
     end
-    local function event(name, slot) frame.scripts.OnEvent(frame, name, slot) end
-    local function tick() frame.scripts.OnUpdate(frame, .1) end
+    local function event(name, slot) if frame.events[name] then frame.scripts.OnEvent(frame, name, slot) end end
+    local function tick() if frame.scripts.OnUpdate then frame.scripts.OnUpdate(frame, .1) end end
     local countFailure, infoFailure, lootFailure, bindFailure = false, false, false, false
     local count=4
     function GetNumLootItems() if countFailure then error("count") end; return count end
@@ -42,8 +43,15 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     end
     function SetCVar() error("Changed CVar") end
     dofile(root.."/addon/"..flavor.."/wow_tools/Loot.lua")
+    assert(not frame.events.LOOT_OPENED and not frame.scripts.OnUpdate, "Loot handler active before either detector")
+    WoWTools.UpdateLootActivation()
     assert(frame.events.LOOT_BIND_CONFIRM and frame.events.LOOT_SLOT_CHANGED)
     items={{icon="bind",locked=false},{icon="locked",locked=true},{icon="restricted",locked=secret},{icon="money",locked=0}}
+    fishing=false; WoWTools.UpdateLootActivation()
+    assert(not frame.events.LOOT_OPENED and not frame.scripts.OnUpdate,"Loot remained subscribed while detectors were off")
+    event("LOOT_OPENED"); tick()
+    assert(#calls==0 and #confirms==0,"Inactive detectors auto-looted items")
+    fishing=true; WoWTools.UpdateLootActivation()
     event("LOOT_OPENED"); assert(#calls==0); tick()
     assert(#calls==2 and calls[1]==1 and calls[2]==4 and #confirms==0, flavor..": bad automatic loot / deferred confirmation")
     tick(); assert(#confirms==1 and #hidden==1, flavor..": binding was not confirmed once")
@@ -70,6 +78,7 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     ConfirmLootSlot=function(slot) confirms[#confirms+1]=slot end
     for _, enabled in ipairs({{false,false},{true,false},{false,true},{true,true}}) do
         fishing,fighting=enabled[1],enabled[2]
+        WoWTools.UpdateLootActivation()
         local before, hiddenBefore=#confirms,#hidden
         for slot=1,4 do event("LOOT_BIND_CONFIRM",slot); event("LOOT_BIND_CONFIRM",slot) end
         assert(#confirms==before,"Confirmed before popup creation")
@@ -80,18 +89,20 @@ for _, flavor in ipairs({"titan", "forerver"}) do
         tick(); assert(#confirms==before+expected,"Duplicate confirmation per frame")
     end
     fishing,fighting=true,false
+    WoWTools.UpdateLootActivation()
     event("LOOT_BIND_CONFIRM",1)
     fishing=false
+    WoWTools.UpdateLootActivation()
     local before=#confirms
     tick(); assert(#confirms==before,"Detection stopped but queued binding was confirmed")
-    fighting=true; tick(); assert(#confirms==before,"Cancelled confirmation survived restart")
+    fighting=true; WoWTools.UpdateLootActivation(); tick(); assert(#confirms==before,"Cancelled confirmation survived restart")
     fishing=true; fighting=false; event("LOOT_BIND_CONFIRM",2)
     fishing=false; fighting=true; tick()
     assert(#confirms==before+1,"Other active detector did not preserve pending confirmation")
-    fishing,fighting=secret,false; event("LOOT_BIND_CONFIRM",3); tick()
+    fishing,fighting=secret,false; WoWTools.UpdateLootActivation(); event("LOOT_BIND_CONFIRM",3); tick()
     assert(#confirms==before+1,"Restricted detector flag enabled confirmation")
     WoWTools.modules.wowDetector.IsEnabled=function() error("flag unavailable") end
-    fighting=true; event("LOOT_BIND_CONFIRM",4); tick()
+    fighting=true; WoWTools.UpdateLootActivation(); event("LOOT_BIND_CONFIRM",4); tick()
     assert(#confirms==before+2,"Failed first detector blocked active second detector")
     ConfirmLootSlot=function(slot) confirms[#confirms+1]=slot; fighting=false end
     event("LOOT_BIND_CONFIRM",1); event("LOOT_BIND_CONFIRM",2); tick()
