@@ -214,7 +214,7 @@ namespace WowAutoCapture {
         static void Close(object value) {var disposable=value as IDisposable;if(disposable!=null) disposable.Dispose();else if(value!=null && Marshal.IsComObject(value)) Marshal.ReleaseComObject(value);}
         static object Item(IntPtr window) {
             string name="Windows.Graphics.Capture.GraphicsCaptureItem";IntPtr text=IntPtr.Zero,factory=IntPtr.Zero,result=IntPtr.Zero;
-            Guid interop=new Guid("3628e81b-3cac-4c60-b7f4-23ce0e0c3356"),item=new Guid("79c3f95b-31f2-4ec2-a464-632ef5d30760");
+            Guid interop=new Guid("3628e81b-3cac-4c60-b7f4-23ce0e0c3356"),item=new Guid("79c3f95b-31f7-4ec2-a464-632ef5d30760");
             object wrapper=null;
             try {
                 Marshal.ThrowExceptionForHR(WindowsCreateString(name,name.Length,out text));
