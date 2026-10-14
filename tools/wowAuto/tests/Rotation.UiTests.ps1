@@ -1,6 +1,8 @@
 ﻿# Real orchestration functions, mock clients/screens/inputs, temporary configuration only.
 Stop-AllRows
 Initialize-AutoFightTab $tabs $form -Unified
+$script:autoFight.Profiles['titan:1'].BuffIntervalSeconds=120
+$script:autoFight.Profiles['titan:1'].BuffCount=2
 $sourceRotation=Join-Path (Split-Path $PSScriptRoot -Parent) 'rotation.config.json'
 $sourceHashes=@{}
 foreach ($p in @($sourceRotation,(Join-Path (Split-Path $PSScriptRoot -Parent) 'config.ini'),(Join-Path (Split-Path $PSScriptRoot -Parent) 'autoFight.config.json'))) {$sourceHashes[$p]=(Get-FileHash $p).Hash}
@@ -129,6 +131,8 @@ try {
     Complete-RotationTest ([ref]$now)
     Assert-Ui (-not $a.SlotUseItem) 'Combat slot inherited fishing item.'
     Assert-Ui ($a.TaskMode -eq 'fight' -and $a.FightRow.Session -and $b.State.Running) 'Per-slot task modes not started.'
+    Assert-Ui ($a.FightRow.Session.BuffIntervalSeconds -eq 120 -and $a.FightRow.Session.BuffCount -eq 2 -and
+        $a.FightRow.Session.NextBuffAt -lt $now -and $a.FightRow.Session.BuffRemaining -eq 0) 'Rotation login did not arm the first per-class buff cycle.'
     $actions=@($script:rotation.Actions | Select-Object -Skip $oldCount | Where-Object {$_.Key -eq $b.Key})
     Assert-Ui (@($actions | Where-Object {$_.Action -eq 'logout'}).Count -eq 1 -and @($actions | Where-Object {$_.Action -eq 'tripleclick'}).Count -eq 1) 'Single configured character did not log out and log back in.'
     # Unknown screens and incomplete OCR never receive navigation, chat or task input.

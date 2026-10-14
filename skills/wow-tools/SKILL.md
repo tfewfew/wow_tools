@@ -85,6 +85,8 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 ## autoFight（2026-10-13）
 
+- 2026-10-14 补 Buff：PC autoFight.config.json v7的每职业配置增加 BuffKey（默认F11）、BuffIntervalSeconds（0–86400秒，0关闭）及BuffCount（1–20，默认1）；旧v1–v6只读迁移为关闭，下次保存原子升级。角色编排确认登录并启动战斗任务时触发首轮，随后从上一轮最后一次成功发键起计时；每轮按成功次数发送，轮内相邻成功按键至少间隔1000ms，失败不消耗次数。仅在非战斗待机、非忙碌、无需恢复且无移动请求时执行；到期但不安全则延后，停止 / 换角取消当前轮，新会话重新触发。走统一Fight.Buff队列、公共门控、前台与白点及色块复核；两服插件无改动。AutoFight.Buff.Tests及完整UiTest使用合成状态 / 模拟输入验证，不运行真实游戏按键。
+
 - 当前合集版本titan2.1.22、forerver2.2.21，两服独立维护fight_detector.lua；保留fightDetectorDB / rangeSpells，新增profiles[classId]恢复阈值。战斗通过模块接口关闭钓鱼以恢复音频，不直接读写wowDetectorDB、音频、图形或交互CVar。
 - autoFight.ps1、Engine.ps1、Native.cs、config.json的状态、输入、计时和配置与autofish隔离，通过wowAuto.Unified.ps1共享进程行、设置宿主和统一输入调度；不再有独立主标签或独立运行计时器，UiTest以模拟类型替代战斗原生操作，不加载战斗输入适配器。
 - 战斗v5只读取主色块：主32×32物理像素位于客户区正中心，副12×12位于中心右32px，只作恢复提示。无心跳、双块校验或颜色变化要求。主RGB=(16+8*(action*4+recovery),2+4*(identity+busy*26),2+4*(encounter+combat*32))；action=0..6为unknown/idle/opening/waiting/combat/loot/skin；新增target动作分别使用保留R240/248/8对应none/recover/emergency，G/B不变。recovery=0..3为none/recover/emergency/unknown；identity=classId-1+（forerver为13）；encounter模32。通道偏差最多1，拒绝非法字段/组合、版本或职业不符、未知恢复及旧协议；射程未知但恢复明确仍可执行恢复。
@@ -92,7 +94,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - PC普通/紧急恢复各次进入仅成功执行一次，由独立RecoveryState/RecoverySent门闩维护；只有退出或切换恢复类型重置，主状态/怪物变化不得重发；失败保留待执行。正常战斗保留重试间隔，开怪按怪物编号一次，waiting不发键。取得前台等待200ms，发键前重读主色、忙碌和怪物编号；无心跳验证。
 - 插件不包含移动功能。PC通用四向键由脚本行方向按钮请求一次，仅在idle/非忙碌/无需恢复执行，不自动巡逻。非阻塞50ms计时按住100–2000ms；状态变化/到期/停止/刷新/关闭/设置/失焦/主色无效均释放本模块键。重复方向请求可重新执行。
 - 尸体交互按可拾取 → 无剩余战利品且可剥皮驱动；CanLootUnit同时读取hasLoot / canLoot，两项均明确且有权限才拾取，受限 / 不完整返回为unknown。有战利品而无权限时不交互、不判剥皮。LOOT_OPENED / LOOT_CLOSED维护忙碌，LOOT_READY / LOOT_SLOT_CLEARED及轮询刷新；两服独立实现。插件按softinteract尸体GUID在主色块怪物编号中区分交互对象，同一尸体从loot转skin保持编号，目标短暂消失再出现不变；新尸体换号。PC在同一编号成功发出拾取键后，只有插件确认无剩余战利品、可交互且可剥皮才发一次剥皮键；同一尸体状态短暂离开再进入也不重试，新尸体重置门闩。拾取仍按InteractionHoldMs设置保持，剥皮固定保持2000ms，状态提前转idle或普通恢复不缩短，进入战斗可提前结束；发键前仍要求非战斗、非忙碌及无需恢复。交互键沿用SkinKey，设置界面明确“拾取 / 剥皮交互键”，默认F7，按脚本Common通用保存；游戏内绑定交互；独立Loot.lua处理已打开窗口的自动拾取及拾取绑定确认，不改变CVar。
-- JSON v6：CommandIntervalMs保留公共100–60000ms间隔；Common保存TargetKey（默认Tab）、四向键、移动时长、交互键/保持/开关及JumpIntervalSeconds，全部服务器职业共享。Profiles只包含时光服10职业、无限服9职业的OpeningKey/CombatKey/RecoveryKey/EmergencyKey/CombatIntervalMs及身份；两服排除10/12/13职业，无限服另排除6。设置分别有时光服/无限服Tab，每页独立职业下拉框及按键，按真实职业ID映射德鲁伊11，切换保留草稿及选择。v1–v5只读迁移，下次原子保存升级；删除不可用职业，其余自定义保留，旧跳跃默认0；取消/失败不应用。
+- JSON v7：CommandIntervalMs保留公共100–60000ms间隔；Common保存TargetKey（默认Tab）、四向键、移动时长、交互键/保持/开关及JumpIntervalSeconds，全部服务器职业共享。Profiles包含时光服10职业、无限服9职业的OpeningKey/CombatKey/RecoveryKey/EmergencyKey/CombatIntervalMs、BuffKey/BuffIntervalSeconds/BuffCount及身份；两服排除10/12/13职业，无限服另排除6。设置分别有时光服/无限服Tab，每页独立职业下拉框及按键，按真实职业ID映射德鲁伊11，切换保留草稿及选择。v1–v6只读迁移，下次原子保存升级；删除不可用职业，其余自定义保留，旧跳跃默认0、旧补 Buff 默认关闭；取消/失败不应用。
 - 本次Windows任务须执行解析、编译和模拟检查，提交并成功推送后同步两服及桌面快捷方式；不运行真实发键循环、采集游戏声音或结束游戏进程。
 
 - 钓鱼JumpEveryCycles按成功收竿循环次数独立保存到config.ini，0–1000000、默认0、步进1，不改为秒计时。满N次在冷却 / 保持后有效红绿状态按空格，未知等待、黄色优先。PostReelJumpAllowed只由本次任务已登记且成功发送的收竿赋予；正在钓鱼、收竿失败、无咬钩超时、停止后重新开始不得立即跳跃。停止 / 刷新保留计数，继承待跳须等下一次成功收竿；成功跳跃/抛竿/停止/超时清除权限。保留成功收竿后绿色恢复跳跃，成功一次清除两种待跳并归零，失败重试。改变N重置、重复保存不重置，原子保存成功才应用。JumpInterval及完整UiTest模拟覆盖两服待跳继承/钓鱼中不跳/失败/超时/下一次成功收竿及原有优先级。

@@ -25,6 +25,7 @@ try {
         $legacyProfile.PSObject.Properties.Remove('JumpIntervalSeconds')
         $legacyProfile.PSObject.Properties.Remove('TargetKey')
         $legacyProfile.PSObject.Properties.Remove('TargetIntervalMs')
+        foreach ($field in @('BuffKey','BuffIntervalSeconds','BuffCount')) {$legacyProfile.PSObject.Properties.Remove($field)}
         $legacyProfile | Add-Member NoteProperty OpeningIntervalMs 2000
         $legacyProfile | Add-Member NoteProperty EmergencyIntervalMs 1500
         $legacyProfile
@@ -70,7 +71,11 @@ try {
     $oldDocument.Version=4
     $oldDocument.Common.PSObject.Properties.Remove('JumpIntervalSeconds')
     $oldDocument.Common.PSObject.Properties.Remove('TargetKey')
-    $oldDocument.Profiles=@(foreach ($flavor in @('titan','forerver')) {foreach ($id in 1..13) {New-AutoFightProfile $flavor $id}})
+    $oldDocument.Profiles=@(foreach ($flavor in @('titan','forerver')) {foreach ($id in 1..13) {
+        $profile=New-AutoFightProfile $flavor $id
+        foreach ($field in @('BuffKey','BuffIntervalSeconds','BuffCount')) {$profile.PSObject.Properties.Remove($field)}
+        $profile
+    }})
     $oldDocument.Profiles[4].RecoveryKey='Alt+9'
     $legacyJson=$oldDocument | ConvertTo-Json -Depth 5
     [IO.File]::WriteAllText($path,$legacyJson)
@@ -89,13 +94,14 @@ try {
     }
     $oldJson=Get-Content -Raw $path | ConvertFrom-Json
     $oldJson.Version=5; $oldJson.Common.PSObject.Properties.Remove('TargetKey')
+    foreach ($profile in $oldJson.Profiles) {foreach ($field in @('BuffKey','BuffIntervalSeconds','BuffCount')) {$profile.PSObject.Properties.Remove($field)}}
     $v5=$oldJson | ConvertTo-Json -Depth 5; [IO.File]::WriteAllText($path,$v5)
     $targetConfig=Read-AutoFightConfiguration $path
     Assert-Fight ($targetConfig.Common.TargetKey -eq 'Tab' -and [IO.File]::ReadAllText($path) -ceq $v5) 'V5 target migration rewrote preferences.'
     $targetConfig.Common.TargetKey='Ctrl+Tab'
     $null=Save-AutoFightProfiles $path $targetConfig.Profiles 700 $targetConfig.Common
     $targetConfig=Read-AutoFightConfiguration $path
-    Assert-Fight ($targetConfig.Common.TargetKey -eq 'Ctrl+Tab' -and (Get-Content -Raw $path | ConvertFrom-Json).Version -eq 6) 'Target key roundtrip failed.'
+    Assert-Fight ($targetConfig.Common.TargetKey -eq 'Ctrl+Tab' -and (Get-Content -Raw $path | ConvertFrom-Json).Version -eq 7) 'Target key roundtrip failed.'
     foreach ($profile in $targetConfig.Profiles.Values) {
         Assert-Fight ((Get-AutoFightEffectiveProfile $profile $targetConfig.Common).TargetKey -eq 'Ctrl+Tab') 'Target key not shared by all servers/classes.'
     }
@@ -171,5 +177,5 @@ try {
     $packet.Action='combat'; $null=Update-AutoFightState $session $packet 3000
     Complete-AutoFightAction $session $p 'combat' 3000
     Assert-Fight ((Get-AutoFightAction $session $packet $p 3499) -eq 'wait') 'Existing longer profile cooldown ignored.'
-    Write-Output 'PASS: combat common interval boundaries/all states, one skin attempt after loot per corpse, failed sends, edits, cooldown, JSON v1-v6 migration/custom common settings/conflict/isolation/invalid/atomic failure; default Tab and shared configurable target key. No native input.'
+    Write-Output 'PASS: combat common interval boundaries/all states, one skin attempt after loot per corpse, failed sends, edits, cooldown, JSON v1-v7 migration/custom common settings/conflict/isolation/invalid/atomic failure; default Tab and shared configurable target key. No native input.'
 } finally { if ([IO.File]::Exists($path)) { [IO.File]::Delete($path) } }

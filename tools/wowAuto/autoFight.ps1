@@ -123,8 +123,11 @@ function Start-AutoFightRow($Row) {
     if (-not [WowAutoFight.Native]::IsAlive($Row.Client)) {
         $Row.CanStart=$false; Set-AutoFightStatus $Row '进程已退出或身份改变，请刷新。'; Update-AutoFightControls; return
     }
-    $Row.Session=New-AutoFightSession $script:autoFight.Clock.ElapsedMilliseconds $Row.ClassId
-    Set-AutoFightJumpInterval $Row.Session $script:autoFight.Common.JumpIntervalSeconds $script:autoFight.Clock.ElapsedMilliseconds
+    $now=$script:autoFight.Clock.ElapsedMilliseconds
+    $Row.Session=New-AutoFightSession $now $Row.ClassId
+    $profile=Get-AutoFightEffectiveProfile $script:autoFight.Profiles["$($Row.Client.Flavor):$($Row.ClassId)"] $script:autoFight.Common
+    Set-AutoFightJumpInterval $Row.Session $script:autoFight.Common.JumpIntervalSeconds $now
+    Set-AutoFightBuffSchedule $Row.Session $profile $now -AfterLogin
     Set-AutoFightStatus $Row '开始后台监测主色块；需要发键时切换窗口。'
     Update-AutoFightControls
 }
@@ -207,7 +210,9 @@ function Finish-AutoFightPending([long]$Now) {
     $script:autoFight.Pending=$null
     if ($pending.Scanning) { $script:autoFight.Scan.Index++ }
     elseif ($pending.Row.Session -eq $pending.Session) {
-        $pending.Session.Due=[Math]::Max($pending.Session.Due,($Now+250))
+        $next=$Now+250
+        if ($pending.Session.NextBuffAt -gt $Now -and $pending.Session.NextBuffAt -lt $next) {$next=$pending.Session.NextBuffAt}
+        $pending.Session.Due=[Math]::Max($pending.Session.Due,$next)
     }
 }
 function Invoke-AutoFightTick([bool]$AllowInput=$true,[switch]$PlanOnly,[string]$ExpectedAction='') {
@@ -364,6 +369,8 @@ function Save-AutoFightDraftSelection {
         $profile=$editor.Draft[$page.CurrentKey]
         foreach ($field in $page.Bindings.Keys) {$profile.$field=$page.Bindings[$field].Text}
         $profile.CombatIntervalMs=[int]$page.CombatInterval.Value
+        $profile.BuffIntervalSeconds=[int]$page.BuffInterval.Value
+        $profile.BuffCount=[int]$page.BuffCount.Value
     }
     foreach ($field in $editor.CommonBindings.Keys) {$editor.Common.$field=$editor.CommonBindings[$field].Text}
     foreach ($field in $editor.CommonNumbers.Keys) {$editor.Common.$field=[int]$editor.CommonNumbers[$field].Value}
@@ -379,6 +386,8 @@ function Set-AutoFightEditorAliases {
     foreach ($field in $page.Bindings.Keys) {$editor.Bindings[$field]=$page.Bindings[$field]}
     foreach ($field in $editor.CommonNumbers.Keys) {$editor.Numbers[$field]=$editor.CommonNumbers[$field]}
     $editor.Numbers.CombatIntervalMs=$page.CombatInterval
+    $editor.Numbers.BuffIntervalSeconds=$page.BuffInterval
+    $editor.Numbers.BuffCount=$page.BuffCount
 }
 function Select-AutoFightDraftProfile([string]$Flavor) {
     $editor=$script:autoFight.Editor
@@ -391,6 +400,8 @@ function Select-AutoFightDraftProfile([string]$Flavor) {
     $profile=$editor.Draft[$page.CurrentKey]
     foreach ($field in $page.Bindings.Keys) {$page.Bindings[$field].Text=$profile.$field}
     $page.CombatInterval.Value=$profile.CombatIntervalMs
+    $page.BuffInterval.Value=$profile.BuffIntervalSeconds
+    $page.BuffCount.Value=$profile.BuffCount
     Set-AutoFightEditorAliases
 }
 function New-AutoFightKeyBox {
@@ -414,7 +425,7 @@ function New-AutoFightSettingsDialog([switch]$Embedded) {
     $dialog.Font=$script:autoFight.Owner.Font; $dialog.BackColor=[Drawing.Color]::FromArgb(58,58,58)
     $dialog.ForeColor=[Drawing.Color]::White
     $body=New-Object System.Windows.Forms.Panel
-    $body.Dock='Fill'; $body.AutoScroll=$true; $body.AutoScrollMinSize=New-Object Drawing.Size(840,716)
+    $body.Dock='Fill'; $body.AutoScroll=$true; $body.AutoScrollMinSize=New-Object Drawing.Size(840,780)
     $footer=New-Object System.Windows.Forms.Panel
     $footer.Dock='Bottom'; $footer.Height=100
     $dialog.Controls.Add($body); $dialog.Controls.Add($footer)
@@ -427,12 +438,12 @@ function New-AutoFightSettingsDialog([switch]$Embedded) {
     $profileTabs.HeaderSurface=[Drawing.Color]::FromArgb(54,78,98)
     $profileTabs.ForeColor=[Drawing.Color]::White
     $profileTabs.SizeMode='Fixed'; $profileTabs.ItemSize=New-Object Drawing.Size(140,32)
-    $profileTabs.SetBounds(16,12,808,214); $editor.Tabs=$profileTabs; $body.Controls.Add($profileTabs)
+    $profileTabs.SetBounds(16,12,808,260); $editor.Tabs=$profileTabs; $body.Controls.Add($profileTabs)
     foreach ($flavor in @('titan','forerver')) {
         $tab=New-Object System.Windows.Forms.TabPage
         $tab.Text=if ($flavor -eq 'titan') {'时光服'} else {'无限服'}
         $tab.Tag=$flavor; $tab.BackColor=[Drawing.Color]::FromArgb(58,58,58); $tab.ForeColor=[Drawing.Color]::White
-        $tab.AutoScroll=$true; $tab.AutoScrollMinSize=New-Object Drawing.Size(790,160)
+        $tab.AutoScroll=$true; $tab.AutoScrollMinSize=New-Object Drawing.Size(790,216)
         $profileTabs.TabPages.Add($tab)
         $label=New-Object System.Windows.Forms.Label; $label.Text='职业'; $label.SetBounds(8,10,216,28); $tab.Controls.Add($label)
         $combo=New-Object System.Windows.Forms.ComboBox
@@ -453,31 +464,37 @@ function New-AutoFightSettingsDialog([switch]$Embedded) {
         $combo.Items.AddRange([object[]]@($ids | ForEach-Object {$script:autoFightClasses[[string]$_]}))
         $combo.Add_SelectedIndexChanged({param($sender,$eventArgs) Select-AutoFightDraftProfile $sender.Tag})
         $tab.Controls.Add($combo)
-        $page=[pscustomobject]@{Tab=$tab;Class=$combo;ClassIds=$ids;CurrentKey='';Bindings=@{};CombatInterval=$null}
+        $page=[pscustomobject]@{Tab=$tab;Class=$combo;ClassIds=$ids;CurrentKey='';Bindings=@{};CombatInterval=$null;BuffInterval=$null;BuffCount=$null}
         $editor.Pages[$flavor]=$page
-        $labels=@('开怪战斗键','正常战斗键','非战斗恢复键','战斗紧急恢复键')
-        for ($i=0;$i -lt 4;$i++) {
+        $labels=@('开怪战斗键','正常战斗键','非战斗恢复键','战斗紧急恢复键','补 Buff 快捷键')
+        for ($i=0;$i -lt $labels.Count;$i++) {
             $field=$script:autoFightKeyFields[$i]; $x=8+($i%2)*400; $y=44+[Math]::Floor($i/2)*42
             $label=New-Object System.Windows.Forms.Label; $label.Text=$labels[$i]; $label.SetBounds($x,($y+4),212,32)
             $box=New-AutoFightKeyBox; $box.SetBounds(($x+212),$y,168,32)
             $page.Bindings[$field]=$box; $tab.Controls.Add($label); $tab.Controls.Add($box)
         }
-        $label=New-Object System.Windows.Forms.Label; $label.Text='正常战斗间隔 (ms)'; $label.SetBounds(8,132,216,32); $tab.Controls.Add($label)
+        $label=New-Object System.Windows.Forms.Label; $label.Text='正常战斗间隔 (ms)'; $label.SetBounds(408,132,212,32); $tab.Controls.Add($label)
         $number=New-Object System.Windows.Forms.NumericUpDown
         $number.Minimum=100; $number.Maximum=10000; $number.Increment=100
         $number.BackColor=[Drawing.Color]::FromArgb(50,50,50); $number.ForeColor=[Drawing.Color]::White
-        $number.SetBounds(232,128,168,32); $tab.Controls.Add($number); $page.CombatInterval=$number
+        $number.SetBounds(620,128,168,32); $tab.Controls.Add($number); $page.CombatInterval=$number
+        foreach ($entry in @(@('BuffInterval','补 Buff 间隔 (秒，0关闭)',0,86400,8),@('BuffCount','每轮补 Buff 次数',1,20,408))) {
+            $buffLabel=New-Object System.Windows.Forms.Label;$buffLabel.Text=$entry[1];$buffLabel.SetBounds([int]$entry[4],178,212,32);$tab.Controls.Add($buffLabel)
+            $buffNumber=New-Object System.Windows.Forms.NumericUpDown
+            $buffNumber.Minimum=[int]$entry[2];$buffNumber.Maximum=[int]$entry[3];$buffNumber.Increment=1
+            $buffNumber.BackColor=[Drawing.Color]::FromArgb(50,50,50);$buffNumber.ForeColor=[Drawing.Color]::White
+            $buffNumber.SetBounds(([int]$entry[4]+212),174,168,32);$tab.Controls.Add($buffNumber)
+            $page.($entry[0])=$buffNumber
+        }
         $combo.SelectedIndex=0
     }
     $profileTabs.Add_SelectedIndexChanged({if (-not $script:autoFight.Editor.Loading) {Set-AutoFightEditorAliases}})
-    $heading=New-Object System.Windows.Forms.Label; $heading.Text='通用设置：全部服务器与职业'; $heading.SetBounds(16,230,810,26); $body.Controls.Add($heading)
-    $keyLabels=@('开怪战斗键','正常战斗键','非战斗恢复键','战斗紧急恢复键','向前移动键','向后移动键','向左移动键','向右移动键','拾取 / 剥皮交互键','选中 / 锁定目标键')
-    $allKeyFields=$script:autoFightKeyFields+$script:autoFightCommonKeyFields
-    for ($i=4;$i -lt $allKeyFields.Count;$i++) {
-        $field=$allKeyFields[$i]
-        $j=if ($i -lt 4) {$i} else {$i-4}
-        $x=16+($j%2)*420; $y=if ($i -lt 4) {82+[Math]::Floor($j/2)*44} else {258+[Math]::Floor($j/2)*44}
-        $label=New-Object System.Windows.Forms.Label; $label.Text=$keyLabels[$i]; $label.SetBounds($x,($y+4),220,32)
+    $heading=New-Object System.Windows.Forms.Label; $heading.Text='通用设置：全部服务器与职业'; $heading.SetBounds(16,278,810,26); $body.Controls.Add($heading)
+    $keyLabels=@('向前移动键','向后移动键','向左移动键','向右移动键','拾取 / 剥皮交互键','选中 / 锁定目标键')
+    for ($j=0;$j -lt $script:autoFightCommonKeyFields.Count;$j++) {
+        $field=$script:autoFightCommonKeyFields[$j]
+        $x=16+($j%2)*420; $y=306+[Math]::Floor($j/2)*44
+        $label=New-Object System.Windows.Forms.Label; $label.Text=$keyLabels[$j]; $label.SetBounds($x,($y+4),220,32)
         $box=New-AutoFightKeyBox; $box.SetBounds(($x+224),$y,168,32)
         $box.Text=$editor.Common.$field
         $editor.CommonBindings[$field]=$box; $body.Controls.Add($label); $body.Controls.Add($box)
@@ -486,7 +503,7 @@ function New-AutoFightSettingsDialog([switch]$Embedded) {
         @('MovementHoldMs','移动按住时长 (ms)',100,2000),
         @('InteractionHoldMs','拾取前台保持 (ms)',1000,60000))
     for ($i=1;$i -lt $numbers.Count;$i++) {
-        $entry=$numbers[$i]; $x=if ($i -eq 2) {436} else {16}; $y=if ($i -eq 0) {174} else {394}
+        $entry=$numbers[$i]; $x=if ($i -eq 2) {436} else {16}; $y=442
         $label=New-Object System.Windows.Forms.Label; $label.Text=$entry[1]; $label.SetBounds($x,($y+4),220,32)
         $number=New-Object System.Windows.Forms.NumericUpDown
         $number.Minimum=$entry[2]; $number.Maximum=$entry[3]; $number.Increment=100
@@ -495,25 +512,25 @@ function New-AutoFightSettingsDialog([switch]$Embedded) {
         $number.Value=$editor.Common.($entry[0]); $editor.CommonNumbers[$entry[0]]=$number; $body.Controls.Add($label); $body.Controls.Add($number)
     }
     $editor.SkinEnabled=New-Object WowAuto.DimCheckBox
-    $editor.SkinEnabled.Text='启用自动拾取 / 剥皮交互'; $editor.SkinEnabled.SetBounds(16,440,600,32)
+    $editor.SkinEnabled.Text='启用自动拾取 / 剥皮交互'; $editor.SkinEnabled.SetBounds(16,488,600,32)
     $editor.SkinEnabled.Checked=$editor.Common.SkinEnabled
     $body.Controls.Add($editor.SkinEnabled)
     $commonLabel=New-Object System.Windows.Forms.Label
-    $commonLabel.Text='公共最小按键间隔 (ms)'; $commonLabel.SetBounds(16,484,340,32); $body.Controls.Add($commonLabel)
+    $commonLabel.Text='公共最小按键间隔 (ms)'; $commonLabel.SetBounds(16,532,340,32); $body.Controls.Add($commonLabel)
     $editor.CommandInterval=New-Object System.Windows.Forms.NumericUpDown
     $editor.CommandInterval.Minimum=100; $editor.CommandInterval.Maximum=60000; $editor.CommandInterval.Increment=100
     $editor.CommandInterval.Value=$script:autoFight.CommandGate.IntervalMs
     $editor.CommandInterval.BackColor=[Drawing.Color]::FromArgb(50,50,50); $editor.CommandInterval.ForeColor=[Drawing.Color]::White
-    $editor.CommandInterval.SetBounds(360,480,168,32); $body.Controls.Add($editor.CommandInterval)
+    $editor.CommandInterval.SetBounds(360,528,168,32); $body.Controls.Add($editor.CommandInterval)
     $jumpLabel=New-Object System.Windows.Forms.Label
-    $jumpLabel.Text='自动跳跃间隔 (秒，0 关闭)'; $jumpLabel.SetBounds(16,526,340,32); $body.Controls.Add($jumpLabel)
+    $jumpLabel.Text='自动跳跃间隔 (秒，0 关闭)'; $jumpLabel.SetBounds(16,574,340,32); $body.Controls.Add($jumpLabel)
     $jump=New-Object System.Windows.Forms.NumericUpDown
     $jump.Minimum=0; $jump.Maximum=3600; $jump.Increment=1; $jump.Value=$editor.Common.JumpIntervalSeconds
     $jump.BackColor=[Drawing.Color]::FromArgb(50,50,50); $jump.ForeColor=[Drawing.Color]::White
-    $jump.SetBounds(360,522,168,32); $body.Controls.Add($jump); $editor.CommonNumbers.JumpIntervalSeconds=$jump
+    $jump.SetBounds(360,570,168,32); $body.Controls.Add($jump); $editor.CommonNumbers.JumpIntervalSeconds=$jump
     $hint=New-Object System.Windows.Forms.Label
-    $hint.Text="选目标键默认 Tab；须与游戏插件面板的全局选目标键一致。`r`n确认后每只怪开怪一次，战斗通过焦点锁定；检测支持后台窗口。`r`n检测 / 攻击距离在插件面板设置；等待接近期间不发攻击键。`r`n公共间隔约束所有战斗指令；普通 / 紧急恢复每次进入只执行一次。`r`n移动由方向按钮请求；跳跃按各进程计时，忙碌或恢复时延后。"
-    $hint.SetBounds(16,568,812,144); $body.Controls.Add($hint)
+    $hint.Text="选目标键默认 Tab；须与游戏插件面板的全局选目标键一致。`r`n补 Buff 间隔为 0 时关闭；进入游戏和到期后各执行一轮，成功按键间至少等待 1 秒。`r`n补 Buff 只在非战斗待机、非忙碌且无需恢复时执行；公共间隔仍约束所有战斗按键。`r`n检测 / 攻击距离在插件面板设置；等待接近期间不发攻击键。`r`n普通 / 紧急恢复每次进入只执行一次；移动由方向按钮请求。"
+    $hint.SetBounds(16,616,812,144); $body.Controls.Add($hint)
     $errorLabel=New-Object System.Windows.Forms.Label
     $errorLabel.SetBounds(16,4,($footer.ClientSize.Width-32),30); $errorLabel.Anchor='Top, Left, Right'; $errorLabel.AutoEllipsis=$true
     $footer.Controls.Add($errorLabel)

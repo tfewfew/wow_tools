@@ -9,6 +9,7 @@
     "Fight.Combat": 20,
     "Fish.Reel": 30,
     "Fight.Recover": 40,
+    "Fight.Buff": 40,
     "Scan.Enable": 40,
     "Rotation.Enable": 40,
     "Fish.Item": 45,

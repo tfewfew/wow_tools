@@ -68,6 +68,8 @@ try {
             finally {$bitmap.Dispose()}
         }
         Assert-Ui ($dialog.Tag.CommandInterval.Value -eq 500 -and $dialog.Tag.CommandInterval.Increment -eq 100) 'Combat common interval default / 100 ms step incorrect.'
+        Assert-Ui ($dialog.Tag.Bindings.BuffKey.Text -eq 'F11' -and $dialog.Tag.Numbers.BuffIntervalSeconds.Value -eq 0 -and
+            $dialog.Tag.Numbers.BuffCount.Value -eq 1) 'Default per-class buff controls are incorrect.'
         Assert-Ui ($dialog.Tag.Bindings.TargetKey.Text -eq 'Tab' -and $dialog.Tag.CommonBindings.ContainsKey('TargetKey')) 'Target key is not common/default Tab.'
         $previewKey=New-Object System.Windows.Forms.PreviewKeyDownEventArgs([System.Windows.Forms.Keys]::Tab)
         $previewMethod=[System.Windows.Forms.Control].GetMethod('OnPreviewKeyDown',[Reflection.BindingFlags]'Instance,NonPublic')
@@ -90,12 +92,18 @@ try {
             $dialog.Tag.Bindings.TargetKey.Text -eq 'Ctrl+Tab' -and
             $dialog.Tag.Numbers.MovementHoldMs.Value -eq 600 -and $script:autoFight.Common.MoveLeftKey -eq 'Q') 'Common draft lost on profile selection or applied early.'
         $dialog.Tag.Bindings.CombatKey.Text='Ctrl+7'
+        $dialog.Tag.Bindings.BuffKey.Text='Ctrl+F11'
+        $dialog.Tag.Numbers.BuffIntervalSeconds.Value=60
+        $dialog.Tag.Numbers.BuffCount.Value=3
         $dialog.Tag.Tabs.SelectedIndex=0
-        Assert-Ui ($dialog.Tag.Class.SelectedIndex -eq 0 -and $dialog.Tag.Bindings.CombatKey.Text -eq 'F6') 'Tab changed the other server class or bindings.'
+        Assert-Ui ($dialog.Tag.Class.SelectedIndex -eq 0 -and $dialog.Tag.Bindings.CombatKey.Text -eq 'F6' -and
+            $dialog.Tag.Bindings.BuffKey.Text -eq 'F11' -and $dialog.Tag.Numbers.BuffIntervalSeconds.Value -eq 0) 'Tab changed the other server class or buff draft.'
         $dialog.Tag.Pages.titan.Class.SelectedIndex=9
         Assert-Ui ($dialog.Tag.Pages.titan.CurrentKey -eq 'titan:11') 'Sparse class IDs interpreted as combo indices.'
         $dialog.Tag.Tabs.SelectedIndex=1
-        Assert-Ui ($dialog.Tag.Class.SelectedIndex -eq 2 -and $dialog.Tag.Bindings.CombatKey.Text -eq 'Ctrl+7') 'Tab lost independently selected class / draft keys.'
+        Assert-Ui ($dialog.Tag.Class.SelectedIndex -eq 2 -and $dialog.Tag.Bindings.CombatKey.Text -eq 'Ctrl+7' -and
+            $dialog.Tag.Bindings.BuffKey.Text -eq 'Ctrl+F11' -and $dialog.Tag.Numbers.BuffIntervalSeconds.Value -eq 60 -and
+            $dialog.Tag.Numbers.BuffCount.Value -eq 3) 'Tab lost independently selected class / buff draft.'
         Assert-Ui ($dialog.Tag.CommandInterval.Value -eq 800 -and $script:autoFight.CommandGate.IntervalMs -eq 500) 'Profile selection reset common draft or draft applied early.'
         $dialog.Tag.Save.PerformClick()
         Assert-Ui ($dialog.IsDisposed -or -not $dialog.Visible) 'Combat save did not close dialog.'
@@ -103,26 +111,44 @@ try {
         Assert-Ui ($saved.Common.TargetKey -eq 'Ctrl+Tab' -and $script:autoFight.Common.TargetKey -eq 'Ctrl+Tab') 'Saved target key lost common configuration.'
         Assert-Ui ($saved.Common.MoveLeftKey -eq 'A' -and $saved.Common.SkinKey -eq '=' -and $saved.Common.MovementHoldMs -eq 600 -and
             $null -eq $saved.Profiles['titan:1'].PSObject.Properties['MoveLeftKey'] -and $null -eq $dialog.Tag.Numbers.EmergencyIntervalMs) 'Common fields remain class-specific or obsolete recovery interval remains visible.'
-        Assert-Ui ($saved.Common.JumpIntervalSeconds -eq 20 -and $saved.CommandIntervalMs -eq 800 -and $script:autoFight.Profiles['forerver:3'].CombatKey -eq 'Ctrl+7' -and $script:autoFight.Profiles['titan:3'].CombatKey -eq 'F6' -and $script:autoFight.CommandGate.LastSentAt -eq 100) 'Combat save lost common/profile isolation or reset last send.'
+        Assert-Ui ($saved.Common.JumpIntervalSeconds -eq 20 -and $saved.CommandIntervalMs -eq 800 -and $script:autoFight.Profiles['forerver:3'].CombatKey -eq 'Ctrl+7' -and $script:autoFight.Profiles['titan:3'].CombatKey -eq 'F6' -and $script:autoFight.CommandGate.LastSentAt -eq 100 -and
+            $saved.Profiles['forerver:3'].BuffKey -eq 'Ctrl+F11' -and $saved.Profiles['forerver:3'].BuffIntervalSeconds -eq 60 -and
+            $saved.Profiles['forerver:3'].BuffCount -eq 3 -and $saved.Profiles['titan:3'].BuffIntervalSeconds -eq 0) 'Combat save lost common/profile/buff isolation or reset last send.'
     } finally {$dialog.Dispose()}
     $dialog=New-AutoFightSettingsDialog
-    try {$dialog.Show($form); Assert-Ui ($dialog.Tag.CommandInterval.Value -eq 800 -and $dialog.Tag.Bindings.TargetKey.Text -eq 'Ctrl+Tab' -and $dialog.Tag.Bindings.MoveLeftKey.Text -eq 'A' -and $dialog.Tag.Numbers.JumpIntervalSeconds.Value -eq 20) 'Combat reopen lost saved interval/common key/jump.'; $dialog.Tag.Bindings.TargetKey.Text='F10'; $dialog.Tag.CommandInterval.Value=900; $dialog.Tag.Bindings.MoveLeftKey.Text='Z'; $dialog.Tag.Numbers.JumpIntervalSeconds.Value=30; $dialog.Tag.Cancel.PerformClick()}
+    try {
+        $dialog.Show($form)
+        Assert-Ui ($dialog.Tag.CommandInterval.Value -eq 800 -and $dialog.Tag.Bindings.TargetKey.Text -eq 'Ctrl+Tab' -and
+            $dialog.Tag.Bindings.MoveLeftKey.Text -eq 'A' -and $dialog.Tag.Numbers.JumpIntervalSeconds.Value -eq 20) 'Combat reopen lost saved interval/common key/jump.'
+        $dialog.Tag.Tabs.SelectedIndex=1;$dialog.Tag.Pages.forerver.Class.SelectedIndex=2
+        Assert-Ui ($dialog.Tag.Bindings.BuffKey.Text -eq 'Ctrl+F11' -and $dialog.Tag.Numbers.BuffIntervalSeconds.Value -eq 60 -and
+            $dialog.Tag.Numbers.BuffCount.Value -eq 3) 'Combat reopen lost per-class buff controls.'
+        $dialog.Tag.Bindings.BuffKey.Text='F12';$dialog.Tag.Numbers.BuffIntervalSeconds.Value=90;$dialog.Tag.Numbers.BuffCount.Value=5
+        $dialog.Tag.Bindings.TargetKey.Text='F10';$dialog.Tag.CommandInterval.Value=900
+        $dialog.Tag.Bindings.MoveLeftKey.Text='Z';$dialog.Tag.Numbers.JumpIntervalSeconds.Value=30;$dialog.Tag.Cancel.PerformClick()
+    }
     finally {$dialog.Dispose()}
     Assert-Ui ($script:autoFight.CommandGate.IntervalMs -eq 800) 'Combat cancel applied draft.'
     Assert-Ui ($script:autoFight.Common.MoveLeftKey -eq 'A') 'Cancel applied common draft.'
     Assert-Ui ($script:autoFight.Common.TargetKey -eq 'Ctrl+Tab') 'Cancel applied target draft.'
     Assert-Ui ($script:autoFight.Common.JumpIntervalSeconds -eq 20) 'Cancel applied jump draft.'
+    Assert-Ui ($script:autoFight.Profiles['forerver:3'].BuffKey -eq 'Ctrl+F11' -and
+        $script:autoFight.Profiles['forerver:3'].BuffIntervalSeconds -eq 60 -and
+        $script:autoFight.Profiles['forerver:3'].BuffCount -eq 3) 'Cancel applied buff draft.'
     $locked=[IO.File]::Open($fightPath,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
     try {
         $dialog=New-AutoFightSettingsDialog
         try {
             $dialog.Show($form); $dialog.Tag.CommandInterval.Value=1000; $dialog.Tag.Bindings.CombatKey.Text='F12'
+            $dialog.Tag.Bindings.BuffKey.Text='Ctrl+F12';$dialog.Tag.Numbers.BuffIntervalSeconds.Value=45;$dialog.Tag.Numbers.BuffCount.Value=4
             $dialog.Tag.Bindings.TargetKey.Text='F10'
             $dialog.Tag.Bindings.MoveLeftKey.Text='Z';$dialog.Tag.Numbers.MovementHoldMs.Value=900;$dialog.Tag.Numbers.JumpIntervalSeconds.Value=30;$dialog.Tag.Save.PerformClick()
             Assert-Ui ($dialog.Visible -and $dialog.Tag.Error.Text -ne '' -and $script:autoFight.CommandGate.IntervalMs -eq 800 -and $script:autoFight.Profiles['titan:1'].CombatKey -eq 'F6') 'Failed combat save partially applied draft.'
             Assert-Ui ($script:autoFight.Common.MoveLeftKey -eq 'A' -and $script:autoFight.Common.MovementHoldMs -eq 600) 'Failed save partially applied common fields.'
             Assert-Ui ($script:autoFight.Common.JumpIntervalSeconds -eq 20) 'Failed save partially applied jump setting.'
             Assert-Ui ($script:autoFight.Common.TargetKey -eq 'Ctrl+Tab') 'Failed save partially applied target setting.'
+            Assert-Ui ($script:autoFight.Profiles['titan:1'].BuffIntervalSeconds -eq 0 -and
+                $script:autoFight.Profiles['titan:1'].BuffCount -eq 1) 'Failed save partially applied buff settings.'
         } finally {$dialog.Dispose()}
     } finally {$locked.Dispose()}
     $script:autoFight.Editor=$null
@@ -344,7 +370,39 @@ try {
     Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline -and -not $fightRows[0].Session -and -not $fightRows[0].CanStart -and -not $fightRows[0].Start.Enabled) 'Missing foreground login point permitted input.'
     $fightRows[0].Client.LoginPointPresent=$true;$fightRows[0].CanStart=$true;Update-AutoFightControls
     Assert-Ui $fightRows[0].Start.Enabled 'Validated stopped row remained locked after refresh readiness was restored.'
+    Stop-AutoFightAll
+    $script:autoFight.Profiles['titan:1'].BuffKey='Ctrl+F11'
+    $script:autoFight.Profiles['titan:1'].BuffIntervalSeconds=2
+    $script:autoFight.Profiles['titan:1'].BuffCount=3
+    $script:autoFight.CommandGate=New-AutoFightCommandGate 100
+    $script:autoFight.Clock.ElapsedMilliseconds=100000L
+    [WowAutoFight.Native]::Current.Flavor='titan';[WowAutoFight.Native]::Current.ClassId=1
+    [WowAutoFight.Native]::Current.Action='idle';[WowAutoFight.Native]::Current.Recovery='none'
+    [WowAutoFight.Native]::Current.Combat=$false;[WowAutoFight.Native]::Current.Busy=$false
+    [WowAutoFight.Native]::IsForeground=$true
+    $fightRows[0].CanStart=$true
+    Start-AutoFightRow $fightRows[0]
+    Assert-Ui ($fightRows[0].Session.NextBuffAt -eq 100000) 'Starting a logged-in combat role did not arm its first buff cycle.'
+    $buffSends=[WowAutoFight.Native]::Sends
+    Invoke-AutoFightTick
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $buffSends+1 -and [WowAutoFight.Native]::LastCode -eq 122 -and
+        [WowAutoFight.Native]::LastCtrl -and $fightRows[0].Session.BuffRemaining -eq 2 -and
+        $script:gameActions.History[-1].Kind -eq 'Fight.Buff') 'Initial buff did not use the queued per-class shortcut.'
+    $script:autoFight.Clock.ElapsedMilliseconds=100999L;Invoke-AutoFightTick
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $buffSends+1) 'Buff loop ignored the one-second spacing.'
+    $script:autoFight.Clock.ElapsedMilliseconds=101000L;Invoke-AutoFightTick
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $buffSends+2 -and $fightRows[0].Session.BuffRemaining -eq 1) 'Second buff did not run one second later.'
+    $script:autoFight.Clock.ElapsedMilliseconds=102000L;Invoke-AutoFightTick
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $buffSends+3 -and $fightRows[0].Session.BuffRemaining -eq 0 -and
+        $fightRows[0].Session.NextBuffAt -eq 104000) 'Third buff did not finish and arm the next interval.'
+    $script:autoFight.Clock.ElapsedMilliseconds=103999L;Invoke-AutoFightTick
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $buffSends+3) 'Another buff cycle started before its interval.'
+    $script:autoFight.Clock.ElapsedMilliseconds=104000L;Invoke-AutoFightTick
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $buffSends+4 -and $fightRows[0].Session.BuffRemaining -eq 2) 'Interval did not trigger exactly one new buff cycle.'
+    Stop-AutoFightRow $fightRows[0]
+    Assert-Ui (-not $fightRows[0].Session -and -not @($script:gameActions.Events | Where-Object {$_.Domain -eq 'Fight' -and $_.Key -eq 'titan'}).Count) 'Stopping combat left a buff action queued.'
     Assert-Ui ($script:scheduler.JumpEveryCycles -eq $fishJump -and (Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $fishIniHash -and (Get-FileHash -LiteralPath $fightSource).Hash -eq $fightSourceHash) 'Combat changed fishing settings or source configuration.'
+    Write-Output 'PASS: per-class buff settings save/reopen/cancel/locked rollback, initial and interval cycles through the production queue with one-second spacing. Mock input only.'
     Write-Output 'PASS: combat settings 100 ms step/common draft/profile isolation/save/cancel/locked failure; mocked production input gate for all states, cross-window, release, restart and send failure. No real native operations.'
     Write-Output 'PASS: unified window-frame login point permits background reads; missing point blocks foreground input and restored readiness unlocks start.'
     Write-Output 'PASS: production combat UI adapter opens once, stays quiet through waiting/combat/emergency, attacks on approach, reopens for new monster and rechecks encounter before input.'
