@@ -94,7 +94,7 @@ namespace WowAutoRotation {
         }
         public static System.Drawing.Point CursorParkPoint(int width,int height) {
             if(width<48 || height<48) throw new ArgumentException("Client too small for cursor parking.");
-            return new System.Drawing.Point(Math.Max(16,(int)Math.Round(width*0.04)),height-Math.Max(16,(int)Math.Round(height*0.04)));
+            return new System.Drawing.Point(Math.Max(16,(int)Math.Round(width*0.04)),Math.Max(16,(int)Math.Round(height*0.04)));
         }
         public static void ParkCursor(int pid,long ticks,string path) {
             IntPtr old=SetThreadDpiAwarenessContext(new IntPtr(-4));
