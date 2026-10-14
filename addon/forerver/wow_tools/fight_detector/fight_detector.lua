@@ -8,6 +8,7 @@ local range=WoWTools.FightRange
 local attackRange=range.DefaultAttack
 local targetKey,targetBinding="Tab","TAB"
 local encounterGUID, encounterSerial = nil, 0
+local interactionGUID = nil
 local pullObserved=false
 local state, combat, skin, busy = "disabled", false, false, false
 local health, mana, settings = nil, nil, nil
@@ -370,12 +371,12 @@ local function Interaction()
     local hasLoot,canLoot=LootStatus(guid)
     if hasLoot==nil then return "unknown" end
     if hasLoot then
-        if canLoot then return "loot" end
+        if canLoot then return "loot",guid end
         return nil -- Do not skin a corpse that still has inaccessible loot.
     end
     local canSkin=SkinTooltip("softinteract")
     if canSkin==nil then return "unknown" end
-    if canSkin then return "skin" end
+    if canSkin then return "skin",guid end
 end
 local function Percentage(currentFn, maximumFn, power)
     local current,ok,maximum,valid
@@ -412,6 +413,7 @@ local function Stop()
     recovering,emergency=false,false
     health,mana,recovery=nil,nil,"none"
     SetEncounter(nil)
+    interactionGUID=nil
     PrepareTarget(nil,nil)
     signal:Hide()
     Paint()
@@ -447,8 +449,14 @@ local function Refresh()
         skin=state=="skin"; SetState(state); return
     end
     if not combat and not recovering and not busy then
-        local interaction=Interaction()
-        if interaction then SetEncounter(nil); skin=interaction=="skin"; SetState(interaction); return end
+        local interaction,guid=Interaction()
+        if interaction then
+            SetEncounter(nil)
+            if guid and guid~=interactionGUID then
+                interactionGUID=guid; encounterSerial=(encounterSerial+1)%256
+            end
+            skin=interaction=="skin"; SetState(interaction); return
+        end
     end
     local unit,guid,unknown=FindEnemy()
     if unit then

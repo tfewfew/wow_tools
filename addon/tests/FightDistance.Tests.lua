@@ -68,6 +68,22 @@ for _,flavor in ipairs({"titan","forerver"}) do
     function SetOverrideBindingClick(_,_,key,name) assert(not combat); assert(name=="wowToolsFightTargetButton"); override=true; overrideKey=key end
     function ClearOverrideBindings() assert(not combat); override=false end
     function UnitAffectingCombat() return combat end
+    function UnitIsInteractable(unit)
+        assert(unit=="softinteract")
+        local mob=mobs[unit]
+        return mob and mob.interactable or false
+    end
+    function CanLootUnit(guid)
+        local mob=mobs.softinteract
+        assert(mob and mob.guid==guid)
+        return mob.loot,mob.canLoot
+    end
+    UNIT_SKINNABLE="Skinnable"
+    C_TooltipInfo={GetUnit=function(unit)
+        assert(unit=="softinteract")
+        return {lines=mobs.softinteract and mobs.softinteract.skinnable and
+            {{leftText=UNIT_SKINNABLE,leftColor={GetRGB=function() return 0,1,0 end}}} or {}}
+    end}
     function UnitHealth() return health end
     function UnitHealthMax() return 100 end
     function UnitCastingInfo() return nil end
@@ -184,6 +200,22 @@ for _,flavor in ipairs({"titan","forerver"}) do
     mobs.target.distance=10; tick(); color(255,0,0)
     C_Item.IsItemInRange=nil; IsItemInRange=function(item,unit) return check(item,unit) and 1 or 0 end
     tick(); color(255,0,0); C_Item.IsItemInRange=check; IsItemInRange=nil
+    combat=false
+    mobs={softinteract={guid="Creature-CORPSE-A",dead=true,interactable=true,loot=true,canLoot=true,skinnable=true}}
+    tick(); assert(math.floor((signal.textures[3].color[1]*255-16)/8/4)==5,"Lootable corpse not detected")
+    local corpseEpoch=epoch()
+    mobs.softinteract.loot=false; mobs.softinteract.interactable=false; event("LOOT_CLOSED"); tick()
+    color(0,0,255)
+    mobs.softinteract.interactable=true; mobs.softinteract.skinnable=false; tick(); color(0,0,255)
+    mobs.softinteract.skinnable=true; tick()
+    assert(math.floor((signal.textures[3].color[1]*255-16)/8/4)==6 and epoch()==corpseEpoch,
+        "Looted interactable corpse did not retain identity for skinning")
+    mobs.softinteract=nil; tick()
+    mobs.softinteract={guid="Creature-CORPSE-A",dead=true,interactable=true,loot=false,canLoot=true,skinnable=true}
+    tick(); assert(epoch()==corpseEpoch,"Temporarily lost corpse gained a new interaction identity")
+    mobs.softinteract={guid="Creature-CORPSE-B",dead=true,interactable=true,loot=true,canLoot=true,skinnable=true}
+    tick(); assert(epoch()~=corpseEpoch,"Second corpse inherited the first corpse's interaction identity")
+    mobs.softinteract.canLoot=false; tick(); color(0,0,255)
     dead=true; event("PLAYER_DEAD"); assert(not signal.shown,"Death did not stop detector")
     assert(not WoWTools.modules.fight_detector.IsEnabled(),"Combat death leaves loot enabled")
     dead,combat=false,false; mobs={}

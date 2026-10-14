@@ -128,8 +128,40 @@ try {
         $packet.Recovery=if ($state -in @('recover','emergency')) {$state} else {'none'}
         $session.MovementRequest=if ($state.StartsWith('move-')) {$state.Substring(5)} else {''}
         $null=Update-AutoFightState $session $packet 999
+        if ($state -eq 'skin') {$session.LootEncounterId=$packet.EncounterId}
         Assert-Fight ((Get-AutoFightAction $session $packet $p 999) -eq $state -and -not (Test-AutoFightCommandReady $gate 999)) 'State transition must not bypass common gate.'
     }
+    $corpse=New-AutoFightSession 0 1
+    $corpsePacket=[pscustomobject]@{ClassId=1;Flavor='titan';Busy=$false;Combat=$false;Action='skin';Recovery='none';EncounterId=11}
+    $null=Update-AutoFightState $corpse $corpsePacket 0
+    Assert-Fight ((Get-AutoFightAction $corpse $corpsePacket $p 0) -eq 'wait') 'Skinning began before this corpse was looted.'
+    $corpsePacket.Action='loot';$null=Update-AutoFightState $corpse $corpsePacket 100
+    Assert-Fight ((Get-AutoFightAction $corpse $corpsePacket $p 100) -eq 'loot') 'Lootable corpse was skipped.'
+    Complete-AutoFightAction $corpse $p 'loot' 100
+    $corpsePacket.Action='skin';$null=Update-AutoFightState $corpse $corpsePacket 200
+    Assert-Fight ((Get-AutoFightAction $corpse $corpsePacket $p 200) -eq 'skin') 'Looted skinnable corpse did not get one attempt.'
+    Complete-AutoFightAction $corpse $p 'skin' 200
+    Assert-Fight ((Get-AutoFightAction $corpse $corpsePacket $p 10000) -eq 'wait') 'Same corpse was skinned twice after cooldown.'
+    $corpsePacket.Action='idle';$null=Update-AutoFightState $corpse $corpsePacket 10100
+    $corpsePacket.Action='skin';$null=Update-AutoFightState $corpse $corpsePacket 10200
+    Assert-Fight ((Get-AutoFightAction $corpse $corpsePacket $p 10200) -eq 'wait') 'Same corpse was skinned twice after temporary disappearance.'
+    $corpsePacket.EncounterId=12;$corpsePacket.Action='loot';$null=Update-AutoFightState $corpse $corpsePacket 10300
+    Complete-AutoFightAction $corpse $p 'loot' 10300
+    $corpsePacket.Action='skin';$null=Update-AutoFightState $corpse $corpsePacket 10400
+    Assert-Fight ((Get-AutoFightAction $corpse $corpsePacket $p 10400) -eq 'skin') 'New corpse inherited previous skin attempt.'
+    Assert-Fight ((Get-AutoFightHoldDuration $p 'skin') -eq 2000 -and
+        (Get-AutoFightHoldDuration $p 'loot') -eq $p.InteractionHoldMs -and
+        (Get-AutoFightHoldDuration $p 'move-forward') -eq $p.MovementHoldMs) 'Skin duration changed loot or movement settings.'
+    $skinHold=[pscustomobject]@{State='skin';Movement=$false;Until=12400L}
+    $corpsePacket.Action='idle'
+    Assert-Fight (-not (Test-AutoFightHoldFinished $skinHold $corpsePacket 12399) -and
+        (Test-AutoFightHoldFinished $skinHold $corpsePacket 12400)) 'Skin hold did not last exactly two seconds after action changed.'
+    $corpsePacket.Recovery='recover'
+    Assert-Fight (-not (Test-AutoFightHoldFinished $skinHold $corpsePacket 11000)) 'Ordinary recovery shortened the two-second skin hold.'
+    $corpsePacket.Recovery='none'
+    $corpsePacket.Combat=$true
+    Assert-Fight (Test-AutoFightHoldFinished $skinHold $corpsePacket 11000) 'Combat failed to interrupt skin hold.'
+    $corpsePacket.Combat=$false
     Assert-Fight (Test-AutoFightCommandReady $gate 1000) 'Exact interval boundary blocked.'
     Complete-AutoFightCommand $gate 1000 $false
     Assert-Fight ($gate.LastSentAt -eq 0 -and (Test-AutoFightCommandReady $gate 1000)) 'Failed input advanced common timer.'
@@ -139,5 +171,5 @@ try {
     $packet.Action='combat'; $null=Update-AutoFightState $session $packet 3000
     Complete-AutoFightAction $session $p 'combat' 3000
     Assert-Fight ((Get-AutoFightAction $session $packet $p 3499) -eq 'wait') 'Existing longer profile cooldown ignored.'
-    Write-Output 'PASS: combat common interval boundaries/all states, failed sends, edits, cooldown, JSON v1-v6 migration/custom common settings/conflict/isolation/invalid/atomic failure; default Tab and shared configurable target key. No native input.'
+    Write-Output 'PASS: combat common interval boundaries/all states, one skin attempt after loot per corpse, failed sends, edits, cooldown, JSON v1-v6 migration/custom common settings/conflict/isolation/invalid/atomic failure; default Tab and shared configurable target key. No native input.'
 } finally { if ([IO.File]::Exists($path)) { [IO.File]::Delete($path) } }

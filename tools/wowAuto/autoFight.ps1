@@ -70,8 +70,7 @@ function Invoke-AutoFightHold([long]$Now) {
         $packet=[WowAutoFight.Native]::Read($row.Client)
         if ($null -eq $packet) { throw '保持期间检测关闭或协议不可读，已释放移动键。' }
         if ($packet.ClassId -ne $hold.Session.ClassId) { throw '职业发生变化，已释放移动键。' }
-        if ($Now -ge $hold.Until -or $packet.Action -ne $hold.State -or $packet.Recovery -ne 'none' -or
-            ($hold.Movement -and $packet.Busy)) { [void](Release-AutoFightHold) }
+        if (Test-AutoFightHoldFinished $hold $packet $Now) { [void](Release-AutoFightHold) }
     }
     catch {
         $message=$_.Exception.Message
@@ -327,10 +326,11 @@ function Invoke-AutoFightTick([bool]$AllowInput=$true,[switch]$PlanOnly,[string]
         Complete-AutoFightCommand $script:autoFight.CommandGate $completed $true
         Complete-AutoFightAction $session $profile $action $completed
         if ($movement -or $action -in @('skin','loot')) {
-            $duration=if ($movement) { $profile.MovementHoldMs } else { $profile.InteractionHoldMs }
+            $duration=Get-AutoFightHoldDuration $profile $action
             $script:autoFight.ActiveHold=[pscustomobject]@{Row=$row; Session=$session; State=$packet.Action;
                 Until=($completed+$duration); Movement=$movement}
-            Set-AutoFightStatus $row ("已执行"+$handler.Label+" $($binding.Text) · 最长保持 $duration ms，状态改变时结束。")
+            $holdDescription=if ($action -eq 'skin') {"固定保持 $duration ms"} else {"最长保持 $duration ms，状态改变时结束"}
+            Set-AutoFightStatus $row ("已执行"+$handler.Label+" $($binding.Text) · $holdDescription。")
         }
         else { Set-AutoFightStatus $row ("已执行"+$handler.Label+"键 $($binding.Text) · $combatText") }
         Finish-AutoFightPending $completed
@@ -470,7 +470,7 @@ function New-AutoFightSettingsDialog([switch]$Embedded) {
     }
     $numbers=@(@('CombatIntervalMs','正常战斗间隔 (ms)',100,10000),
         @('MovementHoldMs','移动按住时长 (ms)',100,2000),
-        @('InteractionHoldMs','交互前台保持 (ms)',1000,60000))
+        @('InteractionHoldMs','拾取前台保持 (ms)',1000,60000))
     for ($i=1;$i -lt $numbers.Count;$i++) {
         $entry=$numbers[$i]; $x=if ($i -eq 2) {436} else {16}; $y=if ($i -eq 0) {174} else {394}
         $label=New-Object System.Windows.Forms.Label; $label.Text=$entry[1]; $label.SetBounds($x,($y+4),220,32)

@@ -239,7 +239,8 @@ function Save-AutoFightProfiles([string]$Path,$Profiles,$CommandIntervalMs=500,$
 function New-AutoFightSession([long]$Now,[int]$ClassId) {
     return [pscustomobject]@{Id=[Guid]::NewGuid().ToString('N'); ClassId=$ClassId; Due=$Now;
         State=''; EnteredAt=$Now; EntryPending=$true; NextActionAt=$Now; NextInteractionAt=0L; LastInteractionState='';
-        EncounterId=-1; OpeningSent=$false;RecoveryState='none';RecoverySent=$false;MovementRequest='';
+        EncounterId=-1; OpeningSent=$false;LootEncounterId=-1;SkinnedEncounterId=-1;
+        RecoveryState='none';RecoverySent=$false;MovementRequest='';
         JumpIntervalSeconds=0;NextJumpAt=[long]::MaxValue}
 }
 function Set-AutoFightJumpInterval($Session,[int]$Seconds,[long]$Now) {
@@ -252,7 +253,10 @@ function Update-AutoFightState($Session,$Packet,[long]$Now) {
         $Session.RecoveryState=$Packet.Recovery; $Session.RecoverySent=$false
     }
     $changed=$Session.EncounterId -ne $Packet.EncounterId
-    if ($changed) { $Session.EncounterId=$Packet.EncounterId; $Session.OpeningSent=$false }
+    if ($changed) {
+        $Session.EncounterId=$Packet.EncounterId; $Session.OpeningSent=$false
+        $Session.LootEncounterId=-1; $Session.SkinnedEncounterId=-1
+    }
     $state=if ($Packet.Action -eq 'waiting' -or ($Packet.Action -eq 'opening' -and $Session.OpeningSent)) { 'waiting' }
         elseif ($Packet.Recovery -ne 'none') { $Packet.Recovery }
         elseif ($Packet.Action -eq 'idle' -and -not $Packet.Busy -and $Session.MovementRequest) {'move-'+$Session.MovementRequest}
@@ -278,8 +282,10 @@ function Get-AutoFightAction($Session,$Packet,$Profile,[long]$Now) {
     if (-not $handler.Key -or $Now -lt $Session.NextActionAt) { return 'wait' }
     if ($Session.State -in @('skin','loot')) {
         if (-not $Profile.SkinEnabled -or $Packet.Combat) { return 'wait' }
-        # A confirmed loot -> skin (or skin -> loot) transition starts a fresh interaction phase.
-        # Re-entering the same phase after idle or recovery still respects its retry deadline.
+        if ($Session.State -eq 'skin' -and ($Session.LootEncounterId -ne $Packet.EncounterId -or
+            $Session.SkinnedEncounterId -eq $Packet.EncounterId)) { return 'wait' }
+        # A loot -> skin transition starts a fresh phase. Loot retries retain their cooldown;
+        # the corpse skin latch above prevents a second attempt after state changes.
         if ($Session.LastInteractionState -eq $Session.State -and $Now -lt $Session.NextInteractionAt) { return 'wait' }
     }
     if ($Session.EntryPending -or $handler.Interval) { return $Session.State }
@@ -300,7 +306,22 @@ function Complete-AutoFightAction($Session,$Profile,[string]$Action,[long]$Now) 
     if ($Action -in @('skin','loot')) {
         $Session.LastInteractionState=$Action
         $Session.NextInteractionAt=$Session.NextActionAt
+        if ($Action -eq 'loot') { $Session.LootEncounterId=$Session.EncounterId }
+        else { $Session.SkinnedEncounterId=$Session.EncounterId }
     }
     # Poll states independently from action cooldowns, so recovery is not delayed by combat retries.
     $Session.Due=$Now+100
+}
+function Get-AutoFightHoldDuration($Profile,[string]$Action) {
+    if ($Action -eq 'skin') {return 2000}
+    if ($Action.StartsWith('move-')) {return $Profile.MovementHoldMs}
+    return $Profile.InteractionHoldMs
+}
+function Test-AutoFightHoldFinished($Hold,$Packet,[long]$Now) {
+    if ($Hold.State -eq 'skin' -and -not $Hold.Movement) {
+        # Do not leave a skinning cast early just because the plugin already reports idle.
+        return $Now -ge $Hold.Until -or $Packet.Combat
+    }
+    return $Now -ge $Hold.Until -or $Packet.Action -ne $Hold.State -or $Packet.Recovery -ne 'none' -or
+        ($Hold.Movement -and $Packet.Busy)
 }
