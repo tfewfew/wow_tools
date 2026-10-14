@@ -162,6 +162,8 @@ try {
         $client=[pscustomobject]@{Key=$flavor; ProcessId=1; Flavor=$flavor; Title='模拟战斗窗口'}
         $row=New-AutoFightRow $client $fightRows.Count
         Assert-Ui ($row.Name.Text -match '左上') 'Process row omitted window position.'
+        Assert-Ui ($row.Panel.Height -eq 110 -and $row.Panel.Controls.Count -eq 4 -and
+            -not $row.PSObject.Properties['MoveButtons']) 'Combat row still exposes manual movement buttons.'
         [WowAutoFight.Native]::Position='右下'; Update-AutoFightRowName $row
         Assert-Ui ($row.Name.Text -match '右下') 'Process position did not update.'
         $row.ClassId=1; $row.CanStart=$true; $script:autoFight.Rows[$flavor]=$row
@@ -257,26 +259,7 @@ try {
         Tick-FightEncounter $fightRows[0] 'idle' ($base+7000)
     }
     [WowAutoFight.Native]::Current.Combat=$false
-    Prepare-FightInput $fightRows[0] 'idle' 30000
-    Update-AutoFightControls
-    $fightRows[0].MoveButtons[2].PerformClick()
-    Invoke-AutoFightTick
-    $baseline++
-    Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline -and [WowAutoFight.Native]::IsHolding -and
-        $script:autoFight.ActiveHold.Until -eq 30600) 'Script movement button/common duration not dispatched.'
-    $script:autoFight.Clock.ElapsedMilliseconds=30600;Invoke-AutoFightTick
-    Assert-Ui (-not [WowAutoFight.Native]::IsHolding) 'Script movement did not release at deadline.'
-    $fightRows[0].MoveButtons[2].PerformClick()
-    Tick-FightEncounter $fightRows[0] 'idle' 31000
-    $baseline++
-    Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline -and [WowAutoFight.Native]::IsHolding) 'Repeated manual direction request stayed latched off.'
     Stop-AutoFightAll
-    Prepare-FightInput $fightRows[0] 'combat' 32000
-    Invoke-AutoFightTick
-    $cooldown=$fightRows[0].Session.NextActionAt
-    Update-AutoFightControls
-    $fightRows[0].MoveButtons[0].PerformClick()
-    Assert-Ui ($fightRows[0].Session.NextActionAt -eq $cooldown -and -not $fightRows[0].Session.EntryPending) 'Movement request reset combat cooldown.'
     $baseline=[WowAutoFight.Native]::Sends
     Prepare-FightInput $fightRows[0] 'combat' 33000
     $fightRows[0].CanStart=$true

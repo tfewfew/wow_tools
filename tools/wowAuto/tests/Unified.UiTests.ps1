@@ -37,6 +37,8 @@ try {
     Assert-Ui ($tabs.TabPages.Count -eq 1 -and -not $combat.PSObject.Properties['ModeBox'] -and @($combat.Panel.Controls | Where-Object {$_ -is [System.Windows.Forms.ComboBox]}).Count -eq 1) 'Main UI still has two task tabs or incorrect default.'
     Set-RowTaskMode $combat fight
     Assert-Ui ($combat.TaskMode -eq 'fight' -and $combat.FightRow -and -not $combat.Validated) 'Mode selector failed to attach combat engine.'
+    Assert-Ui (-not $combat.FightRow.PSObject.Properties['MoveButtons'] -and
+        -not @($combat.Panel.Controls | Where-Object {$_ -is [System.Windows.Forms.Button] -and $_.Text -in @('前','后','左','右')}).Count) 'Unified combat row still exposes manual movement buttons.'
     [WowAutoFight.Native]::Current.Flavor='titan'; [WowAutoFight.Native]::Current.Action='idle'
     [WowAutoFight.Native]::Current.Recovery='none'; [WowAutoFight.Native]::Current.ClassId=1
     [WowAutoFight.Native]::IsForeground=$true; [WowAutoFight.Native]::FailSend=$false

@@ -1151,9 +1151,6 @@ function Set-RowControls($Row) {
     $Row.Stop.Enabled = $running -or $eligible -or $exiting
     if ($Row.PSObject.Properties['AccountBox']) {$Row.AccountBox.Enabled=-not $script:scanning -and -not $script:editingSettings -and -not $running -and -not $exiting}
     Update-RotationRow $Row
-    if ($Row.FightRow) {foreach ($button in $Row.FightRow.MoveButtons) {
-        $button.Visible=$Row.TaskMode -eq 'fight'; $button.Enabled=$running -and $Row.TaskMode -eq 'fight' -and -not $script:scanning -and -not $script:editingSettings
-    }}
 }
 
 function Set-RowStatusText($Row, [string]$Message) {

@@ -33,7 +33,6 @@ function Update-AutoFightControls {
     foreach ($row in @($script:autoFight.Rows.Values)) {
         $row.Start.Enabled=$row.CanStart -and $null -eq $row.Session -and -not $busy -and $script:autoFight.ConfigReady
         $row.Stop.Enabled=$null -ne $row.Session
-        foreach ($button in @($row.MoveButtons)) {$button.Enabled=$null -ne $row.Session -and -not $busy -and -not $script:autoFight.Editing}
         if ($row.Start.Enabled) { $runnable=$true }; if ($null -ne $row.Session) { $running=$true }
     }
     $script:autoFight.StartAll.Enabled=$runnable
@@ -139,7 +138,7 @@ function Update-AutoFightRowName($Row) {
 }
 function New-AutoFightRow($Client,[int]$Order) {
     $panel=New-Object System.Windows.Forms.Panel
-    $panel.Width=1215; $panel.Height=148; $panel.Margin=New-Object System.Windows.Forms.Padding(0,0,0,8)
+    $panel.Width=1215; $panel.Height=110; $panel.Margin=New-Object System.Windows.Forms.Padding(0,0,0,8)
     $panel.BackColor=[Drawing.Color]::FromArgb(72,72,72)
     $name=New-Object System.Windows.Forms.Label
     $name.SetBounds(12,12,370,86); $name.AutoEllipsis=$true
@@ -159,24 +158,6 @@ function New-AutoFightRow($Client,[int]$Order) {
     $start.Add_Click({param($sender,$eventArgs) Start-AutoFightRow $sender.Tag})
     $stop.Add_Click({param($sender,$eventArgs) Stop-AutoFightRow $sender.Tag})
     $panel.Controls.AddRange([System.Windows.Forms.Control[]]@($name,$start,$stop,$status))
-    $row | Add-Member NoteProperty MoveButtons @()
-    foreach ($entry in @(@('forward','前'),@('backward','后'),@('left','左'),@('right','右'))) {
-        $button=New-Object WowAuto.DimButton
-        $button.Text=$entry[1]; $button.SetBounds((395+$row.MoveButtons.Count*48),106,44,28)
-        Set-AutoFightButtonStyle $button
-        $button.Tag=[pscustomobject]@{Row=$row;Direction=$entry[0]}
-        $button.Add_Click({param($sender,$eventArgs)
-            $r=$sender.Tag.Row
-            if (-not $r.Session -or $script:autoFight.Editing -or $script:autoFight.Scan -or $script:autoFight.ActiveHold) {return}
-            $r.Session.MovementRequest=$sender.Tag.Direction
-            $r.Session.Due=$script:autoFight.Clock.ElapsedMilliseconds
-            if ($r.Session.State.StartsWith('move-')) {
-                $r.Session.EntryPending=$true; $r.Session.NextActionAt=$r.Session.Due
-            }
-            Set-AutoFightStatus $r '已请求一次移动；仅在待机、无需恢复及非忙碌时执行。'
-        })
-        $row.MoveButtons+=,$button; $panel.Controls.Add($button)
-    }
     Update-AutoFightRowName $row
     Set-AutoFightStatus $row '尚未读取 fight_detector，开始按钮锁定。'
     return $row
@@ -529,7 +510,7 @@ function New-AutoFightSettingsDialog([switch]$Embedded) {
     $jump.BackColor=[Drawing.Color]::FromArgb(50,50,50); $jump.ForeColor=[Drawing.Color]::White
     $jump.SetBounds(360,570,168,32); $body.Controls.Add($jump); $editor.CommonNumbers.JumpIntervalSeconds=$jump
     $hint=New-Object System.Windows.Forms.Label
-    $hint.Text="选目标键默认 Tab；须与游戏插件面板的全局选目标键一致。`r`n补 Buff 间隔为 0 时关闭；进入游戏和到期后各执行一轮，成功按键间至少等待 1 秒。`r`n补 Buff 只在非战斗待机、非忙碌且无需恢复时执行；公共间隔仍约束所有战斗按键。`r`n检测 / 攻击距离在插件面板设置；等待接近期间不发攻击键。`r`n普通 / 紧急恢复每次进入只执行一次；移动由方向按钮请求。"
+    $hint.Text="选目标键默认 Tab；须与游戏插件面板的全局选目标键一致。`r`n补 Buff 间隔为 0 时关闭；进入游戏和到期后各执行一轮，成功按键间至少等待 1 秒。`r`n补 Buff 只在非战斗待机、非忙碌且无需恢复时执行；公共间隔仍约束所有战斗按键。`r`n检测 / 攻击距离在插件面板设置；等待接近期间不发攻击键。`r`n普通 / 紧急恢复每次进入只执行一次。"
     $hint.SetBounds(16,616,812,144); $body.Controls.Add($hint)
     $errorLabel=New-Object System.Windows.Forms.Label
     $errorLabel.SetBounds(16,4,($footer.ClientSize.Width-32),30); $errorLabel.Anchor='Top, Left, Right'; $errorLabel.AutoEllipsis=$true

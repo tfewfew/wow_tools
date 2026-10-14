@@ -29,7 +29,6 @@ function Ensure-UnifiedFightRow($Row) {
     }
     if ($UiTest) {$client | Add-Member NoteProperty Key $Row.Key}
     $fight=New-AutoFightRow $client $Row.Process.Id
-    foreach ($button in $fight.MoveButtons) {$Row.Panel.Controls.Add($button)}
     $oldPanel=$fight.Panel
     $fight.Panel=$Row.Panel; $fight.Name=$Row.Name; $fight.Start=$Row.Start; $fight.Stop=$Row.Stop; $fight.Status=$Row.Status
     $fight | Add-Member NoteProperty ParentRow $Row
