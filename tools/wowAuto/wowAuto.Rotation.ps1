@@ -181,13 +181,18 @@ function Send-RotationAction($Row,[string]$Action,$Target=$null) {
     Assert-GameActionContext
     if (-not (Test-RowProcessIdentity $Row) -or $Row.Process.HasExited) {throw '角色切换期间进程身份已变化。'}
     if (-not (Test-WorkerForeground $Row)) {throw '角色切换窗口暂时失去前台。'}
-    if ($UiTest) {$script:rotation.Actions+=,[pscustomobject]@{Key=$Row.Key;Action=$Action;Target=$Target};return $true}
+    $intervals=$null
+    if ($Action -eq 'tripleclick') {
+        if (-not $Target -or -not $Target.Name) {throw '未定位完整角色名。'}
+        # Draw both intervals before the first click so one selection is one input transaction.
+        $intervals=@((Get-Random -Minimum 100 -Maximum 251),(Get-Random -Minimum 100 -Maximum 251))
+    }
+    if ($UiTest) {$script:rotation.Actions+=,[pscustomobject]@{Key=$Row.Key;Action=$Action;Target=$Target;Intervals=$intervals};return $true}
     switch ($Action) {
         'logout' {$sent=[WowAuto.NativeInput]::SendRotationCommand($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,'logout',0)}
-        'doubleclick' {
-            if (-not $Target -or -not $Target.Name) {throw '未定位完整角色名。'}
+        'tripleclick' {
             if (-not [WowAutoRotation.Native]::SnapshotMatches($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,$Target.Width,$Target.Height)) {return $false}
-            [WowAutoRotation.Native]::MouseAction($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,$Target.X,$Target.Y,0,$true);$sent=$true
+            [WowAutoRotation.Native]::ClickCharacter($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,$Target.X,$Target.Y,$intervals[0],$intervals[1]);$sent=$true
         }
         default {throw '未知编排动作。'}
     }
@@ -220,6 +225,17 @@ function Get-RotationMenuRow($Bounds,[double]$TextY) {
     if ($index -lt 1 -or $index -gt 10 -or [Math]::Abs($TextY-$centerY) -gt 0.02) {return $null}
     return [pscustomobject]@{Index=$index;X=($Bounds.X+$Bounds.W/2);Y=$centerY}
 }
+function Get-RotationOcrLog($Screen,[string]$Name) {
+    $recognized=@(foreach ($target in @($Screen.Targets | Sort-Object MenuRow,Name)) {
+        $position=if ($target.MenuRow) {'第'+$target.MenuRow+'个角色槽位'} else {'槽位未知'}
+        $raw=if ($target.PSObject.Properties['RawName'] -and $target.RawName) {$target.RawName} else {$target.Name}
+        if ($raw -cne $target.Name) {$position+' '+$raw+'→'+$target.Name} else {$position+' '+$raw}
+    })
+    $list=if ($recognized.Count) {$recognized -join '、'} else {'未识别到角色名'}
+    $matched=@($Screen.Targets | Where-Object {$_.Name -ceq $Name -and -not $_.Ambiguous})
+    $selection=if ($matched.Count -eq 1) {'准备点击第'+$matched[0].MenuRow+'个角色槽位（'+$Name+'）'} else {'目标“'+$Name+'”未唯一定位，暂不点击'}
+    return 'OCR角色列表：'+$list+'；'+$selection+'。'
+}
 function ConvertFrom-RotationOcr($Ocr,$Plan,[switch]$MenuWasConfirmed) {
     $configured=@($Plan.Slots | Where-Object {$_.Name} | ForEach-Object {$_.Name} | Select-Object -Unique)
     $bounds=if ($Ocr.PSObject.Properties['NamesBounds'] -and $Ocr.NamesBounds) {$Ocr.NamesBounds} else {[pscustomobject]@{X=0.79;Y=0;W=0.21;H=0.84}}
@@ -233,7 +249,7 @@ function ConvertFrom-RotationOcr($Ocr,$Plan,[switch]$MenuWasConfirmed) {
         $row=Get-RotationMenuRow $bounds $y
         if (-not $row) {continue}
         $match=Resolve-RotationOcrName $line.Text $configured
-        [pscustomobject]@{Name=$match.Name;Ambiguous=$match.Ambiguous;MenuRow=$row.Index;X=$row.X;Y=$row.Y}
+        [pscustomobject]@{Name=$match.Name;RawName=$line.Text;Ambiguous=$match.Ambiguous;MenuRow=$row.Index;X=$row.X;Y=$row.Y}
     })
     # The normal pass can recover names that yellow-text preprocessing misread twice.
     foreach ($line in $Ocr.Lines) {
@@ -241,7 +257,7 @@ function ConvertFrom-RotationOcr($Ocr,$Plan,[switch]$MenuWasConfirmed) {
             $match=Resolve-RotationOcrName $line.Text $configured
             if (-not $match.Ambiguous -and $match.Name -cin $configured -and $match.Name -cnotin $targets.Name) {
                 $row=Get-RotationMenuRow $bounds ($line.Y+$line.H/2)
-                if ($row) {$targets+=,[pscustomobject]@{Name=$match.Name;Ambiguous=$false;MenuRow=$row.Index;X=$row.X;Y=$row.Y}}
+                if ($row) {$targets+=,[pscustomobject]@{Name=$match.Name;RawName=$line.Text;Ambiguous=$false;MenuRow=$row.Index;X=$row.X;Y=$row.Y}}
             }
         }
     }
@@ -419,22 +435,23 @@ function Invoke-RotationTick([long]$Now) {
             }
             'find' {
                 if ($screen.Kind -ne 'menu') {$work.Stable=0;Set-RowStatusText $row '选角锚点未识别，等待重新识别。';break}
+                Set-RowStatusText $row (Get-RotationOcrLog $screen $name)
                 $targets=@($screen.Targets | Where-Object {$_.Name -ceq $name -and -not $_.Ambiguous})
-                if ($targets.Count -gt 1) {throw '列表出现多个相同名称，未双击。'}
+                if ($targets.Count -gt 1) {throw '列表出现多个相同名称，未点击。'}
                 if ($targets.Count -eq 1) {
                     $work.FindMisses=0
                     $target=$targets[0]
                     if ($work.Candidate -and [Math]::Abs($target.X-$work.Candidate.X) -lt 0.005 -and [Math]::Abs($target.Y-$work.Candidate.Y) -lt 0.005) {$work.Stable++} else {$work.Stable=1}
                     $work.Candidate=$target
                     if ($work.Stable -ge 2) {
-                        if (-not (Send-RotationAction $row 'doubleclick' $target)) {
+                        if (-not (Send-RotationAction $row 'tripleclick' $target)) {
                             $work.Stable=0;$work.Candidate=$null;$work.Due=$Now+100
                             Set-RowStatusText $row '窗口缩放，重新OCR定位角色名。'
                             return $true
                         }
                         Stop-RotationOcr
                         $work.Phase='login';$work.Stable=0
-                        Set-RowStatusText $row ('步骤2/3：已快速双击“'+$name+'”，OCR结束，等待常驻白点。')
+                        Set-RowStatusText $row ('步骤2/3：已三次点击第'+$target.MenuRow+'个角色槽位“'+$name+'”，OCR结束，等待常驻白点。')
                     }
                 } else {
                     $work.Candidate=$null;$work.Stable=0

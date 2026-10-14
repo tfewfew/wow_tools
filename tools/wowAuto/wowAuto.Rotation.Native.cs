@@ -109,30 +109,29 @@ namespace WowAutoRotation {
                     throw new InvalidOperationException("Window moved during cursor parking.");
             } finally {if(old!=IntPtr.Zero) SetThreadDpiAwarenessContext(old);}
         }
-        public static void MouseAction(int pid,long ticks,string path,double x,double y,int wheel,bool doubleClick) {
+        public static void ClickCharacter(int pid,long ticks,string path,double x,double y,int firstDelayMs,int secondDelayMs) {
             IntPtr old=SetThreadDpiAwarenessContext(new IntPtr(-4));
             try {
+                if(firstDelayMs<100 || firstDelayMs>250 || secondDelayMs<100 || secondDelayMs>250)
+                    throw new ArgumentOutOfRangeException("Character click intervals must be 100-250 ms.");
                 IntPtr h=Window(pid,ticks,path);Rect r;Point p=new Point();
                 if(x<=0 || x>=1 || y<=0 || y>=1 || !GetClientRect(h,out r) || !ClientToScreen(h,ref p)) throw new ArgumentException("Invalid client point.");
                 p.X+=(int)Math.Round(x*r.R);p.Y+=(int)Math.Round(y*r.B);
                 if(GetAncestor(WindowFromPoint(p),2)!=h || !SetCursorPos(p.X,p.Y)) throw new InvalidOperationException("Target point is obscured.");
                 Window(pid,ticks,path);
-                Input[] inputs;
-                if(wheel!=0) {var input=new Input();input.Data.Mouse.Flags=0x800;input.Data.Mouse.Value=unchecked((uint)wheel);inputs=new[]{input};}
-                else {var down=new Input();down.Data.Mouse.Flags=2;var up=new Input();up.Data.Mouse.Flags=4;inputs=new[]{down,up};}
-                if(SendInput((uint)inputs.Length,inputs,Marshal.SizeOf(typeof(Input)))!=inputs.Length) {
-                    if(wheel==0) {var up=new Input();up.Data.Mouse.Flags=4;SendInput(1,new[]{up},Marshal.SizeOf(typeof(Input)));}
-                    throw new InvalidOperationException("Mouse input failed.");
-                }
-                if(wheel==0 && doubleClick) {
-                    System.Threading.Thread.Sleep(40);
+                var down=new Input();down.Data.Mouse.Flags=2;
+                var up=new Input();up.Data.Mouse.Flags=4;
+                Input[] inputs=new[]{down,up};
+                int[] intervals=new[]{firstDelayMs,secondDelayMs};
+                for(int click=0;click<3;click++) {
+                    if(click>0) System.Threading.Thread.Sleep(intervals[click-1]);
                     Rect next;Point origin=new Point();
                     if(Window(pid,ticks,path)!=h || !GetClientRect(h,out next) || !ClientToScreen(h,ref origin) ||
                         next.R!=r.R || next.B!=r.B || origin.X+(int)Math.Round(x*r.R)!=p.X || origin.Y+(int)Math.Round(y*r.B)!=p.Y)
-                        throw new InvalidOperationException("Window moved during double-click.");
+                        throw new InvalidOperationException("Window moved during character clicks.");
                     if(GetAncestor(WindowFromPoint(p),2)!=h || SendInput((uint)inputs.Length,inputs,Marshal.SizeOf(typeof(Input)))!=inputs.Length) {
-                        var up=new Input();up.Data.Mouse.Flags=4;SendInput(1,new[]{up},Marshal.SizeOf(typeof(Input)));
-                        throw new InvalidOperationException("Double-click interrupted.");
+                        SendInput(1,new[]{up},Marshal.SizeOf(typeof(Input)));
+                        throw new InvalidOperationException("Character clicks interrupted.");
                     }
                 }
             } finally {if(old!=IntPtr.Zero) SetThreadDpiAwarenessContext(old);}

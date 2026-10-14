@@ -14,7 +14,7 @@ function Step-RotationTest([long]$Now,[string]$Screen='automatic') {
     if ($work) {
         $kind=if ($Screen -ne 'automatic') {$Screen} elseif ($work.Phase -in @('menu','find')) {'menu'} else {'world'}
         $work.Row.Process | Add-Member NoteProperty LoginPointPresent ($kind -eq 'world') -Force
-        $work.Row.Process.RotationScreen=[pscustomobject]@{Kind=$kind;RoleName=$work.Entry.Plan.Slots[$work.Entry.Index].Name;Targets=@($work.Entry.Plan.Slots | Where-Object {$_.Name} | ForEach-Object {[pscustomobject]@{Name=$_.Name;X=0.84;Y=0.20}})}
+        $work.Row.Process.RotationScreen=[pscustomobject]@{Kind=$kind;RoleName=$work.Entry.Plan.Slots[$work.Entry.Index].Name;Targets=@(for ($slotIndex=0;$slotIndex -lt 3;$slotIndex++) {if ($work.Entry.Plan.Slots[$slotIndex].Name) {[pscustomobject]@{Name=$work.Entry.Plan.Slots[$slotIndex].Name;RawName=$work.Entry.Plan.Slots[$slotIndex].Name;MenuRow=($slotIndex+1);X=0.84;Y=(0.119+$slotIndex*0.0743)}}})}
         if ($work.Row.TaskMode -eq 'fight') {[WowAutoFight.Native]::Current.Flavor=$work.Row.Client.Flavor;[WowAutoFight.Native]::Current.ClassId=1}
     }
     $null=Invoke-RotationTick $Now
@@ -80,7 +80,9 @@ try {
     Assert-Ui ((Test-UnifiedTaskRunning $a) -and (Test-UnifiedTaskRunning $b) -and (Get-WowAutoCycleCount $script:scheduler $a.Key) -eq 0 -and [long]$script:scheduler.CyclesSinceJump[$a.Key] -eq 0) 'Initial role login/task start or character counter reset failed.'
     Assert-Ui ($a.State.UseItem -and -not $b.State.UseItem) 'Initial per-slot item choices did not reach engine.'
     $actions=@($script:rotation.Actions | Where-Object {$_.Key -eq $a.Key})
-    Assert-Ui (($actions.Action -join ',') -eq 'logout,doubleclick' -and $a.Process.RotationCursorParks -eq $a.Process.RotationOcrReads) 'First-page double-click or pre-OCR cursor parking was skipped.'
+    Assert-Ui (($actions.Action -join ',') -eq 'logout,tripleclick' -and $a.Process.RotationCursorParks -eq $a.Process.RotationOcrReads) 'First-page three-click selection or pre-OCR cursor parking was skipped.'
+    Assert-Ui ($actions[-1].Intervals.Count -eq 2 -and @($actions[-1].Intervals | Where-Object {$_ -ge 100 -and $_ -le 250}).Count -eq 2 -and $actions[-1].Target.MenuRow -eq 1) 'Three-click intervals or fixed role row were not prepared.'
+    Assert-Ui (@($a.StatusHistory | Where-Object {$_ -match 'OCR角色列表：' -and $_ -match '第1个角色槽位 双持船橘二咪' -and $_ -match '第3个角色槽位 咆史呀嘞' -and $_ -match '准备点击第1个角色槽位'}).Count -gt 0) 'OCR role list and selected row missing from status log.'
     $oldCount=$script:rotation.Actions.Count
     Step-RotationTest 19999
     Assert-Ui ($script:rotation.Actions.Count -eq $oldCount -and -not $script:rotation.Current) 'Switched before global deadline.'
@@ -99,7 +101,7 @@ try {
     Assert-Ui (-not $a.SlotUseItem) 'Combat slot inherited fishing item.'
     Assert-Ui ($a.TaskMode -eq 'fight' -and $a.FightRow.Session -and $b.State.Running) 'Per-slot task modes not started.'
     $actions=@($script:rotation.Actions | Select-Object -Skip $oldCount | Where-Object {$_.Key -eq $b.Key})
-    Assert-Ui (@($actions | Where-Object {$_.Action -eq 'logout'}).Count -eq 1 -and @($actions | Where-Object {$_.Action -eq 'doubleclick'}).Count -eq 1) 'Single configured character did not log out and log back in.'
+    Assert-Ui (@($actions | Where-Object {$_.Action -eq 'logout'}).Count -eq 1 -and @($actions | Where-Object {$_.Action -eq 'tripleclick'}).Count -eq 1) 'Single configured character did not log out and log back in.'
     # Unknown screens and incomplete OCR never receive navigation, chat or task input.
     Stop-AllRows;$script:rotation.Actions=@();Start-Row $a
     Step-RotationTest 30000;Step-RotationTest 30300 'unknown';Step-RotationTest 30600 'unknown'
@@ -126,13 +128,13 @@ try {
     $b.Process.FocusAllowed=$true
     Stop-AllRows;$script:rotation.Actions=@();Start-Row $a;Stop-Row $a;Step-RotationTest 212000
     Assert-Ui (-not $script:rotation.Current -and -not $script:rotation.Actions.Count) 'Stopped queued work still ran.'
-    # Starting in the menu only double-clicks the name visible on the first page.
+    # Starting in the menu only clicks the name visible on the first page.
     Stop-AllRows;$script:rotation.Actions=@();Start-Row $b
     Step-RotationTest 213000;Step-RotationTest 213300 'menu'
     $now=213600L
     for ($i=0;$i -lt 80 -and $script:rotation.Current.Phase -ne 'login';$i++) {Step-RotationTest $now;$now+=300}
     Assert-Ui ($script:rotation.Current.Phase -eq 'login') 'Initial menu did not reach login.'
-    Assert-Ui (($script:rotation.Actions.Action -join ',') -eq 'doubleclick' -and $script:rotation.Actions[-1].Target.Name -ceq '小船长') 'Menu login scrolled or missed the first-page name.'
+    Assert-Ui (($script:rotation.Actions.Action -join ',') -eq 'tripleclick' -and $script:rotation.Actions[-1].Target.Name -ceq '小船长' -and $script:rotation.Actions[-1].Target.MenuRow -eq 2) 'Menu login scrolled or missed the first-page name.'
     $before=$script:rotation.Actions.Count
     Step-RotationTest $now 'unknown';$now+=300;Step-RotationTest $now 'pending';$now+=300
     Assert-Ui (-not $b.State.Running -and $script:rotation.Actions.Count -eq $before) 'Loading used a readiness color/chat request or started work.'
@@ -146,13 +148,13 @@ try {
     $b.Process.CommandAllowed=$false;Start-Row $b;$now=220000L;Complete-RotationTest ([ref]$now)
     Assert-Ui (-not $script:rotation.Active.ContainsKey($b.Key) -and -not (Test-UnifiedTaskRunning $b)) 'Failed monitor command started character task.'
     $b.Process.CommandAllowed=$true
-    # Partial/duplicate names cannot receive a double-click; login uses the point, never OCR names.
+    # Partial/duplicate names cannot receive character clicks; login uses the point, never OCR names.
     $now=230000L;Reach-RotationTestPhase $a 'find' ([ref]$now)
     for ($i=0;$i -lt 3;$i++) {
         $a.Process.RotationScreen=[pscustomobject]@{Kind='menu';RoleName=$null;Targets=@([pscustomobject]@{Name='双持船橘二';X=0.84;Y=0.2})}
         $script:schedulerClock.ElapsedMilliseconds=$now;$null=Invoke-RotationTick $now;$now+=300
     }
-    Assert-Ui (-not $script:rotation.Active.ContainsKey($a.Key) -and -not @($script:rotation.Actions | Where-Object {$_.Action -eq 'doubleclick'}).Count) 'Partial/no-progress search clicked a role.'
+    Assert-Ui (-not $script:rotation.Active.ContainsKey($a.Key) -and -not @($script:rotation.Actions | Where-Object {$_.Action -eq 'tripleclick'}).Count) 'Partial/no-progress search clicked a role.'
     $now=240000L;Reach-RotationTestPhase $a 'find' ([ref]$now)
     $a.Process.RotationScreen=[pscustomobject]@{Kind='menu';RoleName=$null;Targets=@(1..2 | ForEach-Object {[pscustomobject]@{Name='双持船橘二咪';X=0.84;Y=0.2}})}
     $script:schedulerClock.ElapsedMilliseconds=$now;$null=Invoke-RotationTick $now
@@ -256,6 +258,11 @@ try {
     $mapped=ConvertFrom-RotationOcr $ocr $plan
     Assert-Ui ([Math]::Abs($mapped.Targets[0].X-0.85) -lt 0.00001 -and $mapped.Targets[0].MenuRow -eq 2 -and
         [Math]::Abs($mapped.Targets[0].Y-(0.119+0.0743)) -lt 0.00001) 'OCR name did not map to the fixed second character row.'
+    Assert-Ui ((Get-RotationOcrLog $mapped '双持船橘二咪') -match '第2个角色槽位 双持船橘二咪；准备点击第2个角色槽位') 'OCR log omitted the identified click row.'
+    $ocr.Names[0].Text='双持船橘二咩'
+    $corrected=ConvertFrom-RotationOcr $ocr $plan
+    Assert-Ui ((Get-RotationOcrLog $corrected '双持船橘二咪') -match '双持船橘二咩→双持船橘二咪') 'OCR log concealed the original misread name.'
+    $ocr.Names[0].Text='双持船橘二咪'
     $ocr.Names[0].X=0.30;$ocr.Names[0].W=0.10
     $otherWordBox=ConvertFrom-RotationOcr $ocr $plan
     Assert-Ui ($otherWordBox.Targets[0].X -eq $mapped.Targets[0].X -and $otherWordBox.Targets[0].Y -eq $mapped.Targets[0].Y) 'Character click moved with OCR word-box width.'
@@ -286,7 +293,7 @@ try {
         Assert-Ui (-not [WowAutoRotation.Native]::HasLoginPoint($point)) 'Non-solid point accepted.'
     } finally {$point.Dispose()}
     foreach ($p in $sourceHashes.Keys) {Assert-Ui ((Get-FileHash $p).Hash -eq $sourceHashes[$p]) 'Tests changed real user configuration.'}
-    Write-Output 'PASS: name/empty/single/wrap slots, all-process logout before any OCR/login, shared deadline/all-stop batch, first-page double-click without scrolling, cursor parking, either menu anchor, partial/duplicate/no-progress rejection, permanent-point login/no OCR after selection/loading/pending/focus/timeout/stop/settings isolation, per-role fish/fight, counter reset, atomic drafts and PID reuse. All game input and OCR mocked.'
+    Write-Output 'PASS: name/empty/single/wrap slots, all-process logout before any OCR/login, shared deadline/all-stop batch, first-page three-click selection with precomputed random intervals and OCR row logs, cursor parking, either menu anchor, partial/duplicate/no-progress rejection, permanent-point login/no OCR after selection/loading/pending/focus/timeout/stop/settings isolation, per-role fish/fight, counter reset, atomic drafts and PID reuse. All game input and OCR mocked.'
 } finally {
     Stop-AllRows;Close-AutoFightTab
     if ([IO.File]::Exists($script:rotation.Path)) {[IO.File]::Delete($script:rotation.Path)}
