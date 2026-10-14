@@ -28,7 +28,7 @@ function Prepare-RotationTestBatch([ref]$Now,[int]$Count) {
     $clicks=@($script:rotation.Actions | Where-Object {$_.Action -eq 'tripleclick'}).Count
     $iterations=0
     while (($script:rotation.LogoutQueue.Count -or $script:rotation.Queue.Count -or
-        ($script:rotation.Current -and $script:rotation.Current.Phase -in @('logout-activate','logout-inspect','activate','menu','find'))) -and $iterations++ -lt 100) {
+        ($script:rotation.Current -and $script:rotation.Current.Phase -in @('logout-activate','logout-inspect','logout-send','activate','menu','menu-logout','find'))) -and $iterations++ -lt 100) {
         Step-RotationTest $Now.Value;$Now.Value+=300
         Assert-Ui (@($script:rotation.Actions | Where-Object {$_.Action -eq 'tripleclick'}).Count -eq $clicks) 'Clicked a role before every process had a prepared position.'
     }
@@ -107,7 +107,7 @@ try {
     Assert-Ui ((Test-UnifiedTaskRunning $a) -and (Test-UnifiedTaskRunning $b) -and (Get-WowAutoCycleCount $script:scheduler $a.Key) -eq 0 -and [long]$script:scheduler.CyclesSinceJump[$a.Key] -eq 0) 'Initial role login/task start or character counter reset failed.'
     Assert-Ui ($a.State.UseItem -and -not $b.State.UseItem) 'Initial per-slot item choices did not reach engine.'
     $actions=@($script:rotation.Actions | Where-Object {$_.Key -eq $a.Key})
-    Assert-Ui (($actions.Action -join ',') -eq 'logout,tripleclick' -and $a.Process.RotationCursorParks -eq $a.Process.RotationOcrReads) 'First-page three-click selection or pre-OCR cursor parking was skipped.'
+    Assert-Ui (($actions.Action -join ',') -eq 'logout,tripleclick' -and $a.Process.RotationCursorParks -eq 0) 'First-page three-click selection failed or background OCR moved the cursor.'
     Assert-Ui ($actions[-1].Intervals.Count -eq 2 -and @($actions[-1].Intervals | Where-Object {$_ -ge 100 -and $_ -le 250}).Count -eq 2 -and $actions[-1].Target.MenuRow -eq 1) 'Three-click intervals or fixed role row were not prepared.'
     Assert-Ui (@($a.StatusHistory | Where-Object {$_ -match 'OCR角色列表：' -and $_ -match '第1个角色槽位 双持船橘二咪' -and $_ -match '第3个角色槽位 咆史呀嘞' -and $_ -match '已定位第1个角色槽位'}).Count -gt 0) 'OCR role list and selected row missing from status log.'
     $oldCount=$script:rotation.Actions.Count
@@ -135,24 +135,24 @@ try {
     Stop-AllRows;$script:rotation.Actions=@();Start-Row $a
     Step-RotationTest 30000;Step-RotationTest 30300 'unknown';Step-RotationTest 30600 'unknown'
     Assert-Ui (-not $script:rotation.Actions.Count) 'Unknown screen received input.'
-    Step-RotationTest 30900 'world';Step-RotationTest 31200 'world';Step-RotationTest 31500 'unknown'
+    Step-RotationTest 30900 'world';Step-RotationTest 31200 'world';Step-RotationTest 31500 'world';Step-RotationTest 31800 'unknown'
     Assert-Ui (($script:rotation.Actions.Action -join ',') -eq 'logout') 'Loading received navigation.'
     $script:editingSettings=$true;$before=$script:rotation.Actions.Count;Step-RotationTest 40000 'menu';$script:editingSettings=$false
     Assert-Ui ($script:rotation.Actions.Count -eq $before) 'Settings failed to pause orchestration.'
     Step-RotationTest $script:rotation.Current.Deadline 'unknown'
     Assert-Ui (-not $script:rotation.Active.ContainsKey($a.Key) -and -not (Test-UnifiedTaskRunning $a)) 'Timeout restarted work.'
-    Start-Row $b;Step-RotationTest 211000;$script:workerFocus=-1;$b.Process.FocusAllowed=$false;Step-RotationTest 211300
-    Assert-Ui ($script:rotation.Active.ContainsKey($b.Key) -and $script:rotation.Current.FocusUntil -eq 216300) 'First failed activation stopped rotation or missed the five-second deadline.'
+    Start-Row $b;Step-RotationTest 211000;$script:workerFocus=-1;$b.Process.FocusAllowed=$false;Step-RotationTest 211300;Step-RotationTest 211600
+    Assert-Ui ($script:rotation.Active.ContainsKey($b.Key) -and $script:rotation.Current.FocusUntil -eq 216600) 'First failed activation stopped rotation or missed the five-second deadline.'
     Step-RotationTest 211799
     Assert-Ui ($script:rotation.Active.ContainsKey($b.Key)) 'Rotation stopped before the next focus retry.'
     $b.Process.FocusAllowed=$true
     Step-RotationTest 211800
-    Assert-Ui ($script:rotation.Active.ContainsKey($b.Key) -and $script:rotation.Current.Phase -eq 'logout-inspect') 'Temporary activation failure did not recover.'
+    Assert-Ui ($script:rotation.Active.ContainsKey($b.Key) -and $script:rotation.Current.Phase -eq 'logout-send') 'Temporary activation failure did not recover into the pending input stage.'
 
-    Stop-AllRows;Start-Row $b;Step-RotationTest 212000;$script:workerFocus=-1;$b.Process.FocusAllowed=$false;Step-RotationTest 212300
-    Step-RotationTest 217299
+    Stop-AllRows;Start-Row $b;Step-RotationTest 212000;$script:workerFocus=-1;$b.Process.FocusAllowed=$false;Step-RotationTest 212300;Step-RotationTest 212600
+    Step-RotationTest 217599
     Assert-Ui ($script:rotation.Active.ContainsKey($b.Key)) 'Rotation failed before five seconds of focus retries.'
-    Step-RotationTest 217300
+    Step-RotationTest 217600
     Assert-Ui (-not $script:rotation.Active.ContainsKey($b.Key)) 'Persistent focus failure did not stop rotation after five seconds.'
     $b.Process.FocusAllowed=$true
     Stop-AllRows;$script:rotation.Actions=@();Start-Row $a;Stop-Row $a;Step-RotationTest 212000

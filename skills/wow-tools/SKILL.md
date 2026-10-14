@@ -175,3 +175,13 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - 用户明确要求OCR截图前通过系统接口获取窗口尺寸，复核时再次系统读取并直接数值比较；只比较客户区宽 / 高，不比较横纵坐标。Get-RotationClientSize调用Native.ReadClientSize，在PMv2 DPI上下文使用GetClientRect取得物理像素，独立ClientSize快照不能从Bitmap.Width / Height或OCR结果构造。
 - 停放光标后先记录ClientSize再Capture，Capture同时核对预期系统尺寸，读取前与截图之间任一维度变化超过5%则丢弃重取。OCR异步返回及点击前都重新系统读取尺寸直接比较；PreparedTarget保存独立ClientSize，OCR只提供角色及比例坐标。窗口平移不使缓存失效；宽、高分别相对原始缓存尺寸计算变化，均不超过5%（含5%）则容忍，任一超过5%才重识别，复核不得更新原始基准以免累计漂移。
 - Native.ClientSizeWithinTolerance使用64位整数比较每轴差值×100与原尺寸×5，拒绝无效尺寸；PowerShell复核、Capture与ClickCharacter共用此规则。ClickCharacter在真正映射 / 发送点击前再次核对预期系统宽高，容差内按当前实际尺寸映射，三连击中途移动 / 缩放仍中止，保留原有身份 / 前台 / 遮挡保护。维护模拟用例覆盖系统读取计数、OCR无关字段、不比较窗口位置、宽高正负5%边界、单轴越界、无效尺寸、基准不漂移及容差内不重启OCR直接点击。按用户要求未执行验证或Windows同步，开发后直接提交推送。
+
+
+## 统一WGC窗口捕获与非激活恢复（2026-10-14）
+
+- 本节按用户最新要求覆盖历史屏幕取色 / PrintWindow后备、白点前台限制、OCR截图前停放光标及全编排阶段激活的约定。所有画面读取统一进入wowAuto.Capture.cs / ps1，以Windows.Graphics.Capture按HWND获取独立客户区帧；NativeInput、Rotation.Native、Fight.Native仅注入通用帧 / 像素 / 尺寸委托，不跨用钓鱼或战斗状态机。支持Windows 10 1903及以上，运行时解析WinRT，不依赖SDK、NuGet或外部DLL；捕获错误明确失败，不退回屏幕截图。
+- 每次请求核对PID / StartTicks / 路径 / 两服版本及窗口句柄。最小化清旧帧，Capture.Restore=45进入同一个游戏动作队列，在队列回调使用ShowWindowAsync(...,4=SW_SHOWNOACTIVATE)；恢复每500ms最多一次、从队列首次实际恢复起5秒期限（排队等待不计），禁止SetForegroundWindow及等待前台。读样恢复后等待新帧；首帧 / 尺寸更新最多5秒，重试100ms，不作为白点消失、协议关闭或焦点失败。停止取消该身份的恢复请求；旧恢复事件不得作用于新会话 / PID复用。
+- WGC使用每窗口MTA后台线程和CreateFreeThreaded帧池 / D3D11资源，GUI只复制已准备的客户区帧。QPC帧时间超过1500ms、恢复之前的帧、全黑或几何不匹配的帧不参与判断；按DWM实际画面边界与PMv2 ClientToScreen / GetClientRect裁剪客户区，排除标题栏及边框，尺寸改变重建帧池。10秒无请求释放会话，关闭工具异步释放全部资源；不能在UI线程同步等待捕获服务关闭。
+- 系统ClientSize继续独立获取，不依赖OCR或Bitmap尺寸，宽高各自与原始缓存比较、<=5%容忍且不滚动基准。白点位置 / 16px内缩 / 16×16及内部12×12校验、v5战斗协议、中心鱼饵32px偏移和钓鱼成功收竿跳跃不变。Windows 10 2004及以上可排除捕获指针；较旧系统以系统行为为准，不在后台OCR截图时移动全局鼠标。
+- 钓鱼后台检测仅需要发键时将同一事件转为Foreground，重新读样后下发；状态更新 / AudioTimeout不激活。同进程较低优先级后台读取不能改写等待前台的意图，高优先级到期收竿仍能抢占。战斗检测 / 刷新Sample / 编排menu、find、login、validate均后台；logout-send / menu-logout / click / enable才取得前台，仍保留200ms稳定 / 编排5秒及普通输入800ms规则。全批登出→全部识别→全部点击→全部登录屏障及整批输入互斥不变，Capture.Restore允许在批次期间执行。
+- WindowCapture.Adapters.Tests使用合成帧及注入委托覆盖全部原生读取入口、身份传递、白点与主 / 鱼饵像素、OCR独立尺寸及Pending传播；ActionQueue增加非激活恢复 / 后台读取不抢占焦点和100ms首帧等待模拟。按用户当前Mac要求未运行任何解析 / 编译 / 测试 / 游戏 / UI验证，也未同步Windows，完成后直接提交推送。

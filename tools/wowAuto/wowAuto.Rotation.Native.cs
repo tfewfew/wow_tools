@@ -7,6 +7,8 @@ using System.Runtime.InteropServices;
 
 namespace WowAutoRotation {
     public static class Native {
+        public static Func<int,long,string,Bitmap> FrameReader;
+        public static Func<int,long,string,Size> SizeReader;
         [StructLayout(LayoutKind.Sequential)] struct Rect { public int L,T,R,B; }
         [StructLayout(LayoutKind.Sequential)] struct Point { public int X,Y; }
         [StructLayout(LayoutKind.Sequential)] struct Input { public uint Type; public Data Data; }
@@ -37,13 +39,8 @@ namespace WowAutoRotation {
             }
         }
         public static Size ReadClientSize(int pid,long ticks,string path) {
-            IntPtr old=SetThreadDpiAwarenessContext(new IntPtr(-4));
-            try {
-                Rect r;
-                if(!GetClientRect(Window(pid,ticks,path),out r) || r.R<=r.L || r.B<=r.T)
-                    throw new InvalidOperationException("Client geometry unavailable.");
-                return new Size(r.R-r.L,r.B-r.T);
-            } finally {if(old!=IntPtr.Zero) SetThreadDpiAwarenessContext(old);}
+            if(SizeReader==null) throw new InvalidOperationException("Window capture source is not initialized.");
+            return SizeReader(pid,ticks,path);
         }
         public static bool ClientSizeWithinTolerance(int expectedWidth,int expectedHeight,int width,int height) {
             if(expectedWidth<=0 || expectedHeight<=0 || width<=0 || height<=0) return false;
@@ -52,20 +49,11 @@ namespace WowAutoRotation {
                 Math.Abs((long)height-expectedHeight)*100L<=(long)expectedHeight*5L;
         }
         public static Bitmap Capture(int pid,long ticks,string path,int expectedWidth,int expectedHeight) {
-            IntPtr old=SetThreadDpiAwarenessContext(new IntPtr(-4)); Bitmap bitmap=null;
-            try {
-                IntPtr h=Window(pid,ticks,path); Rect r; Point p=new Point();
-                if(!GetClientRect(h,out r) || r.R<=0 || r.B<=0 || !ClientToScreen(h,ref p)) throw new InvalidOperationException("Client geometry unavailable.");
-                if(!ClientSizeWithinTolerance(expectedWidth,expectedHeight,r.R,r.B)) throw new InvalidOperationException("Client resized before capture.");
-                // Reject an overlay covering either the center or corners of the game client.
-                foreach(var probe in new [] {new Point{X=p.X+r.R/2,Y=p.Y+r.B/2},new Point{X=p.X+2,Y=p.Y+2},new Point{X=p.X+r.R-3,Y=p.Y+r.B-3}})
-                    if(GetAncestor(WindowFromPoint(probe),2)!=h) throw new InvalidOperationException("Game client is covered.");
-                bitmap=new Bitmap(r.R,r.B);
-                using(Graphics g=Graphics.FromImage(bitmap)) g.CopyFromScreen(p.X,p.Y,0,0,bitmap.Size);
-                Rect after;Point q=new Point();
-                if(Window(pid,ticks,path)!=h || !GetClientRect(h,out after) || !ClientToScreen(h,ref q) || after.R!=r.R || after.B!=r.B || p.X!=q.X || p.Y!=q.Y) throw new InvalidOperationException("Window moved during capture.");
-                return bitmap;
-            } catch {if(bitmap!=null) bitmap.Dispose();throw;} finally {if(old!=IntPtr.Zero) SetThreadDpiAwarenessContext(old);}
+            Size current=ReadClientSize(pid,ticks,path);
+            if(!ClientSizeWithinTolerance(expectedWidth,expectedHeight,current.Width,current.Height))
+                throw new InvalidOperationException("Client resized before capture.");
+            if(FrameReader==null) throw new InvalidOperationException("Window capture source is not initialized.");
+            return FrameReader(pid,ticks,path);
         }
         public static bool HasLoginPoint(Bitmap sample) {
             if(sample==null || sample.Width!=16 || sample.Height!=16) return false;
@@ -82,23 +70,11 @@ namespace WowAutoRotation {
             return new Rectangle(width-32,height-32,16,16);
         }
         public static bool LoginPoint(int pid,long ticks,string path) {
-            IntPtr old=SetThreadDpiAwarenessContext(new IntPtr(-4));
-            try {
-                IntPtr h=Window(pid,ticks,path);Rect r;Point origin=new Point();
-                if(!GetClientRect(h,out r) || r.R<48 || r.B<48 || !ClientToScreen(h,ref origin)) throw new InvalidOperationException("Client geometry unavailable.");
-                Rectangle bounds=LoginPointBounds(r.R,r.B);
-                Point center=new Point{X=origin.X+bounds.X+8,Y=origin.Y+bounds.Y+8};
-                if(GetAncestor(WindowFromPoint(center),2)!=h) throw new InvalidOperationException("Login point is covered.");
-                bool present;
-                using(var sample=new Bitmap(16,16,PixelFormat.Format32bppArgb)) {
-                    using(Graphics g=Graphics.FromImage(sample)) g.CopyFromScreen(origin.X+bounds.X,origin.Y+bounds.Y,0,0,sample.Size);
-                    present=HasLoginPoint(sample);
-                }
-                Rect after;Point next=new Point();
-                if(Window(pid,ticks,path)!=h || !GetClientRect(h,out after) || !ClientToScreen(h,ref next) ||
-                    after.R!=r.R || after.B!=r.B || next.X!=origin.X || next.Y!=origin.Y) return false;
-                return present;
-            } finally {if(old!=IntPtr.Zero) SetThreadDpiAwarenessContext(old);}
+            if(FrameReader==null) throw new InvalidOperationException("Window capture source is not initialized.");
+            using(var frame=FrameReader(pid,ticks,path)) {
+                Rectangle bounds=LoginPointBounds(frame.Width,frame.Height);
+                using(var sample=frame.Clone(bounds,PixelFormat.Format32bppArgb)) return HasLoginPoint(sample);
+            }
         }
         public static System.Drawing.Point CursorParkPoint(int width,int height) {
             if(width<48 || height<48) throw new ArgumentException("Client too small for cursor parking.");

@@ -158,12 +158,6 @@ namespace WowAuto
         [DllImport("user32.dll")]
         private static extern bool ClientToScreen(IntPtr window, ref POINT point);
         [DllImport("user32.dll")]
-        private static extern IntPtr GetDC(IntPtr window);
-        [DllImport("user32.dll")]
-        private static extern int ReleaseDC(IntPtr window, IntPtr dc);
-        [DllImport("gdi32.dll")]
-        private static extern uint GetPixel(IntPtr dc, int x, int y);
-        [DllImport("user32.dll")]
         private static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
 
         public static string ClassifyWindowPosition(int left, int top, int right, int bottom,
@@ -225,39 +219,11 @@ namespace WowAuto
             return ReadDetectionColor(targetProcessId, startTimeTicks, executablePath, 32);
         }
 
+        public static Func<int,long,string,int,uint> WindowPixelReader;
         private static string ReadDetectionColor(int targetProcessId, long startTimeTicks, string executablePath, int offsetX)
         {
-            using (System.Diagnostics.Process target = System.Diagnostics.Process.GetProcessById(targetProcessId))
-            {
-                if (!MatchesTarget(target, startTimeTicks, executablePath))
-                    throw new InvalidOperationException("The selected WoW client identity has changed.");
-                IntPtr window = target.MainWindowHandle;
-                if (window == IntPtr.Zero || IsIconic(window) || GetForegroundWindow() != window)
-                    return "unknown";
-                IntPtr oldContext = SetThreadDpiAwarenessContext(new IntPtr(-4));
-                IntPtr dc = IntPtr.Zero;
-                try
-                {
-                    RECT rect;
-                    if (!GetClientRect(window, out rect) || rect.right <= rect.left || rect.bottom <= rect.top)
-                        return "unknown";
-                    POINT point = new POINT();
-                    point.x = (rect.right - rect.left) / 2 + offsetX;
-                    point.y = (rect.bottom - rect.top) / 2;
-                    if (point.x >= rect.right || point.x < rect.left) return "unknown";
-                    if (!ClientToScreen(window, ref point)) return "unknown";
-                    dc = GetDC(IntPtr.Zero);
-                    if (dc == IntPtr.Zero) return "unknown";
-                    uint pixel = GetPixel(dc, point.x, point.y);
-                    if (GetForegroundWindow() != window) return "unknown";
-                    return ClassifyColor(pixel);
-                }
-                finally
-                {
-                    if (dc != IntPtr.Zero) ReleaseDC(IntPtr.Zero, dc);
-                    if (oldContext != IntPtr.Zero) SetThreadDpiAwarenessContext(oldContext);
-                }
-            }
+            if (WindowPixelReader == null) throw new InvalidOperationException("Window capture source is not initialized.");
+            return ClassifyColor(WindowPixelReader(targetProcessId,startTimeTicks,executablePath,offsetX));
         }
 
 
@@ -341,6 +307,7 @@ namespace WowAuto
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
+. (Join-Path $PSScriptRoot 'wowAuto.Capture.ps1')
 if (-not ('WowAuto.DimTabControl' -as [type])) {
     Add-Type -ReferencedAssemblies System.Windows.Forms,System.Drawing -TypeDefinition @'
 using System;
@@ -1265,6 +1232,7 @@ function Update-RowStatus($Row) {
 
 function Stop-Row($Row, [string]$Reason = '已停止，当前等待已取消。', [switch]$CancelExit, [switch]$KeepRotation) {
     Remove-GameActions -Key $Row.Key -IncludeProcess:$CancelExit
+    if (-not $UiTest -and $Row.StartTime) {[WowAutoCapture.Native]::CancelRestore($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath)}
     if (-not $KeepRotation) {Stop-RowRotation $Row}
     if ($Row.FightRow -and $script:autoFight) {Stop-AutoFightRow $Row.FightRow $Reason}
     if ($script:audioCaptures.ContainsKey($Row.Key)) {
@@ -1428,13 +1396,11 @@ function Read-ScanColor($Row) {
         throw '进程已退出或身份改变。'
     }
     if ($UiTest) {$script:detectorSamples+=,$Row.Key; return $Row.Process.ScanColor }
-    if (-not [WowAuto.NativeInput]::IsTargetForeground($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath)) { return 'not-foreground' }
     return [WowAuto.NativeInput]::ReadCenterColor($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath)
 }
 
 function Read-LureColor($Row) {
     if ($UiTest) { return $Row.Process.LureColor }
-    if (-not [WowAuto.NativeInput]::IsTargetForeground($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath)) { return 'not-foreground' }
     return [WowAuto.NativeInput]::ReadLureColor($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath)
 }
 
@@ -1509,17 +1475,16 @@ function Invoke-RefreshScan([long]$Now) {
     try {
         if ($script:scanPhase -eq 'Activate') {
             $countLabel.Text = "检测中：$($script:scanIndex + 1)/$($script:scanQueue.Count)，PID $($row.Process.Id)"
-            if ($null -eq $row.StartTime -or -not (Activate-ScanRow $row)) { throw '无法激活游戏窗口。' }
-            Set-RowStatusText $row '正在切换到前台并等待画面刷新。'
+            if ($null -eq $row.StartTime) {throw '游戏进程身份不可读。'}
+            Set-RowStatusText $row '等待公共队列开启监控，随后后台获取窗口画面。'
             $script:scanPhase = 'Command'
-            $script:scanDue = $Now + 200
-            $script:scanTimeout = $Now + 800
+            $script:scanDue = $Now
+            $script:scanTimeout = 0L
             return
         }
         if ($script:scanPhase -eq 'Command') {
             if (-not (Test-WorkerForeground $row)) {
-                if ($Now -lt $script:scanTimeout) {$script:scanDue=$Now+100; return}
-                throw '未取得前台焦点，未发送监控指令。'
+                throw '发送监控指令前失去前台焦点。'
             }
             if (-not (Send-ScanDetectorCommand $row)) {throw '开启监控指令发送失败，未进行色块检测。'}
             Set-RowStatusText $row '已发送对应监控开启命令，等待色块更新。'
@@ -1556,7 +1521,10 @@ function Invoke-RefreshScan([long]$Now) {
             Set-RowStatusText $row $message
         }
     }
-    catch { $row.Validated = $false; Set-RowStatusText $row ('检测失败：' + $_.Exception.Message) }
+    catch {
+        if (Test-WindowCapturePending $_) {$script:scanDue=$Now+100;return}
+        $row.Validated = $false; Set-RowStatusText $row ('检测失败：' + $_.Exception.Message)
+    }
     Set-RowControls $row
     $script:scanIndex++
     $script:scanPhase = 'Activate'
@@ -1780,23 +1748,6 @@ function Invoke-SchedulerTick([long]$Now,$QueuedWork=$null) {
             $row.Validated=$false
             throw '进程身份已改变。'
         }
-        $pending=$script:pendingWork
-        if ($null -eq $pending -or $pending.Key -ne $work.Key -or $pending.Kind -ne $work.Kind) {
-            $alreadyForeground=Test-WorkerForeground $row
-            if (-not $alreadyForeground -and -not (Activate-WorkerRow $row)) {
-                Pause-RowForFocus $row $Now '无法切换到此游戏窗口。'
-                return
-            }
-            $readyAt=if ($alreadyForeground) { $Now } else { $Now+200 }
-            $script:pendingWork=[pscustomobject]@{ Key=$work.Key; Kind=$work.Kind; ReadyAt=$readyAt; Timeout=$Now+800 }
-            $pending=$script:pendingWork
-            if (-not $alreadyForeground) { return }
-        }
-        if ($Now -lt $pending.ReadyAt) { return }
-        if (-not (Test-WorkerForeground $row)) {
-            if ($Now -ge $pending.Timeout) { Pause-RowForFocus $row $Now '无法获得前台焦点。' }
-            return
-        }
         if (-not (Test-RowLoginPoint $row)) {throw '插件常驻登录白点不存在，已停止钓鱼任务。'}
         if ($work.Kind -eq 'FocusRetry') {
             Resume-WowAutoFocus $script:scheduler $work.Key
@@ -1838,9 +1789,13 @@ function Invoke-SchedulerTick([long]$Now,$QueuedWork=$null) {
         if ($row.State.UseItem -and -not $row.State.ItemDetectionDisabled -and $work.Kind -ne 'Reel') {
             $lure=Read-LureColor $row
             if ($lure -eq 'not-foreground') { Pause-RowForFocus $row $Now '检测鱼饵时失去前台焦点。'; return }
+            if ($lure -eq 'missing' -and $color -eq 'red' -and $Now -ge $row.State.ItemRetryAt -and
+                ($row.State.ItemConfirmUntil -le 0 -or $Now -lt $row.State.ItemConfirmUntil) -and
+                -not (Request-FishingForeground $Now)) {return}
             $itemAction=Complete-WowAutoItemCheck $script:scheduler $work.Key $Now $lure $color
             if ($itemAction -eq 'Wait') { $script:pendingWork=$null; Update-RowStatus $row; return }
             if ($itemAction -eq 'UseItem') {
+                if (-not (Request-FishingForeground $Now)) {return}
                 $sent=Send-WorkerKey $row 'Item'
                 $completedAt=if ($UiTest) { $Now } else { $script:schedulerClock.ElapsedMilliseconds }
                 Complete-WowAutoItem $script:scheduler $work.Key $completedAt $sent
@@ -1850,6 +1805,8 @@ function Invoke-SchedulerTick([long]$Now,$QueuedWork=$null) {
                 return
             }
         }
+        if ($work.Kind -ne 'Reel' -and (Test-WowAutoPollNeedsInput $row.State $color) -and
+            -not (Request-FishingForeground $Now)) {return}
         if ($work.Kind -eq 'Item') {
             # A valid enchant skips item use; continue fishing using the same foreground sample.
             $script:scheduler.ActiveKey=$work.Key
@@ -1859,6 +1816,7 @@ function Invoke-SchedulerTick([long]$Now,$QueuedWork=$null) {
             $script:pendingWork=$null
         }
         elseif ($work.Kind -eq 'Reel') {
+            if (-not (Request-FishingForeground $Now)) {return}
             $sent=Send-WorkerKey $row 'Reel'
             $completedAt=if ($UiTest) { $Now } else { $script:schedulerClock.ElapsedMilliseconds }
             Complete-WowAutoReel $script:scheduler $work.Key $completedAt $sent
@@ -1885,6 +1843,7 @@ function Invoke-SchedulerTick([long]$Now,$QueuedWork=$null) {
         Update-RowStatus $row
     }
     catch {
+        if (Test-WindowCapturePending $_) {throw}
         Stop-Row $row ('已停止：'+$_.Exception.Message)
         $script:pendingWork=$null
     }
@@ -1903,6 +1862,7 @@ $positionTimer.Add_Tick({ Update-WindowPositions })
 $form.Add_FormClosing({
     Remove-GameActions -IncludeProcess
     $script:gameActions.Closing=$true
+    [WowAutoCapture.Native]::Shutdown()
     if ($script:autoFight) { Stop-AutoFightAll }
     $script:pendingGameExits.Clear()
     $timer.Stop()

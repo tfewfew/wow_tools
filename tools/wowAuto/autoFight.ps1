@@ -1,6 +1,10 @@
 ﻿# Combat state and configuration are independent; game input uses the host action queue.
 . (Join-Path $PSScriptRoot 'autoFight.Engine.ps1')
-if (-not ('WowAutoFight.Native' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'autoFight.Native.cs') }
+if (-not ('WowAutoFight.Native' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'autoFight.Native.cs') -ReferencedAssemblies System.Drawing }
+if (-not $UiTest) {
+    [WowAutoFight.Native]::FrameReader=[WowAutoCapture.Native]::FrameReader
+    [WowAutoFight.Native]::CapturePending=[WowAutoCapture.Native]::PendingReader
+}
 
 function Set-AutoFightButtonStyle($Button,[bool]$Accent=$false) {
     $Button.UseVisualStyleBackColor=$false
@@ -68,7 +72,10 @@ function Invoke-AutoFightHold([long]$Now) {
             return
         }
         $packet=[WowAutoFight.Native]::Read($row.Client)
-        if ($null -eq $packet) { throw '保持期间检测关闭或协议不可读，已释放移动键。' }
+        if ($null -eq $packet) {
+            if ([WowAutoFight.Native]::LastReadPending) {[void](Release-AutoFightHold);return}
+            throw '保持期间检测关闭或协议不可读，已释放移动键。'
+        }
         if ($packet.ClassId -ne $hold.Session.ClassId) { throw '职业发生变化，已释放移动键。' }
         if (Test-AutoFightHoldFinished $hold $packet $Now) { [void](Release-AutoFightHold) }
     }
@@ -81,6 +88,7 @@ function Invoke-AutoFightHold([long]$Now) {
 }
 function Stop-AutoFightRow($Row,[string]$Reason='已停止，战斗任务已取消。') {
     Remove-GameActions -Key $Row.Client.Key -Domain Fight
+    if (-not $UiTest) {[WowAutoCapture.Native]::CancelRestore($Row.Client.ProcessId,$Row.Client.StartTicks,$Row.Client.Path)}
     if (($script:autoFight.ActiveHold -and $script:autoFight.ActiveHold.Row -eq $Row) -or
         (-not $script:autoFight.ActiveHold -and [WowAutoFight.Native]::IsHolding)) { [void](Release-AutoFightHold) }
     $Row.Session=$null
@@ -103,7 +111,6 @@ function Stop-AutoFightAll {
     Update-AutoFightControls
 }
 function Test-AutoFightLoginPoint($Row) {
-    if (-not [WowAutoFight.Native]::Foreground($Row.Client)) {throw '常驻登录白点必须在目标窗口取得前台后检查。'}
     if ($Row.PSObject.Properties['ParentRow']) {return Test-RowLoginPoint $Row.ParentRow}
     if ($UiTest) {
         if ($Row.Client.PSObject.Properties['LoginPointPresent']) {return [bool]$Row.Client.LoginPointPresent}
@@ -245,6 +252,12 @@ function Invoke-AutoFightTick([bool]$AllowInput=$true,[switch]$PlanOnly,[string]
         }
         $packet=[WowAutoFight.Native]::Read($row.Client)
         if ($null -eq $packet) {
+            if ([WowAutoFight.Native]::LastReadPending) {
+                $pending.ReadFailureSince=-1L
+                Set-AutoFightStatus $row ([WowAutoFight.Native]::LastReadError)
+                if (-not $pending.Scanning) {Finish-AutoFightPending $now}
+                return
+            }
             if ($pending.ReadFailureSince -lt 0) {$pending.ReadFailureSince=$now}
             $reason=[WowAutoFight.Native]::LastReadError
             if (-not $reason) {$reason='色块暂时不可读'}
@@ -336,6 +349,7 @@ function Invoke-AutoFightTick([bool]$AllowInput=$true,[switch]$PlanOnly,[string]
         Finish-AutoFightPending $completed
     }
     catch {
+        if (Test-WindowCapturePending $_) {if (-not $pending.Scanning) {Finish-AutoFightPending $now};return}
         $message=$_.Exception.Message
         $row.CanStart=$false
         if ($pending.Scanning) { Set-AutoFightStatus $row $message; Finish-AutoFightPending $now }
@@ -585,6 +599,7 @@ function Initialize-AutoFightTab($Tabs,$Owner,[switch]$Unified) {
     $script:autoFight.Timer.Add_Tick({
         Submit-HoldAction $script:autoFight.Clock.ElapsedMilliseconds
         Invoke-AutoFightTick -PlanOnly
+        Submit-WindowCaptureActions $script:autoFight.Clock.ElapsedMilliseconds
         Invoke-GameActionQueue $script:autoFight.Clock.ElapsedMilliseconds
     })
     if ($Unified) {$script:autoFight.Tab=$Tabs.TabPages[0];$script:autoFight.Clock=$script:schedulerClock}

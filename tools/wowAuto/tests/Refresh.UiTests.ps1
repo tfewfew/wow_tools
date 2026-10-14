@@ -23,7 +23,7 @@ Assert-Ui ($null -eq $a.State) 'Unverified row started.'
 $refreshButton.PerformClick()
 Assert-Ui ($script:scanning -and -not $refreshButton.Enabled) 'Scan did not lock refresh.'
 Complete-TestScan
-Assert-Ui (($script:scanOrder -join ',') -eq '101,202,303') 'Wrong scan order.'
+Assert-Ui (($script:detectorCommands.Key -join ',') -eq ($a.Key+','+$b.Key+','+$c.Key)) 'Wrong monitor command order.'
 Assert-Ui $script:restored 'Original foreground was not restored.'
 Assert-Ui ($a.Start.Enabled -and $a.Stop.Enabled -and $b.Start.Enabled -and $b.Stop.Enabled) 'Red/green rows not unlocked.'
 Assert-Ui (-not $c.Start.Enabled -and -not $c.Stop.Enabled) 'Yellow row unlocked.'

@@ -1,6 +1,6 @@
 ﻿$ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.Windows.Forms
-Add-Type -Path (Join-Path $PSScriptRoot '..\autoFight.Native.cs')
+Add-Type -Path (Join-Path $PSScriptRoot '..\autoFight.Native.cs') -ReferencedAssemblies System.Drawing
 . (Join-Path $PSScriptRoot '..\autoFight.Engine.ps1')
 function Assert-Distance($Condition,[string]$Label) {if (-not $Condition) {throw $Label}}
 function Pixel([int]$R,[int]$G,[int]$B) {return [uint32]($R -bor ($G -shl 8) -bor ($B -shl 16))}

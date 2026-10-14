@@ -2,6 +2,8 @@
 if (-not ('WowAutoRotation.Native' -as [type])) {
     Add-Type -Path (Join-Path $PSScriptRoot 'wowAuto.Rotation.Native.cs') -ReferencedAssemblies System.Drawing
 }
+[WowAutoRotation.Native]::FrameReader=[WowAutoCapture.Native]::FrameReader
+[WowAutoRotation.Native]::SizeReader=[WowAutoCapture.Native]::SizeReader
 $script:rotation=[pscustomobject]@{Path=(Join-Path $PSScriptRoot 'rotation.config.json');IntervalSeconds=0;OcrIntervalMs=1000;NextOcrAt=0L;Plans=@{};
     Active=@{};LogoutQueue=(New-Object Collections.Queue);Queue=(New-Object Collections.Queue);ClickQueue=(New-Object Collections.Queue);LoginQueue=(New-Object Collections.Queue);Current=$null;NextAt=0L;ConfigReady=$true;Error='';Actions=@();OcrWork=$null;NameHistory=@();GameDirectories=@{titan=$(if ($UiTest) {''} else {'C:\Program Files (x86)\World of Warcraft\_classic_titan_'});forerver=$(if ($UiTest) {''} else {'C:\Program Files (x86)\World of Warcraft\_cn_beta_'})};
     OcrSource=([IO.File]::ReadAllText((Join-Path $PSScriptRoot 'wowAuto.Rotation.Ocr.ps1')))}
@@ -323,7 +325,6 @@ function Read-RotationScreen($Row,$Plan,[switch]$MenuWasConfirmed) {
         $clientSize=Get-RotationClientSize $Row
         if (-not $Row.Process.PSObject.Properties['RotationOcrReads']) {$Row.Process | Add-Member NoteProperty RotationOcrReads 0}
         if (-not $Row.Process.PSObject.Properties['RotationCursorParks']) {$Row.Process | Add-Member NoteProperty RotationCursorParks 0}
-        $Row.Process.RotationCursorParks++
         $Row.Process.RotationOcrReads++
         $screen=$Row.Process.RotationScreen
         foreach ($target in @($screen.Targets)) {
@@ -353,12 +354,10 @@ function Read-RotationScreen($Row,$Plan,[switch]$MenuWasConfirmed) {
     if ($sampleAt -lt $script:rotation.NextOcrAt) {return [pscustomobject]@{Kind='pending'}}
     Assert-GameActionContext
     try {
-        [WowAutoRotation.Native]::ParkCursor($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath)
         $clientSize=Get-RotationClientSize $Row
         $bitmap=[WowAutoRotation.Native]::Capture($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,$clientSize.Width,$clientSize.Height)
     } catch {
         if (-not (Test-RowProcessIdentity $Row) -or $Row.Process.HasExited) {throw}
-        if (-not (Test-WorkerForeground $Row)) {throw '角色切换窗口暂时失去前台。'}
         if ($_.Exception.Message -match 'Window moved during (cursor parking|capture)|Client geometry unavailable|Client resized before capture') {return [pscustomobject]@{Kind='pending'}}
         throw
     }
@@ -405,28 +404,16 @@ function Invoke-RotationTick([long]$Now) {
         if ($Now -ge $work.Deadline) {throw '角色切换超过180秒；检查战斗、登录及OCR识别后手动开始。'}
         if ($script:autoFight -and ($script:autoFight.ActiveHold -or [WowAutoFight.Native]::IsHolding)) {if (-not (Release-AutoFightHold)) {return $true}}
         if ($work.Phase -in @('logout-activate','activate','click-activate','login-activate')) {
-            if (-not (Activate-ScanRow $row)) {
-                if (-not $work.FocusUntil) {$work.FocusUntil=$Now+5000}
-                if ($Now -ge $work.FocusUntil) {throw '连续5秒无法激活角色切换窗口。'}
-                $work.Due=[Math]::Min($Now+500,$work.FocusUntil);return $true
-            }
             $work.Phase=switch ($work.Phase) {'logout-activate' {'logout-inspect'} 'click-activate' {'click'} 'login-activate' {'login'} default {'menu'}}
-            $work.Due=$Now+200;return $true
-        }
-        if (-not (Test-WorkerForeground $row)) {
-            if (-not $work.FocusUntil) {$work.FocusUntil=$Now+5000}
-            if ($Now -ge $work.FocusUntil) {throw '连续5秒未能取得角色切换窗口前台。'}
-            $activated=Activate-ScanRow $row
-            $delay=if ($activated) {200} else {500}
-            $work.Due=[Math]::Min($Now+$delay,$work.FocusUntil)
-            return $true
+            $work.Due=$Now;return $true
         }
         $work.FocusUntil=0L
         # First issue logout to every queued process. OCR starts only after this queue drains.
-        if ($work.Phase -eq 'logout-inspect') {
-            if (Test-RowLoginPoint $row) {
-                $null=Send-RotationAction $row 'logout';$entry.LastLogout=$Now
+        if ($work.Phase -in @('logout-inspect','logout-send')) {
+            if ($work.Phase -eq 'logout-inspect' -and (Test-RowLoginPoint $row)) {
+                $work.Phase='logout-send';$work.Due=$Now;return $true
             }
+            if ($work.Phase -eq 'logout-send' -and (Test-RowLoginPoint $row)) {$null=Send-RotationAction $row 'logout';$entry.LastLogout=$Now}
             $row.Validated=$false
             $script:rotation.Queue.Enqueue($entry)
             $script:rotation.Current=$null
@@ -453,9 +440,13 @@ function Invoke-RotationTick([long]$Now) {
             Set-RowStatusText $row ('步骤3/5：已三次点击第'+$target.MenuRow+'个角色槽位“'+$name+'”，继续点击其他进程，全部点击后确认登录。')
             return $true
         }
+        if ($work.Phase -eq 'menu-logout') {
+            if (Test-RowLoginPoint $row) {$null=Send-RotationAction $row 'logout';$work.LastLogout=$Now}
+            $work.Phase='menu';$work.Due=$Now+300;return $true
+        }
         if ($work.Phase -eq 'menu' -and (Test-RowLoginPoint $row)) {
             $work.Stable=0
-            if ($Now-$work.LastLogout -ge 30000) {$null=Send-RotationAction $row 'logout';$work.LastLogout=$Now}
+            if ($Now-$work.LastLogout -ge 30000) {$work.Phase='menu-logout';$work.Due=$Now;return $true}
             $work.Due=$Now+300
             Set-RowStatusText $row '步骤2/5：等待退出倒计时 / 脱战，每30秒重试退出。'
             return $true
@@ -473,14 +464,15 @@ function Invoke-RotationTick([long]$Now) {
             return $true
         }
         # Recheck the point before enabling either detector and before starting its task.
-        if ($work.Phase -eq 'validate') {
+        if ($work.Phase -in @('validate','enable')) {
             if (-not (Test-RowLoginPoint $row)) {
                 $work.Phase='login';$work.Stable=0;$work.MonitorEnabled=$false;$work.Due=$Now+300
                 return $true
             }
             if (-not $work.MonitorEnabled) {
+                if ($work.Phase -ne 'enable') {$work.Phase='enable';$work.Due=$Now;return $true}
                 if (-not (Send-ScanDetectorCommand $row)) {throw '登录后监控开启命令失败。'}
-                $work.MonitorEnabled=$true;$work.Due=$Now+300
+                $work.MonitorEnabled=$true;$work.Phase='validate';$work.Due=$Now+300
                 Set-RowStatusText $row '步骤5/5：白点确认通过，已开启监控，等待任务色块。'
                 return $true
             }
@@ -544,6 +536,7 @@ function Invoke-RotationTick([long]$Now) {
         }
         $work.Due=$Now+300
     } catch {
+        if (Test-WindowCapturePending $_) {$work.Due=$Now+100;return $true}
         $reason=$_.Exception.Message
         if ($reason -eq '角色切换窗口暂时失去前台。') {
             if (-not $work.FocusUntil) {$work.FocusUntil=$Now+5000}

@@ -1,11 +1,12 @@
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 
-// Intentionally independent of WowAuto.NativeInput and the fishing adapters.
+// Combat decoding/input is independent; frames come from the host window-capture service.
 namespace WowAutoFight
 {
     public sealed class Client
@@ -46,21 +47,6 @@ namespace WowAutoFight
         [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr h);
         [DllImport("user32.dll")] private static extern bool IsWindow(IntPtr h);
         [DllImport("user32.dll")] private static extern bool ShowWindowAsync(IntPtr h, int command);
-        [DllImport("user32.dll")] private static extern bool GetClientRect(IntPtr h, out Rect rect);
-        [DllImport("user32.dll")] private static extern bool ClientToScreen(IntPtr h, ref Point point);
-        [DllImport("user32.dll")] private static extern bool PrintWindow(IntPtr h,IntPtr dc,uint flags);
-        [DllImport("user32.dll")] private static extern IntPtr WindowFromPoint(Point point);
-        [DllImport("user32.dll")] private static extern IntPtr GetAncestor(IntPtr h,uint flags);
-        [DllImport("user32.dll")] private static extern IntPtr GetDC(IntPtr h);
-        [DllImport("user32.dll")] private static extern int ReleaseDC(IntPtr h, IntPtr dc);
-        [DllImport("gdi32.dll")] private static extern uint GetPixel(IntPtr dc, int x, int y);
-        [DllImport("gdi32.dll")] private static extern IntPtr CreateCompatibleDC(IntPtr dc);
-        [DllImport("gdi32.dll")] private static extern IntPtr CreateCompatibleBitmap(IntPtr dc,int width,int height);
-        [DllImport("gdi32.dll")] private static extern IntPtr SelectObject(IntPtr dc,IntPtr obj);
-        [DllImport("gdi32.dll")] private static extern bool DeleteObject(IntPtr obj);
-        [DllImport("gdi32.dll")] private static extern bool DeleteDC(IntPtr dc);
-        [DllImport("gdi32.dll")] private static extern bool BitBlt(IntPtr target,int x,int y,int width,int height,
-            IntPtr source,int sourceX,int sourceY,uint operation);
         [DllImport("user32.dll")] private static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
         [DllImport("user32.dll", SetLastError=true)] private static extern uint SendInput(uint count, Input[] inputs, int size);
 
@@ -170,59 +156,27 @@ namespace WowAutoFight
             if (width<210 || height<160) return null;
             return new int[] {width/2,height/2};
         }
+        public static Func<int,long,string,Bitmap> FrameReader;
+        public static Func<Exception,bool> CapturePending;
+        public static bool LastReadPending { get; private set; }
         public static string LastReadError { get; private set; }
         private static Packet ReadFailed(string reason) { LastReadError=reason; return null; }
         private static string RGB(uint c) { return R(c)+","+G(c)+","+B(c); }
-        public static Packet Read(Client c)
-        {
-            LastReadError="";
-            using (Process p=Process.GetProcessById(c.ProcessId))
-            {
-                if (!Matches(p,c)) return ReadFailed("进程身份已变化");
-                IntPtr h=p.MainWindowHandle, dc=IntPtr.Zero, memory=IntPtr.Zero, bitmap=IntPtr.Zero, original=IntPtr.Zero;
-                IntPtr previous=SetThreadDpiAwarenessContext(new IntPtr(-4));
-                try
-                {
-                    if (h==IntPtr.Zero || IsIconic(h)) return ReadFailed("窗口最小化或没有可读取画面");
-                    Rect rect;
-                    if (!GetClientRect(h,out rect) || rect.Right-rect.Left<210 || rect.Bottom-rect.Top<160) return ReadFailed("客户区尺寸不可读或过小");
-                    // Client rectangle and screen samples share physical coordinates under PMv2 DPI.
-                    int[] samples=SampleOffsets(rect.Right-rect.Left,rect.Bottom-rect.Top);
-                    Point point=new Point { X=samples[0], Y=samples[1] };
-                    if (!ClientToScreen(h,ref point)) return ReadFailed("无法定位客户区");
-                    dc=GetDC(IntPtr.Zero);
-                    if (dc==IntPtr.Zero) return ReadFailed("无法读取屏幕");
-                    memory=CreateCompatibleDC(dc);
-                    bitmap=CreateCompatibleBitmap(dc,rect.Right-rect.Left,rect.Bottom-rect.Top);
-                    if (memory==IntPtr.Zero || bitmap==IntPtr.Zero) return ReadFailed("无法创建取色快照");
-                    original=SelectObject(memory,bitmap);
-                    if (original==IntPtr.Zero || original==new IntPtr(-1)) return ReadFailed("无法准备取色快照");
-                    // Visible centers can be sampled without focus. Occluded windows need their own rendering.
-                    // Check ownership so another window's pixels can never authorize input.
-                    uint main=0xffffffff;
-                    if (GetAncestor(WindowFromPoint(point),2)==h) {
-                        if (BitBlt(memory,0,0,1,1,dc,point.X,point.Y,0x00CC0020)
-                            && GetAncestor(WindowFromPoint(point),2)==h) main=GetPixel(memory,0,0);
-                    }
-                    if (Decode(new uint[] {main},c.Flavor)==null && PrintWindow(h,memory,3))
-                        main=GetPixel(memory,samples[0],samples[1]);
-                    Rect after;
-                    if (!GetClientRect(h,out after) || after.Right!=rect.Right || after.Bottom!=rect.Bottom) return ReadFailed("采样期间窗口尺寸变化");
-                    int[] afterSamples=SampleOffsets(after.Right-after.Left,after.Bottom-after.Top);
-                    Point afterPoint=new Point { X=afterSamples[0], Y=afterSamples[1] };
-                    if (!ClientToScreen(h,ref afterPoint) || afterPoint.X!=point.X || afterPoint.Y!=point.Y)
-                        return ReadFailed("采样期间窗口位置变化");
-                    Packet result=Decode(new uint[] {main},c.Flavor);
-                    return result ?? ReadFailed("色块数据未知或编码不符，主RGB("+RGB(main)+")");
+        public static Packet Read(Client c) {
+            LastReadError="";LastReadPending=false;
+            try {
+                if(FrameReader==null) return ReadFailed("窗口捕获源未初始化");
+                // The shared source validates process identity and returns this client's pixels only.
+                using(var frame=FrameReader(c.ProcessId,c.StartTicks,c.Path)) {
+                    int[] samples=SampleOffsets(frame.Width,frame.Height);
+                    if(samples==null) return ReadFailed("客户区尺寸不可读或过小");
+                    Color color=frame.GetPixel(samples[0],samples[1]);
+                    uint main=(uint)(color.R|(color.G<<8)|(color.B<<16));
+                    return Decode(new uint[]{main},c.Flavor) ?? ReadFailed("色块数据未知或编码不符，主RGB("+RGB(main)+")");
                 }
-                finally
-                {
-                    if (original!=IntPtr.Zero && original!=new IntPtr(-1)) SelectObject(memory,original);
-                    if (bitmap!=IntPtr.Zero) DeleteObject(bitmap);
-                    if (memory!=IntPtr.Zero) DeleteDC(memory);
-                    if (dc!=IntPtr.Zero) ReleaseDC(IntPtr.Zero,dc);
-                    if (previous!=IntPtr.Zero) SetThreadDpiAwarenessContext(previous);
-                }
+            } catch(Exception error) {
+                LastReadPending=CapturePending!=null && CapturePending(error);
+                return ReadFailed(error.Message);
             }
         }
         private static int Slot(int value,int start,int step,int count)

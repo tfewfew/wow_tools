@@ -70,6 +70,37 @@ Assert-Queue ($script:seen.Count -eq 1) 'Resumed focus skipped settle delay.'
 Invoke-GameActionQueue 399
 Assert-Queue (($script:seen -join ',') -eq 'urgent,cast') 'Resumed action did not execute once.'
 
+# A no-activation restore and a background read do not preempt or retain a pending input focus.
+Reset-TestQueue
+$row=New-TestRow waiting
+$script:focusOnActivate=$false
+Add-GameAction -Id input -Kind Fight.Combat -Domain Test -Key waiting -Row $row -Due 0 -Foreground $true -Execute {param($event,$now) [void]$script:seen.Add('input')}
+Add-TestAction capture-restore Capture.Restore 0
+Add-TestAction capture-read Rotation.Login 0
+Invoke-GameActionQueue 0
+Assert-Queue (($script:seen -join ',') -eq 'capture-restore,capture-read' -and $script:activations -eq 1 -and $script:gameActions.Focus.Id -eq 'input') 'Background capture/restore changed focus ownership.'
+
+# Pending first-frame/restoration work waits without a focus failure or a same-tick busy loop.
+Reset-TestQueue
+$originalCapturePending=Get-Command Test-WindowCapturePending -ErrorAction SilentlyContinue
+function Test-WindowCapturePending($ErrorRecord) {return $ErrorRecord.Exception.Message.Contains('[CAPTURE_PENDING]')}
+$script:captureAttempts=0
+Add-GameAction -Id awaiting-frame -Kind Rotation.Login -Domain Test -Due 0 -Execute {
+    param($event,$now)
+    $script:captureAttempts++
+    if ($script:captureAttempts -eq 1) {throw '[CAPTURE_PENDING] synthetic first frame'}
+    [void]$script:seen.Add('frame-ready')
+}
+Add-TestAction independent Process.Observe 0
+Invoke-GameActionQueue 0
+Assert-Queue ($script:captureAttempts -eq 1 -and $script:gameActions.Events.Count -eq 1 -and $script:stopped -eq 0 -and ($script:seen -join ',') -eq 'independent') 'Pending capture blocked other work or stopped the row.'
+Invoke-GameActionQueue 99
+Assert-Queue ($script:captureAttempts -eq 1) 'Capture wait retried early.'
+Invoke-GameActionQueue 100
+Assert-Queue ($script:captureAttempts -eq 2 -and $script:gameActions.Events.Count -eq 0 -and $script:seen[-1] -eq 'frame-ready') 'Capture wait did not resume exactly once.'
+if ($originalCapturePending) {Set-Item Function:\Test-WindowCapturePending $originalCapturePending.ScriptBlock}
+else {Remove-Item Function:\Test-WindowCapturePending}
+
 Reset-TestQueue
 $row=New-TestRow reused;$row.Process.SameIdentity=$false
 Add-GameAction -Id stale -Kind Fish.Cast -Domain Test -Key reused -Row $row -Due 0 -Foreground $true -Execute {param($event,$now) throw 'Identity guard failed.'}

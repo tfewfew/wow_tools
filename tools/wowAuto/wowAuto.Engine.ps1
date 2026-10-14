@@ -234,6 +234,12 @@ function Get-WowAutoWork($Scheduler, [long]$Now) {
     }
     return $null
 }
+function Test-WowAutoPollNeedsInput($State,[string]$Color) {
+    if (-not $State -or -not $State.Running) {return $false}
+    return $Color -eq 'red' -or ($Color -eq 'green' -and $State.ForceNextCast) -or
+        ($State.PostReelJumpAllowed -and $State.Mode -in @('Ready','Casting') -and
+         $Color -in @('red','green') -and ($State.CycleJumpPending -or ($State.CheckReelGreen -and $Color -eq 'green')))
+}
 function Complete-WowAutoPoll($Scheduler, [string]$Key, [long]$Now, [string]$Color) {
     $state=$Scheduler.Tasks[$Key]
     if ($null -eq $state -or -not $state.Running) { return 'None' }

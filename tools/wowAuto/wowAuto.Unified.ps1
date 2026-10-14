@@ -86,6 +86,7 @@ function Invoke-UnifiedTick([long]$Now) {
             Submit-FishingActions $Now
         }
     }
+    Submit-WindowCaptureActions $Now
     Invoke-GameActionQueue $Now
 }
 function New-UnifiedSettingsDialog {

@@ -14,6 +14,7 @@
     "Fish.Item": 45,
     "Scan.Activate": 45,
     "Rotation.Activate": 45,
+    "Capture.Restore": 45,
     "Rotation.Logout": 50,
     "Rotation.Menu": 50,
     "Rotation.Select": 50,

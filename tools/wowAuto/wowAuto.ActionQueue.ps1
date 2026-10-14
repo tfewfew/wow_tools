@@ -87,6 +87,7 @@ function Test-GameActionValid($Event) {
         }
         'Scan' {return $script:scanning -and $script:scanGeneration -eq $Event.Owner -and $script:scanIndex -eq $Event.Data.Index -and $script:scanPhase -eq $Event.Data.Phase}
         'Restore' {return -not $script:scanning -and $script:scanGeneration -eq $Event.Owner}
+        'Capture' {return [WowAutoCapture.Native]::RestoreCurrent($Event.Owner)}
         'Process' {
             if ($Event.Kind -eq 'Process.Close') {return [object]::ReferenceEquals($script:rows[$Event.Key],$Event.Row) -and
                 [object]::ReferenceEquals($script:pendingGameExits[$Event.Key],$Event.Owner)}
@@ -138,7 +139,7 @@ function Invoke-GameActionQueue([long]$Now,[switch]$SafetyOnly) {
             (-not $SafetyOnly -or $_.Domain -eq 'Safety') -and
             (-not $held -or $_.Domain -in @('Safety','Hold')) -and
             (-not $script:editingSettings -or $_.Domain -eq 'Safety') -and
-            (-not $rotationBusy -or $_.Domain -in @('Rotation','Safety','Hold','Process')) -and
+            (-not $rotationBusy -or $_.Domain -in @('Rotation','Safety','Hold','Process','Capture')) -and
             (-not $focus -or $_ -eq $focus -or -not (Test-GameActionUsesFocus $_) -or $_.Priority -lt $focus.Priority)
         } | Sort-Object Priority,Due,Sequence)
         if (-not $eligible.Count) {return}
@@ -202,6 +203,14 @@ function Invoke-QueuedGameAction($event,[long]$Now) {
         while ($script:gameActions.History.Count -gt 200) {$script:gameActions.History.RemoveAt(0)}
     }
     catch {
+        if ((Get-Command Test-WindowCapturePending -ErrorAction SilentlyContinue) -and (Test-WindowCapturePending $_)) {
+            # A restoration/first-frame wait is not a focus failure and cannot discard an overdue reel.
+            $event.Due=$Now+100
+            if (-not $script:gameActions.Events.Contains($event)) {[void]$script:gameActions.Events.Add($event)}
+            if ($script:gameActions.Focus -eq $event) {$script:gameActions.Focus=$null}
+            $event.ReadyAt=0L;$event.FocusUntil=0L;$event.NextActivateAt=0L
+            return $false
+        }
         $event.Cancelled=$true;[void]$script:gameActions.Events.Remove($event)
         if ($script:gameActions.Focus -eq $event) {$script:gameActions.Focus=$null}
         $reason='队列动作 '+$event.Kind+' 失败：'+$_.Exception.Message
@@ -241,7 +250,11 @@ function Submit-FishingActions([long]$Now) {
             'Reel' {'Fish.Reel'} 'AudioTimeout' {'Fish.AudioTimeout'} 'Item' {'Fish.Item'} 'FocusRetry' {'Fish.FocusRetry'}
             default {if ($state.PostReelJumpAllowed -and ($state.CycleJumpPending -or $state.CheckReelGreen)) {'Fish.Jump'} else {'Fish.Cast'}}
         }
-        Add-GameAction -Id ('fish:'+ $work.Key+':'+$work.Kind) -Kind $kind -Domain Fish -Key $work.Key -Row $row -Owner $state -Due $work.Due -Data $work -Foreground $true -Execute {
+        # A lower-priority observation must not mutate a same-row intent waiting for input focus.
+        $priority=$script:gameActions.Priorities[$kind]
+        if (@($script:gameActions.Events | Where-Object {$_.Domain -eq 'Fish' -and $_.Key -eq $work.Key -and
+            $_.Foreground -and [object]::ReferenceEquals($_.Owner,$state) -and $_.Priority -le $priority}).Count) {continue}
+        Add-GameAction -Id ('fish:'+ $work.Key+':'+$work.Kind) -Kind $kind -Domain Fish -Key $work.Key -Row $row -Owner $state -Due $work.Due -Data $work -Foreground ($work.Kind -eq 'FocusRetry') -Execute {
             param($event,$now)
             $script:scheduler.ActiveKey=$event.Key
             Invoke-SchedulerTick $now -QueuedWork $event.Data
@@ -271,12 +284,12 @@ function Submit-RotationAction([long]$Now) {
         return
     }
     $kind=switch ($work.Phase) {
-        'logout-activate' {'Rotation.Activate'} 'logout-inspect' {'Rotation.Logout'}
+        'logout-activate' {'Rotation.Activate'} 'logout-inspect' {'Rotation.Logout'} 'logout-send' {'Rotation.Logout'} 'menu-logout' {'Rotation.Logout'}
         'activate' {'Rotation.Activate'} 'menu' {'Rotation.Menu'} 'find' {'Rotation.Select'}
         'click-activate' {'Rotation.Activate'} 'click' {'Rotation.Click'} 'login-activate' {'Rotation.Activate'}
-        'login' {'Rotation.Login'} 'validate' {if ($work.MonitorEnabled) {'Rotation.Validate'} else {'Rotation.Enable'}}
+        'login' {'Rotation.Login'} 'enable' {'Rotation.Enable'} 'validate' {'Rotation.Validate'}
     }
-    Add-GameAction -Id rotation -Kind $kind -Domain Rotation -Key $work.Row.Key -Row $work.Row -Owner $work -Due $work.Due -Data $work.Phase -Foreground ($work.Phase -notin @('activate','logout-activate','click-activate','login-activate')) -Execute {param($event,$now) $null=Invoke-RotationTick $now}
+    Add-GameAction -Id rotation -Kind $kind -Domain Rotation -Key $work.Row.Key -Row $work.Row -Owner $work -Due $work.Due -Data $work.Phase -Foreground ($work.Phase -in @('logout-send','menu-logout','click','enable')) -Execute {param($event,$now) $null=Invoke-RotationTick $now}
 }
 function Submit-RefreshAction([long]$Now,[long]$ScanNow=-1) {
     if (-not $script:scanning) {return}
@@ -284,7 +297,7 @@ function Submit-RefreshAction([long]$Now,[long]$ScanNow=-1) {
     $kind=switch ($script:scanPhase) {'Activate' {'Scan.Activate'} 'Command' {'Scan.Enable'} default {'Scan.Observe'}}
     $sampleAt=if ($ScanNow -ge 0) {$ScanNow} else {$script:scanClock.ElapsedMilliseconds}
     $due=$Now+[Math]::Max(0,$script:scanDue-$sampleAt)
-    Add-GameAction -Id scan -Kind $kind -Domain Scan -Key $row.Key -Row $row -Owner $script:scanGeneration -Due $due -Data ([pscustomobject]@{Index=$script:scanIndex;Phase=$script:scanPhase;ScanNow=$ScanNow}) -Foreground ($null -ne $row -and $script:scanPhase -ne 'Activate') -Execute {
+    Add-GameAction -Id scan -Kind $kind -Domain Scan -Key $row.Key -Row $row -Owner $script:scanGeneration -Due $due -Data ([pscustomobject]@{Index=$script:scanIndex;Phase=$script:scanPhase;ScanNow=$ScanNow}) -Foreground ($null -ne $row -and $script:scanPhase -eq 'Command') -Execute {
         param($event,$now)
         $sampleAt=if ($event.Data.ScanNow -ge 0) {$event.Data.ScanNow} else {$script:scanClock.ElapsedMilliseconds}
         Invoke-RefreshScan $sampleAt

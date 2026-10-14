@@ -12,6 +12,7 @@ namespace WowAutoFight {
         public static bool LastCtrl=false,LastShift=false,LastAlt=false;
         public static int ReadsUntilEncounterChange=0;
         public static int MissingReads=0;
+        public static bool LastReadPending=false;
         public static string LastReadError="模拟快照暂不可读";
         public static bool FailSend=false, IsHolding=false;
         public static string Position="左上";
@@ -342,7 +343,7 @@ try {
     Assert-Ui $fightRows[0].Start.Enabled 'Validated stopped row remained locked after refresh readiness was restored.'
     Assert-Ui ($script:scheduler.JumpEveryCycles -eq $fishJump -and (Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $fishIniHash -and (Get-FileHash -LiteralPath $fightSource).Hash -eq $fightSourceHash) 'Combat changed fishing settings or source configuration.'
     Write-Output 'PASS: combat settings 100 ms step/common draft/profile isolation/save/cancel/locked failure; mocked production input gate for all states, cross-window, release, restart and send failure. No real native operations.'
-    Write-Output 'PASS: foreground-only login-point guard is not called during background sampling, refresh or interaction hold; missing point blocks foreground input and restored readiness unlocks start.'
+    Write-Output 'PASS: unified window-frame login point permits background reads; missing point blocks foreground input and restored readiness unlocks start.'
     Write-Output 'PASS: production combat UI adapter opens once, stays quiet through waiting/combat/emergency, attacks on approach, reopens for new monster and rechecks encounter before input.'
     Write-Output 'PASS: independent client tabs/class selection/sparse class IDs, supported classes, changing process positions, global jump save/cancel/failure/disabled/exact deadline/busy/wait deferral/Space/shared gate. Game operations mocked.'
 } finally {
