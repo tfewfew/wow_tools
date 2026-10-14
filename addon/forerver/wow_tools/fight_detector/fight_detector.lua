@@ -1,4 +1,4 @@
--- Independent detector with a secure, key-triggered target/focus button. No movement or casting.
+-- Independent detector: observe selected targets; all targeting keys belong to the script/game.
 local FLAVOR = "forerver"
 local enabled, initialized, elapsed = false, false, 0
 local nameplates = {}
@@ -6,7 +6,6 @@ local lootOpen = false
 local classID = nil
 local range=WoWTools.FightRange
 local attackRange=range.DefaultAttack
-local targetKey,targetBinding="Tab","TAB"
 local encounterGUID, encounterSerial = nil, 0
 local interactionGUID = nil
 local state, combat, skin, busy = "disabled", false, false, false
@@ -22,7 +21,7 @@ local settingDefaults = { HealthEnter=80, HealthExit=95, ManaEnter=0, ManaExit=9
 local actionCodes={unknown=0,idle=1,opening=2,waiting=3,combat=4,loot=5,skin=6,target=7}
 local recoveryCodes={none=0,recover=1,emergency=2,unknown=3}
 local descriptions={disabled="已关闭",unknown="数据未知，暂停指令",idle="等待目标",
-    target="选中并锁定本次怪物",opening="已选中怪物，开怪",waiting="等待怪物接近",combat="进入攻击距离",
+    target="等待选中本次怪物",opening="已选中怪物，开怪",waiting="等待怪物接近",combat="进入攻击距离",
     loot="可以拾取",skin="可以剥皮"}
 
 local function Readable(value)
@@ -41,79 +40,12 @@ local function Bool(fn, ...)
     if value == false or value == 0 or value == nil then return false end
     return nil
 end
--- The configured key is a temporary override. Only a key click executes it.
--- Attributes and bindings are never changed under combat lockdown.
-local keyAliases={
-    tab={"Tab","TAB"},back={"Back","BACKSPACE"},backspace={"Back","BACKSPACE"},
-    ["return"]={"Return","ENTER"},enter={"Return","ENTER"},escape={"Escape","ESCAPE"},
-    space={"Space","SPACE"},prior={"Prior","PAGEUP"},pageup={"Prior","PAGEUP"},
-    next={"Next","PAGEDOWN"},pagedown={"Next","PAGEDOWN"},home={"Home","HOME"},
-    ["end"]={"End","END"},left={"Left","LEFT"},right={"Right","RIGHT"},
-    up={"Up","UP"},down={"Down","DOWN"},insert={"Insert","INSERT"},delete={"Delete","DELETE"},
-    multiply={"Multiply","NUMPADMULTIPLY"},add={"Add","NUMPADPLUS"},
-    subtract={"Subtract","NUMPADMINUS"},decimal={"Decimal","NUMPADDECIMAL"},
-    divide={"Divide","NUMPADDIVIDE"},["="]={"=","="},["-"]={"-","-"},
-}
-local function NormalizeTargetKey(text)
-    if type(text)~="string" then return nil end
-    local rest=text:match("^%s*(.-)%s*$")
-    local mods={}
-    while rest:find("+",1,true) do
-        local modifier,tail=rest:match("^([^+]+)%+(.*)$")
-        if not modifier then return nil end
-        modifier=modifier:match("^%s*(.-)%s*$"):lower()
-        if (modifier~="ctrl" and modifier~="shift" and modifier~="alt") or mods[modifier] then return nil end
-        mods[modifier]=true; rest=tail
-    end
-    local key=rest:match("^%s*(.-)%s*$"):lower()
-    local alias=keyAliases[key]
-    local base,binding
-    if alias then base,binding=alias[1],alias[2]
-    elseif key:match("^[a-z0-9]$") then base,binding=key:upper(),key:upper()
-    elseif key:match("^f%d+$") and tonumber(key:sub(2))>=1 and tonumber(key:sub(2))<=24 then base,binding=key:upper(),key:upper()
-    elseif key:match("^numpad%d$") then base,binding="NumPad"..key:sub(-1),"NUMPAD"..key:sub(-1)
-    else return nil end
-    if binding=="SPACE" and not next(mods) then return nil end
-    local display={}
-    for _,modifier in ipairs({"ctrl","shift","alt"}) do
-        if mods[modifier] then display[#display+1]=({ctrl="Ctrl",shift="Shift",alt="Alt"})[modifier] end
-    end
-    display[#display+1]=base
-    local prefix=""
-    for _,modifier in ipairs({"alt","ctrl","shift"}) do if mods[modifier] then prefix=prefix..modifier:upper().."-" end end
-    return table.concat(display,"+"),prefix..binding
-end
-local targetButton=CreateFrame("Button","wowToolsFightTargetButton",UIParent,"SecureActionButtonTemplate")
-targetButton:RegisterForClicks("AnyDown","AnyUp")
-targetButton:SetAttribute("type","macro")
-targetButton:SetAttribute("macrotext","")
-local targetPreparedGUID, targetPreparedUnit, targetBound=nil,nil,false
-local function PrepareTarget(unit,guid)
-    if InCombatLockdown() then return targetBound and targetPreparedGUID==guid end
-    if not enabled then
-        ClearOverrideBindings(targetButton)
-        targetButton:SetAttribute("macrotext","")
-        targetPreparedGUID,targetPreparedUnit,targetBound=nil,nil,false
-        return false
-    end
-    if not unit or not guid then return false end
-    if targetPreparedGUID~=guid or targetPreparedUnit~=unit then
-        targetButton:SetAttribute("macrotext","/target [combat,@focus,exists,harm,nodead][nocombat,@"..unit..",exists,harm,nodead]\n/focus [nocombat,@target,exists,harm,nodead]")
-        targetPreparedGUID,targetPreparedUnit=guid,unit
-    end
-    if not targetBound then
-        SetOverrideBindingClick(targetButton,true,targetBinding,"wowToolsFightTargetButton","LeftButton")
-        targetBound=true
-    end
-    return true
-end
-
 local function Say(message)
     DEFAULT_CHAT_FRAME:AddMessage("|cff66ccfffight_detector:|r " .. message)
 end
 
 local panel = CreateFrame("Frame", "wowToolsFightDetectorPanel", UIParent)
-panel:SetSize(560, 350)
+panel:SetSize(560, 290)
 panel:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 12, -16)
 panel:SetFrameStrata("HIGH")
 panel:SetClampedToScreen(true)
@@ -177,16 +109,6 @@ for i,row in ipairs(thresholdRows) do
         caption:SetPoint("LEFT",box,"RIGHT",5,0); caption:SetText(j==2 and "进入" or "退出")
     end
 end
-local targetLabel=panel:CreateFontString(nil,"OVERLAY","GameFontNormalSmall")
-targetLabel:SetPoint("TOPLEFT",12,-258)
-targetLabel:SetText("选中 / 锁定目标键（全局）")
-local targetInput=CreateFrame("EditBox","wowToolsFightTargetKeyInput",panel,"InputBoxTemplate")
-targetInput:SetSize(150,22); targetInput:SetPoint("TOPLEFT",250,-254)
-targetInput:SetAutoFocus(false); targetInput:SetMaxLetters(48)
-targetInput:SetScript("OnEscapePressed",function(self) self:ClearFocus() end)
-local hint=panel:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall")
-hint:SetPoint("TOPLEFT",12,-298)
-hint:SetText("选目标键须与脚本公共配置一致；支持 Tab、F10、Ctrl+Tab 等。")
 local start = CreateFrame("Button",nil,panel,"UIPanelButtonTemplate")
 start:SetSize(64,22)
 start:SetPoint("BOTTOMLEFT",12,8)
@@ -252,7 +174,7 @@ local function Paint()
         local hint=hints[recovery] or hints.unknown
         cells[2]:SetColorTexture(hint[1],hint[2],hint[3],1)
     else signal:Hide() end
-    status:SetText((descriptions[state] or descriptions.unknown)..(state=="target" and ("（"..targetKey.."）") or "").." · 战斗："..
+    status:SetText((descriptions[state] or descriptions.unknown).." · 战斗："..
         (combat==nil and "未知" or (combat and "是" or "否"))..
         "\n"..(recoveryDescriptions[recovery] or "恢复未知").." · HP "..(health and math.floor(health).."%" or "?")..
         (mana and (" / MP "..math.floor(mana).."%") or "")..(busy and " · 忙碌" or ""))
@@ -273,7 +195,7 @@ local function SetEncounter(guid)
     end
 end
 local function FindEnemy()
-    local candidates={"focus","target","softenemy"}
+    local candidates={"target","softenemy"}
     local plates={}
     for unit in pairs(nameplates) do plates[#plates+1]=unit end
     table.sort(plates)
@@ -293,7 +215,7 @@ local function FindEnemy()
                 -- Keep following the pulled monster, even if it retreats beyond detection range.
                 -- Combat target changes must not replace the locked encounter.
                 if guid==encounterGUID then return unit,guid end
-                if not combat and unit~="focus" then
+                if not combat then
                     local detected=range.Check(unit,settings.DetectionRangeYards)
                     if detected then return unit,guid end
                     if detected==nil then unknown=true end
@@ -415,8 +337,6 @@ local function Stop()
     health,mana,recovery=nil,nil,"none"
     SetEncounter(nil)
     interactionGUID=nil
-    PrepareTarget(nil,nil)
-    if InCombatLockdown() then events:RegisterEvent("PLAYER_REGEN_ENABLED") end
     signal:Hide()
     Paint()
 end
@@ -464,10 +384,8 @@ local function Refresh()
     if unit then
         SetEncounter(guid)
         local targetGUID,targetOK=Read(UnitGUID,"target")
-        local focusGUID,focusOK=Read(UnitGUID,"focus")
-        if not targetOK or not focusOK then SetState("unknown"); return end
-        if not PrepareTarget(unit,guid) or (combat and focusGUID~=guid) then SetState("unknown"); return end
-        if targetGUID~=guid or (not combat and focusGUID~=guid) then SetState("target"); return end
+        if not targetOK then SetState("unknown"); return end
+        if targetGUID~=guid then SetState("target"); return end
         if combat then
             local closeEnough=range.Check(unit,attackRange)
             if closeEnough==nil then SetState("unknown"); return end
@@ -513,9 +431,6 @@ local function Start()
 end
 save:SetScript("OnClick",function()
     if not initialized then return end
-    local newKey,newBinding=NormalizeTargetKey(targetInput:GetText())
-    if not newKey then Say("选目标键无效；支持 Tab、F10、Ctrl+Tab 等，单独空格用于跳跃。"); return end
-    if newKey~=targetKey and InCombatLockdown() then Say("请脱战后修改选目标键，当前配置未保存。"); return end
     local value=tonumber(input:GetText())
     local attack=tonumber(attackInput:GetText())
     if not range.IsSupported(value) or not range.IsSupported(attack) then
@@ -530,12 +445,6 @@ save:SetScript("OnClick",function()
         end
         if draft[row[2]]>=draft[row[3]] then Say("恢复进入值必须小于退出值。"); return end
     end
-    if newKey~=targetKey and targetBound then
-        ClearOverrideBindings(targetButton); targetBound=false
-    end
-    targetKey,targetBinding=newKey,newBinding
-    fightDetectorDB.TargetKey=targetKey
-    targetInput:SetText(targetKey); targetInput:ClearFocus()
     attackRange,settings=attack,draft
     fightDetectorDB.AttackRangeYards=attack
     fightDetectorDB.profiles[classID]=draft
@@ -558,7 +467,7 @@ WoWTools.modules.fight_detector={
 events=CreateFrame("Frame")
 events:RegisterEvent("ADDON_LOADED")
 local activeEvents={"PLAYER_ENTERING_WORLD","PLAYER_DEAD","PLAYER_LOGOUT",
-    "PLAYER_REGEN_DISABLED","PLAYER_REGEN_ENABLED","PLAYER_TARGET_CHANGED","PLAYER_FOCUS_CHANGED","PLAYER_SOFT_ENEMY_CHANGED",
+    "PLAYER_REGEN_DISABLED","PLAYER_REGEN_ENABLED","PLAYER_TARGET_CHANGED","PLAYER_SOFT_ENEMY_CHANGED",
     "PLAYER_SOFT_INTERACT_CHANGED","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED",
     "LOOT_OPENED","LOOT_CLOSED","LOOT_READY","LOOT_SLOT_CLEARED",
     "UNIT_HEALTH","UNIT_MAXHEALTH","UNIT_POWER_UPDATE",
@@ -573,9 +482,6 @@ events:SetScript("OnEvent",function(_,event,arg)
         if not ok or not Readable(id) or type(id)~="number" or id<1 or id>13 then return end
         classID=id
         attackRange=range.IsSupported(fightDetectorDB.AttackRangeYards) and fightDetectorDB.AttackRangeYards or range.DefaultAttack
-        local storedKey,storedBinding=NormalizeTargetKey(fightDetectorDB.TargetKey)
-        targetKey,targetBinding=storedKey or "Tab",storedBinding or "TAB"
-        targetInput:SetText(targetKey)
         local stored=fightDetectorDB.profiles[id]
         settings={DetectionRangeYards=range.DefaultDetection}
         for key,value in pairs(settingDefaults) do settings[key]=value end
@@ -593,7 +499,7 @@ events:SetScript("OnEvent",function(_,event,arg)
         for field,box in pairs(thresholds) do box:SetText(tostring(settings[field])) end
         initialized=true
         Stop()
-    elseif not enabled and event~="PLAYER_REGEN_ENABLED" then return
+    elseif not enabled then return
     elseif event=="LOOT_OPENED" then
         lootOpen=true
         SafeRefresh()
@@ -608,9 +514,6 @@ events:SetScript("OnEvent",function(_,event,arg)
         ResetWorldState()
         SafeRefresh()
     elseif event=="PLAYER_DEAD" or event=="PLAYER_LOGOUT" then lootOpen=false; Stop()
-    elseif event=="PLAYER_REGEN_ENABLED" and not enabled then
-        PrepareTarget(nil,nil)
-        events:UnregisterEvent("PLAYER_REGEN_ENABLED")
     else SafeRefresh() end
 end)
 local function Poll(_,delta)

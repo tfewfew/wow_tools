@@ -62,12 +62,10 @@ for _,flavor in ipairs({"titan","forerver"}) do
     function UnitIsDeadOrGhost(unit) if unit=="player" then return dead end; return mobs[unit] and mobs[unit].dead or false end
     function UnitIsPlayer() return false end
     function UnitCanAttack(_,unit) return mobs[unit]~=nil end
-    local autoFocus=true
-    function UnitGUID(unit) local mob=mobs[unit]; if unit=="focus" and not mob and autoFocus then mob=mobs.target end; return mob and mob.guid end
+    function UnitGUID(unit) assert(unit~="focus", "Detector still reads focus"); local mob=mobs[unit]; return mob and mob.guid end
     function InCombatLockdown() return combat end
-    local override,overrideKey
-    function SetOverrideBindingClick(_,_,key,name) assert(not combat); assert(name=="wowToolsFightTargetButton"); override=true; overrideKey=key end
-    function ClearOverrideBindings() assert(not combat); override=false end
+    function SetOverrideBindingClick() error("Detector still overrides the targeting key") end
+    function ClearOverrideBindings() error("Detector still clears targeting bindings") end
     function UnitAffectingCombat() return combat end
     function UnitIsInteractable(unit)
         assert(unit=="softinteract")
@@ -162,7 +160,8 @@ for _,flavor in ipairs({"titan","forerver"}) do
     end
     for _,b in ipairs(buttons) do assert(b.text~="前" and b.text~="停止移动","Plugin still creates movement buttons") end
     mobs.target.distance=30; restricted=true; tick(); color(255,96,0) -- 5yd probe must not block opening.
-    assert(overrideKey=="TAB","Default target key is not Tab")
+    assert(not names.wowToolsFightTargetButton and not names.wowToolsFightTargetKeyInput,
+        "Plugin still creates a target binding or key setting")
     restricted=false; local first=epoch()
     event("UNIT_SPELLCAST_SUCCEEDED","player",secret,123); color(255,96,0)
     event("UNIT_SPELLCAST_SUCCEEDED","player",secret,secret); color(255,96,0)
@@ -175,11 +174,10 @@ for _,flavor in ipairs({"titan","forerver"}) do
     mobs.target.distance=50; tick(); color(0,192,192); assert(epoch()==first,"Retreat changed tracked encounter")
     mobs.nameplate1={guid="Creature-B",distance=3}; event("NAME_PLATE_UNIT_ADDED","nameplate1"); tick()
     color(0,192,192); assert(epoch()==first,"Nearby other monster bypassed target's attack distance")
-    mobs.focus=mobs.target
+    mobs.nameplate2=mobs.target; event("NAME_PLATE_UNIT_ADDED","nameplate2")
     mobs.target={guid="Creature-C",distance=5}; tick()
     assert(math.floor(signal.textures[3].color[1]*255+.5)==240 and epoch()==first,"Combat target switch replaced locked encounter")
-    assert(names.wowToolsFightTargetButton.macrotext:find("combat,@focus",1,true),"Secure combat retarget missing")
-    mobs.target=mobs.focus; mobs.focus=nil; tick(); color(0,192,192)
+    mobs.target=mobs.nameplate2; mobs.nameplate2=nil; event("NAME_PLATE_UNIT_REMOVED","nameplate2"); tick(); color(0,192,192)
     mobs.target.distance=5; tick(); color(255,0,0)
     mobs.nameplate1=nil; event("NAME_PLATE_UNIT_REMOVED","nameplate1")
     restricted=true; tick(); color(128,128,128)
@@ -226,48 +224,33 @@ for _,flavor in ipairs({"titan","forerver"}) do
     edits[1]:SetText("35"); edits[2]:SetText("15"); save.scripts.OnClick()
     setup(1,saved); assert(edits[1].text=="25" and edits[2].text=="15","Global attack did not apply to another class / detection overwritten")
     -- Unselected nearby nameplate must request selection before opening.
-    autoFocus=false
     mobs={nameplate1={guid="Creature-NEW",distance=10}}
     signal=setup(1,saved)
     SlashCmdList.FIGHTDETECTOR("on")
     event("NAME_PLATE_UNIT_ADDED","nameplate1"); tick()
-    assert(math.floor(signal.textures[3].color[1]*255+.5)==240 and override,"Unselected nameplate opened without target key")
-    assert(names.wowToolsFightTargetButton.macrotext:find("nocombat,@nameplate1",1,true),"Selected wrong unit token")
+    assert(math.floor(signal.textures[3].color[1]*255+.5)==240,"Unselected nameplate opened without a target")
+    assert(not names.wowToolsFightTargetButton,"Detector still created a secure target button")
     local selectedEpoch=epoch()
-    mobs.target=mobs.nameplate1; tick()
-    assert(math.floor(signal.textures[3].color[1]*255+.5)==240,"Target without confirmed focus opened")
-    mobs.focus=mobs.target; tick(); color(255,96,0)
+    mobs.target=mobs.nameplate1; tick(); color(255,96,0)
     assert(epoch()==selectedEpoch,"Confirming selection changed encounter")
-    combat=true; mobs.focus=mobs.target; mobs.target=nil; tick()
-    assert(math.floor(signal.textures[3].color[1]*255+.5)==240 and epoch()==selectedEpoch,"Lost target did not request locked focus")
-    mobs.focus=nil; tick(); color(128,128,128) -- Never target an unrelated focus in combat.
-    SlashCmdList.FIGHTDETECTOR("off"); assert(override,"Combat attempted protected unbind")
+    combat=true; mobs.target=nil; tick()
+    assert(math.floor(signal.textures[3].color[1]*255+.5)==240 and epoch()==selectedEpoch,"Lost target did not request reselection")
+    mobs.nameplate1=nil; event("NAME_PLATE_UNIT_REMOVED","nameplate1"); tick(); color(128,128,128)
+    SlashCmdList.FIGHTDETECTOR("off")
     assert(not WoWTools.modules.fight_detector.IsEnabled(),"Combat close leaves loot enabled")
-    combat=false; event("PLAYER_REGEN_ENABLED"); assert(not override,"Deferred override cleanup missing")
+    combat=false; event("PLAYER_REGEN_ENABLED")
     mobs={}; health=70; SlashCmdList.FIGHTDETECTOR("on"); color(0,0,255)
     assert(((centerCell().color[1]*255-16)/8)%4==1
         and signal.textures[2].color[3]==1,"Red noncombat body lost recovery data or hint")
     health=secret; tick(); color(128,128,128)
     health=100; tick(); color(0,0,255)
     SlashCmdList.FIGHTDETECTOR("off")
-    -- Target binding is account-wide, persisted, and only changed outside combat.
-    local targetInput=names.wowToolsFightTargetKeyInput
-    for _,b in ipairs(buttons) do if b.text=="保存" then save=b end end
-    assert(targetInput.text=="Tab","Target key was moved into a class profile")
-    mobs.target={guid="Creature-KEY",distance=5}; mobs.focus=mobs.target
-    SlashCmdList.FIGHTDETECTOR("on")
-    targetInput:SetText("ctrl+Tab"); save.scripts.OnClick()
-    assert(saved.TargetKey=="Ctrl+Tab" and overrideKey=="CTRL-TAB" and override,"Configured target binding not applied")
-    combat=true; targetInput:SetText("F10"); edits[2]:SetText("20"); save.scripts.OnClick()
-    assert(saved.TargetKey=="Ctrl+Tab" and saved.AttackRangeYards==15 and overrideKey=="CTRL-TAB",
-        "Combat binding change partially saved or touched protected binding")
-    combat=false; targetInput:SetText("Ctrl+Ctrl+Tab"); save.scripts.OnClick()
-    assert(saved.AttackRangeYards==15 and saved.TargetKey=="Ctrl+Tab","Invalid target key partially saved")
-    targetInput:SetText("Alt+Shift+F10"); save.scripts.OnClick()
-    assert(saved.TargetKey=="Shift+Alt+F10" and overrideKey=="ALT-SHIFT-F10","Modifier ordering differs from WoW")
-    SlashCmdList.FIGHTDETECTOR("off"); assert(not override,"Configured binding did not restore")
-    setup(3,saved)
-    assert(names.wowToolsFightTargetKeyInput.text=="Shift+Alt+F10","Target key did not persist across class/reload")
-    print("PASS: "..flavor.." yard probes, 30/5 defaults, exact thresholds, opening/wait/approach/retreat, target identity, unknown/secret/failure/conflict, legacy fallback, settings scope/validation and death. Game APIs mocked.")
+    saved.TargetKey="Ctrl+Tab" -- Legacy SavedVariables must not restore a plugin binding.
+    mobs.target={guid="Creature-KEY",distance=5}
+    signal=setup(3,saved)
+    SlashCmdList.FIGHTDETECTOR("on"); color(255,96,0)
+    assert(not names.wowToolsFightTargetKeyInput and not names.wowToolsFightTargetButton,
+        "Legacy target key restored a plugin setting or binding")
+    print("PASS: "..flavor.." yard probes, selected-target opening without focus, no plugin key override, encounter tracking, unknown/secret/failure/conflict, legacy fallback, settings scope/validation and death. Game APIs mocked.")
 end
 if output then output:close() end

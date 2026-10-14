@@ -471,7 +471,7 @@ function New-AutoFightSettingsDialog([switch]$Embedded) {
     }
     $profileTabs.Add_SelectedIndexChanged({if (-not $script:autoFight.Editor.Loading) {Set-AutoFightEditorAliases}})
     $heading=New-Object System.Windows.Forms.Label; $heading.Text='通用设置：全部服务器与职业'; $heading.SetBounds(16,278,810,26); $body.Controls.Add($heading)
-    $keyLabels=@('向前移动键','向后移动键','向左移动键','向右移动键','拾取 / 剥皮交互键','选中 / 锁定目标键')
+    $keyLabels=@('向前移动键','向后移动键','向左移动键','向右移动键','拾取 / 剥皮交互键','选中目标键')
     for ($j=0;$j -lt $script:autoFightCommonKeyFields.Count;$j++) {
         $field=$script:autoFightCommonKeyFields[$j]
         $x=16+($j%2)*420; $y=306+[Math]::Floor($j/2)*44

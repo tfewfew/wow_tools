@@ -176,10 +176,10 @@ for _,flavor in ipairs({"titan","forerver"}) do
         fish.Show(); event("DISPLAY_SIZE_CHANGED"); tick()
         fight.Show(); event("UI_SCALE_CHANGED"); tick(); state(false,true); geometry()
     end
-    -- Switching out of combat also releases this detector's temporary key override.
-    binding=true; combat=true; fish.Show(); state(true,false); assert(binding,"Unbound in combat lockdown")
-    combat=false; event("PLAYER_REGEN_ENABLED"); assert(not binding,"Deferred combat cleanup missing")
+    -- Switching detectors must never create or touch a combat target binding.
+    combat=true; fish.Show(); state(true,false); assert(not binding,"Detector changed a target binding")
+    combat=false; event("PLAYER_REGEN_ENABLED"); assert(not binding,"Deferred target binding survived")
     fish.Hide(); state(false,false); restored()
     event("ADDON_LOADED","wow_tools"); state(false,false)
-    print("PASS: "..flavor.." real detector mutual exclusion via commands/buttons/module menu entries, hidden fishing, blocked starts, audio restoration, shared main/aux pixels across resize/UI scale and secure cleanup. No game actions.")
+    print("PASS: "..flavor.." real detector mutual exclusion via commands/buttons/module menu entries, hidden fishing, blocked starts, audio restoration, shared main/aux pixels across resize/UI scale and no target binding. No game actions.")
 end

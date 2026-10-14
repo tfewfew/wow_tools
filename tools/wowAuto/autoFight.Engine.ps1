@@ -7,7 +7,7 @@ function Get-AutoFightClassIds([string]$Flavor) {
     return @($script:autoFightClasses.Keys | Where-Object {$Flavor -eq 'titan' -or $_ -ne '6'} | ForEach-Object {[int]$_})
 }
 $script:autoFightStates = [ordered]@{
-    'target'=@{Label='选中并锁定怪物'; Key='TargetKey'; Interval='TargetIntervalMs'}
+    'target'=@{Label='选中怪物'; Key='TargetKey'; Interval='TargetIntervalMs'}
     'opening'=@{Label='发现怪物，开怪'; Key='OpeningKey'; Interval=$null}
     'waiting'=@{Label='等待怪物接近'; Key=$null; Interval=$null}
     'combat'=@{Label='正常战斗'; Key='CombatKey'; Interval='CombatIntervalMs'}
