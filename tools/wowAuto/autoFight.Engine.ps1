@@ -246,7 +246,8 @@ function Save-AutoFightProfiles([string]$Path,$Profiles,$CommandIntervalMs=500,$
 function New-AutoFightSession([long]$Now,[int]$ClassId) {
     return [pscustomobject]@{Id=[Guid]::NewGuid().ToString('N'); ClassId=$ClassId; Due=$Now;
         State=''; EnteredAt=$Now; EntryPending=$true; NextActionAt=$Now; NextInteractionAt=0L; LastInteractionState='';
-        EncounterId=-1; OpeningSent=$false;LootEncounterId=-1;SkinnedEncounterId=-1;
+        EncounterId=-1; OpeningSent=$false; OpeningRetryAt=[long]::MaxValue; OpeningNeedsTarget=$false; CombatSeen=$false;
+        LootEncounterId=-1;SkinnedEncounterId=-1;
         RecoveryState='none';RecoverySent=$false;MovementRequest='';
         JumpIntervalSeconds=0;NextJumpAt=[long]::MaxValue;
         BuffIntervalSeconds=0;BuffCount=1;BuffRemaining=0;NextBuffAt=[long]::MaxValue}
@@ -273,12 +274,25 @@ function Update-AutoFightState($Session,$Packet,[long]$Now) {
     $changed=$Session.EncounterId -ne $Packet.EncounterId
     if ($changed) {
         $Session.EncounterId=$Packet.EncounterId; $Session.OpeningSent=$false
+        $Session.OpeningRetryAt=[long]::MaxValue; $Session.OpeningNeedsTarget=$false; $Session.CombatSeen=$false
         $Session.LootEncounterId=-1; $Session.SkinnedEncounterId=-1
     }
-    $state=if ($Packet.Action -eq 'waiting' -or ($Packet.Action -eq 'opening' -and $Session.OpeningSent)) { 'waiting' }
+    # An older detector may report combat after a harmful cast but before the player enters combat.
+    $action=if ($Packet.Action -eq 'combat' -and -not $Packet.Combat) {'opening'} else {$Packet.Action}
+    if ($Packet.Combat) {
+        $Session.CombatSeen=$true; $Session.OpeningNeedsTarget=$false
+    }
+    elseif (-not $Session.CombatSeen -and $Session.OpeningSent -and $Now -ge $Session.OpeningRetryAt -and
+        $action -in @('target','opening','waiting')) {
+        $Session.OpeningSent=$false
+        $Session.OpeningNeedsTarget=$true
+    }
+    $state=if ($action -eq 'waiting' -or ($action -eq 'opening' -and ($Session.OpeningSent -or $Session.CombatSeen)) -or
+        ($action -eq 'target' -and $Session.OpeningSent)) { 'waiting' }
         elseif ($Packet.Recovery -ne 'none') { $Packet.Recovery }
-        elseif ($Packet.Action -eq 'idle' -and -not $Packet.Busy -and $Session.MovementRequest) {'move-'+$Session.MovementRequest}
-        else { $Packet.Action }
+        elseif ($Session.OpeningNeedsTarget -and $action -in @('target','opening')) {'target'}
+        elseif ($action -eq 'idle' -and -not $Packet.Busy -and $Session.MovementRequest) {'move-'+$Session.MovementRequest}
+        else { $action }
     if ($Packet.Action -ne 'idle' -or $Packet.Recovery -ne 'none' -or $Packet.Busy) {$Session.MovementRequest=''}
     if ($Session.State -eq $state -and -not $changed) { return $false }
     $Session.State=$state; $Session.EnteredAt=$Now; $Session.EntryPending=$true
@@ -291,7 +305,9 @@ function Get-AutoFightAction($Session,$Packet,$Profile,[long]$Now) {
     if ($Packet.ClassId -ne $Session.ClassId -or $Packet.Flavor -ne $Profile.Flavor) { return 'identity-changed' }
     if (-not $script:autoFightStates.Contains($Session.State)) { return 'identity-changed' }
     # Waiting is deliberately quiet, including recovery keys. Key releases remain immediate.
-    if ($Packet.Action -eq 'waiting' -or ($Packet.Action -eq 'opening' -and $Session.OpeningSent)) { return 'wait' }
+    if ($Packet.Action -eq 'waiting' -or ($Packet.Action -in @('opening','combat') -and
+        ($Session.OpeningSent -or $Session.CombatSeen) -and -not $Packet.Combat) -or
+        ($Packet.Action -eq 'target' -and $Session.OpeningSent)) { return 'wait' }
     if ($Session.State -in @('recover','emergency') -and $Session.RecoverySent) {return 'wait'}
     # Emergency macros may stop a current cast; all other handlers wait for busy to clear.
     if ($Packet.Busy -and $Session.State -ne 'emergency') { return 'wait' }
@@ -330,7 +346,11 @@ function Complete-AutoFightAction($Session,$Profile,[string]$Action,[long]$Now) 
     $Session.EntryPending=$false
     if ($Action -in @('recover','emergency')) {$Session.RecoverySent=$true}
     if ($Action.StartsWith('move-')) {$Session.MovementRequest=''}
-    if ($Action -eq 'opening') { $Session.OpeningSent=$true }
+    if ($Action -eq 'target' -and $Session.OpeningNeedsTarget) {$Session.OpeningNeedsTarget=$false}
+    if ($Action -eq 'opening') {
+        $Session.OpeningSent=$true
+        $Session.OpeningRetryAt=$Now+1000
+    }
     $interval=$script:autoFightStates[$Action].Interval
     $Session.NextActionAt=if ($interval) { $Now+$Profile.$interval } else { [long]::MaxValue }
     if ($Action -in @('skin','loot')) {

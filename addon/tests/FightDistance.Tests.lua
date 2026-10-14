@@ -164,8 +164,8 @@ for _,flavor in ipairs({"titan","forerver"}) do
     restricted=false; local first=epoch()
     event("UNIT_SPELLCAST_SUCCEEDED","player",secret,123); color(255,96,0)
     event("UNIT_SPELLCAST_SUCCEEDED","player",secret,secret); color(255,96,0)
-    event("UNIT_SPELLCAST_SUCCEEDED","player",secret,2764); color(0,192,192)
-    mobs.target.distance=5; tick(); color(255,0,0) -- Success is observed before the combat flag arrives.
+    event("UNIT_SPELLCAST_SUCCEEDED","player",secret,2764); color(255,96,0)
+    mobs.target.distance=5; tick(); color(255,96,0) -- A successful spell alone does not end the opener retry phase.
     mobs.target.distance=30
     combat=true; tick(); color(0,192,192)
     mobs.target.distance=5; tick(); color(255,0,0)

@@ -9,7 +9,6 @@ local attackRange=range.DefaultAttack
 local targetKey,targetBinding="Tab","TAB"
 local encounterGUID, encounterSerial = nil, 0
 local interactionGUID = nil
-local pullObserved=false
 local state, combat, skin, busy = "disabled", false, false, false
 local health, mana, settings = nil, nil, nil
 local recovery="none"
@@ -269,7 +268,7 @@ local function Enemy(unit)
 end
 local function SetEncounter(guid)
     if encounterGUID~=guid then
-        encounterGUID=guid; encounterSerial=(encounterSerial+1)%256; pullObserved=false
+        encounterGUID=guid; encounterSerial=(encounterSerial+1)%256
     end
 end
 local function FindEnemy()
@@ -466,7 +465,7 @@ local function Refresh()
         if not targetOK or not focusOK then SetState("unknown"); return end
         if not PrepareTarget(unit,guid) or (combat and focusGUID~=guid) then SetState("unknown"); return end
         if targetGUID~=guid or (not combat and focusGUID~=guid) then SetState("target"); return end
-        if combat or pullObserved then
+        if combat then
             local closeEnough=range.Check(unit,attackRange)
             if closeEnough==nil then SetState("unknown"); return end
             SetState(closeEnough and "combat" or "waiting"); return
@@ -542,10 +541,10 @@ for _,event in ipairs({"ADDON_LOADED","PLAYER_ENTERING_WORLD","PLAYER_DEAD","PLA
     "PLAYER_SOFT_INTERACT_CHANGED","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED",
     "LOOT_OPENED","LOOT_CLOSED","LOOT_READY","LOOT_SLOT_CLEARED",
     "UNIT_HEALTH","UNIT_MAXHEALTH","UNIT_POWER_UPDATE",
-    "UNIT_MAXPOWER","UNIT_DISPLAYPOWER","DISPLAY_SIZE_CHANGED","UI_SCALE_CHANGED","GET_ITEM_INFO_RECEIVED","UNIT_SPELLCAST_SUCCEEDED"}) do
+    "UNIT_MAXPOWER","UNIT_DISPLAYPOWER","DISPLAY_SIZE_CHANGED","UI_SCALE_CHANGED","GET_ITEM_INFO_RECEIVED"}) do
     pcall(events.RegisterEvent,events,event)
 end
-events:SetScript("OnEvent",function(_,event,arg,castGUID,spellID)
+events:SetScript("OnEvent",function(_,event,arg)
     if event=="ADDON_LOADED" then
         if arg~="wow_tools" then return end
         if type(fightDetectorDB)~="table" then fightDetectorDB={} end
@@ -576,17 +575,6 @@ events:SetScript("OnEvent",function(_,event,arg,castGUID,spellID)
         for field,box in pairs(thresholds) do box:SetText(tostring(settings[field])) end
         initialized=true
         Stop()
-    elseif event=="UNIT_SPELLCAST_SUCCEEDED" then
-        if enabled and Readable(arg) and arg=="player" and Readable(spellID) and type(spellID)=="number"
-            and Bool(C_Spell and C_Spell.IsSpellHarmful or IsHarmfulSpell,spellID)==true then
-            for _,unit in ipairs({"target","softenemy"}) do
-                local guid,ok=Read(UnitGUID,unit)
-                if ok and type(guid)=="string" and guid==encounterGUID and Enemy(unit)==true then
-                    pullObserved=true; break
-                end
-            end
-        end
-        SafeRefresh()
     elseif event=="LOOT_OPENED" then
         lootOpen=true
         SafeRefresh()

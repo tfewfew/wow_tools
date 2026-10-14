@@ -24,6 +24,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\skills\wow-tools\scrip
 
 2.1.7：独立 `Loot.lua` 在打开战利品时自动拾取未锁定的槽位，包括钓鱼战利品；下一帧自动确认 `LOOT_BIND_CONFIRM`，成功后只隐藏对应槽位的 `LOOT_BIND` 弹窗。受限数据、缺失接口或确认失败时保留人工处理，不改CVar，不共享钓鱼和战斗设置。已通过Lua5.1编译及 `Loot.Tests.lua`、钓鱼检测与音频模拟；实际拾取效果由游戏测试确认。
 
+当前战斗逻辑：开怪键发出后若1秒内仍未进入战斗，脚本先重新锁定当前怪物，再尝试开怪；重复至进入战斗或没有可锁定目标。伤害法术施放成功本身不代表进入战斗。
+
 2.1.8：fight_detector增加本职业检测 / 开怪距离（默认30码）和全局开始战斗距离（默认5码），以游戏码数配置，可选5 / 10 / 15 / 20 / 25 / 30 / 35 / 40。已发现的怪物在开怪后持续跟踪，远于攻击范围显示青色“等待怪物接近”；进入范围才显示红色攻击，退远后继续等待。PC每个怪物会话仅成功下发一次开怪键，等待时不发任何键。进入战斗不直接允许攻击；怪物会话编号由新协议v3第9格传递，工具与插件需一起更新。
 
 两服分别在fightDetectorDB.profiles[classId].DetectionRangeYards保存本职业检测范围，fightDetectorDB.AttackRangeYards保存该客户端账号的全局攻击范围；不会复制账号 / 客户端间的SavedVariables。旧rangeSpells配置保留，新检测不依赖已学会的测距技能。独立Range.lua采用敌对目标物品距离探针；缺失 / 受限 / 冲突 / 失败数据为未知。姓名板只涵盖客户端已暴露的单位，不能扫描所有附近怪物；开怪宏仍需自行选敌并施放伤害技能。FightDistance.Tests.lua分别验证两服，AutoFight.Distance.Tests.ps1验证生产C#纯协议解析及PC状态流程，不发送真实按键。

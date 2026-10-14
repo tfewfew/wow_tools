@@ -220,20 +220,25 @@ try {
         $pending.Activated=$true; $pending.SampleAt=0
         $script:autoFight.Pending=$pending; Invoke-AutoFightTick
     }
+    Tick-FightEncounter $fightRows[0] 'opening' 4999
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 4 -and $fightRows[0].Session.State -eq 'waiting') 'Opening retried before one second.'
+    Tick-FightEncounter $fightRows[0] 'opening' 5000
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 5 -and $fightRows[0].Session.State -eq 'target' -and
+        -not $fightRows[0].Session.OpeningSent) 'Timed retry did not select the target first.'
     Tick-FightEncounter $fightRows[0] 'opening' 6000
-    Assert-Ui ([WowAutoFight.Native]::Sends -eq 4 -and $fightRows[0].Session.State -eq 'waiting') 'Opening repeated before monster approached.'
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 6 -and $fightRows[0].Session.OpeningSent) 'Relocked target did not receive a second opener.'
     [WowAutoFight.Native]::Current.Combat=$true
     Tick-FightEncounter $fightRows[0] 'waiting' 6500 'emergency'
-    Assert-Ui ([WowAutoFight.Native]::Sends -eq 4 -and $fightRows[0].Message -match '不下发按键') 'Waiting emitted combat/emergency keys.'
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 6 -and $fightRows[0].Message -match '不下发按键') 'Waiting emitted combat/emergency keys.'
     Tick-FightEncounter $fightRows[0] 'combat' 7000
-    Assert-Ui ([WowAutoFight.Native]::Sends -eq 5) 'Entering attack range did not attack.'
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 7) 'Entering attack range did not attack.'
     [WowAutoFight.Native]::Current.Combat=$false; [WowAutoFight.Native]::Current.EncounterId=2
     Tick-FightEncounter $fightRows[0] 'opening' 8000
-    Assert-Ui ([WowAutoFight.Native]::Sends -eq 6) 'Changing monsters failed to issue a fresh opener.'
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 8) 'Changing monsters failed to issue a fresh opener.'
     # Plan-only observation and queued execution each read once before the final input check.
     [WowAutoFight.Native]::Current.EncounterId=3; [WowAutoFight.Native]::ReadsUntilEncounterChange=3
     Tick-FightEncounter $fightRows[0] 'opening' 9000
-    Assert-Ui ([WowAutoFight.Native]::Sends -eq 6) 'Encounter changed immediately before input but opener was sent.'
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 8) 'Encounter changed immediately before input but opener was sent.'
     $baseline=[WowAutoFight.Native]::Sends
     foreach ($mode in @('recover','emergency')) {
         $base=if ($mode -eq 'recover') {10000L} else {20000L}
@@ -345,9 +350,11 @@ try {
     Tick-FightEncounter $fightRows[0] 'opening' 65000
     $baseline++
     Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline -and $fightRows[0].Session.OpeningSent) 'Confirmed selection failed to open.'
+    Tick-FightEncounter $fightRows[0] 'target' 65999
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline -and $fightRows[0].Session.OpeningSent) 'Target reacquisition started before one second.'
     Tick-FightEncounter $fightRows[0] 'target' 66000
     $baseline++
-    Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline -and $fightRows[0].Session.OpeningSent) 'Reacquiring target reset opening latch.'
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline -and -not $fightRows[0].Session.OpeningSent) 'Timed target reacquisition did not reset opening latch.'
     [WowAutoFight.Native]::FailSend=$true
     Prepare-FightInput $fightRows[0] 'target' 67000;Invoke-AutoFightTick
     Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline) 'Failed selection sent opener.'
@@ -405,7 +412,7 @@ try {
     Write-Output 'PASS: per-class buff settings save/reopen/cancel/locked rollback, initial and interval cycles through the production queue with one-second spacing. Mock input only.'
     Write-Output 'PASS: combat settings 100 ms step/common draft/profile isolation/save/cancel/locked failure; mocked production input gate for all states, cross-window, release, restart and send failure. No real native operations.'
     Write-Output 'PASS: unified window-frame login point permits background reads; missing point blocks foreground input and restored readiness unlocks start.'
-    Write-Output 'PASS: production combat UI adapter opens once, stays quiet through waiting/combat/emergency, attacks on approach, reopens for new monster and rechecks encounter before input.'
+    Write-Output 'PASS: production combat UI adapter waits one second, relocks then reopens until combat, stays quiet through waiting/emergency, attacks on approach and rechecks encounter before input.'
     Write-Output 'PASS: independent client tabs/class selection/sparse class IDs, supported classes, changing process positions, global jump save/cancel/failure/disabled/exact deadline/busy/wait deferral/Space/shared gate. Game operations mocked.'
 } finally {
     Close-AutoFightTab

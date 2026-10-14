@@ -38,8 +38,16 @@ foreach ($flavor in @('titan','forerver')) {
     $null=Update-AutoFightState $s $packet 0
     Assert-Distance ((Get-AutoFightAction $s $packet $p 0) -eq 'opening') 'Detected monster did not open.'
     Complete-AutoFightAction $s $p 'opening' 0
+    $null=Update-AutoFightState $s $packet 999
+    Assert-Distance ($s.State -eq 'waiting' -and (Get-AutoFightAction $s $packet $p 999) -eq 'wait') 'Opening retried before one second.'
+    $null=Update-AutoFightState $s $packet 1000
+    Assert-Distance ($s.State -eq 'target' -and (Get-AutoFightAction $s $packet $p 1000) -eq 'target') 'Retry did not relock the target first.'
+    Complete-AutoFightAction $s $p 'target' 1000
+    $null=Update-AutoFightState $s $packet 1001
+    Assert-Distance ((Get-AutoFightAction $s $packet $p 1001) -eq 'opening') 'Confirmed retry did not reopen.'
+    Complete-AutoFightAction $s $p 'opening' 1001
     $null=Update-AutoFightState $s $packet 2000
-    Assert-Distance ($s.State -eq 'waiting' -and (Get-AutoFightAction $s $packet $p 2000) -eq 'wait') 'Opening repeated.'
+    Assert-Distance ((Get-AutoFightAction $s $packet $p 2000) -eq 'wait') 'Second opener retried early.'
     $packet=[WowAutoFight.Native]::Decode((Test-Packet $flavor 4 3 2 $true),$flavor)
     $null=Update-AutoFightState $s $packet 3000
     Assert-Distance ((Get-AutoFightAction $s $packet $p 3000) -eq 'wait') 'Waiting emitted a key.'
@@ -51,9 +59,30 @@ foreach ($flavor in @('titan','forerver')) {
     $packet=[WowAutoFight.Native]::Decode((Test-Packet $flavor 4 3 0 $true),$flavor)
     $null=Update-AutoFightState $s $packet 5000
     Assert-Distance ((Get-AutoFightAction $s $packet $p 5000) -eq 'wait') 'Retreat did not stop attacks.'
+    $packet=[WowAutoFight.Native]::Decode((Test-Packet $flavor 4 2 0 $false $false 17),$flavor)
+    $null=Update-AutoFightState $s $packet 6000
+    Assert-Distance ((Get-AutoFightAction $s $packet $p 6000) -eq 'wait') 'Combat encounter reopened after combat ended.'
     $packet=[WowAutoFight.Native]::Decode((Test-Packet $flavor 4 2 0 $false $false 18),$flavor)
     $null=Update-AutoFightState $s $packet 7000
     Assert-Distance (-not $s.OpeningSent -and (Get-AutoFightAction $s $packet $p 7000) -eq 'opening') 'New monster did not reset opening guard.'
+    Complete-AutoFightAction $s $p 'opening' 7000
+    $packet=[WowAutoFight.Native]::Decode((Test-Packet $flavor 4 1 0 $false $false 19),$flavor)
+    $null=Update-AutoFightState $s $packet 8000
+    Assert-Distance ((Get-AutoFightAction $s $packet $p 8000) -eq 'wait' -and -not $s.OpeningNeedsTarget) 'No nearby target kept retrying.'
+    $rangeSession=New-AutoFightSession 0 4
+    $packet=[WowAutoFight.Native]::Decode((Test-Packet $flavor 4 2 0 $false $false 20),$flavor)
+    $null=Update-AutoFightState $rangeSession $packet 0
+    Complete-AutoFightAction $rangeSession $p 'opening' 0
+    $packet=[WowAutoFight.Native]::Decode((Test-Packet $flavor 4 3 0 $false $false 20),$flavor)
+    $null=Update-AutoFightState $rangeSession $packet 1000
+    Assert-Distance ($rangeSession.OpeningNeedsTarget -and (Get-AutoFightAction $rangeSession $packet $p 1000) -eq 'wait') 'Out-of-range target retried an opener.'
+    $packet=[WowAutoFight.Native]::Decode((Test-Packet $flavor 4 2 0 $false $false 20),$flavor)
+    $null=Update-AutoFightState $rangeSession $packet 1500
+    Assert-Distance ((Get-AutoFightAction $rangeSession $packet $p 1500) -eq 'target') 'Returned target skipped relock.'
+    $legacySession=New-AutoFightSession 0 4
+    $packet=[WowAutoFight.Native]::Decode((Test-Packet $flavor 4 4 0 $false $false 21),$flavor)
+    $null=Update-AutoFightState $legacySession $packet 0
+    Assert-Distance ($legacySession.State -eq 'opening' -and (Get-AutoFightAction $legacySession $packet $p 0) -eq 'opening') 'Precombat cast result was treated as combat.'
     $cells=@(Test-Packet $flavor 4 2); $cells[0]=Pixel 255 255 255
     Assert-Distance ($null -eq [WowAutoFight.Native]::Decode($cells,$flavor)) 'Illegal main color accepted.'
     Assert-Distance ($null -eq [WowAutoFight.Native]::Decode((Test-Packet $flavor 4 0),$flavor)) 'Unknown data accepted.'
@@ -78,7 +107,7 @@ if (Test-Path -LiteralPath $rendered) {
         else {Assert-Distance ($packet -and $packet.Action -eq $fields[1]) 'Plugin RGB / script decoder disagree.'}
     }
 }
-Write-Output 'PASS: main-color protocol across both clients/available classes/stable colors and encounter wrap, opening once/approach/retreat, illegal/unknown/old packet rejection, resize geometry and plugin RGB integration. No window or input calls.'
+Write-Output 'PASS: main-color protocol across both clients, one-second relock/reopen retry, combat stop, approach/retreat, lost target, illegal/unknown/old packet rejection and resize geometry. No window or input calls.'
 
 foreach ($entry in @(@(0,0,600,400,'左上'),@(1200,0,1800,400,'右上'),@(0,700,600,1100,'左下'),@(1200,700,1800,1100,'右下'),@(600,300,1320,780,'居中'))) {
     Assert-Distance ([WowAutoFight.Native]::ClassifyWindowPosition($entry[0],$entry[1],$entry[2],$entry[3],0,0,1920,1080) -eq $entry[4]) 'Window position classification differs from fishing.'
