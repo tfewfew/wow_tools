@@ -42,6 +42,8 @@ try {
     Invoke-SchedulerTick 6100
     Assert-Ui ($script:workerKeys.Count -eq 0) 'Due audio reel interrupted the existing hold.'
     Invoke-SchedulerTick 6300
+    Assert-Ui ($script:workerKeys.Count -eq 0) 'Audio reel sent input before foreground settling.'
+    Invoke-SchedulerTick 6500
     Assert-Ui ($script:workerKeys[-1] -eq "$($b.Process.Id):187" -and (Get-WowAutoCycleCount $script:scheduler $b.Key) -eq 1) 'Audio signal did not target its own PID.'
     Stop-Row $b
     $captureBefore=$ca

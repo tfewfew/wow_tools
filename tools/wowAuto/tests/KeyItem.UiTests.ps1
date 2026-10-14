@@ -74,6 +74,8 @@ Assert-Ui ($script:workerKeys.Count -eq $keysBefore -and $script:workerActivatio
 Invoke-SchedulerTick ($due+3000)
 Assert-Ui ($script:workerKeys.Count -eq $keysBefore -and $row.State.InitialItemPending) 'Unconfirmed item resumed casting before timeout.'
 Invoke-SchedulerTick ($due+5000)
+Assert-Ui ($row.State.ItemDetectionDisabled -and $script:workerKeys.Count -eq $keysBefore) 'Timed-out item repeated input or kept detection enabled.'
+Invoke-SchedulerTick ($due+5001)
 Assert-Ui ($row.State.ItemDetectionDisabled -and $script:workerKeys.Count -eq $keysBefore+1 -and $script:workerKeys[-1] -eq "$($row.Process.Id):48") 'Timed-out item did not disable detection and resume casting.'
 $row.SlotUseItem=$false
 Set-WowAutoItemEnabled $script:scheduler $row.Key $false $script:schedulerClock.ElapsedMilliseconds

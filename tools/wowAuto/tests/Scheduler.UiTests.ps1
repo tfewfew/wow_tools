@@ -11,7 +11,7 @@ Update-BatchControls
 Assert-Ui ($refreshButton.Parent -eq $toolbar -and $toolbar.Parent -eq $tab) 'Refresh button is outside autofish tab.'
 $startAllButton.PerformClick()
 Assert-Ui ($a.State.Running -and $b.State.Running -and $script:scheduler.Tasks.Count -eq 2) ("Start all failed: count=" + $script:scheduler.Tasks.Count + "; A=" + $a.Status.Text + "; B=" + $b.Status.Text + "; enabled=" + $startAllButton.Enabled)
-$script:workerKeys=@(); $script:workerActivations=@()
+$script:workerKeys=@(); $script:workerActivations=@(); $script:workerFocus=0
 $base=$script:schedulerClock.ElapsedMilliseconds+10
 Invoke-SchedulerTick $base
 Invoke-SchedulerTick ($base+200)
@@ -23,7 +23,7 @@ Invoke-SchedulerTick ($base+1600)
 Assert-Ui ($a.State.Mode -eq 'Wait') 'Green did not schedule reel.'
 Invoke-SchedulerTick ($base+1625)
 Invoke-SchedulerTick ($base+1825)
-Assert-Ui ($b.State.Mode -eq 'Wait' -and $b.State.Deadline -eq $base+2825) 'Next window did not get its timer.'
+Assert-Ui ($b.State.Mode -eq 'Wait' -and $b.State.Deadline -eq $base+2625) 'Background green read did not start the next window timer.'
 # Expire A's first wait and force its cast to stay red while B's event is due.
 Remove-WowAutoEvents $script:scheduler $a.Key
 $a.State.Mode='Ready'; $a.State.NextDue=$base+1900; $a.Process.ScanColor='red'

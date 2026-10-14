@@ -40,6 +40,8 @@ namespace WowAutoFight {
 }
 '@
 . (Join-Path (Split-Path $PSScriptRoot -Parent) 'autoFight.ps1')
+Stop-AllRows
+$script:scheduler.ReelHoldUntil=0L;$script:scheduler.ItemHoldUntil=0L
 $fightSource=Join-Path (Split-Path $PSScriptRoot -Parent) 'autoFight.config.json'
 $fightSourceHash=(Get-FileHash -LiteralPath $fightSource).Hash
 $fishIniHash=(Get-FileHash -LiteralPath $script:settingsPath).Hash
@@ -202,7 +204,8 @@ try {
     [WowAutoFight.Native]::Current.Combat=$false; [WowAutoFight.Native]::Current.EncounterId=2
     Tick-FightEncounter $fightRows[0] 'opening' 8000
     Assert-Ui ([WowAutoFight.Native]::Sends -eq 6) 'Changing monsters failed to issue a fresh opener.'
-    [WowAutoFight.Native]::Current.EncounterId=3; [WowAutoFight.Native]::ReadsUntilEncounterChange=2
+    # Plan-only observation and queued execution each read once before the final input check.
+    [WowAutoFight.Native]::Current.EncounterId=3; [WowAutoFight.Native]::ReadsUntilEncounterChange=3
     Tick-FightEncounter $fightRows[0] 'opening' 9000
     Assert-Ui ([WowAutoFight.Native]::Sends -eq 6) 'Encounter changed immediately before input but opener was sent.'
     $baseline=[WowAutoFight.Native]::Sends

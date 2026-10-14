@@ -346,4 +346,4 @@ OCR采样周期全局共用，默认**1000ms**、调整步进**100ms**，范围1
 
 每个槽位新增布尔 `UseItem`，任务启动与轮换直接使用当前槽位值；战斗槽位禁用该选项且实际不使用钓鱼道具。旧v2槽位缺少字段时，将同一PID/启动时间的旧 `UseItem_*` INI值只读迁移到钓鱼槽位，默认关闭，下一次保存编排补齐。全局道具按键仍在钓鱼设置中。成功收竿后按循环次数跳跃的约束保持。
 
-专项验证命令：`powershell -NoProfile -ExecutionPolicy Bypass -File tools/wowAuto/tests/Run.AccountsUi.Tests.ps1`。使用临时两服目录、编译的版本信息样本和模拟进程 / 输入，覆盖账号隔离、角色过滤、目录版本与安装归属、原子写入回滚、旧配置迁移、槽位轮换和包满跳过 / 全部耗尽。没有发送真实游戏按键。完整 `-UiTest` 的旧 `ItemCheck` 引用已修正，目前仍在 `AutoFight.UiTests.ps1` 的公共按键间隔边界断言失败，专项通过不代表完整套件通过。
+专项验证命令：`powershell -NoProfile -ExecutionPolicy Bypass -File tools/wowAuto/tests/Run.AccountsUi.Tests.ps1`。使用临时两服目录、编译的版本信息样本和模拟进程 / 输入，覆盖账号隔离、角色过滤、目录版本与安装归属、原子写入回滚、旧配置迁移、槽位轮换和包满跳过 / 全部耗尽。没有发送真实游戏按键。完整 `-UiTest` 已更新后台取色、前台稳定等待和战斗读样时序；请与编排专项测试分别运行。

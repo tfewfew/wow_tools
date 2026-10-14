@@ -113,7 +113,9 @@ function Invoke-GameActionQueue([long]$Now,[switch]$SafetyOnly) {
     while ($true) {
         # Inputs take time. Re-evaluate deadlines and holds using the current monotonic time.
         $Now=$batchAt
-        if ($clock) {$Now += [Math]::Max(0,([long]$clock.ElapsedMilliseconds-$clockAtEntry))}
+        if (-not $UiTest -and $clock) {
+            $Now += [Math]::Max(0,([long]$clock.ElapsedMilliseconds-$clockAtEntry))
+        }
         foreach ($event in @($script:gameActions.Events)) {
             if (-not (Test-GameActionValid $event)) {[void]$script:gameActions.Events.Remove($event);$event.Cancelled=$true}
             elseif ($event.Domain -eq 'Fight') {

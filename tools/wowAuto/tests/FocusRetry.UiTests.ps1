@@ -31,7 +31,7 @@ try {
     # Another row must continue casting and reeling during the 30-second pause.
     $script:schedulerClock.ElapsedMilliseconds=1200
     $focusB.Process.ScanColor='green'; Start-Row $focusB
-    Invoke-SchedulerTick 1200; Invoke-SchedulerTick 1400; Invoke-SchedulerTick 2400
+    Invoke-SchedulerTick 1200; Invoke-SchedulerTick 1400; Invoke-SchedulerTick 2400; Invoke-SchedulerTick 2600
     Assert-Ui ($script:workerKeys[-1] -eq "$($focusB.Process.Id):187" -and $focusB.State.Mode -eq 'Cooldown') 'Focus failure blocked another reel.'
     Stop-Row $focusB
     Invoke-SchedulerTick 30999
