@@ -8,7 +8,7 @@ $sourceHashes=@{}
 foreach ($p in @($sourceRotation,(Join-Path (Split-Path $PSScriptRoot -Parent) 'config.ini'),(Join-Path (Split-Path $PSScriptRoot -Parent) 'autoFight.config.json'))) {$sourceHashes[$p]=(Get-FileHash $p).Hash}
 $oldRotationPath=$script:rotation.Path
 $script:rotation.Path=Join-Path ([IO.Path]::GetTempPath()) ('wowAuto-rotation-'+[Guid]::NewGuid()+'.json')
-$script:rotation.Plans=@{};$script:rotation.IntervalSeconds=0;$script:rotation.Active.Clear();$script:rotation.LogoutQueue.Clear();$script:rotation.Queue.Clear();$script:rotation.ClickQueue.Clear();$script:rotation.LoginQueue.Clear();$script:rotation.Current=$null
+$script:rotation.Plans=@{};$script:rotation.IntervalSeconds=0;$script:rotation.Active.Clear();$script:rotation.LogoutQueue.Clear();$script:rotation.Queue.Clear();$script:rotation.ClickQueue.Clear();$script:rotation.LoginQueue.Clear();$script:rotation.Current=$null;$script:rotation.ClickSwitch=$null
 $script:scheduler=New-WowAutoScheduler;$script:schedulerClock=[pscustomobject]@{ElapsedMilliseconds=0L};$script:autoFight.Clock=$script:schedulerClock
 function Step-RotationTest([long]$Now,[string]$Screen='automatic') {
     $script:schedulerClock.ElapsedMilliseconds=$Now
@@ -43,12 +43,40 @@ function Prepare-RotationTestBatch([ref]$Now,[int]$Count) {
 function Click-RotationTestBatch([ref]$Now,[int]$Count) {
     $reads=0;foreach ($entry in @($script:rotation.ClickQueue.ToArray())) {$reads+=$entry.Row.Process.RotationOcrReads}
     $entries=@($script:rotation.ClickQueue.ToArray());$iterations=0
+    $checkedCrossProcessGuard=$false
     while (($script:rotation.ClickQueue.Count -or ($script:rotation.Current -and $script:rotation.Current.Phase -in @('click-activate','click'))) -and $iterations++ -lt 60) {
+        $at=$Now.Value;$before=@($script:rotation.Actions | Where-Object {$_.Action -eq 'tripleclick'}).Count
         Step-RotationTest $Now.Value;$Now.Value+=300
         foreach ($entry in $entries) {Assert-Ui (-not (Test-UnifiedTaskRunning $entry.Row)) 'Started a task before all prepared clicks completed.'}
+        if ($Count -gt 1 -and -not $checkedCrossProcessGuard -and
+            @($script:rotation.Actions | Where-Object {$_.Action -eq 'tripleclick'}).Count -gt $before) {
+            $clicked=@($script:rotation.Actions | Where-Object {$_.Action -eq 'tripleclick'})[-1]
+            $until=$script:rotation.ClickSwitch.Until
+            Assert-Ui ($script:rotation.ClickSwitch.Key -eq $clicked.Key -and $until -eq $at+1000) 'Cross-process guard did not start when the third click finished.'
+            Step-RotationTest ($until-1)
+            Assert-Ui ($script:rotation.Current -and $script:rotation.Current.Row.Key -ne $clicked.Key -and
+                $script:rotation.Current.Phase -eq 'click-activate' -and $script:rotation.Current.Due -eq $until -and
+                @($script:rotation.Actions | Where-Object {$_.Action -eq 'tripleclick'}).Count -eq $before+1) 'Next process advanced before the one-second click guard elapsed.'
+            Step-RotationTest $until
+            Assert-Ui ($script:rotation.Current.Phase -eq 'click') 'Next process did not advance when the click guard expired.'
+            $Now.Value=$until+300
+            $checkedCrossProcessGuard=$true
+        }
     }
     $after=0;foreach ($entry in $entries) {$after+=$entry.Row.Process.RotationOcrReads}
     Assert-Ui ($iterations -lt 60 -and -not $script:rotation.Current -and $script:rotation.LoginQueue.Count -eq $Count -and $after -eq $reads) 'Click batch performed OCR or waited for login before clicking every process.'
+    if ($Count -gt 1) {
+        Assert-Ui $checkedCrossProcessGuard 'Multi-process click guard was not exercised.'
+        $lastClick=@($script:rotation.Actions | Where-Object {$_.Action -eq 'tripleclick'})[-1]
+        $until=$script:rotation.ClickSwitch.Until
+        Assert-Ui ($script:rotation.ClickSwitch.Key -eq $lastClick.Key -and $script:rotation.LoginQueue.Peek().Row.Key -ne $lastClick.Key) 'Login phase did not cross to another process.'
+        Step-RotationTest ($until-1)
+        Assert-Ui ($script:rotation.Current -and $script:rotation.Current.Phase -eq 'login-activate' -and
+            $script:rotation.Current.Due -eq $until) 'Login confirmation changed process before the one-second guard elapsed.'
+        Step-RotationTest $until
+        Assert-Ui ($script:rotation.Current.Phase -eq 'login') 'Login confirmation did not resume when the guard expired.'
+        $Now.Value=$until+300
+    }
 }
 function Reach-RotationTestPhase($Row,[string]$Phase,[ref]$Now) {
     Stop-AllRows;$script:rotation.Actions=@();Start-Row $Row

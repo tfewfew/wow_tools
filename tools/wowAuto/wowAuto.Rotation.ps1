@@ -5,7 +5,7 @@ if (-not ('WowAutoRotation.Native' -as [type])) {
 [WowAutoRotation.Native]::FrameReader=[WowAutoCapture.Native]::FrameReader
 [WowAutoRotation.Native]::SizeReader=[WowAutoCapture.Native]::SizeReader
 $script:rotation=[pscustomobject]@{Path=(Join-Path $PSScriptRoot 'rotation.config.json');IntervalSeconds=0;OcrIntervalMs=1000;NextOcrAt=0L;Plans=@{};
-    Active=@{};LogoutQueue=(New-Object Collections.Queue);Queue=(New-Object Collections.Queue);ClickQueue=(New-Object Collections.Queue);LoginQueue=(New-Object Collections.Queue);Current=$null;NextAt=0L;ConfigReady=$true;Error='';Actions=@();OcrWork=$null;NameHistory=@();GameDirectories=@{titan=$(if ($UiTest) {''} else {'C:\Program Files (x86)\World of Warcraft\_classic_titan_'});forerver=$(if ($UiTest) {''} else {'C:\Program Files (x86)\World of Warcraft\_cn_beta_'})};
+    Active=@{};LogoutQueue=(New-Object Collections.Queue);Queue=(New-Object Collections.Queue);ClickQueue=(New-Object Collections.Queue);LoginQueue=(New-Object Collections.Queue);Current=$null;NextAt=0L;ClickSwitch=$null;ConfigReady=$true;Error='';Actions=@();OcrWork=$null;NameHistory=@();GameDirectories=@{titan=$(if ($UiTest) {''} else {'C:\Program Files (x86)\World of Warcraft\_classic_titan_'});forerver=$(if ($UiTest) {''} else {'C:\Program Files (x86)\World of Warcraft\_cn_beta_'})};
     OcrSource=([IO.File]::ReadAllText((Join-Path $PSScriptRoot 'wowAuto.Rotation.Ocr.ps1')))}
 function New-RotationPlan {
     return [pscustomobject]@{Slots=@(1..3 | ForEach-Object {[pscustomobject]@{Name='';Mode='fish';UseItem=$false}})}
@@ -185,7 +185,7 @@ function Stop-RowRotation($Row) {
     Remove-RotationQueuedRow $Row
     $script:rotation.Active.Remove($Row.Key)
     if ($script:rotation.Current -and $script:rotation.Current.Row.Key -eq $Row.Key) {$script:rotation.Current=$null;$script:rotation.NextOcrAt=0L}
-    if (-not $script:rotation.Active.Count) {$script:rotation.NextAt=0L;$script:rotation.LogoutQueue.Clear();$script:rotation.Queue.Clear();$script:rotation.ClickQueue.Clear();$script:rotation.LoginQueue.Clear()}
+    if (-not $script:rotation.Active.Count) {$script:rotation.NextAt=0L;$script:rotation.ClickSwitch=$null;$script:rotation.LogoutQueue.Clear();$script:rotation.Queue.Clear();$script:rotation.ClickQueue.Clear();$script:rotation.LoginQueue.Clear()}
     Update-RotationRow $Row
 }
 function Start-RowRotation($Row) {
@@ -201,6 +201,7 @@ function Start-RowRotation($Row) {
 }
 function Begin-RotationBatch([long]$Now) {
     # Stop every member before the first window is touched; foreground input is serialized afterward.
+    $script:rotation.ClickSwitch=$null
     $entries=@($script:rotation.Active.Values | Sort-Object {$_.Row.Process.Id})
     foreach ($entry in $entries) {
         Stop-Row $entry.Row '全局轮换到期，停止动作并切换下一角色。' -CancelExit -KeepRotation
@@ -389,7 +390,12 @@ function Invoke-RotationTick([long]$Now) {
             if (-not [object]::ReferenceEquals($script:rotation.Active[$entry.Row.Key],$entry)) {continue}
             if ($phase -eq 'activate' -and -not $entry.SelectionDeadline) {$entry.SelectionDeadline=$Now+180000}
             $deadline=if ($phase -eq 'logout-activate') {$Now+180000} else {$entry.SelectionDeadline}
-            $script:rotation.Current=[pscustomobject]@{Entry=$entry;Row=$entry.Row;Phase=$phase;Due=$Now;Deadline=$deadline;FocusUntil=0L;
+            # A completed triple-click must be followed by one full second before another process is activated.
+            $due=$Now
+            if ($script:rotation.ClickSwitch -and $entry.Row.Key -ne $script:rotation.ClickSwitch.Key) {
+                $due=[Math]::Max($Now,[long]$script:rotation.ClickSwitch.Until)
+            }
+            $script:rotation.Current=[pscustomobject]@{Entry=$entry;Row=$entry.Row;Phase=$phase;Due=$due;Deadline=$deadline;FocusUntil=0L;
                 Stable=0;LastLogout=$entry.LastLogout;Candidate=$null;FindMisses=0;MonitorEnabled=$false}
             $script:rotation.NextOcrAt=0L
             break
@@ -435,6 +441,9 @@ function Invoke-RotationTick([long]$Now) {
             if (-not (Send-RotationAction $row 'tripleclick' $target)) {
                 Retry-RotationRecognition $work '窗口尺寸变化';return $true
             }
+            # The native call includes two random sleeps; start the cross-process guard after its third click returns.
+            $completedAt=[Math]::Max($Now,[long]$script:schedulerClock.ElapsedMilliseconds)
+            $script:rotation.ClickSwitch=[pscustomobject]@{Key=$row.Key;Until=($completedAt+1000)}
             $entry.PreparedTarget=$null;$entry.PreparedSlot=-1
             $script:rotation.LoginQueue.Enqueue($entry);$script:rotation.Current=$null
             Set-RowStatusText $row ('步骤3/5：已三次点击第'+$target.MenuRow+'个角色槽位“'+$name+'”，继续点击其他进程，全部点击后确认登录。')
