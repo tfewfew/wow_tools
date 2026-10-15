@@ -283,13 +283,13 @@ function Resolve-RotationOcrName([string]$Text,[string[]]$Configured) {
     if ($matches.Count -eq 1) {return [pscustomobject]@{Name=$matches[0];Ambiguous=$false}}
     return [pscustomobject]@{Name=$Text;Ambiguous=($matches.Count -gt 1)}
 }
-function Get-RotationMenuRow($Bounds,[double]$TextY) {
+function Get-RotationMenuRow($Bounds,[double]$TextY,[double]$Tolerance=0.02) {
     # The first-page character rows occupy fixed, height-scaled positions. OCR
     # identifies the row; the click uses its stable center instead of an OCR box.
     $first=0.119;$step=0.0743
     $index=[int][Math]::Round(($TextY-$first)/$step,[MidpointRounding]::AwayFromZero)+1
     $centerY=$first+($index-1)*$step
-    if ($index -lt 1 -or $index -gt 10 -or [Math]::Abs($TextY-$centerY) -gt 0.02) {return $null}
+    if ($index -lt 1 -or $index -gt 10 -or [Math]::Abs($TextY-$centerY) -gt $Tolerance) {return $null}
     return [pscustomobject]@{Index=$index;X=($Bounds.X+$Bounds.W/2);Y=$centerY}
 }
 function Get-RotationOcrLog($Screen,[string]$Name) {
@@ -313,9 +313,12 @@ function ConvertFrom-RotationOcr($Ocr,$Plan,[switch]$MenuWasConfirmed) {
     $targets=@(foreach ($line in $Ocr.Names) {
         $y=$bounds.Y+($line.Y+$line.H/2)*$bounds.H
         if ($y -lt 0.08 -or $y -gt 0.80 -or ($y -lt 0.15 -and $line.Text -eq '选择服务器') -or $line.Text -notmatch '^[\p{L}\p{M}]+$') {continue}
-        $row=Get-RotationMenuRow $bounds $y
-        if (-not $row) {continue}
         $match=Resolve-RotationOcrName $line.Text $configured
+        # A uniquely matched name may have a shifted OCR box. Stay inside the
+        # nearest row's half-spacing, while keeping unrelated text at 2%.
+        $tolerance=if (-not $match.Ambiguous -and $match.Name -cin $configured) {0.034} else {0.02}
+        $row=Get-RotationMenuRow $bounds $y $tolerance
+        if (-not $row) {continue}
         [pscustomobject]@{Name=$match.Name;RawName=$line.Text;Ambiguous=$match.Ambiguous;MenuRow=$row.Index;X=$row.X;Y=$row.Y}
     })
     # The normal pass can recover names that yellow-text preprocessing misread twice.
@@ -323,7 +326,7 @@ function ConvertFrom-RotationOcr($Ocr,$Plan,[switch]$MenuWasConfirmed) {
         if ($line.X -gt $bounds.X -and $line.Y -gt 0.08 -and $line.Y -lt 0.80) {
             $match=Resolve-RotationOcrName $line.Text $configured
             if (-not $match.Ambiguous -and $match.Name -cin $configured -and $match.Name -cnotin $targets.Name) {
-                $row=Get-RotationMenuRow $bounds ($line.Y+$line.H/2)
+                $row=Get-RotationMenuRow $bounds ($line.Y+$line.H/2) 0.034
                 if ($row) {$targets+=,[pscustomobject]@{Name=$match.Name;RawName=$line.Text;Ambiguous=$false;MenuRow=$row.Index;X=$row.X;Y=$row.Y}}
             }
         }

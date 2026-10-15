@@ -22,6 +22,25 @@ $fakeOcr=[pscustomobject]@{Lines=@([pscustomobject]@{Text='选择服务器';X=0.
     Names=@([pscustomobject]@{Text='咆史呀嘞';X=0.20;Y=0.40;W=0.10;H=0.03});NamesBounds=[pscustomobject]@{X=0.79;Y=0;W=0.21;H=0.84}}
 $ambiguousScreen=ConvertFrom-RotationOcr $fakeOcr $ambiguousPlan
 if ($ambiguousScreen.Kind -ne 'menu' -or @($ambiguousScreen.Targets | Where-Object {-not $_.Ambiguous}).Count) {throw 'Ambiguous OCR text could become a selectable target.'}
+$shiftedPlan=New-RotationPlan;$shiftedPlan.Slots[0].Name='吔史呀嘞'
+$rowFourY=0.119+3*0.0743+0.024
+$shiftedOcr=[pscustomobject]@{Lines=@([pscustomobject]@{Text='选择服务器';X=0.86;Y=0.08;H=0.02},
+        [pscustomobject]@{Text='咆史呀嘞';X=0.81;Y=($rowFourY-0.01);H=0.02});
+    Names=@([pscustomobject]@{Text='咆史呀嘞';X=0.20;Y=($rowFourY/0.84-0.01);H=0.02});
+    NamesBounds=[pscustomobject]@{X=0.79;Y=0;W=0.21;H=0.84}}
+$shiftedScreen=ConvertFrom-RotationOcr $shiftedOcr $shiftedPlan
+if (@($shiftedScreen.Targets | Where-Object {$_.Name -ceq '吔史呀嘞' -and $_.RawName -ceq '咆史呀嘞' -and $_.MenuRow -eq 4 -and -not $_.Ambiguous}).Count -ne 1) {
+    throw 'One-glyph OCR match was discarded before the shifted fourth row could be located.'
+}
+$shiftedOcr.Names[0].Text='地史呀'
+$shiftedScreen=ConvertFrom-RotationOcr $shiftedOcr $shiftedPlan
+if (@($shiftedScreen.Targets | Where-Object {$_.Name -ceq '吔史呀嘞' -and $_.MenuRow -eq 4}).Count -ne 1) {
+    throw 'Full-frame OCR did not recover the fourth row when the cropped name lost a glyph.'
+}
+$shiftedOcr.Lines[1].Y=0.119+3.5*0.0743-0.01
+if (@((ConvertFrom-RotationOcr $shiftedOcr $shiftedPlan).Targets | Where-Object {$_.Name -ceq '吔史呀嘞'}).Count) {
+    throw 'A name between two character rows was assigned to a clickable slot.'
+}
 $anchors=$fakeOcr.Lines
 foreach ($anchor in $anchors) {
     $fakeOcr.Lines=@($anchor)
