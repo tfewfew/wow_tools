@@ -32,6 +32,9 @@ for _, flavor in ipairs({ "titan", "forerver" }) do
     DEFAULT_CHAT_FRAME = {AddMessage=function() end}
     SlashCmdList, wowDetectorDB = {}, nil
     function UnitIsDeadOrGhost() return dead end
+    local ghost=false
+    UnitIsDead=UnitIsDeadOrGhost
+    function UnitIsGhost() return ghost end
     function GetPhysicalScreenSize() return 1920, 1080 end
     function GetInventoryItemLink() return nil end
     function UnitChannelInfo() return nil end

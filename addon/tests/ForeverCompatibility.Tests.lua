@@ -105,6 +105,9 @@ C_Container = {
     GetContainerNumFreeSlots = function() return free, 0 end,
 }
 function UnitIsDeadOrGhost() return dead end
+local ghost=false
+UnitIsDead=UnitIsDeadOrGhost
+function UnitIsGhost() return ghost end
 function UnitClass() return "战士", "WARRIOR", 1 end
 function GetPhysicalScreenSize() return width, height end
 function UnitChannelInfo() return channelName, nil, nil, nil, nil, nil, nil, channelID end
@@ -263,13 +266,17 @@ for _, viewport in ipairs({{800,450},{1920,1080},{3840,2160}}) do
     panel.scripts.OnEvent(panel, "DISPLAY_SIZE_CHANGED")
     assert(math.abs(lure.point[4] * scale * height / 768 - 32) < 0.001, "Forever lure offset moved on resize")
 end
+dead = secret
+panel.scripts.OnEvent(panel, "BAG_UPDATE_DELAYED")
+assertColor(indicator, 0.5, 0.5, 0.5)
+assert(WoWTools.modules.wowDetector.IsEnabled(), "Unreadable death status stopped or falsely excluded the character")
 dead = true
 panel.scripts.OnEvent(panel, "PLAYER_DEAD")
-assertColor(indicator, 0.5, 0.5, 0.5)
+assertColor(indicator, 0, 1, 1)
 assert(not wowDetectorDB.locked and panel.shown, "Death changed visibility/kept lock")
 dead = false
 panel.scripts.OnEvent(panel, "PLAYER_ALIVE")
-assertColor(indicator, 0.5, 0.5, 0.5)
+assertColor(indicator, 0, 1, 1)
 SlashCmdList.WOWTOOLS()
 assert(#menuEntries == 3 and menuEntries[2].title == "fight_detector", "Modern module menu is missing")
 menuEntries[3].onSelect()
@@ -286,6 +293,11 @@ SlashCmdList.WOWDETECTOR("hide")
 assert(WoWTools.modules.wowDetector.IsEnabled(),"Forever hidden active fishing disables loot")
 dead=true; panel.scripts.OnEvent(panel,"PLAYER_DEAD")
 assert(not WoWTools.modules.wowDetector.IsEnabled(),"Forever death leaves loot enabled")
+dead=false;SlashCmdList.WOWDETECTOR("on");ghost=true
+panel.scripts.OnEvent(panel,"PLAYER_ENTERING_WORLD")
+assertColor(indicator,0.5,0.5,0.5)
+assert(not WoWTools.modules.wowDetector.IsEnabled(),"Ghost state emitted a death signal or kept fishing active")
+ghost=false
 local fpsApplied = false
 for _, control in ipairs(widgets) do
     if control.definition and control.definition.action then

@@ -70,12 +70,30 @@ function Read-ScanFightPacket($Row) {
     if ($UiTest) {$script:detectorSamples+=,$Row.Key}
     return [WowAutoFight.Native]::Read($Row.FightRow.Client)
 }
+function Invoke-FishingDeathChecks([long]$Now) {
+    foreach ($row in @($script:rows.Values)) {
+        $state=$row.State
+        if ($row.TaskMode -ne 'fish' -or -not $state -or -not $state.Running -or $Now -lt $state.DeathCheckAt) {continue}
+        $state.DeathCheckAt=$Now+1000
+        try {
+            # Independent background sampling also runs while waiting for a bite,
+            # item confirmation or a reel cooldown. Unknown pixels never exclude a role.
+            if (-not (Test-RowLoginPoint $row)) {continue}
+            $color=Read-ScanColor $row
+        } catch {
+            # Regular task reads own capture/identity error reporting and retry policy.
+            continue
+        }
+        if ($color -eq 'dead') {Close-WorkerGame $row '角色死亡'}
+    }
+}
 function Invoke-UnifiedTick([long]$Now) {
     Submit-HoldAction $Now
     Submit-GameExitActions $Now
     if (-not $script:editingSettings) {
         if ($script:scanning) {Submit-RefreshAction $Now}
         else {
+            Invoke-FishingDeathChecks $Now
             Submit-RotationAction $Now
             if ($script:autoFight -and $script:autoFight.Unified -and -not $script:autoFight.ActiveHold) {
                 # Observe every due combat row before choosing any foreground action.

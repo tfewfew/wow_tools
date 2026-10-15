@@ -314,10 +314,64 @@ try {
     Assert-Ui ($script:rotation.Active[$a.Key].Index -eq 2) 'Global batch selected the excluded character.'
     $now=$batchAt+300;Complete-RotationTest ([ref]$now)
     $script:scheduler.CompletedCycles[$a.Key]=0
-    Close-WorkerGame $a
+    Close-WorkerGame $a '角色死亡'
     Assert-Ui (-not $script:rotation.Active.ContainsKey($a.Key) -and $script:pendingGameExits.ContainsKey($a.Key) -and
-        $script:workerClosed.Count -eq $closedBefore+1 -and $b.State.Running) 'Final full character did not close only its own process.'
+        $script:workerClosed.Count -eq $closedBefore+1 -and $b.State.Running) 'Final dead character after bag exclusion did not close only its own process.'
     Stop-AllRows;Save-RotationConfiguration -Plans $savedPlans
+    # Death is terminal for the current runtime character, in either detector mode.
+    $deathPlanHash=(Get-FileHash $script:rotation.Path).Hash
+    Start-Row $a;Start-Row $b
+    $now=330000L;Complete-RotationTest ([ref]$now)
+    $closedBefore=$script:workerClosed.Count;$keysBefore=$script:workerKeys.Count
+    $a.State.Mode='Wait';$a.State.UseAudio=$true;$a.State.DeathCheckAt=$now+1000
+    $a.Process.ScanColor='dead'
+    Invoke-FishingDeathChecks ($now+999)
+    Assert-Ui ($script:rotation.Active[$a.Key].Index -eq 0 -and $a.State.Running) 'Death poll ignored its one-second schedule.'
+    $now+=1000;$script:schedulerClock.ElapsedMilliseconds=$now
+    Invoke-FishingDeathChecks $now
+    Assert-Ui ($script:rotation.Active[$a.Key].Index -eq 2 -and
+        $script:rotation.Active[$a.Key].ExcludedNames -ccontains '双持船橘二咪' -and
+        -not $a.State.Running -and $b.State.Running -and $script:workerClosed.Count -eq $closedBefore -and
+        $script:workerKeys.Count -eq $keysBefore) 'Fishing death during audio wait failed to skip one role without input or affecting another process.'
+    $a.Process.ScanColor='red';Complete-RotationTest ([ref]$now)
+    Assert-Ui ($a.TaskMode -eq 'fight' -and $a.FightRow.Session) 'Remaining combat role did not start after fishing death.'
+    $sendsBefore=[WowAutoFight.Native]::Sends
+    [WowAutoFight.Native]::Current.Action='dead';[WowAutoFight.Native]::Current.Combat=$false
+    [WowAutoFight.Native]::Current.Busy=$false;[WowAutoFight.Native]::Current.Recovery='none'
+    [WowAutoFight.Native]::Current.Flavor=$a.Client.Flavor
+    [WowAutoFight.Native]::Current.ClassId=$a.FightRow.Session.ClassId
+    $script:schedulerClock.ElapsedMilliseconds=$now;$a.FightRow.Session.Due=$now;$script:autoFight.Pending=$null
+    Invoke-AutoFightTick -PlanOnly
+    Assert-Ui (-not $script:rotation.Active.ContainsKey($a.Key) -and $script:pendingGameExits.ContainsKey($a.Key) -and
+        $b.State.Running -and $script:workerClosed.Count -eq $closedBefore+1 -and
+        [WowAutoFight.Native]::Sends -eq $sendsBefore -and (Get-FileHash $script:rotation.Path).Hash -eq $deathPlanHash) 'Combat death did not exhaust only its own process or changed saved plans/sent an attack.'
+    [WowAutoFight.Native]::Current.Action='idle'
+    # Unknown pixels are not death, and a directly-started unplanned role only stops.
+    $b.Process.ScanColor='unknown';$b.State.DeathCheckAt=0
+    Invoke-FishingDeathChecks ($now+1000)
+    Assert-Ui ($b.State.Running -and $script:rotation.Active[$b.Key].ExcludedNames.Count -eq 0) 'Unknown fishing pixels excluded a live character.'
+    Stop-AllRows;$b.Process.ScanColor='red';$b.Validated=$true;Start-Row $b -TaskOnly
+    $b.Process.ScanColor='dead';$closedBefore=$script:workerClosed.Count
+    Invoke-FishingDeathChecks ($now+2000)
+    Assert-Ui (-not (Test-UnifiedTaskRunning $b) -and -not $script:pendingGameExits.ContainsKey($b.Key) -and
+        $script:workerClosed.Count -eq $closedBefore) 'Death without an active rotation closed the process.'
+    $b.Process.ScanColor='red';Stop-AllRows
+    # A role can already be dead when its post-login monitor is enabled.
+    foreach ($deathMode in @('fish','fight')) {
+        $deathPlans=$savedPlans.Clone();$deathPlan=Copy-RotationPlan $deathPlans[$a.Key]
+        $deathPlan.Slots[0].Mode=$deathMode;$deathPlans[$a.Key]=$deathPlan
+        Save-RotationConfiguration -Plans $deathPlans
+        $now=335000L;Reach-RotationTestPhase $a 'validate' ([ref]$now)
+        if ($deathMode -eq 'fish') {$a.Process.ScanColor='dead'} else {[WowAutoFight.Native]::Current.Action='dead'}
+        for ($attempt=0;$attempt -lt 8 -and $script:rotation.Active[$a.Key].Index -eq 0;$attempt++) {
+            Step-RotationTest $now;$now+=300
+        }
+        Assert-Ui ($script:rotation.Active[$a.Key].Index -eq 2 -and
+            $script:rotation.Active[$a.Key].ExcludedNames -ccontains $deathPlan.Slots[0].Name -and
+            -not (Test-UnifiedTaskRunning $a)) 'Death during post-login validation did not skip the role.'
+        $a.Process.ScanColor='red';[WowAutoFight.Native]::Current.Action='idle';Stop-AllRows
+    }
+    Save-RotationConfiguration -Plans $savedPlans
     # Yellow during post-login validation must also skip that role, not wait until timeout.
     $now=340000L;Reach-RotationTestPhase $a 'validate' ([ref]$now)
     $a.Process.ScanColor='yellow'
@@ -487,7 +541,7 @@ try {
         Assert-Ui (-not [WowAutoRotation.Native]::HasLoginPoint($point)) 'Non-solid point accepted.'
     } finally {$point.Dispose()}
     foreach ($p in $sourceHashes.Keys) {Assert-Ui ((Get-FileHash $p).Hash -eq $sourceHashes[$p]) 'Tests changed real user configuration.'}
-    Write-Output 'PASS: name/empty/single/wrap slots, ready-window OCR while another window awaits the menu, all-position preparation before clicks and all-clicks before login checks, independent system-size validation without OCR or position comparison, width/height resize/re-recognition and stopped-cache cancellation, shared deadline/all-stop batch, first-page three-click selection with precomputed random intervals and OCR row logs, foreground Up retry for a highlighted missing name, process exit after 30 unsuccessful Up retries, either menu anchor, partial/duplicate rejection, permanent-point login/no OCR after selection/loading/pending/focus/timeout/stop/settings isolation, per-role fish/fight, counter reset, atomic drafts and PID reuse. All game input and OCR mocked.'
+    Write-Output 'PASS: name/empty/single/wrap slots, ready-window OCR while another window awaits the menu, all-position preparation before clicks and all-clicks before login checks, independent system-size validation without OCR or position comparison, width/height resize/re-recognition and stopped-cache cancellation, shared deadline/all-stop batch, first-page three-click selection with precomputed random intervals and OCR row logs, foreground Up retry for a highlighted missing name, process exit after 30 unsuccessful Up retries, either menu anchor, partial/duplicate rejection, permanent-point login/no OCR after selection/loading/pending/focus/timeout/stop/settings isolation, per-role fish/fight, one-second death checks during fishing waits, combat/validation death exclusion and exhausted-only exit, counter reset, atomic drafts and PID reuse. All game input and OCR mocked.'
 } finally {
     Stop-AllRows;Close-AutoFightTab
     if ([IO.File]::Exists($script:rotation.Path)) {[IO.File]::Delete($script:rotation.Path)}

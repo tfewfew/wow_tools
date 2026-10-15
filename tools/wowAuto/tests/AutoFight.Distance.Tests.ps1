@@ -9,12 +9,12 @@ function Test-Packet([string]$Flavor,[int]$Class,[int]$Action,[bool]$Combat=$fal
     $hint=switch ($Recovery) {'none' {Pixel 38 38 38} 'recover' {Pixel 0 102 255} 'unknown' {Pixel 128 128 128}}
     return [uint32[]]@((Pixel (7+20*$Action) (4*($identity+26*[int]$Busy)) (4*($Encounter+32*[int]$Combat))),$hint)
 }
-$actions=@('unknown','idle','opening','waiting','combat','interact')
+$actions=@('unknown','idle','opening','waiting','combat','interact',$null,'dead')
 foreach ($flavor in @('titan','forerver')) {
     foreach ($class in (Get-AutoFightClassIds $flavor)) {
         foreach ($encounter in @(0,17,31)) {
             foreach ($entry in @(@(1,$false,$false),@(2,$false,$false),@(4,$true,$false),
-                @(4,$true,$true),@(5,$false,$false),@(5,$false,$true))) {
+                @(4,$true,$true),@(5,$false,$false),@(5,$false,$true),@(7,$false,$false))) {
                 $packet=[WowAutoFight.Native]::Decode((Test-Packet $flavor $class $entry[0] $entry[1] $entry[2] $encounter),$flavor)
                 Assert-Distance ($packet -and $packet.Action -eq $actions[$entry[0]] -and $packet.ClassId -eq $class -and
                     $packet.EncounterId -eq $encounter -and $packet.Busy -eq $entry[2] -and
@@ -35,6 +35,8 @@ foreach ($flavor in @('titan','forerver')) {
     Assert-Distance ($null -eq [WowAutoFight.Native]::Decode((Test-Packet $flavor 4 2),$(if ($flavor -eq 'titan') {'forerver'} else {'titan'}))) 'Cross-flavor color accepted.'
     Assert-Distance ($null -eq [WowAutoFight.Native]::Decode(([uint32[]]@((Pixel 45 12 68),(Pixel 8 8 8))),$flavor)) 'Old V7 protocol accepted.'
     Assert-Distance ($null -eq [WowAutoFight.Native]::Decode(([uint32[]]@((Test-Packet $flavor 4 2)[0],(Pixel 1 2 3))),$flavor)) 'Invalid auxiliary hint accepted.'
+    Assert-Distance ($null -eq [WowAutoFight.Native]::Decode((Test-Packet $flavor 4 7 $true),$flavor)) 'Death packet accepted a combat flag.'
+    Assert-Distance ($null -eq [WowAutoFight.Native]::Decode((Test-Packet $flavor 4 7 $false $true),$flavor)) 'Death packet accepted a busy flag.'
     $profile=Get-AutoFightEffectiveProfile (New-AutoFightProfile $flavor 4) (New-AutoFightCommon)
     $session=New-AutoFightSession 0 4
     $opening=[WowAutoFight.Native]::Decode((Test-Packet $flavor 4 2),$flavor)

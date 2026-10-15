@@ -39,6 +39,9 @@ local messages = {}
 DEFAULT_CHAT_FRAME = { AddMessage = function(_, message) messages[#messages + 1] = message end }
 SlashCmdList = {}
 function UnitIsDeadOrGhost() return dead end
+local ghost=false
+UnitIsDead=UnitIsDeadOrGhost
+function UnitIsGhost() return ghost end
 function GetPhysicalScreenSize() return physicalWidth, physicalHeight end
 function GetInventoryItemLink() return pole and "fishing-pole" or "sword" end
 function GetItemInfoInstant() return 1, nil, nil, nil, nil, 2, pole and 20 or 7 end
@@ -243,11 +246,11 @@ assertPhysicalOffset()
 dead = true
 panel.scripts.OnEvent(panel, "PLAYER_DEAD")
 assertColor(0.5, 0.5, 0.5)
-assertMain(0.5, 0.5, 0.5)
+assertMain(0, 1, 1)
 assert(not wowDetectorDB.locked and panel.shown, "Death hid panel or kept position locked")
 dead = false
 panel.scripts.OnEvent(panel, "PLAYER_ALIVE")
-assertMain(0.5, 0.5, 0.5)
+assertMain(0, 1, 1)
 SlashCmdList.WOWDETECTOR("on")
 SlashCmdList.WOWDETECTOR("off")
 assertColor(0.5, 0.5, 0.5)
@@ -258,4 +261,9 @@ SlashCmdList.WOWDETECTOR("hide")
 assert(WoWTools.modules.wowDetector.IsEnabled(),"Hidden running fishing reports disabled for loot")
 dead=true; panel.scripts.OnEvent(panel,"PLAYER_DEAD")
 assert(not WoWTools.modules.wowDetector.IsEnabled(),"Death left fishing loot confirmation enabled")
+dead=false;SlashCmdList.WOWDETECTOR("on");ghost=true
+panel.scripts.OnEvent(panel,"PLAYER_ENTERING_WORLD")
+assertMain(0.5,0.5,0.5)
+assert(not WoWTools.modules.wowDetector.IsEnabled(),"Ghost state kept fishing active")
+ghost=false
 print("PASS: Titan fishing channel plus interactable soft target, cast/other channel rejection, event/polling arrival and loss, unreadable APIs, bag/death/off priority and diagnostics; temporary enchants, 32px offset and 12px marker across window sizes/UI scales. All WoW APIs mocked.")

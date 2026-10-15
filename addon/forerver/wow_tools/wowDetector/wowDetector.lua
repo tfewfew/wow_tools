@@ -53,9 +53,22 @@ local function Say(message)
     DEFAULT_CHAT_FRAME:AddMessage("|cff66ccffwowDetector:|r " .. message)
 end
 
+local function PlayerFlag(fn)
+    if type(fn)~="function" then return nil end
+    local ok,value=pcall(fn,"player")
+    if not ok or (issecretvalue and issecretvalue(value)) then return nil end
+    if value==true or value==1 then return true end
+    if value==false or value==0 or value==nil then return false end
+    return nil
+end
+
 local function Paint(newState)
     state = newState
-    if state == "full" then
+    if state == "dead" then
+        indicator:SetColorTexture(0, 1, 1, 1)
+        lureIndicator:SetColorTexture(0.5, 0.5, 0.5, 1)
+        label:SetText("角色死亡，等待脚本移出编排")
+    elseif state == "full" then
         indicator:SetColorTexture(1, 1, 0, 1)
         label:SetText("背包已满")
     elseif state == "fishing" then
@@ -75,7 +88,7 @@ local function Paint(newState)
     toggle:SetText(enabled and "关闭" or "启动")
 end
 
-local function ResetAfterDeath()
+local function ResetAfterDeath(ghost)
     if not initialized then return end
     local wasEnabled = enabled
     WoWTools.audio.Restore()
@@ -85,8 +98,8 @@ local function ResetAfterDeath()
     freeSlots = nil
     panel:StopMovingOrSizing()
     wowDetectorDB.locked = false
-    Paint("disabled")
-    if wasEnabled then Say("角色已死亡，检测已关闭并解除锁定；复活后请手动启动。") end
+    Paint(ghost and "disabled" or "dead")
+    if wasEnabled then Say(ghost and "处于灵魂状态，检测已停止，不移出角色。" or "角色已死亡，等待脚本移出编排。") end
 end
 
 local function IsFishing()
@@ -126,9 +139,14 @@ local function PaintLure()
 end
 
 local function Refresh()
-    if enabled and UnitIsDeadOrGhost("player") then
-        ResetAfterDeath()
-        return
+    if enabled then
+        if PlayerFlag(UnitIsGhost)==true then ResetAfterDeath(true); return end
+        local dead=PlayerFlag(UnitIsDead)
+        if dead==true then ResetAfterDeath(); return end
+        if dead==nil then
+            lureIndicator:SetColorTexture(0.5, 0.5, 0.5, 1)
+            Paint("unknown"); return
+        end
     end
     if not enabled then
         return
@@ -170,9 +188,14 @@ local function SetEnabled(value)
     if not initialized then return end
     local wasEnabled = enabled
     if value then
-        if UnitIsDeadOrGhost("player") then
-            ResetAfterDeath()
-            Say("角色死亡或处于灵魂状态，无法启动检测。")
+        if PlayerFlag(UnitIsGhost)==true then
+            ResetAfterDeath(true);Say("灵魂状态无法启动检测，不移出角色。");return
+        end
+        local dead=PlayerFlag(UnitIsDead)
+        if dead~=false then
+            local fight=WoWTools.modules.fight_detector
+            if dead==true and not (fight and fight.IsEnabled()) then ResetAfterDeath() end
+            Say(dead==true and "角色已死亡、尚未释放灵魂，无法启动检测。" or "存活状态未知，无法启动检测。")
             return
         end
         enabled = true
@@ -287,8 +310,8 @@ panel:SetScript("OnEvent", function(_, event, unit)
         SetActiveEvents(false)
         Paint("disabled")
     elseif event == "PLAYER_DEAD" then
-        ResetAfterDeath()
-    elseif event == "PLAYER_ENTERING_WORLD" and UnitIsDeadOrGhost("player") then
+        ResetAfterDeath(PlayerFlag(UnitIsGhost)==true)
+    elseif event == "PLAYER_ENTERING_WORLD" and PlayerFlag(UnitIsDead) then
         ResetAfterDeath()
     elseif event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_ALIVE" or event == "PLAYER_UNGHOST"
         or event == "BAG_UPDATE_DELAYED" or event == "PLAYER_EQUIPMENT_CHANGED" or event == "WEAPON_ENCHANT_CHANGED"

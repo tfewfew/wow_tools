@@ -5,7 +5,7 @@ function New-WowAutoState {
         throw '等待范围需满足：1 ≤ 最小值 ≤ 最大值 ≤ 3600000 ms。'
     }
     [pscustomobject]@{
-        Running=$true; Mode='Ready'; NextDue=0L; Deadline=0L
+        Running=$true; Mode='Ready'; NextDue=0L; Deadline=0L; DeathCheckAt=0L
         MinimumMs=$MinimumMs; MaximumMs=$MaximumMs; LastInterval=-1; ForceNextCast=$false; ReelDelayMs=0
         AwaitingFishingTransition=$false; SawIdle=$false
         CheckReelGreen=$false; CycleJumpPending=$false; PostReelJumpAllowed=$false

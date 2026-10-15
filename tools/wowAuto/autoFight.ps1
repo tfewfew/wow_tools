@@ -77,6 +77,11 @@ function Invoke-AutoFightHold([long]$Now) {
             throw '保持期间检测关闭或协议不可读，已释放移动键。'
         }
         if ($packet.ClassId -ne $hold.Session.ClassId -or $packet.Flavor -ne $row.Client.Flavor) { throw '职业或客户端发生变化，已释放移动键。' }
+        if ($packet.Action -eq 'dead') {
+            [void](Release-AutoFightHold)
+            Complete-AutoFightDeath $row
+            return
+        }
         if (($Now -ge $hold.Session.RecoveryReadyAt -and $packet.Recovery -in @('unknown','recover')) -or
             (Test-AutoFightHoldFinished $hold $packet $Now)) { [void](Release-AutoFightHold) }
     }
@@ -97,6 +102,14 @@ function Stop-AutoFightRow($Row,[string]$Reason='已停止，战斗任务已取�
     Set-AutoFightStatus $Row $Reason
     if ($Row.PSObject.Properties['ParentRow'] -and $Row.ParentRow) {Clear-WowAutoCurrentRole $Row.ParentRow}
     Update-AutoFightControls
+}
+function Complete-AutoFightDeath($Row) {
+    $Row.CanStart=$false
+    if ($Row.PSObject.Properties['ParentRow'] -and $Row.ParentRow) {
+        Close-WorkerGame $Row.ParentRow '角色死亡'
+    } else {
+        Stop-AutoFightRow $Row '角色死亡：停止当前战斗任务。'
+    }
 }
 function Complete-AutoFightScan {
     $script:autoFight.Scan=$null
@@ -260,6 +273,15 @@ function Invoke-AutoFightTick([bool]$AllowInput=$true,[switch]$PlanOnly,[string]
             Update-AutoFightControls; return
         }
         $pending.ReadFailureSince=-1L
+        if ($packet.Action -eq 'dead') {
+            if ($pending.Scanning) {
+                $row.CanStart=$false;Set-AutoFightStatus $row '角色死亡，未开放开始按钮。'
+                Finish-AutoFightPending $now;Update-AutoFightControls
+            } elseif ($packet.ClassId -eq $pending.Session.ClassId) {
+                Complete-AutoFightDeath $row
+            } else {Stop-AutoFightRow $row '死亡信号职业与当前任务不符，请刷新。'}
+            return
+        }
         $combatText=if ($packet.Combat) { '战斗中' } else { '非战斗' }
         if ($pending.Scanning) {
             $row.ClassId=$packet.ClassId; $row.CanStart=$true

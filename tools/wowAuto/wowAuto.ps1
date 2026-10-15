@@ -205,6 +205,7 @@ namespace WowAuto
             int red = (int)(color & 255);
             int green = (int)((color >> 8) & 255);
             int blue = (int)((color >> 16) & 255);
+            if (green >= 254 && blue >= 254 && red <= 1) return "dead";
             if (red >= 200 && green >= 200 && blue <= 80) return "yellow";
             if (red >= 200 && green <= 80 && blue <= 80) return "red";
             if (green >= 200 && red <= 80 && blue <= 80) return "green";
@@ -1517,6 +1518,12 @@ function Invoke-RefreshScan([long]$Now) {
         }
         if ($row.TaskMode -eq 'fight') {
             $packet=Read-ScanFightPacket $row
+            if ($packet -and $packet.Action -eq 'dead') {
+                Set-RowStatusText $row '角色死亡，未开放开始按钮。'
+                Set-RowControls $row;$script:scanIndex++;$script:scanPhase='Activate';$script:scanDue=$Now
+                if ($script:scanIndex -ge $script:scanQueue.Count) {Finish-RefreshScan}
+                return
+            }
             if ($packet -and $packet.Flavor -eq $row.Client.Flavor) {
                 $row.Validated=$true; $row.FightRow.CanStart=$true; $row.FightRow.ClassId=$packet.ClassId
                 Update-RowName $row; Set-RowStatusText $row '战斗监控已开启并识别职业，可以开始。'
@@ -1535,6 +1542,9 @@ function Invoke-RefreshScan([long]$Now) {
         }
         elseif ($color -eq 'yellow') {
             Set-RowStatusText $row '黄色：背包已满，未开放按钮。'
+        }
+        elseif ($color -eq 'dead') {
+            Set-RowStatusText $row '角色死亡，未开放开始按钮。'
         }
         elseif ($Now -lt $script:scanTimeout) {
             $script:scanDue = $Now + 100
@@ -1621,15 +1631,15 @@ function Send-WorkerKey($Row, [string]$Action) {
     }
     return [WowAuto.NativeInput]::PressChord($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath, [System.UInt16]$Number, $binding.Ctrl, $binding.Shift, $binding.Alt)
 }
-function Close-WorkerGame($Row) {
-    $result=Exclude-FullRotationRole $Row
+function Close-WorkerGame($Row,[string]$Reason='背包已满') {
+    $result=if ($Reason -eq '背包已满') {Exclude-FullRotationRole $Row} else {Exclude-RotationRole $Row $Reason}
     if ($result -eq 'Next') {return}
     $Row.Validated=$false
     if ($result -eq 'NoPlan') {
-        Stop-Row $Row '背包已满：没有角色编排，保留进程并停止本行。'
+        Stop-Row $Row ($Reason+'：没有角色编排，保留进程并停止本行。')
         return
     }
-    Request-WorkerGameExit $Row '该进程所有编排角色背包已满'
+    Request-WorkerGameExit $Row '该进程所有编排角色均已移出轮换（背包满或死亡）'
 }
 function Request-WorkerGameExit($Row,[string]$Reason) {
     if ($script:pendingGameExits.ContainsKey($Row.Key)) {return}
@@ -1793,6 +1803,11 @@ function Invoke-SchedulerTick([long]$Now,$QueuedWork=$null) {
         }
         if ($color -eq 'yellow') {
             Close-WorkerGame $row
+            $script:pendingWork=$null
+            return
+        }
+        if ($color -eq 'dead') {
+            Close-WorkerGame $row '角色死亡'
             $script:pendingWork=$null
             return
         }

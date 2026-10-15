@@ -48,6 +48,9 @@ for _,flavor in ipairs({"titan","forerver"}) do
     function issecretvalue() return false end
     function GetPhysicalScreenSize() return width,height end
     function UnitIsDeadOrGhost(unit) return unit=="player" and dead or false end
+    local ghost=false
+    UnitIsDead=UnitIsDeadOrGhost
+    function UnitIsGhost() return ghost end
     function UnitAffectingCombat() return combat end
     function InCombatLockdown() return combat end
     function UnitClass() return "战士","WARRIOR",1 end

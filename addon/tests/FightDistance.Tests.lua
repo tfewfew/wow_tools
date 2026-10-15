@@ -63,6 +63,9 @@ for _,flavor in ipairs({"titan","forerver"}) do
     function UnitClass() return "模拟职业","TEST",class end
     function UnitExists(unit) return unit=="player" or mobs[unit]~=nil end
     function UnitIsDeadOrGhost(unit) if unit=="player" then return dead end; return mobs[unit] and mobs[unit].dead or false end
+    local ghost=false
+    UnitIsDead=UnitIsDeadOrGhost
+    function UnitIsGhost() return ghost end
     function UnitIsPlayer() return false end
     function UnitCanAttack(_,unit) return mobs[unit]~=nil end
     function UnitGUID(unit) assert(unit~="focus", "Detector still reads focus"); local mob=mobs[unit]; return mob and mob.guid end
@@ -113,7 +116,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     end
     local saved={AttackRangeYards=40,rangeSpells={[1]=78},profiles={[3]={DetectionRangeYards=20,HealthEnter=65}}}
     local signal=setup(1,saved)
-    local codes={unknown=0,idle=1,opening=2,waiting=3,combat=4,interact=5}
+    local codes={unknown=0,idle=1,opening=2,waiting=3,combat=4,interact=5,dead=7}
     local function pixel(cell)
         local c=cell.color
         return math.floor(c[1]*255+.5)+256*math.floor(c[2]*255+.5)+65536*math.floor(c[3]*255+.5)
@@ -245,7 +248,21 @@ for _,flavor in ipairs({"titan","forerver"}) do
     failed=true;tick();expect("unknown")
     failed=false;tick();expect("opening")
     dead=true;event("PLAYER_DEAD")
-    assert(not signal.shown and not WoWTools.modules.fight_detector.IsEnabled(),"Death did not stop detector")
+    expect("dead")
+    assert(signal.shown and not WoWTools.modules.fight_detector.IsEnabled(),"Death did not retain a terminal signal with business detection stopped")
+    for _,frame in ipairs(frames) do assert(not frame.scripts.OnUpdate,"Death retained business polling") end
+    screenWidth,screenHeight,uiScale=1280,720,.7
+    event("UI_SCALE_CHANGED");geometry();expect("dead")
+    dead=false;tick();expect("dead")
+    SlashCmdList.FIGHTDETECTOR("off")
+    assert(not signal.shown,"Explicit off retained the death signal")
+    ghost=true
+    SlashCmdList.FIGHTDETECTOR("on")
+    assert(not signal.shown and not WoWTools.modules.fight_detector.IsEnabled(),"Ghost state emitted a death signal")
+    ghost=false;SlashCmdList.FIGHTDETECTOR("on")
+    ghost=true;tick()
+    assert(not signal.shown and not WoWTools.modules.fight_detector.IsEnabled(),"Becoming a ghost falsely emitted death")
+    ghost=false
     dead=false;mobs={};signal=setup(3,saved)
     assert(edits[1].text=="20" and edits[2].text=="65" and edits[3]==nil,
         "Class range or legacy recovery threshold was lost")

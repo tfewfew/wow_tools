@@ -226,13 +226,19 @@ function Begin-RotationBatch([long]$Now) {
     if ($script:rotation.IntervalSeconds) {$script:rotation.NextAt=$Now+[long]$script:rotation.IntervalSeconds*1000}
 }
 function Exclude-FullRotationRole($Row) {
+    return Exclude-RotationRole $Row '背包已满'
+}
+function Exclude-RotationRole($Row,[string]$Reason) {
     if (-not $script:rotation.Active.ContainsKey($Row.Key)) {return 'NoPlan'}
     $entry=$script:rotation.Active[$Row.Key]
     $name=$entry.Plan.Slots[$entry.Index].Name
     if ($name -cnotin $entry.ExcludedNames) {$entry.ExcludedNames+=,$name}
     $next=Get-RotationNextSlot $entry.Plan $entry.Index $entry.ExcludedNames
-    if ($next -lt 0) {return 'Exhausted'}
-    Stop-Row $Row ('背包已满：“'+$name+'”已移出本进程轮换，准备切换下一角色。') -KeepRotation
+    if ($next -lt 0) {
+        Set-RowStatusText $Row ($Reason+'：“'+$name+'”已移出本进程轮换，已无剩余角色。')
+        return 'Exhausted'
+    }
+    Stop-Row $Row ($Reason+'：“'+$name+'”已移出本进程轮换，准备切换下一角色。') -KeepRotation
     if ($script:rotation.Current -and $script:rotation.Current.Row.Key -eq $Row.Key) {
         $script:rotation.Current=$null;$script:rotation.NextOcrAt=0L
     }
@@ -241,7 +247,7 @@ function Exclude-FullRotationRole($Row) {
     $entry.LastLogout=-30000L
     $script:rotation.LogoutQueue.Enqueue($entry)
     Update-RotationRow $Row
-    Set-RowStatusText $Row ('背包已满：“'+$name+'”已跳过，下一角色为“'+$entry.Plan.Slots[$next].Name+'”。')
+    Set-RowStatusText $Row ($Reason+'：“'+$name+'”已跳过，下一角色为“'+$entry.Plan.Slots[$next].Name+'”。')
     return 'Next'
 }
 function Send-RotationAction($Row,[string]$Action,$Target=$null) {
@@ -562,9 +568,11 @@ function Invoke-RotationTick([long]$Now) {
             if ($row.TaskMode -eq 'fight') {
                 $packet=Read-ScanFightPacket $row
                 if (-not $packet -or $packet.Flavor -ne $row.Client.Flavor) {$work.Due=$Now+300;return $true}
+                if ($packet.Action -eq 'dead') {Close-WorkerGame $row '角色死亡';return $true}
                 $row.FightRow.CanStart=$true;$row.FightRow.ClassId=$packet.ClassId
             } else {
                 $color=Read-ScanColor $row
+                if ($color -eq 'dead') {Close-WorkerGame $row '角色死亡';return $true}
                 if ($color -eq 'yellow') {Close-WorkerGame $row;return $true}
                 if ($color -notin @('red','green')) {$work.Due=$Now+300;return $true}
             }

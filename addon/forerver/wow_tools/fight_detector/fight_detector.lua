@@ -13,12 +13,12 @@ local events, SetActiveEvents
 local recovery="none"
 local recoveryDescriptions={none="无需恢复", recover="需要恢复", unknown="恢复状态未知"}
 local defaultRecoveryThreshold=80
--- V8: looting and skinning share one interaction state; health stays auxiliary.
+-- V9 adds a terminal death signal; health stays auxiliary.
 -- The main cell also carries client/class, busy, combat and encounter metadata.
-local actionCodes={unknown=0,idle=1,opening=2,combat=4,interact=5}
+local actionCodes={unknown=0,idle=1,opening=2,combat=4,interact=5,dead=7}
 local descriptions={disabled="已关闭",unknown="数据未知，暂停指令",idle="等待目标",
     opening="范围内有怪物，选中并开怪",combat="战斗中，持续攻击",
-    interact="尸体可交互"}
+    interact="尸体可交互",dead="角色死亡，等待脚本移出编排"}
 
 local function Readable(value)
     return not (issecretvalue and issecretvalue(value))
@@ -118,11 +118,11 @@ local function PositionSignal()
         local size=(i==1 and 32 or 12)*unit
         cell:SetSize(size,size)
     end
-    if enabled and panel:IsShown() then signal:Show() else signal:Hide() end
+    if (enabled or state=="dead") and panel:IsShown() then signal:Show() else signal:Hide() end
     return true
 end
 local function Paint()
-    if enabled and classID and PositionSignal() then
+    if (enabled or state=="dead") and classID and PositionSignal() then
         local action=actionCodes[state] or 0
         local identity=(FLAVOR=="titan" and 0 or 13)+classID-1
         local encounter=encounterSerial%32
@@ -226,9 +226,12 @@ local function SetState(value)
     state=value
     Paint()
 end
-local function Stop()
-    enabled,elapsed,state,combat,busy=false,0,"disabled",false,false
+local function Stop(death)
+    enabled,elapsed,state,combat,busy=false,0,death and "dead" or "disabled",false,false
     if SetActiveEvents then SetActiveEvents(false) end
+    if death and events then
+        events:RegisterEvent("DISPLAY_SIZE_CHANGED");events:RegisterEvent("UI_SCALE_CHANGED")
+    end
     health,recovery=nil,"none"
     SetEncounter(nil)
     interactionGUID=nil
@@ -237,8 +240,9 @@ local function Stop()
 end
 local function Refresh()
     if not enabled then return end
-    local dead=Bool(UnitIsDeadOrGhost,"player")
-    if dead==true then Stop(); Say("角色死亡，检测已关闭；复活后请手动启动。"); return end
+    if Bool(UnitIsGhost,"player")==true then Stop();Say("灵魂状态，检测已停止，不移出角色。");return end
+    local dead=Bool(UnitIsDead,"player")
+    if dead==true then Stop(true); Say("角色死亡，检测已关闭；复活后请手动启动。"); return end
     combat=Bool(UnitAffectingCombat,"player")
     busy=false
     if combat==nil then recovery="unknown"; SetState("unknown"); return end
@@ -306,7 +310,13 @@ local function ResetWorldState()
 end
 local function Start()
     if not initialized then return end
-    if Bool(UnitIsDeadOrGhost,"player")~=false then Say("死亡或存活状态未知，无法启动。"); return end
+    if Bool(UnitIsGhost,"player")==true then Stop();Say("灵魂状态无法启动检测，不移出角色。");return end
+    local dead=Bool(UnitIsDead,"player")
+    if dead~=false then
+        local fish=WoWTools.modules.wowDetector
+        if dead==true and not (fish and fish.IsEnabled()) then panel:Show(); Stop(true) end
+        Say("死亡或存活状态未知，无法启动。"); return
+    end
     enabled=true
     WoWTools.ActivateDetector("fight_detector")
     panel:Show()
@@ -370,7 +380,9 @@ events:SetScript("OnEvent",function(_,event,arg)
         thresholdInput:SetText(tostring(settings.RecoveryThreshold))
         initialized=true
         Stop()
-    elseif not enabled then return
+    elseif not enabled then
+        if state=="dead" and (event=="DISPLAY_SIZE_CHANGED" or event=="UI_SCALE_CHANGED") then Paint() end
+        return
     elseif event=="LOOT_OPENED" then
         lootOpen=true
         SafeRefresh()
@@ -384,7 +396,7 @@ events:SetScript("OnEvent",function(_,event,arg)
     elseif event=="PLAYER_ENTERING_WORLD" then
         ResetWorldState()
         SafeRefresh()
-    elseif event=="PLAYER_DEAD" or event=="PLAYER_LOGOUT" then lootOpen=false; Stop()
+    elseif event=="PLAYER_DEAD" or event=="PLAYER_LOGOUT" then lootOpen=false; Stop(event=="PLAYER_DEAD" and Bool(UnitIsGhost,"player")~=true)
     else SafeRefresh() end
 end)
 local function Poll(_,delta)

@@ -191,17 +191,17 @@ namespace WowAutoFight
         {
             return Math.Abs(R(actual)-red)<=1 && Math.Abs(G(actual)-green)<=1 && Math.Abs(B(actual)-blue)<=1;
         }
-        // V8 uses one interaction action for both looting and skinning.
+        // V9 adds terminal death (7); removed waiting (3) and skin (6) remain invalid.
         public static Packet Decode(uint[] cells,string expectedFlavor)
         {
             if (cells==null || cells.Length!=2 || cells[0]==0xffffffff) return null;
-            int action=Slot(R(cells[0]),7,20,6);
+            int action=Slot(R(cells[0]),7,20,8);
             int identityBusy=Slot(G(cells[0]),0,4,52), encounterCombat=Slot(B(cells[0]),0,4,64);
             if (action<=0 || identityBusy<0 || encounterCombat<0) return null;
             int identity=identityBusy%26, classId=identity%13+1;
             string flavor=identity<13 ? "titan" : "forerver";
             if (flavor!=expectedFlavor || classId==10 || classId>11 || (flavor=="forerver" && classId==6)) return null;
-            string[] actions={"unknown","idle","opening",null,"combat","interact"};
+            string[] actions={"unknown","idle","opening",null,"combat","interact",null,"dead"};
             string state=actions[action];
             bool combat=encounterCombat>=32, busy=identityBusy>=26;
             if (state==null || (combat != (state=="combat"))) return null;
@@ -209,6 +209,7 @@ namespace WowAutoFight
                 : ColorNear(cells[1],0,102,255) ? "recover"
                 : ColorNear(cells[1],128,128,128) ? "unknown" : null;
             if (recovery==null) return null;
+            if (state=="dead" && (busy || recovery!="none")) return null;
             return new Packet {Action=state,Flavor=flavor,Recovery=recovery,Combat=combat,Busy=busy,
                 ClassId=classId,EncounterId=encounterCombat%32};
         }
