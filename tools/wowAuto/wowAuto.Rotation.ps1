@@ -290,6 +290,11 @@ function Get-RotationMenuRow($Bounds,[double]$TextY,[double]$Tolerance=0.02) {
     $index=[int][Math]::Round(($TextY-$first)/$step,[MidpointRounding]::AwayFromZero)+1
     $centerY=$first+($index-1)*$step
     if ($index -lt 1 -or $index -gt 10 -or [Math]::Abs($TextY-$centerY) -gt $Tolerance) {return $null}
+    # A wider tolerance must never make a point at the boundary between two
+    # adjacent rows clickable. Keep the nearest-row decision unambiguous.
+    if ($Tolerance -gt $step/2 -and
+        (($index -gt 1 -and [Math]::Abs($TextY-($centerY-$step/2)) -le 0.001) -or
+         ($index -lt 10 -and [Math]::Abs($TextY-($centerY+$step/2)) -le 0.001))) {return $null}
     return [pscustomobject]@{Index=$index;X=($Bounds.X+$Bounds.W/2);Y=$centerY}
 }
 function Get-RotationOcrLog($Screen,[string]$Name) {
@@ -314,9 +319,9 @@ function ConvertFrom-RotationOcr($Ocr,$Plan,[switch]$MenuWasConfirmed) {
         $y=$bounds.Y+($line.Y+$line.H/2)*$bounds.H
         if ($y -lt 0.08 -or $y -gt 0.80 -or ($y -lt 0.15 -and $line.Text -eq '选择服务器') -or $line.Text -notmatch '^[\p{L}\p{M}]+$') {continue}
         $match=Resolve-RotationOcrName $line.Text $configured
-        # A uniquely matched name may have a shifted OCR box. Stay inside the
-        # nearest row's half-spacing, while keeping unrelated text at 2%.
-        $tolerance=if (-not $match.Ambiguous -and $match.Name -cin $configured) {0.034} else {0.02}
+        # A uniquely matched name may have a shifted OCR box; unrelated text
+        # retains the tighter 2% threshold.
+        $tolerance=if (-not $match.Ambiguous -and $match.Name -cin $configured) {0.044} else {0.02}
         $row=Get-RotationMenuRow $bounds $y $tolerance
         if (-not $row) {continue}
         [pscustomobject]@{Name=$match.Name;RawName=$line.Text;Ambiguous=$match.Ambiguous;MenuRow=$row.Index;X=$row.X;Y=$row.Y}
@@ -326,7 +331,7 @@ function ConvertFrom-RotationOcr($Ocr,$Plan,[switch]$MenuWasConfirmed) {
         if ($line.X -gt $bounds.X -and $line.Y -gt 0.08 -and $line.Y -lt 0.80) {
             $match=Resolve-RotationOcrName $line.Text $configured
             if (-not $match.Ambiguous -and $match.Name -cin $configured -and $match.Name -cnotin $targets.Name) {
-                $row=Get-RotationMenuRow $bounds ($line.Y+$line.H/2) 0.034
+                $row=Get-RotationMenuRow $bounds ($line.Y+$line.H/2) 0.044
                 if ($row) {$targets+=,[pscustomobject]@{Name=$match.Name;RawName=$line.Text;Ambiguous=$false;MenuRow=$row.Index;X=$row.X;Y=$row.Y}}
             }
         }

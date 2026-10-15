@@ -32,6 +32,13 @@ $shiftedScreen=ConvertFrom-RotationOcr $shiftedOcr $shiftedPlan
 if (@($shiftedScreen.Targets | Where-Object {$_.Name -ceq '吔史呀嘞' -and $_.RawName -ceq '咆史呀嘞' -and $_.MenuRow -eq 4 -and -not $_.Ambiguous}).Count -ne 1) {
     throw 'One-glyph OCR match was discarded before the shifted fourth row could be located.'
 }
+$widerY=0.119+3*0.0743+0.0355
+$shiftedOcr.Names[0].Y=$widerY/0.84-0.01
+$shiftedOcr.Lines[1].Y=$widerY-0.01
+$shiftedScreen=ConvertFrom-RotationOcr $shiftedOcr $shiftedPlan
+if (@($shiftedScreen.Targets | Where-Object {$_.Name -ceq '吔史呀嘞' -and $_.MenuRow -eq 4}).Count -ne 1) {
+    throw 'The wider name tolerance did not retain a unique fourth-row match.'
+}
 $shiftedOcr.Names[0].Text='地史呀'
 $shiftedScreen=ConvertFrom-RotationOcr $shiftedOcr $shiftedPlan
 if (@($shiftedScreen.Targets | Where-Object {$_.Name -ceq '吔史呀嘞' -and $_.MenuRow -eq 4}).Count -ne 1) {
