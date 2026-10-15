@@ -190,6 +190,10 @@ local function FindEnemy()
             local guid,ok=Read(UnitGUID,unit)
             if ok and guid==encounterGUID and Enemy(unit)==true then return unit,guid end
         end
+    elseif combat and Enemy("target")==true then
+        -- Starting the detector mid-combat has no prior encounter to follow.
+        local guid,ok=Read(UnitGUID,"target")
+        if ok and type(guid)=="string" and guid~="" then return "target",guid end
     end
     for _,unit in ipairs(candidates) do
         local enemy=Enemy(unit)
@@ -330,11 +334,14 @@ local function Refresh()
     if dead==true then Stop(); Say("角色死亡，检测已关闭；复活后请手动启动。"); return end
     combat=Bool(UnitAffectingCombat,"player")
     skin,busy=false,false
+    if combat==nil then recovery="unknown"; SetState("unknown"); return end
     local vitalsKnown=Vitals()
-    if dead==nil or combat==nil then recovery="unknown"; SetState("unknown"); return end
     local cast,castOK=Read(UnitCastingInfo,"player")
     local channel,channelOK=Read(UnitChannelInfo,"player")
-    if not castOK or not channelOK then recovery="unknown"; SetState("unknown"); return end
+    if not castOK or not channelOK then
+        recovery,busy="unknown",true
+        SetState(combat and "waiting" or "unknown"); return
+    end
     busy=not not (cast or channel or lootOpen or (LootFrame and LootFrame:IsShown()))
     if not vitalsKnown then
         recovery="unknown"
@@ -354,10 +361,23 @@ local function Refresh()
         end
         recovery=recovering and "recover" or "none"
     end
-    if busy and not combat and (state=="skin" or state=="loot") then
+    -- Combat is the first main-state decision. Uncertain target/range stays in
+    -- waiting, never falls through to opening, corpse interaction or unknown.
+    if combat then
+        if dead==nil then SetState("waiting"); return end
+        local unit,guid=FindEnemy()
+        if not unit then SetState("waiting"); return end
+        SetEncounter(guid)
+        local targetGUID,targetOK=Read(UnitGUID,"target")
+        if not targetOK or targetGUID~=guid then SetState("waiting"); return end
+        local closeEnough=range.Check(unit,attackRange)
+        SetState(closeEnough==true and "combat" or "waiting"); return
+    end
+    if dead==nil then SetState("unknown"); return end
+    if busy and (state=="skin" or state=="loot") then
         skin=state=="skin"; SetState(state); return
     end
-    if not combat and not busy then
+    if not busy then
         local interaction,guid=Interaction()
         if interaction then
             SetEncounter(nil)
@@ -370,25 +390,22 @@ local function Refresh()
     local unit,guid,unknown=FindEnemy()
     if unit then
         SetEncounter(guid)
-        if combat then
-            local targetGUID,targetOK=Read(UnitGUID,"target")
-            if not targetOK or targetGUID~=guid then SetState("unknown"); return end
-            local closeEnough=range.Check(unit,attackRange)
-            if closeEnough==nil then SetState("unknown"); return end
-            SetState(closeEnough and "combat" or "waiting"); return
-        end
         local detected=range.Check(unit,settings.DetectionRangeYards)
         if detected==nil then SetState("unknown"); return end
         SetState(detected and "opening" or "idle"); return
     end
-    if combat or unknown then SetState("unknown"); return end
+    if unknown then SetState("unknown"); return end
     SetEncounter(nil)
     SetState("idle")
 end
 local function SafeRefresh()
     if not enabled then return end
     local ok=pcall(Refresh)
-    if not ok then state,combat,skin,busy,recovery="unknown",nil,nil,false,"unknown"; Paint() end
+    if not ok then
+        skin,busy,recovery=false,true,"unknown"
+        if combat==true then state="waiting" else state,combat="unknown",nil end
+        Paint()
+    end
 end
 local function ResetWorldState()
     lootOpen=false

@@ -6,7 +6,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     local uiScale,screenWidth,screenHeight=1,1920,1080
     local mobs, class={}, nil
     local secret=setmetatable({}, {__eq=function() error("Compared secret") end,__tostring=function() error("Printed secret") end})
-    local restricted,failed,missing,conflicting=false,false,false,false
+    local restricted,failed,missing,conflicting,castFails=false,false,false,false,false
     local messages,warm={},0
     function issecretvalue(value) return rawequal(value,secret) end
     local distances={[8149]=5,[15826]=5,[16308]=5,[9606]=10,[17626]=10,[17689]=10,[4559]=15,
@@ -85,7 +85,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     end}
     function UnitHealth() return health end
     function UnitHealthMax() return 100 end
-    function UnitCastingInfo() return nil end
+    function UnitCastingInfo() if castFails then error("cast API unavailable") end; return nil end
     function UnitChannelInfo() return nil end
     local function event(name,argument,...)
         for _,f in ipairs(frames) do if f.events[name] then f.scripts.OnEvent(f,name,argument,...) end end
@@ -149,6 +149,9 @@ for _,flavor in ipairs({"titan","forerver"}) do
     event("UNIT_SPELLCAST_SUCCEEDED","player",secret,2764); expect("opening")
     combat=true;mobs.target.distance=30;tick();expect("waiting")
     mobs.target.distance=5;tick();expect("combat")
+    castFails=true;tick();expect("waiting")
+    assert(signal.textures[1].color[2]>.4,"Uncertain combat cast did not block input")
+    castFails=false;tick();expect("combat")
     health=20;tick();expect("combat")
     assert(signal.textures[2].color[1]==1 and signal.textures[2].color[2]==.15,
         "Emergency recovery hint did not remain in auxiliary cell")
@@ -172,7 +175,9 @@ for _,flavor in ipairs({"titan","forerver"}) do
     event("NAME_PLATE_UNIT_ADDED","nameplate1");tick();expect("opening")
     assert(not names.wowToolsFightTargetButton,"Plugin created a targeting button")
     mobs.target=mobs.nameplate1;mobs.target.distance=5;combat=true;tick();expect("combat")
-    mobs.target=nil;tick();expect("unknown")
+    mobs.target=nil;tick();expect("waiting")
+    mobs.target={guid="Creature-OTHER",distance=5};tick();expect("waiting")
+    mobs.target=nil
     combat=false;mobs.nameplate1=nil;event("NAME_PLATE_UNIT_REMOVED","nameplate1");tick();expect("idle")
     health=70;tick();expect("idle")
     assert(signal.textures[2].color[3]==1,"Ordinary recovery hint disappeared")
@@ -182,16 +187,39 @@ for _,flavor in ipairs({"titan","forerver"}) do
     mobs.target={guid="Creature-RANGE",distance=5}
     tick();expect("opening")
     combat=true;tick();expect("combat")
-    restricted=true;tick();expect("unknown")
-    restricted=false;failed=true;tick();expect("unknown")
-    failed=false;missing=true;tick();expect("unknown")
-    missing=false;conflicting=true;tick();expect("unknown")
+    mobs.softinteract={guid="Creature-CORPSE-C",dead=true,interactable=true,loot=true,canLoot=true}
+    restricted=true;tick();expect("waiting")
+    restricted=false;failed=true;tick();expect("waiting")
+    failed=false;missing=true;tick();expect("waiting")
+    missing=false;conflicting=true;tick();expect("waiting")
     conflicting=false;tick();expect("combat")
+    health=secret;tick();expect("combat")
+    assert(signal.textures[2].color[1]==.5,"Unknown recovery changed the combat main state")
+    health=100
+    dead=secret;tick();expect("waiting")
+    dead=false;tick();expect("combat")
+    combat=secret;tick();expect("unknown")
+    combat=true;tick();expect("combat")
+    local originalPaint=signal.textures[1].SetColorTexture
+    local failOnce=true
+    signal.textures[1].SetColorTexture=function(self,...)
+        if failOnce then failOnce=false;error("transient paint error") end
+        return originalPaint(self,...)
+    end
+    tick();expect("waiting")
+    tick();expect("combat")
+    signal.textures[1].SetColorTexture=originalPaint
+    mobs.softinteract=nil
     combat=false;tick();expect("opening")
+    failed=true;tick();expect("unknown")
+    failed=false;tick();expect("opening")
     dead=true;event("PLAYER_DEAD")
     assert(not signal.shown and not WoWTools.modules.fight_detector.IsEnabled(),"Death did not stop detector")
-    dead=false;mobs={};setup(3,saved)
+    dead=false;mobs={};signal=setup(3,saved)
     assert(edits[1].text=="20" and edits[2].text=="5","Class range preference was lost")
-    print("PASS: "..flavor.." six-state V7 colors, target/open loop, range waiting, loot/skin, recovery hint isolation, unknown fail-closed and scaling. Game APIs mocked.")
+    mobs.target={guid="Creature-MID-COMBAT",distance=5};combat=true
+    SlashCmdList.FIGHTDETECTOR("on");expect("combat")
+    mobs.target=nil;tick();expect("waiting")
+    print("PASS: "..flavor.." combat-only waiting/combat priority, mid-combat target acquisition, range uncertainty, six-state V7 colors, recovery hint isolation and scaling. Game APIs mocked.")
 end
 if output then output:close() end
