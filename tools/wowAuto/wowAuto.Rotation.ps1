@@ -148,7 +148,7 @@ function Remove-RotationQueuedRow($Row) {
 }
 function Reset-RotationEntry($Entry) {
     Remove-RotationQueuedRow $Entry.Row
-    $Entry.PreparedTarget=$null;$Entry.PreparedSlot=-1;$Entry.SelectionDeadline=0L;Set-RotationPendingWork $Entry $null
+    $Entry.PreparedTarget=$null;$Entry.PreparedSlot=-1;$Entry.SelectionDeadline=0L;$Entry.RecognitionRetries=0;Set-RotationPendingWork $Entry $null
 }
 function Get-RotationClientSize($Row) {
     # A system observation independent of the bitmap and OCR output. Position is not compared.
@@ -207,7 +207,7 @@ function Start-RowRotation($Row) {
     $plan=Get-RowRotationPlan $Row;Test-RotationPlan $plan;Test-RowAccountPlan $Row $plan
     $index=Get-RotationNextSlot $plan -1
     Stop-Row $Row '开始角色编排，准备登录第一个有效槽位。' -CancelExit
-    $entry=[pscustomobject]@{Row=$Row;Plan=(Copy-RotationPlan $plan);Index=$index;ExcludedNames=@();LastLogout=-30000L;PreparedTarget=$null;PreparedSlot=-1;SelectionDeadline=0L;PendingWork=$null}
+    $entry=[pscustomobject]@{Row=$Row;Plan=(Copy-RotationPlan $plan);Index=$index;ExcludedNames=@();LastLogout=-30000L;PreparedTarget=$null;PreparedSlot=-1;SelectionDeadline=0L;RecognitionRetries=0;PendingWork=$null}
     $script:rotation.Active[$Row.Key]=$entry;$script:rotation.LogoutQueue.Enqueue($entry)
     if (-not $script:rotation.NextAt -and $script:rotation.IntervalSeconds) {$script:rotation.NextAt=$script:schedulerClock.ElapsedMilliseconds+[long]$script:rotation.IntervalSeconds*1000}
     Update-RotationRow $Row
@@ -452,7 +452,7 @@ function Invoke-RotationTick([long]$Now) {
                     $due=[Math]::Max($Now,[long]$script:rotation.ClickSwitch.Until)
                 }
                 $script:rotation.Current=[pscustomobject]@{Entry=$entry;Row=$entry.Row;Phase=$phase;Due=$due;Deadline=$deadline;FocusUntil=0L;
-                    Stable=0;LastLogout=$entry.LastLogout;Candidate=$null;FindMisses=0;SelectionShiftAttempts=0;MonitorEnabled=$false;NextOcrAt=0L}
+                    Stable=0;LastLogout=$entry.LastLogout;Candidate=$null;FindMisses=0;MonitorEnabled=$false;NextOcrAt=0L}
                 $script:rotation.NextOcrAt=0L
             }
             break
@@ -516,10 +516,10 @@ function Invoke-RotationTick([long]$Now) {
                 return $true
             }
             $null=Send-RotationAction $row 'up'
-            $work.SelectionShiftAttempts++
+            $entry.RecognitionRetries++
             $work.FindMisses=0;$work.Candidate=$null;$work.Stable=0
             $work.Phase='find';$work.Due=$Now+500
-            Set-RowStatusText $row ('目标“'+$name+'”连续三次未识别，已按一次↑改变选中底板，等待重新OCR。')
+            Set-RowStatusText $row ('目标“'+$name+'”连续三次未识别，已按↑改变选中底板（'+$entry.RecognitionRetries+'/30），等待重新OCR。')
             return $true
         }
         if ($work.Phase -eq 'menu' -and (Test-RowLoginPoint $row)) {
@@ -592,6 +592,10 @@ function Invoke-RotationTick([long]$Now) {
             }
             'find' {
                 if ($screen.Kind -ne 'menu') {$work.Stable=0;Set-RowStatusText $row '选角锚点未识别，等待重新识别。';break}
+                # A completed OCR sample proves this selection is still progressing. Keep
+                # the 180-second stall guard without cutting off 30 configured retries.
+                $entry.SelectionDeadline=[Math]::Max([long]$entry.SelectionDeadline,$Now+180000L)
+                $work.Deadline=$entry.SelectionDeadline
                 Set-RowStatusText $row (Get-RotationOcrLog $screen $name)
                 $targets=@($screen.Targets | Where-Object {$_.Name -ceq $name -and -not $_.Ambiguous})
                 if ($targets.Count -gt 1) {throw '列表出现多个相同名称，未点击。'}
@@ -613,12 +617,13 @@ function Invoke-RotationTick([long]$Now) {
                     $work.Candidate=$null;$work.Stable=0
                     $work.FindMisses++
                     if ($work.FindMisses -ge 3) {
-                        if ($work.SelectionShiftAttempts -lt 1) {
+                        if ($entry.RecognitionRetries -lt 30) {
                             $work.Phase='selection-up';$work.Due=$Now
-                            Set-RowStatusText $row ('目标“'+$name+'”连续三次未识别，准备按一次↑改变选中底板后重试。')
+                            Set-RowStatusText $row ('目标“'+$name+'”连续三次未识别，准备第'+($entry.RecognitionRetries+1)+'/30次按↑重识别。')
                             return $true
                         }
-                        throw ('按↑后第一页仍未找到角色“'+$name+'”；请核对名称及服务器。')
+                        Request-WorkerGameExit $row ('角色“'+$name+'”累计30次按↑重识别后仍未找到')
+                        return $true
                     }
                     Set-RowStatusText $row ('第一页未找到“'+$name+'”，再次识别同一页（'+$work.FindMisses+'/3）。')
                 }

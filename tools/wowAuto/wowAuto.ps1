@@ -1619,10 +1619,14 @@ function Close-WorkerGame($Row) {
         Stop-Row $Row '背包已满：没有角色编排，保留进程并停止本行。'
         return
     }
+    Request-WorkerGameExit $Row '该进程所有编排角色背包已满'
+}
+function Request-WorkerGameExit($Row,[string]$Reason) {
+    if ($script:pendingGameExits.ContainsKey($Row.Key)) {return}
     $exit=[pscustomobject]@{Process=$Row.Process;StartTime=$Row.StartTime;Row=$Row;
-        Due=0L;NextCheck=0L;Requested=$false}
+        Due=0L;NextCheck=0L;Requested=$false;Reason=$Reason}
     $script:pendingGameExits[$Row.Key]=$exit
-    Stop-Row $Row '该进程所有编排角色背包已满，停止任务并请求游戏正常退出。'
+    Stop-Row $Row ($Reason+'，停止任务并请求游戏正常退出。')
     Add-GameAction -Id ('close:'+$Row.Key) -Kind Process.Close -Domain Process -Key $Row.Key -Row $Row -Owner $exit -Due $script:schedulerClock.ElapsedMilliseconds -Execute {
         param($event,$now) Invoke-CloseWorkerGame $event.Row
     }
@@ -1633,12 +1637,13 @@ function Invoke-CloseWorkerGame($Row) {
     $exit=$script:pendingGameExits[$Row.Key]
     if (-not $exit -or $exit.Requested) {return}
     $Row.Validated=$false
+    $reason=$exit.Reason
     try {
         $Row.Process.Refresh()
         if ($Row.Process.HasExited) {
             $script:pendingGameExits.Remove($Row.Key)
             $Row.Exited=$true
-            Stop-Row $Row '所有编排角色背包已满，游戏进程已退出。'
+            Stop-Row $Row ($reason+'，游戏进程已退出。')
             return
         }
         if (-not (Test-RowProcessIdentity $Row)) {
@@ -1648,11 +1653,11 @@ function Invoke-CloseWorkerGame($Row) {
         if ($UiTest) { $script:workerClosed += $Row.Process.Id; $requested=$true }
         else { $requested=$Row.Process.CloseMainWindow() }
         if (-not $requested) { throw '游戏窗口未接受正常关闭请求，30秒后检查并强制结束。' }
-        Stop-Row $Row '所有编排角色背包已满：已发送正常退出请求，等待游戏完成退出；30秒超时后强制结束。'
+        Stop-Row $Row ($reason+'：已发送正常退出请求，等待游戏完成退出；30秒超时后强制结束。')
     }
     catch {
         if (-not $exit.Requested) {$script:pendingGameExits.Remove($Row.Key)}
-        Stop-Row $Row ('所有编排角色背包已满：正常退出请求失败；本行已停止。'+$_.Exception.Message)
+        Stop-Row $Row ($reason+'：正常退出请求失败；本行已停止。'+$_.Exception.Message)
     }
     finally {
         if ($exit.Requested -and [object]::ReferenceEquals($script:pendingGameExits[$Row.Key],$exit)) {

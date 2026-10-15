@@ -328,7 +328,7 @@ try {
         -not @($script:rotation.Actions | Where-Object {$_.Action -eq 'tripleclick'}).Count) 'Resized window used cached coordinates.'
     Prepare-RotationTestBatch ([ref]$now) 1
     $prepared=$script:rotation.ClickQueue.Peek()
-    Assert-Ui ($prepared.PreparedTarget.ClientSize.Width -eq 900 -and $cached.ClientSize.Width -eq 800 -and $prepared.SelectionDeadline -eq $deadline) 'Resize did not replace its snapshot or reset the timeout.'
+    Assert-Ui ($prepared.PreparedTarget.ClientSize.Width -eq 900 -and $cached.ClientSize.Width -eq 800 -and $prepared.SelectionDeadline -ge $deadline) 'Resize did not replace its snapshot or preserve the OCR stall deadline.'
     Click-RotationTestBatch ([ref]$now) 1;Complete-RotationTest ([ref]$now)
     $a.Process.PSObject.Properties.Remove('RotationWidth')
     # Geometry validation reads system metadata only; OCR fields and position do not participate.
@@ -380,7 +380,8 @@ try {
     $script:rotation.Actions=@();$now=380000L
     Reach-RotationTestPhase $a 'find' ([ref]$now)
     $a.Process | Add-Member NoteProperty RotationMissingTarget $true -Force
-    for ($miss=0;$miss -lt 3;$miss++) {Step-RotationTest $now;$now+=300}
+    # Sparse completed OCR samples extend the stall deadline while retries progress.
+    for ($miss=0;$miss -lt 3;$miss++) {Step-RotationTest $now;$now+=60000}
     Assert-Ui ($script:rotation.Current.Phase -eq 'selection-up' -and
         -not @($script:rotation.Actions | Where-Object {$_.Action -eq 'up' -or $_.Action -eq 'tripleclick'}).Count) 'Missing selected name clicked or shifted before three OCR misses.'
     for ($attempt=0;$attempt -lt 20 -and -not @($script:rotation.Actions | Where-Object {$_.Action -eq 'up'}).Count;$attempt++) {Step-RotationTest $now;$now+=300}
@@ -393,13 +394,29 @@ try {
     Click-RotationTestBatch ([ref]$now) 1;Complete-RotationTest ([ref]$now)
     Assert-Ui ((@($script:rotation.Actions | Where-Object {$_.Action -eq 'up'}).Count) -eq 1 -and
         (@($script:rotation.Actions | Where-Object {$_.Action -eq 'tripleclick'}).Count) -eq 1) 'Recovered selection repeated Up or role clicks.'
-    Stop-AllRows;$script:rotation.Actions=@();$now=390000L
+    Stop-AllRows;$script:rotation.Actions=@();$now+=10000
     Reach-RotationTestPhase $a 'find' ([ref]$now)
     $a.Process.RotationMissingTarget=$true
-    for ($attempt=0;$attempt -lt 30 -and $script:rotation.Active.ContainsKey($a.Key);$attempt++) {Step-RotationTest $now;$now+=300}
-    Assert-Ui ($attempt -lt 30 -and -not $script:rotation.Active.ContainsKey($a.Key) -and
-        (@($script:rotation.Actions | Where-Object {$_.Action -eq 'up'}).Count) -eq 1 -and
-        -not @($script:rotation.Actions | Where-Object {$_.Action -eq 'tripleclick'}).Count) 'Permanent OCR miss looped navigation or clicked without a target.'
+    $retryEntry=$script:rotation.Active[$a.Key]
+    $closedBefore=$script:workerClosed.Count
+    $requeued=$false
+    for ($attempt=0;$attempt -lt 300 -and -not $script:pendingGameExits.ContainsKey($a.Key);$attempt++) {
+        Step-RotationTest $now;$now+=300
+        if (-not $requeued -and $retryEntry.RecognitionRetries -eq 10 -and
+            $script:rotation.Current -and $script:rotation.Current.Phase -eq 'find') {
+            Retry-RotationRecognition $script:rotation.Current '模拟窗口尺寸变化'
+            $requeued=$true
+        }
+        if ($retryEntry.RecognitionRetries -lt 30) {
+            Assert-Ui (-not $script:pendingGameExits.ContainsKey($a.Key)) 'OCR retries closed the process before 30 Up presses.'
+        }
+    }
+    Assert-Ui ($attempt -lt 300 -and $requeued -and $retryEntry.RecognitionRetries -eq 30 -and
+        -not $script:rotation.Active.ContainsKey($a.Key) -and $script:pendingGameExits.ContainsKey($a.Key) -and
+        (@($script:rotation.Actions | Where-Object {$_.Action -eq 'up'}).Count) -eq 30 -and
+        -not @($script:rotation.Actions | Where-Object {$_.Action -eq 'tripleclick'}).Count -and
+        $script:workerClosed.Count -eq $closedBefore+1 -and $script:workerClosed[-1] -eq $a.Process.Id -and
+        $script:pendingGameExits[$a.Key].Reason -match '30次') 'Permanent OCR miss did not close only its process after 30 cumulative Up retries.'
     $a.Process.PSObject.Properties.Remove('RotationMissingTarget')
     Stop-AllRows
     $a.Process.StartTime=$a.Process.StartTime.AddSeconds(1);$null=Refresh-ProcessRows
@@ -453,7 +470,7 @@ try {
         Assert-Ui (-not [WowAutoRotation.Native]::HasLoginPoint($point)) 'Non-solid point accepted.'
     } finally {$point.Dispose()}
     foreach ($p in $sourceHashes.Keys) {Assert-Ui ((Get-FileHash $p).Hash -eq $sourceHashes[$p]) 'Tests changed real user configuration.'}
-    Write-Output 'PASS: name/empty/single/wrap slots, ready-window OCR while another window awaits the menu, all-position preparation before clicks and all-clicks before login checks, independent system-size validation without OCR or position comparison, width/height resize/re-recognition and stopped-cache cancellation, shared deadline/all-stop batch, first-page three-click selection with precomputed random intervals and OCR row logs, one foreground Up retry for a highlighted missing name, safe failure after a second miss, either menu anchor, partial/duplicate rejection, permanent-point login/no OCR after selection/loading/pending/focus/timeout/stop/settings isolation, per-role fish/fight, counter reset, atomic drafts and PID reuse. All game input and OCR mocked.'
+    Write-Output 'PASS: name/empty/single/wrap slots, ready-window OCR while another window awaits the menu, all-position preparation before clicks and all-clicks before login checks, independent system-size validation without OCR or position comparison, width/height resize/re-recognition and stopped-cache cancellation, shared deadline/all-stop batch, first-page three-click selection with precomputed random intervals and OCR row logs, foreground Up retry for a highlighted missing name, process exit after 30 unsuccessful Up retries, either menu anchor, partial/duplicate rejection, permanent-point login/no OCR after selection/loading/pending/focus/timeout/stop/settings isolation, per-role fish/fight, counter reset, atomic drafts and PID reuse. All game input and OCR mocked.'
 } finally {
     Stop-AllRows;Close-AutoFightTab
     if ([IO.File]::Exists($script:rotation.Path)) {[IO.File]::Delete($script:rotation.Path)}

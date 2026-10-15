@@ -30,7 +30,7 @@ $checks=$ast.Find({ param($node)
     $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Invoke-GameExitChecks'
 },$true)
 . ([scriptblock]::Create($checks.Extent.Text))
-foreach ($name in @('Invoke-CloseWorkerGame')) {
+foreach ($name in @('Request-WorkerGameExit','Invoke-CloseWorkerGame')) {
     $node=$ast.Find({param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name},$true)
     . ([scriptblock]::Create($node.Extent.Text))
 }
