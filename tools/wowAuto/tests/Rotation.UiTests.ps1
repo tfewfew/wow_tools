@@ -14,9 +14,10 @@ function Step-RotationTest([long]$Now,[string]$Screen='automatic') {
     $script:schedulerClock.ElapsedMilliseconds=$Now
     $work=$script:rotation.Current
     if ($work) {
-        $kind=if ($Screen -ne 'automatic') {$Screen} elseif ($work.Row.Process.PSObject.Properties['RotationForcedScreen']) {$work.Row.Process.RotationForcedScreen} elseif ($work.Phase -in @('menu','find','click-activate','click')) {'menu'} else {'world'}
+        $kind=if ($Screen -ne 'automatic') {$Screen} elseif ($work.Row.Process.PSObject.Properties['RotationForcedScreen']) {$work.Row.Process.RotationForcedScreen} elseif ($work.Phase -in @('menu','find','selection-up','click-activate','click')) {'menu'} else {'world'}
         $work.Row.Process | Add-Member NoteProperty LoginPointPresent ($kind -eq 'world') -Force
-        $work.Row.Process.RotationScreen=[pscustomobject]@{Kind=$kind;RoleName=$work.Entry.Plan.Slots[$work.Entry.Index].Name;Targets=@(for ($slotIndex=0;$slotIndex -lt 3;$slotIndex++) {if ($work.Entry.Plan.Slots[$slotIndex].Name) {[pscustomobject]@{Name=$work.Entry.Plan.Slots[$slotIndex].Name;RawName=$work.Entry.Plan.Slots[$slotIndex].Name;MenuRow=($slotIndex+1);X=0.84;Y=(0.119+$slotIndex*0.0743)}}})}
+        $missingTarget=$work.Row.Process.PSObject.Properties['RotationMissingTarget'] -and $work.Row.Process.RotationMissingTarget
+        $work.Row.Process.RotationScreen=[pscustomobject]@{Kind=$kind;RoleName=$work.Entry.Plan.Slots[$work.Entry.Index].Name;Targets=@(for ($slotIndex=0;$slotIndex -lt 3;$slotIndex++) {if ($work.Entry.Plan.Slots[$slotIndex].Name -and (-not $missingTarget -or $slotIndex -ne $work.Entry.Index)) {[pscustomobject]@{Name=$work.Entry.Plan.Slots[$slotIndex].Name;RawName=$work.Entry.Plan.Slots[$slotIndex].Name;MenuRow=($slotIndex+1);X=0.84;Y=(0.119+$slotIndex*0.0743)}}})}
         if ($work.Row.TaskMode -eq 'fight') {[WowAutoFight.Native]::Current.Flavor=$work.Row.Client.Flavor;[WowAutoFight.Native]::Current.ClassId=1}
     }
     $null=Invoke-RotationTick $Now
@@ -226,7 +227,8 @@ try {
         $a.Process.RotationScreen=[pscustomobject]@{Kind='menu';RoleName=$null;Targets=@([pscustomobject]@{Name='双持船橘二';X=0.84;Y=0.2})}
         $script:schedulerClock.ElapsedMilliseconds=$now;$null=Invoke-RotationTick $now;$now+=300
     }
-    Assert-Ui (-not $script:rotation.Active.ContainsKey($a.Key) -and -not @($script:rotation.Actions | Where-Object {$_.Action -eq 'tripleclick'}).Count) 'Partial/no-progress search clicked a role.'
+    Assert-Ui ($script:rotation.Active.ContainsKey($a.Key) -and $script:rotation.Current.Phase -eq 'selection-up' -and
+        -not @($script:rotation.Actions | Where-Object {$_.Action -eq 'tripleclick'}).Count) 'Partial/no-progress search clicked a role before the retry.'
     $now=240000L;Reach-RotationTestPhase $a 'find' ([ref]$now)
     $a.Process.RotationScreen=[pscustomobject]@{Kind='menu';RoleName=$null;Targets=@(1..2 | ForEach-Object {[pscustomobject]@{Name='双持船橘二咪';X=0.84;Y=0.2}})}
     $script:schedulerClock.ElapsedMilliseconds=$now;$null=Invoke-RotationTick $now
@@ -373,6 +375,33 @@ try {
     Click-RotationTestBatch ([ref]$now) 1;Complete-RotationTest ([ref]$now)
     Assert-Ui (-not @($script:rotation.Actions | Where-Object {$_.Key -eq $a.Key -and $_.Action -eq 'tripleclick'}).Count -and $b.State.Running) 'Stopped cached target was clicked after another process resumed.'
     Stop-AllRows
+    # A selected-row highlight can hide the configured name from OCR. Shift the
+    # selection once, then require fresh OCR and the usual two stable positions.
+    $script:rotation.Actions=@();$now=380000L
+    Reach-RotationTestPhase $a 'find' ([ref]$now)
+    $a.Process | Add-Member NoteProperty RotationMissingTarget $true -Force
+    for ($miss=0;$miss -lt 3;$miss++) {Step-RotationTest $now;$now+=300}
+    Assert-Ui ($script:rotation.Current.Phase -eq 'selection-up' -and
+        -not @($script:rotation.Actions | Where-Object {$_.Action -eq 'up' -or $_.Action -eq 'tripleclick'}).Count) 'Missing selected name clicked or shifted before three OCR misses.'
+    for ($attempt=0;$attempt -lt 20 -and -not @($script:rotation.Actions | Where-Object {$_.Action -eq 'up'}).Count;$attempt++) {Step-RotationTest $now;$now+=300}
+    Assert-Ui ($attempt -lt 20 -and $script:rotation.Current.Phase -eq 'find' -and
+        @($script:rotation.Actions | Where-Object {$_.Action -eq 'up'}).Count -eq 1) 'Selected-name retry did not press Up exactly once through the foreground queue.'
+    $a.Process.RotationMissingTarget=$false
+    Prepare-RotationTestBatch ([ref]$now) 1
+    Assert-Ui ($script:rotation.ClickQueue.Peek().PreparedTarget.Name -ceq $plan.Slots[0].Name -and
+        $script:rotation.ClickQueue.Peek().PreparedTarget.MenuRow -eq 1) 'Retry used a stale or wrong character position.'
+    Click-RotationTestBatch ([ref]$now) 1;Complete-RotationTest ([ref]$now)
+    Assert-Ui ((@($script:rotation.Actions | Where-Object {$_.Action -eq 'up'}).Count) -eq 1 -and
+        (@($script:rotation.Actions | Where-Object {$_.Action -eq 'tripleclick'}).Count) -eq 1) 'Recovered selection repeated Up or role clicks.'
+    Stop-AllRows;$script:rotation.Actions=@();$now=390000L
+    Reach-RotationTestPhase $a 'find' ([ref]$now)
+    $a.Process.RotationMissingTarget=$true
+    for ($attempt=0;$attempt -lt 30 -and $script:rotation.Active.ContainsKey($a.Key);$attempt++) {Step-RotationTest $now;$now+=300}
+    Assert-Ui ($attempt -lt 30 -and -not $script:rotation.Active.ContainsKey($a.Key) -and
+        (@($script:rotation.Actions | Where-Object {$_.Action -eq 'up'}).Count) -eq 1 -and
+        -not @($script:rotation.Actions | Where-Object {$_.Action -eq 'tripleclick'}).Count) 'Permanent OCR miss looped navigation or clicked without a target.'
+    $a.Process.PSObject.Properties.Remove('RotationMissingTarget')
+    Stop-AllRows
     $a.Process.StartTime=$a.Process.StartTime.AddSeconds(1);$null=Refresh-ProcessRows
     $replacement=@($script:rows.Values | Where-Object {$_.Process.Id -eq $a.Process.Id})[0]
     Assert-Ui (-not (Test-RowHasRotation $replacement)) 'Reused PID inherited character plan.'
@@ -424,7 +453,7 @@ try {
         Assert-Ui (-not [WowAutoRotation.Native]::HasLoginPoint($point)) 'Non-solid point accepted.'
     } finally {$point.Dispose()}
     foreach ($p in $sourceHashes.Keys) {Assert-Ui ((Get-FileHash $p).Hash -eq $sourceHashes[$p]) 'Tests changed real user configuration.'}
-    Write-Output 'PASS: name/empty/single/wrap slots, ready-window OCR while another window awaits the menu, all-position preparation before clicks and all-clicks before login checks, independent system-size validation without OCR or position comparison, width/height resize/re-recognition and stopped-cache cancellation, shared deadline/all-stop batch, first-page three-click selection with precomputed random intervals and OCR row logs, cursor parking, either menu anchor, partial/duplicate/no-progress rejection, permanent-point login/no OCR after selection/loading/pending/focus/timeout/stop/settings isolation, per-role fish/fight, counter reset, atomic drafts and PID reuse. All game input and OCR mocked.'
+    Write-Output 'PASS: name/empty/single/wrap slots, ready-window OCR while another window awaits the menu, all-position preparation before clicks and all-clicks before login checks, independent system-size validation without OCR or position comparison, width/height resize/re-recognition and stopped-cache cancellation, shared deadline/all-stop batch, first-page three-click selection with precomputed random intervals and OCR row logs, one foreground Up retry for a highlighted missing name, safe failure after a second miss, either menu anchor, partial/duplicate rejection, permanent-point login/no OCR after selection/loading/pending/focus/timeout/stop/settings isolation, per-role fish/fight, counter reset, atomic drafts and PID reuse. All game input and OCR mocked.'
 } finally {
     Stop-AllRows;Close-AutoFightTab
     if ([IO.File]::Exists($script:rotation.Path)) {[IO.File]::Delete($script:rotation.Path)}

@@ -262,6 +262,7 @@ function Send-RotationAction($Row,[string]$Action,$Target=$null) {
             $sent=[WowAutoRotation.Native]::ClickCharacter($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,$Target.X,$Target.Y,$Target.ClientSize.Width,$Target.ClientSize.Height,$intervals[0],$intervals[1])
             if (-not $sent) {return $false}
         }
+        'up' {$sent=[WowAuto.NativeInput]::PressChord($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,[uint16]0x26,$false,$false,$false)}
         default {throw '未知编排动作。'}
     }
     if (-not $sent) {throw '角色切换输入失败。'}
@@ -451,7 +452,7 @@ function Invoke-RotationTick([long]$Now) {
                     $due=[Math]::Max($Now,[long]$script:rotation.ClickSwitch.Until)
                 }
                 $script:rotation.Current=[pscustomobject]@{Entry=$entry;Row=$entry.Row;Phase=$phase;Due=$due;Deadline=$deadline;FocusUntil=0L;
-                    Stable=0;LastLogout=$entry.LastLogout;Candidate=$null;FindMisses=0;MonitorEnabled=$false;NextOcrAt=0L}
+                    Stable=0;LastLogout=$entry.LastLogout;Candidate=$null;FindMisses=0;SelectionShiftAttempts=0;MonitorEnabled=$false;NextOcrAt=0L}
                 $script:rotation.NextOcrAt=0L
             }
             break
@@ -508,6 +509,18 @@ function Invoke-RotationTick([long]$Now) {
         if ($work.Phase -eq 'menu-logout') {
             if (Test-RowLoginPoint $row) {$null=Send-RotationAction $row 'logout';$work.LastLogout=$Now}
             $work.Phase='menu';$work.Due=$Now+300;return $true
+        }
+        if ($work.Phase -eq 'selection-up') {
+            if (Test-RowLoginPoint $row) {
+                $work.Phase='menu';$work.Stable=0;$work.Due=$Now+300
+                return $true
+            }
+            $null=Send-RotationAction $row 'up'
+            $work.SelectionShiftAttempts++
+            $work.FindMisses=0;$work.Candidate=$null;$work.Stable=0
+            $work.Phase='find';$work.Due=$Now+500
+            Set-RowStatusText $row ('目标“'+$name+'”连续三次未识别，已按一次↑改变选中底板，等待重新OCR。')
+            return $true
         }
         if ($work.Phase -eq 'menu' -and (Test-RowLoginPoint $row)) {
             $work.Stable=0
@@ -599,7 +612,14 @@ function Invoke-RotationTick([long]$Now) {
                 } else {
                     $work.Candidate=$null;$work.Stable=0
                     $work.FindMisses++
-                    if ($work.FindMisses -ge 3) {throw ('第一页未找到角色“'+$name+'”；请将角色放在第一页并核对名称及服务器。')}
+                    if ($work.FindMisses -ge 3) {
+                        if ($work.SelectionShiftAttempts -lt 1) {
+                            $work.Phase='selection-up';$work.Due=$Now
+                            Set-RowStatusText $row ('目标“'+$name+'”连续三次未识别，准备按一次↑改变选中底板后重试。')
+                            return $true
+                        }
+                        throw ('按↑后第一页仍未找到角色“'+$name+'”；请核对名称及服务器。')
+                    }
                     Set-RowStatusText $row ('第一页未找到“'+$name+'”，再次识别同一页（'+$work.FindMisses+'/3）。')
                 }
             }

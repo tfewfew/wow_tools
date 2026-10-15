@@ -291,11 +291,11 @@ function Submit-RotationAction([long]$Now) {
     }
     $kind=switch ($work.Phase) {
         'logout-activate' {'Rotation.Activate'} 'logout-inspect' {'Rotation.Logout'} 'logout-send' {'Rotation.Logout'} 'menu-logout' {'Rotation.Logout'}
-        'activate' {'Rotation.Activate'} 'menu' {'Rotation.Menu'} 'find' {'Rotation.Select'}
+        'activate' {'Rotation.Activate'} 'menu' {'Rotation.Menu'} 'find' {'Rotation.Select'} 'selection-up' {'Rotation.Select'}
         'click-activate' {'Rotation.Activate'} 'click' {'Rotation.Click'} 'login-activate' {'Rotation.Activate'}
         'login' {'Rotation.Login'} 'enable' {'Rotation.Enable'} 'validate' {'Rotation.Validate'}
     }
-    Add-GameAction -Id rotation -Kind $kind -Domain Rotation -Key $work.Row.Key -Row $work.Row -Owner $work -Due $work.Due -Data $work.Phase -Foreground ($work.Phase -in @('logout-send','menu-logout','click','enable')) -Execute {param($event,$now) $null=Invoke-RotationTick $now}
+    Add-GameAction -Id rotation -Kind $kind -Domain Rotation -Key $work.Row.Key -Row $work.Row -Owner $work -Due $work.Due -Data $work.Phase -Foreground ($work.Phase -in @('logout-send','menu-logout','selection-up','click','enable')) -Execute {param($event,$now) $null=Invoke-RotationTick $now}
 }
 function Submit-RefreshAction([long]$Now,[long]$ScanNow=-1) {
     if (-not $script:scanning) {return}
