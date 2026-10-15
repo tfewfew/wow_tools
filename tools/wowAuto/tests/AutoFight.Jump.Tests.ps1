@@ -19,9 +19,10 @@ foreach ($flavor in @('titan','forerver')) {
     Assert-Jump ((Get-AutoFightAction $session $packet $profile 2400) -eq 'wait') 'Jump bypassed waiting.'
     $packet.Action='combat'; $packet.Recovery='none'
     Assert-Jump ((Get-AutoFightAction $session $packet $profile 3100) -eq 'jump') 'Combat color did not resume due jump.'
-    $deadline=$session.NextByAction['combat']
+    $recoveryDeadline=$session.RecoveryReadyAt
     Complete-AutoFightAction $session $profile 'jump' 3100
-    Assert-Jump ($session.NextJumpAt -eq 5100 -and $session.NextByAction['combat'] -eq $deadline) 'Jump changed attack cooldown.'
+    Assert-Jump ($session.NextJumpAt -eq 5100 -and $session.RecoveryReadyAt -eq $recoveryDeadline -and
+        (Get-AutoFightAction $session $packet $profile 3101) -eq 'combat') 'Jump changed recovery cooldown or retained an attack interval.'
     Set-AutoFightJumpInterval $session 2 4000
     Assert-Jump ($session.NextJumpAt -eq 5100) 'Saving same interval postponed jump.'
     Set-AutoFightJumpInterval $session 5 4000

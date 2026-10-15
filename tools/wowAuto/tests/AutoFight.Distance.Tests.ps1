@@ -44,11 +44,11 @@ foreach ($flavor in @('titan','forerver')) {
     $idle=[WowAutoFight.Native]::Decode((Test-Packet $flavor 4 1),$flavor)
     Assert-Distance ((Get-AutoFightAction $session $opening $profile 0) -eq 'opening') 'Opening color did not request targeting and opener.'
     Complete-AutoFightAction $session $profile 'opening' 0
-    Assert-Distance ((Get-AutoFightAction $session $opening $profile 999) -eq 'wait') 'Opening repeated before its one-second interval.'
+    Assert-Distance ((Get-AutoFightAction $session $opening $profile 999) -eq 'opening') 'Opening retained an independent interval.'
     Assert-Distance ((Get-AutoFightAction $session $waiting $profile 100) -eq 'wait') 'Waiting color sent input.'
     Assert-Distance ((Get-AutoFightAction $session $combat $profile 200) -eq 'combat') 'Combat color did not immediately replace opener cooldown.'
     Complete-AutoFightAction $session $profile 'combat' 200
-    Assert-Distance ((Get-AutoFightAction $session $combat $profile 699) -eq 'wait') 'Combat interval ignored.'
+    Assert-Distance ((Get-AutoFightAction $session $combat $profile 699) -eq 'combat') 'Combat retained an independent interval.'
     Assert-Distance ((Get-AutoFightAction $session $loot $profile 300) -eq 'loot') 'Loot color did not request interaction.'
     Complete-AutoFightAction $session $profile 'loot' 300
     Assert-Distance ((Get-AutoFightAction $session $skin $profile 400) -eq 'skin') 'Skin color was blocked by script-side corpse history.'

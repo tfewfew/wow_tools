@@ -76,7 +76,7 @@ function Invoke-AutoFightHold([long]$Now) {
             throw '保持期间检测关闭或协议不可读，已释放移动键。'
         }
         if ($packet.ClassId -ne $hold.Session.ClassId -or $packet.Flavor -ne $row.Client.Flavor) { throw '职业或客户端发生变化，已释放移动键。' }
-        if ($packet.Recovery -eq 'unknown' -or ($packet.Recovery -eq 'recover' -and -not $hold.Session.RecoverySent) -or
+        if (($Now -ge $hold.Session.RecoveryReadyAt -and $packet.Recovery -in @('unknown','recover')) -or
             (Test-AutoFightHoldFinished $hold $packet $Now)) { [void](Release-AutoFightHold) }
     }
     catch {
@@ -187,14 +187,12 @@ function New-AutoFightPending($Row,$Session,[bool]$Scanning,[long]$Now) {
     return [pscustomobject]@{Row=$Row; Session=$Session; Scanning=$Scanning; Activated=$false;
         Since=$Now; SampleAt=($Now+200); ReadFailureSince=-1L}
 }
-function Finish-AutoFightPending([long]$Now,[switch]$Immediate) {
+function Finish-AutoFightPending([long]$Now) {
     $pending=$script:autoFight.Pending
     $script:autoFight.Pending=$null
     if ($pending.Scanning) { $script:autoFight.Scan.Index++ }
     elseif ($pending.Row.Session -eq $pending.Session) {
-        if ($Immediate) {$pending.Session.Due=$Now;return}
-        $next=$Now+250
-        if ($pending.Session.NextBuffAt -gt $Now -and $pending.Session.NextBuffAt -lt $next) {$next=$pending.Session.NextBuffAt}
+        $next=$Now+1000
         $pending.Session.Due=[Math]::Max($pending.Session.Due,$next)
     }
 }
@@ -309,7 +307,7 @@ function Invoke-AutoFightTick([bool]$AllowInput=$true,[switch]$PlanOnly,[string]
             $latest.EncounterId -ne $packet.EncounterId -or $latest.Recovery -ne $packet.Recovery) {
             if ($latest) {
                 Set-AutoFightStatus $row '颜色已变化，旧按键已取消；按插件新主状态继续。'
-                Finish-AutoFightPending $script:autoFight.Clock.ElapsedMilliseconds -Immediate
+                Finish-AutoFightPending $script:autoFight.Clock.ElapsedMilliseconds
             } else {
                 Set-AutoFightStatus $row '颜色暂时不可读，旧按键已取消。'
                 Finish-AutoFightPending $now
@@ -335,7 +333,7 @@ function Invoke-AutoFightTick([bool]$AllowInput=$true,[switch]$PlanOnly,[string]
                 $afterTarget.Busy -or $afterTarget.Recovery -ne $packet.Recovery -or
                 -not [WowAutoFight.Native]::Foreground($row.Client)) {
                 Set-AutoFightStatus $row '已选中目标；插件状态变化，取消本次开怪键。'
-                Finish-AutoFightPending $script:autoFight.Clock.ElapsedMilliseconds -Immediate
+                Finish-AutoFightPending $script:autoFight.Clock.ElapsedMilliseconds
                 return
             }
             $sent=[WowAutoFight.Native]::Press($row.Client,[uint16]$binding.Code,$binding.Ctrl,$binding.Shift,$binding.Alt)
@@ -372,7 +370,7 @@ function Save-AutoFightDraftSelection {
         if (-not $page.CurrentKey) {continue}
         $profile=$editor.Draft[$page.CurrentKey]
         foreach ($field in $page.Bindings.Keys) {$profile.$field=$page.Bindings[$field].Text}
-        $profile.CombatIntervalMs=[int]$page.CombatInterval.Value
+        $profile.RecoveryCooldownSeconds=[int]$page.RecoveryCooldown.Value
         $profile.BuffIntervalSeconds=[int]$page.BuffInterval.Value
         $profile.BuffCount=[int]$page.BuffCount.Value
     }
@@ -389,7 +387,7 @@ function Set-AutoFightEditorAliases {
     foreach ($field in $editor.CommonBindings.Keys) {$editor.Bindings[$field]=$editor.CommonBindings[$field]}
     foreach ($field in $page.Bindings.Keys) {$editor.Bindings[$field]=$page.Bindings[$field]}
     foreach ($field in $editor.CommonNumbers.Keys) {$editor.Numbers[$field]=$editor.CommonNumbers[$field]}
-    $editor.Numbers.CombatIntervalMs=$page.CombatInterval
+    $editor.Numbers.RecoveryCooldownSeconds=$page.RecoveryCooldown
     $editor.Numbers.BuffIntervalSeconds=$page.BuffInterval
     $editor.Numbers.BuffCount=$page.BuffCount
 }
@@ -403,7 +401,7 @@ function Select-AutoFightDraftProfile([string]$Flavor) {
     $page.CurrentKey="${Flavor}:$id"
     $profile=$editor.Draft[$page.CurrentKey]
     foreach ($field in $page.Bindings.Keys) {$page.Bindings[$field].Text=$profile.$field}
-    $page.CombatInterval.Value=$profile.CombatIntervalMs
+    $page.RecoveryCooldown.Value=$profile.RecoveryCooldownSeconds
     $page.BuffInterval.Value=$profile.BuffIntervalSeconds
     $page.BuffCount.Value=$profile.BuffCount
     Set-AutoFightEditorAliases
@@ -468,7 +466,7 @@ function New-AutoFightSettingsDialog([switch]$Embedded) {
         $combo.Items.AddRange([object[]]@($ids | ForEach-Object {$script:autoFightClasses[[string]$_]}))
         $combo.Add_SelectedIndexChanged({param($sender,$eventArgs) Select-AutoFightDraftProfile $sender.Tag})
         $tab.Controls.Add($combo)
-        $page=[pscustomobject]@{Tab=$tab;Class=$combo;ClassIds=$ids;CurrentKey='';Bindings=@{};CombatInterval=$null;BuffInterval=$null;BuffCount=$null}
+        $page=[pscustomobject]@{Tab=$tab;Class=$combo;ClassIds=$ids;CurrentKey='';Bindings=@{};RecoveryCooldown=$null;BuffInterval=$null;BuffCount=$null}
         $editor.Pages[$flavor]=$page
         $labels=@('开怪战斗键','正常战斗键','恢复键','补 Buff 快捷键')
         for ($i=0;$i -lt $labels.Count;$i++) {
@@ -477,11 +475,12 @@ function New-AutoFightSettingsDialog([switch]$Embedded) {
             $box=New-AutoFightKeyBox; $box.SetBounds(($x+212),$y,168,32)
             $page.Bindings[$field]=$box; $tab.Controls.Add($label); $tab.Controls.Add($box)
         }
-        $label=New-Object System.Windows.Forms.Label; $label.Text='正常战斗间隔 (ms)'; $label.SetBounds(408,132,212,32); $tab.Controls.Add($label)
-        $number=New-Object System.Windows.Forms.NumericUpDown
-        $number.Minimum=100; $number.Maximum=10000; $number.Increment=100
-        $number.BackColor=[Drawing.Color]::FromArgb(50,50,50); $number.ForeColor=[Drawing.Color]::White
-        $number.SetBounds(620,128,168,32); $tab.Controls.Add($number); $page.CombatInterval=$number
+        $recoveryLabel=New-Object System.Windows.Forms.Label
+        $recoveryLabel.Text='恢复键冷却 (秒)'; $recoveryLabel.SetBounds(408,132,212,32); $tab.Controls.Add($recoveryLabel)
+        $recoveryNumber=New-Object System.Windows.Forms.NumericUpDown
+        $recoveryNumber.Minimum=1; $recoveryNumber.Maximum=3600; $recoveryNumber.Increment=1
+        $recoveryNumber.BackColor=[Drawing.Color]::FromArgb(50,50,50); $recoveryNumber.ForeColor=[Drawing.Color]::White
+        $recoveryNumber.SetBounds(620,128,168,32); $tab.Controls.Add($recoveryNumber); $page.RecoveryCooldown=$recoveryNumber
         foreach ($entry in @(@('BuffInterval','补 Buff 间隔 (秒，0关闭)',0,86400,8),@('BuffCount','每轮补 Buff 次数',1,20,408))) {
             $buffLabel=New-Object System.Windows.Forms.Label;$buffLabel.Text=$entry[1];$buffLabel.SetBounds([int]$entry[4],178,212,32);$tab.Controls.Add($buffLabel)
             $buffNumber=New-Object System.Windows.Forms.NumericUpDown
@@ -503,11 +502,10 @@ function New-AutoFightSettingsDialog([switch]$Embedded) {
         $box.Text=$editor.Common.$field
         $editor.CommonBindings[$field]=$box; $body.Controls.Add($label); $body.Controls.Add($box)
     }
-    $numbers=@(@('CombatIntervalMs','正常战斗间隔 (ms)',100,10000),
-        @('MovementHoldMs','移动按住时长 (ms)',100,2000),
+    $numbers=@(@('MovementHoldMs','移动按住时长 (ms)',100,2000),
         @('InteractionHoldMs','拾取前台保持 (ms)',1000,60000))
-    for ($i=1;$i -lt $numbers.Count;$i++) {
-        $entry=$numbers[$i]; $x=if ($i -eq 2) {436} else {16}; $y=442
+    for ($i=0;$i -lt $numbers.Count;$i++) {
+        $entry=$numbers[$i]; $x=if ($i -eq 1) {436} else {16}; $y=442
         $label=New-Object System.Windows.Forms.Label; $label.Text=$entry[1]; $label.SetBounds($x,($y+4),220,32)
         $number=New-Object System.Windows.Forms.NumericUpDown
         $number.Minimum=$entry[2]; $number.Maximum=$entry[3]; $number.Increment=100
@@ -533,7 +531,7 @@ function New-AutoFightSettingsDialog([switch]$Embedded) {
     $jump.BackColor=[Drawing.Color]::FromArgb(50,50,50); $jump.ForeColor=[Drawing.Color]::White
     $jump.SetBounds(360,570,168,32); $body.Controls.Add($jump); $editor.CommonNumbers.JumpIntervalSeconds=$jump
     $hint=New-Object System.Windows.Forms.Label
-    $hint.Text="选目标键默认 Tab；须与游戏插件面板的全局选目标键一致。`r`n补 Buff 间隔为 0 时关闭；进入游戏和到期后各执行一轮，成功按键间至少等待 1 秒。`r`n补 Buff 只在非战斗待机、非忙碌且无需恢复时执行；公共间隔仍约束所有战斗按键。`r`n检测 / 攻击距离在插件面板设置；等待接近期间不发攻击键。`r`n普通 / 紧急恢复每次进入只执行一次。"
+    $hint.Text="选目标键默认 Tab；须与游戏内选目标按键一致。`r`n每个战斗进程每秒采样色块一次，每次采样最多执行一个逻辑动作。`r`n恢复键成功发送后按职业冷却；冷却期间忽略副色块恢复提示，主状态继续运行。`r`n补 Buff 间隔为 0 时关闭；进入游戏和到期后各执行一轮，轮内成功按键相隔至少 1 秒。`r`n检测 / 攻击距离在插件面板设置；等待接近期间不发攻击键。"
     $hint.SetBounds(16,616,812,144); $body.Controls.Add($hint)
     $errorLabel=New-Object System.Windows.Forms.Label
     $errorLabel.SetBounds(16,4,($footer.ClientSize.Width-32),30); $errorLabel.Anchor='Top, Left, Right'; $errorLabel.AutoEllipsis=$true

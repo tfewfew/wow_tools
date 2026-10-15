@@ -9,13 +9,13 @@ function Get-AutoFightClassIds([string]$Flavor) {
 $script:autoFightStates = [ordered]@{
     'opening'=@{Label='选中怪物并开怪'; Key='OpeningKey'; Interval=$null}
     'waiting'=@{Label='战斗等待接近'; Key=$null; Interval=$null}
-    'combat'=@{Label='正常战斗'; Key='CombatKey'; Interval='CombatIntervalMs'}
+    'combat'=@{Label='正常战斗'; Key='CombatKey'; Interval=$null}
     'move-forward'=@{Label='向前移动'; Key='MoveForwardKey'; Interval=$null}
     'move-backward'=@{Label='向后移动'; Key='MoveBackwardKey'; Interval=$null}
     'move-left'=@{Label='向左移动'; Key='MoveLeftKey'; Interval=$null}
     'move-right'=@{Label='向右移动'; Key='MoveRightKey'; Interval=$null}
-    'loot'=@{Label='拾取'; Key='SkinKey'; Interval='InteractionHoldMs'}
-    'skin'=@{Label='剥皮'; Key='SkinKey'; Interval='InteractionHoldMs'}
+    'loot'=@{Label='拾取'; Key='SkinKey'; Interval=$null}
+    'skin'=@{Label='剥皮'; Key='SkinKey'; Interval=$null}
     'idle'=@{Label='等待目标'; Key=$null; Interval=$null}
     'jump'=@{Label='定时跳跃'; Key='JumpKey'; Interval=$null}
     'buff'=@{Label='补 Buff'; Key='BuffKey'; Interval=$null}
@@ -27,7 +27,8 @@ $script:autoFightCommonKeyFields=@('MoveForwardKey','MoveBackwardKey','MoveLeftK
 $script:autoFightCommonFields=$script:autoFightCommonKeyFields+@('MovementHoldMs','InteractionHoldMs','SkinEnabled','JumpIntervalSeconds')
 $script:autoFightV6ProfileFields=@('Flavor','ClassId')+$script:autoFightLegacyKeyFields+@('CombatIntervalMs')
 $script:autoFightV7ProfileFields=$script:autoFightV6ProfileFields+@('BuffKey','BuffIntervalSeconds','BuffCount')
-$script:autoFightProfileFields=@('Flavor','ClassId')+$script:autoFightKeyFields+@('CombatIntervalMs','BuffIntervalSeconds','BuffCount')
+$script:autoFightV8ProfileFields=@('Flavor','ClassId')+$script:autoFightKeyFields+@('CombatIntervalMs','BuffIntervalSeconds','BuffCount')
+$script:autoFightProfileFields=@('Flavor','ClassId')+$script:autoFightKeyFields+@('RecoveryCooldownSeconds','BuffIntervalSeconds','BuffCount')
 $script:autoFightLegacyFields=@('Flavor','ClassId')+$script:autoFightLegacyKeyFields+@($script:autoFightCommonKeyFields | Where-Object {$_ -ne 'TargetKey'})+
     @('OpeningIntervalMs','CombatIntervalMs','EmergencyIntervalMs','MovementHoldMs','InteractionHoldMs','SkinEnabled')
 function New-AutoFightCommon {
@@ -109,7 +110,7 @@ function Get-AutoFightInteger($Value,[int]$Minimum,[int]$Maximum,[string]$Label)
 }
 function New-AutoFightProfile([string]$Flavor,[int]$ClassId) {
     return [pscustomobject]@{Flavor=$Flavor;ClassId=$ClassId;OpeningKey='F5';CombatKey='F6';
-        RecoveryKey='F8';CombatIntervalMs=500;BuffKey='F11';BuffIntervalSeconds=0;BuffCount=1}
+        RecoveryKey='F8';RecoveryCooldownSeconds=30;BuffKey='F11';BuffIntervalSeconds=0;BuffCount=1}
 }
 function New-AutoFightProfiles {
     $profiles=@{}
@@ -127,10 +128,11 @@ function Copy-AutoFightProfiles($Profiles) {
     }
     return $copy
 }
-function ConvertTo-AutoFightProfiles($Items,[int]$Version=8) {
+function ConvertTo-AutoFightProfiles($Items,[int]$Version=9) {
     $result=@{}
     foreach ($item in @($Items)) {
-        $expected=if ($Version -ge 8) {$script:autoFightProfileFields} elseif ($Version -eq 7) {$script:autoFightV7ProfileFields}
+        $expected=if ($Version -ge 9) {$script:autoFightProfileFields} elseif ($Version -eq 8) {$script:autoFightV8ProfileFields}
+            elseif ($Version -eq 7) {$script:autoFightV7ProfileFields}
             elseif ($Version -ge 4) {$script:autoFightV6ProfileFields} else {$script:autoFightLegacyFields}
         if ($Version -eq 1) { $expected=@('Flavor','ClassId','AttackKey','SkinKey','AttackIntervalMs','InteractionHoldMs','SkinEnabled') }
         $actual=@($item.PSObject.Properties.Name)
@@ -147,14 +149,19 @@ function ConvertTo-AutoFightProfiles($Items,[int]$Version=8) {
         if ($Version -eq 1) {
             $p=New-AutoFightProfile $item.Flavor $id
             $p.OpeningKey=$item.AttackKey; $p.CombatKey=$item.AttackKey
-            $p.CombatIntervalMs=$item.AttackIntervalMs
         }
         $fields=[ordered]@{Flavor=$p.Flavor; ClassId=$id}
         foreach ($field in $script:autoFightKeyFields) {
             $value=if ($Version -ge 7 -or $field -ne 'BuffKey') {$p.$field} else {'F11'}
             $fields[$field]=(ConvertFrom-AutoFightBinding $value).Text
         }
-        $fields.CombatIntervalMs=Get-AutoFightInteger $p.CombatIntervalMs 100 10000 '正常战斗间隔 (ms)'
+        if ($Version -lt 9) {
+            $legacyCombatInterval=if ($Version -eq 1) {$item.AttackIntervalMs} else {$p.CombatIntervalMs}
+            $null=Get-AutoFightInteger $legacyCombatInterval 100 10000 '旧正常战斗间隔 (ms)'
+        }
+        $fields.RecoveryCooldownSeconds=if ($Version -ge 9) {
+            Get-AutoFightInteger $p.RecoveryCooldownSeconds 1 3600 '恢复冷却 (秒)'
+        } else {30}
         $fields.BuffIntervalSeconds=if ($Version -ge 7) {Get-AutoFightInteger $p.BuffIntervalSeconds 0 86400 '补 Buff 间隔 (秒，0 关闭)'} else {0}
         $fields.BuffCount=if ($Version -ge 7) {Get-AutoFightInteger $p.BuffCount 1 20 '每轮补 Buff 次数'} else {1}
         if ($Version -lt 4) {
@@ -188,7 +195,7 @@ function Complete-AutoFightCommand($Gate,[long]$Now,[bool]$Sent) {
 function Read-AutoFightConfiguration([string]$Path) {
     if (-not [IO.File]::Exists($Path)) { return [pscustomobject]@{Profiles=(New-AutoFightProfiles);Common=(New-AutoFightCommon);CommandIntervalMs=500} }
     $document=[IO.File]::ReadAllText($Path,[Text.Encoding]::UTF8) | ConvertFrom-Json
-    if ($null -eq $document -or $document.Version -notin @(1,2,3,4,5,6,7,8)) {throw '无法读取 autoFight 配置版本或内容。'}
+    if ($null -eq $document -or $document.Version -notin @(1,2,3,4,5,6,7,8,9)) {throw '无法读取 autoFight 配置版本或内容。'}
     $expected=@('Version','Profiles')
     if ($document.Version -ge 3) {$expected+='CommandIntervalMs'}
     if ($document.Version -ge 4) {$expected+='Common'}
@@ -233,7 +240,7 @@ function Save-AutoFightProfiles([string]$Path,$Profiles,$CommandIntervalMs=500,$
     Test-AutoFightTargetConflicts $valid $general
     $interval=Get-AutoFightInteger $CommandIntervalMs 100 60000 '公共最小按键间隔 (ms)'
     $items=@($valid.Keys | Sort-Object | ForEach-Object {$valid[$_]})
-    $json=[pscustomobject]@{Version=8;CommandIntervalMs=$interval;Common=$general;Profiles=$items} | ConvertTo-Json -Depth 5
+    $json=[pscustomobject]@{Version=9;CommandIntervalMs=$interval;Common=$general;Profiles=$items} | ConvertTo-Json -Depth 5
     $temporary=$Path+'.'+[Guid]::NewGuid().ToString('N')+'.tmp'
     try {
         [IO.File]::WriteAllText($temporary,$json,(New-Object Text.UTF8Encoding($false)))
@@ -244,7 +251,7 @@ function Save-AutoFightProfiles([string]$Path,$Profiles,$CommandIntervalMs=500,$
 }
 function New-AutoFightSession([long]$Now,[int]$ClassId) {
     return [pscustomobject]@{Id=[Guid]::NewGuid().ToString('N'); ClassId=$ClassId; Due=$Now;
-        NextByAction=@{}; MovementRequest=''; RecoverySent=$false;
+        MovementRequest=''; RecoveryReadyAt=$Now;
         JumpIntervalSeconds=0;NextJumpAt=[long]::MaxValue;
         BuffIntervalSeconds=0;BuffCount=1;BuffRemaining=0;NextBuffAt=[long]::MaxValue}
 }
@@ -269,10 +276,11 @@ function Get-AutoFightAction($Session,$Packet,$Profile,[long]$Now) {
     if ($Packet.ClassId -ne $Session.ClassId -or $Packet.Flavor -ne $Profile.Flavor) { return 'identity-changed' }
     if ($Packet.Action -notin @('idle','opening','waiting','combat','loot','skin')) { return 'identity-changed' }
     if ($Packet.Recovery -notin @('none','recover','unknown')) { return 'identity-changed' }
-    if ($Packet.Recovery -eq 'none') {$Session.RecoverySent=$false}
-    if ($Packet.Recovery -eq 'unknown') {return 'wait'}
     if ($Packet.Action -ne 'idle' -or $Packet.Busy) {$Session.MovementRequest=''}
-    if ($Packet.Recovery -eq 'recover' -and -not $Session.RecoverySent -and -not $Packet.Busy) {return 'recover'}
+    if ($Now -ge $Session.RecoveryReadyAt) {
+        if ($Packet.Recovery -eq 'unknown') {return 'wait'}
+        if ($Packet.Recovery -eq 'recover' -and -not $Packet.Busy) {return 'recover'}
+    }
     if ($Packet.Busy -or $Packet.Action -eq 'waiting') {return 'wait'}
     if ($Session.NextBuffAt -le $Now -and $Packet.Action -eq 'idle' -and -not $Session.MovementRequest) {
         if ($Session.BuffRemaining -eq 0) {$Session.BuffRemaining=$Session.BuffCount}
@@ -283,7 +291,6 @@ function Get-AutoFightAction($Session,$Packet,$Profile,[long]$Now) {
     if ($Packet.Action -eq 'idle' -and $Session.MovementRequest) {return 'move-'+$Session.MovementRequest}
     $handler=$script:autoFightStates[$Packet.Action]
     if (-not $handler.Key) {return 'wait'}
-    if ($Session.NextByAction.ContainsKey($Packet.Action) -and $Now -lt $Session.NextByAction[$Packet.Action]) {return 'wait'}
     if ($Packet.Action -in @('skin','loot')) {
         if (-not $Profile.SkinEnabled -or $Packet.Combat) { return 'wait' }
     }
@@ -291,7 +298,7 @@ function Get-AutoFightAction($Session,$Packet,$Profile,[long]$Now) {
 }
 function Complete-AutoFightAction($Session,$Profile,[string]$Action,[long]$Now) {
     if ($Action -eq 'recover') {
-        $Session.RecoverySent=$true
+        $Session.RecoveryReadyAt=$Now+[long]$Profile.RecoveryCooldownSeconds*1000
         $Session.Due=$Now+100
         return
     }
@@ -307,9 +314,6 @@ function Complete-AutoFightAction($Session,$Profile,[string]$Action,[long]$Now) 
         return
     }
     if ($Action.StartsWith('move-')) {$Session.MovementRequest=''}
-    $interval=$script:autoFightStates[$Action].Interval
-    if ($Action -eq 'opening') {$Session.NextByAction[$Action]=$Now+1000}
-    elseif ($interval) {$Session.NextByAction[$Action]=$Now+[long]$Profile.$interval}
     $Session.Due=$Now+100
 }
 function Get-AutoFightHoldDuration($Profile,[string]$Action) {

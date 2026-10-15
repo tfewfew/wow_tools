@@ -8,7 +8,8 @@ foreach ($flavor in @('titan','forerver')) {
     $profile=New-AutoFightProfile $flavor 1
     $profile.RecoveryKey='Ctrl+F8'
     $effective=Get-AutoFightEffectiveProfile $profile (New-AutoFightCommon)
-    Assert-Recovery ($effective.RecoveryKey -eq 'Ctrl+F8' -and -not $effective.PSObject.Properties['EmergencyKey']) 'Recovery key is not the sole class recovery binding.'
+    Assert-Recovery ($effective.RecoveryKey -eq 'Ctrl+F8' -and $effective.RecoveryCooldownSeconds -eq 30 -and
+        -not $effective.PSObject.Properties['EmergencyKey']) 'Recovery key/cooldown settings are incomplete.'
     $identity=if($flavor -eq 'titan'){0}else{13}
     $main=Pixel 27 (4*$identity) 0
     $normal=[WowAutoFight.Native]::Decode(([uint32[]]@($main,(Pixel 38 38 38))),$flavor)
@@ -19,20 +20,26 @@ foreach ($flavor in @('titan','forerver')) {
         (Get-AutoFightAction $session $normal $effective 0) -eq 'wait') 'Normal health should not request recovery.'
     Assert-Recovery ($low.Action -eq 'idle' -and $low.Recovery -eq 'recover' -and
         (Get-AutoFightAction $session $low $effective 1) -eq 'recover') 'Low health did not request recovery.'
-    Assert-Recovery (-not $session.RecoverySent -and (Get-AutoFightAction $session $low $effective 2) -eq 'recover') 'An unsent recovery was consumed.'
+    Assert-Recovery ($session.RecoveryReadyAt -eq 0 -and (Get-AutoFightAction $session $low $effective 2) -eq 'recover') 'An unsent recovery was consumed.'
     Complete-AutoFightAction $session $effective 'recover' 3
-    Assert-Recovery ($session.RecoverySent -and (Get-AutoFightAction $session $low $effective 4) -eq 'wait') 'Successful recovery repeated while health remained low.'
-    Assert-Recovery ((Get-AutoFightAction $session $unknown $effective 5) -eq 'wait' -and $session.RecoverySent) 'Unknown health reset recovery or sent input.'
-    Assert-Recovery ((Get-AutoFightAction $session $normal $effective 6) -eq 'wait' -and -not $session.RecoverySent) 'Recovered health did not reset the one-shot latch.'
-    Assert-Recovery ((Get-AutoFightAction $session $low $effective 7) -eq 'recover') 'A new low-health episode did not trigger recovery.'
+    Assert-Recovery ($session.RecoveryReadyAt -eq 30003 -and (Get-AutoFightAction $session $low $effective 30002) -eq 'wait') 'Recovery repeated before cooldown expired.'
+    Assert-Recovery ((Get-AutoFightAction $session $unknown $effective 5) -eq 'wait' -and $session.RecoveryReadyAt -eq 30003) 'Unknown health reset cooldown.'
+    Assert-Recovery ((Get-AutoFightAction $session $normal $effective 6) -eq 'wait' -and $session.RecoveryReadyAt -eq 30003) 'Healthy hint reset cooldown.'
+    Assert-Recovery ((Get-AutoFightAction $session $low $effective 30003) -eq 'recover') 'Still-low health did not retrigger at cooldown boundary.'
     $low.Action='waiting';$low.Combat=$true
     $combatSession=New-AutoFightSession 0 1
     Assert-Recovery ((Get-AutoFightAction $combatSession $low $effective 0) -eq 'recover') 'Combat waiting suppressed unified recovery.'
     $low.Busy=$true
-    Assert-Recovery ((Get-AutoFightAction $combatSession $low $effective 1) -eq 'wait' -and -not $combatSession.RecoverySent) 'Busy combat sent or consumed recovery.'
+    Assert-Recovery ((Get-AutoFightAction $combatSession $low $effective 1) -eq 'wait' -and $combatSession.RecoveryReadyAt -eq 0) 'Busy combat sent or consumed recovery.'
     $low.Busy=$false
     Assert-Recovery ((Get-AutoFightAction $combatSession $low $effective 2) -eq 'recover') 'Recovery did not resume after busy combat.'
+    $combatSession.RecoveryReadyAt=30000
+    $low.Action='combat'
+    Assert-Recovery ((Get-AutoFightAction $combatSession $low $effective 1000) -eq 'combat') 'Recovery cooldown blocked main-color combat.'
+    $unknown.Action='combat';$unknown.Combat=$true
+    Assert-Recovery ((Get-AutoFightAction $combatSession $unknown $effective 1000) -eq 'combat') 'Unknown auxiliary blocked main color during recovery cooldown.'
+    $low.Action='waiting'
     $low.Action='recover'
     Assert-Recovery ((Get-AutoFightAction $combatSession $low $effective 3) -eq 'identity-changed') 'Recovery was accepted as a main state.'
 }
-Write-Output 'PASS: V8 auxiliary health hint, sole class recovery key, one successful press per low-health episode, unknown/busy deferral and combat priority. No game input.'
+Write-Output 'PASS: V8 auxiliary health hint, per-class recovery cooldown and exact boundary, unsent/busy deferral, main-color progress during cooldown. No game input.'

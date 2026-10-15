@@ -8,6 +8,7 @@ try {
         $fields=[ordered]@{}
         foreach ($field in $script:autoFightV6ProfileFields) {$fields[$field]=$profile.$field}
         $fields['EmergencyKey']='F9'
+        $fields['CombatIntervalMs']=500
         [pscustomobject]$fields
     })
     $v6=[pscustomobject]@{Version=6;CommandIntervalMs=500;Common=(New-AutoFightCommon);Profiles=$v6Profiles} | ConvertTo-Json -Depth 5
@@ -25,7 +26,7 @@ try {
     $config.Profiles['titan:9'].BuffCount=3
     $null=Save-AutoFightProfiles $path $config.Profiles 500 $config.Common
     $saved=Read-AutoFightConfiguration $path
-    Assert-Buff ((Get-Content -Raw $path | ConvertFrom-Json).Version -eq 8 -and
+    Assert-Buff ((Get-Content -Raw $path | ConvertFrom-Json).Version -eq 9 -and
         $saved.Profiles['titan:9'].BuffKey -eq 'Ctrl+F11' -and $saved.Profiles['titan:9'].BuffIntervalSeconds -eq 60 -and
         $saved.Profiles['titan:9'].BuffCount -eq 3 -and $saved.Profiles['forerver:9'].BuffIntervalSeconds -eq 0) 'Buff settings lost class/client isolation.'
     $original=[IO.File]::ReadAllText($path)
@@ -67,5 +68,5 @@ try {
     $other=New-AutoFightSession 9000 9
     Set-AutoFightBuffSchedule $other $saved.Profiles['titan:9'] 9000 -AfterLogin
     Assert-Buff ($other.NextBuffAt -eq 9000 -and $session.NextBuffAt -eq [long]::MaxValue) 'Buff timer leaked between process sessions.'
-    Write-Output 'PASS: V6 read-only migration, V8 per-class buff key/interval/count persistence and atomic validation; login/interval cycles, one-second successful-send spacing, unsafe-state deferral and process isolation. No native input.'
+    Write-Output 'PASS: V6 read-only migration, V9 per-class buff key/interval/count persistence and atomic validation; login/interval cycles, one-second successful-send spacing, unsafe-state deferral and process isolation. No native input.'
 } finally {if ([IO.File]::Exists($path)) {[IO.File]::Delete($path)}}

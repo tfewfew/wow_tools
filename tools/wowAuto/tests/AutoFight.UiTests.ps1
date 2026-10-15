@@ -77,6 +77,10 @@ try {
         Assert-Ui ($dialog.Tag.CommandInterval.Value -eq 500 -and $dialog.Tag.CommandInterval.Increment -eq 100) 'Combat common interval default / 100 ms step incorrect.'
         Assert-Ui ($dialog.Tag.Bindings.BuffKey.Text -eq 'F11' -and $dialog.Tag.Numbers.BuffIntervalSeconds.Value -eq 0 -and
             $dialog.Tag.Numbers.BuffCount.Value -eq 1) 'Default per-class buff controls are incorrect.'
+        Assert-Ui ($dialog.Tag.Numbers.RecoveryCooldownSeconds.Value -eq 30 -and
+            $dialog.Tag.Numbers.RecoveryCooldownSeconds.Minimum -eq 1 -and
+            $dialog.Tag.Numbers.RecoveryCooldownSeconds.Maximum -eq 3600 -and
+            -not $dialog.Tag.Numbers.ContainsKey('CombatIntervalMs')) 'Recovery cooldown controls or removed combat interval are incorrect.'
         Assert-Ui ($dialog.Tag.Bindings.TargetKey.Text -eq 'Tab' -and $dialog.Tag.CommonBindings.ContainsKey('TargetKey')) 'Target key is not common/default Tab.'
         $previewKey=New-Object System.Windows.Forms.PreviewKeyDownEventArgs([System.Windows.Forms.Keys]::Tab)
         $previewMethod=[System.Windows.Forms.Control].GetMethod('OnPreviewKeyDown',[Reflection.BindingFlags]'Instance,NonPublic')
@@ -99,18 +103,20 @@ try {
             $dialog.Tag.Bindings.TargetKey.Text -eq 'Ctrl+Tab' -and
             $dialog.Tag.Numbers.MovementHoldMs.Value -eq 600 -and $script:autoFight.Common.MoveLeftKey -eq 'Q') 'Common draft lost on profile selection or applied early.'
         $dialog.Tag.Bindings.CombatKey.Text='Ctrl+7'
+        $dialog.Tag.Numbers.RecoveryCooldownSeconds.Value=45
         $dialog.Tag.Bindings.BuffKey.Text='Ctrl+F11'
         $dialog.Tag.Numbers.BuffIntervalSeconds.Value=60
         $dialog.Tag.Numbers.BuffCount.Value=3
         $dialog.Tag.Tabs.SelectedIndex=0
         Assert-Ui ($dialog.Tag.Class.SelectedIndex -eq 0 -and $dialog.Tag.Bindings.CombatKey.Text -eq 'F6' -and
-            $dialog.Tag.Bindings.BuffKey.Text -eq 'F11' -and $dialog.Tag.Numbers.BuffIntervalSeconds.Value -eq 0) 'Tab changed the other server class or buff draft.'
+            $dialog.Tag.Bindings.BuffKey.Text -eq 'F11' -and $dialog.Tag.Numbers.BuffIntervalSeconds.Value -eq 0 -and
+            $dialog.Tag.Numbers.RecoveryCooldownSeconds.Value -eq 30) 'Tab changed the other server class or recovery draft.'
         $dialog.Tag.Pages.titan.Class.SelectedIndex=9
         Assert-Ui ($dialog.Tag.Pages.titan.CurrentKey -eq 'titan:11') 'Sparse class IDs interpreted as combo indices.'
         $dialog.Tag.Tabs.SelectedIndex=1
         Assert-Ui ($dialog.Tag.Class.SelectedIndex -eq 2 -and $dialog.Tag.Bindings.CombatKey.Text -eq 'Ctrl+7' -and
             $dialog.Tag.Bindings.BuffKey.Text -eq 'Ctrl+F11' -and $dialog.Tag.Numbers.BuffIntervalSeconds.Value -eq 60 -and
-            $dialog.Tag.Numbers.BuffCount.Value -eq 3) 'Tab lost independently selected class / buff draft.'
+            $dialog.Tag.Numbers.BuffCount.Value -eq 3 -and $dialog.Tag.Numbers.RecoveryCooldownSeconds.Value -eq 45) 'Tab lost independently selected class / recovery draft.'
         Assert-Ui ($dialog.Tag.CommandInterval.Value -eq 800 -and $script:autoFight.CommandGate.IntervalMs -eq 500) 'Profile selection reset common draft or draft applied early.'
         $dialog.Tag.Save.PerformClick()
         Assert-Ui ($dialog.IsDisposed -or -not $dialog.Visible) 'Combat save did not close dialog.'
@@ -122,7 +128,8 @@ try {
             $dialog.Tag.Pages.titan.Bindings.Count -eq 4) 'Obsolete combat recovery field remains visible or persisted.'
         Assert-Ui ($saved.Common.JumpIntervalSeconds -eq 20 -and $saved.CommandIntervalMs -eq 800 -and $script:autoFight.Profiles['forerver:3'].CombatKey -eq 'Ctrl+7' -and $script:autoFight.Profiles['titan:3'].CombatKey -eq 'F6' -and $script:autoFight.CommandGate.LastSentAt -eq 100 -and
             $saved.Profiles['forerver:3'].BuffKey -eq 'Ctrl+F11' -and $saved.Profiles['forerver:3'].BuffIntervalSeconds -eq 60 -and
-            $saved.Profiles['forerver:3'].BuffCount -eq 3 -and $saved.Profiles['titan:3'].BuffIntervalSeconds -eq 0) 'Combat save lost common/profile/buff isolation or reset last send.'
+            $saved.Profiles['forerver:3'].BuffCount -eq 3 -and $saved.Profiles['forerver:3'].RecoveryCooldownSeconds -eq 45 -and
+            $saved.Profiles['titan:3'].RecoveryCooldownSeconds -eq 30 -and $saved.Profiles['titan:3'].BuffIntervalSeconds -eq 0) 'Combat save lost common/profile/recovery isolation or reset last send.'
     } finally {$dialog.Dispose()}
     $dialog=New-AutoFightSettingsDialog
     try {
@@ -131,7 +138,8 @@ try {
             $dialog.Tag.Bindings.MoveLeftKey.Text -eq 'A' -and $dialog.Tag.Numbers.JumpIntervalSeconds.Value -eq 20) 'Combat reopen lost saved interval/common key/jump.'
         $dialog.Tag.Tabs.SelectedIndex=1;$dialog.Tag.Pages.forerver.Class.SelectedIndex=2
         Assert-Ui ($dialog.Tag.Bindings.BuffKey.Text -eq 'Ctrl+F11' -and $dialog.Tag.Numbers.BuffIntervalSeconds.Value -eq 60 -and
-            $dialog.Tag.Numbers.BuffCount.Value -eq 3) 'Combat reopen lost per-class buff controls.'
+            $dialog.Tag.Numbers.BuffCount.Value -eq 3 -and $dialog.Tag.Numbers.RecoveryCooldownSeconds.Value -eq 45) 'Combat reopen lost per-class buff/recovery controls.'
+        $dialog.Tag.Numbers.RecoveryCooldownSeconds.Value=60
         $dialog.Tag.Bindings.BuffKey.Text='F12';$dialog.Tag.Numbers.BuffIntervalSeconds.Value=90;$dialog.Tag.Numbers.BuffCount.Value=5
         $dialog.Tag.Bindings.TargetKey.Text='F10';$dialog.Tag.CommandInterval.Value=900
         $dialog.Tag.Bindings.MoveLeftKey.Text='Z';$dialog.Tag.Numbers.JumpIntervalSeconds.Value=30;$dialog.Tag.Cancel.PerformClick()
@@ -143,13 +151,15 @@ try {
     Assert-Ui ($script:autoFight.Common.JumpIntervalSeconds -eq 20) 'Cancel applied jump draft.'
     Assert-Ui ($script:autoFight.Profiles['forerver:3'].BuffKey -eq 'Ctrl+F11' -and
         $script:autoFight.Profiles['forerver:3'].BuffIntervalSeconds -eq 60 -and
-        $script:autoFight.Profiles['forerver:3'].BuffCount -eq 3) 'Cancel applied buff draft.'
+        $script:autoFight.Profiles['forerver:3'].BuffCount -eq 3 -and
+        $script:autoFight.Profiles['forerver:3'].RecoveryCooldownSeconds -eq 45) 'Cancel applied buff or recovery draft.'
     $locked=[IO.File]::Open($fightPath,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
     try {
         $dialog=New-AutoFightSettingsDialog
         try {
             $dialog.Show($form); $dialog.Tag.CommandInterval.Value=1000; $dialog.Tag.Bindings.CombatKey.Text='F12'
             $dialog.Tag.Bindings.BuffKey.Text='Ctrl+F12';$dialog.Tag.Numbers.BuffIntervalSeconds.Value=45;$dialog.Tag.Numbers.BuffCount.Value=4
+            $dialog.Tag.Numbers.RecoveryCooldownSeconds.Value=90
             $dialog.Tag.Bindings.TargetKey.Text='F10'
             $dialog.Tag.Bindings.MoveLeftKey.Text='Z';$dialog.Tag.Numbers.MovementHoldMs.Value=900;$dialog.Tag.Numbers.JumpIntervalSeconds.Value=30;$dialog.Tag.Save.PerformClick()
             Assert-Ui ($dialog.Visible -and $dialog.Tag.Error.Text -ne '' -and $script:autoFight.CommandGate.IntervalMs -eq 800 -and $script:autoFight.Profiles['titan:1'].CombatKey -eq 'F6') 'Failed combat save partially applied draft.'
@@ -157,7 +167,8 @@ try {
             Assert-Ui ($script:autoFight.Common.JumpIntervalSeconds -eq 20) 'Failed save partially applied jump setting.'
             Assert-Ui ($script:autoFight.Common.TargetKey -eq 'Ctrl+Tab') 'Failed save partially applied target setting.'
             Assert-Ui ($script:autoFight.Profiles['titan:1'].BuffIntervalSeconds -eq 0 -and
-                $script:autoFight.Profiles['titan:1'].BuffCount -eq 1) 'Failed save partially applied buff settings.'
+                $script:autoFight.Profiles['titan:1'].BuffCount -eq 1 -and
+                $script:autoFight.Profiles['titan:1'].RecoveryCooldownSeconds -eq 30) 'Failed save partially applied buff/recovery settings.'
         } finally {$dialog.Dispose()}
     } finally {$locked.Dispose()}
     $script:autoFight.Editor=$null
@@ -178,6 +189,15 @@ try {
         $row.ClassId=1; $row.CanStart=$true; $script:autoFight.Rows[$flavor]=$row
         $script:autoFight.List.Controls.Add($row.Panel); $fightRows+=$row
     }
+    $fightRows[0].Session=New-AutoFightSession 0 1
+    $fightRows[1].Session=New-AutoFightSession 0 1
+    $script:autoFight.Pending=New-AutoFightPending $fightRows[0] $fightRows[0].Session $false 0
+    Finish-AutoFightPending 100
+    $script:autoFight.Pending=New-AutoFightPending $fightRows[1] $fightRows[1].Session $false 0
+    Finish-AutoFightPending 400
+    Assert-Ui ($fightRows[0].Session.Due -eq 1100 -and $fightRows[1].Session.Due -eq 1400 -and
+        -not $script:autoFight.Pending) 'Combat sampling did not schedule each process independently at one second.'
+    $fightRows[0].Session=$null;$fightRows[1].Session=$null
     function Prepare-FightInput($Row,[string]$Action,[long]$Now) {
         $script:autoFight.Clock.ElapsedMilliseconds=$Now
         [WowAutoFight.Native]::Current.Flavor=$Row.Client.Flavor
@@ -275,19 +295,20 @@ try {
     [WowAutoFight.Native]::Current.Recovery='recover'
     Prepare-FightInput $fightRows[0] 'waiting' 62000;Invoke-AutoFightTick
     Assert-Ui ([WowAutoFight.Native]::Sends -eq 13 -and [WowAutoFight.Native]::LastCode -eq 119 -and
-        $fightRows[0].Session.RecoverySent -and $script:gameActions.History[-1].Kind -eq 'Fight.Recover') 'Low health did not queue and send the class recovery key.'
+        $fightRows[0].Session.RecoveryReadyAt -eq 92000 -and
+        $script:gameActions.History[-1].Kind -eq 'Fight.Recover') 'Low health did not queue and cool down the class recovery key.'
     Tick-FightColor $fightRows[0] 'waiting' 63000
-    Assert-Ui ([WowAutoFight.Native]::Sends -eq 13) 'Recovery repeated before health rose to the threshold.'
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 13) 'Recovery repeated before cooldown expired.'
     [WowAutoFight.Native]::Current.Recovery='unknown';Tick-FightColor $fightRows[0] 'waiting' 64000
-    Assert-Ui ([WowAutoFight.Native]::Sends -eq 13 -and $fightRows[0].Session.RecoverySent) 'Unknown health reset or repeated recovery.'
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 13 -and $fightRows[0].Session.RecoveryReadyAt -eq 92000) 'Unknown health reset cooldown.'
     [WowAutoFight.Native]::Current.Recovery='none';Tick-FightColor $fightRows[0] 'waiting' 65000
-    Assert-Ui (-not $fightRows[0].Session.RecoverySent) 'Healthy auxiliary color did not rearm recovery.'
+    Assert-Ui ($fightRows[0].Session.RecoveryReadyAt -eq 92000) 'Healthy auxiliary color reset cooldown.'
     [WowAutoFight.Native]::Current.Recovery='recover'
     [WowAutoFight.Native]::ReadsUntilRecoveryChange=2
-    Tick-FightColor $fightRows[0] 'waiting' 66000
-    Assert-Ui ([WowAutoFight.Native]::Sends -eq 13 -and -not $fightRows[0].Session.RecoverySent) 'Auxiliary color changed before input but stale recovery ran.'
-    [WowAutoFight.Native]::Current.Recovery='recover';Tick-FightColor $fightRows[0] 'waiting' 67000
-    Assert-Ui ([WowAutoFight.Native]::Sends -eq 14 -and $fightRows[0].Session.RecoverySent) 'New low-health episode did not recover.'
+    Tick-FightColor $fightRows[0] 'waiting' 92000
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 13 -and $fightRows[0].Session.RecoveryReadyAt -eq 92000) 'Auxiliary color changed before input but stale recovery ran.'
+    [WowAutoFight.Native]::Current.Recovery='recover';Tick-FightColor $fightRows[0] 'waiting' 93000
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 14 -and $fightRows[0].Session.RecoveryReadyAt -eq 123000) 'Still-low health did not recover after cooldown.'
     Stop-AutoFightAll
     $script:autoFight.Profiles['titan:1'].BuffKey='Ctrl+F11'
     $script:autoFight.Profiles['titan:1'].BuffIntervalSeconds=2
@@ -316,14 +337,16 @@ try {
     $script:autoFight.Clock.ElapsedMilliseconds=103999L;Invoke-AutoFightTick
     Assert-Ui ([WowAutoFight.Native]::Sends -eq $buffSends+3) 'Another buff cycle started before its interval.'
     $script:autoFight.Clock.ElapsedMilliseconds=104000L;Invoke-AutoFightTick
-    Assert-Ui ([WowAutoFight.Native]::Sends -eq $buffSends+4 -and $fightRows[0].Session.BuffRemaining -eq 2) 'Interval did not trigger exactly one new buff cycle.'
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $buffSends+3) 'Buff bypassed the one-second color sampling cadence.'
+    $script:autoFight.Clock.ElapsedMilliseconds=104999L;Invoke-AutoFightTick
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq $buffSends+4 -and $fightRows[0].Session.BuffRemaining -eq 2) 'Due buff did not run on the next color sample.'
     Stop-AutoFightRow $fightRows[0]
     Assert-Ui (-not $fightRows[0].Session -and -not @($script:gameActions.Events | Where-Object {$_.Domain -eq 'Fight' -and $_.Key -eq 'titan'}).Count) 'Stopping combat left a buff action queued.'
     Assert-Ui ($script:scheduler.JumpEveryCycles -eq $fishJump -and (Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $fishIniHash -and (Get-FileHash -LiteralPath $fightSource).Hash -eq $fightSourceHash) 'Combat changed fishing settings or source configuration.'
     Write-Output 'PASS: per-class buff settings save/reopen/cancel/locked rollback, initial and interval cycles through the production queue with one-second spacing. Mock input only.'
     Write-Output 'PASS: combat settings 100 ms step/common draft/profile isolation/save/cancel/locked failure; mocked production input gate for all states, cross-window, release, restart and send failure. No real native operations.'
     Write-Output 'PASS: unified window-frame login point permits background reads; missing point blocks foreground input and restored readiness unlocks start.'
-    Write-Output 'PASS: production combat UI adapter repeats opener, waits for range, recovers once per low-health episode through the priority queue, and rechecks both colors before input.'
+    Write-Output 'PASS: production combat UI adapter samples each process on a one-second schedule, repeats opener, waits for range, applies recovery cooldown through the priority queue, and rechecks both colors before input.'
     Write-Output 'PASS: independent client tabs/class selection/sparse class IDs, supported classes, changing process positions, global jump save/cancel/failure/disabled/exact deadline/busy/wait deferral/Space/shared gate. Game operations mocked.'
 } finally {
     Close-AutoFightTab

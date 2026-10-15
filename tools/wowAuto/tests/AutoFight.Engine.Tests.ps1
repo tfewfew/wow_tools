@@ -10,10 +10,30 @@ try {
     $valid=Save-AutoFightProfiles $path $profiles 1200
     $config=Read-AutoFightConfiguration $path
     Assert-Fight ($config.CommandIntervalMs -eq 1200 -and $config.Profiles['forerver:3'].CombatKey -eq 'Ctrl+7' -and $config.Profiles['titan:3'].CombatKey -eq 'F6') 'Version 3 roundtrip / flavor isolation failed.'
+    Assert-Fight (($config.Profiles['forerver:3'].RecoveryCooldownSeconds -eq 30) -and
+        -not $config.Profiles['forerver:3'].PSObject.Properties['CombatIntervalMs']) 'V9 defaults retained the old combat interval.'
+    $custom=Copy-AutoFightProfiles $config.Profiles
+    $custom['forerver:3'].RecoveryCooldownSeconds=45
+    $null=Save-AutoFightProfiles $path $custom 1200 $config.Common
+    $config=Read-AutoFightConfiguration $path
+    Assert-Fight ($config.Profiles['forerver:3'].RecoveryCooldownSeconds -eq 45 -and
+        $config.Profiles['titan:3'].RecoveryCooldownSeconds -eq 30 -and
+        (Get-Content -Raw $path | ConvertFrom-Json).Version -eq 9) 'Recovery cooldown was not saved per class and client.'
+    $validSource=[IO.File]::ReadAllText($path)
+    foreach ($seconds in @(0,3601,'1.5')) {
+        $invalid=Copy-AutoFightProfiles $config.Profiles
+        $invalid['forerver:3'].RecoveryCooldownSeconds=$seconds
+        $rejected=$false;try {$null=Save-AutoFightProfiles $path $invalid 1200 $config.Common} catch {$rejected=$true}
+        Assert-Fight ($rejected -and [IO.File]::ReadAllText($path) -ceq $validSource) 'Invalid recovery cooldown partially saved.'
+    }
     $original=[IO.File]::ReadAllText($path)
     $v7=$original | ConvertFrom-Json
     $v7.Version=7
-    foreach ($profile in $v7.Profiles) {$profile | Add-Member NoteProperty EmergencyKey 'F9'}
+    foreach ($profile in $v7.Profiles) {
+        $profile.PSObject.Properties.Remove('RecoveryCooldownSeconds')
+        $profile | Add-Member NoteProperty CombatIntervalMs 500
+        $profile | Add-Member NoteProperty EmergencyKey 'F9'
+    }
     $v7.Profiles | Where-Object {$_.Flavor -eq 'forerver' -and $_.ClassId -eq 3} | ForEach-Object {
         $_.RecoveryKey='Alt+9';$_.EmergencyKey='Alt+8'
     }
@@ -21,8 +41,20 @@ try {
     [IO.File]::WriteAllText($path,$legacyV7)
     $readV7=Read-AutoFightConfiguration $path
     Assert-Fight ($readV7.Profiles['forerver:3'].RecoveryKey -eq 'Alt+9' -and
+        $readV7.Profiles['forerver:3'].RecoveryCooldownSeconds -eq 30 -and
         -not $readV7.Profiles['forerver:3'].PSObject.Properties['EmergencyKey'] -and
         [IO.File]::ReadAllText($path) -ceq $legacyV7) 'V7 recovery migration changed the ordinary recovery key or rewrote source.'
+    $v8=$original | ConvertFrom-Json
+    $v8.Version=8
+    foreach ($profile in $v8.Profiles) {
+        $profile.PSObject.Properties.Remove('RecoveryCooldownSeconds')
+        $profile | Add-Member NoteProperty CombatIntervalMs 500
+    }
+    $legacyV8=$v8 | ConvertTo-Json -Depth 5
+    [IO.File]::WriteAllText($path,$legacyV8)
+    $readV8=Read-AutoFightConfiguration $path
+    Assert-Fight ($readV8.Profiles['forerver:3'].RecoveryCooldownSeconds -eq 30 -and
+        [IO.File]::ReadAllText($path) -ceq $legacyV8) 'V8 recovery cooldown migration rewrote source.'
     [IO.File]::WriteAllText($path,$original)
     foreach ($value in @('0','99','60001','1.5','no','99999999999999999999999')) {
         [IO.File]::WriteAllText($path,$original)
@@ -35,6 +67,8 @@ try {
     $oldProfiles=@($profiles.Values | ForEach-Object {
         $legacyProfile=Get-AutoFightEffectiveProfile $_ (New-AutoFightCommon)
         $legacyProfile.PSObject.Properties.Remove('JumpKey')
+        $legacyProfile.PSObject.Properties.Remove('RecoveryCooldownSeconds')
+        $legacyProfile | Add-Member NoteProperty CombatIntervalMs 500
         $legacyProfile.PSObject.Properties.Remove('JumpIntervalSeconds')
         $legacyProfile.PSObject.Properties.Remove('TargetKey')
         $legacyProfile.PSObject.Properties.Remove('TargetIntervalMs')
@@ -73,7 +107,9 @@ try {
     $v1=@($profiles.Values | ForEach-Object { [pscustomobject]@{Flavor=$_.Flavor; ClassId=$_.ClassId; AttackKey='Alt+8'; SkinKey='F7'; AttackIntervalMs=700; InteractionHoldMs=3500; SkinEnabled=$true} })
     [IO.File]::WriteAllText($path,([pscustomobject]@{Version=1; Profiles=$v1} | ConvertTo-Json -Depth 5))
     $config=Read-AutoFightConfiguration $path
-    Assert-Fight ($config.Profiles['titan:1'].OpeningKey -eq 'Alt+8' -and $config.Profiles['titan:1'].CombatIntervalMs -eq 700 -and $config.CommandIntervalMs -eq 500) 'Version 1 migration failed.'
+    Assert-Fight ($config.Profiles['titan:1'].OpeningKey -eq 'Alt+8' -and $config.Profiles['titan:1'].CombatKey -eq 'Alt+8' -and
+        $config.Profiles['titan:1'].RecoveryCooldownSeconds -eq 30 -and
+        -not $config.Profiles['titan:1'].PSObject.Properties['CombatIntervalMs'] -and $config.CommandIntervalMs -eq 500) 'Version 1 migration failed.'
     $null=Save-AutoFightProfiles $path $profiles 900
     $original=[IO.File]::ReadAllText($path)
     $locked=[IO.File]::Open($path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
@@ -87,6 +123,8 @@ try {
     $oldDocument.Common.PSObject.Properties.Remove('TargetKey')
     $oldDocument.Profiles=@(foreach ($flavor in @('titan','forerver')) {foreach ($id in 1..13) {
         $profile=New-AutoFightProfile $flavor $id
+        $profile.PSObject.Properties.Remove('RecoveryCooldownSeconds')
+        $profile | Add-Member NoteProperty CombatIntervalMs 500
         $profile | Add-Member NoteProperty EmergencyKey 'F9'
         foreach ($field in @('BuffKey','BuffIntervalSeconds','BuffCount')) {$profile.PSObject.Properties.Remove($field)}
         $profile
@@ -110,6 +148,8 @@ try {
     $oldJson=Get-Content -Raw $path | ConvertFrom-Json
     $oldJson.Version=5; $oldJson.Common.PSObject.Properties.Remove('TargetKey')
     foreach ($profile in $oldJson.Profiles) {
+        $profile.PSObject.Properties.Remove('RecoveryCooldownSeconds')
+        $profile | Add-Member NoteProperty CombatIntervalMs 500
         foreach ($field in @('BuffKey','BuffIntervalSeconds','BuffCount')) {$profile.PSObject.Properties.Remove($field)}
         $profile | Add-Member NoteProperty EmergencyKey 'F9'
     }
@@ -119,7 +159,7 @@ try {
     $targetConfig.Common.TargetKey='Ctrl+Tab'
     $null=Save-AutoFightProfiles $path $targetConfig.Profiles 700 $targetConfig.Common
     $targetConfig=Read-AutoFightConfiguration $path
-    Assert-Fight ($targetConfig.Common.TargetKey -eq 'Ctrl+Tab' -and (Get-Content -Raw $path | ConvertFrom-Json).Version -eq 8) 'Target key roundtrip failed.'
+    Assert-Fight ($targetConfig.Common.TargetKey -eq 'Ctrl+Tab' -and (Get-Content -Raw $path | ConvertFrom-Json).Version -eq 9) 'Target key roundtrip failed.'
     foreach ($profile in $targetConfig.Profiles.Values) {
         Assert-Fight ((Get-AutoFightEffectiveProfile $profile $targetConfig.Common).TargetKey -eq 'Ctrl+Tab') 'Target key not shared by all servers/classes.'
     }
@@ -155,13 +195,12 @@ try {
     }
     Complete-AutoFightAction $session $p 'opening' 1000
     $packet.Action='opening';$packet.Combat=$false
-    Assert-Fight ((Get-AutoFightAction $session $packet $p 1999) -eq 'wait' -and
-        (Get-AutoFightAction $session $packet $p 2000) -eq 'opening') 'Opening loop ignored one-second cadence.'
+    Assert-Fight ((Get-AutoFightAction $session $packet $p 1001) -eq 'opening' -and
+        -not $session.PSObject.Properties['NextByAction']) 'Engine retained an independent opening cooldown.'
     $packet.Action='skin'
     Assert-Fight ((Get-AutoFightAction $session $packet $p 1001) -eq 'skin') 'Script retained a corpse history gate.'
     Complete-AutoFightAction $session $p 'skin' 1001
-    Assert-Fight ((Get-AutoFightAction $session $packet $p (1001+$p.InteractionHoldMs-1)) -eq 'wait' -and
-        (Get-AutoFightAction $session $packet $p (1001+$p.InteractionHoldMs)) -eq 'skin') 'Skin interaction interval ignored.'
+    Assert-Fight ((Get-AutoFightAction $session $packet $p 1002) -eq 'skin') 'Engine retained an independent skin interval.'
     Assert-Fight ((Get-AutoFightHoldDuration $p 'skin') -eq 2000 -and
         (Get-AutoFightHoldDuration $p 'loot') -eq $p.InteractionHoldMs) 'Skin duration changed loot setting.'
     $skinHold=[pscustomobject]@{State='skin';Movement=$false;Until=3001L}
@@ -178,4 +217,4 @@ try {
     $gate.IntervalMs=2000
     Assert-Fight (-not (Test-AutoFightCommandReady $gate 2999) -and (Test-AutoFightCommandReady $gate 3000)) 'Interval edit reset successful send time.'
     Assert-Fight (@($session.PSObject.Properties.Name | Where-Object {$_ -in @('State','Substate','OpeningSent','LootEncounterId')}).Count -eq 0) 'Script retains combat main-state fields.'
-    Write-Output 'PASS: six-state direct actions, recovery latch, command gate, JSON v1-v7 migration to v8 and atomic settings. No native input.'} finally { if ([IO.File]::Exists($path)) { [IO.File]::Delete($path) } }
+    Write-Output 'PASS: six-state direct actions, recovery cooldown, common command gate, JSON v1-v8 migration to v9 and atomic settings. No native input.'} finally { if ([IO.File]::Exists($path)) { [IO.File]::Delete($path) } }
