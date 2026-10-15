@@ -14,6 +14,8 @@ namespace WowAutoFight {
         public static int ReadsUntilEncounterChange=0;
         public static int ReadsUntilActionChange=0;
         public static string NextAction="waiting";
+        public static int ReadsUntilRecoveryChange=0;
+        public static string NextRecovery="none";
         public static int MissingReads=0;
         public static bool LastReadPending=false;
         public static string LastReadError="模拟快照暂不可读";
@@ -29,6 +31,7 @@ namespace WowAutoFight {
             if (MissingReads>0) { MissingReads--; return null; }
             if (ReadsUntilEncounterChange>0 && --ReadsUntilEncounterChange==0) Current.EncounterId++;
             if (ReadsUntilActionChange>0 && --ReadsUntilActionChange==0) Current.Action=NextAction;
+            if (ReadsUntilRecoveryChange>0 && --ReadsUntilRecoveryChange==0) Current.Recovery=NextRecovery;
             return new Packet {ClassId=Current.ClassId, EncounterId=Current.EncounterId,
                 Flavor=Current.Flavor, Action=Current.Action, Recovery=Current.Recovery, Busy=Current.Busy, Combat=Current.Combat};
         }
@@ -114,7 +117,9 @@ try {
         $saved=Read-AutoFightConfiguration $fightPath
         Assert-Ui ($saved.Common.TargetKey -eq 'Ctrl+Tab' -and $script:autoFight.Common.TargetKey -eq 'Ctrl+Tab') 'Saved target key lost common configuration.'
         Assert-Ui ($saved.Common.MoveLeftKey -eq 'A' -and $saved.Common.SkinKey -eq '=' -and $saved.Common.MovementHoldMs -eq 600 -and
-            $null -eq $saved.Profiles['titan:1'].PSObject.Properties['MoveLeftKey'] -and $null -eq $dialog.Tag.Numbers.EmergencyIntervalMs) 'Common fields remain class-specific or obsolete recovery interval remains visible.'
+            $null -eq $saved.Profiles['titan:1'].PSObject.Properties['MoveLeftKey'] -and
+            $null -eq $saved.Profiles['titan:1'].PSObject.Properties['EmergencyKey'] -and
+            $dialog.Tag.Pages.titan.Bindings.Count -eq 4) 'Obsolete combat recovery field remains visible or persisted.'
         Assert-Ui ($saved.Common.JumpIntervalSeconds -eq 20 -and $saved.CommandIntervalMs -eq 800 -and $script:autoFight.Profiles['forerver:3'].CombatKey -eq 'Ctrl+7' -and $script:autoFight.Profiles['titan:3'].CombatKey -eq 'F6' -and $script:autoFight.CommandGate.LastSentAt -eq 100 -and
             $saved.Profiles['forerver:3'].BuffKey -eq 'Ctrl+F11' -and $saved.Profiles['forerver:3'].BuffIntervalSeconds -eq 60 -and
             $saved.Profiles['forerver:3'].BuffCount -eq 3 -and $saved.Profiles['titan:3'].BuffIntervalSeconds -eq 0) 'Combat save lost common/profile/buff isolation or reset last send.'
@@ -199,7 +204,7 @@ try {
     $script:autoFight.Pending.Activated=$true;$script:autoFight.Pending.SampleAt=0
     Invoke-AutoFightTick
     Assert-Ui ($fightRows[0].CanStart -and $script:autoFight.Scan.Index -eq 1 -and
-        -not $script:autoFight.Pending -and [WowAutoFight.Native]::Sends -eq 0) 'Stable V7 color failed background refresh.'
+        -not $script:autoFight.Pending -and [WowAutoFight.Native]::Sends -eq 0) 'Stable V8 color failed background refresh.'
     Complete-AutoFightScan
     Prepare-FightInput $fightRows[0] 'opening' 999;Invoke-AutoFightTick
     Assert-Ui ([WowAutoFight.Native]::Sends -eq 0) 'Common gate allowed early opening.'
@@ -267,6 +272,22 @@ try {
     Prepare-FightInput $fightRows[0] 'opening' 60000;Invoke-AutoFightTick
     Assert-Ui ([WowAutoFight.Native]::Sends -eq 12 -and -not $fightRows[0].Session) 'Missing login point permitted opening.'
     $fightRows[0].Client.LoginPointPresent=$true
+    [WowAutoFight.Native]::Current.Recovery='recover'
+    Prepare-FightInput $fightRows[0] 'waiting' 62000;Invoke-AutoFightTick
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 13 -and [WowAutoFight.Native]::LastCode -eq 119 -and
+        $fightRows[0].Session.RecoverySent -and $script:gameActions.History[-1].Kind -eq 'Fight.Recover') 'Low health did not queue and send the class recovery key.'
+    Tick-FightColor $fightRows[0] 'waiting' 63000
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 13) 'Recovery repeated before health rose to the threshold.'
+    [WowAutoFight.Native]::Current.Recovery='unknown';Tick-FightColor $fightRows[0] 'waiting' 64000
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 13 -and $fightRows[0].Session.RecoverySent) 'Unknown health reset or repeated recovery.'
+    [WowAutoFight.Native]::Current.Recovery='none';Tick-FightColor $fightRows[0] 'waiting' 65000
+    Assert-Ui (-not $fightRows[0].Session.RecoverySent) 'Healthy auxiliary color did not rearm recovery.'
+    [WowAutoFight.Native]::Current.Recovery='recover'
+    [WowAutoFight.Native]::ReadsUntilRecoveryChange=2
+    Tick-FightColor $fightRows[0] 'waiting' 66000
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 13 -and -not $fightRows[0].Session.RecoverySent) 'Auxiliary color changed before input but stale recovery ran.'
+    [WowAutoFight.Native]::Current.Recovery='recover';Tick-FightColor $fightRows[0] 'waiting' 67000
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 14 -and $fightRows[0].Session.RecoverySent) 'New low-health episode did not recover.'
     Stop-AutoFightAll
     $script:autoFight.Profiles['titan:1'].BuffKey='Ctrl+F11'
     $script:autoFight.Profiles['titan:1'].BuffIntervalSeconds=2
@@ -302,7 +323,7 @@ try {
     Write-Output 'PASS: per-class buff settings save/reopen/cancel/locked rollback, initial and interval cycles through the production queue with one-second spacing. Mock input only.'
     Write-Output 'PASS: combat settings 100 ms step/common draft/profile isolation/save/cancel/locked failure; mocked production input gate for all states, cross-window, release, restart and send failure. No real native operations.'
     Write-Output 'PASS: unified window-frame login point permits background reads; missing point blocks foreground input and restored readiness unlocks start.'
-    Write-Output 'PASS: production combat UI adapter repeats target and opener at one-second cadence while opening persists, waits for range, attacks on approach and rechecks plugin color before input.'
+    Write-Output 'PASS: production combat UI adapter repeats opener, waits for range, recovers once per low-health episode through the priority queue, and rechecks both colors before input.'
     Write-Output 'PASS: independent client tabs/class selection/sparse class IDs, supported classes, changing process positions, global jump save/cancel/failure/disabled/exact deadline/busy/wait deferral/Space/shared gate. Game operations mocked.'
 } finally {
     Close-AutoFightTab

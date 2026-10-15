@@ -9,19 +9,17 @@ local attackRange=range.DefaultAttack
 local encounterGUID, encounterSerial = nil, 0
 local interactionGUID = nil
 local state, combat, skin, busy = "disabled", false, false, false
-local health, mana, settings = nil, nil, nil
+local health, settings = nil, nil
 local events, SetActiveEvents
 local recovery="none"
-local recoveryDescriptions={none="无需恢复", recover="非战斗恢复", emergency="战斗紧急恢复", unknown="恢复未知"}
-local recovering, emergency = false, false
-local settingDefaults = { HealthEnter=80, HealthExit=95, ManaEnter=0, ManaExit=90,
-    EmergencyEnter=30, EmergencyExit=50 }
--- V7: six actionable main states; recovery remains a separate visual hint.
+local recoveryDescriptions={none="无需恢复", recover="需要恢复", unknown="恢复状态未知"}
+local defaultRecoveryThreshold=80
+-- V8: six main states plus an actionable, unified health hint in the auxiliary cell.
 -- The main cell also carries client/class, busy, combat and encounter metadata.
 local actionCodes={unknown=0,idle=1,opening=2,waiting=3,combat=4,loot=5,skin=6}
 local descriptions={disabled="已关闭",unknown="数据未知，暂停指令",idle="等待目标",
     opening="范围内有怪物，选中并开怪",waiting="战斗中等待怪物接近",combat="进入攻击距离",
-    recover="非战斗恢复",emergency="战斗紧急恢复",loot="可以拾取",skin="可以剥皮"}
+    loot="可以拾取",skin="可以剥皮"}
 
 local function Readable(value)
     return not (issecretvalue and issecretvalue(value))
@@ -44,7 +42,7 @@ local function Say(message)
 end
 
 local panel = CreateFrame("Frame", "wowToolsFightDetectorPanel", UIParent)
-panel:SetSize(560, 290)
+panel:SetSize(560, 230)
 panel:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 12, -16)
 panel:SetFrameStrata("HIGH")
 panel:SetClampedToScreen(true)
@@ -88,26 +86,12 @@ attackInput:SetScript("OnEscapePressed",function(self) self:ClearFocus() end)
 local rangeHint=panel:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall")
 rangeHint:SetPoint("TOPLEFT",12,-138)
 rangeHint:SetText("可选距离：5 / 10 / 15 / 20 / 25 / 30 / 35 / 40 码。")
-local thresholds = {}
-local thresholdRows = {
-    {"非战斗生命值 %", "HealthEnter", "HealthExit"},
-    {"非战斗法力值 %", "ManaEnter", "ManaExit"},
-    {"战斗紧急生命值 %", "EmergencyEnter", "EmergencyExit"},
-}
-for i,row in ipairs(thresholdRows) do
-    local y=-166-(i-1)*30
-    local label=panel:CreateFontString(nil,"OVERLAY","GameFontNormalSmall")
-    label:SetPoint("TOPLEFT",12,y); label:SetText(row[1])
-    for j=2,3 do
-        local box=CreateFrame("EditBox",nil,panel,"InputBoxTemplate")
-        box:SetSize(44,22); box:SetPoint("TOPLEFT",180+(j-2)*126,y+4)
-        box:SetAutoFocus(false); box:SetNumeric(true); box:SetMaxLetters(3)
-        box:SetScript("OnEscapePressed",function(self) self:ClearFocus() end)
-        thresholds[row[j]]=box
-        local caption=panel:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall")
-        caption:SetPoint("LEFT",box,"RIGHT",5,0); caption:SetText(j==2 and "进入" or "退出")
-    end
-end
+local thresholdLabel=panel:CreateFontString(nil,"OVERLAY","GameFontNormalSmall")
+thresholdLabel:SetPoint("TOPLEFT",12,-166);thresholdLabel:SetText("恢复生命阈值（本职业，%）")
+local thresholdInput=CreateFrame("EditBox",nil,panel,"InputBoxTemplate")
+thresholdInput:SetSize(64,22);thresholdInput:SetPoint("TOPLEFT",250,-162)
+thresholdInput:SetAutoFocus(false);thresholdInput:SetNumeric(true);thresholdInput:SetMaxLetters(3)
+thresholdInput:SetScript("OnEscapePressed",function(self) self:ClearFocus() end)
 local start = CreateFrame("Button",nil,panel,"UIPanelButtonTemplate")
 start:SetSize(64,22)
 start:SetPoint("BOTTOMLEFT",12,8)
@@ -150,18 +134,18 @@ local function Paint()
         local action=actionCodes[state] or 0
         local identity=(FLAVOR=="titan" and 0 or 13)+classID-1
         local encounter=encounterSerial%32
-        local red=5+20*action
+        local red=7+20*action
         local r,g,b=red/255,(4*(identity+(busy and 26 or 0)))/255,
             (4*(encounter+(combat and 32 or 0)))/255
         cells[1]:SetColorTexture(r,g,b,1)
-        local hints={none={.15,.15,.15},recover={0,.4,1},emergency={1,.15,0},unknown={.5,.5,.5}}
+        local hints={none={.15,.15,.15},recover={0,.4,1},unknown={.5,.5,.5}}
         local hint=hints[recovery] or hints.unknown
         cells[2]:SetColorTexture(hint[1],hint[2],hint[3],1)
     else signal:Hide() end
     status:SetText((descriptions[state] or descriptions.unknown).." · 战斗："..
         (combat==nil and "未知" or (combat and "是" or "否"))..
-        "\n"..(recoveryDescriptions[recovery] or "恢复未知").." · HP "..(health and math.floor(health).."%" or "?")..
-        (mana and (" / MP "..math.floor(mana).."%") or "")..(busy and " · 忙碌" or ""))
+        "\n"..(recoveryDescriptions[recovery] or "恢复状态未知").." · HP "..(health and math.floor(health).."%" or "?")..
+        " / 阈值 "..(settings and settings.RecoveryThreshold or defaultRecoveryThreshold).."%"..(busy and " · 忙碌" or ""))
     if enabled then start:Disable() else start:Enable() end
 end
 
@@ -303,16 +287,7 @@ local function Percentage(currentFn, maximumFn, power)
 end
 local function Vitals()
     health=Percentage(UnitHealth,UnitHealthMax)
-    mana=nil
-    if health==nil then return false end
-    if settings.ManaEnter==0 then return true end
-    local powerType,ok=Read(UnitPowerType,"player")
-    if not ok or type(powerType)~="number" then return false end
-    if powerType==0 then
-        mana=Percentage(UnitPower,UnitPowerMax,0)
-        if mana==nil then return false end
-    end
-    return true
+    return health~=nil
 end
 local function SetState(value)
     state=value
@@ -321,8 +296,7 @@ end
 local function Stop()
     enabled,elapsed,state,combat,skin,busy=false,0,"disabled",false,false,false
     if SetActiveEvents then SetActiveEvents(false) end
-    recovering,emergency=false,false
-    health,mana,recovery=nil,nil,"none"
+    health,recovery=nil,"none"
     SetEncounter(nil)
     interactionGUID=nil
     signal:Hide()
@@ -343,24 +317,7 @@ local function Refresh()
         SetState(combat and "waiting" or "unknown"); return
     end
     busy=not not (cast or channel or lootOpen or (LootFrame and LootFrame:IsShown()))
-    if not vitalsKnown then
-        recovery="unknown"
-    elseif combat then
-        recovering=false
-        emergency=settings.EmergencyEnter>0 and (health<=settings.EmergencyEnter
-            or (emergency and health<settings.EmergencyExit))
-        recovery=emergency and "emergency" or "none"
-    else
-        emergency=false
-        if recovering then
-            recovering=(settings.HealthEnter>0 and health<settings.HealthExit)
-                or (settings.ManaEnter>0 and mana~=nil and mana<settings.ManaExit)
-        else
-            recovering=(settings.HealthEnter>0 and health<=settings.HealthEnter)
-                or (settings.ManaEnter>0 and mana~=nil and mana<=settings.ManaEnter)
-        end
-        recovery=recovering and "recover" or "none"
-    end
+    recovery=not vitalsKnown and "unknown" or (health<settings.RecoveryThreshold and "recover" or "none")
     -- Combat is the first main-state decision. Uncertain target/range stays in
     -- waiting, never falls through to opening, corpse interaction or unknown.
     if combat then
@@ -439,21 +396,15 @@ save:SetScript("OnClick",function()
     if not range.IsSupported(value) or not range.IsSupported(attack) then
         Say("距离请选择 5、10、15、20、25、30、35 或 40 码。"); return
     end
-    local draft={DetectionRangeYards=value}
-    for _,row in ipairs(thresholdRows) do
-        for j=2,3 do
-            local number=tonumber(thresholds[row[j]]:GetText())
-            if not number or number<0 or number>100 or number~=math.floor(number) then Say("恢复阈值须为 0–100 的整数。"); return end
-            draft[row[j]]=number
-        end
-        if draft[row[2]]>=draft[row[3]] then Say("恢复进入值必须小于退出值。"); return end
+    local threshold=tonumber(thresholdInput:GetText())
+    if not threshold or threshold<1 or threshold>100 or threshold~=math.floor(threshold) then
+        Say("恢复生命阈值须为 1–100 的整数。"); return
     end
+    local draft={DetectionRangeYards=value,RecoveryThreshold=threshold}
     attackRange,settings=attack,draft
     fightDetectorDB.AttackRangeYards=attack
     fightDetectorDB.profiles[classID]=draft
-    recovering,emergency=false,false
-    input:ClearFocus(); attackInput:ClearFocus()
-    for _,box in pairs(thresholds) do box:ClearFocus() end
+    input:ClearFocus(); attackInput:ClearFocus(); thresholdInput:ClearFocus()
     SafeRefresh()
 end)
 start:SetScript("OnClick",Start)
@@ -473,8 +424,7 @@ local activeEvents={"PLAYER_ENTERING_WORLD","PLAYER_DEAD","PLAYER_LOGOUT",
     "PLAYER_REGEN_DISABLED","PLAYER_REGEN_ENABLED","PLAYER_TARGET_CHANGED","PLAYER_SOFT_ENEMY_CHANGED",
     "PLAYER_SOFT_INTERACT_CHANGED","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED",
     "LOOT_OPENED","LOOT_CLOSED","LOOT_READY","LOOT_SLOT_CLEARED",
-    "UNIT_HEALTH","UNIT_MAXHEALTH","UNIT_POWER_UPDATE",
-    "UNIT_MAXPOWER","UNIT_DISPLAYPOWER","DISPLAY_SIZE_CHANGED","UI_SCALE_CHANGED","GET_ITEM_INFO_RECEIVED"}
+    "UNIT_HEALTH","UNIT_MAXHEALTH","DISPLAY_SIZE_CHANGED","UI_SCALE_CHANGED","GET_ITEM_INFO_RECEIVED"}
 events:SetScript("OnEvent",function(_,event,arg)
     if event=="ADDON_LOADED" then
         if arg~="wow_tools" then return end
@@ -486,20 +436,15 @@ events:SetScript("OnEvent",function(_,event,arg)
         classID=id
         attackRange=range.IsSupported(fightDetectorDB.AttackRangeYards) and fightDetectorDB.AttackRangeYards or range.DefaultAttack
         local stored=fightDetectorDB.profiles[id]
-        settings={DetectionRangeYards=range.DefaultDetection}
-        for key,value in pairs(settingDefaults) do settings[key]=value end
+        settings={DetectionRangeYards=range.DefaultDetection,RecoveryThreshold=defaultRecoveryThreshold}
         if type(stored)=="table" then
             if range.IsSupported(stored.DetectionRangeYards) then settings.DetectionRangeYards=stored.DetectionRangeYards end
-            for _,row in ipairs(thresholdRows) do
-                local enter,exit=stored[row[2]],stored[row[3]]
-                if type(enter)=="number" and type(exit)=="number" and enter>=0 and exit<=100
-                    and enter<exit and enter==math.floor(enter) and exit==math.floor(exit) then
-                    settings[row[2]],settings[row[3]]=enter,exit
-                end
-            end
+            local threshold=stored.RecoveryThreshold or stored.HealthEnter
+            if type(threshold)=="number" and threshold>=1 and threshold<=100
+                and threshold==math.floor(threshold) then settings.RecoveryThreshold=threshold end
         end
         input:SetText(tostring(settings.DetectionRangeYards)); attackInput:SetText(tostring(attackRange))
-        for field,box in pairs(thresholds) do box:SetText(tostring(settings[field])) end
+        thresholdInput:SetText(tostring(settings.RecoveryThreshold))
         initialized=true
         Stop()
     elseif not enabled then return

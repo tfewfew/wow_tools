@@ -4,9 +4,10 @@ Add-Type -Path (Join-Path $PSScriptRoot '..\autoFight.Native.cs') -ReferencedAss
 . (Join-Path $PSScriptRoot '..\autoFight.Engine.ps1')
 function Assert-Distance($Condition,[string]$Label) {if (-not $Condition) {throw $Label}}
 function Pixel([int]$R,[int]$G,[int]$B) {return [uint32]($R -bor ($G -shl 8) -bor ($B -shl 16))}
-function Test-Packet([string]$Flavor,[int]$Class,[int]$Action,[bool]$Combat=$false,[bool]$Busy=$false,[int]$Encounter=17) {
+function Test-Packet([string]$Flavor,[int]$Class,[int]$Action,[bool]$Combat=$false,[bool]$Busy=$false,[int]$Encounter=17,[string]$Recovery='none') {
     $identity=($Class-1)+$(if ($Flavor -eq 'titan') {0} else {13})
-    return [uint32[]]@((Pixel (5+20*$Action) (4*($identity+26*[int]$Busy)) (4*($Encounter+32*[int]$Combat))))
+    $hint=switch ($Recovery) {'none' {Pixel 38 38 38} 'recover' {Pixel 0 102 255} 'unknown' {Pixel 128 128 128}}
+    return [uint32[]]@((Pixel (7+20*$Action) (4*($identity+26*[int]$Busy)) (4*($Encounter+32*[int]$Combat))),$hint)
 }
 $actions=@('unknown','idle','opening','waiting','combat','loot','skin')
 foreach ($flavor in @('titan','forerver')) {
@@ -17,7 +18,7 @@ foreach ($flavor in @('titan','forerver')) {
                 $packet=[WowAutoFight.Native]::Decode((Test-Packet $flavor $class $entry[0] $entry[1] $entry[2] $encounter),$flavor)
                 Assert-Distance ($packet -and $packet.Action -eq $actions[$entry[0]] -and $packet.ClassId -eq $class -and
                     $packet.EncounterId -eq $encounter -and $packet.Busy -eq $entry[2] -and
-                    $packet.Combat -eq $entry[1]) 'V7 main-state decoding or metadata failed.'
+                    $packet.Combat -eq $entry[1] -and $packet.Recovery -eq 'none') 'V8 two-cell decoding or metadata failed.'
             }
         }
     }
@@ -31,7 +32,8 @@ foreach ($flavor in @('titan','forerver')) {
     Assert-Distance ($null -eq [WowAutoFight.Native]::Decode((Test-Packet $flavor 4 5 $true),$flavor)) 'Loot accepted during combat.'
     Assert-Distance ($null -eq [WowAutoFight.Native]::Decode(([uint32[]]@((Pixel 62 12 68))),$flavor)) 'Old V6 main color accepted.'
     Assert-Distance ($null -eq [WowAutoFight.Native]::Decode((Test-Packet $flavor 4 2),$(if ($flavor -eq 'titan') {'forerver'} else {'titan'}))) 'Cross-flavor color accepted.'
-    Assert-Distance ($null -eq [WowAutoFight.Native]::Decode(([uint32[]]@((Pixel 45 12 68),(Pixel 8 8 8))),$flavor)) 'Old two-cell protocol accepted.'
+    Assert-Distance ($null -eq [WowAutoFight.Native]::Decode(([uint32[]]@((Pixel 45 12 68),(Pixel 8 8 8))),$flavor)) 'Old V7 protocol accepted.'
+    Assert-Distance ($null -eq [WowAutoFight.Native]::Decode(([uint32[]]@((Test-Packet $flavor 4 2)[0],(Pixel 1 2 3))),$flavor)) 'Invalid auxiliary hint accepted.'
     $profile=Get-AutoFightEffectiveProfile (New-AutoFightProfile $flavor 4) (New-AutoFightCommon)
     $session=New-AutoFightSession 0 4
     $opening=[WowAutoFight.Native]::Decode((Test-Packet $flavor 4 2),$flavor)
@@ -53,7 +55,7 @@ foreach ($flavor in @('titan','forerver')) {
     Complete-AutoFightAction $session $profile 'skin' 400
     Assert-Distance ((Get-AutoFightAction $session $idle $profile 500) -eq 'wait') 'Idle color sent a fight key.'
     Assert-Distance ((Get-AutoFightAction $session $opening $profile 1000) -eq 'opening') 'Opening color did not retry after one second.'
-    Assert-Distance (@($session.PSObject.Properties.Name | Where-Object {$_ -in @('State','Substate','OpeningSent','RecoverySent','LootEncounterId','SkinnedEncounterId')}).Count -eq 0) 'Combat state-machine fields remain in the script session.'
+    Assert-Distance (@($session.PSObject.Properties.Name | Where-Object {$_ -in @('State','Substate','OpeningSent','LootEncounterId','SkinnedEncounterId')}).Count -eq 0) 'Combat main-state fields remain in the script session.'
 }
 foreach ($size in @(@(1280,720),@(1920,1080),@(2560,1440),@(1279,719),@(3840,2160))) {
     $points=[WowAutoFight.Native]::SampleOffsets($size[0],$size[1])
@@ -61,11 +63,11 @@ foreach ($size in @(@(1280,720),@(1920,1080),@(2560,1440),@(1279,719),@(3840,216
         $points[1] -eq [Math]::Floor($size[1]/2)) 'Window resize changed main-cell sample.'
 }
 Assert-Distance ($null -eq [WowAutoFight.Native]::SampleOffsets(100,100)) 'Too-small viewport accepted.'
-$rendered=Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path '.local-backups\fight-v7-pixels.txt'
+$rendered=Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path '.local-backups\fight-v8-pixels.txt'
 if (Test-Path -LiteralPath $rendered) {
     foreach ($line in [IO.File]::ReadAllLines($rendered)) {
         $fields=$line.Split(' ')
-        $packet=[WowAutoFight.Native]::Decode(([uint32[]]@([uint32]$fields[2])),$fields[0])
+        $packet=[WowAutoFight.Native]::Decode(([uint32[]]@([uint32]$fields[2],[uint32]$fields[3])),$fields[0])
         if ($fields[1] -eq 'unknown') {Assert-Distance ($null -eq $packet) 'Unknown plugin render accepted.'}
         else {Assert-Distance ($packet -and $packet.Action -eq $fields[1]) 'Plugin RGB / script decoder disagree.'}
     }
@@ -74,4 +76,4 @@ foreach ($entry in @(@(0,0,600,400,'左上'),@(1200,0,1800,400,'右上'),@(0,700
     @(1200,700,1800,1100,'右下'),@(600,300,1320,780,'居中'))) {
     Assert-Distance ([WowAutoFight.Native]::ClassifyWindowPosition($entry[0],$entry[1],$entry[2],$entry[3],0,0,1920,1080) -eq $entry[4]) 'Window position classification differs from fishing.'
 }
-Write-Output 'PASS: six V7 plugin main states, cross-client RGB metadata, direct action mapping, cooldowns, illegal/old color rejection and resize geometry. No game input.'
+Write-Output 'PASS: six V8 plugin main states, cross-client two-cell RGB, direct action mapping and resize geometry. No game input.'

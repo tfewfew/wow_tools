@@ -76,7 +76,8 @@ function Invoke-AutoFightHold([long]$Now) {
             throw '保持期间检测关闭或协议不可读，已释放移动键。'
         }
         if ($packet.ClassId -ne $hold.Session.ClassId -or $packet.Flavor -ne $row.Client.Flavor) { throw '职业或客户端发生变化，已释放移动键。' }
-        if (Test-AutoFightHoldFinished $hold $packet $Now) { [void](Release-AutoFightHold) }
+        if ($packet.Recovery -eq 'unknown' -or ($packet.Recovery -eq 'recover' -and -not $hold.Session.RecoverySent) -or
+            (Test-AutoFightHoldFinished $hold $packet $Now)) { [void](Release-AutoFightHold) }
     }
     catch {
         $message=$_.Exception.Message
@@ -301,11 +302,11 @@ function Invoke-AutoFightTick([bool]$AllowInput=$true,[switch]$PlanOnly,[string]
         $handler=$script:autoFightStates[$action]
         $keyField=$handler.Key
         $binding=ConvertFrom-AutoFightBinding $profile.$keyField
-        # Re-read the main color immediately before input.
+        # Re-read both cells immediately before input; an auxiliary change can supersede the main action.
         $latest=[WowAutoFight.Native]::Read($row.Client)
         if ($null -eq $latest -or $latest.ClassId -ne $packet.ClassId -or $latest.Action -ne $packet.Action -or
             $latest.Combat -ne $packet.Combat -or $latest.Busy -ne $packet.Busy -or
-            $latest.EncounterId -ne $packet.EncounterId) {
+            $latest.EncounterId -ne $packet.EncounterId -or $latest.Recovery -ne $packet.Recovery) {
             if ($latest) {
                 Set-AutoFightStatus $row '颜色已变化，旧按键已取消；按插件新主状态继续。'
                 Finish-AutoFightPending $script:autoFight.Clock.ElapsedMilliseconds -Immediate
@@ -331,7 +332,8 @@ function Invoke-AutoFightTick([bool]$AllowInput=$true,[switch]$PlanOnly,[string]
             $afterTarget=[WowAutoFight.Native]::Read($row.Client)
             if (-not $afterTarget -or $afterTarget.Action -ne 'opening' -or $afterTarget.ClassId -ne $packet.ClassId -or
                 $afterTarget.Flavor -ne $row.Client.Flavor -or $afterTarget.EncounterId -ne $packet.EncounterId -or
-                $afterTarget.Busy -or -not [WowAutoFight.Native]::Foreground($row.Client)) {
+                $afterTarget.Busy -or $afterTarget.Recovery -ne $packet.Recovery -or
+                -not [WowAutoFight.Native]::Foreground($row.Client)) {
                 Set-AutoFightStatus $row '已选中目标；插件状态变化，取消本次开怪键。'
                 Finish-AutoFightPending $script:autoFight.Clock.ElapsedMilliseconds -Immediate
                 return
@@ -468,7 +470,7 @@ function New-AutoFightSettingsDialog([switch]$Embedded) {
         $tab.Controls.Add($combo)
         $page=[pscustomobject]@{Tab=$tab;Class=$combo;ClassIds=$ids;CurrentKey='';Bindings=@{};CombatInterval=$null;BuffInterval=$null;BuffCount=$null}
         $editor.Pages[$flavor]=$page
-        $labels=@('开怪战斗键','正常战斗键','非战斗恢复键','战斗紧急恢复键','补 Buff 快捷键')
+        $labels=@('开怪战斗键','正常战斗键','恢复键','补 Buff 快捷键')
         for ($i=0;$i -lt $labels.Count;$i++) {
             $field=$script:autoFightKeyFields[$i]; $x=8+($i%2)*400; $y=44+[Math]::Floor($i/2)*42
             $label=New-Object System.Windows.Forms.Label; $label.Text=$labels[$i]; $label.SetBounds($x,($y+4),212,32)

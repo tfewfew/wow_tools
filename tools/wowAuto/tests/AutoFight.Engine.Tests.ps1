@@ -11,6 +11,19 @@ try {
     $config=Read-AutoFightConfiguration $path
     Assert-Fight ($config.CommandIntervalMs -eq 1200 -and $config.Profiles['forerver:3'].CombatKey -eq 'Ctrl+7' -and $config.Profiles['titan:3'].CombatKey -eq 'F6') 'Version 3 roundtrip / flavor isolation failed.'
     $original=[IO.File]::ReadAllText($path)
+    $v7=$original | ConvertFrom-Json
+    $v7.Version=7
+    foreach ($profile in $v7.Profiles) {$profile | Add-Member NoteProperty EmergencyKey 'F9'}
+    $v7.Profiles | Where-Object {$_.Flavor -eq 'forerver' -and $_.ClassId -eq 3} | ForEach-Object {
+        $_.RecoveryKey='Alt+9';$_.EmergencyKey='Alt+8'
+    }
+    $legacyV7=$v7 | ConvertTo-Json -Depth 5
+    [IO.File]::WriteAllText($path,$legacyV7)
+    $readV7=Read-AutoFightConfiguration $path
+    Assert-Fight ($readV7.Profiles['forerver:3'].RecoveryKey -eq 'Alt+9' -and
+        -not $readV7.Profiles['forerver:3'].PSObject.Properties['EmergencyKey'] -and
+        [IO.File]::ReadAllText($path) -ceq $legacyV7) 'V7 recovery migration changed the ordinary recovery key or rewrote source.'
+    [IO.File]::WriteAllText($path,$original)
     foreach ($value in @('0','99','60001','1.5','no','99999999999999999999999')) {
         [IO.File]::WriteAllText($path,$original)
         $rejected=$false; try { $null=Save-AutoFightProfiles $path $profiles $value } catch { $rejected=$true }
@@ -26,6 +39,7 @@ try {
         $legacyProfile.PSObject.Properties.Remove('TargetKey')
         $legacyProfile.PSObject.Properties.Remove('TargetIntervalMs')
         foreach ($field in @('BuffKey','BuffIntervalSeconds','BuffCount')) {$legacyProfile.PSObject.Properties.Remove($field)}
+        $legacyProfile | Add-Member NoteProperty EmergencyKey 'F9'
         $legacyProfile | Add-Member NoteProperty OpeningIntervalMs 2000
         $legacyProfile | Add-Member NoteProperty EmergencyIntervalMs 1500
         $legacyProfile
@@ -73,6 +87,7 @@ try {
     $oldDocument.Common.PSObject.Properties.Remove('TargetKey')
     $oldDocument.Profiles=@(foreach ($flavor in @('titan','forerver')) {foreach ($id in 1..13) {
         $profile=New-AutoFightProfile $flavor $id
+        $profile | Add-Member NoteProperty EmergencyKey 'F9'
         foreach ($field in @('BuffKey','BuffIntervalSeconds','BuffCount')) {$profile.PSObject.Properties.Remove($field)}
         $profile
     }})
@@ -94,14 +109,17 @@ try {
     }
     $oldJson=Get-Content -Raw $path | ConvertFrom-Json
     $oldJson.Version=5; $oldJson.Common.PSObject.Properties.Remove('TargetKey')
-    foreach ($profile in $oldJson.Profiles) {foreach ($field in @('BuffKey','BuffIntervalSeconds','BuffCount')) {$profile.PSObject.Properties.Remove($field)}}
+    foreach ($profile in $oldJson.Profiles) {
+        foreach ($field in @('BuffKey','BuffIntervalSeconds','BuffCount')) {$profile.PSObject.Properties.Remove($field)}
+        $profile | Add-Member NoteProperty EmergencyKey 'F9'
+    }
     $v5=$oldJson | ConvertTo-Json -Depth 5; [IO.File]::WriteAllText($path,$v5)
     $targetConfig=Read-AutoFightConfiguration $path
     Assert-Fight ($targetConfig.Common.TargetKey -eq 'Tab' -and [IO.File]::ReadAllText($path) -ceq $v5) 'V5 target migration rewrote preferences.'
     $targetConfig.Common.TargetKey='Ctrl+Tab'
     $null=Save-AutoFightProfiles $path $targetConfig.Profiles 700 $targetConfig.Common
     $targetConfig=Read-AutoFightConfiguration $path
-    Assert-Fight ($targetConfig.Common.TargetKey -eq 'Ctrl+Tab' -and (Get-Content -Raw $path | ConvertFrom-Json).Version -eq 7) 'Target key roundtrip failed.'
+    Assert-Fight ($targetConfig.Common.TargetKey -eq 'Ctrl+Tab' -and (Get-Content -Raw $path | ConvertFrom-Json).Version -eq 8) 'Target key roundtrip failed.'
     foreach ($profile in $targetConfig.Profiles.Values) {
         Assert-Fight ((Get-AutoFightEffectiveProfile $profile $targetConfig.Common).TargetKey -eq 'Ctrl+Tab') 'Target key not shared by all servers/classes.'
     }
@@ -121,7 +139,7 @@ try {
     $rejected=$false;try {$null=Read-AutoFightConfiguration $path} catch {$rejected=$true}
     Assert-Fight $rejected 'V6 missing target key accepted.'
     [IO.File]::WriteAllText($path,$original)
-    $targetConfig.Profiles['forerver:11'].EmergencyKey='F10'
+    $targetConfig.Profiles['forerver:11'].RecoveryKey='F10'
     $rejected=$false;try {$null=Save-AutoFightProfiles $path $targetConfig.Profiles 700 $targetConfig.Common} catch {$rejected=$true}
     Assert-Fight ($rejected -and [IO.File]::ReadAllText($path) -ceq $original) 'Other server/class target conflict accepted.'
     $gate=New-AutoFightCommandGate 1000
@@ -129,7 +147,7 @@ try {
     Complete-AutoFightCommand $gate 0 $true
     $session=New-AutoFightSession 0 1
     $p=Get-AutoFightEffectiveProfile $profiles['titan:1'] (New-AutoFightCommon)
-    $packet=[pscustomobject]@{ClassId=1;Flavor='titan';Busy=$false;Combat=$false;Action='opening';EncounterId=1}
+    $packet=[pscustomobject]@{ClassId=1;Flavor='titan';Busy=$false;Combat=$false;Action='opening';Recovery='none';EncounterId=1}
     foreach($action in @('opening','loot','skin','combat')) {
         $packet.Action=$action;$packet.Combat=$action -eq 'combat'
         Assert-Fight ((Get-AutoFightAction $session $packet $p 999) -eq $action -and
@@ -159,5 +177,5 @@ try {
     Complete-AutoFightCommand $gate 1000 $true
     $gate.IntervalMs=2000
     Assert-Fight (-not (Test-AutoFightCommandReady $gate 2999) -and (Test-AutoFightCommandReady $gate 3000)) 'Interval edit reset successful send time.'
-    Assert-Fight (@($session.PSObject.Properties.Name | Where-Object {$_ -in @('State','Substate','OpeningSent','RecoverySent','LootEncounterId')}).Count -eq 0) 'Script retains combat state-machine fields.'
-    Write-Output 'PASS: six-state direct actions, opening/interaction cadence, command gate, JSON v1-v7 migration and atomic settings. No native input.'} finally { if ([IO.File]::Exists($path)) { [IO.File]::Delete($path) } }
+    Assert-Fight (@($session.PSObject.Properties.Name | Where-Object {$_ -in @('State','Substate','OpeningSent','LootEncounterId')}).Count -eq 0) 'Script retains combat main-state fields.'
+    Write-Output 'PASS: six-state direct actions, recovery latch, command gate, JSON v1-v7 migration to v8 and atomic settings. No native input.'} finally { if ([IO.File]::Exists($path)) { [IO.File]::Delete($path) } }

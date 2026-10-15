@@ -23,6 +23,8 @@ function New-TestRow([string]$Key) {
     return [pscustomobject]@{Key=$Key;Process=$process}
 }
 Reset-TestQueue
+Assert-Queue ($script:gameActions.Priorities['Fight.Recover'] -eq 10 -and
+    $script:gameActions.Priorities['Fight.Recover'] -lt $script:gameActions.Priorities['Fight.Combat']) 'Unified recovery does not precede combat input.'
 Add-TestAction late Fight.Combat 500
 Add-TestAction first Fish.Cast 10
 Add-TestAction second Fish.Cast 10

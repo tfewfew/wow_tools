@@ -103,10 +103,10 @@ for _,flavor in ipairs({"titan","forerver"}) do
         assert(not WoWTools.modules.fight_detector.IsEnabled(),"Initial combat flag enables loot")
         local detector
         for _,f in ipairs(frames) do if #f.textures==2 then detector=f end end
-        assert(detector,"Expected exactly two V7 cells")
+        assert(detector,"Expected exactly two V8 cells")
         return detector
     end
-    local saved={rangeSpells={[1]=78},profiles={[3]={DetectionRangeYards=20}}}
+    local saved={rangeSpells={[1]=78},profiles={[3]={DetectionRangeYards=20,HealthEnter=65}}}
     local signal=setup(1,saved)
     local codes={unknown=0,idle=1,opening=2,waiting=3,combat=4,loot=5,skin=6}
     local function pixel(cell)
@@ -117,7 +117,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
         local main=signal.textures[1]
         assert(main.color and #signal.textures==2,flavor..": main cell missing")
         local value=math.floor(main.color[1]*255+.5)
-        assert(value==5+20*codes[action],flavor..": expected "..action.." but main red="..value)
+        assert(value==7+20*codes[action],flavor..": expected "..action.." but main red="..value)
         assert(main.shown and signal.textures[2].shown,"Active cells hidden")
         if output then output:write(flavor," ",action," ",tostring(pixel(main))," ",tostring(pixel(signal.textures[2])),"\n") end
     end
@@ -130,7 +130,13 @@ for _,flavor in ipairs({"titan","forerver"}) do
                 "Physical geometry did not survive window/UI scaling")
         end
     end
-    assert(edits[1].text=="30" and edits[2].text=="5" and warm==0,"Inactive detector warmed item cache")
+    assert(edits[1].text=="30" and edits[2].text=="5" and edits[3].text=="80" and warm==0,
+        "Inactive detector warmed item cache or lost default recovery threshold")
+    edits[3]:SetText("0");buttons[1].scripts.OnClick()
+    assert(saved.profiles[1]==nil,"Invalid recovery threshold was saved")
+    edits[3]:SetText("78");buttons[1].scripts.OnClick()
+    assert(saved.profiles[1].RecoveryThreshold==78 and saved.profiles[1].HealthEnter==nil,
+        "Unified recovery threshold was not saved independently")
     assert(not WoWTools.FightRange.IsSupported(secret) and not WoWTools.FightRange.IsSupported(12))
     mobs.target={guid="Creature-A",distance=31}
     SlashCmdList.FIGHTDETECTOR("on"); expect("idle")
@@ -153,8 +159,8 @@ for _,flavor in ipairs({"titan","forerver"}) do
     assert(signal.textures[1].color[2]>.4,"Uncertain combat cast did not block input")
     castFails=false;tick();expect("combat")
     health=20;tick();expect("combat")
-    assert(signal.textures[2].color[1]==1 and signal.textures[2].color[2]==.15,
-        "Emergency recovery hint did not remain in auxiliary cell")
+    assert(signal.textures[2].color[1]==0 and signal.textures[2].color[2]==.4,
+        "Combat recovery did not use the unified health hint")
     mobs.target.distance=20;tick();expect("waiting")
     mobs.target.distance=50;tick();expect("waiting")
     assert(epoch()==first,"Retreat changed tracked encounter")
@@ -180,7 +186,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     mobs.target=nil
     combat=false;mobs.nameplate1=nil;event("NAME_PLATE_UNIT_REMOVED","nameplate1");tick();expect("idle")
     health=70;tick();expect("idle")
-    assert(signal.textures[2].color[3]==1,"Ordinary recovery hint disappeared")
+    assert(signal.textures[2].color[3]==1,"Noncombat recovery did not use the unified health hint")
     health=secret;tick();expect("idle")
     assert(signal.textures[2].color[1]==.5,"Unknown recovery did not stay in auxiliary cell")
     health=100
@@ -216,10 +222,17 @@ for _,flavor in ipairs({"titan","forerver"}) do
     dead=true;event("PLAYER_DEAD")
     assert(not signal.shown and not WoWTools.modules.fight_detector.IsEnabled(),"Death did not stop detector")
     dead=false;mobs={};signal=setup(3,saved)
-    assert(edits[1].text=="20" and edits[2].text=="5","Class range preference was lost")
+    assert(edits[1].text=="20" and edits[2].text=="5" and edits[3].text=="65",
+        "Class range or legacy recovery threshold was lost")
     mobs.target={guid="Creature-MID-COMBAT",distance=5};combat=true
     SlashCmdList.FIGHTDETECTOR("on");expect("combat")
+    health=70;tick();expect("combat")
+    assert(signal.textures[2].color[1]==.15,"Health above migrated threshold requested recovery")
+    health=64;tick();expect("combat")
+    assert(signal.textures[2].color[3]==1,"Health below migrated threshold did not request recovery")
+    health=65;tick();expect("combat")
+    assert(signal.textures[2].color[1]==.15,"Recovery did not clear at the threshold")
     mobs.target=nil;tick();expect("waiting")
-    print("PASS: "..flavor.." combat-only waiting/combat priority, mid-combat target acquisition, range uncertainty, six-state V7 colors, recovery hint isolation and scaling. Game APIs mocked.")
+    print("PASS: "..flavor.." combat priority, six-state V8 colors, unified health recovery, unknown hint and scaling. Game APIs mocked.")
 end
 if output then output:close() end

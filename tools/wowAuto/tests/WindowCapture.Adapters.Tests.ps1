@@ -51,7 +51,8 @@ try {
     Assert-Capture ([WowAuto.NativeInput]::ReadLureColor(777,123,$fixturePath) -eq 'present' -and [CaptureFixture]::LastOffset -eq 32) 'Fishing item point bypassed the shared source.'
     $screen=[WowAutoRotation.Native]::Capture(777,123,$fixturePath,800,500)
     try {Assert-Capture ($screen.Width -eq 800 -and $screen.Height -eq 500 -and $screen.GetPixel(400,250).R -eq 255 -and [CaptureFixture]::Sizes -eq 1) 'OCR did not use the shared frame and independent size reader.'} finally {$screen.Dispose()}
-    [CaptureFixture]::Canvas.SetPixel(400,250,[Drawing.Color]::FromArgb(144,2,198))
+    [CaptureFixture]::Canvas.SetPixel(400,250,[Drawing.Color]::FromArgb(87,0,196))
+    [CaptureFixture]::Canvas.SetPixel(432,250,[Drawing.Color]::FromArgb(38,38,38))
     $client=New-Object WowAutoFight.Client
     $client.ProcessId=777;$client.StartTicks=123;$client.Path=$fixturePath;$client.Flavor='titan'
     $packet=[WowAutoFight.Native]::Read($client)

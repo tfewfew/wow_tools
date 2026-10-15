@@ -25,7 +25,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 ## 行为约定
 
-- titan版基于原2.1.1独立维护，当前2.1.26/接口38002。forerver版当前2.2.25/接口16001按无限服1.60.1.70338的Blizzard导出源码943764493e6b16d63ded3ab304150d1f05e58b57移植；以后跟随对应分支源码核对API，不能仅改TOC号。
+- titan版基于原2.1.1独立维护，当前2.1.27/接口38002。forerver版当前2.2.26/接口16001按无限服1.60.1.70338的Blizzard导出源码943764493e6b16d63ded3ab304150d1f05e58b57移植；以后跟随对应分支源码核对API，不能仅改TOC号。
 - forerver在Init.lua后加载Compatibility.lua：ItemLocation主手槽16及C_Item.GetItemID/GetItemInfoInstant识别鱼竿，C_Item.GetWeaponEnchantInfo(Enum.WeaponSlot.MainHand)返回列表，只接受有效Temporary附魔，排除Permanent/Imbue；失败或受限/不完整数据为unknown。UnitChannelInfo的技能ID在第8项，绿色只认钓鱼引导；先用issecretvalue排除受限返回再比较/输出，受限引导使主色块灰色。注册WEAPON_ENCHANT_CHANGED并每0.1秒刷新。菜单使用MenuUtil.CreateContextMenu；画面模块移动FramerateFrame整体，不再依赖FramerateLabel全局。未提供的CVar继续禁用，禁止加载时自动改变图形设置。forever测试覆盖全TOC加载，不发送游戏按键。
 - wowAuto同时识别时光服_classic_titan_/WowClassic.exe 3.80.和无限服_cn_beta_/Wow.exe 1.60.，允许游戏根目录位于其他盘符，但产品目录名须匹配。GetClientFlavor同时核对可执行文件名、父目录与构建前缀；未知/无法读取/零售服不加入列表。每行Client保存Flavor、Label、ExecutablePath；启动、取色、焦点切换、发键及正常/超时退出均核对PID、StartTime、路径与客户端身份。C#方法接收启动Ticks和预期路径，不能退回只按Wow进程名操作。
 
@@ -87,14 +87,14 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 - 2026-10-14 补 Buff：PC autoFight.config.json v7的每职业配置增加 BuffKey（默认F11）、BuffIntervalSeconds（0–86400秒，0关闭）及BuffCount（1–20，默认1）；旧v1–v6只读迁移为关闭，下次保存原子升级。角色编排确认登录并启动战斗任务时触发首轮，随后从上一轮最后一次成功发键起计时；每轮按成功次数发送，轮内相邻成功按键至少间隔1000ms，失败不消耗次数。仅在非战斗待机、非忙碌且无移动请求时执行；到期但不安全则延后，停止 / 换角取消当前轮，新会话重新触发。走统一Fight.Buff队列、公共门控、前台与白点及色块复核；两服插件无改动。AutoFight.Buff.Tests及完整UiTest使用合成状态 / 模拟输入验证，不运行真实游戏按键。
 
-- 当前合集版本titan2.1.26、forerver2.2.25，两服独立维护fight_detector.lua；保留fightDetectorDB / rangeSpells及profiles[classId]恢复阈值。战斗通过模块接口关闭钓鱼以恢复音频，不直接读写wowDetectorDB、音频、图形或交互CVar。
+- 当前合集版本titan2.1.27、forerver2.2.26，两服独立维护fight_detector.lua；保留fightDetectorDB / rangeSpells及profiles[classId]恢复阈值。战斗通过模块接口关闭钓鱼以恢复音频，不直接读写wowDetectorDB、音频、图形或交互CVar。
 - autoFight.ps1、Engine.ps1、Native.cs、config.json的状态、输入、计时和配置与autofish隔离，通过wowAuto.Unified.ps1共享进程行、设置宿主和统一输入调度；不再有独立主标签或独立运行计时器，UiTest以模拟类型替代战斗原生操作，不加载战斗输入适配器。
-- 战斗v7只读取主色块：主32×32物理像素位于客户区正中心，副12×12位于中心右32px，只作恢复提示。无心跳、双块校验或颜色变化要求。主RGB=(5+20*mainState,4*(identity+busy*26),4*(encounter+combat*32))；mainState=0为unknown不可执行、1..6为idle/opening/waiting/combat/loot/skin。identity=classId-1+（forerver为13）；encounter模32。通道偏差最多1，拒绝非法字段/组合、版本或职业不符及旧v6协议。恢复普通/紧急/未知仍由副色块显示，脚本本次只读主色块，恢复键设置保留，自动恢复行为待后续修改。
-- HP进入 / 退出阈值默认非战斗80/95、紧急30/50；可选法力恢复默认关闭，只对法力职业生效。0关闭项，进入<退出，迟滞避免状态抖动。受限 / 不可读在恢复副色块提示未知。恢复设置及副色块保留，本次六状态主色块不执行恢复键。
-- 脚本每次直接依据插件主色块Action选动作，不维护主状态、开怪重试状态、恢复门闩或尸体交互历史。开怪先按公共选目标键，再复读主色块，仍为opening才按职业开怪键；每次开怪至少间隔1秒。waiting不发键；combat按职业间隔；loot/skin按交互间隔，skin固定保持2秒。前台发键前重读主色、忙碌和怪物编号，变化即取消旧按键并重新调度；补Buff和跳跃只维护计时。主状态图在tools/wowAuto/README.md，v7跨语言像素夹具及完整UI模拟须覆盖新协议和颜色变化取消旧键。
+- 战斗v8同帧读取主副色块：主32×32物理像素位于客户区正中心，副12×12位于中心右32px。无心跳或颜色变化要求。主RGB=(7+20*mainState,4*(identity+busy*26),4*(encounter+combat*32))；mainState=0为unknown不可执行、1..6为idle/opening/waiting/combat/loot/skin。identity=classId-1+（forerver为13）；encounter模32。副块深灰RGB(38,38,38)表示无需恢复、蓝色(0,102,255)表示需恢复、灰色(128,128,128)表示未知。通道偏差最多1，拒绝非法字段/组合、版本或职业不符及旧v7协议。
+- 每职业只保存RecoveryThreshold，默认80%，仅检测生命值；低于阈值输出蓝色，达到阈值输出深灰，不可读输出灰色并暂停发键。战斗 / 非战斗共用阈值，旧HealthEnter有效值只读迁移，保存后写入新字段。不检测法力，不使用普通 / 紧急恢复分支。
+- 脚本每次直接依据插件主色块Action选主动作，不维护主状态、开怪重试状态或尸体交互历史。副块需恢复时，非忙碌优先发送各职业唯一RecoveryKey；每个低生命期只在成功发键后记一次，副块恢复深灰才重置，未知不重置且暂停输入。开怪先按公共选目标键，再复读两块，仍为opening且恢复提示未变才按职业开怪键；每次开怪至少间隔1秒。waiting不发战斗键；combat按职业间隔；loot/skin按交互间隔，skin固定保持2秒。前台发键前重读两块、忙碌和怪物编号，变化即取消旧按键并重新调度。主状态图在tools/wowAuto/README.md，v8跨语言像素夹具及完整UI模拟须覆盖恢复提示变化取消旧键。
 - 插件不包含移动功能。脚本进程行不再提供前 / 后 / 左 / 右手动移动按钮或点击请求；已有四向键和按住时长配置及引擎兼容逻辑保留，不自动巡逻。若兼容逻辑中已有移动保持，状态变化/到期/停止/刷新/关闭/设置/失焦/主色无效均释放本模块键。
-- 尸体交互按可拾取 → 无剩余战利品且可剥皮驱动；CanLootUnit同时读取hasLoot / canLoot，两项均明确且有权限才拾取，受限 / 不完整返回为unknown。有战利品而无权限时不交互、不判剥皮。LOOT_OPENED / LOOT_CLOSED维护忙碌，LOOT_READY / LOOT_SLOT_CLEARED及轮询刷新；两服独立实现。插件按softinteract尸体GUID在主色块怪物编号中区分交互对象，同一尸体从loot转skin保持编号，新尸体换号。脚本不维护拾取/剥皮历史，插件持续报对应状态时按交互间隔重试；拾取按InteractionHoldMs保持，剥皮固定保持2000ms，状态提前转idle不缩短，进入战斗可提前结束；发键前仍要求非战斗、非忙碌。交互键沿用SkinKey，设置界面明确“拾取 / 剥皮交互键”，默认F7，按脚本Common通用保存；游戏内绑定交互；独立Loot.lua处理已打开窗口的自动拾取及拾取绑定确认，不改变CVar。
-- JSON v7：CommandIntervalMs保留公共100–60000ms间隔；Common保存TargetKey（默认Tab）、四向键、移动时长、交互键/保持/开关及JumpIntervalSeconds，全部服务器职业共享。Profiles包含时光服10职业、无限服9职业的OpeningKey/CombatKey/RecoveryKey/EmergencyKey/CombatIntervalMs、BuffKey/BuffIntervalSeconds/BuffCount及身份；两服排除10/12/13职业，无限服另排除6。设置分别有时光服/无限服Tab，每页独立职业下拉框及按键，按真实职业ID映射德鲁伊11，切换保留草稿及选择。v1–v6只读迁移，下次原子保存升级；删除不可用职业，其余自定义保留，旧跳跃默认0、旧补 Buff 默认关闭；取消/失败不应用。
+- 尸体交互按可拾取 → 无剩余战利品且可剥皮驱动；CanLootUnit同时读取hasLoot / canLoot，两项均明确且有权限才拾取，受限 / 不完整返回为unknown。有战利品而无权限时不交互、不判剥皮。LOOT_OPENED / LOOT_CLOSED维护忙碌，LOOT_READY / LOOT_SLOT_CLEARED及轮询刷新；两服独立实现。插件按softinteract尸体GUID在主色块怪物编号中区分交互对象，同一尸体从loot转skin保持编号，新尸体换号。脚本不维护拾取/剥皮历史，插件持续报对应状态时按交互间隔重试；拾取按InteractionHoldMs保持，剥皮通常保持2000ms，状态提前转idle不缩短，进入战斗或副块首次提示低生命 / 未知可提前结束；发键前仍要求非战斗、非忙碌。交互键沿用SkinKey，设置界面明确“拾取 / 剥皮交互键”，默认F7，按脚本Common通用保存；游戏内绑定交互；独立Loot.lua处理已打开窗口的自动拾取及拾取绑定确认，不改变CVar。
+- JSON v8：CommandIntervalMs保留公共100–60000ms间隔；Common保存TargetKey（默认Tab）、四向键、移动时长、交互键/保持/开关及JumpIntervalSeconds，全部服务器职业共享。Profiles包含时光服10职业、无限服9职业的OpeningKey/CombatKey/RecoveryKey/CombatIntervalMs、BuffKey/BuffIntervalSeconds/BuffCount及身份；各职业只设置一个恢复键，旧EmergencyKey不再使用。两服排除10/12/13职业，无限服另排除6。设置分别有时光服/无限服Tab，每页独立职业下拉框及按键，按真实职业ID映射德鲁伊11，切换保留草稿及选择。v1–v7只读迁移，下次原子保存升级，保留旧RecoveryKey；删除不可用职业，其余自定义保留，旧跳跃默认0、旧补 Buff默认关闭；取消/失败不应用。
 - 本次Windows任务须执行解析、编译和模拟检查，提交并成功推送后同步两服及桌面快捷方式；不运行真实发键循环、采集游戏声音或结束游戏进程。
 
 - 钓鱼JumpEveryCycles按成功收竿循环次数独立保存到config.ini，0–1000000、默认0、步进1，不改为秒计时。满N次在冷却 / 保持后有效红绿状态按空格，未知等待、黄色优先。PostReelJumpAllowed只由本次任务已登记且成功发送的收竿赋予；正在钓鱼、收竿失败、无咬钩超时、停止后重新开始不得立即跳跃。停止 / 刷新保留计数，继承待跳须等下一次成功收竿；成功跳跃/抛竿/停止/超时清除权限。保留成功收竿后绿色恢复跳跃，成功一次清除两种待跳并归零，失败重试。改变N重置、重复保存不重置，原子保存成功才应用。JumpInterval及完整UiTest模拟覆盖两服待跳继承/钓鱼中不跳/失败/超时/下一次成功收竿及原有优先级。
@@ -104,7 +104,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - 距离检测：两服独立fight_detector/Range.lua采用经典 / Forever已知敌对物品探针，档位5/10/15/20/25/30/35/40码，C_Item.IsItemInRange优先、全局接口仅缺省回退，先排除受限返回；缺失、异常、冲突为unknown。加载时预热物品数据，不使用、购买物品或读取怪物坐标。profiles[classId].DetectionRangeYards默认30，顶层AttackRangeYards默认5且为该客户端账号全局；旧rangeSpells保留。面板一次校验全部距离和恢复阈值后保存，非法不部分应用。
 - 开怪后跟踪 GUID；非战斗时范围内有可选怪物报opening，范围外报idle。脚本每次opening先按选目标键、复查仍为opening再按开怪键，至少1秒后若插件继续报opening则重复。确认玩家处于战斗后，主状态只输出编号3 waiting或编号4 combat：本次目标匹配且攻击距离明确满足才报combat，目标丢失/不符、距离不可读或冲突、施法状态不可读均报waiting；不得在战斗中落入尸体交互、开怪或unknown。首次在战斗中开启检测可从当前有效目标建立本次怪物；死亡关闭检测，战斗标志不可读仍报unknown。输入前重查编号；waiting期间不发战斗键，按住键的释放仍立即执行。
 
-- 战斗色块缩放：unit=UIParent:GetHeight()/GetPhysicalScreenSize高度，将主/副尺寸转换为32/12px，主偏移0，副偏移+32px；DISPLAY_SIZE_CHANGED/UI_SCALE_CHANGED及轮询重算。PC通过统一WGC客户区帧在同一PMv2 DPI上下文读取中心，前后窗口几何一致才解码，不缓存旧中心，不读取副块或验证心跳。暂时不可读暂停发键并保留会话，连续800ms失败才停并显示LastReadError及主RGB；保持移动时立即释放。两服FightDistance及AutoFight.Distance跨语言验证v7主RGB/几何/职业/非法/稳定颜色。进程行按监视器位置显示四角/居中/最小化，每秒更新，与钓鱼规则相同。
+- 战斗色块缩放：unit=UIParent:GetHeight()/GetPhysicalScreenSize高度，将主/副尺寸转换为32/12px，主偏移0，副偏移+32px；DISPLAY_SIZE_CHANGED/UI_SCALE_CHANGED及轮询重算。PC通过统一WGC客户区帧在同一PMv2 DPI上下文读取两块中心，前后窗口几何一致才解码，不缓存旧中心或验证心跳。暂时不可读暂停发键并保留会话，连续800ms失败才停并显示LastReadError及主副RGB；保持移动时立即释放。两服FightDistance及AutoFight.Distance跨语言验证v8双块RGB/几何/职业/非法/稳定颜色。进程行按监视器位置显示四角/居中/最小化，每秒更新，与钓鱼规则相同。
 - 自动战斗全局JumpIntervalSeconds=0..3600秒，默认0关闭，Common共享两服职业，各活动进程独立从启动计时。到期在idle/combat且非忙碌、无移动请求时发一次Space；waiting/移动/交互保持延后，主色及前台复查和公共CommandGate仍约束。成功从完成时刻重计，失败不消耗，不重置攻击冷却。成功保存不同值重新计时，相同值保留；停止/刷新取消，重启重计。AutoFight.Jump及完整UiTest模拟验证边界/优先级/失败/独立性/保存隔离，禁止真实游戏按键。
 
 - 选目标与后台检测（2026-10-15 修订）：两服插件只读取当前目标、软敌对目标和姓名板，不创建 SecureActionButton、不覆盖 TargetKey、不设置或读取游戏焦点。插件输出opening后由脚本发送Common.TargetKey（默认Tab）再开怪；战斗中的combat/waiting才要求当前目标GUID匹配本次怪物。脚本键须由用户绑定到游戏原生选目标动作，插件无对应设置；旧fightDetectorDB.TargetKey字段忽略。公共键校验和公共门控保留。
@@ -112,7 +112,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 - 两服 Init.lua 各自创建 WoWTools.detectorAnchor 在 UIParent 正中心，钓鱼与战斗主色中心重合，战斗副块中心位于主块右侧 32 物理像素。WoWTools.ActivateDetector 在成功启动前停止并隐藏另一个检测，覆盖命令、按钮、小地图及菜单入口。切出钓鱼恢复音频快照，切出战斗清理会话；战斗检测不创建或清理按键绑定。死亡或未初始化拒绝启动时保留原模块。DetectorExclusion.Tests.lua 模拟两服互斥、所有入口、显隐、失败、音频恢复、无绑定及缩放位置。
 
-- 六状态v7主块以完整32×32物理像素显示编码颜色，不再使用钓鱼等待红外层或中心2×2子纹理；恢复副块保持原颜色与位置，脚本不读取副块。按相同unit换算，保留缩放及奇偶客户区中心采样。FightDistance.Tests.lua输出实际主中心颜色供C#解码，DetectorExclusion验证切换时上一模块色块隐藏。
+- 六状态v8主块以完整32×32物理像素显示编码颜色，不再使用钓鱼等待红外层或中心2×2子纹理；恢复副块位置不变，使用统一生命阈值的深灰/蓝/灰三色，脚本读取副块。按相同unit换算，保留缩放及奇偶客户区中心采样。FightDistance.Tests.lua输出实际主副中心颜色供C#解码，DetectorExclusion验证切换时上一模块色块隐藏。
 
 - 选目标键配置验证：AutoFight.Engine 覆盖脚本配置只读迁移、默认 Tab、组合键往返、全职业共享、冲突及原子保存；完整 UiTest 覆盖按键录入、草稿、保存、重开、取消与生产选目标流程。FightDistance 分别验证两服插件没有按键输入框、覆盖绑定或焦点读取，旧 SavedVariables.TargetKey 不恢复旧功能；非战斗范围内有可选目标即回报开怪，所有操作模拟。
 
@@ -130,7 +130,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - 共用全局轮换截止，到期先停全部参与进程的任务，再逐窗对仍在世界内的进程发送登出请求；所有参与进程的登出请求处理完之后，轮流检查选角界面，未进入的进程让出轮次，已进入的进程立即OCR识别并缓存角色点击位置。全部有效进程识别完成后才逐窗点击，所有点击结束后才逐窗确认登录并验证。已在选角界面的进程跳过登出。0关闭后续定时轮换，过期批次完成后等待完整周期。停止 / 刷新 / 关闭取消任务，角色切换清除CompletedCycles / CyclesSinceJump，不改成功收竿后的跳跃约束。
 - 登出队列优先于选角队列：logout-activate等待200ms，logout-inspect用白点判断是否发送stopcasting / logout，结束后转入选角队列；下一进程仍待登出时禁止启动OCR。选角阶段activate等待200ms，menu中退出未完成每30秒重试。随后按位置识别队列Queue → ClickQueue批量点击 → LoginQueue确认登录 / 白点复核使能任务运行。OCR只在menu / find执行，唯一目标位置连续两次稳定后缓存并立即Stop-RotationOcr；click / login / validate绝不启动OCR；初次已在选角界面可直接识别。
 - 选角界面只需在预期客户区位置识别右上“选择服务器”或中下“进入魔兽世界”之一，连续三次确认，不依赖系统公告或配置名当前可见。每次OCR截图前把光标移到客户区左上角；仅识别当前第一页，禁止滚顶或翻页。角色列表用上述N-1规则，长度不同、两个以上字符错误或匹配歧义不点击。日志列出OCR识别到的第一页名字、行号以及准备点击的行号。目标名字及比例坐标连续两次稳定后，先生成两段100–250ms随机间隔，再连续点击三次；第一页连续三次未找到配置名字则停止本行。
-- 两服独立LoginPoint.lua在Init后加载，当前合集titan2.1.26 / forerver2.2.25。右下角向左 / 向上各内缩16物理像素的16×16白点，避开Windows圆角裁切；纯白RGB255/255/255、鼠标穿透、高层级，独立于任何检测开关或面板，不保存请求编号；PLAYER_ENTERING_WORLD显示，PLAYER_LEAVING_WORLD / LOGOUT隐藏。768/画面高度/有效缩放换算，尺寸 / UI事件即时及每1秒轮询重定位；常驻白点只确认世界就绪，不编码角色身份。不要恢复旧Rotation.lua、wowRotationDB或arm / probe命令。
+- 两服独立LoginPoint.lua在Init后加载，当前合集titan2.1.27 / forerver2.2.26。右下角向左 / 向上各内缩16物理像素的16×16白点，避开Windows圆角裁切；纯白RGB255/255/255、鼠标穿透、高层级，独立于任何检测开关或面板，不保存请求编号；PLAYER_ENTERING_WORLD显示，PLAYER_LEAVING_WORLD / LOGOUT隐藏。768/画面高度/有效缩放换算，尺寸 / UI事件即时及每1秒轮询重定位；常驻白点只确认世界就绪，不编码角色身份。不要恢复旧Rotation.lua、wowRotationDB或arm / probe命令。
 - login每300ms检测白点，连续三次存在后进入validate；validate再次检查，缺失回login且不使能。Send-ScanDetectorCommand是钓鱼 / 战斗监控开启的公共入口，必须先检查白点；轮换自动启动前再次检查，普通钓鱼 / 战斗前台调度也在按键前检查。白点读样核对身份 / 前台 / 遮挡 / 几何，取客户区右下内缩16px后的16×16区域（x=客户区宽度-32,y=客户区高度-32）中的内部12×12近白区域，不按桌面绝对坐标读取。
 - 战斗白点复核只在需要实际发键、取得前台并满足激活等待后执行；不得放到后台Native.Read之前或后台交互保持轮询内。白点读取要求前台，后台读取会误报并将CanStart置false，导致单行开始被锁。Test-AutoFightLoginPoint显式核对前台，模拟用例覆盖后台监测 / 刷新 / 保持不误锁及前台白点缺失不发键。Set-RowControls的停止条件须包含running，启动资格失效时仍可停止已有任务。
 - OCR用Windows zh-Hans-CN，独立runspace，只有选角整图及名字预处理图；移除世界HUD识别。小窗口放大、按OcrEngine.MaxImageDimension限制输入两轴，右侧名字区域宽度按客户区高度的47%裁剪以保留窗口化列表首字，NamesBounds记录实际比例。高亮背景会改变OCR字形；黄色文字预处理与整图OCR互补，不放宽唯一N-1名称规则。Windows OCR返回非零TextAngle时将文字框中心从OCR去斜坐标旋回原图；用至少三行黄色角色名校准第一页首行和行距，校准不足时回退首行Y=11.9%、行距7.43%，X取右侧NamesBounds区域中心；不使用OCR文字框中心直接点击。唯一匹配配置角色名的文字中心距对应行中心最多允许3.4%客户区高度偏移，其他文字仍用2%门槛。鼠标坐标用DPI感知的当前客户区物理原点及尺寸映射；截图前独立记录系统客户区宽高，异步识别返回及点击前重读系统尺寸并直接比较，任一维度相对原始尺寸变化超过5%时丢弃重识别；位置不参与缓存复核，三连击内部仍核对当次几何。5%以内的变化按当前尺寸映射缓存比例坐标后下发，禁止直接复用旧绝对坐标。
@@ -141,11 +141,11 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 ## 公共优先级动作队列（2026-10-13）
 
 - 用户要求所有游戏动作使用同一个队列并提供可调整的多级优先级。wowAuto.ActionQueue.ps1 是唯一执行器，主25ms计时器驱动钓鱼、战斗、刷新、角色编排、正常退出 / 30秒超时结束及窗口恢复；生产扫描不再启动独立动作计时器。用户要求每轮处理所有应该处理的事件：执行器循环消化当前已到期且可执行事件，每个事件后重读单调时钟并复核优先级 / 冷却 / 保持 / 对象身份，回调新增的可执行事件也在本轮处理；前台激活等待不阻塞独立后台事务，同级和更低优先级窗口事务仍等待。不得恢复每轮只推进一个事件，也不得用无等待循环反复重试未稳定窗口。各自状态机及只读探测保持独立，Unified模式共享schedulerClock，避免跨模块截止时间偏移。
-- action-priorities.json v1保存事件与数值，越小越优先，仅比较到期事件，依优先级 / 截止 / 入队序号排序。同意图按ID去重、状态变化替换；停止 / 刷新 / 重启取消旧对象身份的动作。Safety.Release=0和Hold.Pulse=5为保留级，普通事件10–999；默认Fight.Emergency=10、Fight.Combat=20、Fish.Reel=30；用户明确要求正常战斗高于钓鱼收竿。完整默认清单在tools/wowAuto/ACTION_PRIORITIES.md。修改优先级后重启工具。不得恢复两套输入调度器直接争抢前台。
+- action-priorities.json v1保存事件与数值，越小越优先，仅比较到期事件，依优先级 / 截止 / 入队序号排序。同意图按ID去重、状态变化替换；停止 / 刷新 / 重启取消旧对象身份的动作。Safety.Release=0和Hold.Pulse=5为保留级，普通事件10–999；默认Fight.Recover=10、Fight.Combat=20、Fish.Reel=30；用户明确要求正常战斗高于钓鱼收竿。完整默认清单在tools/wowAuto/ACTION_PRIORITIES.md。修改优先级后重启工具。不得恢复两套输入调度器直接争抢前台。
 - 所有激活、发键、鼠标、松键、CloseMainWindow / Kill及RestoreAfterScan必须有队列执行上下文。窗口激活等待200ms、800ms超时；更高优先级动作可以抢占尚未发键的激活等待，恢复时重新激活并重计等待 / 超时。组合键 / 聊天宏 / 选角三次点击是不可穿插的业务事务。战斗入队前后台探测，执行前核对实际动作及原有身份 / 职业 / 遭遇 / 主色 / 前台白点；不将白点放到后台探测之前。
 - 角色编排的队列动作及状态机前台检查使用单调时钟，在暂时激活失败或失焦时每500ms重试，连续5秒无法取得前台才停止该行；成功取得前台后仍等待200ms稳定。进程身份改变立即停止。非角色编排动作保留原800ms规则；不得在调度器单次调用内忙等。
 - 角色编排只要还有当前切换或排队进程，就独占前台。钓鱼、战斗、刷新及窗口恢复等其他进程事件不得激活窗口或发键，即使数值优先级更高；已有的非编排激活等待须撤销并在整批完成后重新等待200ms。安全松键、保持监测和进程退出检查继续处理。允许先完成登录的进程建立任务状态，但任务输入直到最后一个进程登录验证完成才下发；不要在不同进程选角间插入钓鱼或战斗动作。
-- 原有收竿 / 道具 / 战斗移动 / 交互保持继续阻挡普通事件，释放及保持监测可执行；紧急恢复也受保持约束，监测发现恢复色块变化可提前结束战斗保持。松键通过同一执行器同步排队，只有Safety事件可嵌套执行。战斗公共门控、钓鱼成功收竿循环跳跃、OCR周期 / 缩放定位、两服插件协议不变。
+- 原有收竿 / 道具 / 战斗移动 / 交互保持继续阻挡普通事件，释放及保持监测可执行；副块初次报需要恢复或未知时提前结束战斗保持，释放后恢复仍受公共门控约束。松键通过同一执行器同步排队，只有Safety事件可嵌套执行。战斗公共门控、钓鱼成功收竿循环跳跃、OCR周期 / 缩放定位保留。
 - Windows 维护按本文件的解析、模拟验证及提交推送后同步流程执行；历史 mac 会话中不验证、不同步 Windows 的要求不适用于本次 Windows 任务。不得将模拟通过写成游戏实测。
 
 - 2026-10-13 Windows圆角修复：贴边白点会被系统窗口圆角裁掉，原内部12×12全白校验拒绝。两服LoginPoint定位及PC LoginPointBounds同时内缩16物理像素，保持点本身16×16；仍拒绝部分白 / 遮挡 / 失焦 / 几何变化，不能放宽为任意白像素。LoginPoint.Tests仅编译生产C#及合成图像验证圆角缺失、内缩定位、奇偶窗口尺寸及遮挡，Rotation.Tests分别验证两服缩放后的物理内缩。
@@ -186,7 +186,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - 本节按用户最新要求覆盖历史屏幕取色 / PrintWindow后备、白点前台限制、OCR截图前停放光标及全编排阶段激活的约定。所有画面读取统一进入wowAuto.Capture.cs / ps1，以Windows.Graphics.Capture按HWND获取独立客户区帧；NativeInput、Rotation.Native、Fight.Native仅注入通用帧 / 像素 / 尺寸委托，不跨用钓鱼或战斗状态机。支持Windows 10 1903及以上，运行时解析WinRT，不依赖SDK、NuGet或外部DLL；捕获错误明确失败，不退回屏幕截图。
 - 每次请求核对PID / StartTicks / 路径 / 两服版本及窗口句柄。最小化清旧帧，Capture.Restore=45进入同一个游戏动作队列，在队列回调使用ShowWindowAsync(...,4=SW_SHOWNOACTIVATE)；恢复每500ms最多一次、从队列首次实际恢复起5秒期限（排队等待不计），禁止SetForegroundWindow及等待前台。读样恢复后等待新帧；首帧 / 尺寸更新最多5秒，重试100ms，不作为白点消失、协议关闭或焦点失败。停止取消该身份的恢复请求；旧恢复事件不得作用于新会话 / PID复用。
 - WGC使用每窗口MTA后台线程和CreateFreeThreaded帧池 / D3D11资源，GUI只复制已准备的客户区帧。QPC帧时间超过1500ms、恢复之前的帧、全黑或几何不匹配的帧不参与判断；按DWM实际画面边界与PMv2 ClientToScreen / GetClientRect裁剪客户区，排除标题栏及边框，尺寸改变重建帧池。10秒无请求释放会话，关闭工具异步释放全部资源；不能在UI线程同步等待捕获服务关闭。
-- 系统ClientSize继续独立获取，不依赖OCR或Bitmap尺寸，宽高各自与原始缓存比较、<=5%容忍且不滚动基准。白点位置 / 16px内缩 / 16×16及内部12×12校验、v7战斗协议、中心鱼饵32px偏移和钓鱼成功收竿跳跃不变。Windows 10 2004及以上可排除捕获指针；较旧系统以系统行为为准，不在后台OCR截图时移动全局鼠标。
+- 系统ClientSize继续独立获取，不依赖OCR或Bitmap尺寸，宽高各自与原始缓存比较、<=5%容忍且不滚动基准。白点位置 / 16px内缩 / 16×16及内部12×12校验、v8战斗协议、中心鱼饵32px偏移和钓鱼成功收竿跳跃不变。Windows 10 2004及以上可排除捕获指针；较旧系统以系统行为为准，不在后台OCR截图时移动全局鼠标。
 - 钓鱼后台检测仅需要发键时将同一事件转为Foreground，重新读样后下发；状态更新 / AudioTimeout不激活。同进程较低优先级后台读取不能改写等待前台的意图，高优先级到期收竿仍能抢占。战斗检测 / 刷新Sample / 编排menu、find、login、validate均后台；logout-send / menu-logout / click / enable才取得前台，仍保留200ms稳定 / 编排5秒及普通输入800ms规则。全批登出→全部识别→全部点击→全部登录屏障及整批输入互斥不变，Capture.Restore允许在批次期间执行。
 - WindowCapture.Adapters.Tests使用合成帧及注入委托覆盖全部原生读取入口、身份传递、白点与主 / 鱼饵像素、OCR独立尺寸及Pending传播；ActionQueue增加非激活恢复 / 后台读取不抢占焦点和100ms首帧等待模拟。按用户当前Mac要求未运行任何解析 / 编译 / 测试 / 游戏 / UI验证，也未同步Windows，完成后直接提交推送。
 
