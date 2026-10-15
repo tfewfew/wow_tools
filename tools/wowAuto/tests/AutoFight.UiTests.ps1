@@ -13,7 +13,7 @@ namespace WowAutoFight {
         public static bool LastCtrl=false,LastShift=false,LastAlt=false;
         public static int ReadsUntilEncounterChange=0;
         public static int ReadsUntilActionChange=0;
-        public static string NextAction="waiting";
+        public static string NextAction="idle";
         public static int ReadsUntilRecoveryChange=0;
         public static string NextRecovery="none";
         public static int MissingReads=0;
@@ -202,7 +202,7 @@ try {
         $script:autoFight.Clock.ElapsedMilliseconds=$Now
         [WowAutoFight.Native]::Current.Flavor=$Row.Client.Flavor
         [WowAutoFight.Native]::Current.Action=$Action
-        [WowAutoFight.Native]::Current.Combat=$Action -in @('waiting','combat')
+        [WowAutoFight.Native]::Current.Combat=$Action -eq 'combat'
         [WowAutoFight.Native]::Current.Busy=$false
         $Row.Session=New-AutoFightSession $Now 1
         $pending=New-AutoFightPending $Row $Row.Session $false 0
@@ -211,7 +211,7 @@ try {
     function Tick-FightColor($Row,[string]$Action,[long]$Now) {
         $script:autoFight.Clock.ElapsedMilliseconds=$Now
         [WowAutoFight.Native]::Current.Action=$Action
-        [WowAutoFight.Native]::Current.Combat=$Action -in @('waiting','combat')
+        [WowAutoFight.Native]::Current.Combat=$Action -eq 'combat'
         $pending=New-AutoFightPending $Row $Row.Session $false 0
         $pending.Activated=$true;$pending.SampleAt=0;$script:autoFight.Pending=$pending
         Invoke-AutoFightTick
@@ -236,8 +236,8 @@ try {
     Tick-FightColor $fightRows[0] 'opening' 2000
     Assert-Ui ([WowAutoFight.Native]::Sends -eq 4 -and [WowAutoFight.Native]::Codes[2] -eq 9 -and
         [WowAutoFight.Native]::Codes[3] -eq 116) 'Opening loop did not repeat target then opener.'
-    Tick-FightColor $fightRows[0] 'waiting' 2100
-    Assert-Ui ([WowAutoFight.Native]::Sends -eq 4) 'Combat waiting sent a key.'
+    Tick-FightColor $fightRows[0] 'idle' 2100
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 4) 'Idle color sent an attack key.'
     Tick-FightColor $fightRows[0] 'combat' 3000
     Assert-Ui ([WowAutoFight.Native]::Sends -eq 5) 'Combat color did not send attack key.'
     $savedInteractionHoldMs=$script:autoFight.Common.InteractionHoldMs
@@ -256,7 +256,7 @@ try {
     $script:autoFight.Common.InteractionHoldMs=$savedInteractionHoldMs
     [WowAutoFight.Native]::Current.EncounterId=3
     [WowAutoFight.Native]::ReadsUntilActionChange=3
-    [WowAutoFight.Native]::NextAction='waiting'
+    [WowAutoFight.Native]::NextAction='idle'
     Tick-FightColor $fightRows[0] 'opening' 8000
     Assert-Ui ([WowAutoFight.Native]::Sends -eq 7) 'Color changed before input but old opener ran.'
     [WowAutoFight.Native]::ReadsUntilActionChange=4
@@ -287,8 +287,10 @@ try {
     [WowAutoFight.Native]::MissingReads=0
     $script:autoFight.Common.JumpIntervalSeconds=2
     Prepare-FightInput $fightRows[0] 'idle' 50000;Invoke-AutoFightTick
-    Tick-FightColor $fightRows[0] 'waiting' 52000
-    Assert-Ui ([WowAutoFight.Native]::Sends -eq 11) 'Jump bypassed waiting color.'
+    [WowAutoFight.Native]::Current.Busy=$true
+    Tick-FightColor $fightRows[0] 'combat' 52000
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 11) 'Jump bypassed busy combat.'
+    [WowAutoFight.Native]::Current.Busy=$false
     Tick-FightColor $fightRows[0] 'idle' 54000
     Assert-Ui ([WowAutoFight.Native]::Sends -eq 12 -and [WowAutoFight.Native]::LastCode -eq 32) 'Due jump did not use Space.'
     $script:autoFight.Common.JumpIntervalSeconds=0
@@ -297,21 +299,21 @@ try {
     Assert-Ui ([WowAutoFight.Native]::Sends -eq 12 -and -not $fightRows[0].Session) 'Missing login point permitted opening.'
     $fightRows[0].Client.LoginPointPresent=$true
     [WowAutoFight.Native]::Current.Recovery='recover'
-    Prepare-FightInput $fightRows[0] 'waiting' 62000;Invoke-AutoFightTick
+    Prepare-FightInput $fightRows[0] 'idle' 62000;Invoke-AutoFightTick
     Assert-Ui ([WowAutoFight.Native]::Sends -eq 13 -and [WowAutoFight.Native]::LastCode -eq 119 -and
         $fightRows[0].Session.RecoveryReadyAt -eq 92000 -and
         $script:gameActions.History[-1].Kind -eq 'Fight.Recover') 'Low health did not queue and cool down the class recovery key.'
-    Tick-FightColor $fightRows[0] 'waiting' 63000
+    Tick-FightColor $fightRows[0] 'idle' 63000
     Assert-Ui ([WowAutoFight.Native]::Sends -eq 13) 'Recovery repeated before cooldown expired.'
-    [WowAutoFight.Native]::Current.Recovery='unknown';Tick-FightColor $fightRows[0] 'waiting' 64000
+    [WowAutoFight.Native]::Current.Recovery='unknown';Tick-FightColor $fightRows[0] 'idle' 64000
     Assert-Ui ([WowAutoFight.Native]::Sends -eq 13 -and $fightRows[0].Session.RecoveryReadyAt -eq 92000) 'Unknown health reset cooldown.'
-    [WowAutoFight.Native]::Current.Recovery='none';Tick-FightColor $fightRows[0] 'waiting' 65000
+    [WowAutoFight.Native]::Current.Recovery='none';Tick-FightColor $fightRows[0] 'idle' 65000
     Assert-Ui ($fightRows[0].Session.RecoveryReadyAt -eq 92000) 'Healthy auxiliary color reset cooldown.'
     [WowAutoFight.Native]::Current.Recovery='recover'
     [WowAutoFight.Native]::ReadsUntilRecoveryChange=2
-    Tick-FightColor $fightRows[0] 'waiting' 92000
+    Tick-FightColor $fightRows[0] 'idle' 92000
     Assert-Ui ([WowAutoFight.Native]::Sends -eq 13 -and $fightRows[0].Session.RecoveryReadyAt -eq 92000) 'Auxiliary color changed before input but stale recovery ran.'
-    [WowAutoFight.Native]::Current.Recovery='recover';Tick-FightColor $fightRows[0] 'waiting' 93000
+    [WowAutoFight.Native]::Current.Recovery='recover';Tick-FightColor $fightRows[0] 'idle' 93000
     Assert-Ui ([WowAutoFight.Native]::Sends -eq 14 -and $fightRows[0].Session.RecoveryReadyAt -eq 123000) 'Still-low health did not recover after cooldown.'
     Stop-AutoFightAll
     $script:autoFight.Profiles['titan:1'].BuffKey='Ctrl+F11'
@@ -350,7 +352,7 @@ try {
     Write-Output 'PASS: per-class buff settings save/reopen/cancel/locked rollback, initial and interval cycles through the production queue with one-second spacing. Mock input only.'
     Write-Output 'PASS: combat settings 100 ms step/common draft/profile isolation/save/cancel/locked failure; mocked production input gate for all states, cross-window, release, restart and send failure. No real native operations.'
     Write-Output 'PASS: unified window-frame login point permits background reads; missing point blocks foreground input and restored readiness unlocks start.'
-    Write-Output 'PASS: production combat UI adapter samples each process on a one-second schedule, repeats opener, waits for range, applies recovery cooldown through the priority queue, and rechecks both colors before input.'
+    Write-Output 'PASS: production combat UI adapter samples each process on a one-second schedule, repeats opener, attacks in combat, applies recovery cooldown through the priority queue, and rechecks both colors before input.'
     Write-Output 'PASS: independent client tabs/class selection/sparse class IDs, supported classes, changing process positions, global jump save/cancel/failure/disabled/exact deadline/busy/wait deferral/Space/shared gate. Game operations mocked.'
 } finally {
     Close-AutoFightTab

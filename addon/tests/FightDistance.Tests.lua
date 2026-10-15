@@ -7,8 +7,6 @@ for _,flavor in ipairs({"titan","forerver"}) do
     local mobs, class={}, nil
     local secret=setmetatable({}, {__eq=function() error("Compared secret") end,__tostring=function() error("Printed secret") end})
     local restricted,failed,missing,conflicting,castFails=false,false,false,false,false
-    local swingRange=nil
-    local knownBlocked,zeroRange=false,false
     local skinningCast=false
     local lootReads,skinReads=0,0
     local messages,warm={},0
@@ -25,26 +23,8 @@ for _,flavor in ipairs({"titan","forerver"}) do
         return mob and mob.distance<=distances[item] or false
     end
     C_Item={IsItemInRange=check,RequestLoadItemDataByID=function() warm=warm+1 end}
-    C_SwingTimer={IsTargetWithinSwingRange=function(kind) assert(kind==0); return swingRange end}
-    local meleeIds={[78]=true,[20243]=true,[2973]=true,[49998]=true,[49143]=true}
-    Enum={SpellBookSpellBank={Player=0}}
-    C_SpellBook={IsSpellKnown=function(id) return not knownBlocked and (meleeIds[id] or false) end}
-    C_Spell={
-        IsSpellHarmful=function(id) return id==2764 end,
-        GetSpellInfo=function(id)
-            if meleeIds[id] then return {name="Melee "..id,minRange=0,maxRange=zeroRange and 0 or 5} end
-        end,
-        IsSpellInRange=function(id,unit)
-            assert(unit=="target" and meleeIds[id],"Melee must inspect the selected target")
-            if failed then error("melee range unavailable") end
-            if missing then return nil end
-            if restricted then return secret end
-            local mob=mobs[unit]
-            local inRange=mob and mob.distance<=5 or false
-            if conflicting and id==20243 then return not inRange end
-            return inRange
-        end,
-    }
+    C_SwingTimer={IsTargetWithinSwingRange=function() error("Combat must not check melee range") end}
+    C_Spell={IsSpellInRange=function() error("Combat must not check spell range") end}
     function UnitDistanceSquared() error("Do not infer enemy yards from unavailable coordinates") end
     function UnitPosition() error("Do not read enemy positions") end
     local function widget(name)
@@ -179,34 +159,16 @@ for _,flavor in ipairs({"titan","forerver"}) do
     local first=epoch()
     mobs.target.distance=5; tick(); expect("opening")
     event("UNIT_SPELLCAST_SUCCEEDED","player",secret,2764); expect("opening")
-    combat=true;mobs.target.distance=30;tick();expect("waiting")
+    combat=true;mobs.target.distance=30;tick();expect("combat")
     mobs.target.distance=5;tick();expect("combat")
-    assert(WoWTools.FightRange.CheckMelee("target",6)==true,
-        "Death Knight melee attack was not checked")
-    assert(WoWTools.FightRange.CheckMelee("softenemy",6)==nil,
-        "Melee attack accepted a non-selected target")
-    swingRange=false;tick();expect("waiting")
-    swingRange=true;tick();expect("combat")
-    swingRange=nil
-    knownBlocked=true;tick();expect("waiting")
-    knownBlocked=false;zeroRange=true;tick();expect("waiting")
-    zeroRange=false;tick();expect("combat")
-    local modernCheck=C_Spell.IsSpellInRange
-    C_Spell.IsSpellInRange=nil
-    IsSpellInRange=function(name,unit)
-        assert(unit=="target" and name:match("^Melee "),"Legacy melee spell name missing")
-        return 1
-    end
-    tick();expect("combat")
-    C_Spell.IsSpellInRange=modernCheck;IsSpellInRange=nil
-    castFails=true;tick();expect("waiting")
+    castFails=true;tick();expect("combat")
     assert(signal.textures[1].color[2]>.4,"Uncertain combat cast did not block input")
     castFails=false;tick();expect("combat")
     health=20;tick();expect("combat")
     assert(signal.textures[2].color[1]==0 and signal.textures[2].color[2]==.4,
         "Combat recovery did not use the unified health hint")
-    mobs.target.distance=20;tick();expect("waiting")
-    mobs.target.distance=50;tick();expect("waiting")
+    mobs.target.distance=20;tick();expect("combat")
+    mobs.target.distance=50;tick();expect("combat")
     assert(epoch()==first,"Retreat changed tracked encounter")
     mobs.target.dead=true;combat=false;health=100;tick();expect("idle")
     mobs.target=nil
@@ -244,8 +206,8 @@ for _,flavor in ipairs({"titan","forerver"}) do
     event("NAME_PLATE_UNIT_ADDED","nameplate1");tick();expect("opening")
     assert(not names.wowToolsFightTargetButton,"Plugin created a targeting button")
     mobs.target=mobs.nameplate1;mobs.target.distance=5;combat=true;tick();expect("combat")
-    mobs.target=nil;tick();expect("waiting")
-    mobs.target={guid="Creature-OTHER",distance=5};tick();expect("waiting")
+    mobs.target=nil;tick();expect("combat")
+    mobs.target={guid="Creature-OTHER",distance=5};tick();expect("combat")
     mobs.target=nil
     combat=false;mobs.nameplate1=nil;event("NAME_PLATE_UNIT_REMOVED","nameplate1");tick();expect("idle")
     health=70;tick();expect("idle")
@@ -257,15 +219,15 @@ for _,flavor in ipairs({"titan","forerver"}) do
     tick();expect("opening")
     combat=true;tick();expect("combat")
     mobs.softinteract={guid="Creature-CORPSE-C",dead=true,interactable=true,loot=true,canLoot=true}
-    restricted=true;tick();expect("waiting")
-    restricted=false;failed=true;tick();expect("waiting")
-    failed=false;missing=true;tick();expect("waiting")
-    missing=false;conflicting=true;tick();expect("waiting")
+    restricted=true;tick();expect("combat")
+    restricted=false;failed=true;tick();expect("combat")
+    failed=false;missing=true;tick();expect("combat")
+    missing=false;conflicting=true;tick();expect("combat")
     conflicting=false;tick();expect("combat")
     health=secret;tick();expect("combat")
     assert(signal.textures[2].color[1]==.5,"Unknown recovery changed the combat main state")
     health=100
-    dead=secret;tick();expect("waiting")
+    dead=secret;tick();expect("combat")
     dead=false;tick();expect("combat")
     combat=secret;tick();expect("unknown")
     combat=true;tick();expect("combat")
@@ -275,7 +237,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
         if failOnce then failOnce=false;error("transient paint error") end
         return originalPaint(self,...)
     end
-    tick();expect("waiting")
+    tick();expect("combat")
     tick();expect("combat")
     signal.textures[1].SetColorTexture=originalPaint
     mobs.softinteract=nil
@@ -295,7 +257,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     assert(signal.textures[2].color[3]==1,"Health below migrated threshold did not request recovery")
     health=65;tick();expect("combat")
     assert(signal.textures[2].color[1]==.15,"Recovery did not clear at the threshold")
-    mobs.target=nil;tick();expect("waiting")
+    mobs.target=nil;tick();expect("combat")
     assert(lootReads==0 and skinReads==0,"Interaction color still reads loot or skin tooltip APIs")
     print("PASS: "..flavor.." combat priority, one interactable-corpse color, busy interaction, recovery and scaling. Game APIs mocked.")
 end

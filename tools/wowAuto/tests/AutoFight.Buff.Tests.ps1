@@ -1,4 +1,4 @@
-$ErrorActionPreference='Stop'
+﻿$ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.Windows.Forms
 . (Join-Path $PSScriptRoot '..\autoFight.Engine.ps1')
 function Assert-Buff($Condition,[string]$Message) {if (-not $Condition) {throw $Message}}
@@ -51,7 +51,7 @@ try {
     Assert-Buff ((Get-AutoFightAction $session $packet $profile 1300) -eq 'wait') 'Buff interrupted a busy action.'
     $packet.Busy=$false;$packet.Combat=$true;$packet.Action='combat'
     Assert-Buff ((Get-AutoFightAction $session $packet $profile 1400) -ne 'buff' -and $session.BuffRemaining -eq 2) 'Buff ran in combat or lost remaining count.'
-    $packet.Combat=$true;$packet.Action='waiting'
+    $packet.Combat=$true;$packet.Action='combat'
     Assert-Buff ((Get-AutoFightAction $session $packet $profile 1500) -ne 'buff') 'Buff displaced combat waiting.'
     $packet.Combat=$false;$packet.Action='idle'
     Assert-Buff ((Get-AutoFightAction $session $packet $profile 1600) -eq 'buff') 'Deferred buff did not resume after combat waiting.'

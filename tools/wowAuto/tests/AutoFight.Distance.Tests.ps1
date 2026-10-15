@@ -13,7 +13,7 @@ $actions=@('unknown','idle','opening','waiting','combat','interact')
 foreach ($flavor in @('titan','forerver')) {
     foreach ($class in (Get-AutoFightClassIds $flavor)) {
         foreach ($encounter in @(0,17,31)) {
-            foreach ($entry in @(@(1,$false,$false),@(2,$false,$false),@(3,$true,$false),
+            foreach ($entry in @(@(1,$false,$false),@(2,$false,$false),@(4,$true,$false),
                 @(4,$true,$true),@(5,$false,$false),@(5,$false,$true))) {
                 $packet=[WowAutoFight.Native]::Decode((Test-Packet $flavor $class $entry[0] $entry[1] $entry[2] $encounter),$flavor)
                 Assert-Distance ($packet -and $packet.Action -eq $actions[$entry[0]] -and $packet.ClassId -eq $class -and
@@ -46,7 +46,7 @@ foreach ($flavor in @('titan','forerver')) {
     Assert-Distance ((Get-AutoFightAction $session $opening $profile 0) -eq 'opening') 'Opening color did not request targeting and opener.'
     Complete-AutoFightAction $session $profile 'opening' 0
     Assert-Distance ((Get-AutoFightAction $session $opening $profile 999) -eq 'opening') 'Opening retained an independent interval.'
-    Assert-Distance ((Get-AutoFightAction $session $waiting $profile 100) -eq 'wait') 'Waiting color sent input.'
+    Assert-Distance ($null -eq $waiting) 'Removed waiting color accepted.'
     Assert-Distance ((Get-AutoFightAction $session $combat $profile 200) -eq 'combat') 'Combat color did not immediately replace opener cooldown.'
     Complete-AutoFightAction $session $profile 'combat' 200
     Assert-Distance ((Get-AutoFightAction $session $combat $profile 699) -eq 'combat') 'Combat retained an independent interval.'

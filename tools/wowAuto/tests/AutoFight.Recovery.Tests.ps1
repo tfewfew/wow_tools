@@ -1,4 +1,4 @@
-$ErrorActionPreference='Stop'
+﻿$ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -Path (Join-Path $PSScriptRoot '..\autoFight.Native.cs') -ReferencedAssemblies System.Drawing
 . (Join-Path $PSScriptRoot '..\autoFight.Engine.ps1')
@@ -26,7 +26,7 @@ foreach ($flavor in @('titan','forerver')) {
     Assert-Recovery ((Get-AutoFightAction $session $unknown $effective 5) -eq 'wait' -and $session.RecoveryReadyAt -eq 30003) 'Unknown health reset cooldown.'
     Assert-Recovery ((Get-AutoFightAction $session $normal $effective 6) -eq 'wait' -and $session.RecoveryReadyAt -eq 30003) 'Healthy hint reset cooldown.'
     Assert-Recovery ((Get-AutoFightAction $session $low $effective 30003) -eq 'recover') 'Still-low health did not retrigger at cooldown boundary.'
-    $low.Action='waiting';$low.Combat=$true
+    $low.Action='combat';$low.Combat=$true
     $combatSession=New-AutoFightSession 0 1
     Assert-Recovery ((Get-AutoFightAction $combatSession $low $effective 0) -eq 'recover') 'Combat waiting suppressed unified recovery.'
     $low.Busy=$true
@@ -38,7 +38,7 @@ foreach ($flavor in @('titan','forerver')) {
     Assert-Recovery ((Get-AutoFightAction $combatSession $low $effective 1000) -eq 'combat') 'Recovery cooldown blocked main-color combat.'
     $unknown.Action='combat';$unknown.Combat=$true
     Assert-Recovery ((Get-AutoFightAction $combatSession $unknown $effective 1000) -eq 'combat') 'Unknown auxiliary blocked main color during recovery cooldown.'
-    $low.Action='waiting'
+    $low.Action='combat'
     $low.Action='recover'
     Assert-Recovery ((Get-AutoFightAction $combatSession $low $effective 3) -eq 'identity-changed') 'Recovery was accepted as a main state.'
 }

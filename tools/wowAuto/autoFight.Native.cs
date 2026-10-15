@@ -201,10 +201,10 @@ namespace WowAutoFight
             int identity=identityBusy%26, classId=identity%13+1;
             string flavor=identity<13 ? "titan" : "forerver";
             if (flavor!=expectedFlavor || classId==10 || classId>11 || (flavor=="forerver" && classId==6)) return null;
-            string[] actions={"unknown","idle","opening","waiting","combat","interact"};
+            string[] actions={"unknown","idle","opening",null,"combat","interact"};
             string state=actions[action];
             bool combat=encounterCombat>=32, busy=identityBusy>=26;
-            if (combat ? (state!="waiting" && state!="combat") : (state=="waiting" || state=="combat")) return null;
+            if (state==null || (combat != (state=="combat"))) return null;
             string recovery=ColorNear(cells[1],38,38,38) ? "none"
                 : ColorNear(cells[1],0,102,255) ? "recover"
                 : ColorNear(cells[1],128,128,128) ? "unknown" : null;

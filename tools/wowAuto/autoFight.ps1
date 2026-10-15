@@ -274,8 +274,7 @@ function Invoke-AutoFightTick([bool]$AllowInput=$true,[switch]$PlanOnly,[string]
         if ($ExpectedAction -and $action -ne $ExpectedAction) {Finish-AutoFightPending $now;return}
         if ($action -eq 'wait') {
             if ($PlanOnly) {Remove-GameActions -Key $row.Client.Key -Domain Fight}
-            $detail=if ($packet.Action -eq 'waiting') { '不下发按键，等待进入攻击距离' }
-                elseif ($packet.Busy) { '施法 / 交互中，等待' } else { '等待下一次状态处理' }
+            $detail=if ($packet.Busy) { '施法 / 交互中，等待' } else { '等待下一次状态处理' }
             Set-AutoFightStatus $row ($script:autoFightStates[$packet.Action].Label+" · $detail · $combatText")
             Finish-AutoFightPending $now; return
         }

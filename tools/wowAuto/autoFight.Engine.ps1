@@ -8,7 +8,6 @@ function Get-AutoFightClassIds([string]$Flavor) {
 }
 $script:autoFightStates = [ordered]@{
     'opening'=@{Label='选中怪物并开怪'; Key='OpeningKey'; Interval=$null}
-    'waiting'=@{Label='战斗等待接近'; Key=$null; Interval=$null}
     'combat'=@{Label='正常战斗'; Key='CombatKey'; Interval=$null}
     'move-forward'=@{Label='向前移动'; Key='MoveForwardKey'; Interval=$null}
     'move-backward'=@{Label='向后移动'; Key='MoveBackwardKey'; Interval=$null}
@@ -273,14 +272,14 @@ function Get-AutoFightAction($Session,$Packet,$Profile,[long]$Now) {
     Set-AutoFightJumpInterval $Session $Profile.JumpIntervalSeconds $Now
     Set-AutoFightBuffSchedule $Session $Profile $Now
     if ($Packet.ClassId -ne $Session.ClassId -or $Packet.Flavor -ne $Profile.Flavor) { return 'identity-changed' }
-    if ($Packet.Action -notin @('idle','opening','waiting','combat','interact')) { return 'identity-changed' }
+    if ($Packet.Action -notin @('idle','opening','combat','interact')) { return 'identity-changed' }
     if ($Packet.Recovery -notin @('none','recover','unknown')) { return 'identity-changed' }
     if ($Packet.Action -ne 'idle' -or $Packet.Busy) {$Session.MovementRequest=''}
     if ($Now -ge $Session.RecoveryReadyAt) {
         if ($Packet.Recovery -eq 'unknown') {return 'wait'}
         if ($Packet.Recovery -eq 'recover' -and -not $Packet.Busy) {return 'recover'}
     }
-    if ($Packet.Busy -or $Packet.Action -eq 'waiting') {return 'wait'}
+    if ($Packet.Busy) {return 'wait'}
     if ($Session.NextBuffAt -le $Now -and $Packet.Action -eq 'idle' -and -not $Session.MovementRequest) {
         if ($Session.BuffRemaining -eq 0) {$Session.BuffRemaining=$Session.BuffCount}
         return 'buff'

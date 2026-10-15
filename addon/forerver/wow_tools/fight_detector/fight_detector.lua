@@ -9,16 +9,15 @@ local encounterGUID, encounterSerial = nil, 0
 local interactionGUID = nil
 local state, combat, busy = "disabled", false, false
 local health, settings = nil, nil
-local meleeStatus=nil
 local events, SetActiveEvents
 local recovery="none"
 local recoveryDescriptions={none="无需恢复", recover="需要恢复", unknown="恢复状态未知"}
 local defaultRecoveryThreshold=80
 -- V8: looting and skinning share one interaction state; health stays auxiliary.
 -- The main cell also carries client/class, busy, combat and encounter metadata.
-local actionCodes={unknown=0,idle=1,opening=2,waiting=3,combat=4,interact=5}
+local actionCodes={unknown=0,idle=1,opening=2,combat=4,interact=5}
 local descriptions={disabled="已关闭",unknown="数据未知，暂停指令",idle="等待目标",
-    opening="范围内有怪物，选中并开怪",waiting="战斗中等待近战可达",combat="可发起近战攻击",
+    opening="范围内有怪物，选中并开怪",combat="战斗中，持续攻击",
     interact="尸体可交互"}
 
 local function Readable(value)
@@ -231,7 +230,6 @@ local function Stop()
     enabled,elapsed,state,combat,busy=false,0,"disabled",false,false
     if SetActiveEvents then SetActiveEvents(false) end
     health,recovery=nil,"none"
-    meleeStatus=nil
     SetEncounter(nil)
     interactionGUID=nil
     signal:Hide()
@@ -243,30 +241,18 @@ local function Refresh()
     if dead==true then Stop(); Say("角色死亡，检测已关闭；复活后请手动启动。"); return end
     combat=Bool(UnitAffectingCombat,"player")
     busy=false
-    meleeStatus=nil
     if combat==nil then recovery="unknown"; SetState("unknown"); return end
     local vitalsKnown=Vitals()
     local cast,castOK=Read(UnitCastingInfo,"player")
     local channel,channelOK=Read(UnitChannelInfo,"player")
     if not castOK or not channelOK then
         recovery,busy="unknown",true
-        SetState(combat and "waiting" or "unknown"); return
+        SetState(combat and "combat" or "unknown"); return
     end
     busy=not not (cast or channel or lootOpen or (LootFrame and LootFrame:IsShown()))
     recovery=not vitalsKnown and "unknown" or (health<settings.RecoveryThreshold and "recover" or "none")
-    -- Combat is the first main-state decision. Uncertain target/melee stays in
-    -- waiting, never falls through to opening, corpse interaction or unknown.
-    if combat then
-        if dead==nil then SetState("waiting"); return end
-        local unit,guid=FindEnemy()
-        if not unit then SetState("waiting"); return end
-        SetEncounter(guid)
-        local targetGUID,targetOK=Read(UnitGUID,"target")
-        if not targetOK or targetGUID~=guid then SetState("waiting"); return end
-        local closeEnough=range.CheckMelee("target",classID)
-        meleeStatus=closeEnough
-        SetState(closeEnough==true and "combat" or "waiting"); return
-    end
+    -- Combat alone drives the attack state; target and distance do not gate it.
+    if combat then SetState("combat"); return end
     if dead==nil then SetState("unknown"); return end
     if busy and state=="interact" then
         SetState(state); return
@@ -300,7 +286,7 @@ local function SafeRefresh()
     local ok=pcall(Refresh)
     if not ok then
         busy,recovery=true,"unknown"
-        if combat==true then state="waiting" else state,combat="unknown",nil end
+        if combat==true then state="combat" else state,combat="unknown",nil end
         Paint()
     end
 end
@@ -418,6 +404,6 @@ SLASH_FIGHTDETECTOR1="/fightdetector"
 SlashCmdList.FIGHTDETECTOR=function(message)
     local command=(message or ""):lower():match("^%s*(.-)%s*$")
     if command=="off" or command=="hide" then Stop(); panel:Hide()
-    elseif command=="status" then Say((descriptions[state] or state).." · 检测="..(settings and settings.DetectionRangeYards or "?").."码 / 近战="..tostring(meleeStatus).." / encounter="..encounterSerial.." · class="..tostring(classID))
+    elseif command=="status" then Say((descriptions[state] or state).." · 检测="..(settings and settings.DetectionRangeYards or "?").."码 / encounter="..encounterSerial.." · class="..tostring(classID))
     else Start() end
 end

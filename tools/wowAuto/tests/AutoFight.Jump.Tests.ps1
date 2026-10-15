@@ -1,4 +1,4 @@
-$ErrorActionPreference='Stop'
+﻿$ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.Windows.Forms
 . (Join-Path $PSScriptRoot '..\autoFight.Engine.ps1')
 function Assert-Jump($Condition,[string]$Message) {if (-not $Condition) {throw $Message}}
@@ -15,8 +15,8 @@ foreach ($flavor in @('titan','forerver')) {
     Assert-Jump ((Get-AutoFightAction $session $packet $profile 2200) -eq 'jump' -and $session.NextJumpAt -eq 2100) 'Failed jump consumed deadline.'
     $packet.Busy=$true
     Assert-Jump ((Get-AutoFightAction $session $packet $profile 2300) -eq 'wait') 'Jump interrupted casting.'
-    $packet.Busy=$false; $packet.Action='waiting'
-    Assert-Jump ((Get-AutoFightAction $session $packet $profile 2400) -eq 'wait') 'Jump bypassed waiting.'
+    $packet.Busy=$false; $packet.Action='opening'
+    Assert-Jump ((Get-AutoFightAction $session $packet $profile 2400) -eq 'opening') 'Opening should defer jump and keep opening.'
     $packet.Action='combat'; $packet.Recovery='none'
     Assert-Jump ((Get-AutoFightAction $session $packet $profile 3100) -eq 'jump') 'Combat color did not resume due jump.'
     $recoveryDeadline=$session.RecoveryReadyAt
