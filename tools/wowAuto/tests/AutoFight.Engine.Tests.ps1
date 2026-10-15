@@ -127,56 +127,37 @@ try {
     $gate=New-AutoFightCommandGate 1000
     Assert-Fight (Test-AutoFightCommandReady $gate 0) 'Initial command blocked.'
     Complete-AutoFightCommand $gate 0 $true
-    $packet=[pscustomobject]@{ClassId=1; Flavor='titan'; Busy=$false; Combat=$false; Action='opening'; Recovery='none'; EncounterId=1}
-    $session=New-AutoFightSession 0 1; $p=Get-AutoFightEffectiveProfile $profiles['titan:1'] (New-AutoFightCommon)
-    foreach($state in @('target','opening','combat','recover','emergency','move-forward','move-backward','move-left','move-right','loot','skin')) {
-        $packet.Action=if ($state.StartsWith('move-')) {'idle'} else {$state}
-        $packet.Recovery=if ($state -in @('recover','emergency')) {$state} else {'none'}
-        $packet.Combat=$state -in @('combat','emergency')
-        $session.MovementRequest=if ($state.StartsWith('move-')) {$state.Substring(5)} else {''}
-        $null=Update-AutoFightState $session $packet 999
-        if ($state -eq 'skin') {$session.LootEncounterId=$packet.EncounterId}
-        Assert-Fight ((Get-AutoFightAction $session $packet $p 999) -eq $state -and -not (Test-AutoFightCommandReady $gate 999)) 'State transition must not bypass common gate.'
+    $session=New-AutoFightSession 0 1
+    $p=Get-AutoFightEffectiveProfile $profiles['titan:1'] (New-AutoFightCommon)
+    $packet=[pscustomobject]@{ClassId=1;Flavor='titan';Busy=$false;Combat=$false;Action='opening';EncounterId=1}
+    foreach($action in @('opening','loot','skin','combat')) {
+        $packet.Action=$action;$packet.Combat=$action -eq 'combat'
+        Assert-Fight ((Get-AutoFightAction $session $packet $p 999) -eq $action -and
+            -not (Test-AutoFightCommandReady $gate 999)) 'Plugin action bypassed the common input gate.'
     }
-    $corpse=New-AutoFightSession 0 1
-    $corpsePacket=[pscustomobject]@{ClassId=1;Flavor='titan';Busy=$false;Combat=$false;Action='skin';Recovery='none';EncounterId=11}
-    $null=Update-AutoFightState $corpse $corpsePacket 0
-    Assert-Fight ((Get-AutoFightAction $corpse $corpsePacket $p 0) -eq 'wait') 'Skinning began before this corpse was looted.'
-    $corpsePacket.Action='loot';$null=Update-AutoFightState $corpse $corpsePacket 100
-    Assert-Fight ((Get-AutoFightAction $corpse $corpsePacket $p 100) -eq 'loot') 'Lootable corpse was skipped.'
-    Complete-AutoFightAction $corpse $p 'loot' 100
-    $corpsePacket.Action='skin';$null=Update-AutoFightState $corpse $corpsePacket 200
-    Assert-Fight ((Get-AutoFightAction $corpse $corpsePacket $p 200) -eq 'skin') 'Looted skinnable corpse did not get one attempt.'
-    Complete-AutoFightAction $corpse $p 'skin' 200
-    Assert-Fight ((Get-AutoFightAction $corpse $corpsePacket $p 10000) -eq 'wait') 'Same corpse was skinned twice after cooldown.'
-    $corpsePacket.Action='idle';$null=Update-AutoFightState $corpse $corpsePacket 10100
-    $corpsePacket.Action='skin';$null=Update-AutoFightState $corpse $corpsePacket 10200
-    Assert-Fight ((Get-AutoFightAction $corpse $corpsePacket $p 10200) -eq 'wait') 'Same corpse was skinned twice after temporary disappearance.'
-    $corpsePacket.EncounterId=12;$corpsePacket.Action='loot';$null=Update-AutoFightState $corpse $corpsePacket 10300
-    Complete-AutoFightAction $corpse $p 'loot' 10300
-    $corpsePacket.Action='skin';$null=Update-AutoFightState $corpse $corpsePacket 10400
-    Assert-Fight ((Get-AutoFightAction $corpse $corpsePacket $p 10400) -eq 'skin') 'New corpse inherited previous skin attempt.'
+    Complete-AutoFightAction $session $p 'opening' 1000
+    $packet.Action='opening';$packet.Combat=$false
+    Assert-Fight ((Get-AutoFightAction $session $packet $p 1999) -eq 'wait' -and
+        (Get-AutoFightAction $session $packet $p 2000) -eq 'opening') 'Opening loop ignored one-second cadence.'
+    $packet.Action='skin'
+    Assert-Fight ((Get-AutoFightAction $session $packet $p 1001) -eq 'skin') 'Script retained a corpse history gate.'
+    Complete-AutoFightAction $session $p 'skin' 1001
+    Assert-Fight ((Get-AutoFightAction $session $packet $p (1001+$p.InteractionHoldMs-1)) -eq 'wait' -and
+        (Get-AutoFightAction $session $packet $p (1001+$p.InteractionHoldMs)) -eq 'skin') 'Skin interaction interval ignored.'
     Assert-Fight ((Get-AutoFightHoldDuration $p 'skin') -eq 2000 -and
-        (Get-AutoFightHoldDuration $p 'loot') -eq $p.InteractionHoldMs -and
-        (Get-AutoFightHoldDuration $p 'move-forward') -eq $p.MovementHoldMs) 'Skin duration changed loot or movement settings.'
-    $skinHold=[pscustomobject]@{State='skin';Movement=$false;Until=12400L}
-    $corpsePacket.Action='idle'
-    Assert-Fight (-not (Test-AutoFightHoldFinished $skinHold $corpsePacket 12399) -and
-        (Test-AutoFightHoldFinished $skinHold $corpsePacket 12400)) 'Skin hold did not last exactly two seconds after action changed.'
-    $corpsePacket.Recovery='recover'
-    Assert-Fight (-not (Test-AutoFightHoldFinished $skinHold $corpsePacket 11000)) 'Ordinary recovery shortened the two-second skin hold.'
-    $corpsePacket.Recovery='none'
-    $corpsePacket.Combat=$true
-    Assert-Fight (Test-AutoFightHoldFinished $skinHold $corpsePacket 11000) 'Combat failed to interrupt skin hold.'
-    $corpsePacket.Combat=$false
+        (Get-AutoFightHoldDuration $p 'loot') -eq $p.InteractionHoldMs) 'Skin duration changed loot setting.'
+    $skinHold=[pscustomobject]@{State='skin';Movement=$false;Until=3001L}
+    $packet.Action='idle'
+    Assert-Fight (-not (Test-AutoFightHoldFinished $skinHold $packet 3000) -and
+        (Test-AutoFightHoldFinished $skinHold $packet 3001)) 'Skin hold ended before two seconds.'
+    $packet.Combat=$true
+    Assert-Fight (Test-AutoFightHoldFinished $skinHold $packet 1500) 'Combat failed to interrupt skin hold.'
+    $packet.Combat=$false
     Assert-Fight (Test-AutoFightCommandReady $gate 1000) 'Exact interval boundary blocked.'
     Complete-AutoFightCommand $gate 1000 $false
     Assert-Fight ($gate.LastSentAt -eq 0 -and (Test-AutoFightCommandReady $gate 1000)) 'Failed input advanced common timer.'
     Complete-AutoFightCommand $gate 1000 $true
     $gate.IntervalMs=2000
     Assert-Fight (-not (Test-AutoFightCommandReady $gate 2999) -and (Test-AutoFightCommandReady $gate 3000)) 'Interval edit reset successful send time.'
-    $packet.Action='combat'; $null=Update-AutoFightState $session $packet 3000
-    Complete-AutoFightAction $session $p 'combat' 3000
-    Assert-Fight ((Get-AutoFightAction $session $packet $p 3499) -eq 'wait') 'Existing longer profile cooldown ignored.'
-    Write-Output 'PASS: combat common interval boundaries/all states, one skin attempt after loot per corpse, failed sends, edits, cooldown, JSON v1-v7 migration/custom common settings/conflict/isolation/invalid/atomic failure; default Tab and shared configurable target key. No native input.'
-} finally { if ([IO.File]::Exists($path)) { [IO.File]::Delete($path) } }
+    Assert-Fight (@($session.PSObject.Properties.Name | Where-Object {$_ -in @('State','Substate','OpeningSent','RecoverySent','LootEncounterId')}).Count -eq 0) 'Script retains combat state-machine fields.'
+    Write-Output 'PASS: six-state direct actions, opening/interaction cadence, command gate, JSON v1-v7 migration and atomic settings. No native input.'} finally { if ([IO.File]::Exists($path)) { [IO.File]::Delete($path) } }

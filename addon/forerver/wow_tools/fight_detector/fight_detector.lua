@@ -16,12 +16,11 @@ local recoveryDescriptions={none="无需恢复", recover="非战斗恢复", emer
 local recovering, emergency = false, false
 local settingDefaults = { HealthEnter=80, HealthExit=95, ManaEnter=0, ManaExit=90,
     EmergencyEnter=30, EmergencyExit=50 }
--- V6: main cell contains the plugin-owned main state, recovery, client/class, busy, combat and encounter.
--- Auxiliary cell is a visual recovery hint only; there is no heartbeat.
-local actionCodes={unknown=0,idle=1,target=2,opening=3,waiting=4,combat=5,recover=6,emergency=7,loot=8,skin=9}
-local recoveryCodes={none=0,recover=1,emergency=2,unknown=3}
+-- V7: six actionable main states; recovery remains a separate visual hint.
+-- The main cell also carries client/class, busy, combat and encounter metadata.
+local actionCodes={unknown=0,idle=1,opening=2,waiting=3,combat=4,loot=5,skin=6}
 local descriptions={disabled="已关闭",unknown="数据未知，暂停指令",idle="等待目标",
-    target="等待选中本次怪物",opening="已选中怪物，开怪",waiting="等待怪物接近",combat="进入攻击距离",
+    opening="范围内有怪物，选中并开怪",waiting="战斗中等待怪物接近",combat="进入攻击距离",
     recover="非战斗恢复",emergency="战斗紧急恢复",loot="可以拾取",skin="可以剥皮"}
 
 local function Readable(value)
@@ -125,11 +124,7 @@ signal:SetAllPoints(UIParent)
 signal:SetFrameStrata("TOOLTIP")
 signal:EnableMouse(false)
 local cells={signal:CreateTexture(nil,"OVERLAY"),signal:CreateTexture(nil,"OVERLAY")}
--- A two-pixel inset inside the main cell preserves the center-only V6 sample.
--- The surrounding main cell can use the same red as fishing while out of combat.
-local dataCell=signal:CreateTexture(nil,"OVERLAY",nil,1)
-dataCell:Hide()
-for _,cell in ipairs({cells[1],cells[2],dataCell}) do
+for _,cell in ipairs(cells) do
     if cell.SetSnapToPixelGrid then cell:SetSnapToPixelGrid(false) end
     if cell.SetTexelSnappingBias then cell:SetTexelSnappingBias(0) end
 end
@@ -147,39 +142,23 @@ local function PositionSignal()
         local size=(i==1 and 32 or 12)*unit
         cell:SetSize(size,size)
     end
-    dataCell:ClearAllPoints()
-    dataCell:SetPoint("CENTER",WoWTools.detectorAnchor,"CENTER",0,0)
-    dataCell:SetSize(2*unit,2*unit)
     if enabled and panel:IsShown() then signal:Show() else signal:Hide() end
     return true
 end
 local function Paint()
     if enabled and classID and PositionSignal() then
-        -- Waiting for range stays quiet; otherwise recovery owns the main state.
-        local mainState=state=="waiting" and "waiting" or
-            ((recovery=="recover" or recovery=="emergency") and recovery or state)
-        local action=actionCodes[mainState] or 0
+        local action=actionCodes[state] or 0
         local identity=(FLAVOR=="titan" and 0 or 13)+classID-1
         local encounter=encounterSerial%32
-        local recover=recoveryCodes[recovery] or 3
-        local red=2+5*(action*4+recover)
+        local red=5+20*action
         local r,g,b=red/255,(4*(identity+(busy and 26 or 0)))/255,
             (4*(encounter+(combat and 32 or 0)))/255
-        dataCell:SetColorTexture(r,g,b,1)
-        if combat==false and state~="unknown" and recovery~="unknown" then
-            cells[1]:SetColorTexture(1,0,0,1)
-            dataCell:Show()
-        else
-            cells[1]:SetColorTexture(r,g,b,1)
-            dataCell:Hide()
-        end
+        cells[1]:SetColorTexture(r,g,b,1)
         local hints={none={.15,.15,.15},recover={0,.4,1},emergency={1,.15,0},unknown={.5,.5,.5}}
         local hint=hints[recovery] or hints.unknown
         cells[2]:SetColorTexture(hint[1],hint[2],hint[3],1)
     else signal:Hide() end
-    local displayedState=state=="waiting" and "waiting" or
-        ((recovery=="recover" or recovery=="emergency") and recovery or state)
-    status:SetText((descriptions[displayedState] or descriptions.unknown).." · 战斗："..
+    status:SetText((descriptions[state] or descriptions.unknown).." · 战斗："..
         (combat==nil and "未知" or (combat and "是" or "否"))..
         "\n"..(recoveryDescriptions[recovery] or "恢复未知").." · HP "..(health and math.floor(health).."%" or "?")..
         (mana and (" / MP "..math.floor(mana).."%") or "")..(busy and " · 忙碌" or ""))
@@ -351,12 +330,15 @@ local function Refresh()
     if dead==true then Stop(); Say("角色死亡，检测已关闭；复活后请手动启动。"); return end
     combat=Bool(UnitAffectingCombat,"player")
     skin,busy=false,false
-    if dead==nil or combat==nil or not Vitals() then recovery="unknown"; SetState("unknown"); return end
+    local vitalsKnown=Vitals()
+    if dead==nil or combat==nil then recovery="unknown"; SetState("unknown"); return end
     local cast,castOK=Read(UnitCastingInfo,"player")
     local channel,channelOK=Read(UnitChannelInfo,"player")
     if not castOK or not channelOK then recovery="unknown"; SetState("unknown"); return end
     busy=not not (cast or channel or lootOpen or (LootFrame and LootFrame:IsShown()))
-    if combat then
+    if not vitalsKnown then
+        recovery="unknown"
+    elseif combat then
         recovering=false
         emergency=settings.EmergencyEnter>0 and (health<=settings.EmergencyEnter
             or (emergency and health<settings.EmergencyExit))
@@ -375,7 +357,7 @@ local function Refresh()
     if busy and not combat and (state=="skin" or state=="loot") then
         skin=state=="skin"; SetState(state); return
     end
-    if not combat and not recovering and not busy then
+    if not combat and not busy then
         local interaction,guid=Interaction()
         if interaction then
             SetEncounter(nil)
@@ -388,17 +370,16 @@ local function Refresh()
     local unit,guid,unknown=FindEnemy()
     if unit then
         SetEncounter(guid)
-        local targetGUID,targetOK=Read(UnitGUID,"target")
-        if not targetOK then SetState("unknown"); return end
-        if targetGUID~=guid then SetState("target"); return end
         if combat then
+            local targetGUID,targetOK=Read(UnitGUID,"target")
+            if not targetOK or targetGUID~=guid then SetState("unknown"); return end
             local closeEnough=range.Check(unit,attackRange)
             if closeEnough==nil then SetState("unknown"); return end
             SetState(closeEnough and "combat" or "waiting"); return
         end
         local detected=range.Check(unit,settings.DetectionRangeYards)
         if detected==nil then SetState("unknown"); return end
-        SetState(detected and "opening" or "waiting"); return
+        SetState(detected and "opening" or "idle"); return
     end
     if combat or unknown then SetState("unknown"); return end
     SetEncounter(nil)

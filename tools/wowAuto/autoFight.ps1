@@ -76,10 +76,6 @@ function Invoke-AutoFightHold([long]$Now) {
             throw '保持期间检测关闭或协议不可读，已释放移动键。'
         }
         if ($packet.ClassId -ne $hold.Session.ClassId -or $packet.Flavor -ne $row.Client.Flavor) { throw '职业或客户端发生变化，已释放移动键。' }
-        $previous=$hold.Session.State
-        if (Update-AutoFightState $hold.Session $packet $Now) {
-            Set-AutoFightStatus $row ("主状态切换："+$script:autoFightStates[$previous].Label+" → "+$script:autoFightStates[$hold.Session.State].Label)
-        }
         if (Test-AutoFightHoldFinished $hold $packet $Now) { [void](Release-AutoFightHold) }
     }
     catch {
@@ -272,19 +268,14 @@ function Invoke-AutoFightTick([bool]$AllowInput=$true,[switch]$PlanOnly,[string]
         }
         $session=$pending.Session
         $profile=Get-AutoFightEffectiveProfile $script:autoFight.Profiles["$($row.Client.Flavor):$($session.ClassId)"] $script:autoFight.Common
-        $previous=$session.State
-        if (Update-AutoFightState $session $packet $now) {
-            $before=if ($previous) { $script:autoFightStates[$previous].Label } else { '初始' }
-            Set-AutoFightStatus $row ("状态切换：$before → "+$script:autoFightStates[$session.State].Label)
-        }
         $action=Get-AutoFightAction $session $packet $profile $now
         if ($action -eq 'identity-changed') { $row.CanStart=$false; Stop-AutoFightRow $row '角色职业或协议状态改变，请刷新。'; return }
         if ($ExpectedAction -and $action -ne $ExpectedAction) {Finish-AutoFightPending $now;return}
         if ($action -eq 'wait') {
             if ($PlanOnly) {Remove-GameActions -Key $row.Client.Key -Domain Fight}
-            $detail=if ($session.State -eq 'waiting') { '不下发按键，等待进入攻击距离' }
+            $detail=if ($packet.Action -eq 'waiting') { '不下发按键，等待进入攻击距离' }
                 elseif ($packet.Busy) { '施法 / 交互中，等待' } else { '等待下一次状态处理' }
-            Set-AutoFightStatus $row ($script:autoFightStates[$session.State].Label+" · $detail · $combatText")
+            Set-AutoFightStatus $row ($script:autoFightStates[$packet.Action].Label+" · $detail · $combatText")
             Finish-AutoFightPending $now; return
         }
         if ($PlanOnly) {
@@ -313,14 +304,8 @@ function Invoke-AutoFightTick([bool]$AllowInput=$true,[switch]$PlanOnly,[string]
         # Re-read the main color immediately before input.
         $latest=[WowAutoFight.Native]::Read($row.Client)
         if ($null -eq $latest -or $latest.ClassId -ne $packet.ClassId -or $latest.Action -ne $packet.Action -or
-            $latest.Recovery -ne $packet.Recovery -or $latest.Combat -ne $packet.Combat -or $latest.Busy -ne $packet.Busy -or
+            $latest.Combat -ne $packet.Combat -or $latest.Busy -ne $packet.Busy -or
             $latest.EncounterId -ne $packet.EncounterId) {
-            if ($latest -and $latest.ClassId -eq $session.ClassId -and $latest.Flavor -eq $row.Client.Flavor) {
-                $previous=$session.State
-                if (Update-AutoFightState $session $latest $script:autoFight.Clock.ElapsedMilliseconds) {
-                    Set-AutoFightStatus $row ("主状态切换："+$script:autoFightStates[$previous].Label+" → "+$script:autoFightStates[$session.State].Label)
-                }
-            }
             if ($latest) {
                 Set-AutoFightStatus $row '颜色已变化，旧按键已取消；按插件新主状态继续。'
                 Finish-AutoFightPending $script:autoFight.Clock.ElapsedMilliseconds -Immediate
@@ -336,7 +321,24 @@ function Invoke-AutoFightTick([bool]$AllowInput=$true,[switch]$PlanOnly,[string]
             Set-AutoFightStatus $row ('等待公共最小按键间隔：'+$script:autoFight.CommandGate.IntervalMs+' ms。')
             Finish-AutoFightPending $now; return
         }
-        if ($movement) { $sent=[WowAutoFight.Native]::BeginHold($row.Client,[uint16]$binding.Code,$binding.Ctrl,$binding.Shift,$binding.Alt) }
+        if ($action -eq 'opening') {
+            $targetBinding=ConvertFrom-AutoFightBinding $profile.TargetKey
+            $sent=[WowAutoFight.Native]::Press($row.Client,[uint16]$targetBinding.Code,$targetBinding.Ctrl,$targetBinding.Shift,$targetBinding.Alt)
+            if (-not $sent) {throw '选目标前失去前台。'}
+            Complete-AutoFightCommand $script:autoFight.CommandGate $script:autoFight.Clock.ElapsedMilliseconds $true
+            # Target selection and opener are one transaction. Recheck the plugin
+            # before the second key; a changed main state cancels the opener.
+            $afterTarget=[WowAutoFight.Native]::Read($row.Client)
+            if (-not $afterTarget -or $afterTarget.Action -ne 'opening' -or $afterTarget.ClassId -ne $packet.ClassId -or
+                $afterTarget.Flavor -ne $row.Client.Flavor -or $afterTarget.EncounterId -ne $packet.EncounterId -or
+                $afterTarget.Busy -or -not [WowAutoFight.Native]::Foreground($row.Client)) {
+                Set-AutoFightStatus $row '已选中目标；插件状态变化，取消本次开怪键。'
+                Finish-AutoFightPending $script:autoFight.Clock.ElapsedMilliseconds -Immediate
+                return
+            }
+            $sent=[WowAutoFight.Native]::Press($row.Client,[uint16]$binding.Code,$binding.Ctrl,$binding.Shift,$binding.Alt)
+        }
+        elseif ($movement) { $sent=[WowAutoFight.Native]::BeginHold($row.Client,[uint16]$binding.Code,$binding.Ctrl,$binding.Shift,$binding.Alt) }
         else { $sent=[WowAutoFight.Native]::Press($row.Client,[uint16]$binding.Code,$binding.Ctrl,$binding.Shift,$binding.Alt) }
         if (-not $sent) { throw '发键前失去前台。' }
         $completed=$script:autoFight.Clock.ElapsedMilliseconds
@@ -349,6 +351,7 @@ function Invoke-AutoFightTick([bool]$AllowInput=$true,[switch]$PlanOnly,[string]
             $holdDescription=if ($action -eq 'skin') {"固定保持 $duration ms"} else {"最长保持 $duration ms，状态改变时结束"}
             Set-AutoFightStatus $row ("已执行"+$handler.Label+" $($binding.Text) · $holdDescription。")
         }
+        elseif ($action -eq 'opening') {Set-AutoFightStatus $row ("已执行选目标键 $($targetBinding.Text) 和开怪键 $($binding.Text) · $combatText")}
         else { Set-AutoFightStatus $row ("已执行"+$handler.Label+"键 $($binding.Text) · $combatText") }
         Finish-AutoFightPending $completed
     }

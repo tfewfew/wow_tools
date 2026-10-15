@@ -40,7 +40,6 @@ try {
     $session=New-AutoFightSession 100 9
     Set-AutoFightBuffSchedule $session $profile 100 -AfterLogin
     $packet=[pscustomobject]@{ClassId=9;Flavor='titan';Action='idle';Recovery='none';Combat=$false;Busy=$false;EncounterId=1}
-    $null=Update-AutoFightState $session $packet 100
     Assert-Buff ((Get-AutoFightAction $session $packet $profile 100) -eq 'buff' -and $session.BuffRemaining -eq 3) 'Login did not trigger the first buff cycle.'
     Assert-Buff ((Get-AutoFightAction $session $packet $profile 300) -eq 'buff' -and $session.BuffRemaining -eq 3) 'Unsent buff advanced the cycle.'
     Complete-AutoFightAction $session $profile 'buff' 300
@@ -49,14 +48,11 @@ try {
     $packet.Busy=$true
     Assert-Buff ((Get-AutoFightAction $session $packet $profile 1300) -eq 'wait') 'Buff interrupted a busy action.'
     $packet.Busy=$false;$packet.Combat=$true;$packet.Action='combat'
-    $null=Update-AutoFightState $session $packet 1400
     Assert-Buff ((Get-AutoFightAction $session $packet $profile 1400) -ne 'buff' -and $session.BuffRemaining -eq 2) 'Buff ran in combat or lost remaining count.'
-    $packet.Combat=$false;$packet.Action='recover';$packet.Recovery='recover'
-    $null=Update-AutoFightState $session $packet 1500
-    Assert-Buff ((Get-AutoFightAction $session $packet $profile 1500) -ne 'buff') 'Buff displaced recovery.'
-    $packet.Action='idle';$packet.Recovery='none'
-    $null=Update-AutoFightState $session $packet 1600
-    Assert-Buff ((Get-AutoFightAction $session $packet $profile 1600) -eq 'buff') 'Deferred buff did not resume after combat/recovery.'
+    $packet.Combat=$true;$packet.Action='waiting'
+    Assert-Buff ((Get-AutoFightAction $session $packet $profile 1500) -ne 'buff') 'Buff displaced combat waiting.'
+    $packet.Combat=$false;$packet.Action='idle'
+    Assert-Buff ((Get-AutoFightAction $session $packet $profile 1600) -eq 'buff') 'Deferred buff did not resume after combat waiting.'
     Complete-AutoFightAction $session $profile 'buff' 1600
     Assert-Buff ((Get-AutoFightAction $session $packet $profile 2599) -eq 'wait' -and
         (Get-AutoFightAction $session $packet $profile 2600) -eq 'buff') 'Third buff ignored one-second spacing.'

@@ -102,160 +102,96 @@ for _,flavor in ipairs({"titan","forerver"}) do
         event("ADDON_LOADED","wow_tools")
         assert(not WoWTools.modules.fight_detector.IsEnabled(),"Initial combat flag enables loot")
         local detector
-        for _,f in ipairs(frames) do if #f.textures==3 then detector=f end end
-        assert(detector,"Expected two V6 cells with an inset inside the main cell")
+        for _,f in ipairs(frames) do if #f.textures==2 then detector=f end end
+        assert(detector,"Expected exactly two V7 cells")
         return detector
     end
     local saved={rangeSpells={[1]=78},profiles={[3]={DetectionRangeYards=20}}}
     local signal=setup(1,saved)
-    local function centerCell()
-        return signal.textures[3].shown and signal.textures[3] or signal.textures[1]
+    local codes={unknown=0,idle=1,opening=2,waiting=3,combat=4,loot=5,skin=6}
+    local function pixel(cell)
+        local c=cell.color
+        return math.floor(c[1]*255+.5)+256*math.floor(c[2]*255+.5)+65536*math.floor(c[3]*255+.5)
     end
-    local function actionCode() return math.floor(((signal.textures[3].color[1]*255-2)/5)/4+.00001) end
-    local function recoveryCode() return math.floor((signal.textures[3].color[1]*255-2)/5+.00001)%4 end
-    local function color(r,g,b)
-        local expected={ ["128,128,128"]=0,["0,0,255"]=1,["255,96,0"]=3,["0,192,192"]=4,["255,0,0"]=5,["0,0,128"]=6,["255,0,128"]=7}
-        local code=actionCode()
-        assert(code==expected[r..","..g..","..b],flavor..": unexpected main state code "..code)
-        local visual=signal.textures[1].color
-        if not combat and code~=0 then
-            assert(visual[1]==1 and visual[2]==0 and visual[3]==0 and signal.textures[3].shown,
-                "Known noncombat state is not fishing waiting red")
-        else
-            assert(not signal.textures[3].shown,"Noncombat inset covered combat or unknown state")
-            for i=1,3 do assert(visual[i]==signal.textures[3].color[i],"Combat center no longer matches data") end
-        end
-        if output then
-            local function pixel(cell)
-                local c=cell.color
-                return math.floor(c[1]*255+.5)+256*math.floor(c[2]*255+.5)+65536*math.floor(c[3]*255+.5)
-            end
-            output:write(flavor," ",({[0]="unknown","idle","target","opening","waiting","combat","recover","emergency","loot","skin"})[code]," ",
-                tostring(pixel(centerCell()))," ",tostring(pixel(signal.textures[2])),"\n")
-        end
+    local function expect(action)
+        local main=signal.textures[1]
+        assert(main.color and #signal.textures==2,flavor..": main cell missing")
+        local value=math.floor(main.color[1]*255+.5)
+        assert(value==5+20*codes[action],flavor..": expected "..action.." but main red="..value)
+        assert(main.shown and signal.textures[2].shown,"Active cells hidden")
+        if output then output:write(flavor," ",action," ",tostring(pixel(main))," ",tostring(pixel(signal.textures[2])),"\n") end
     end
-    local function epoch() return (signal.textures[3].color[3]*255/4)%32 end
-    assert(edits[1].text=="30" and edits[2].text=="5" and warm==0,"Inactive detector warmed item cache")
-    assert(not WoWTools.FightRange.IsSupported(secret) and not WoWTools.FightRange.IsSupported(12))
-    mobs.target={guid="Creature-A",distance=31}
-    SlashCmdList.FIGHTDETECTOR("on"); color(0,0,255)
-    assert(warm>0,"Starting detector did not warm item cache")
-    assert(WoWTools.modules.fight_detector.IsEnabled(),"Running combat flag disables loot")
+    local function epoch() return (signal.textures[1].color[3]*255/4)%32 end
     local function geometry()
         for i,cell in ipairs(signal.textures) do
             local unit=UIParent:GetHeight()/screenHeight
             assert(math.abs(cell.point[4]/unit-(i==2 and 32 or 0))<.001
-                and math.abs(cell.point[5]/unit)<.001 and math.abs(cell.width/unit-(i==1 and 32 or (i==2 and 12 or 2)))<.001,
+                and math.abs(cell.point[5]/unit)<.001 and math.abs(cell.width/unit-(i==1 and 32 or 12))<.001,
                 "Physical geometry did not survive window/UI scaling")
         end
-        local sampleX,sampleY=math.floor(screenWidth/2)+.5,math.floor(screenHeight/2)+.5
-        assert(math.abs(sampleX-screenWidth/2)<1 and math.abs(sampleY-screenHeight/2)<1,
-            "Script center sample falls outside the two-pixel inset")
     end
-    local stable={unpack(signal.textures[3].color)}
-    tick()
-    for i=1,3 do assert(signal.textures[3].color[i]==stable[i],"Unchanged state still depends on heartbeat") end
+    assert(edits[1].text=="30" and edits[2].text=="5" and warm==0,"Inactive detector warmed item cache")
+    assert(not WoWTools.FightRange.IsSupported(secret) and not WoWTools.FightRange.IsSupported(12))
+    mobs.target={guid="Creature-A",distance=31}
+    SlashCmdList.FIGHTDETECTOR("on"); expect("idle")
+    assert(warm>0 and WoWTools.modules.fight_detector.IsEnabled(),"Detector did not start")
     geometry()
+    local stable={unpack(signal.textures[1].color)}
+    tick()
+    for i=1,3 do assert(signal.textures[1].color[i]==stable[i],"Unchanged state depends on heartbeat") end
     for _,size in ipairs({{1280,720,.5},{2560,1440,1.25},{1279,719,.85},{1920,1080,1}}) do
         screenWidth,screenHeight,uiScale=unpack(size)
-        event("DISPLAY_SIZE_CHANGED"); event("UI_SCALE_CHANGED"); geometry()
+        event("DISPLAY_SIZE_CHANGED");event("UI_SCALE_CHANGED");geometry()
     end
-    for _,b in ipairs(buttons) do assert(b.text~="前" and b.text~="停止移动","Plugin still creates movement buttons") end
-    mobs.target.distance=30; restricted=true; tick(); color(255,96,0) -- 5yd probe must not block opening.
-    assert(not names.wowToolsFightTargetButton and not names.wowToolsFightTargetKeyInput,
-        "Plugin still creates a target binding or key setting")
-    restricted=false; local first=epoch()
-    event("UNIT_SPELLCAST_SUCCEEDED","player",secret,123); color(255,96,0)
-    event("UNIT_SPELLCAST_SUCCEEDED","player",secret,secret); color(255,96,0)
-    event("UNIT_SPELLCAST_SUCCEEDED","player",secret,2764); color(255,96,0)
-    mobs.target.distance=5; tick(); color(255,96,0) -- A successful spell alone does not end the opener retry phase.
-    mobs.target.distance=30
-    combat=true; tick(); color(0,192,192)
-    mobs.target.distance=5; tick(); color(255,0,0)
-    mobs.target.distance=6; tick(); color(0,192,192)
-    mobs.target.distance=50; tick(); color(0,192,192); assert(epoch()==first,"Retreat changed tracked encounter")
-    mobs.nameplate1={guid="Creature-B",distance=3}; event("NAME_PLATE_UNIT_ADDED","nameplate1"); tick()
-    color(0,192,192); assert(epoch()==first,"Nearby other monster bypassed target's attack distance")
-    mobs.nameplate2=mobs.target; event("NAME_PLATE_UNIT_ADDED","nameplate2")
-    mobs.target={guid="Creature-C",distance=5}; tick()
-    assert(actionCode()==2 and epoch()==first,"Combat target switch replaced locked encounter")
-    mobs.target=mobs.nameplate2; mobs.nameplate2=nil; event("NAME_PLATE_UNIT_REMOVED","nameplate2"); tick(); color(0,192,192)
-    mobs.target.distance=5; tick(); color(255,0,0)
-    mobs.nameplate1=nil; event("NAME_PLATE_UNIT_REMOVED","nameplate1")
-    restricted=true; tick(); color(128,128,128)
-    restricted=false; failed=true; tick(); color(128,128,128)
-    failed=false; missing=true; tick(); color(128,128,128)
-    missing=false; conflicting=true; tick(); color(128,128,128)
-    conflicting=false; mobs.target.guid=secret; tick(); color(128,128,128)
-    mobs.target.guid="Creature-A"; health=20; mobs.target.distance=20; tick(); color(0,192,192)
-    assert(recoveryCode()==2,"Recovery signal lost during waiting")
-    mobs.target.distance=5; tick(); color(255,0,128)
-    assert(recoveryCode()==2,"Emergency recovery did not become the plugin main state in range")
-    mobs.target.distance=20; tick(); color(0,192,192)
-    health=100; mobs.target.dead=true; combat=false; tick(); color(0,0,255)
-    mobs.target={guid="Creature-D",distance=29}; tick(); color(255,96,0)
-    local save
-    for _,b in ipairs(buttons) do if b.text=="保存" then save=b end end
-    edits[1]:SetText("12"); edits[2]:SetText("10"); save.scripts.OnClick()
-    assert(saved.AttackRangeYards==nil and saved.profiles[1]==nil,"Invalid draft partially applied")
-    edits[1]:SetText("25"); save.scripts.OnClick()
-    assert(saved.AttackRangeYards==10 and saved.profiles[1].DetectionRangeYards==25 and saved.profiles[3].DetectionRangeYards==20 and saved.rangeSpells[1]==78,"Range scope / legacy settings isolation failed")
-    mobs.target.distance=24; tick(); color(255,96,0)
-    combat=true; mobs.target.distance=11; tick(); color(0,192,192)
-    mobs.target.distance=10; tick(); color(255,0,0)
-    C_Item.IsItemInRange=nil; IsItemInRange=function(item,unit) return check(item,unit) and 1 or 0 end
-    tick(); color(255,0,0); C_Item.IsItemInRange=check; IsItemInRange=nil
-    combat=false
-    mobs={softinteract={guid="Creature-CORPSE-A",dead=true,interactable=true,loot=true,canLoot=true,skinnable=true}}
-    tick(); assert(actionCode()==8,"Lootable corpse not detected")
+    mobs.target.distance=30; tick(); expect("opening")
+    local first=epoch()
+    mobs.target.distance=5; tick(); expect("opening")
+    event("UNIT_SPELLCAST_SUCCEEDED","player",secret,2764); expect("opening")
+    combat=true;mobs.target.distance=30;tick();expect("waiting")
+    mobs.target.distance=5;tick();expect("combat")
+    health=20;tick();expect("combat")
+    assert(signal.textures[2].color[1]==1 and signal.textures[2].color[2]==.15,
+        "Emergency recovery hint did not remain in auxiliary cell")
+    mobs.target.distance=20;tick();expect("waiting")
+    mobs.target.distance=50;tick();expect("waiting")
+    assert(epoch()==first,"Retreat changed tracked encounter")
+    mobs.target.dead=true;combat=false;health=100;tick();expect("idle")
+    mobs.target=nil
+    mobs.softinteract={guid="Creature-CORPSE-A",dead=true,interactable=true,loot=true,canLoot=true,skinnable=true}
+    tick();expect("loot")
     local corpseEpoch=epoch()
-    mobs.softinteract.loot=false; mobs.softinteract.interactable=false; event("LOOT_CLOSED"); tick()
-    color(0,0,255)
-    mobs.softinteract.interactable=true; mobs.softinteract.skinnable=false; tick(); color(0,0,255)
-    mobs.softinteract.skinnable=true; tick()
-    assert(actionCode()==9 and epoch()==corpseEpoch,
-        "Looted interactable corpse did not retain identity for skinning")
-    mobs.softinteract=nil; tick()
-    mobs.softinteract={guid="Creature-CORPSE-A",dead=true,interactable=true,loot=false,canLoot=true,skinnable=true}
-    tick(); assert(epoch()==corpseEpoch,"Temporarily lost corpse gained a new interaction identity")
+    mobs.softinteract.loot=false;tick();expect("skin")
+    assert(epoch()==corpseEpoch,"Loot-to-skin changed corpse identity")
+    mobs.softinteract=nil;tick();expect("idle")
     mobs.softinteract={guid="Creature-CORPSE-B",dead=true,interactable=true,loot=true,canLoot=true,skinnable=true}
-    tick(); assert(epoch()~=corpseEpoch,"Second corpse inherited the first corpse's interaction identity")
-    mobs.softinteract.canLoot=false; tick(); color(0,0,255)
-    dead=true; event("PLAYER_DEAD"); assert(not signal.shown,"Death did not stop detector")
-    assert(not WoWTools.modules.fight_detector.IsEnabled(),"Combat death leaves loot enabled")
-    dead,combat=false,false; mobs={}
-    setup(3,saved); assert(edits[1].text=="20" and edits[2].text=="10","Class-specific detection/global attack load failed")
-    for _,b in ipairs(buttons) do if b.text=="保存" then save=b end end
-    edits[1]:SetText("35"); edits[2]:SetText("15"); save.scripts.OnClick()
-    setup(1,saved); assert(edits[1].text=="25" and edits[2].text=="15","Global attack did not apply to another class / detection overwritten")
-    -- Unselected nearby nameplate must request selection before opening.
-    mobs={nameplate1={guid="Creature-NEW",distance=10}}
-    signal=setup(1,saved)
-    SlashCmdList.FIGHTDETECTOR("on")
-    event("NAME_PLATE_UNIT_ADDED","nameplate1"); tick()
-    assert(actionCode()==2,"Unselected nameplate opened without a target")
-    assert(not names.wowToolsFightTargetButton,"Detector still created a secure target button")
-    local selectedEpoch=epoch()
-    mobs.target=mobs.nameplate1; tick(); color(255,96,0)
-    assert(epoch()==selectedEpoch,"Confirming selection changed encounter")
-    combat=true; mobs.target=nil; tick()
-    assert(actionCode()==2 and epoch()==selectedEpoch,"Lost target did not request reselection")
-    mobs.nameplate1=nil; event("NAME_PLATE_UNIT_REMOVED","nameplate1"); tick(); color(128,128,128)
-    SlashCmdList.FIGHTDETECTOR("off")
-    assert(not WoWTools.modules.fight_detector.IsEnabled(),"Combat close leaves loot enabled")
-    combat=false; event("PLAYER_REGEN_ENABLED")
-    mobs={}; health=70; SlashCmdList.FIGHTDETECTOR("on"); color(0,0,128)
-    assert(recoveryCode()==1
-        and signal.textures[2].color[3]==1,"Red noncombat body lost recovery data or hint")
-    health=secret; tick(); color(128,128,128)
-    health=100; tick(); color(0,0,255)
-    SlashCmdList.FIGHTDETECTOR("off")
-    saved.TargetKey="Ctrl+Tab" -- Legacy SavedVariables must not restore a plugin binding.
-    mobs.target={guid="Creature-KEY",distance=5}
-    signal=setup(3,saved)
-    SlashCmdList.FIGHTDETECTOR("on"); color(255,96,0)
-    assert(not names.wowToolsFightTargetKeyInput and not names.wowToolsFightTargetButton,
-        "Legacy target key restored a plugin setting or binding")
-    print("PASS: "..flavor.." yard probes, selected-target opening without focus, no plugin key override, encounter tracking, unknown/secret/failure/conflict, legacy fallback, settings scope/validation and death. Game APIs mocked.")
+    tick();expect("loot")
+    assert(epoch()~=corpseEpoch,"New corpse inherited previous identity")
+    mobs.softinteract.canLoot=false;tick();expect("idle")
+    mobs.softinteract=nil
+    mobs.nameplate1={guid="Creature-NEW",distance=10}
+    event("NAME_PLATE_UNIT_ADDED","nameplate1");tick();expect("opening")
+    assert(not names.wowToolsFightTargetButton,"Plugin created a targeting button")
+    mobs.target=mobs.nameplate1;mobs.target.distance=5;combat=true;tick();expect("combat")
+    mobs.target=nil;tick();expect("unknown")
+    combat=false;mobs.nameplate1=nil;event("NAME_PLATE_UNIT_REMOVED","nameplate1");tick();expect("idle")
+    health=70;tick();expect("idle")
+    assert(signal.textures[2].color[3]==1,"Ordinary recovery hint disappeared")
+    health=secret;tick();expect("idle")
+    assert(signal.textures[2].color[1]==.5,"Unknown recovery did not stay in auxiliary cell")
+    health=100
+    mobs.target={guid="Creature-RANGE",distance=5}
+    tick();expect("opening")
+    combat=true;tick();expect("combat")
+    restricted=true;tick();expect("unknown")
+    restricted=false;failed=true;tick();expect("unknown")
+    failed=false;missing=true;tick();expect("unknown")
+    missing=false;conflicting=true;tick();expect("unknown")
+    conflicting=false;tick();expect("combat")
+    combat=false;tick();expect("opening")
+    dead=true;event("PLAYER_DEAD")
+    assert(not signal.shown and not WoWTools.modules.fight_detector.IsEnabled(),"Death did not stop detector")
+    dead=false;mobs={};setup(3,saved)
+    assert(edits[1].text=="20" and edits[2].text=="5","Class range preference was lost")
+    print("PASS: "..flavor.." six-state V7 colors, target/open loop, range waiting, loot/skin, recovery hint isolation, unknown fail-closed and scaling. Game APIs mocked.")
 end
 if output then output:close() end

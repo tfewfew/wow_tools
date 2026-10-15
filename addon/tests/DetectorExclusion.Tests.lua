@@ -97,7 +97,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     end
     assert(fightEvents,"Missing combat lifecycle frame")
     local signal
-    for _,frame in ipairs(frames) do if #frame.textures==3 and frame~=fishPanel then signal=frame end end
+    for _,frame in ipairs(frames) do if #frame.textures==2 and frame~=fishPanel then signal=frame end end
     assert(signal,"Missing combat signal")
     local function state(fishing,fighting)
         assert(fish.IsEnabled()==fishing and fight.IsEnabled()==fighting,flavor..": mutually exclusive state failed")
@@ -125,11 +125,9 @@ for _,flavor in ipairs({"titan","forerver"}) do
         -- Fish indicator's center is (8+24/2,40/2-8-24/2) from panel LEFT.
         assert(fishPanel.point[4]+8+24/2==0 and fishPanel.point[5]+40/2-8-24/2==0)
         assert(signal.textures[1].point[2]==anchor and signal.textures[1].point[4]==0 and signal.textures[1].point[5]==0)
-        local data=signal.textures[3]
-        assert(data.point[2]==anchor and data.point[4]==0 and data.point[5]==0
-            and math.abs(data.width/(768/height/scale)-2)<.001,"Center data inset moved or scaled incorrectly")
         local fishAux=fishPanel.textures[3]
         local unit=768/height/scale
+        assert(math.abs(signal.textures[1].width/unit-32)<.001,"Main cell scaled incorrectly")
         assert(fishAux.point[2]==fishPanel.textures[2] and math.abs(fishAux.point[4]/unit-32)<.001)
         assert(signal.textures[2].point[2]==anchor and math.abs(signal.textures[2].point[4]/unit-32)<.001)
         assert(math.abs(fishAux.width/unit-12)<.001 and math.abs(signal.textures[2].width/unit-12)<.001)
@@ -140,15 +138,11 @@ for _,flavor in ipairs({"titan","forerver"}) do
     local oldUnregister=lootFrame.UnregisterEvent
     lootFrame.UnregisterEvent=function(self,name) lootStops=lootStops+1; oldUnregister(self,name) end
     assert(wowDetectorDB.audioSnapshot and sound.Sound_MasterVolume=="1")
-    local fishingWaiting={unpack(fishPanel.textures[2].color)}
-    assert(fishingWaiting[1]==1 and fishingWaiting[2]==0 and fishingWaiting[3]==0,
-        "Fishing waiting is not red")
     SlashCmdList.FIGHTDETECTOR("on"); state(false,true); restored(); geometry()
     assert(lootStops==0,"Switching detectors briefly disabled loot processing")
     assert(not wowDetectorDB.locked and wowDetectorDB.panelHidden,"Fishing switch did not unlock/hide")
-    for i=1,3 do assert(signal.textures[1].color[i]==fishingWaiting[i],
-        "Noncombat body color differs from fishing waiting") end
-    assert(signal.textures[3].shown,"Noncombat center data was lost")
+    assert(#signal.textures==2 and signal.textures[1].shown and signal.textures[2].shown,
+        "V7 combat signal did not retain exactly two visible cells")
     SlashCmdList.FIGHTDETECTOR("on"); state(false,true)
     SlashCmdList.WOWDETECTOR("on"); state(true,false)
     SlashCmdList.WOWDETECTOR("hide"); assert(fish.IsEnabled() and not fish.IsShown())
