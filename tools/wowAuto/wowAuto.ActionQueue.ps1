@@ -202,6 +202,9 @@ function Invoke-QueuedGameAction($event,[long]$Now) {
         if ($script:gameActions.Focus -eq $event) {$script:gameActions.Focus=$null}
         $null = & $event.Execute $event $Now
         [void]$script:gameActions.History.Add([pscustomobject]@{Kind=$event.Kind;Key=$event.Key;Priority=$event.Priority;At=$Now})
+        if ($script:wowAutoLog -and $event.Domain -in @('Fish','Fight','Rotation','Scan','Process')) {
+            Write-WowAutoLog ('队列回调完成：'+$event.Kind) $event.Row action
+        }
         while ($script:gameActions.History.Count -gt 200) {$script:gameActions.History.RemoveAt(0)}
     }
     catch {
@@ -216,6 +219,7 @@ function Invoke-QueuedGameAction($event,[long]$Now) {
         $event.Cancelled=$true;[void]$script:gameActions.Events.Remove($event)
         if ($script:gameActions.Focus -eq $event) {$script:gameActions.Focus=$null}
         $reason='队列动作 '+$event.Kind+' 失败：'+$_.Exception.Message
+        if ($script:wowAutoLog) {Write-WowAutoLog $reason $event.Row error}
         if ($event.Domain -eq 'Fish') {
             if ($event.Row.Process.HasExited -or -not (Test-RowProcessIdentity $event.Row)) {
                 $event.Row.Validated=$false;Stop-Row $event.Row $reason

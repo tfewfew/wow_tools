@@ -17,6 +17,7 @@ function Set-AutoFightStatus($Row,[string]$Message) {
     if ($Row.Message -eq $Message) { return }
     $Row.Message=$Message
     $Row.History.Insert(0,('['+[datetime]::Now.ToString('HH:mm:ss')+'] '+$Message))
+    Write-WowAutoLog $Message $Row status
     while ($Row.History.Count -gt 50) { $Row.History.RemoveAt($Row.History.Count-1) }
     $Row.Status.SetStatusText(($Row.History -join [Environment]::NewLine))
 }
@@ -94,6 +95,7 @@ function Stop-AutoFightRow($Row,[string]$Reason='已停止，战斗任务已取�
     $Row.Session=$null
     if ($script:autoFight.Pending -and $script:autoFight.Pending.Row -eq $Row) { $script:autoFight.Pending=$null }
     Set-AutoFightStatus $Row $Reason
+    if ($Row.PSObject.Properties['ParentRow'] -and $Row.ParentRow) {Clear-WowAutoCurrentRole $Row.ParentRow}
     Update-AutoFightControls
 }
 function Complete-AutoFightScan {

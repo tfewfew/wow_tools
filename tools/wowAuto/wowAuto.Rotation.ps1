@@ -61,6 +61,7 @@ function Save-RotationConfiguration($Interval=$script:rotation.IntervalSeconds,$
     $script:rotation.IntervalSeconds=$n;$script:rotation.OcrIntervalMs=$ocrInterval;$script:rotation.Plans=$Plans;$script:rotation.GameDirectories=$roots;$script:rotation.NameHistory=$nextHistory;$script:rotation.ConfigReady=$true;$script:rotation.Error=''
     if ($changed) {$script:rotation.NextAt=if ($n -and $script:rotation.Active.Count) {$script:schedulerClock.ElapsedMilliseconds+[long]$n*1000} else {0L}}
     foreach ($r in $script:rows.Values) {Update-RotationRow $r}
+    Update-WowAutoRunInfo
 }
 function Import-RotationConfiguration {
     if (-not [IO.File]::Exists($script:rotation.Path)) {return}

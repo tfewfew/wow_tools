@@ -1,5 +1,9 @@
 ﻿param([string]$PreviewPath, [switch]$UiTest)
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'wowAuto.Logging.ps1')
+$script:logMaxSizeMB=50
+$script:logTestDirectory=if ($UiTest) {Join-Path ([IO.Path]::GetTempPath()) ('wowAuto-log-test-'+[guid]::NewGuid().ToString('N'))} else {$null}
+Initialize-WowAutoLogging $(if ($UiTest) {$script:logTestDirectory} else {Join-Path $PSScriptRoot 'log'})
 if (-not ('WowAuto.NativeInput' -as [type])) {
     Add-Type -TypeDefinition @"
 using System;
@@ -488,7 +492,7 @@ $script:audioSettingsKeys = @('TitanAudioThresholdPercent','ForerverAudioThresho
 $script:audioTimeoutSettingsKeys = @('TitanAudioTimeoutMs','ForerverAudioTimeoutMs')
 $script:recordingSettingsKeys = @('TitanAudioRecordingId','ForerverAudioRecordingId')
 $script:preferenceSettingsKeys = @('ReelHoldMs','CastKey','ReelKey','ItemKey','AudioDetectionEnabled')
-$script:settingsKeys = $script:requiredSettingsKeys + $script:audioSettingsKeys + $script:audioTimeoutSettingsKeys + $script:recordingSettingsKeys + $script:preferenceSettingsKeys + @('StatusLogLimit','JumpEveryCycles')
+$script:settingsKeys = $script:requiredSettingsKeys + $script:audioSettingsKeys + $script:audioTimeoutSettingsKeys + $script:recordingSettingsKeys + $script:preferenceSettingsKeys + @('StatusLogLimit','JumpEveryCycles','LogMaxSizeMB')
 $script:settingsWarning = ''
 function Read-WowAutoSettingsIni([string]$Path) {
     $values=@{}; $items=@{}; $modes=@{}; $seen=@{}; $lineNumber=0
@@ -546,6 +550,7 @@ function Read-WowAutoSettingsIni([string]$Path) {
     elseif ($preferenceKeyCount -ne $script:preferenceSettingsKeys.Count) { throw 'config.ini 需要同时配置保持时间、三个快捷键和音频检测开关。' }
     if (-not $values.ContainsKey('StatusLogLimit')) { $values.StatusLogLimit=$script:statusLogLimit }
     if (-not $values.ContainsKey('JumpEveryCycles')) { $values.JumpEveryCycles=$script:scheduler.JumpEveryCycles }
+    if (-not $values.ContainsKey('LogMaxSizeMB')) { $values.LogMaxSizeMB=$script:logMaxSizeMB }
     $values.ProcessItemPreferences=$items
     $values.ProcessModePreferences=$modes
     return $values
@@ -553,7 +558,7 @@ function Read-WowAutoSettingsIni([string]$Path) {
 function Update-VersionSummary {
     if ($null -ne $settingsSummary) {
         $t=$script:versionRanges.titan; $f=$script:versionRanges.forerver
-        $settingsSummary.Text="收杆延迟区间（ms）：时光服 $($t.MinimumMs)–$($t.MaximumMs)；无限服 $($f.MinimumMs)–$($f.MaximumMs)；无咬钩保护（ms）：时光服 $($t.AudioTimeoutMs) / 无限服 $($f.AudioTimeoutMs)；焦点重试 $($script:scheduler.FocusRetryIntervalMs)。" + [Environment]::NewLine + "音频门槛：时光服 $($script:audioThresholds.titan)% / 无限服 $($script:audioThresholds.forerver)%；片段：时光服 $($script:audioRecordingSelections.titan) / 无限服 $($script:audioRecordingSelections.forerver)；定期跳跃 $($script:scheduler.JumpEveryCycles) 次（0关闭）；日志保留 $script:statusLogLimit 条。$script:settingsWarning"
+        $settingsSummary.Text="收杆延迟区间（ms）：时光服 $($t.MinimumMs)–$($t.MaximumMs)；无限服 $($f.MinimumMs)–$($f.MaximumMs)；无咬钩保护（ms）：时光服 $($t.AudioTimeoutMs) / 无限服 $($f.AudioTimeoutMs)；焦点重试 $($script:scheduler.FocusRetryIntervalMs)。" + [Environment]::NewLine + "音频门槛：时光服 $($script:audioThresholds.titan)% / 无限服 $($script:audioThresholds.forerver)%；片段：时光服 $($script:audioRecordingSelections.titan) / 无限服 $($script:audioRecordingSelections.forerver)；定期跳跃 $($script:scheduler.JumpEveryCycles) 次（0关闭）；界面日志 $script:statusLogLimit 条；文件日志上限 $script:logMaxSizeMB MB。$script:settingsWarning"
     }
 }
 function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $ForerverMaximum, [bool]$Persist=$true, $FocusRetryIntervalMs=$script:scheduler.FocusRetryIntervalMs,
@@ -562,7 +567,8 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
     $ProcessItemPreferences=$script:processItemPreferences, $ProcessModePreferences=$script:processModePreferences,
     $TitanAudioTimeoutMs=$script:versionRanges.titan.AudioTimeoutMs, $ForerverAudioTimeoutMs=$script:versionRanges.forerver.AudioTimeoutMs,
     $TitanAudioRecordingId=$script:audioRecordingSelections.titan, $ForerverAudioRecordingId=$script:audioRecordingSelections.forerver,
-    $StatusLogLimit=$script:statusLogLimit, $JumpEveryCycles=$script:scheduler.JumpEveryCycles) {
+    $StatusLogLimit=$script:statusLogLimit, $JumpEveryCycles=$script:scheduler.JumpEveryCycles,
+    $LogMaxSizeMB=$script:logMaxSizeMB) {
     # Validate the entire edit before saving or changing any active task.
     $next=@{}
     foreach ($spec in @(@('titan',$TitanMinimum,$TitanMaximum),@('forerver',$ForerverMinimum,$ForerverMaximum))) {
@@ -595,6 +601,8 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
     if ([string]$StatusLogLimit -notmatch '^\d+$' -or -not [int]::TryParse([string]$StatusLogLimit,[ref]$nextLogLimit) -or $nextLogLimit -lt 1 -or $nextLogLimit -gt 1000) { throw '日志保留条数需为1–1000之间的整数。' }
     $nextJumpCycles=0
     if ([string]$JumpEveryCycles -notmatch '^\d+$' -or -not [int]::TryParse([string]$JumpEveryCycles,[ref]$nextJumpCycles) -or $nextJumpCycles -gt 1000000) { throw '跳跃循环间隔需为0–1000000之间的整数，0关闭定期跳跃。' }
+    $nextLogSize=0
+    if ([string]$LogMaxSizeMB -notmatch '^\d+$' -or -not [int]::TryParse([string]$LogMaxSizeMB,[ref]$nextLogSize) -or $nextLogSize -lt 1 -or $nextLogSize -gt 1024) {throw '日志总大小需为1–1024 MB。'}
     $nextBindings=@{}
     foreach ($action in @('Cast','Reel','Item')) { $nextBindings[$action]=ConvertFrom-KeyBindingText $KeyBindings[$action].Text }
     $nextAudio=ConvertTo-PreferenceFlag $AudioDetectionEnabled
@@ -627,7 +635,7 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
                 TitanAudioTimeoutMs=$next.titan.AudioTimeoutMs; ForerverAudioTimeoutMs=$next.forerver.AudioTimeoutMs
                 TitanAudioRecordingId=$nextRecordings.titan; ForerverAudioRecordingId=$nextRecordings.forerver
                 ReelHoldMs=$nextHold; CastKey=$nextBindings.Cast.Text; ReelKey=$nextBindings.Reel.Text; ItemKey=$nextBindings.Item.Text
-                AudioDetectionEnabled=$nextAudio; StatusLogLimit=$nextLogLimit; JumpEveryCycles=$nextJumpCycles
+                AudioDetectionEnabled=$nextAudio; StatusLogLimit=$nextLogLimit; JumpEveryCycles=$nextJumpCycles; LogMaxSizeMB=$nextLogSize
             }
             $lines=@('; wowAuto settings: ms for timing, percent for thresholds, 0/1 for switches.';
                 '; Shortcuts use Ctrl/Shift/Alt plus a key; UseItem_PID_StartTicks stores process choices.')
@@ -646,6 +654,8 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
     }
     $previousLogLimit=$script:statusLogLimit
     $script:statusLogLimit=$nextLogLimit
+    $script:logMaxSizeMB=$nextLogSize
+    $null=Set-WowAutoLogSizeMB $nextLogSize
     $script:versionRanges=$next
     $script:audioThresholds=$nextThresholds
     $script:audioRecordingSelections=$nextRecordings
@@ -681,7 +691,7 @@ function Import-VersionWaitSettings {
         $saved=Read-WowAutoSettingsIni $script:settingsPath
         $bindings=@{}
         foreach ($action in @('Cast','Reel','Item')) { $bindings[$action]=ConvertFrom-KeyBindingText $saved[($action+'Key')] }
-        Set-VersionWaitRanges $saved.TitanMinimumMs $saved.TitanMaximumMs $saved.ForerverMinimumMs $saved.ForerverMaximumMs -Persist $false -FocusRetryIntervalMs $saved.FocusRetryIntervalMs -TitanAudioThresholdPercent $saved.TitanAudioThresholdPercent -ForerverAudioThresholdPercent $saved.ForerverAudioThresholdPercent -ReelHoldMs $saved.ReelHoldMs -KeyBindings $bindings -AudioDetectionEnabled $saved.AudioDetectionEnabled -ProcessItemPreferences $saved.ProcessItemPreferences -ProcessModePreferences $saved.ProcessModePreferences -TitanAudioTimeoutMs $saved.TitanAudioTimeoutMs -ForerverAudioTimeoutMs $saved.ForerverAudioTimeoutMs -TitanAudioRecordingId $saved.TitanAudioRecordingId -ForerverAudioRecordingId $saved.ForerverAudioRecordingId -StatusLogLimit $saved.StatusLogLimit -JumpEveryCycles $saved.JumpEveryCycles
+        Set-VersionWaitRanges $saved.TitanMinimumMs $saved.TitanMaximumMs $saved.ForerverMinimumMs $saved.ForerverMaximumMs -Persist $false -FocusRetryIntervalMs $saved.FocusRetryIntervalMs -TitanAudioThresholdPercent $saved.TitanAudioThresholdPercent -ForerverAudioThresholdPercent $saved.ForerverAudioThresholdPercent -ReelHoldMs $saved.ReelHoldMs -KeyBindings $bindings -AudioDetectionEnabled $saved.AudioDetectionEnabled -ProcessItemPreferences $saved.ProcessItemPreferences -ProcessModePreferences $saved.ProcessModePreferences -TitanAudioTimeoutMs $saved.TitanAudioTimeoutMs -ForerverAudioTimeoutMs $saved.ForerverAudioTimeoutMs -TitanAudioRecordingId $saved.TitanAudioRecordingId -ForerverAudioRecordingId $saved.ForerverAudioRecordingId -StatusLogLimit $saved.StatusLogLimit -JumpEveryCycles $saved.JumpEveryCycles -LogMaxSizeMB $saved.LogMaxSizeMB
     }
     catch { $script:settingsWarning="config.ini 读取失败，保留当前配置：$($_.Exception.Message)" }
 }
@@ -1212,6 +1222,7 @@ function Update-RowStatus($Row) {
         $Row.StatusSnapshot=$statusKey
         $Row.StatusTimestamp=Get-Date -Format 'HH:mm:ss'
         $Row.StatusHistory.Add("[$($Row.StatusTimestamp)] $text")
+        Write-WowAutoLog $text $Row status
     }
     $text="[$($Row.StatusTimestamp)] $text"
     $refresh=$newEntry -or $Row.CurrentStatusText -cne $text -or $Row.StatusHistory.Count -gt $script:statusLogLimit
@@ -1242,6 +1253,7 @@ function Stop-Row($Row, [string]$Reason = '已停止，当前等待已取消。'
     if ($null -ne $Row.State) { Stop-WowAutoState $Row.State $Reason }
     else { $Row.StatusMessage = $Reason }
     Update-RowStatus $Row
+    Clear-WowAutoCurrentRole $Row
 }
 
 function Start-Row($Row,[switch]$TaskOnly) {
@@ -1251,7 +1263,10 @@ function Start-Row($Row,[switch]$TaskOnly) {
         if ($TaskOnly -and -not (Test-RowLoginPoint $Row)) {throw '常驻登录白点不存在，未启动任务。'}
         if ($Row.TaskMode -eq 'fight') {
             if (-not $Row.Validated -or $script:scanning -or $script:editingSettings) {throw '请刷新并通过战斗色块检测。'}
-            Start-AutoFightRow $Row.FightRow; return
+            $wasRunning=$null -ne $Row.FightRow.Session
+            Start-AutoFightRow $Row.FightRow
+            if (-not $wasRunning -and $Row.FightRow.Session) {Register-WowAutoExecutionRound $Row}
+            return
         }
         if ($script:pendingGameExits.ContainsKey($Row.Key)) { throw '正在等待游戏退出，请先停止以取消超时保护。' }
         if (-not $Row.Validated -or $script:scanning -or $script:editingSettings) { throw '请先关闭设置，并刷新通过红色/绿色检测。' }
@@ -1279,6 +1294,7 @@ function Start-Row($Row,[switch]$TaskOnly) {
             $Row.State.Status='正在启动本进程声音监听，暂不抛竿。'
         }
         Update-RowStatus $Row
+        Register-WowAutoExecutionRound $Row
     }
     catch {
         Stop-Row $Row ('无法开始：' + $_.Exception.Message)
@@ -1373,6 +1389,7 @@ function Refresh-ProcessRows {
         $list.ResumeLayout()
         $countLabel.Text = "检测到 $($processes.Count) 个游戏进程"
         if ($processes.Count -eq 0) { $countLabel.Text = '未找到游戏，请启动后刷新。' }
+        Update-WowAutoRunInfo
     }
     catch { $countLabel.Text = '刷新失败：' + $_.Exception.Message; return $false }
     return $true
@@ -1926,6 +1943,7 @@ try {
             . (Join-Path $PSScriptRoot 'tests\Unified.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Rotation.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Accounts.UiTests.ps1')
+            . (Join-Path $PSScriptRoot 'tests\Logging.UiTests.ps1')
         }
         if ($PreviewPath) {
             [System.Windows.Forms.Application]::DoEvents()
@@ -1955,5 +1973,12 @@ finally {
     if ($UiTest -and (Test-Path -LiteralPath $script:audioFeatureDirectory)) {
         foreach ($name in @(@($script:audioRecordings.Values | ForEach-Object {$_} | ForEach-Object Feature) + @('titan.feature','forerver.feature') | Select-Object -Unique)) { $featurePath=Join-Path $script:audioFeatureDirectory $name; if ([IO.File]::Exists($featurePath)) { [IO.File]::Delete($featurePath) } }
         [IO.Directory]::Delete($script:audioFeatureDirectory)
+    }
+    if ($UiTest -and $script:logTestDirectory -and [IO.Directory]::Exists($script:logTestDirectory)) {
+        foreach ($name in @('wowAuto.log','info.log')) {
+            $file=Join-Path $script:logTestDirectory $name
+            if ([IO.File]::Exists($file)) {[IO.File]::Delete($file)}
+        }
+        [IO.Directory]::Delete($script:logTestDirectory)
     }
 }

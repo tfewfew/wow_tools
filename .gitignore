@@ -1,4 +1,6 @@
 .local-backups/
 work/
 *.log
+tools/wowAuto/log/*
+!tools/wowAuto/log/.gitkeep
 tools/wowAuto/audio-samples/
