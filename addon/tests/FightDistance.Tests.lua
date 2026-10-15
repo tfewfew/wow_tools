@@ -172,6 +172,8 @@ for _,flavor in ipairs({"titan","forerver"}) do
     local corpseEpoch=epoch()
     mobs.softinteract.loot=false;mobs.softinteract.canLoot=nil;tick();expect("skin")
     assert(epoch()==corpseEpoch,"Loot-to-skin changed corpse identity")
+    mobs.target={guid="Creature-NEARBY",distance=10};tick();expect("skin")
+    mobs.target=nil
     skinningCast=true;tick();expect("skin")
     assert(signal.textures[1].color[2]>.4,"Skinning cast did not set the busy color bit")
     mobs.softinteract=nil;tick();expect("skin")
@@ -181,6 +183,9 @@ for _,flavor in ipairs({"titan","forerver"}) do
     mobs.softinteract.canLoot=secret;tick();expect("unknown")
     mobs.softinteract.canLoot=nil
     mobs.softinteract.skinnable=false;tick();expect("unknown")
+    mobs.target={guid="Creature-NEARBY",distance=10}
+    tick();expect("opening")
+    mobs.target=nil;tick();expect("unknown")
     mobs.softinteract=nil;tick();expect("idle")
     mobs.softinteract={guid="Creature-CORPSE-B",dead=true,interactable=true,loot=true,canLoot=true,skinnable=true}
     tick();expect("loot")
@@ -245,6 +250,6 @@ for _,flavor in ipairs({"titan","forerver"}) do
     health=65;tick();expect("combat")
     assert(signal.textures[2].color[1]==.15,"Recovery did not clear at the threshold")
     mobs.target=nil;tick();expect("waiting")
-    print("PASS: "..flavor.." combat priority, loot-to-skin fallbacks, busy skin color, recovery and scaling. Game APIs mocked.")
+    print("PASS: "..flavor.." combat priority, corpse/nearby-enemy arbitration, busy skin color, recovery and scaling. Game APIs mocked.")
 end
 if output then output:close() end

@@ -340,15 +340,18 @@ local function Refresh()
     if busy and (state=="skin" or state=="loot") then
         skin=state=="skin"; SetState(state); return
     end
+    -- An uncertain corpse cannot hide a known attackable enemy nearby.
+    local interactionUnknown=false
     if not busy then
         local interaction,guid=Interaction()
-        if interaction then
+        if interaction=="loot" or interaction=="skin" then
             SetEncounter(nil)
             if guid and guid~=interactionGUID then
                 interactionGUID=guid; encounterSerial=(encounterSerial+1)%256
             end
             skin=interaction=="skin"; SetState(interaction); return
         end
+        interactionUnknown=interaction=="unknown"
     end
     local unit,guid,unknown=FindEnemy()
     if unit then
@@ -357,7 +360,7 @@ local function Refresh()
         if detected==nil then SetState("unknown"); return end
         SetState(detected and "opening" or "idle"); return
     end
-    if unknown then SetState("unknown"); return end
+    if unknown or interactionUnknown then SetState("unknown"); return end
     SetEncounter(nil)
     SetState("idle")
 end
