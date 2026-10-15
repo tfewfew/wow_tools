@@ -5,7 +5,7 @@ $tool=Split-Path $PSScriptRoot -Parent
 Add-Type -Path (Join-Path $tool 'wowAuto.Rotation.Native.cs') -ReferencedAssemblies System.Drawing
 $parseTokens=$null;$parseErrors=$null
 $ast=[System.Management.Automation.Language.Parser]::ParseFile((Join-Path $tool 'wowAuto.Rotation.ps1'),[ref]$parseTokens,[ref]$parseErrors)
-foreach ($name in @('New-RotationPlan','Resolve-RotationOcrName','Get-RotationMenuRow','ConvertFrom-RotationOcr')) {
+foreach ($name in @('New-RotationPlan','Resolve-RotationOcrName','Get-RotationMenuGeometry','Get-RotationMenuRow','ConvertFrom-RotationOcr')) {
     $fn=$ast.Find({param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name},$true)
     if (-not $fn) {throw 'OCR classifier function missing.'}
     Invoke-Expression $fn.Extent.Text
@@ -31,13 +31,6 @@ $shiftedOcr=[pscustomobject]@{Lines=@([pscustomobject]@{Text='选择服务器';X
 $shiftedScreen=ConvertFrom-RotationOcr $shiftedOcr $shiftedPlan
 if (@($shiftedScreen.Targets | Where-Object {$_.Name -ceq '吔史呀嘞' -and $_.RawName -ceq '咆史呀嘞' -and $_.MenuRow -eq 4 -and -not $_.Ambiguous}).Count -ne 1) {
     throw 'One-glyph OCR match was discarded before the shifted fourth row could be located.'
-}
-$widerY=0.119+3*0.0743+0.0355
-$shiftedOcr.Names[0].Y=$widerY/0.84-0.01
-$shiftedOcr.Lines[1].Y=$widerY-0.01
-$shiftedScreen=ConvertFrom-RotationOcr $shiftedOcr $shiftedPlan
-if (@($shiftedScreen.Targets | Where-Object {$_.Name -ceq '吔史呀嘞' -and $_.MenuRow -eq 4}).Count -ne 1) {
-    throw 'The wider name tolerance did not retain a unique fourth-row match.'
 }
 $shiftedOcr.Names[0].Text='地史呀'
 $shiftedScreen=ConvertFrom-RotationOcr $shiftedOcr $shiftedPlan
@@ -188,5 +181,44 @@ if ($runRepositoryFixtures) {
                 } finally {$bitmap.Dispose()}
             }
         } finally {if ($client) {$client.Dispose()};$original.Dispose()}
+    }
+    # Both samples show the same fourth character row with different highlight
+    # backgrounds. Restore a client-sized canvas because the supplied images
+    # contain only the right-hand character list, not the entire game window.
+    $highlightFixtures=@(
+        [pscustomobject]@{File='titan-character-list-other-selected-20261015.png';CenterY=0.401},
+        [pscustomobject]@{File='titan-character-list-target-selected-20261015.png';CenterY=0.391}
+    )
+    $highlightPlan=New-RotationPlan
+    $highlightPlan.Slots[0].Name='吔史呀嘞'
+    foreach ($fixture in $highlightFixtures) {
+        $crop=New-Object Drawing.Bitmap((Join-Path $PSScriptRoot ('fixtures/'+$fixture.File)))
+        $canvasWidth=[int][Math]::Ceiling($crop.Height*16.0/9.0)
+        $canvas=New-Object Drawing.Bitmap($canvasWidth,$crop.Height)
+        $graphics=[Drawing.Graphics]::FromImage($canvas)
+        try {
+            $graphics.Clear([Drawing.Color]::Black)
+            $graphics.DrawImageUnscaled($crop,($canvasWidth-$crop.Width),0)
+            foreach ($scale in @(1.0,1.5)) {
+                $bitmap=New-Object Drawing.Bitmap($canvas,(New-Object Drawing.Size([int]($canvas.Width*$scale),[int]($canvas.Height*$scale))))
+                try {
+                    $ocr=Read-TestOcr $bitmap
+                    $screen=ConvertFrom-RotationOcr $ocr $highlightPlan
+                    $matched=@($screen.Targets | Where-Object {$_.Name -ceq '吔史呀嘞' -and -not $_.Ambiguous})
+                    if ($screen.Kind -ne 'menu' -or $matched.Count -ne 1 -or $matched[0].MenuRow -ne 4) {
+                        throw ('Highlight OCR failed to uniquely find fourth row in '+$fixture.File+' at scale '+$scale+': '+($screen | ConvertTo-Json -Depth 4 -Compress))
+                    }
+                    $actualX=$matched[0].X*$bitmap.Width
+                    $actualY=$matched[0].Y*$bitmap.Height
+                    $listLeft=($canvasWidth-$crop.Width)*$scale
+                    $expectedY=$fixture.CenterY*$bitmap.Height
+                    if ($actualX -le $listLeft -or $actualX -ge $bitmap.Width -or
+                        [Math]::Abs($actualY-$expectedY) -gt 7*$scale) {
+                        throw ('Highlight OCR click missed the fourth text row in '+$fixture.File+' at scale '+$scale+'.')
+                    }
+                    Write-Output ('PASS: '+$fixture.File+' at scale '+$scale+' resolves 吔史呀嘞 to the fourth row and clicks its center.')
+                } finally {$bitmap.Dispose()}
+            }
+        } finally {$graphics.Dispose();$canvas.Dispose();$crop.Dispose()}
     }
 }

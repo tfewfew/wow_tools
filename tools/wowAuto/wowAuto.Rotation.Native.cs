@@ -126,11 +126,11 @@ namespace WowAutoRotation {
         public static byte[] Png(Bitmap b) {
             using(var stream=new MemoryStream()) {b.Save(stream,ImageFormat.Png);return stream.ToArray();}
         }
-        // The demonstration's yellow names remain readable over the selected-row highlight.
-        // This is OCR preprocessing of text, never a detector/state color protocol.
+        // Include the full name column even when the character list keeps a fixed
+        // pixel width while the game client is resized.
         public static Rectangle NamesRegion(Bitmap b) {
-            // Character-list UI is anchored to the right and scales with client height.
-            int width=Math.Min(b.Width,Math.Max(1,(int)Math.Ceiling(b.Height*(0.21*16.0/9.0))));
+            // The older 0.373-height crop cut the first glyph in narrow windows.
+            int width=Math.Min(b.Width,Math.Max(1,(int)Math.Ceiling(b.Height*0.47)));
             return new Rectangle(b.Width-width,0,width,Math.Max(1,(int)Math.Floor(b.Height*0.84)));
         }
         public static byte[] NamesPng(Bitmap b) {
