@@ -188,7 +188,7 @@ try {
     $session=New-AutoFightSession 0 1
     $p=Get-AutoFightEffectiveProfile $profiles['titan:1'] (New-AutoFightCommon)
     $packet=[pscustomobject]@{ClassId=1;Flavor='titan';Busy=$false;Combat=$false;Action='opening';Recovery='none';EncounterId=1}
-    foreach($action in @('opening','loot','skin','combat')) {
+    foreach($action in @('opening','interact','combat')) {
         $packet.Action=$action;$packet.Combat=$action -eq 'combat'
         Assert-Fight ((Get-AutoFightAction $session $packet $p 999) -eq $action -and
             -not (Test-AutoFightCommandReady $gate 999)) 'Plugin action bypassed the common input gate.'
@@ -197,18 +197,17 @@ try {
     $packet.Action='opening';$packet.Combat=$false
     Assert-Fight ((Get-AutoFightAction $session $packet $p 1001) -eq 'opening' -and
         -not $session.PSObject.Properties['NextByAction']) 'Engine retained an independent opening cooldown.'
-    $packet.Action='skin'
-    Assert-Fight ((Get-AutoFightAction $session $packet $p 1001) -eq 'skin') 'Script retained a corpse history gate.'
-    Complete-AutoFightAction $session $p 'skin' 1001
-    Assert-Fight ((Get-AutoFightAction $session $packet $p 1002) -eq 'skin') 'Engine retained an independent skin interval.'
-    Assert-Fight ((Get-AutoFightHoldDuration $p 'skin') -eq 2000 -and
-        (Get-AutoFightHoldDuration $p 'loot') -eq $p.InteractionHoldMs) 'Skin duration changed loot setting.'
-    $skinHold=[pscustomobject]@{State='skin';Movement=$false;Until=3001L}
+    $packet.Action='interact'
+    Assert-Fight ((Get-AutoFightAction $session $packet $p 1001) -eq 'interact') 'Script retained a corpse history gate.'
+    Complete-AutoFightAction $session $p 'interact' 1001
+    Assert-Fight ((Get-AutoFightAction $session $packet $p 1002) -eq 'interact') 'Engine retained an independent interaction interval.'
+    Assert-Fight ((Get-AutoFightHoldDuration $p 'interact') -eq $p.InteractionHoldMs) 'Interaction duration ignored the common setting.'
+    $interactHold=[pscustomobject]@{State='interact';Movement=$false;Until=(1001L+$p.InteractionHoldMs)}
     $packet.Action='idle'
-    Assert-Fight (-not (Test-AutoFightHoldFinished $skinHold $packet 3000) -and
-        (Test-AutoFightHoldFinished $skinHold $packet 3001)) 'Skin hold ended before two seconds.'
+    Assert-Fight (-not (Test-AutoFightHoldFinished $interactHold $packet ($interactHold.Until-1)) -and
+        (Test-AutoFightHoldFinished $interactHold $packet $interactHold.Until)) 'Interaction hold ended before its configured duration.'
     $packet.Combat=$true
-    Assert-Fight (Test-AutoFightHoldFinished $skinHold $packet 1500) 'Combat failed to interrupt skin hold.'
+    Assert-Fight (Test-AutoFightHoldFinished $interactHold $packet 1500) 'Combat failed to interrupt interaction hold.'
     $packet.Combat=$false
     Assert-Fight (Test-AutoFightCommandReady $gate 1000) 'Exact interval boundary blocked.'
     Complete-AutoFightCommand $gate 1000 $false
@@ -217,4 +216,4 @@ try {
     $gate.IntervalMs=2000
     Assert-Fight (-not (Test-AutoFightCommandReady $gate 2999) -and (Test-AutoFightCommandReady $gate 3000)) 'Interval edit reset successful send time.'
     Assert-Fight (@($session.PSObject.Properties.Name | Where-Object {$_ -in @('State','Substate','OpeningSent','LootEncounterId')}).Count -eq 0) 'Script retains combat main-state fields.'
-    Write-Output 'PASS: six-state direct actions, recovery cooldown, common command gate, JSON v1-v8 migration to v9 and atomic settings. No native input.'} finally { if ([IO.File]::Exists($path)) { [IO.File]::Delete($path) } }
+    Write-Output 'PASS: five-state direct actions, recovery cooldown, common command gate, JSON v1-v8 migration to v9 and atomic settings. No native input.'} finally { if ([IO.File]::Exists($path)) { [IO.File]::Delete($path) } }

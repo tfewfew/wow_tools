@@ -8,18 +8,18 @@ local range=WoWTools.FightRange
 local attackRange=range.DefaultAttack
 local encounterGUID, encounterSerial = nil, 0
 local interactionGUID = nil
-local state, combat, skin, busy = "disabled", false, false, false
+local state, combat, busy = "disabled", false, false
 local health, settings = nil, nil
 local events, SetActiveEvents
 local recovery="none"
 local recoveryDescriptions={none="无需恢复", recover="需要恢复", unknown="恢复状态未知"}
 local defaultRecoveryThreshold=80
--- V8: six main states plus an actionable, unified health hint in the auxiliary cell.
+-- V8: looting and skinning share one interaction state; health stays auxiliary.
 -- The main cell also carries client/class, busy, combat and encounter metadata.
-local actionCodes={unknown=0,idle=1,opening=2,waiting=3,combat=4,loot=5,skin=6}
+local actionCodes={unknown=0,idle=1,opening=2,waiting=3,combat=4,interact=5}
 local descriptions={disabled="已关闭",unknown="数据未知，暂停指令",idle="等待目标",
     opening="范围内有怪物，选中并开怪",waiting="战斗中等待怪物接近",combat="进入攻击距离",
-    loot="可以拾取",skin="可以剥皮"}
+    interact="尸体可交互"}
 
 local function Readable(value)
     return not (issecretvalue and issecretvalue(value))
@@ -197,64 +197,9 @@ local function FindEnemy()
     end
     return nil,nil,unknown
 end
-local scanTooltip
-local function SkinTooltip(unit)
-    local data, ok
-    if C_TooltipInfo and C_TooltipInfo.GetUnit then
-        data,ok=Read(C_TooltipInfo.GetUnit,unit)
-        if not ok or type(data)~="table" or not Readable(data.lines) or type(data.lines)~="table" then return nil end
-        for _,line in ipairs(data.lines) do
-            if not Readable(line) or type(line)~="table" then return nil end
-            local text=line.leftText
-            if not Readable(text) then return nil end
-            if type(text)=="string" and ((type(UNIT_SKINNABLE)=="string" and text==UNIT_SKINNABLE)
-                or (type(SKINNABLE)=="string" and text==SKINNABLE)) then
-                local c=line.leftColor
-                if not Readable(c) or not c then return nil end
-                -- Read both components under pcall; secret colors cannot imply readiness.
-                local colorOK,red,green=pcall(function() return c:GetRGB() end)
-                if not colorOK or not Readable(red) or not Readable(green) then return nil end
-                return not (red>.8 and green<.2)
-            end
-        end
-        return false
-    end
-    -- Legacy client fallback uses its own invisible tooltip, never GameTooltip.
-    if not scanTooltip then scanTooltip=CreateFrame("GameTooltip","wowToolsFightScanTooltip",UIParent,"GameTooltipTemplate") end
-    scanTooltip:SetOwner(UIParent,"ANCHOR_NONE")
-    scanTooltip:ClearLines()
-    local tooltipOK=pcall(scanTooltip.SetUnit,scanTooltip,unit)
-    if not tooltipOK then scanTooltip:Hide(); return nil end
-    local result=false
-    for i=1,scanTooltip:NumLines() do
-        local font=_G["wowToolsFightScanTooltipTextLeft"..i]
-        local text=font and font:GetText()
-        if not Readable(text) then result=nil; break end
-        if text and ((UNIT_SKINNABLE and text==UNIT_SKINNABLE) or (SKINNABLE and text==SKINNABLE)) then
-            local r,g=font:GetTextColor()
-            if not Readable(r) or not Readable(g) then result=nil else result=not (r>.8 and g<.2) end
-            break
-        end
-    end
-    scanTooltip:Hide()
-    return result
-end
-local function LootStatus(guid)
-    -- CanLootUnit returns both loot presence and this player's permission to loot.
-    -- Loot permission matters only while loot is present. After looting, some
-    -- clients omit that second result; the corpse may still be skinnable.
-    if type(CanLootUnit)~="function" then return nil,nil,false end
-    local ok,hasLoot,canLoot=pcall(CanLootUnit,guid)
-    if not ok or not Readable(hasLoot) then return nil,nil,false end
-    if hasLoot==nil then return nil,nil,Readable(canLoot) and canLoot==nil end
-    if hasLoot~=true and hasLoot~=false and hasLoot~=1 and hasLoot~=0 then return nil,nil,false end
-    if hasLoot==false or hasLoot==0 then return false,false,true end
-    if not Readable(canLoot) then return true,nil,false end
-    if canLoot~=true and canLoot~=false and canLoot~=1 and canLoot~=0 then return true,nil,false end
-    return true,canLoot==true or canLoot==1,true
-end
 local function Interaction()
-    -- Only the soft interaction unit can be acted on by the configured interaction key.
+    -- Looting and skinning share one hint; loot data and tooltip text cannot
+    -- choose a separate color. Only a dead, interactable creature qualifies.
     local guid, ok=Read(UnitGUID,"softinteract")
     if not ok then return "unknown" end
     if guid==nil or guid=="" then return nil end
@@ -266,17 +211,7 @@ local function Interaction()
     local ready=Bool(UnitIsInteractable,"softinteract")
     if ready==false then return nil end
     if ready==nil then return "unknown" end
-    local hasLoot,canLoot,skinCheckAllowed=LootStatus(guid)
-    if hasLoot==true then
-        if canLoot then return "loot",guid end
-        return nil -- Do not skin a corpse that still has inaccessible loot.
-    end
-    if not skinCheckAllowed then return "unknown" end
-    local canSkin=SkinTooltip("softinteract")
-    -- A positive skinnable tooltip can identify an emptied corpse even when
-    -- CanLootUnit returns nothing. Absence of both signals remains unknown.
-    if canSkin then return "skin",guid end
-    if hasLoot==nil or canSkin==nil then return "unknown" end
+    return "interact",guid
 end
 local function Percentage(currentFn, maximumFn, power)
     local current,ok,maximum,valid
@@ -300,7 +235,7 @@ local function SetState(value)
     Paint()
 end
 local function Stop()
-    enabled,elapsed,state,combat,skin,busy=false,0,"disabled",false,false,false
+    enabled,elapsed,state,combat,busy=false,0,"disabled",false,false
     if SetActiveEvents then SetActiveEvents(false) end
     health,recovery=nil,"none"
     SetEncounter(nil)
@@ -313,7 +248,7 @@ local function Refresh()
     local dead=Bool(UnitIsDeadOrGhost,"player")
     if dead==true then Stop(); Say("角色死亡，检测已关闭；复活后请手动启动。"); return end
     combat=Bool(UnitAffectingCombat,"player")
-    skin,busy=false,false
+    busy=false
     if combat==nil then recovery="unknown"; SetState("unknown"); return end
     local vitalsKnown=Vitals()
     local cast,castOK=Read(UnitCastingInfo,"player")
@@ -337,19 +272,19 @@ local function Refresh()
         SetState(closeEnough==true and "combat" or "waiting"); return
     end
     if dead==nil then SetState("unknown"); return end
-    if busy and (state=="skin" or state=="loot") then
-        skin=state=="skin"; SetState(state); return
+    if busy and state=="interact" then
+        SetState(state); return
     end
     -- An uncertain corpse cannot hide a known attackable enemy nearby.
     local interactionUnknown=false
     if not busy then
         local interaction,guid=Interaction()
-        if interaction=="loot" or interaction=="skin" then
+        if interaction=="interact" then
             SetEncounter(nil)
             if guid and guid~=interactionGUID then
                 interactionGUID=guid; encounterSerial=(encounterSerial+1)%256
             end
-            skin=interaction=="skin"; SetState(interaction); return
+            SetState(interaction); return
         end
         interactionUnknown=interaction=="unknown"
     end
@@ -368,7 +303,7 @@ local function SafeRefresh()
     if not enabled then return end
     local ok=pcall(Refresh)
     if not ok then
-        skin,busy,recovery=false,true,"unknown"
+        busy,recovery=true,"unknown"
         if combat==true then state="waiting" else state,combat="unknown",nil end
         Paint()
     end

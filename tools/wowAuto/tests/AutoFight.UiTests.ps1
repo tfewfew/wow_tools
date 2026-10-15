@@ -240,16 +240,20 @@ try {
     Assert-Ui ([WowAutoFight.Native]::Sends -eq 4) 'Combat waiting sent a key.'
     Tick-FightColor $fightRows[0] 'combat' 3000
     Assert-Ui ([WowAutoFight.Native]::Sends -eq 5) 'Combat color did not send attack key.'
-    Tick-FightColor $fightRows[0] 'loot' 4000
-    Assert-Ui ([WowAutoFight.Native]::Sends -eq 6 -and $script:autoFight.ActiveHold) 'Loot color did not start interaction hold.'
+    $savedInteractionHoldMs=$script:autoFight.Common.InteractionHoldMs
+    $script:autoFight.Common.InteractionHoldMs=2000
+    Tick-FightColor $fightRows[0] 'interact' 4000
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 6 -and $script:autoFight.ActiveHold) 'Interaction color did not press the shared key.'
     [void](Release-AutoFightHold)
-    Tick-FightColor $fightRows[0] 'skin' 5000
-    Assert-Ui ([WowAutoFight.Native]::Sends -eq 7 -and $script:autoFight.ActiveHold.Until -eq 7000) 'Skin color did not start fixed hold.'
+    Tick-FightColor $fightRows[0] 'interact' 5000
+    $interactionEnd=5000+$script:autoFight.Common.InteractionHoldMs
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 7 -and $script:autoFight.ActiveHold.Until -eq $interactionEnd) 'Repeated interaction color did not start configured hold.'
     [WowAutoFight.Native]::Current.Action='idle'
     $script:autoFight.Clock.ElapsedMilliseconds=5500;Invoke-AutoFightTick
-    Assert-Ui ($script:autoFight.ActiveHold -and [WowAutoFight.Native]::Sends -eq 7) 'Skin hold stopped when color changed.'
-    $script:autoFight.Clock.ElapsedMilliseconds=7000;Invoke-AutoFightTick
-    Assert-Ui (-not $script:autoFight.ActiveHold) 'Skin hold ignored two-second limit.'
+    Assert-Ui ($script:autoFight.ActiveHold -and [WowAutoFight.Native]::Sends -eq 7) 'Interaction hold stopped when color changed.'
+    $script:autoFight.Clock.ElapsedMilliseconds=$interactionEnd;Invoke-AutoFightTick
+    Assert-Ui (-not $script:autoFight.ActiveHold) 'Interaction hold ignored configured duration.'
+    $script:autoFight.Common.InteractionHoldMs=$savedInteractionHoldMs
     [WowAutoFight.Native]::Current.EncounterId=3
     [WowAutoFight.Native]::ReadsUntilActionChange=3
     [WowAutoFight.Native]::NextAction='waiting'

@@ -346,11 +346,11 @@ function Invoke-AutoFightTick([bool]$AllowInput=$true,[switch]$PlanOnly,[string]
         $completed=$script:autoFight.Clock.ElapsedMilliseconds
         Complete-AutoFightCommand $script:autoFight.CommandGate $completed $true
         Complete-AutoFightAction $session $profile $action $completed
-        if ($movement -or $action -in @('skin','loot')) {
+        if ($movement -or $action -eq 'interact') {
             $duration=Get-AutoFightHoldDuration $profile $action
             $script:autoFight.ActiveHold=[pscustomobject]@{Row=$row; Session=$session; State=$packet.Action;
                 Until=($completed+$duration); Movement=$movement}
-            $holdDescription=if ($action -eq 'skin') {"固定保持 $duration ms"} else {"最长保持 $duration ms，状态改变时结束"}
+            $holdDescription=if ($action -eq 'interact') {"固定等待 $duration ms"} else {"最长保持 $duration ms，状态改变时结束"}
             Set-AutoFightStatus $row ("已执行"+$handler.Label+" $($binding.Text) · $holdDescription。")
         }
         elseif ($action -eq 'opening') {Set-AutoFightStatus $row ("已执行选目标键 $($targetBinding.Text) 和开怪键 $($binding.Text) · $combatText")}
@@ -505,7 +505,7 @@ function New-AutoFightSettingsDialog([switch]$Embedded) {
         $editor.CommonBindings[$field]=$box; $body.Controls.Add($label); $body.Controls.Add($box)
     }
     $numbers=@(@('MovementHoldMs','移动按住时长 (ms)',100,2000),
-        @('InteractionHoldMs','拾取前台保持 (ms)',1000,60000))
+        @('InteractionHoldMs','交互等待 (ms)',1000,60000))
     for ($i=0;$i -lt $numbers.Count;$i++) {
         $entry=$numbers[$i]; $x=if ($i -eq 1) {436} else {16}; $y=442
         $label=New-Object System.Windows.Forms.Label; $label.Text=$entry[1]; $label.SetBounds($x,($y+4),220,32)

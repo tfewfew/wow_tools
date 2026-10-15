@@ -19,7 +19,7 @@ namespace WowAutoFight
     public sealed class Packet
     {
         public string Action, Flavor, Recovery;
-        public bool Combat, Skin, Busy;
+        public bool Combat, Busy;
         public int ClassId, EncounterId;
     }
     public static class Native
@@ -191,17 +191,17 @@ namespace WowAutoFight
         {
             return Math.Abs(R(actual)-red)<=1 && Math.Abs(G(actual)-green)<=1 && Math.Abs(B(actual)-blue)<=1;
         }
-        // V8 keeps six plugin-owned main actions and reads one unified health hint.
+        // V8 uses one interaction action for both looting and skinning.
         public static Packet Decode(uint[] cells,string expectedFlavor)
         {
             if (cells==null || cells.Length!=2 || cells[0]==0xffffffff) return null;
-            int action=Slot(R(cells[0]),7,20,7);
+            int action=Slot(R(cells[0]),7,20,6);
             int identityBusy=Slot(G(cells[0]),0,4,52), encounterCombat=Slot(B(cells[0]),0,4,64);
             if (action<=0 || identityBusy<0 || encounterCombat<0) return null;
             int identity=identityBusy%26, classId=identity%13+1;
             string flavor=identity<13 ? "titan" : "forerver";
             if (flavor!=expectedFlavor || classId==10 || classId>11 || (flavor=="forerver" && classId==6)) return null;
-            string[] actions={"unknown","idle","opening","waiting","combat","loot","skin"};
+            string[] actions={"unknown","idle","opening","waiting","combat","interact"};
             string state=actions[action];
             bool combat=encounterCombat>=32, busy=identityBusy>=26;
             if (combat ? (state!="waiting" && state!="combat") : (state=="waiting" || state=="combat")) return null;
@@ -210,7 +210,7 @@ namespace WowAutoFight
                 : ColorNear(cells[1],128,128,128) ? "unknown" : null;
             if (recovery==null) return null;
             return new Packet {Action=state,Flavor=flavor,Recovery=recovery,Combat=combat,Busy=busy,
-                Skin=state=="skin",ClassId=classId,EncounterId=encounterCombat%32};
+                ClassId=classId,EncounterId=encounterCombat%32};
         }
         private static Input Key(ushort code,bool up)
         {

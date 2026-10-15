@@ -268,7 +268,7 @@ function Submit-FishingActions([long]$Now) {
     }
 }
 function Submit-CombatAction($Row,$Session,[string]$Action,[long]$Now) {
-    $names=@{opening='Opening';combat='Combat';buff='Buff';recover='Recover';loot='Loot';skin='Skin';jump='Jump';
+    $names=@{opening='Opening';combat='Combat';buff='Buff';recover='Recover';interact='Interact';jump='Jump';
         'move-forward'='MoveForward';'move-backward'='MoveBackward';'move-left'='MoveLeft';'move-right'='MoveRight'}
     if (-not $names.ContainsKey($Action)) {return}
     $parent=if ($Row.PSObject.Properties['ParentRow']) {$Row.ParentRow} else {$Row}

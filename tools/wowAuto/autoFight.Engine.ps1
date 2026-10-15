@@ -14,8 +14,7 @@ $script:autoFightStates = [ordered]@{
     'move-backward'=@{Label='向后移动'; Key='MoveBackwardKey'; Interval=$null}
     'move-left'=@{Label='向左移动'; Key='MoveLeftKey'; Interval=$null}
     'move-right'=@{Label='向右移动'; Key='MoveRightKey'; Interval=$null}
-    'loot'=@{Label='拾取'; Key='SkinKey'; Interval=$null}
-    'skin'=@{Label='剥皮'; Key='SkinKey'; Interval=$null}
+    'interact'=@{Label='尸体交互'; Key='SkinKey'; Interval=$null}
     'idle'=@{Label='等待目标'; Key=$null; Interval=$null}
     'jump'=@{Label='定时跳跃'; Key='JumpKey'; Interval=$null}
     'buff'=@{Label='补 Buff'; Key='BuffKey'; Interval=$null}
@@ -59,7 +58,7 @@ function ConvertTo-AutoFightCommon($Common) {
         throw '四个移动方向必须绑定不同的按键。'
     }
     $fields.MovementHoldMs=Get-AutoFightInteger $Common.MovementHoldMs 100 2000 '移动按住时长 (ms)'
-    $fields.InteractionHoldMs=Get-AutoFightInteger $Common.InteractionHoldMs 1000 60000 '交互前台保持 (ms)'
+    $fields.InteractionHoldMs=Get-AutoFightInteger $Common.InteractionHoldMs 1000 60000 '交互等待 (ms)'
     if ($Common.SkinEnabled -isnot [bool]) {throw '拾取 / 剥皮交互开关必须为布尔值。'}
     $fields.SkinEnabled=$Common.SkinEnabled
     $fields.JumpIntervalSeconds=Get-AutoFightInteger $Common.JumpIntervalSeconds 0 3600 '自动跳跃间隔 (秒，0 关闭)'
@@ -274,7 +273,7 @@ function Get-AutoFightAction($Session,$Packet,$Profile,[long]$Now) {
     Set-AutoFightJumpInterval $Session $Profile.JumpIntervalSeconds $Now
     Set-AutoFightBuffSchedule $Session $Profile $Now
     if ($Packet.ClassId -ne $Session.ClassId -or $Packet.Flavor -ne $Profile.Flavor) { return 'identity-changed' }
-    if ($Packet.Action -notin @('idle','opening','waiting','combat','loot','skin')) { return 'identity-changed' }
+    if ($Packet.Action -notin @('idle','opening','waiting','combat','interact')) { return 'identity-changed' }
     if ($Packet.Recovery -notin @('none','recover','unknown')) { return 'identity-changed' }
     if ($Packet.Action -ne 'idle' -or $Packet.Busy) {$Session.MovementRequest=''}
     if ($Now -ge $Session.RecoveryReadyAt) {
@@ -291,7 +290,7 @@ function Get-AutoFightAction($Session,$Packet,$Profile,[long]$Now) {
     if ($Packet.Action -eq 'idle' -and $Session.MovementRequest) {return 'move-'+$Session.MovementRequest}
     $handler=$script:autoFightStates[$Packet.Action]
     if (-not $handler.Key) {return 'wait'}
-    if ($Packet.Action -in @('skin','loot')) {
+    if ($Packet.Action -eq 'interact') {
         if (-not $Profile.SkinEnabled -or $Packet.Combat) { return 'wait' }
     }
     return $Packet.Action
@@ -317,13 +316,12 @@ function Complete-AutoFightAction($Session,$Profile,[string]$Action,[long]$Now) 
     $Session.Due=$Now+100
 }
 function Get-AutoFightHoldDuration($Profile,[string]$Action) {
-    if ($Action -eq 'skin') {return 2000}
     if ($Action.StartsWith('move-')) {return $Profile.MovementHoldMs}
     return $Profile.InteractionHoldMs
 }
 function Test-AutoFightHoldFinished($Hold,$Packet,[long]$Now) {
-    if ($Hold.State -eq 'skin' -and -not $Hold.Movement) {
-        # Do not leave a skinning cast early just because the plugin already reports idle.
+    if ($Hold.State -eq 'interact' -and -not $Hold.Movement) {
+        # Let either looting or skinning finish even if the hint briefly disappears.
         return $Now -ge $Hold.Until -or $Packet.Combat
     }
     return $Now -ge $Hold.Until -or $Packet.Action -ne $Hold.State -or

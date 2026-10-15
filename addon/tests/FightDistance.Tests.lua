@@ -8,6 +8,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     local secret=setmetatable({}, {__eq=function() error("Compared secret") end,__tostring=function() error("Printed secret") end})
     local restricted,failed,missing,conflicting,castFails=false,false,false,false,false
     local skinningCast=false
+    local lootReads,skinReads=0,0
     local messages,warm={},0
     function issecretvalue(value) return rawequal(value,secret) end
     local distances={[8149]=5,[15826]=5,[16308]=5,[9606]=10,[17626]=10,[17689]=10,[4559]=15,
@@ -74,12 +75,14 @@ for _,flavor in ipairs({"titan","forerver"}) do
         return mob and mob.interactable or false
     end
     function CanLootUnit(guid)
+        lootReads=lootReads+1
         local mob=mobs.softinteract
         assert(mob and mob.guid==guid)
         return mob.loot,mob.canLoot
     end
     UNIT_SKINNABLE="Skinnable"
     C_TooltipInfo={GetUnit=function(unit)
+        skinReads=skinReads+1
         assert(unit=="softinteract")
         return {lines=mobs.softinteract and mobs.softinteract.skinnable and
             {{leftText=UNIT_SKINNABLE,leftColor={GetRGB=function() return 0,1,0 end}}} or {}}
@@ -109,7 +112,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     end
     local saved={rangeSpells={[1]=78},profiles={[3]={DetectionRangeYards=20,HealthEnter=65}}}
     local signal=setup(1,saved)
-    local codes={unknown=0,idle=1,opening=2,waiting=3,combat=4,loot=5,skin=6}
+    local codes={unknown=0,idle=1,opening=2,waiting=3,combat=4,interact=5}
     local function pixel(cell)
         local c=cell.color
         return math.floor(c[1]*255+.5)+256*math.floor(c[2]*255+.5)+65536*math.floor(c[3]*255+.5)
@@ -168,31 +171,34 @@ for _,flavor in ipairs({"titan","forerver"}) do
     mobs.target.dead=true;combat=false;health=100;tick();expect("idle")
     mobs.target=nil
     mobs.softinteract={guid="Creature-CORPSE-A",dead=true,interactable=true,loot=true,canLoot=true,skinnable=true}
-    tick();expect("loot")
+    tick();expect("interact")
     local corpseEpoch=epoch()
-    mobs.softinteract.loot=false;mobs.softinteract.canLoot=nil;tick();expect("skin")
-    assert(epoch()==corpseEpoch,"Loot-to-skin changed corpse identity")
-    mobs.target={guid="Creature-NEARBY",distance=10};tick();expect("skin")
+    mobs.softinteract.loot=false;mobs.softinteract.canLoot=nil;tick();expect("interact")
+    assert(epoch()==corpseEpoch,"Loot-to-skin changed corpse identity or color")
+    mobs.target={guid="Creature-NEARBY",distance=10};tick();expect("interact")
     mobs.target=nil
-    skinningCast=true;tick();expect("skin")
-    assert(signal.textures[1].color[2]>.4,"Skinning cast did not set the busy color bit")
-    mobs.softinteract=nil;tick();expect("skin")
+    skinningCast=true;tick();expect("interact")
+    assert(signal.textures[1].color[2]>.4,"Interaction cast did not set the busy color bit")
+    mobs.softinteract=nil;tick();expect("interact")
     skinningCast=false;tick();expect("idle")
     mobs.softinteract={guid="Creature-CORPSE-A",dead=true,interactable=true,skinnable=true}
-    tick();expect("skin")
-    mobs.softinteract.canLoot=secret;tick();expect("unknown")
-    mobs.softinteract.canLoot=nil
-    mobs.softinteract.skinnable=false;tick();expect("unknown")
+    tick();expect("interact")
+    mobs.softinteract.canLoot=secret;mobs.softinteract.skinnable=false;tick();expect("interact")
+    mobs.softinteract.interactable=secret;tick();expect("unknown")
+    mobs.softinteract.interactable=false;tick();expect("idle")
+    mobs.softinteract.interactable=secret
     mobs.target={guid="Creature-NEARBY",distance=10}
     tick();expect("opening")
     mobs.target=nil;tick();expect("unknown")
+    mobs.softinteract.interactable=true;mobs.softinteract.dead=false;tick();expect("idle")
     mobs.softinteract=nil;tick();expect("idle")
     mobs.softinteract={guid="Creature-CORPSE-B",dead=true,interactable=true,loot=true,canLoot=true,skinnable=true}
-    tick();expect("loot")
+    tick();expect("interact")
     assert(epoch()~=corpseEpoch,"New corpse inherited previous identity")
-    mobs.softinteract.canLoot=false;tick();expect("idle")
-    mobs.softinteract.canLoot=nil;tick();expect("idle")
-    mobs.softinteract.loot=secret;tick();expect("unknown")
+    mobs.softinteract.canLoot=false;tick();expect("interact")
+    mobs.softinteract.canLoot=nil;tick();expect("interact")
+    mobs.softinteract.loot=secret;tick();expect("interact")
+    mobs.softinteract.interactable=false;tick();expect("idle")
     mobs.softinteract=nil
     mobs.nameplate1={guid="Creature-NEW",distance=10}
     event("NAME_PLATE_UNIT_ADDED","nameplate1");tick();expect("opening")
@@ -250,6 +256,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     health=65;tick();expect("combat")
     assert(signal.textures[2].color[1]==.15,"Recovery did not clear at the threshold")
     mobs.target=nil;tick();expect("waiting")
-    print("PASS: "..flavor.." combat priority, corpse/nearby-enemy arbitration, busy skin color, recovery and scaling. Game APIs mocked.")
+    assert(lootReads==0 and skinReads==0,"Interaction color still reads loot or skin tooltip APIs")
+    print("PASS: "..flavor.." combat priority, one interactable-corpse color, busy interaction, recovery and scaling. Game APIs mocked.")
 end
 if output then output:close() end
