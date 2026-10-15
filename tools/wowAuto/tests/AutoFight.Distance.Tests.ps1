@@ -41,6 +41,7 @@ foreach ($flavor in @('titan','forerver')) {
     $combat=[WowAutoFight.Native]::Decode((Test-Packet $flavor 4 4 $true),$flavor)
     $loot=[WowAutoFight.Native]::Decode((Test-Packet $flavor 4 5),$flavor)
     $skin=[WowAutoFight.Native]::Decode((Test-Packet $flavor 4 6),$flavor)
+    $skinning=[WowAutoFight.Native]::Decode((Test-Packet $flavor 4 6 $false $true),$flavor)
     $idle=[WowAutoFight.Native]::Decode((Test-Packet $flavor 4 1),$flavor)
     Assert-Distance ((Get-AutoFightAction $session $opening $profile 0) -eq 'opening') 'Opening color did not request targeting and opener.'
     Complete-AutoFightAction $session $profile 'opening' 0
@@ -53,6 +54,8 @@ foreach ($flavor in @('titan','forerver')) {
     Complete-AutoFightAction $session $profile 'loot' 300
     Assert-Distance ((Get-AutoFightAction $session $skin $profile 400) -eq 'skin') 'Skin color was blocked by script-side corpse history.'
     Complete-AutoFightAction $session $profile 'skin' 400
+    Assert-Distance ($skinning.Action -eq 'skin' -and $skinning.Busy -and
+        (Get-AutoFightAction $session $skinning $profile 500) -eq 'wait') 'Busy skin color triggered another interaction.'
     Assert-Distance ((Get-AutoFightAction $session $idle $profile 500) -eq 'wait') 'Idle color sent a fight key.'
     Assert-Distance ((Get-AutoFightAction $session $opening $profile 1000) -eq 'opening') 'Opening color did not retry after one second.'
     Assert-Distance (@($session.PSObject.Properties.Name | Where-Object {$_ -in @('State','Substate','OpeningSent','LootEncounterId','SkinnedEncounterId')}).Count -eq 0) 'Combat main-state fields remain in the script session.'

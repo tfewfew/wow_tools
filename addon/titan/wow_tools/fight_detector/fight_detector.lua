@@ -241,13 +241,17 @@ local function SkinTooltip(unit)
 end
 local function LootStatus(guid)
     -- CanLootUnit returns both loot presence and this player's permission to loot.
-    -- Missing, restricted or partial results cannot authorize an interaction.
-    if type(CanLootUnit)~="function" then return nil end
+    -- Loot permission matters only while loot is present. After looting, some
+    -- clients omit that second result; the corpse may still be skinnable.
+    if type(CanLootUnit)~="function" then return nil,nil,false end
     local ok,hasLoot,canLoot=pcall(CanLootUnit,guid)
-    if not ok or not Readable(hasLoot) or not Readable(canLoot) then return nil end
-    if hasLoot~=true and hasLoot~=false and hasLoot~=1 and hasLoot~=0 then return nil end
-    if canLoot~=true and canLoot~=false and canLoot~=1 and canLoot~=0 then return nil end
-    return hasLoot==true or hasLoot==1, canLoot==true or canLoot==1
+    if not ok or not Readable(hasLoot) then return nil,nil,false end
+    if hasLoot==nil then return nil,nil,Readable(canLoot) and canLoot==nil end
+    if hasLoot~=true and hasLoot~=false and hasLoot~=1 and hasLoot~=0 then return nil,nil,false end
+    if hasLoot==false or hasLoot==0 then return false,false,true end
+    if not Readable(canLoot) then return true,nil,false end
+    if canLoot~=true and canLoot~=false and canLoot~=1 and canLoot~=0 then return true,nil,false end
+    return true,canLoot==true or canLoot==1,true
 end
 local function Interaction()
     -- Only the soft interaction unit can be acted on by the configured interaction key.
@@ -262,15 +266,17 @@ local function Interaction()
     local ready=Bool(UnitIsInteractable,"softinteract")
     if ready==false then return nil end
     if ready==nil then return "unknown" end
-    local hasLoot,canLoot=LootStatus(guid)
-    if hasLoot==nil then return "unknown" end
-    if hasLoot then
+    local hasLoot,canLoot,skinCheckAllowed=LootStatus(guid)
+    if hasLoot==true then
         if canLoot then return "loot",guid end
         return nil -- Do not skin a corpse that still has inaccessible loot.
     end
+    if not skinCheckAllowed then return "unknown" end
     local canSkin=SkinTooltip("softinteract")
-    if canSkin==nil then return "unknown" end
+    -- A positive skinnable tooltip can identify an emptied corpse even when
+    -- CanLootUnit returns nothing. Absence of both signals remains unknown.
     if canSkin then return "skin",guid end
+    if hasLoot==nil or canSkin==nil then return "unknown" end
 end
 local function Percentage(currentFn, maximumFn, power)
     local current,ok,maximum,valid
