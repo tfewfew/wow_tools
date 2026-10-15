@@ -5,11 +5,11 @@ local nameplates = {}
 local lootOpen = false
 local classID = nil
 local range=WoWTools.FightRange
-local attackRange=range.DefaultAttack
 local encounterGUID, encounterSerial = nil, 0
 local interactionGUID = nil
 local state, combat, busy = "disabled", false, false
 local health, settings = nil, nil
+local meleeStatus=nil
 local events, SetActiveEvents
 local recovery="none"
 local recoveryDescriptions={none="无需恢复", recover="需要恢复", unknown="恢复状态未知"}
@@ -18,7 +18,7 @@ local defaultRecoveryThreshold=80
 -- The main cell also carries client/class, busy, combat and encounter metadata.
 local actionCodes={unknown=0,idle=1,opening=2,waiting=3,combat=4,interact=5}
 local descriptions={disabled="已关闭",unknown="数据未知，暂停指令",idle="等待目标",
-    opening="范围内有怪物，选中并开怪",waiting="战斗中等待怪物接近",combat="进入攻击距离",
+    opening="范围内有怪物，选中并开怪",waiting="战斗中等待近战可达",combat="可发起近战攻击",
     interact="尸体可交互"}
 
 local function Readable(value)
@@ -76,20 +76,13 @@ local save = CreateFrame("Button",nil,panel,"UIPanelButtonTemplate")
 save:SetSize(54,22)
 save:SetPoint("LEFT",input,"RIGHT",6,0)
 save:SetText("保存")
-local attackLabel=panel:CreateFontString(nil,"OVERLAY","GameFontNormalSmall")
-attackLabel:SetPoint("TOPLEFT",12,-108)
-attackLabel:SetText("开始战斗距离（全局，码）")
-local attackInput=CreateFrame("EditBox",nil,panel,"InputBoxTemplate")
-attackInput:SetSize(64,22); attackInput:SetPoint("TOPLEFT",250,-104)
-attackInput:SetAutoFocus(false); attackInput:SetNumeric(true); attackInput:SetMaxLetters(2)
-attackInput:SetScript("OnEscapePressed",function(self) self:ClearFocus() end)
 local rangeHint=panel:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall")
-rangeHint:SetPoint("TOPLEFT",12,-138)
-rangeHint:SetText("可选距离：5 / 10 / 15 / 20 / 25 / 30 / 35 / 40 码。")
+rangeHint:SetPoint("TOPLEFT",12,-108)
+rangeHint:SetText("开怪距离：5 / 10 / 15 / 20 / 25 / 30 / 35 / 40 码。")
 local thresholdLabel=panel:CreateFontString(nil,"OVERLAY","GameFontNormalSmall")
-thresholdLabel:SetPoint("TOPLEFT",12,-166);thresholdLabel:SetText("恢复生命阈值（本职业，%）")
+thresholdLabel:SetPoint("TOPLEFT",12,-138);thresholdLabel:SetText("恢复生命阈值（本职业，%）")
 local thresholdInput=CreateFrame("EditBox",nil,panel,"InputBoxTemplate")
-thresholdInput:SetSize(64,22);thresholdInput:SetPoint("TOPLEFT",250,-162)
+thresholdInput:SetSize(64,22);thresholdInput:SetPoint("TOPLEFT",250,-134)
 thresholdInput:SetAutoFocus(false);thresholdInput:SetNumeric(true);thresholdInput:SetMaxLetters(3)
 thresholdInput:SetScript("OnEscapePressed",function(self) self:ClearFocus() end)
 local start = CreateFrame("Button",nil,panel,"UIPanelButtonTemplate")
@@ -238,6 +231,7 @@ local function Stop()
     enabled,elapsed,state,combat,busy=false,0,"disabled",false,false
     if SetActiveEvents then SetActiveEvents(false) end
     health,recovery=nil,"none"
+    meleeStatus=nil
     SetEncounter(nil)
     interactionGUID=nil
     signal:Hide()
@@ -249,6 +243,7 @@ local function Refresh()
     if dead==true then Stop(); Say("角色死亡，检测已关闭；复活后请手动启动。"); return end
     combat=Bool(UnitAffectingCombat,"player")
     busy=false
+    meleeStatus=nil
     if combat==nil then recovery="unknown"; SetState("unknown"); return end
     local vitalsKnown=Vitals()
     local cast,castOK=Read(UnitCastingInfo,"player")
@@ -259,7 +254,7 @@ local function Refresh()
     end
     busy=not not (cast or channel or lootOpen or (LootFrame and LootFrame:IsShown()))
     recovery=not vitalsKnown and "unknown" or (health<settings.RecoveryThreshold and "recover" or "none")
-    -- Combat is the first main-state decision. Uncertain target/range stays in
+    -- Combat is the first main-state decision. Uncertain target/melee stays in
     -- waiting, never falls through to opening, corpse interaction or unknown.
     if combat then
         if dead==nil then SetState("waiting"); return end
@@ -268,7 +263,8 @@ local function Refresh()
         SetEncounter(guid)
         local targetGUID,targetOK=Read(UnitGUID,"target")
         if not targetOK or targetGUID~=guid then SetState("waiting"); return end
-        local closeEnough=range.Check(unit,attackRange)
+        local closeEnough=range.CheckMelee("target",classID)
+        meleeStatus=closeEnough
         SetState(closeEnough==true and "combat" or "waiting"); return
     end
     if dead==nil then SetState("unknown"); return end
@@ -336,8 +332,7 @@ end
 save:SetScript("OnClick",function()
     if not initialized then return end
     local value=tonumber(input:GetText())
-    local attack=tonumber(attackInput:GetText())
-    if not range.IsSupported(value) or not range.IsSupported(attack) then
+    if not range.IsSupported(value) then
         Say("距离请选择 5、10、15、20、25、30、35 或 40 码。"); return
     end
     local threshold=tonumber(thresholdInput:GetText())
@@ -345,10 +340,9 @@ save:SetScript("OnClick",function()
         Say("恢复生命阈值须为 1–100 的整数。"); return
     end
     local draft={DetectionRangeYards=value,RecoveryThreshold=threshold}
-    attackRange,settings=attack,draft
-    fightDetectorDB.AttackRangeYards=attack
+    settings=draft
     fightDetectorDB.profiles[classID]=draft
-    input:ClearFocus(); attackInput:ClearFocus(); thresholdInput:ClearFocus()
+    input:ClearFocus(); thresholdInput:ClearFocus()
     SafeRefresh()
 end)
 start:SetScript("OnClick",Start)
@@ -378,7 +372,6 @@ events:SetScript("OnEvent",function(_,event,arg)
         local ok,_,_,id=pcall(UnitClass,"player")
         if not ok or not Readable(id) or type(id)~="number" or id<1 or id>13 then return end
         classID=id
-        attackRange=range.IsSupported(fightDetectorDB.AttackRangeYards) and fightDetectorDB.AttackRangeYards or range.DefaultAttack
         local stored=fightDetectorDB.profiles[id]
         settings={DetectionRangeYards=range.DefaultDetection,RecoveryThreshold=defaultRecoveryThreshold}
         if type(stored)=="table" then
@@ -387,7 +380,7 @@ events:SetScript("OnEvent",function(_,event,arg)
             if type(threshold)=="number" and threshold>=1 and threshold<=100
                 and threshold==math.floor(threshold) then settings.RecoveryThreshold=threshold end
         end
-        input:SetText(tostring(settings.DetectionRangeYards)); attackInput:SetText(tostring(attackRange))
+        input:SetText(tostring(settings.DetectionRangeYards))
         thresholdInput:SetText(tostring(settings.RecoveryThreshold))
         initialized=true
         Stop()
@@ -425,6 +418,6 @@ SLASH_FIGHTDETECTOR1="/fightdetector"
 SlashCmdList.FIGHTDETECTOR=function(message)
     local command=(message or ""):lower():match("^%s*(.-)%s*$")
     if command=="off" or command=="hide" then Stop(); panel:Hide()
-    elseif command=="status" then Say((descriptions[state] or state).." · 检测="..(settings and settings.DetectionRangeYards or "?").."码 / 攻击="..attackRange.."码 / encounter="..encounterSerial.." · class="..tostring(classID))
+    elseif command=="status" then Say((descriptions[state] or state).." · 检测="..(settings and settings.DetectionRangeYards or "?").."码 / 近战="..tostring(meleeStatus).." / encounter="..encounterSerial.." · class="..tostring(classID))
     else Start() end
 end

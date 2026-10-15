@@ -7,6 +7,8 @@ for _,flavor in ipairs({"titan","forerver"}) do
     local mobs, class={}, nil
     local secret=setmetatable({}, {__eq=function() error("Compared secret") end,__tostring=function() error("Printed secret") end})
     local restricted,failed,missing,conflicting,castFails=false,false,false,false,false
+    local swingRange=nil
+    local knownBlocked,zeroRange=false,false
     local skinningCast=false
     local lootReads,skinReads=0,0
     local messages,warm={},0
@@ -23,7 +25,26 @@ for _,flavor in ipairs({"titan","forerver"}) do
         return mob and mob.distance<=distances[item] or false
     end
     C_Item={IsItemInRange=check,RequestLoadItemDataByID=function() warm=warm+1 end}
-    C_Spell={IsSpellHarmful=function(id) return id==2764 end}
+    C_SwingTimer={IsTargetWithinSwingRange=function(kind) assert(kind==0); return swingRange end}
+    local meleeIds={[78]=true,[20243]=true,[2973]=true,[49998]=true,[49143]=true}
+    Enum={SpellBookSpellBank={Player=0}}
+    C_SpellBook={IsSpellKnown=function(id) return not knownBlocked and (meleeIds[id] or false) end}
+    C_Spell={
+        IsSpellHarmful=function(id) return id==2764 end,
+        GetSpellInfo=function(id)
+            if meleeIds[id] then return {name="Melee "..id,minRange=0,maxRange=zeroRange and 0 or 5} end
+        end,
+        IsSpellInRange=function(id,unit)
+            assert(unit=="target" and meleeIds[id],"Melee must inspect the selected target")
+            if failed then error("melee range unavailable") end
+            if missing then return nil end
+            if restricted then return secret end
+            local mob=mobs[unit]
+            local inRange=mob and mob.distance<=5 or false
+            if conflicting and id==20243 then return not inRange end
+            return inRange
+        end,
+    }
     function UnitDistanceSquared() error("Do not infer enemy yards from unavailable coordinates") end
     function UnitPosition() error("Do not read enemy positions") end
     local function widget(name)
@@ -110,7 +131,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
         assert(detector,"Expected exactly two V8 cells")
         return detector
     end
-    local saved={rangeSpells={[1]=78},profiles={[3]={DetectionRangeYards=20,HealthEnter=65}}}
+    local saved={AttackRangeYards=40,rangeSpells={[1]=78},profiles={[3]={DetectionRangeYards=20,HealthEnter=65}}}
     local signal=setup(1,saved)
     local codes={unknown=0,idle=1,opening=2,waiting=3,combat=4,interact=5}
     local function pixel(cell)
@@ -134,13 +155,14 @@ for _,flavor in ipairs({"titan","forerver"}) do
                 "Physical geometry did not survive window/UI scaling")
         end
     end
-    assert(edits[1].text=="30" and edits[2].text=="5" and edits[3].text=="80" and warm==0,
+    assert(edits[1].text=="30" and edits[2].text=="80" and edits[3]==nil and warm==0,
         "Inactive detector warmed item cache or lost default recovery threshold")
-    edits[3]:SetText("0");buttons[1].scripts.OnClick()
+    edits[2]:SetText("0");buttons[1].scripts.OnClick()
     assert(saved.profiles[1]==nil,"Invalid recovery threshold was saved")
-    edits[3]:SetText("78");buttons[1].scripts.OnClick()
+    edits[2]:SetText("78");buttons[1].scripts.OnClick()
     assert(saved.profiles[1].RecoveryThreshold==78 and saved.profiles[1].HealthEnter==nil,
         "Unified recovery threshold was not saved independently")
+    assert(saved.AttackRangeYards==40,"Legacy attack distance was overwritten")
     assert(not WoWTools.FightRange.IsSupported(secret) and not WoWTools.FightRange.IsSupported(12))
     mobs.target={guid="Creature-A",distance=31}
     SlashCmdList.FIGHTDETECTOR("on"); expect("idle")
@@ -159,6 +181,24 @@ for _,flavor in ipairs({"titan","forerver"}) do
     event("UNIT_SPELLCAST_SUCCEEDED","player",secret,2764); expect("opening")
     combat=true;mobs.target.distance=30;tick();expect("waiting")
     mobs.target.distance=5;tick();expect("combat")
+    assert(WoWTools.FightRange.CheckMelee("target",6)==true,
+        "Death Knight melee attack was not checked")
+    assert(WoWTools.FightRange.CheckMelee("softenemy",6)==nil,
+        "Melee attack accepted a non-selected target")
+    swingRange=false;tick();expect("waiting")
+    swingRange=true;tick();expect("combat")
+    swingRange=nil
+    knownBlocked=true;tick();expect("waiting")
+    knownBlocked=false;zeroRange=true;tick();expect("waiting")
+    zeroRange=false;tick();expect("combat")
+    local modernCheck=C_Spell.IsSpellInRange
+    C_Spell.IsSpellInRange=nil
+    IsSpellInRange=function(name,unit)
+        assert(unit=="target" and name:match("^Melee "),"Legacy melee spell name missing")
+        return 1
+    end
+    tick();expect("combat")
+    C_Spell.IsSpellInRange=modernCheck;IsSpellInRange=nil
     castFails=true;tick();expect("waiting")
     assert(signal.textures[1].color[2]>.4,"Uncertain combat cast did not block input")
     castFails=false;tick();expect("combat")
@@ -245,7 +285,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     dead=true;event("PLAYER_DEAD")
     assert(not signal.shown and not WoWTools.modules.fight_detector.IsEnabled(),"Death did not stop detector")
     dead=false;mobs={};signal=setup(3,saved)
-    assert(edits[1].text=="20" and edits[2].text=="5" and edits[3].text=="65",
+    assert(edits[1].text=="20" and edits[2].text=="65" and edits[3]==nil,
         "Class range or legacy recovery threshold was lost")
     mobs.target={guid="Creature-MID-COMBAT",distance=5};combat=true
     SlashCmdList.FIGHTDETECTOR("on");expect("combat")

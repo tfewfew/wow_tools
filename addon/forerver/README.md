@@ -1,5 +1,7 @@
 # forerver
 
+当前战斗中由客户端主手挥砍可达接口或已学近战攻击技能的有效范围结果决定“战斗”色块。普通攻击6603和5码物品探针不再用于该判定；客户端无法给出可靠结果时保持“战斗等待”。“开始战斗距离”设置已移除，旧 `AttackRangeYards` 存档不再读取或改写；按职业的检测 / 开怪距离及恢复阈值保留。需要游戏内 `/reload` 生效。
+
 无限服的独立插件源码：`wow_tools/`，版本2.2.8，接口16001。目录拼写按用户约定为 `forerver`。安装后仍名为wow_tools，包含wowDetector、fight_detector、自动拾取及inner_graphic_config。
 
 移植目标为本机 `_cn_beta_\Wow.exe` 1.60.1.70338；已核对相同构建的[Blizzard界面源码导出](https://github.com/Gethe/wow-ui-source/tree/943764493e6b16d63ded3ab304150d1f05e58b57)，不是只更换TOC号。
