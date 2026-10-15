@@ -153,6 +153,12 @@ try {
     } finally {[IO.File]::WriteAllText($script:settingsPath,$validIni)}
     $plan=New-RotationPlan;$plan.Slots[0].Name='测试角色';$plan.Slots[0].Mode='fight'
     $plans=@{};$plans[$combat.Key]=$plan;Save-RotationConfiguration -Plans $plans
+    $combat.Validated=$true;$combat.FightRow.CanStart=$true;Set-RowControls $combat
+    Assert-Ui ($combat.DirectStart.Enabled) 'Validated combat row cannot start directly with a saved role plan.'
+    $combat.DirectStart.PerformClick()
+    Assert-Ui ($combat.FightRow.Session -and -not $script:rotation.Active.ContainsKey($combat.Key) -and
+        $script:rotation.LogoutQueue.Count -eq 0) 'Direct combat start entered role rotation.'
+    Stop-Row $combat
     # Same-process refresh/reconstruction remembers mode; PID reuse inherits neither mode nor task.
     $null=Refresh-ProcessRows
     Assert-Ui ($script:rows[$combat.Key].TaskMode -eq 'fight') 'Refresh lost process mode.'

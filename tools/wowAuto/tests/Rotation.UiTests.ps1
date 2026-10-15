@@ -122,6 +122,16 @@ try {
     $draft.Slots[0].Name='/logout';$rejected=$false;try {Test-RotationPlan $draft} catch {$rejected=$true};Assert-Ui $rejected 'Command in name accepted.'
     $script:scheduler.CompletedCycles[$a.Key]=501;$script:scheduler.CyclesSinceJump[$a.Key]=5
     Update-RowAccountChoices $a;Update-RowAccountChoices $b
+    $b.Validated=$false;Set-RowControls $b
+    Assert-Ui (-not $b.DirectStart.Enabled) 'Direct start was enabled before detector validation.'
+    $b.Validated=$true;Set-RowControls $b
+    Assert-Ui ($b.DirectStart.Enabled) 'Validated planned row cannot start its current character directly.'
+    $b.DirectStart.PerformClick()
+    Assert-Ui ((Test-UnifiedTaskRunning $b) -and -not $script:rotation.Active.ContainsKey($b.Key) -and
+        $script:rotation.LogoutQueue.Count -eq 0 -and $script:rotation.Queue.Count -eq 0 -and
+        $script:rotation.Actions.Count -eq 0 -and $b.Process.RotationOcrReads -eq 0) 'Direct start entered character selection instead of starting the current task.'
+    Stop-Row $b
+    Assert-Ui ($b.Start.Enabled -and $b.DirectStart.Enabled) 'Stopping direct start did not restore both start choices.'
     Start-Row $a;Start-Row $b
     Assert-Ui ($script:rotation.Active.Count -eq 2 -and -not (Test-UnifiedTaskRunning $a) -and $script:rotation.NextAt -eq 20000) 'Start bypassed role selection or timers are not global.'
     $now=0L;$logoutSteps=0

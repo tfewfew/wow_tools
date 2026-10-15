@@ -1038,12 +1038,12 @@ $intro = New-Object System.Windows.Forms.Label
 $intro.Dock = 'Top'
 $intro.Height = 44
 $intro.Padding = New-Object System.Windows.Forms.Padding(12, 12, 0, 0)
-$intro.Text = '每行通过角色编排设置名称和任务；刷新按首个有效槽位开启检测，开始后按编排运行；未编排默认钓鱼。'
+$intro.Text = '每行通过角色编排设置名称和任务；“开始”按编排切换角色，“直接开始”留在当前角色执行已验证任务。'
 $headings = New-Object System.Windows.Forms.Panel
 $headings.Dock = 'Top'
 $headings.Height = 32
 $headings.BackColor = $script:uiColors.Surface
-foreach ($heading in @(@('游戏进程 / 版本 / 窗口位置',12,360), @('操作',386,145), @('钓鱼道具',546,150), @('实时状态（最新日志在上）',716,350))) {
+foreach ($heading in @(@('游戏进程 / 版本 / 窗口位置',12,360), @('操作',386,310), @('实时状态（最新日志在上）',716,350))) {
     $label = New-Object System.Windows.Forms.Label
     $label.Text = $heading[0]
     $label.SetBounds($heading[1], 3, $heading[2], 25)
@@ -1153,11 +1153,13 @@ function Update-WindowPositions {
 function Set-RowControls($Row) {
     $running = Test-UnifiedRowRunning $Row
     $exiting = $script:pendingGameExits.ContainsKey($Row.Key)
-    $eligible = $Row.Validated -and -not $exiting -and -not $script:scanning -and $null -ne $Row.StartTime -and -not $Row.Exited
-    if ($Row.TaskMode -eq 'fight') {$eligible=$eligible -and $Row.FightRow -and $Row.FightRow.CanStart -and $script:autoFight.ConfigReady}
+    $directEligible = $Row.Validated -and -not $exiting -and -not $script:scanning -and $null -ne $Row.StartTime -and -not $Row.Exited
+    if ($Row.TaskMode -eq 'fight') {$directEligible=$directEligible -and $Row.FightRow -and $Row.FightRow.CanStart -and $script:autoFight.ConfigReady}
+    $eligible = $directEligible
     if (Test-RowHasRotation $Row) {$eligible=-not $exiting -and -not $Row.Exited -and -not $script:scanning -and $script:rotation.ConfigReady}
     $eligible=$eligible -and -not $script:editingSettings
     $Row.Start.Enabled = $eligible -and -not $running
+    $Row.DirectStart.Enabled = $directEligible -and -not $script:editingSettings -and -not $running
     $Row.Stop.Enabled = $running -or $eligible -or $exiting
     if ($Row.PSObject.Properties['AccountBox']) {$Row.AccountBox.Enabled=-not $script:scanning -and -not $script:editingSettings -and -not $running -and -not $exiting}
     Update-RotationRow $Row
@@ -1316,9 +1318,15 @@ function New-ProcessRow($Process, $StartTime, [string]$Key, $Client) {
     $start.SetBounds(380, 33, 68, 40)
     Set-UiButtonStyle $start $true
     $panel.Controls.Add($start)
+    $directStart = New-Object WowAuto.DimButton
+    $directStart.Text = '直接开始'
+    $directStart.SetBounds(454, 33, 112, 40)
+    Set-UiButtonStyle $directStart $true
+    $directStart.Enabled = $false
+    $panel.Controls.Add($directStart)
     $stop = New-Object WowAuto.DimButton
     $stop.Text = '停止'
-    $stop.SetBounds(454, 33, 68, 40)
+    $stop.SetBounds(572, 33, 68, 40)
     Set-UiButtonStyle $stop
     $stop.Enabled = $false
     $panel.Controls.Add($stop)
@@ -1337,15 +1345,17 @@ function New-ProcessRow($Process, $StartTime, [string]$Key, $Client) {
         Key=$Key; Process=$Process; StartTime=$StartTime; Client=$Client; Position='位置未知'
         Exited=$false; Validated=$false; Caption=[IO.Path]::GetFileName($Client.ExecutablePath)
         Panel=$panel; Name=$nameLabel
-        Start=$start; Stop=$stop; Status=$status; State=$null
+        Start=$start; DirectStart=$directStart; Stop=$stop; Status=$status; State=$null
         StatusMessage='尚未验证，请点击刷新进程。'
         StatusSnapshot=$null; StatusTimestamp=''; CurrentStatusText=''; StatusHistory=(New-Object 'System.Collections.Generic.List[string]')
 
     }
     # Sender.Tag keeps handlers bound to their own row, not a shared loop variable.
     $start.Tag = $row
+    $directStart.Tag = $row
     $stop.Tag = $row
     $start.Add_Click({ param($sender, $eventArgs) Start-Row $sender.Tag })
+    $directStart.Add_Click({ param($sender, $eventArgs) Start-Row $sender.Tag -TaskOnly })
     $stop.Add_Click({ param($sender, $eventArgs) Stop-Row $sender.Tag -CancelExit })
     if ($null -eq $StartTime) { $row.StatusMessage = '无法读取进程信息，请检查权限后刷新。' }
     Add-ProcessTaskControls $row
