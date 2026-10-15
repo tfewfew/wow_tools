@@ -378,6 +378,10 @@ function Read-RotationScreen($Row,$Plan,[switch]$MenuWasConfirmed) {
         if (-not $Row.Process.PSObject.Properties['RotationOcrReads']) {$Row.Process | Add-Member NoteProperty RotationOcrReads 0}
         if (-not $Row.Process.PSObject.Properties['RotationCursorParks']) {$Row.Process | Add-Member NoteProperty RotationCursorParks 0}
         $Row.Process.RotationOcrReads++
+        if ($script:rotation.Current -and $script:rotation.Current.Phase -eq 'find') {
+            if (-not $Row.Process.PSObject.Properties['RotationFindReads']) {$Row.Process | Add-Member NoteProperty RotationFindReads 0}
+            $Row.Process.RotationFindReads++
+        }
         $screen=$Row.Process.RotationScreen
         foreach ($target in @($screen.Targets)) {
             $target | Add-Member NoteProperty ClientSize $clientSize -Force
@@ -452,7 +456,7 @@ function Invoke-RotationTick([long]$Now) {
                     $due=[Math]::Max($Now,[long]$script:rotation.ClickSwitch.Until)
                 }
                 $script:rotation.Current=[pscustomobject]@{Entry=$entry;Row=$entry.Row;Phase=$phase;Due=$due;Deadline=$deadline;FocusUntil=0L;
-                    Stable=0;LastLogout=$entry.LastLogout;Candidate=$null;FindMisses=0;MonitorEnabled=$false;NextOcrAt=0L}
+                    Stable=0;LastLogout=$entry.LastLogout;Candidate=$null;MonitorEnabled=$false;NextOcrAt=0L}
                 $script:rotation.NextOcrAt=0L
             }
             break
@@ -517,9 +521,9 @@ function Invoke-RotationTick([long]$Now) {
             }
             $null=Send-RotationAction $row 'up'
             $entry.RecognitionRetries++
-            $work.FindMisses=0;$work.Candidate=$null;$work.Stable=0
+            $work.Candidate=$null;$work.Stable=0
             $work.Phase='find';$work.Due=$Now+500
-            Set-RowStatusText $row ('目标“'+$name+'”连续三次未识别，已按↑改变选中底板（'+$entry.RecognitionRetries+'/30），等待重新OCR。')
+            Set-RowStatusText $row ('目标“'+$name+'”未识别，已按↑改变选中底板（'+$entry.RecognitionRetries+'/30），等待一次OCR。')
             return $true
         }
         if ($work.Phase -eq 'menu' -and (Test-RowLoginPoint $row)) {
@@ -600,7 +604,6 @@ function Invoke-RotationTick([long]$Now) {
                 $targets=@($screen.Targets | Where-Object {$_.Name -ceq $name -and -not $_.Ambiguous})
                 if ($targets.Count -gt 1) {throw '列表出现多个相同名称，未点击。'}
                 if ($targets.Count -eq 1) {
-                    $work.FindMisses=0
                     $target=$targets[0]
                     if ($work.Candidate -and [Math]::Abs($target.X-$work.Candidate.X) -lt 0.005 -and [Math]::Abs($target.Y-$work.Candidate.Y) -lt 0.005) {$work.Stable++} else {$work.Stable=1}
                     $work.Candidate=$target
@@ -615,17 +618,13 @@ function Invoke-RotationTick([long]$Now) {
                     }
                 } else {
                     $work.Candidate=$null;$work.Stable=0
-                    $work.FindMisses++
-                    if ($work.FindMisses -ge 3) {
-                        if ($entry.RecognitionRetries -lt 30) {
-                            $work.Phase='selection-up';$work.Due=$Now
-                            Set-RowStatusText $row ('目标“'+$name+'”连续三次未识别，准备第'+($entry.RecognitionRetries+1)+'/30次按↑重识别。')
-                            return $true
-                        }
-                        Request-WorkerGameExit $row ('角色“'+$name+'”累计30次按↑重识别后仍未找到')
+                    if ($entry.RecognitionRetries -lt 30) {
+                        $work.Phase='selection-up';$work.Due=$Now
+                        Set-RowStatusText $row ('目标“'+$name+'”本次OCR未识别，准备第'+($entry.RecognitionRetries+1)+'/30次按↑后重识别。')
                         return $true
                     }
-                    Set-RowStatusText $row ('第一页未找到“'+$name+'”，再次识别同一页（'+$work.FindMisses+'/3）。')
+                    Request-WorkerGameExit $row ('角色“'+$name+'”累计30次按↑后各重识别一次仍未找到')
+                    return $true
                 }
             }
         }

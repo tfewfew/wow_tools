@@ -93,6 +93,7 @@ try {
         $process.FocusAllowed=$true;$process.CommandAllowed=$true;$process.ScanColor='red'
         $process | Add-Member NoteProperty RotationScreen ([pscustomobject]@{Kind='world';RoleName=$null;Targets=@()}) -Force
         $process | Add-Member NoteProperty RotationOcrReads 0 -Force
+        $process | Add-Member NoteProperty RotationFindReads 0 -Force
     }
     $null=Refresh-ProcessRows
     $clients=@($script:rows.Values | Sort-Object {$_.Process.Id});$a=$clients[0];$b=$clients[1]
@@ -223,10 +224,8 @@ try {
     $b.Process.CommandAllowed=$true
     # Partial/duplicate names cannot receive character clicks; login uses the point, never OCR names.
     $now=230000L;Reach-RotationTestPhase $a 'find' ([ref]$now)
-    for ($i=0;$i -lt 3;$i++) {
-        $a.Process.RotationScreen=[pscustomobject]@{Kind='menu';RoleName=$null;Targets=@([pscustomobject]@{Name='双持船橘二';X=0.84;Y=0.2})}
-        $script:schedulerClock.ElapsedMilliseconds=$now;$null=Invoke-RotationTick $now;$now+=300
-    }
+    $a.Process.RotationScreen=[pscustomobject]@{Kind='menu';RoleName=$null;Targets=@([pscustomobject]@{Name='双持船橘二';X=0.84;Y=0.2})}
+    $script:schedulerClock.ElapsedMilliseconds=$now;$null=Invoke-RotationTick $now;$now+=300
     Assert-Ui ($script:rotation.Active.ContainsKey($a.Key) -and $script:rotation.Current.Phase -eq 'selection-up' -and
         -not @($script:rotation.Actions | Where-Object {$_.Action -eq 'tripleclick'}).Count) 'Partial/no-progress search clicked a role before the retry.'
     $now=240000L;Reach-RotationTestPhase $a 'find' ([ref]$now)
@@ -380,16 +379,22 @@ try {
     $script:rotation.Actions=@();$now=380000L
     Reach-RotationTestPhase $a 'find' ([ref]$now)
     $a.Process | Add-Member NoteProperty RotationMissingTarget $true -Force
-    # Sparse completed OCR samples extend the stall deadline while retries progress.
-    for ($miss=0;$miss -lt 3;$miss++) {Step-RotationTest $now;$now+=60000}
+    $findReadsBefore=$a.Process.RotationFindReads
+    Step-RotationTest $now;$now+=300
     Assert-Ui ($script:rotation.Current.Phase -eq 'selection-up' -and
-        -not @($script:rotation.Actions | Where-Object {$_.Action -eq 'up' -or $_.Action -eq 'tripleclick'}).Count) 'Missing selected name clicked or shifted before three OCR misses.'
+        $a.Process.RotationFindReads-$findReadsBefore -eq 1 -and
+        -not @($script:rotation.Actions | Where-Object {$_.Action -eq 'up' -or $_.Action -eq 'tripleclick'}).Count) 'One missing-name OCR did not immediately queue Up.'
     for ($attempt=0;$attempt -lt 20 -and -not @($script:rotation.Actions | Where-Object {$_.Action -eq 'up'}).Count;$attempt++) {Step-RotationTest $now;$now+=300}
     Assert-Ui ($attempt -lt 20 -and $script:rotation.Current.Phase -eq 'find' -and
-        @($script:rotation.Actions | Where-Object {$_.Action -eq 'up'}).Count -eq 1) 'Selected-name retry did not press Up exactly once through the foreground queue.'
+        @($script:rotation.Actions | Where-Object {$_.Action -eq 'up'}).Count -eq 1 -and
+        $a.Process.RotationFindReads-$findReadsBefore -eq 1) 'Selected-name retry read OCR before the Up key or pressed it twice.'
     $a.Process.RotationMissingTarget=$false
+    # Sparse completed OCR samples extend the stall deadline while retries progress.
+    $now+=60000;Step-RotationTest $now
+    $now+=60000;Step-RotationTest $now;$now+=300
     Prepare-RotationTestBatch ([ref]$now) 1
-    Assert-Ui ($script:rotation.ClickQueue.Peek().PreparedTarget.Name -ceq $plan.Slots[0].Name -and
+    Assert-Ui ($a.Process.RotationFindReads-$findReadsBefore -eq 3 -and
+        $script:rotation.ClickQueue.Peek().PreparedTarget.Name -ceq $plan.Slots[0].Name -and
         $script:rotation.ClickQueue.Peek().PreparedTarget.MenuRow -eq 1) 'Retry used a stale or wrong character position.'
     Click-RotationTestBatch ([ref]$now) 1;Complete-RotationTest ([ref]$now)
     Assert-Ui ((@($script:rotation.Actions | Where-Object {$_.Action -eq 'up'}).Count) -eq 1 -and
@@ -398,6 +403,7 @@ try {
     Reach-RotationTestPhase $a 'find' ([ref]$now)
     $a.Process.RotationMissingTarget=$true
     $retryEntry=$script:rotation.Active[$a.Key]
+    $findReadsBefore=$a.Process.RotationFindReads
     $closedBefore=$script:workerClosed.Count
     $requeued=$false
     for ($attempt=0;$attempt -lt 300 -and -not $script:pendingGameExits.ContainsKey($a.Key);$attempt++) {
@@ -412,6 +418,7 @@ try {
         }
     }
     Assert-Ui ($attempt -lt 300 -and $requeued -and $retryEntry.RecognitionRetries -eq 30 -and
+        $a.Process.RotationFindReads-$findReadsBefore -eq 31 -and
         -not $script:rotation.Active.ContainsKey($a.Key) -and $script:pendingGameExits.ContainsKey($a.Key) -and
         (@($script:rotation.Actions | Where-Object {$_.Action -eq 'up'}).Count) -eq 30 -and
         -not @($script:rotation.Actions | Where-Object {$_.Action -eq 'tripleclick'}).Count -and
