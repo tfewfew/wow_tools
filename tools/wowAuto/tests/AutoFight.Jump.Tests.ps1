@@ -20,12 +20,12 @@ foreach ($flavor in @('titan','forerver')) {
     $packet.Busy=$false; $packet.Action='waiting'
     $null=Update-AutoFightState $session $packet 2400
     Assert-Jump ((Get-AutoFightAction $session $packet $profile 2400) -eq 'wait') 'Jump bypassed waiting.'
-    $packet.Action='combat'; $packet.Recovery='emergency'
+    $packet.Action='emergency'; $packet.Recovery='emergency'
     $null=Update-AutoFightState $session $packet 2500
     Assert-Jump ((Get-AutoFightAction $session $packet $profile 2500) -eq 'emergency') 'Jump displaced emergency recovery.'
     Complete-AutoFightAction $session $profile 'emergency' 2500
     Assert-Jump ((Get-AutoFightAction $session $packet $profile 3000) -eq 'wait') 'Jump interrupted latched recovery.'
-    $packet.Recovery='none'
+    $packet.Action='combat'; $packet.Recovery='none'
     $null=Update-AutoFightState $session $packet 3100
     $deadline=$session.NextActionAt; $entry=$session.EntryPending
     Complete-AutoFightAction $session $profile 'jump' 3100

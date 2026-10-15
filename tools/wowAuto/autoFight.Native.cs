@@ -184,26 +184,27 @@ namespace WowAutoFight
             int slot=(int)Math.Round((value-start)/(double)step);
             return slot>=0 && slot<count && Math.Abs(value-(start+slot*step))<=1 ? slot : -1;
         }
-        // V5 uses only the main RGB. Auxiliary color and elapsed time have no bearing on validity.
+        // V6 uses only the main RGB; the action slot is the plugin-owned main state.
         public static Packet Decode(uint[] cells,string expectedFlavor)
         {
             if (cells==null || cells.Length!=1 || cells[0]==0xffffffff) return null;
-            int red=R(cells[0]);
-            int targetRecovery=Math.Abs(red-240)<=1 ? 0 : Math.Abs(red-248)<=1 ? 1 : Math.Abs(red-8)<=1 ? 2 : -1;
-            int actionRecovery=targetRecovery>=0 ? 28+targetRecovery : Slot(red,16,8,28);
-            int identityBusy=Slot(G(cells[0]),2,4,52), encounterCombat=Slot(B(cells[0]),2,4,64);
+            int actionRecovery=Slot(R(cells[0]),2,5,40);
+            int identityBusy=Slot(G(cells[0]),0,4,52), encounterCombat=Slot(B(cells[0]),0,4,64);
             if (actionRecovery<0 || identityBusy<0 || encounterCombat<0) return null;
             int action=actionRecovery/4, recoveryCode=actionRecovery%4;
             int identity=identityBusy%26, classId=identity%13+1;
             string flavor=identity<13 ? "titan" : "forerver";
             if (flavor!=expectedFlavor || classId==10 || classId>11 || (flavor=="forerver" && classId==6)) return null;
-            string[] actions={"unknown","idle","opening","waiting","combat","loot","skin","target"};
+            string[] actions={"unknown","idle","target","opening","waiting","combat","recover","emergency","loot","skin"};
             string[] recoveries={"none","recover","emergency","unknown"};
             string state=actions[action], recovery=recoveries[recoveryCode];
             bool combat=encounterCombat>=32, busy=identityBusy>=26;
-            if ((state=="unknown" && recovery=="none") || recovery=="unknown"
-                || (combat && state!="combat" && state!="waiting" && state!="unknown" && state!="target")
-                || (recovery=="recover" && combat) || (recovery=="emergency" && !combat)) return null;
+            if (state=="unknown" || recovery=="unknown"
+                || (combat && state!="combat" && state!="waiting" && state!="emergency" && state!="target")
+                || (state=="combat" && !combat) || (state=="recover" && (combat || recovery!="recover"))
+                || (state=="emergency" && (!combat || recovery!="emergency"))
+                || (recovery=="recover" && combat) || (recovery=="emergency" && !combat)
+                || (state!="waiting" && state!="recover" && state!="emergency" && recovery!="none")) return null;
             return new Packet {Action=state,Recovery=recovery,Flavor=flavor,Combat=combat,Busy=busy,
                 Skin=state=="skin",ClassId=classId,EncounterId=encounterCombat%32};
         }

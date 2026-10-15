@@ -245,7 +245,7 @@ function Save-AutoFightProfiles([string]$Path,$Profiles,$CommandIntervalMs=500,$
 }
 function New-AutoFightSession([long]$Now,[int]$ClassId) {
     return [pscustomobject]@{Id=[Guid]::NewGuid().ToString('N'); ClassId=$ClassId; Due=$Now;
-        State=''; EnteredAt=$Now; EntryPending=$true; NextActionAt=$Now; NextInteractionAt=0L; LastInteractionState='';
+        State=''; Substate='ready'; EnteredAt=$Now; EntryPending=$true; NextActionAt=$Now; NextInteractionAt=0L; LastInteractionState='';
         EncounterId=-1; OpeningSent=$false; OpeningRetryAt=[long]::MaxValue; OpeningNeedsTarget=$false; CombatSeen=$false;
         LootEncounterId=-1;SkinnedEncounterId=-1;
         RecoveryState='none';RecoverySent=$false;MovementRequest='';
@@ -271,64 +271,71 @@ function Update-AutoFightState($Session,$Packet,[long]$Now) {
     if ($Session.RecoveryState -ne $Packet.Recovery) {
         $Session.RecoveryState=$Packet.Recovery; $Session.RecoverySent=$false
     }
-    $changed=$Session.EncounterId -ne $Packet.EncounterId
-    if ($changed) {
+    $encounterChanged=$Session.EncounterId -ne $Packet.EncounterId
+    if ($encounterChanged) {
         $Session.EncounterId=$Packet.EncounterId; $Session.OpeningSent=$false
         $Session.OpeningRetryAt=[long]::MaxValue; $Session.OpeningNeedsTarget=$false; $Session.CombatSeen=$false
         $Session.LootEncounterId=-1; $Session.SkinnedEncounterId=-1
     }
-    # An older detector may report combat after a harmful cast but before the player enters combat.
-    $action=if ($Packet.Action -eq 'combat' -and -not $Packet.Combat) {'opening'} else {$Packet.Action}
     if ($Packet.Combat) {
         $Session.CombatSeen=$true; $Session.OpeningNeedsTarget=$false
     }
     elseif (-not $Session.CombatSeen -and $Session.OpeningSent -and $Now -ge $Session.OpeningRetryAt -and
-        $action -in @('target','opening','waiting')) {
+        $Packet.Action -in @('target','opening','waiting')) {
         $Session.OpeningSent=$false
         $Session.OpeningNeedsTarget=$true
+        $Session.EntryPending=$true
+        $Session.NextActionAt=$Now
     }
-    $state=if ($action -eq 'waiting' -or ($action -eq 'opening' -and ($Session.OpeningSent -or $Session.CombatSeen)) -or
-        ($action -eq 'target' -and $Session.OpeningSent)) { 'waiting' }
-        elseif ($Packet.Recovery -ne 'none') { $Packet.Recovery }
-        elseif ($Session.OpeningNeedsTarget -and $action -in @('target','opening')) {'target'}
-        elseif ($action -eq 'idle' -and -not $Packet.Busy -and $Session.MovementRequest) {'move-'+$Session.MovementRequest}
-        else { $action }
+    # The decoded color is authoritative; local input history never invents a different main state.
+    $state=$Packet.Action
     if ($Packet.Action -ne 'idle' -or $Packet.Recovery -ne 'none' -or $Packet.Busy) {$Session.MovementRequest=''}
-    if ($Session.State -eq $state -and -not $changed) { return $false }
-    $Session.State=$state; $Session.EnteredAt=$Now; $Session.EntryPending=$true
+    $mainChanged=$Session.State -ne $state
+    if (-not $mainChanged -and -not $encounterChanged) { return $false }
+    $Session.State=$state; $Session.Substate=if ($state -in @('idle','waiting')) {'observe'} else {'ready'}
+    $Session.EnteredAt=$Now; $Session.EntryPending=$true
     $Session.NextActionAt=$Now
-    return $true
+    return $mainChanged
 }
 function Get-AutoFightAction($Session,$Packet,$Profile,[long]$Now) {
     Set-AutoFightJumpInterval $Session $Profile.JumpIntervalSeconds $Now
     Set-AutoFightBuffSchedule $Session $Profile $Now
     if ($Packet.ClassId -ne $Session.ClassId -or $Packet.Flavor -ne $Profile.Flavor) { return 'identity-changed' }
     if (-not $script:autoFightStates.Contains($Session.State)) { return 'identity-changed' }
-    # Waiting is deliberately quiet, including recovery keys. Key releases remain immediate.
-    if ($Packet.Action -eq 'waiting' -or ($Packet.Action -in @('opening','combat') -and
-        ($Session.OpeningSent -or $Session.CombatSeen) -and -not $Packet.Combat) -or
-        ($Packet.Action -eq 'target' -and $Session.OpeningSent)) { return 'wait' }
-    if ($Session.State -in @('recover','emergency') -and $Session.RecoverySent) {return 'wait'}
+    # The plugin owns waiting and recovery priority; these are already main states in V6.
+    if ($Session.State -eq 'waiting') {$Session.Substate='observe';return 'wait'}
+    if ($Session.State -in @('recover','emergency') -and $Session.RecoverySent) {$Session.Substate='sent';return 'wait'}
     # Emergency macros may stop a current cast; all other handlers wait for busy to clear.
-    if ($Packet.Busy -and $Session.State -ne 'emergency') { return 'wait' }
-    if ($Session.NextBuffAt -le $Now -and $Packet.Action -eq 'idle' -and -not $Packet.Combat -and
+    if ($Packet.Busy -and $Session.State -ne 'emergency') {$Session.Substate='blocked';return 'wait'}
+    if ($Session.NextBuffAt -le $Now -and $Session.State -eq 'idle' -and -not $Packet.Combat -and
         $Packet.Recovery -eq 'none' -and -not $Session.MovementRequest) {
         if ($Session.BuffRemaining -eq 0) {$Session.BuffRemaining=$Session.BuffCount}
         return 'buff'
     }
-    if ($Now -ge $Session.NextJumpAt -and $Packet.Action -in @('idle','combat') -and
+    if ($Now -ge $Session.NextJumpAt -and $Session.State -in @('idle','combat') -and
         $Packet.Recovery -eq 'none' -and -not $Packet.Busy -and -not $Session.MovementRequest) {return 'jump'}
+    if ($Session.State -eq 'idle' -and $Session.MovementRequest) {return 'move-'+$Session.MovementRequest}
+    if ($Session.State -eq 'opening') {
+        if ($Session.CombatSeen) {$Session.Substate='complete';return 'wait'}
+        if ($Session.OpeningSent) {$Session.Substate='await-combat';return 'wait'}
+        if ($Session.OpeningNeedsTarget) {
+            $Session.Substate='relock'
+            if ($Now -lt $Session.NextActionAt) {return 'wait'}
+            return 'target'
+        }
+    }
     $handler=$script:autoFightStates[$Session.State]
-    if (-not $handler.Key -or $Now -lt $Session.NextActionAt) { return 'wait' }
+    if (-not $handler.Key) {return 'wait'}
+    if ($Now -lt $Session.NextActionAt) {$Session.Substate='cooldown';return 'wait'}
     if ($Session.State -in @('skin','loot')) {
         if (-not $Profile.SkinEnabled -or $Packet.Combat) { return 'wait' }
-        if ($Session.State -eq 'skin' -and ($Session.LootEncounterId -ne $Packet.EncounterId -or
-            $Session.SkinnedEncounterId -eq $Packet.EncounterId)) { return 'wait' }
+        if ($Session.State -eq 'skin' -and $Session.LootEncounterId -ne $Packet.EncounterId) {$Session.Substate='blocked';return 'wait'}
+        if ($Session.State -eq 'skin' -and $Session.SkinnedEncounterId -eq $Packet.EncounterId) {$Session.Substate='sent';return 'wait'}
         # A loot -> skin transition starts a fresh phase. Loot retries retain their cooldown;
         # the corpse skin latch above prevents a second attempt after state changes.
-        if ($Session.LastInteractionState -eq $Session.State -and $Now -lt $Session.NextInteractionAt) { return 'wait' }
+        if ($Session.LastInteractionState -eq $Session.State -and $Now -lt $Session.NextInteractionAt) {$Session.Substate='cooldown';return 'wait'}
     }
-    if ($Session.EntryPending -or $handler.Interval) { return $Session.State }
+    if ($Session.EntryPending -or $handler.Interval) {$Session.Substate='ready';return $Session.State}
     return 'wait'
 }
 function Complete-AutoFightAction($Session,$Profile,[string]$Action,[long]$Now) {
@@ -344,20 +351,27 @@ function Complete-AutoFightAction($Session,$Profile,[string]$Action,[long]$Now) 
         return
     }
     $Session.EntryPending=$false
-    if ($Action -in @('recover','emergency')) {$Session.RecoverySent=$true}
+    if ($Action -in @('recover','emergency')) {$Session.RecoverySent=$true;$Session.Substate='sent'}
     if ($Action.StartsWith('move-')) {$Session.MovementRequest=''}
-    if ($Action -eq 'target' -and $Session.OpeningNeedsTarget) {$Session.OpeningNeedsTarget=$false}
+    if ($Action -eq 'target') {
+        if ($Session.OpeningNeedsTarget) {$Session.OpeningNeedsTarget=$false}
+        $Session.Substate=if ($Session.State -eq 'opening') {'reopen'} else {'cooldown'}
+    }
     if ($Action -eq 'opening') {
         $Session.OpeningSent=$true
         $Session.OpeningRetryAt=$Now+1000
+        $Session.Substate='await-combat'
     }
     $interval=$script:autoFightStates[$Action].Interval
     $Session.NextActionAt=if ($interval) { $Now+$Profile.$interval } else { [long]::MaxValue }
+    if ($Action -eq 'target' -and $Session.State -eq 'opening') {$Session.NextActionAt=$Now;$Session.EntryPending=$true}
+    if ($Action -eq 'combat') {$Session.Substate='cooldown'}
     if ($Action -in @('skin','loot')) {
         $Session.LastInteractionState=$Action
         $Session.NextInteractionAt=$Session.NextActionAt
         if ($Action -eq 'loot') { $Session.LootEncounterId=$Session.EncounterId }
         else { $Session.SkinnedEncounterId=$Session.EncounterId }
+        $Session.Substate=if ($Action -eq 'skin') {'sent'} else {'cooldown'}
     }
     # Poll states independently from action cooldowns, so recovery is not delayed by combat retries.
     $Session.Due=$Now+100

@@ -130,7 +130,7 @@ try {
     $packet=[pscustomobject]@{ClassId=1; Flavor='titan'; Busy=$false; Combat=$false; Action='opening'; Recovery='none'; EncounterId=1}
     $session=New-AutoFightSession 0 1; $p=Get-AutoFightEffectiveProfile $profiles['titan:1'] (New-AutoFightCommon)
     foreach($state in @('target','opening','combat','recover','emergency','move-forward','move-backward','move-left','move-right','loot','skin')) {
-        $packet.Action=if ($state.StartsWith('move-') -or $state -in @('recover','emergency')) {'idle'} else {$state}
+        $packet.Action=if ($state.StartsWith('move-')) {'idle'} else {$state}
         $packet.Recovery=if ($state -in @('recover','emergency')) {$state} else {'none'}
         $packet.Combat=$state -in @('combat','emergency')
         $session.MovementRequest=if ($state.StartsWith('move-')) {$state.Substring(5)} else {''}

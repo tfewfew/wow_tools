@@ -51,10 +51,10 @@ try {
     $packet.Busy=$false;$packet.Combat=$true;$packet.Action='combat'
     $null=Update-AutoFightState $session $packet 1400
     Assert-Buff ((Get-AutoFightAction $session $packet $profile 1400) -ne 'buff' -and $session.BuffRemaining -eq 2) 'Buff ran in combat or lost remaining count.'
-    $packet.Combat=$false;$packet.Action='idle';$packet.Recovery='recover'
+    $packet.Combat=$false;$packet.Action='recover';$packet.Recovery='recover'
     $null=Update-AutoFightState $session $packet 1500
     Assert-Buff ((Get-AutoFightAction $session $packet $profile 1500) -ne 'buff') 'Buff displaced recovery.'
-    $packet.Recovery='none'
+    $packet.Action='idle';$packet.Recovery='none'
     $null=Update-AutoFightState $session $packet 1600
     Assert-Buff ((Get-AutoFightAction $session $packet $profile 1600) -eq 'buff') 'Deferred buff did not resume after combat/recovery.'
     Complete-AutoFightAction $session $profile 'buff' 1600

@@ -103,7 +103,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
         assert(not WoWTools.modules.fight_detector.IsEnabled(),"Initial combat flag enables loot")
         local detector
         for _,f in ipairs(frames) do if #f.textures==3 then detector=f end end
-        assert(detector,"Expected two V5 cells with an inset inside the main cell")
+        assert(detector,"Expected two V6 cells with an inset inside the main cell")
         return detector
     end
     local saved={rangeSpells={[1]=78},profiles={[3]={DetectionRangeYards=20}}}
@@ -111,9 +111,11 @@ for _,flavor in ipairs({"titan","forerver"}) do
     local function centerCell()
         return signal.textures[3].shown and signal.textures[3] or signal.textures[1]
     end
+    local function actionCode() return math.floor(((signal.textures[3].color[1]*255-2)/5)/4+.00001) end
+    local function recoveryCode() return math.floor((signal.textures[3].color[1]*255-2)/5+.00001)%4 end
     local function color(r,g,b)
-        local expected={ ["128,128,128"]=0,["0,0,255"]=1,["255,96,0"]=2,["0,192,192"]=3,["255,0,0"]=4}
-        local code=math.floor((signal.textures[3].color[1]*255-16)/8/4)
+        local expected={ ["128,128,128"]=0,["0,0,255"]=1,["255,96,0"]=3,["0,192,192"]=4,["255,0,0"]=5,["0,0,128"]=6,["255,0,128"]=7}
+        local code=actionCode()
         assert(code==expected[r..","..g..","..b],flavor..": unexpected main state code "..code)
         local visual=signal.textures[1].color
         if not combat and code~=0 then
@@ -128,11 +130,11 @@ for _,flavor in ipairs({"titan","forerver"}) do
                 local c=cell.color
                 return math.floor(c[1]*255+.5)+256*math.floor(c[2]*255+.5)+65536*math.floor(c[3]*255+.5)
             end
-            output:write(flavor," ",({[0]="unknown","idle","opening","waiting","combat"})[code]," ",
+            output:write(flavor," ",({[0]="unknown","idle","target","opening","waiting","combat","recover","emergency","loot","skin"})[code]," ",
                 tostring(pixel(centerCell()))," ",tostring(pixel(signal.textures[2])),"\n")
         end
     end
-    local function epoch() return ((signal.textures[3].color[3]*255-2)/4)%32 end
+    local function epoch() return (signal.textures[3].color[3]*255/4)%32 end
     assert(edits[1].text=="30" and edits[2].text=="5" and warm==0,"Inactive detector warmed item cache")
     assert(not WoWTools.FightRange.IsSupported(secret) and not WoWTools.FightRange.IsSupported(12))
     mobs.target={guid="Creature-A",distance=31}
@@ -176,7 +178,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     color(0,192,192); assert(epoch()==first,"Nearby other monster bypassed target's attack distance")
     mobs.nameplate2=mobs.target; event("NAME_PLATE_UNIT_ADDED","nameplate2")
     mobs.target={guid="Creature-C",distance=5}; tick()
-    assert(math.floor(signal.textures[3].color[1]*255+.5)==240 and epoch()==first,"Combat target switch replaced locked encounter")
+    assert(actionCode()==2 and epoch()==first,"Combat target switch replaced locked encounter")
     mobs.target=mobs.nameplate2; mobs.nameplate2=nil; event("NAME_PLATE_UNIT_REMOVED","nameplate2"); tick(); color(0,192,192)
     mobs.target.distance=5; tick(); color(255,0,0)
     mobs.nameplate1=nil; event("NAME_PLATE_UNIT_REMOVED","nameplate1")
@@ -186,7 +188,10 @@ for _,flavor in ipairs({"titan","forerver"}) do
     missing=false; conflicting=true; tick(); color(128,128,128)
     conflicting=false; mobs.target.guid=secret; tick(); color(128,128,128)
     mobs.target.guid="Creature-A"; health=20; mobs.target.distance=20; tick(); color(0,192,192)
-    local recover=((signal.textures[3].color[1]*255-16)/8)%4; assert(recover==2,"Recovery signal lost during waiting")
+    assert(recoveryCode()==2,"Recovery signal lost during waiting")
+    mobs.target.distance=5; tick(); color(255,0,128)
+    assert(recoveryCode()==2,"Emergency recovery did not become the plugin main state in range")
+    mobs.target.distance=20; tick(); color(0,192,192)
     health=100; mobs.target.dead=true; combat=false; tick(); color(0,0,255)
     mobs.target={guid="Creature-D",distance=29}; tick(); color(255,96,0)
     local save
@@ -202,13 +207,13 @@ for _,flavor in ipairs({"titan","forerver"}) do
     tick(); color(255,0,0); C_Item.IsItemInRange=check; IsItemInRange=nil
     combat=false
     mobs={softinteract={guid="Creature-CORPSE-A",dead=true,interactable=true,loot=true,canLoot=true,skinnable=true}}
-    tick(); assert(math.floor((signal.textures[3].color[1]*255-16)/8/4)==5,"Lootable corpse not detected")
+    tick(); assert(actionCode()==8,"Lootable corpse not detected")
     local corpseEpoch=epoch()
     mobs.softinteract.loot=false; mobs.softinteract.interactable=false; event("LOOT_CLOSED"); tick()
     color(0,0,255)
     mobs.softinteract.interactable=true; mobs.softinteract.skinnable=false; tick(); color(0,0,255)
     mobs.softinteract.skinnable=true; tick()
-    assert(math.floor((signal.textures[3].color[1]*255-16)/8/4)==6 and epoch()==corpseEpoch,
+    assert(actionCode()==9 and epoch()==corpseEpoch,
         "Looted interactable corpse did not retain identity for skinning")
     mobs.softinteract=nil; tick()
     mobs.softinteract={guid="Creature-CORPSE-A",dead=true,interactable=true,loot=false,canLoot=true,skinnable=true}
@@ -228,19 +233,19 @@ for _,flavor in ipairs({"titan","forerver"}) do
     signal=setup(1,saved)
     SlashCmdList.FIGHTDETECTOR("on")
     event("NAME_PLATE_UNIT_ADDED","nameplate1"); tick()
-    assert(math.floor(signal.textures[3].color[1]*255+.5)==240,"Unselected nameplate opened without a target")
+    assert(actionCode()==2,"Unselected nameplate opened without a target")
     assert(not names.wowToolsFightTargetButton,"Detector still created a secure target button")
     local selectedEpoch=epoch()
     mobs.target=mobs.nameplate1; tick(); color(255,96,0)
     assert(epoch()==selectedEpoch,"Confirming selection changed encounter")
     combat=true; mobs.target=nil; tick()
-    assert(math.floor(signal.textures[3].color[1]*255+.5)==240 and epoch()==selectedEpoch,"Lost target did not request reselection")
+    assert(actionCode()==2 and epoch()==selectedEpoch,"Lost target did not request reselection")
     mobs.nameplate1=nil; event("NAME_PLATE_UNIT_REMOVED","nameplate1"); tick(); color(128,128,128)
     SlashCmdList.FIGHTDETECTOR("off")
     assert(not WoWTools.modules.fight_detector.IsEnabled(),"Combat close leaves loot enabled")
     combat=false; event("PLAYER_REGEN_ENABLED")
-    mobs={}; health=70; SlashCmdList.FIGHTDETECTOR("on"); color(0,0,255)
-    assert(((centerCell().color[1]*255-16)/8)%4==1
+    mobs={}; health=70; SlashCmdList.FIGHTDETECTOR("on"); color(0,0,128)
+    assert(recoveryCode()==1
         and signal.textures[2].color[3]==1,"Red noncombat body lost recovery data or hint")
     health=secret; tick(); color(128,128,128)
     health=100; tick(); color(0,0,255)

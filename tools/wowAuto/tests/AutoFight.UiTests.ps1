@@ -11,6 +11,8 @@ namespace WowAutoFight {
         public static int Sends=0, Releases=0, LastCode=0;
         public static bool LastCtrl=false,LastShift=false,LastAlt=false;
         public static int ReadsUntilEncounterChange=0;
+        public static int ReadsUntilActionChange=0;
+        public static string NextAction="waiting";
         public static int MissingReads=0;
         public static bool LastReadPending=false;
         public static string LastReadError="模拟快照暂不可读";
@@ -25,6 +27,7 @@ namespace WowAutoFight {
         public static object Read(object client) {
             if (MissingReads>0) { MissingReads--; return null; }
             if (ReadsUntilEncounterChange>0 && --ReadsUntilEncounterChange==0) Current.EncounterId++;
+            if (ReadsUntilActionChange>0 && --ReadsUntilActionChange==0) Current.Action=NextAction;
             return new Packet {ClassId=Current.ClassId, EncounterId=Current.EncounterId,
                 Flavor=Current.Flavor, Action=Current.Action, Recovery=Current.Recovery, Busy=Current.Busy, Combat=Current.Combat};
         }
@@ -172,8 +175,9 @@ try {
     function Prepare-FightInput($Row,[string]$State,[long]$Now) {
         $script:autoFight.Clock.ElapsedMilliseconds=$Now
         [WowAutoFight.Native]::Current.Flavor=$Row.Client.Flavor
-        [WowAutoFight.Native]::Current.Action=if ($State.StartsWith('move-')) {'idle'} elseif ($State -in @('recover','emergency')) {'idle'} else {$State}
+        [WowAutoFight.Native]::Current.Action=if ($State.StartsWith('move-')) {'idle'} else {$State}
         [WowAutoFight.Native]::Current.Recovery=if ($State -in @('recover','emergency')) {$State} else {'none'}
+        [WowAutoFight.Native]::Current.Combat=$State -in @('combat','emergency')
         $Row.Session=New-AutoFightSession $Now 1
         if ($State.StartsWith('move-')) {$Row.Session.MovementRequest=$State.Substring(5)}
         $pending=New-AutoFightPending $Row $Row.Session $false 0
@@ -218,14 +222,16 @@ try {
     function Tick-FightEncounter($Row,[string]$Action,[long]$Now,[string]$Recovery='none') {
         $script:autoFight.Clock.ElapsedMilliseconds=$Now
         [WowAutoFight.Native]::Current.Action=$Action; [WowAutoFight.Native]::Current.Recovery=$Recovery
+        if ($Action -ne 'waiting') {[WowAutoFight.Native]::Current.Combat=$Action -in @('combat','emergency')}
         $pending=New-AutoFightPending $Row $Row.Session $false 0
         $pending.Activated=$true; $pending.SampleAt=0
         $script:autoFight.Pending=$pending; Invoke-AutoFightTick
     }
     Tick-FightEncounter $fightRows[0] 'opening' 4999
-    Assert-Ui ([WowAutoFight.Native]::Sends -eq 4 -and $fightRows[0].Session.State -eq 'waiting') 'Opening retried before one second.'
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 4 -and $fightRows[0].Session.State -eq 'opening' -and
+        $fightRows[0].Session.Substate -eq 'await-combat') 'Script replaced the plugin opening state or retried before one second.'
     Tick-FightEncounter $fightRows[0] 'opening' 5000
-    Assert-Ui ([WowAutoFight.Native]::Sends -eq 5 -and $fightRows[0].Session.State -eq 'target' -and
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 5 -and $fightRows[0].Session.State -eq 'opening' -and
         -not $fightRows[0].Session.OpeningSent) 'Timed retry did not select the target first.'
     Tick-FightEncounter $fightRows[0] 'opening' 6000
     Assert-Ui ([WowAutoFight.Native]::Sends -eq 6 -and $fightRows[0].Session.OpeningSent) 'Relocked target did not receive a second opener.'
@@ -241,19 +247,26 @@ try {
     [WowAutoFight.Native]::Current.EncounterId=3; [WowAutoFight.Native]::ReadsUntilEncounterChange=3
     Tick-FightEncounter $fightRows[0] 'opening' 9000
     Assert-Ui ([WowAutoFight.Native]::Sends -eq 8) 'Encounter changed immediately before input but opener was sent.'
+    [WowAutoFight.Native]::Current.EncounterId=5; [WowAutoFight.Native]::ReadsUntilActionChange=3
+    [WowAutoFight.Native]::NextAction='waiting'
+    Tick-FightEncounter $fightRows[0] 'opening' 9100
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 8 -and $fightRows[0].Session.State -eq 'waiting' -and
+        $fightRows[0].Session.Substate -eq 'observe' -and $fightRows[0].Session.Due -eq 9100) 'Fresh plugin color failed to replace a queued opener immediately.'
+    Tick-FightEncounter $fightRows[0] 'opening' 9200
+    Assert-Ui ([WowAutoFight.Native]::Sends -eq 9 -and $fightRows[0].Session.State -eq 'opening') 'Returning plugin main state did not resume its own substate.'
     $baseline=[WowAutoFight.Native]::Sends
     foreach ($mode in @('recover','emergency')) {
-        $base=if ($mode -eq 'recover') {10000L} else {20000L}
+        $base=if ($mode -eq 'recover') {11000L} else {21000L}
         [WowAutoFight.Native]::Current.Combat=($mode -eq 'emergency')
-        Tick-FightEncounter $fightRows[0] 'idle' $base $mode
+        Tick-FightEncounter $fightRows[0] $mode $base $mode
         $baseline++
         Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline) 'Production adapter did not send recovery entry.'
-        Tick-FightEncounter $fightRows[0] 'idle' ($base+2000) $mode
+        Tick-FightEncounter $fightRows[0] $mode ($base+2000) $mode
         [WowAutoFight.Native]::Current.EncounterId++
-        Tick-FightEncounter $fightRows[0] 'combat' ($base+4000) $mode
+        Tick-FightEncounter $fightRows[0] 'waiting' ($base+4000) $mode
         Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline) 'Production adapter repeated recovery.'
         Tick-FightEncounter $fightRows[0] 'idle' ($base+5000)
-        Tick-FightEncounter $fightRows[0] 'idle' ($base+6000) $mode
+        Tick-FightEncounter $fightRows[0] $mode ($base+6000) $mode
         $baseline++
         Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline) 'Production adapter did not reset on recovery exit.'
         Tick-FightEncounter $fightRows[0] 'idle' ($base+7000)
@@ -276,7 +289,7 @@ try {
     $baseline++
     Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline -and $fightRows[0].Session.RecoverySent) 'Recovery not executed after transient read failure.'
     [WowAutoFight.Native]::MissingReads=1
-    Tick-FightEncounter $fightRows[0] 'idle' 37000 'recover'
+    Tick-FightEncounter $fightRows[0] 'recover' 37000 'recover'
     $script:autoFight.Clock.ElapsedMilliseconds=37050;Invoke-AutoFightTick
     Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline -and $fightRows[0].Session.RecoverySent) 'Transient read failure reset once-only recovery.'
     Prepare-FightInput $fightRows[0] 'combat' 40000
@@ -349,14 +362,26 @@ try {
     Assert-Ui ($fightRows[0].Session -and $script:autoFight.ActiveHold -and [WowAutoFight.Native]::Sends -eq $baseline) 'Background interaction hold required focus.'
     [void](Release-AutoFightHold)
     [WowAutoFight.Native]::IsForeground=$true
-    Prepare-FightInput $fightRows[0] 'move-forward' 70000;Invoke-AutoFightTick
+    Prepare-FightInput $fightRows[0] 'skin' 69000
+    $fightRows[0].Session.EncounterId=[WowAutoFight.Native]::Current.EncounterId
+    $fightRows[0].Session.LootEncounterId=[WowAutoFight.Native]::Current.EncounterId
+    Invoke-AutoFightTick
+    $baseline++
+    Assert-Ui ($script:autoFight.ActiveHold -and $script:autoFight.ActiveHold.Until -eq 71000) 'Skin hold did not start for two seconds.'
+    [WowAutoFight.Native]::Current.Action='idle'
+    $script:autoFight.Clock.ElapsedMilliseconds=69500;Invoke-AutoFightTick
+    Assert-Ui ($fightRows[0].Session.State -eq 'idle' -and $script:autoFight.ActiveHold -and
+        [WowAutoFight.Native]::Sends -eq $baseline) 'Plugin main state did not switch during the fixed skin hold.'
+    $script:autoFight.Clock.ElapsedMilliseconds=71000;Invoke-AutoFightTick
+    Assert-Ui (-not $script:autoFight.ActiveHold -and [WowAutoFight.Native]::Sends -eq $baseline) 'Skin hold ignored its two-second boundary.'
+    Prepare-FightInput $fightRows[0] 'move-forward' 72000;Invoke-AutoFightTick
     $baseline++
     [WowAutoFight.Native]::IsForeground=$false
-    $script:autoFight.Clock.ElapsedMilliseconds=70001;Invoke-AutoFightTick
+    $script:autoFight.Clock.ElapsedMilliseconds=72001;Invoke-AutoFightTick
     Assert-Ui ($fightRows[0].Session -and -not [WowAutoFight.Native]::IsHolding -and -not $script:autoFight.ActiveHold) 'Movement focus loss did not release and retain background monitoring.'
     [WowAutoFight.Native]::IsForeground=$true
     $fightRows[0].Client | Add-Member NoteProperty LoginPointPresent $false
-    Prepare-FightInput $fightRows[0] 'target' 72000;Invoke-AutoFightTick
+    Prepare-FightInput $fightRows[0] 'target' 74000;Invoke-AutoFightTick
     Assert-Ui ([WowAutoFight.Native]::Sends -eq $baseline -and -not $fightRows[0].Session -and -not $fightRows[0].CanStart -and -not $fightRows[0].Start.Enabled) 'Missing foreground login point permitted input.'
     $fightRows[0].Client.LoginPointPresent=$true;$fightRows[0].CanStart=$true;Update-AutoFightControls
     Assert-Ui $fightRows[0].Start.Enabled 'Validated stopped row remained locked after refresh readiness was restored.'

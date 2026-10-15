@@ -75,7 +75,11 @@ function Invoke-AutoFightHold([long]$Now) {
             if ([WowAutoFight.Native]::LastReadPending) {[void](Release-AutoFightHold);return}
             throw '保持期间检测关闭或协议不可读，已释放移动键。'
         }
-        if ($packet.ClassId -ne $hold.Session.ClassId) { throw '职业发生变化，已释放移动键。' }
+        if ($packet.ClassId -ne $hold.Session.ClassId -or $packet.Flavor -ne $row.Client.Flavor) { throw '职业或客户端发生变化，已释放移动键。' }
+        $previous=$hold.Session.State
+        if (Update-AutoFightState $hold.Session $packet $Now) {
+            Set-AutoFightStatus $row ("主状态切换："+$script:autoFightStates[$previous].Label+" → "+$script:autoFightStates[$hold.Session.State].Label)
+        }
         if (Test-AutoFightHoldFinished $hold $packet $Now) { [void](Release-AutoFightHold) }
     }
     catch {
@@ -186,11 +190,12 @@ function New-AutoFightPending($Row,$Session,[bool]$Scanning,[long]$Now) {
     return [pscustomobject]@{Row=$Row; Session=$Session; Scanning=$Scanning; Activated=$false;
         Since=$Now; SampleAt=($Now+200); ReadFailureSince=-1L}
 }
-function Finish-AutoFightPending([long]$Now) {
+function Finish-AutoFightPending([long]$Now,[switch]$Immediate) {
     $pending=$script:autoFight.Pending
     $script:autoFight.Pending=$null
     if ($pending.Scanning) { $script:autoFight.Scan.Index++ }
     elseif ($pending.Row.Session -eq $pending.Session) {
+        if ($Immediate) {$pending.Session.Due=$Now;return}
         $next=$Now+250
         if ($pending.Session.NextBuffAt -gt $Now -and $pending.Session.NextBuffAt -lt $next) {$next=$pending.Session.NextBuffAt}
         $pending.Session.Due=[Math]::Max($pending.Session.Due,$next)
@@ -310,7 +315,20 @@ function Invoke-AutoFightTick([bool]$AllowInput=$true,[switch]$PlanOnly,[string]
         if ($null -eq $latest -or $latest.ClassId -ne $packet.ClassId -or $latest.Action -ne $packet.Action -or
             $latest.Recovery -ne $packet.Recovery -or $latest.Combat -ne $packet.Combat -or $latest.Busy -ne $packet.Busy -or
             $latest.EncounterId -ne $packet.EncounterId) {
-            Set-AutoFightStatus $row '状态变化，等待重新探测。'; Finish-AutoFightPending $now; return
+            if ($latest -and $latest.ClassId -eq $session.ClassId -and $latest.Flavor -eq $row.Client.Flavor) {
+                $previous=$session.State
+                if (Update-AutoFightState $session $latest $script:autoFight.Clock.ElapsedMilliseconds) {
+                    Set-AutoFightStatus $row ("主状态切换："+$script:autoFightStates[$previous].Label+" → "+$script:autoFightStates[$session.State].Label)
+                }
+            }
+            if ($latest) {
+                Set-AutoFightStatus $row '颜色已变化，旧按键已取消；按插件新主状态继续。'
+                Finish-AutoFightPending $script:autoFight.Clock.ElapsedMilliseconds -Immediate
+            } else {
+                Set-AutoFightStatus $row '颜色暂时不可读，旧按键已取消。'
+                Finish-AutoFightPending $now
+            }
+            return
         }
         $movement=$action.StartsWith('move-')
         # All combat windows and states share this gate. Releases always remain immediate.

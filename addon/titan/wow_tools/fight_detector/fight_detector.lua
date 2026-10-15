@@ -16,13 +16,13 @@ local recoveryDescriptions={none="无需恢复", recover="非战斗恢复", emer
 local recovering, emergency = false, false
 local settingDefaults = { HealthEnter=80, HealthExit=95, ManaEnter=0, ManaExit=90,
     EmergencyEnter=30, EmergencyExit=50 }
--- V5: main cell contains action, recovery, client/class, busy, combat and encounter.
+-- V6: main cell contains the plugin-owned main state, recovery, client/class, busy, combat and encounter.
 -- Auxiliary cell is a visual recovery hint only; there is no heartbeat.
-local actionCodes={unknown=0,idle=1,opening=2,waiting=3,combat=4,loot=5,skin=6,target=7}
+local actionCodes={unknown=0,idle=1,target=2,opening=3,waiting=4,combat=5,recover=6,emergency=7,loot=8,skin=9}
 local recoveryCodes={none=0,recover=1,emergency=2,unknown=3}
 local descriptions={disabled="已关闭",unknown="数据未知，暂停指令",idle="等待目标",
     target="等待选中本次怪物",opening="已选中怪物，开怪",waiting="等待怪物接近",combat="进入攻击距离",
-    loot="可以拾取",skin="可以剥皮"}
+    recover="非战斗恢复",emergency="战斗紧急恢复",loot="可以拾取",skin="可以剥皮"}
 
 local function Readable(value)
     return not (issecretvalue and issecretvalue(value))
@@ -125,7 +125,7 @@ signal:SetAllPoints(UIParent)
 signal:SetFrameStrata("TOOLTIP")
 signal:EnableMouse(false)
 local cells={signal:CreateTexture(nil,"OVERLAY"),signal:CreateTexture(nil,"OVERLAY")}
--- A two-pixel inset inside the main cell preserves the center-only V5 sample.
+-- A two-pixel inset inside the main cell preserves the center-only V6 sample.
 -- The surrounding main cell can use the same red as fishing while out of combat.
 local dataCell=signal:CreateTexture(nil,"OVERLAY",nil,1)
 dataCell:Hide()
@@ -155,13 +155,16 @@ local function PositionSignal()
 end
 local function Paint()
     if enabled and classID and PositionSignal() then
-        local action=actionCodes[state] or 0
+        -- Waiting for range stays quiet; otherwise recovery owns the main state.
+        local mainState=state=="waiting" and "waiting" or
+            ((recovery=="recover" or recovery=="emergency") and recovery or state)
+        local action=actionCodes[mainState] or 0
         local identity=(FLAVOR=="titan" and 0 or 13)+classID-1
         local encounter=encounterSerial%32
         local recover=recoveryCodes[recovery] or 3
-        local red=state=="target" and ({[0]=240,[1]=248,[2]=8,[3]=40})[recover] or (16+8*(action*4+recover))
-        local r,g,b=red/255,(2+4*(identity+(busy and 26 or 0)))/255,
-            (2+4*(encounter+(combat and 32 or 0)))/255
+        local red=2+5*(action*4+recover)
+        local r,g,b=red/255,(4*(identity+(busy and 26 or 0)))/255,
+            (4*(encounter+(combat and 32 or 0)))/255
         dataCell:SetColorTexture(r,g,b,1)
         if combat==false and state~="unknown" and recovery~="unknown" then
             cells[1]:SetColorTexture(1,0,0,1)
@@ -174,7 +177,9 @@ local function Paint()
         local hint=hints[recovery] or hints.unknown
         cells[2]:SetColorTexture(hint[1],hint[2],hint[3],1)
     else signal:Hide() end
-    status:SetText((descriptions[state] or descriptions.unknown).." · 战斗："..
+    local displayedState=state=="waiting" and "waiting" or
+        ((recovery=="recover" or recovery=="emergency") and recovery or state)
+    status:SetText((descriptions[displayedState] or descriptions.unknown).." · 战斗："..
         (combat==nil and "未知" or (combat and "是" or "否"))..
         "\n"..(recoveryDescriptions[recovery] or "恢复未知").." · HP "..(health and math.floor(health).."%" or "?")..
         (mana and (" / MP "..math.floor(mana).."%") or "")..(busy and " · 忙碌" or ""))
