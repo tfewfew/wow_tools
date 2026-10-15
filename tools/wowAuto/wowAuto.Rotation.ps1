@@ -130,6 +130,9 @@ function Add-RotationRow($Row) {
     $button.Tag=$Row;$button.Add_Click({param($sender,$e) Show-RotationEditor $sender.Tag})
     $Row.Panel.Controls.AddRange([System.Windows.Forms.Control[]]@($button,$label));Update-RotationRow $Row
 }
+function Set-RotationPendingWork($Entry,$Work) {
+    $Entry | Add-Member NoteProperty PendingWork $Work -Force
+}
 function Remove-RotationQueuedRow($Row) {
     # Remove stopped/replaced stages immediately, including cached coordinates awaiting clicks.
     foreach ($queueName in @('LogoutQueue','Queue','ClickQueue','LoginQueue')) {
@@ -138,13 +141,13 @@ function Remove-RotationQueuedRow($Row) {
         for ($i=0;$i -lt $count;$i++) {
             $entry=$queue.Dequeue()
             if ($entry.Row.Key -ne $Row.Key) {$queue.Enqueue($entry)}
-            else {$entry.PreparedTarget=$null;$entry.PreparedSlot=-1}
+            else {$entry.PreparedTarget=$null;$entry.PreparedSlot=-1;Set-RotationPendingWork $entry $null}
         }
     }
 }
 function Reset-RotationEntry($Entry) {
     Remove-RotationQueuedRow $Entry.Row
-    $Entry.PreparedTarget=$null;$Entry.PreparedSlot=-1;$Entry.SelectionDeadline=0L
+    $Entry.PreparedTarget=$null;$Entry.PreparedSlot=-1;$Entry.SelectionDeadline=0L;Set-RotationPendingWork $Entry $null
 }
 function Get-RotationClientSize($Row) {
     # A system observation independent of the bitmap and OCR output. Position is not compared.
@@ -171,17 +174,26 @@ function Test-RotationTargetSnapshot($Row,$Target) {
 function Retry-RotationRecognition($Work,[string]$Reason) {
     $entry=$Work.Entry
     Stop-RotationOcr
-    $entry.PreparedTarget=$null;$entry.PreparedSlot=-1
+    $entry.PreparedTarget=$null;$entry.PreparedSlot=-1;Set-RotationPendingWork $entry $null
     $script:rotation.Queue.Enqueue($entry)
     $script:rotation.Current=$null
     Set-RowStatusText $Work.Row ('步骤2/5：'+$Reason+'，重新识别角色位置后再点击。')
+}
+function Yield-RotationMenu($Work) {
+    # A window still leaving the world must not hold up another window already at the character list.
+    # An in-flight OCR capture is kept with its owner until it completes.
+    if (-not $script:rotation.Queue.Count -or $script:rotation.OcrWork) {return}
+    $Work.NextOcrAt=$script:rotation.NextOcrAt
+    Set-RotationPendingWork $Work.Entry $Work
+    $script:rotation.Queue.Enqueue($Work.Entry)
+    $script:rotation.Current=$null
 }
 function Stop-RowRotation($Row) {
     Remove-GameActions -Key $Row.Key -Domain Rotation
     if (-not $script:rotation) {return}
     if ($script:rotation.OcrWork -and $script:rotation.OcrWork.Key -eq $Row.Key) {Stop-RotationOcr}
     $entry=$script:rotation.Active[$Row.Key]
-    if ($entry) {$entry.PreparedTarget=$null;$entry.PreparedSlot=-1;$entry.SelectionDeadline=0L}
+    if ($entry) {$entry.PreparedTarget=$null;$entry.PreparedSlot=-1;$entry.SelectionDeadline=0L;Set-RotationPendingWork $entry $null}
     Remove-RotationQueuedRow $Row
     $script:rotation.Active.Remove($Row.Key)
     if ($script:rotation.Current -and $script:rotation.Current.Row.Key -eq $Row.Key) {$script:rotation.Current=$null;$script:rotation.NextOcrAt=0L}
@@ -194,7 +206,7 @@ function Start-RowRotation($Row) {
     $plan=Get-RowRotationPlan $Row;Test-RotationPlan $plan;Test-RowAccountPlan $Row $plan
     $index=Get-RotationNextSlot $plan -1
     Stop-Row $Row '开始角色编排，准备登录第一个有效槽位。' -CancelExit
-    $entry=[pscustomobject]@{Row=$Row;Plan=(Copy-RotationPlan $plan);Index=$index;ExcludedNames=@();LastLogout=-30000L;PreparedTarget=$null;PreparedSlot=-1;SelectionDeadline=0L}
+    $entry=[pscustomobject]@{Row=$Row;Plan=(Copy-RotationPlan $plan);Index=$index;ExcludedNames=@();LastLogout=-30000L;PreparedTarget=$null;PreparedSlot=-1;SelectionDeadline=0L;PendingWork=$null}
     $script:rotation.Active[$Row.Key]=$entry;$script:rotation.LogoutQueue.Enqueue($entry)
     if (-not $script:rotation.NextAt -and $script:rotation.IntervalSeconds) {$script:rotation.NextAt=$script:schedulerClock.ElapsedMilliseconds+[long]$script:rotation.IntervalSeconds*1000}
     Update-RotationRow $Row
@@ -382,22 +394,28 @@ function Invoke-RotationTick([long]$Now) {
         $script:rotation.NextAt -and $Now -ge $script:rotation.NextAt) {Begin-RotationBatch $Now}
     if (-not $script:rotation.Current) {
         while (Test-RotationWorkPending) {
-            # Stage barriers: every logout, every position, every click, then login checks.
+            # Finish logout requests first; then poll waiting menus fairly before the click barrier.
             if ($script:rotation.LogoutQueue.Count) {$entry=$script:rotation.LogoutQueue.Dequeue();$phase='logout-activate'}
             elseif ($script:rotation.Queue.Count) {$entry=$script:rotation.Queue.Dequeue();$phase='activate'}
             elseif ($script:rotation.ClickQueue.Count) {$entry=$script:rotation.ClickQueue.Dequeue();$phase='click-activate'}
             else {$entry=$script:rotation.LoginQueue.Dequeue();$phase='login-activate'}
             if (-not [object]::ReferenceEquals($script:rotation.Active[$entry.Row.Key],$entry)) {continue}
-            if ($phase -eq 'activate' -and -not $entry.SelectionDeadline) {$entry.SelectionDeadline=$Now+180000}
-            $deadline=if ($phase -eq 'logout-activate') {$Now+180000} else {$entry.SelectionDeadline}
-            # A completed triple-click must be followed by one full second before another process is activated.
-            $due=$Now
-            if ($script:rotation.ClickSwitch -and $entry.Row.Key -ne $script:rotation.ClickSwitch.Key) {
-                $due=[Math]::Max($Now,[long]$script:rotation.ClickSwitch.Until)
+            if ($phase -eq 'activate' -and $entry.PendingWork) {
+                $script:rotation.Current=$entry.PendingWork
+                $script:rotation.NextOcrAt=$entry.PendingWork.NextOcrAt
+                Set-RotationPendingWork $entry $null
+            } else {
+                if ($phase -eq 'activate' -and -not $entry.SelectionDeadline) {$entry.SelectionDeadline=$Now+180000}
+                $deadline=if ($phase -eq 'logout-activate') {$Now+180000} else {$entry.SelectionDeadline}
+                # A completed triple-click must be followed by one full second before another process is activated.
+                $due=$Now
+                if ($script:rotation.ClickSwitch -and $entry.Row.Key -ne $script:rotation.ClickSwitch.Key) {
+                    $due=[Math]::Max($Now,[long]$script:rotation.ClickSwitch.Until)
+                }
+                $script:rotation.Current=[pscustomobject]@{Entry=$entry;Row=$entry.Row;Phase=$phase;Due=$due;Deadline=$deadline;FocusUntil=0L;
+                    Stable=0;LastLogout=$entry.LastLogout;Candidate=$null;FindMisses=0;MonitorEnabled=$false;NextOcrAt=0L}
+                $script:rotation.NextOcrAt=0L
             }
-            $script:rotation.Current=[pscustomobject]@{Entry=$entry;Row=$entry.Row;Phase=$phase;Due=$due;Deadline=$deadline;FocusUntil=0L;
-                Stable=0;LastLogout=$entry.LastLogout;Candidate=$null;FindMisses=0;MonitorEnabled=$false}
-            $script:rotation.NextOcrAt=0L
             break
         }
     }
@@ -414,7 +432,7 @@ function Invoke-RotationTick([long]$Now) {
             $work.Due=$Now;return $true
         }
         $work.FocusUntil=0L
-        # First issue logout to every queued process. OCR starts only after this queue drains.
+        # First issue logout to every queued process. Each menu is then recognized as soon as it is ready.
         if ($work.Phase -in @('logout-inspect','logout-send')) {
             if ($work.Phase -eq 'logout-inspect' -and (Test-RowLoginPoint $row)) {
                 $work.Phase='logout-send';$work.Due=$Now;return $true
@@ -423,7 +441,7 @@ function Invoke-RotationTick([long]$Now) {
             $row.Validated=$false
             $script:rotation.Queue.Enqueue($entry)
             $script:rotation.Current=$null
-            Set-RowStatusText $row '步骤1/5：已处理本进程登出，等待所有进程完成登出请求后再批量识别角色位置。'
+            Set-RowStatusText $row '步骤1/5：已处理本进程登出；进入选角界面后立即识别角色位置。'
             return $true
         }
         if ($work.Phase -eq 'click') {
@@ -458,6 +476,7 @@ function Invoke-RotationTick([long]$Now) {
             if ($Now-$work.LastLogout -ge 30000) {$work.Phase='menu-logout';$work.Due=$Now;return $true}
             $work.Due=$Now+300
             Set-RowStatusText $row '步骤2/5：等待退出倒计时 / 脱战，每30秒重试退出。'
+            Yield-RotationMenu $work
             return $true
         }
         # Every window has been clicked before login checks begin; OCR remains stopped.
@@ -505,7 +524,11 @@ function Invoke-RotationTick([long]$Now) {
             Update-RotationRow $row;return $true
         }
         $screen=Read-RotationScreen $row $entry.Plan -MenuWasConfirmed:($work.Phase -eq 'find')
-        if ($screen.Kind -eq 'pending') {$work.Due=$Now+100;return $true}
+        if ($screen.Kind -eq 'pending') {
+            $work.Due=$Now+100
+            if (-not $script:rotation.OcrWork -and $work.Phase -eq 'menu') {Yield-RotationMenu $work}
+            return $true
+        }
         switch ($work.Phase) {
             'menu' {
                 if ($screen.Kind -eq 'menu') {
@@ -544,6 +567,7 @@ function Invoke-RotationTick([long]$Now) {
             }
         }
         $work.Due=$Now+300
+        if ($work.Phase -eq 'menu') {Yield-RotationMenu $work}
     } catch {
         if (Test-WindowCapturePending $_) {$work.Due=$Now+100;return $true}
         $reason=$_.Exception.Message

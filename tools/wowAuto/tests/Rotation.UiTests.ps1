@@ -14,7 +14,7 @@ function Step-RotationTest([long]$Now,[string]$Screen='automatic') {
     $script:schedulerClock.ElapsedMilliseconds=$Now
     $work=$script:rotation.Current
     if ($work) {
-        $kind=if ($Screen -ne 'automatic') {$Screen} elseif ($work.Phase -in @('menu','find','click-activate','click')) {'menu'} else {'world'}
+        $kind=if ($Screen -ne 'automatic') {$Screen} elseif ($work.Row.Process.PSObject.Properties['RotationForcedScreen']) {$work.Row.Process.RotationForcedScreen} elseif ($work.Phase -in @('menu','find','click-activate','click')) {'menu'} else {'world'}
         $work.Row.Process | Add-Member NoteProperty LoginPointPresent ($kind -eq 'world') -Force
         $work.Row.Process.RotationScreen=[pscustomobject]@{Kind=$kind;RoleName=$work.Entry.Plan.Slots[$work.Entry.Index].Name;Targets=@(for ($slotIndex=0;$slotIndex -lt 3;$slotIndex++) {if ($work.Entry.Plan.Slots[$slotIndex].Name) {[pscustomobject]@{Name=$work.Entry.Plan.Slots[$slotIndex].Name;RawName=$work.Entry.Plan.Slots[$slotIndex].Name;MenuRow=($slotIndex+1);X=0.84;Y=(0.119+$slotIndex*0.0743)}}})}
         if ($work.Row.TaskMode -eq 'fight') {[WowAutoFight.Native]::Current.Flavor=$work.Row.Client.Flavor;[WowAutoFight.Native]::Current.ClassId=1}
@@ -130,6 +130,17 @@ try {
         ($script:rotation.Actions.Action -join ',') -eq 'logout,logout' -and
         ($script:rotation.Actions.Key -join ',') -eq "$($a.Key),$($b.Key)" -and $script:rotation.Queue.Count -eq 2 -and
         $a.Process.RotationOcrReads -eq 0 -and $b.Process.RotationOcrReads -eq 0) 'Started OCR/login before requesting logout from every process.'
+    # The first window is still in the world while the second reaches character selection.
+    # Its wait must yield so the second window can finish OCR, but neither may be clicked yet.
+    $a.Process | Add-Member NoteProperty RotationForcedScreen 'world' -Force
+    $b.Process | Add-Member NoteProperty RotationForcedScreen 'menu' -Force
+    for ($i=0;$i -lt 70 -and -not $script:rotation.Active[$b.Key].PreparedTarget;$i++) {Step-RotationTest $now;$now+=300}
+    Assert-Ui ($i -lt 70 -and $script:rotation.Active[$b.Key].PreparedTarget -and
+        -not $script:rotation.Active[$a.Key].PreparedTarget -and $a.Process.RotationOcrReads -eq 0 -and
+        $script:rotation.ClickQueue.Count -eq 1 -and
+        -not @($script:rotation.Actions | Where-Object {$_.Action -eq 'tripleclick'}).Count) 'Ready process did not start OCR while another process was waiting to leave the world, or clicked before the barrier.'
+    $a.Process.PSObject.Properties.Remove('RotationForcedScreen')
+    $b.Process.PSObject.Properties.Remove('RotationForcedScreen')
     Prepare-RotationTestBatch ([ref]$now) 2
     Click-RotationTestBatch ([ref]$now) 2
     Assert-Ui (($script:rotation.Actions.Action -join ',') -eq 'logout,logout,tripleclick,tripleclick') 'All-process phase barriers or click order changed.'
@@ -413,7 +424,7 @@ try {
         Assert-Ui (-not [WowAutoRotation.Native]::HasLoginPoint($point)) 'Non-solid point accepted.'
     } finally {$point.Dispose()}
     foreach ($p in $sourceHashes.Keys) {Assert-Ui ((Get-FileHash $p).Hash -eq $sourceHashes[$p]) 'Tests changed real user configuration.'}
-    Write-Output 'PASS: name/empty/single/wrap slots, all-process logout then all-position preparation then all-clicks before login checks, independent system-size validation without OCR or position comparison, width/height resize/re-recognition and stopped-cache cancellation, shared deadline/all-stop batch, first-page three-click selection with precomputed random intervals and OCR row logs, cursor parking, either menu anchor, partial/duplicate/no-progress rejection, permanent-point login/no OCR after selection/loading/pending/focus/timeout/stop/settings isolation, per-role fish/fight, counter reset, atomic drafts and PID reuse. All game input and OCR mocked.'
+    Write-Output 'PASS: name/empty/single/wrap slots, ready-window OCR while another window awaits the menu, all-position preparation before clicks and all-clicks before login checks, independent system-size validation without OCR or position comparison, width/height resize/re-recognition and stopped-cache cancellation, shared deadline/all-stop batch, first-page three-click selection with precomputed random intervals and OCR row logs, cursor parking, either menu anchor, partial/duplicate/no-progress rejection, permanent-point login/no OCR after selection/loading/pending/focus/timeout/stop/settings isolation, per-role fish/fight, counter reset, atomic drafts and PID reuse. All game input and OCR mocked.'
 } finally {
     Stop-AllRows;Close-AutoFightTab
     if ([IO.File]::Exists($script:rotation.Path)) {[IO.File]::Delete($script:rotation.Path)}
