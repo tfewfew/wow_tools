@@ -1,9 +1,20 @@
 ---
 name: wow-tools
-description: 维护titan时光服、forerver无限服的独立wow_tools插件合集及wowAuto前台脚本，验证并提交推送后按客户端同步插件和桌面源码快捷方式。
+description: 维护titan时光服、forerver无限服的独立wow_tools插件合集及wowAuto前台脚本；查询运行状态或通报进展时结合最新日志与info角色快照；修改经验证提交推送后按客户端同步。
 ---
 
 # wow_tools
+
+## 状态查询与进展通报
+
+用户说“检查状态”“查一下”“进展通报”等且上下文指向wowAuto运行时，按本节即时只读查询，不复用上次回答里的角色名或状态，也不创建定时任务。
+
+- 每次读取 `tools/wowAuto/log/info.log` 的完整小型JSON快照和 `tools/wowAuto/log/wowAuto.log` 末尾50条JSON Lines，同时获取查询时间及日志最后写入时间。不默认扫描全文件或十分钟历史。
+- 以info的Processes为当前进程清单，按Pid关联日志；名称用CurrentRole，任务用CurrentSlot对应Slots中的Task，附ExecutionRound仅在进展通报需要时显示。CurrentRole为空时报告“当前角色未运行/未记录”，不能用槽位1或上次角色填充。ExecutionRound是本次工具启动后的任务开始次数，不是钓获、击杀或收竿次数。
+- 每个进程取最新status/error及最后一条任意类型记录，保留时间。action可证明队列近期活动，但不能当作成功钓获或拾取收益；没有状态时仅报告最近动作及状态未知。末尾50条不足以覆盖info里的某个PID时，按需补读至150条、最多300条；仍缺失就明确“最近300条无该进程记录”，不默认为正常或停止。仅排查历史异常时扩大范围。
+- 只使用info.StartTime之后的日志，避免混入上次启动。日志缺失、尾行写入中或JSON暂时无效时可以重读一次；仍失败就说明证据不足。info可能在轮换期间更新，发现日志显示换角/停止或任务模式与快照矛盾时再读一次info，仍不一致则注明正在切换或快照未更新，不强行绑定旧名字。
+- 简洁通报“截至HH:mm:ss”及每行“角色（PID）：任务/当前状态”，必要时说明近期错误及是否已有后续恢复证据。根据最新记录说明数据新鲜度；日志久未更新只说明时间间隔，不能仅凭静默断言脚本卡死。正常等待也可能不写新状态。不把读取范围内无报错表述为整个运行期间无异常。
+- 查询不启动/停止任务、不刷新进程、不切游戏窗口、不发送按键，不修改日志、配置或运行快照；通常不需要截图。只读状态查询不涉及提交或同步。
 
 源码仓库：`C:\code\wow_tools`，远端 `origin`。插件源码分开归档在 `addon/titan/wow_tools/`（时光服）和 `addon/forerver/wow_tools/`（无限服），保留用户指定的forerver拼写；不要恢复旧的addon/wow_tools或让两服互相引用源码。图形工具在 `tools/wowAuto/`（wowAuto.ps1、wowAuto.Engine.ps1、wowAuto.Audio.cs、wowAuto.Recordings.ps1、wowAuto.Unified.ps1、wowAuto.bat及autoFight各模块），使用说明在该目录 README.md。不要把游戏目录或桌面副本当作修改源。
 
