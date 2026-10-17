@@ -12,8 +12,8 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - 每个真实进程身份有独立MTA检测runspace，OCR也在该线程同步执行。需要操作时提交Hub.Request，暂停本进程检测直到操作线程回执。唯一操作runspace执行所有前台、按键、点击、保持和退出；STA主线程只协调全局换角、接收通知和更新控件，不调用游戏输入。工作线程不传控件或可变全局对象。
 - Endpoint会话版本使停止、刷新、换角、重新开始和PID复用后的旧请求/结果失效。操作前复核版本、PID/启动Ticks/路径/版本、白点和当前主副色；原生读色Pending/Error按线程隔离。不要重新引入共享的rotation.OcrWork或autoFight.Pending。
 - 主线程发起换角批次，各线程负责自身登出、OCR和登录。保留全批登出→并行识别全部位置→依次点击→全部点击后并行确认登录→全批验证后恢复输入的屏障；退出、失败或停止者解除屏障。保留前台200ms稳定、换角500ms重试/5秒上限、普通800ms上限、三连击后跨进程1秒及客户区每轴5%原始基准尺寸复核。
-- account-tasks.config.json v1以客户端:子战网保存有序角色任务Name/Realm/Mode/Enabled/UseItem，以PID:StartTicks保存Bindings；不再提供进程三槽位。设置新增子战网页，主行下拉绑定账号。新记录默认停用；旧Plans仅无冲突时按账号迁移，任务冲突或跨客户端归属不明停用待核对，读取不改文件。同时启用的角色名须唯一；目录/角色仍只读安全插件记录。
-- 子战网页一起保存任务和10项检测周期，25–60000ms、步进25，取消/写入失败不应用。FishMs100、FightMs1000、MenuMs300、LoginMs300、BaitMs300、DeathMs1000、AudioMs50、PositionMs1000、CaptureRetryMs100、OcrMs1000；迁移保留旧OCR周期。动作保持/冷却/退出超时不当成检测周期。死亡/包满排除仅本进程本次运行，不改账号配置；耗尽才退出该进程，直接开始只停止本行。
+- account-tasks.config.json v1以客户端:子战网保存有序角色任务Name/Realm/Mode/Enabled/UseItem，以PID:StartTicks保存Bindings；不再提供进程三槽位。设置的子战网页用“时光服 / 永恒服”两个子tab分别显示本服账号和角色，下拉只显示账号名；主行下拉绑定账号。新记录默认停用；旧Plans仅无冲突时按账号迁移，任务冲突或跨客户端归属不明停用待核对，读取不改文件。同时启用的角色名须唯一；目录/角色仍只读安全插件记录。
+- 10项检测周期在独立“检测周期”tab作为两服所有进程的全局设置，25–60000ms、步进25。子战网任务与周期分别保留草稿、分别原子保存，各自合并最新已保存配置，不保存另一页草稿或回退另一页的已保存值；取消/写入失败不应用。FishMs100、FightMs1000、MenuMs300、LoginMs300、BaitMs300、DeathMs1000、AudioMs50、PositionMs1000、CaptureRetryMs100、OcrMs1000；迁移保留旧OCR周期。动作保持/冷却/退出超时不当成检测周期。死亡/包满排除仅本进程本次运行，不改账号配置；耗尽才退出该进程，直接开始只停止本行。
 - 检测线程经Hub.Log写PID/ThreadId，统一锁保证JSON完整和两文件合计上限。info新进程项用Roles而非Slots，并有CurrentRole/CurrentTask/CurrentPhase/ExecutionRound。主验证Run.ParallelUi.Tests、Operator.Tests、Threading.Tests、AccountTasks.Tests；另跑旧-UiTest和离线Rotation.Ocr回归，禁止真实游戏输入/退出/重启。关闭先取消并结束线程，再释放音频、WGC和界面。
 
 ## 状态查询与进展通报

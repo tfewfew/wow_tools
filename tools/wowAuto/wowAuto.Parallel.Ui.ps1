@@ -160,6 +160,7 @@ function New-UnifiedSettingsDialog {
     try {
         $dialog=& $script:legacySettingsFactory
         $page=New-AccountTaskSettingsPage;$dialog.Tag.Tabs.TabPages.Add($page);$dialog.Tag | Add-Member NoteProperty Accounts $page
+        $periodPage=New-DetectionPeriodSettingsPage;$dialog.Tag.Tabs.TabPages.Add($periodPage);$dialog.Tag | Add-Member NoteProperty DetectionPeriods $periodPage
         $dialog.Tag.Fish.Tag.AudioDetection.Enabled=-not @($script:rows.Values | Where-Object {$_.RuntimeRunning -and $_.TaskMode -eq 'fish'}).Count
         # The OCR period now belongs beside all other detector periods.
         $bar=$dialog.Tag.Rotation.Value.Parent
@@ -179,8 +180,9 @@ function Show-AccountTaskSettings($Row) {
     $script:editingSettings=$true;$dialog=$null
     try {
         $dialog=New-UnifiedSettingsDialog;$dialog.Tag.Tabs.SelectedTab=$dialog.Tag.Accounts
-        $key=$Row.Client.Flavor+':'+$Row.AccountName
-        if($dialog.Tag.Accounts.Tag.Accounts.Items.Contains($key)){$dialog.Tag.Accounts.Tag.Accounts.SelectedItem=$key}
+        $client=$dialog.Tag.Accounts.Tag.Clients[$Row.Client.Flavor]
+        $dialog.Tag.Accounts.Tag.ClientTabs.SelectedTab=$client.Page
+        if($client.Accounts.Items.Contains($Row.AccountName)){$client.Accounts.SelectedItem=$Row.AccountName}
         $null=$dialog.ShowDialog($form)
     }finally{if($dialog){$dialog.Dispose()};$script:editingSettings=$false;Update-BatchControls}
 }

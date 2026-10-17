@@ -87,12 +87,12 @@ function Wait-Detector([int]$Milliseconds) {
     [IO.File]::WriteAllText($operatorPath,$operator,(New-Object Text.UTF8Encoding($true)));[IO.File]::WriteAllText($detectorPath,$detector,(New-Object Text.UTF8Encoding($true)))
     $roles=@(@{Name='角色甲';Realm='测试服';Mode='fish';Enabled=$true;UseItem=$false},@{Name='角色乙';Realm='测试服';Mode='fight';Enabled=$true;UseItem=$false},@{Name='角色丙';Realm='测试服';Mode='fish';Enabled=$true;UseItem=$false},@{Name='角色丁';Realm='测试服';Mode='fish';Enabled=$true;UseItem=$false})
     $accounts=@{};$bindings=@{};$ticks=([datetime]'2026-09-27').Ticks
-    foreach($spec in @(@(101,'titan','ACCOUNT-A'),@(202,'forerver','ACCOUNT-F'),@(303,'titan','ACCOUNT-B'))) {
+    foreach($spec in @(@(101,'titan','ACCOUNT-A'),@(202,'forerver','ACCOUNT-A'),@(303,'titan','ACCOUNT-B'))) {
         $product=if($spec[1] -eq 'titan'){'_classic_titan_'}else{'_cn_beta_'}
         foreach($role in $roles){Write-TestCharacterRecord (Join-Path $fixture ($product+'\WTF\Account\'+$spec[2]+'\测试服\'+$role.Name)) $role.Name $role.Realm}
         $accounts[$spec[1]+':'+$spec[2]]=$roles;$bindings[([string]$spec[0]+':'+$ticks)]=@{Flavor=$spec[1];Account=$spec[2]};[ParallelFixture]::World[$spec[0]]=1
     }
-    $accounts['forerver:ACCOUNT-F']=@($roles | ForEach-Object {$_.Clone()});$accounts['forerver:ACCOUNT-F'][0].Mode='fight'
+    $accounts['forerver:ACCOUNT-A']=@($roles | ForEach-Object {$_.Clone()});$accounts['forerver:ACCOUNT-A'][0].Mode='fight'
     $periods=@{FishMs=50;FightMs=100;MenuMs=25;LoginMs=25;BaitMs=25;DeathMs=50;AudioMs=25;PositionMs=100;CaptureRetryMs=25;OcrMs=25}
     $configPath=Join-Path $fixture 'account-tasks.json';[IO.File]::WriteAllText($configPath,(@{Version=1;Accounts=$accounts;Bindings=$bindings;Periods=$periods} | ConvertTo-Json -Depth 12),(New-Object Text.UTF8Encoding($false)))
     $env:WOWAUTO_PARALLEL_TEST_MODE='1';$env:WOWAUTO_PARALLEL_CONFIG_PATH=$configPath;$env:WOWAUTO_PARALLEL_OPERATOR_MOCK=$operatorPath;$env:WOWAUTO_PARALLEL_DETECTOR_MOCK=$detectorPath;$env:WOWAUTO_PARALLEL_FIXTURE_ROOT=$fixture
