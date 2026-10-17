@@ -23,6 +23,9 @@ try {
     Assert-Parallel ($accountEditor.ClientTabs.TabPages.Count -eq 2 -and $editor.Page.Text -eq '时光服' -and $forever.Page.Text -eq '永恒服') 'Clients do not have separate child tabs.'
     Assert-Parallel ($editor.Accounts.Items.Count -eq 2 -and $forever.Accounts.Items.Count -eq 1 -and $editor.Selected -ceq 'titan:ACCOUNT-A' -and $forever.Selected -ceq 'forerver:ACCOUNT-A') 'Child account lists are not filtered by client.'
     Assert-Parallel ($editor.Accounts.SelectedItem -ceq 'ACCOUNT-A' -and $forever.Accounts.SelectedItem -ceq 'ACCOUNT-A' -and $editor.Grid.Rows[0].Cells['Mode'].Value -eq '钓鱼' -and $forever.Grid.Rows[0].Cells['Mode'].Value -eq '战斗') 'Same-name accounts leaked across client tabs or dropdown still contains client prefixes.'
+    foreach($client in @($editor,$forever)){
+        Assert-Parallel ($client.Grid.Rows[0].Cells['FreeBagSlots'].Value -ceq '未知' -and $client.Grid.Rows[1].Cells['FreeBagSlots'].Value -eq 0 -and $client.Grid.Rows[2].Cells['FreeBagSlots'].Value -eq 12) 'Unknown, full and available bag snapshots are not distinguished in the role table.'
+    }
     $before=(Get-FileHash $script:accountTasks.Path).Hash
     $editor.Grid.Rows[0].Cells['Enabled'].Value=$false
     $periodEditor.Periods.OcrMs.Value=50

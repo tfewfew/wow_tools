@@ -27,7 +27,10 @@ local function FreeSlots()
         if not Integer(count,0,1000) then return -1 end
         if count>0 then
             local ok,available,family=pcall(free,bag)
-            if not ok or not Integer(available,0,count) or not Integer(family,0,2147483647) then return -1 end
+            if not ok or not Integer(available,0,count) or not Readable(family) then return -1 end
+            -- The API's optional bagFamily may be nil for a general-purpose bag.
+            if family==nil then family=0 end
+            if not Integer(family,0,2147483647) then return -1 end
             if family==0 then total=total+available end
         end
     end

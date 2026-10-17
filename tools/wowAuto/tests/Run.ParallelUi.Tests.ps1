@@ -89,7 +89,10 @@ function Wait-Detector([int]$Milliseconds) {
     $accounts=@{};$bindings=@{};$ticks=([datetime]'2026-09-27').Ticks
     foreach($spec in @(@(101,'titan','ACCOUNT-A'),@(202,'forerver','ACCOUNT-A'),@(303,'titan','ACCOUNT-B'))) {
         $product=if($spec[1] -eq 'titan'){'_classic_titan_'}else{'_cn_beta_'}
-        foreach($role in $roles){Write-TestCharacterRecord (Join-Path $fixture ($product+'\WTF\Account\'+$spec[2]+'\测试服\'+$role.Name)) $role.Name $role.Realm}
+        foreach($role in $roles){
+            $freeSlots=if($role.Name -ceq '角色甲'){-1}elseif($role.Name -ceq '角色乙'){0}else{12}
+            Write-TestCharacterRecord (Join-Path $fixture ($product+'\WTF\Account\'+$spec[2]+'\测试服\'+$role.Name)) $role.Name $role.Realm -FreeBagSlots $freeSlots
+        }
         $accounts[$spec[1]+':'+$spec[2]]=$roles;$bindings[([string]$spec[0]+':'+$ticks)]=@{Flavor=$spec[1];Account=$spec[2]};[ParallelFixture]::World[$spec[0]]=1
     }
     $accounts['forerver:ACCOUNT-A']=@($roles | ForEach-Object {$_.Clone()});$accounts['forerver:ACCOUNT-A'][0].Mode='fight'

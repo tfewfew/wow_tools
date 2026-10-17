@@ -17,7 +17,7 @@
         foreach($key in @($script:accountTasks.Catalog.Keys | Sort-Object)) {
             if($key.StartsWith($spec[0]+':',[StringComparison]::Ordinal)){[void]$accounts.Items.Add($script:accountTasks.Catalog[$key].Name)}
         }
-        $hint=New-Object Windows.Forms.Label;$hint.Text='勾选启用的角色，选择钓鱼或战斗；进程绑定后按表中顺序轮转。新角色默认停用，选角只识别第一页。';$hint.SetBounds(18,58,880,52)
+        $hint=New-Object Windows.Forms.Label;$hint.Text='角色按表中顺序轮转，新角色默认停用。等级与背包为最近正常下线快照，无数据显示“未知”；选角只识别第一页。';$hint.SetBounds(18,58,880,52)
         if(-not $accounts.Items.Count){$hint.Text='尚未发现该服的子战网角色记录，请检查游戏目录，正常下线保存角色记录后刷新进程。'}
         $grid=New-Object Windows.Forms.DataGridView;$grid.SetBounds(18,116,880,500)
         $grid.AllowUserToAddRows=$false;$grid.AllowUserToDeleteRows=$false;$grid.AllowUserToOrderColumns=$false;$grid.RowHeadersVisible=$false
@@ -117,7 +117,8 @@ function Show-AccountGridDraft($Editor,[string]$Key) {
         foreach($role in $Editor.Draft.Accounts[$Key]) {
             $record=@($records | Where-Object {$_.Name -ceq $role.Name -and $_.Realm -ceq $role.Realm})
             if($record.Count -ne 1){continue}
-            $index=$Editor.Grid.Rows.Add([object[]]@($role.Enabled,$role.Name,$role.Realm,$(if($role.Mode -eq 'fight'){'战斗'}else{'钓鱼'}),$role.UseItem,$record[0].Level,$record[0].FreeBagSlots))
+            $freeSlots=if($null -eq $record[0].FreeBagSlots){'未知'}else{$record[0].FreeBagSlots}
+            $index=$Editor.Grid.Rows.Add([object[]]@($role.Enabled,$role.Name,$role.Realm,$(if($role.Mode -eq 'fight'){'战斗'}else{'钓鱼'}),$role.UseItem,$record[0].Level,$freeSlots))
             $Editor.Grid.Rows[$index].Cells['UseItem'].ReadOnly=$role.Mode -eq 'fight'
         }
     }finally{$Editor.Loading=$false}

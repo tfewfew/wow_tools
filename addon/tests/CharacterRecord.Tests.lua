@@ -45,6 +45,10 @@ for _,flavor in ipairs({"titan","forerver"}) do
     f.scripts.OnEvent(f,"PLAYER_LOGOUT")
     local record=wowToolsCharacterRecord
     assert(record.version==1 and record.name==name and record.realm==realm and record.level==81 and record.freeBagSlots==9 and record.recordedAt==now,"Logout did not use latest general-bag/level data")
+    -- bagFamily is optional: nil on a valid general bag must not discard the entire snapshot.
+    families[0]=nil;families[1]=nil
+    f.scripts.OnEvent(f,"PLAYER_LOGOUT")
+    assert(wowToolsCharacterRecord.freeBagSlots==9,"Optional general-bag family made the logout snapshot unknown")
     f=load();local before=reads
     f.scripts.OnEvent(f,"PLAYER_LOGOUT")
     assert(reads>before and wowToolsCharacterRecord~=record and wowToolsCharacterRecord.freeBagSlots==9,"Previously monitored role did not refresh its later logout snapshot")
@@ -58,10 +62,16 @@ for _,flavor in ipairs({"titan","forerver"}) do
     missing=false;restricted=true
     f.scripts.OnEvent(f,"PLAYER_LOGOUT")
     assert(wowToolsCharacterRecord.freeBagSlots==-1,"Restricted container values were compared or counted")
+    restricted=false;families[1]=secret
+    f.scripts.OnEvent(f,"PLAYER_LOGOUT")
+    assert(wowToolsCharacterRecord.freeBagSlots==-1,"Restricted bag family was treated as a missing optional value")
+    families[1]=nil;spaces[0]=nil
+    f.scripts.OnEvent(f,"PLAYER_LOGOUT")
+    assert(wowToolsCharacterRecord.freeBagSlots==-1,"Missing slot count was treated as an empty bag")
     previous=wowToolsCharacterRecord;name=nil
     f.scripts.OnEvent(f,"PLAYER_LOGOUT")
     assert(wowToolsCharacterRecord==previous,"Missing identity overwrote a character record")
     local file=assert(io.open(addon.."wow_tools.toc","r"));local toc=file:read("*a");file:close()
     assert(toc:find("## SavedVariablesPerCharacter: wowToolsCharacterRecord",1,true) and toc:find("CharacterRecord.lua",1,true),"Per-character persistence is absent")
-    print("PASS: "..flavor.." monitor use enrolls logout snapshots, previously recorded role refresh, latest level/general bags, full versus unknown, secret/API failure safety and no unmonitored-role reads.")
+    print("PASS: "..flavor.." monitor use enrolls logout snapshots, previously recorded role refresh, optional bag family, latest level/general bags, full versus unknown, secret/API failure safety and no unmonitored-role reads.")
 end
