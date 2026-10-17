@@ -76,6 +76,14 @@ for _,flavor in ipairs({"titan","forerver"}) do
     function ClearOverrideBindings() assert(not combat); binding=false end
     local addon=root.."/addon/"..flavor.."/wow_tools/"
     dofile(addon.."Init.lua")
+    dofile(addon.."CharacterRecord.lua")
+    local recordFrame=frames[#frames]
+    local recordReads=0
+    function UnitName() recordReads=recordReads+1;return "测试角色" end
+    function UnitLevel() recordReads=recordReads+1;return 80 end
+    function GetRealmName() return "测试服务器" end
+    function time() return 1792200000 end
+    wowToolsCharacterRecord=nil
     if flavor=="forerver" then dofile(addon.."Compatibility.lua") end
     dofile(addon.."Loot.lua")
     local lootFrame=frames[#frames]
@@ -136,6 +144,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
         assert(math.abs(fishAux.width/unit-12)<.001 and math.abs(signal.textures[2].width/unit-12)<.001)
     end
     state(false,false)
+    assert(not recordFrame.events.PLAYER_LOGOUT and recordReads==0,"Inactive character record is subscribed or reading")
     SlashCmdList.WOWDETECTOR("on"); state(true,false)
     local lootStops=0
     local oldUnregister=lootFrame.UnregisterEvent
@@ -177,6 +186,9 @@ for _,flavor in ipairs({"titan","forerver"}) do
     combat=true; fish.Show(); state(true,false); assert(not binding,"Detector changed a target binding")
     combat=false; event("PLAYER_REGEN_ENABLED"); assert(not binding,"Deferred target binding survived")
     fish.Hide(); state(false,false); restored()
+    assert(recordReads==0 and recordFrame.events.PLAYER_LOGOUT,"Stopping detection lost used-this-login flag or introduced background metadata reads")
+    event("PLAYER_LOGOUT")
+    assert(wowToolsCharacterRecord and wowToolsCharacterRecord.level==80 and wowToolsCharacterRecord.freeBagSlots==10,"Real detector starts did not persist the logout record")
     event("ADDON_LOADED","wow_tools"); state(false,false)
     print("PASS: "..flavor.." real detector mutual exclusion via commands/buttons/module menu entries, hidden fishing, blocked starts, audio restoration, shared main/aux pixels across resize/UI scale and no target binding. No game actions.")
 end

@@ -1,4 +1,59 @@
-﻿# Read local account/realm/character directory names only. Never inspect login credentials.
+﻿# Read account folders and the addon's own character snapshots, never login credentials.
+function ConvertFrom-WowCharacterRecord([string]$Text) {
+    # Parse only our flat data table. SavedVariables are never executed.
+    if ($Text.Length -gt 64KB) {return $null}
+    $table=[regex]::Match($Text,'\A\s*wowToolsCharacterRecord\s*=\s*\{(?<body>[^{}]*)\}\s*\z')
+    if (-not $table.Success) {return $null}
+    $body=$table.Groups['body'].Value;$position=0;$values=@{}
+    $field='\G\s*(?:\["(?<key>[A-Za-z]\w*)"\]|(?<key>[A-Za-z]\w*))\s*=\s*(?:"(?<text>(?:[^"\\\r\n]|\\(?:["\\nrt]|\d{1,3}))*)"|(?<number>-?\d+))\s*(?:,|\z)'
+    $reader=[regex]::new($field,[Text.RegularExpressions.RegexOptions]::None,[timespan]::FromSeconds(1))
+    try {
+        while ($position -lt $body.Length -and $body.Substring($position).Trim()) {
+            $match=$reader.Match($body,$position)
+            if (-not $match.Success -or $match.Index -ne $position) {return $null}
+            $key=$match.Groups['key'].Value
+            if ($key -cnotin @('version','name','realm','level','freeBagSlots','recordedAt') -or $values.ContainsKey($key)) {return $null}
+            if ($key -cin @('name','realm')) {
+                if (-not $match.Groups['text'].Success) {return $null}
+                $values[$key]=[regex]::Replace($match.Groups['text'].Value,'\\(?<escape>\d{1,3}|.)',{
+                    param($escape)
+                    $value=$escape.Groups['escape'].Value
+                    switch ($value) {
+                        'n' {return "`n"} 'r' {return "`r"} 't' {return "`t"}
+                        '"' {return '"'} '\' {return '\'}
+                        default {if ([int]$value -gt 255) {throw 'Invalid Lua string escape.'};return [string][char][int]$value}
+                    }
+                })
+            } else {
+                $number=0L
+                if (-not $match.Groups['number'].Success -or -not [long]::TryParse($match.Groups['number'].Value,[ref]$number)) {return $null}
+                $values[$key]=$number
+            }
+            $position=$match.Index+$match.Length
+        }
+        if ($values.Count -ne 6 -or $values.version -ne 1 -or $values.name -notmatch '^[\p{L}\p{M}]{1,24}$' -or
+            -not $values.realm -or $values.realm.Length -gt 128 -or $values.realm -match '[\p{C}\\/]' -or
+            $values.level -lt 0 -or $values.level -gt 1000 -or $values.freeBagSlots -lt -1 -or $values.freeBagSlots -gt 11000 -or
+            $values.recordedAt -lt 1 -or $values.recordedAt -gt 253402300799) {return $null}
+        return [pscustomobject]@{Name=$values.name;Realm=$values.realm;
+            Level=$(if ($values.level -gt 0) {$values.level} else {$null});
+            FreeBagSlots=$(if ($values.freeBagSlots -ge 0) {$values.freeBagSlots} else {$null});RecordedAt=$values.recordedAt}
+    } catch {return $null}
+}
+function Read-WowCharacterRecord([string]$CharacterDirectory,[string]$Name,[string]$Realm) {
+    try {
+        $saved=Join-Path $CharacterDirectory 'SavedVariables';$path=Join-Path $saved 'wow_tools.lua'
+        foreach ($itemPath in @($saved,$path)) {
+            $item=Get-Item -LiteralPath $itemPath -Force -ErrorAction Stop
+            if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {return $null}
+        }
+        if ($item.Length -gt 64KB) {return $null}
+        $text=[IO.File]::ReadAllText($path)
+        $record=ConvertFrom-WowCharacterRecord $text
+        if (-not $record -or $record.Name -cne $Name -or $record.Realm -cne $Realm) {return $null}
+        return $record
+    } catch {return $null}
+}
 function ConvertTo-RotationGameDirectories($Value) {
     $roots=@{}
     $keys=if ($Value -is [Collections.IDictionary]) {@($Value.Keys)} else {@($Value.PSObject.Properties.Name)}
@@ -27,7 +82,8 @@ function Get-WowAccountCatalog([string]$GameDirectory) {
             if ($realm.Name -eq 'SavedVariables' -or ($realm.Attributes -band [IO.FileAttributes]::ReparsePoint)) {continue}
             foreach ($role in @(Get-ChildItem -LiteralPath $realm.FullName -Directory -ErrorAction Stop)) {
                 if ($role.Name -notmatch '^[\p{L}\p{M}]{1,24}$' -or $role.Name -eq 'SavedVariables' -or ($role.Attributes -band [IO.FileAttributes]::ReparsePoint)) {continue}
-                $characters+=,[pscustomobject]@{Name=$role.Name;Realm=$realm.Name}
+                $record=Read-WowCharacterRecord $role.FullName $role.Name $realm.Name
+                if ($record) {$characters+=,$record}
             }
         }
         # Empty accounts are selectable too, but do not invent character names for them.
@@ -66,7 +122,7 @@ function Test-RowAccountPlan($Row,$Plan,[string]$Account=$Row.AccountName) {
     if (-not $Account -or -not @($accounts | Where-Object {$_.Name -ceq $Account}).Count) {throw '请设置游戏目录，并为当前进程选择存在的子战网。'}
     $names=@(Get-RowAccountNames $Row $Account)
     foreach ($slot in $Plan.Slots) {
-        if ($slot.Name -and $slot.Name -cnotin $names) {throw "子战网 $Account 的本地记录中没有角色：$($slot.Name)。请先登录该角色并正常退出，让游戏保存角色目录。"}
+        if ($slot.Name -and $slot.Name -cnotin $names) {throw "子战网 $Account 的插件记录中没有角色：$($slot.Name)。请登录该角色，启动钓鱼或战斗检测后正常下线，再刷新。"}
     }
 }
 function Update-RowAccountChoices($Row) {
@@ -89,7 +145,7 @@ function Update-RowAccountChoices($Row) {
         foreach ($account in $accounts) {[void]$Row.AccountBox.Items.Add($account.Name)}
         $Row.AccountName=$selected
         $Row.AccountBox.SelectedIndex=if ($selected -and $Row.AccountBox.Items.Contains($selected)) {$Row.AccountBox.Items.IndexOf($selected)} else {0}
-        $Row.AccountHint.Text=if ($selected -and $Row.AccountBox.SelectedIndex -eq 0) {'已保存子战网不存在，请重新选择'} else {'角色列表来自所选子战网的本地记录'}
+        $Row.AccountHint.Text=if ($selected -and $Row.AccountBox.SelectedIndex -eq 0) {'已保存子战网不存在，请重新选择'} else {'角色列表来自所选子战网的插件下线记录'}
     } catch {
         $Row.AccountName='';$Row.AccountBox.Items.Clear();[void]$Row.AccountBox.Items.Add('请选择子战网');$Row.AccountBox.SelectedIndex=0
         $Row.AccountHint.Text='账号目录读取失败：'+$_.Exception.Message
@@ -121,7 +177,7 @@ function Add-RowAccountControls($Row) {
 }
 function New-GameDirectorySettingsPage {
     $page=New-Object System.Windows.Forms.TabPage;$page.Text='游戏目录';$page.BackColor=$script:uiColors.Background;$page.AutoScroll=$true
-    $hint=New-Object System.Windows.Forms.Label;$hint.Text='选择客户端目录，或包含客户端的魔兽世界总目录。仅读取 WTF\\Account 的子战网与角色目录；账号归属由每个进程的子战网选项指定。';$hint.SetBounds(20,20,920,70);$page.Controls.Add($hint)
+    $hint=New-Object System.Windows.Forms.Label;$hint.Text='选择客户端目录，或包含客户端的魔兽世界总目录。读取 WTF\\Account 下的子战网及插件角色记录；账号归属由每个进程的子战网选项指定。';$hint.SetBounds(20,20,920,70);$page.Controls.Add($hint)
     $inputs=@{}
     $i=0
     foreach ($flavor in @('titan','forerver')) {
@@ -136,7 +192,7 @@ function New-GameDirectorySettingsPage {
         $inputs[$flavor]=$text;$page.Controls.AddRange([System.Windows.Forms.Control[]]@($label,$text,$browse))
     }
     $errorLabel=New-Object System.Windows.Forms.Label;$errorLabel.SetBounds(20,305,900,110)
-    $errorLabel.Text='角色列表只包含本机曾登录并保存过的角色；目录中的旧角色记录也可能保留。新角色请先登录并正常退出，再刷新进程。留空可停用该版本的账号扫描。'
+    $errorLabel.Text='角色列表只显示有插件下线记录的角色。请先登录角色，启动过钓鱼或战斗检测后正常下线，再刷新。等级与背包空格为最近下线快照。留空可停用该版本扫描。'
     $save=New-Object WowAuto.DimButton;$save.Text='保存游戏目录';$save.SetBounds(20,440,180,38);Set-UiButtonStyle $save $true
     $page.Tag=[pscustomobject]@{Inputs=$inputs;Error=$errorLabel;Save=$save};$save.Tag=$page
     $save.Add_Click({param($sender,$e)

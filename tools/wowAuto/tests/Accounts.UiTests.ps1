@@ -1,5 +1,6 @@
 ﻿# Production UI and account discovery against temporary client trees. No game operations.
 Stop-AllRows
+. (Join-Path $PSScriptRoot 'CharacterRecords.Fixtures.ps1')
 Initialize-AutoFightTab $tabs $form -Unified
 $savedAccountState=@{Path=$script:rotation.Path;Plans=$script:rotation.Plans;Roots=$script:rotation.GameDirectories;History=$script:rotation.NameHistory;Interval=$script:rotation.IntervalSeconds;Items=$script:processItemPreferences}
 $fixture=Join-Path ([IO.Path]::GetTempPath()) ('wowAuto-account-ui-'+[Guid]::NewGuid())
@@ -12,8 +13,9 @@ try {
         $product=if ($flavor -eq 'titan') {'_classic_titan_'} else {'_cn_beta_'}
         $game=Join-Path $fixture $product;$script:rotation.GameDirectories[$flavor]=$game
         foreach ($spec in @(@('ACCOUNT#1','RealmA','钓鱼角色'),@('ACCOUNT#1','RealmB','战斗角色'),@('ACCOUNT#1','RealmB','钓鱼角色'),@('ACCOUNT#2','RealmA','另一个角色'))) {
-            [void][IO.Directory]::CreateDirectory((Join-Path $game ('WTF\Account\'+($spec -join '\'))))
+            Write-TestCharacterRecord (Join-Path $game ('WTF\Account\'+($spec -join '\'))) $spec[2] $spec[1]
         }
+        [void][IO.Directory]::CreateDirectory((Join-Path $game 'WTF\Account\ACCOUNT#1\RealmA\从未开启检测'))
         [void][IO.Directory]::CreateDirectory((Join-Path $game 'WTF\Account\SavedVariables\FalseRealm\虚假角色'))
         [void][IO.Directory]::CreateDirectory((Join-Path $game 'WTF\Account\ACCOUNT#1\SavedVariables\虚假角色'))
         [void][IO.Directory]::CreateDirectory((Join-Path $game 'WTF\Account\EMPTY'))

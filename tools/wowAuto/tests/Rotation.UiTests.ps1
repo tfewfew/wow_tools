@@ -1,5 +1,6 @@
 ﻿# Real orchestration functions, mock clients/screens/inputs, temporary configuration only.
 Stop-AllRows
+. (Join-Path $PSScriptRoot 'CharacterRecords.Fixtures.ps1')
 Initialize-AutoFightTab $tabs $form -Unified
 $script:autoFight.Profiles['titan:1'].BuffIntervalSeconds=120
 $script:autoFight.Profiles['titan:1'].BuffCount=2
@@ -103,8 +104,8 @@ try {
         $product=if ($row.Client.Flavor -eq 'titan') {'_classic_titan_'} else {'_cn_beta_'}
         $game=Join-Path $accountFixture $product;$script:rotation.GameDirectories[$row.Client.Flavor]=$game
         $row.Process.ExecutablePath=Join-Path $game ([IO.Path]::GetFileName($row.Process.ExecutablePath));$row.Client.ExecutablePath=$row.Process.ExecutablePath
-        foreach ($name in @('双持船橘二咪','咆史呀嘞','小船长','持剑腕豪','测试新角色')) {[void][IO.Directory]::CreateDirectory((Join-Path $game ('WTF\Account\ACCOUNT#1\Realm\'+$name)))}
-        [void][IO.Directory]::CreateDirectory((Join-Path $game 'WTF\Account\ACCOUNT#2\Realm\别的账号角色'))
+        foreach ($name in @('双持船橘二咪','咆史呀嘞','小船长','持剑腕豪','测试新角色')) {Write-TestCharacterRecord (Join-Path $game ('WTF\Account\ACCOUNT#1\Realm\'+$name)) $name 'Realm'}
+        Write-TestCharacterRecord (Join-Path $game 'WTF\Account\ACCOUNT#2\Realm\别的账号角色') '别的账号角色' 'Realm'
     }
     $plan=New-RotationPlan;$plan | Add-Member NoteProperty Account 'ACCOUNT#1';$plan.Slots[0].UseItem=$true;$plan.Slots[0].Name='双持船橘二咪';$plan.Slots[2].Name='咆史呀嘞';$plan.Slots[2].Mode='fight'
     $single=New-RotationPlan;$single | Add-Member NoteProperty Account 'ACCOUNT#1';$single.Slots[1].Name='小船长'

@@ -713,7 +713,7 @@ function New-RotationEditor($Row) {
     $names=@(Get-RowAccountNames $Row)
     $plan=Copy-RotationPlan (Get-RowRotationPlan $Row)
     foreach ($slot in $plan.Slots) {if (-not $slot.PSObject.Properties['UseItem']) {$slot | Add-Member NoteProperty UseItem $false}}
-    $hint=New-Object System.Windows.Forms.Label;$hint.Text='子战网：'+$Row.AccountName+'。输入或选择该子战网本地记录中的完整角色名；留空为空槽，每槽独立选择任务与钓鱼道具。';$hint.SetBounds(15,15,920,52);$dialog.Controls.Add($hint)
+    $hint=New-Object System.Windows.Forms.Label;$hint.Text='子战网：'+$Row.AccountName+'。输入或选择该子战网插件记录中的完整角色名；留空为空槽，每槽独立选择任务与钓鱼道具。';$hint.SetBounds(15,15,920,52);$dialog.Controls.Add($hint)
     $controls=@()
     for ($i=0;$i -lt 3;$i++) {
         $label=New-Object System.Windows.Forms.Label;$label.Text='槽位 '+($i+1)+' · 角色名称';$label.SetBounds(20,(75+$i*48),190,30)
@@ -734,7 +734,7 @@ function New-RotationEditor($Row) {
         $dialog.Controls.AddRange([System.Windows.Forms.Control[]]@($label,$text,$mode,$item));$controls+=,[pscustomobject]@{Name=$text;Mode=$mode;UseItem=$item}
     }
     $errorLabel=New-Object System.Windows.Forms.Label;$errorLabel.SetBounds(20,223,910,70)
-    $errorLabel.Text='下拉框仅显示所选子战网的本地角色记录；旧名称仍保留在输入框，保存前须改成该子战网中的名称。战斗槽不使用钓鱼道具。'
+    $errorLabel.Text='下拉框只显示启动过检测并正常下线留下插件记录的角色；旧名称保留在输入框供核对。新角色须先在游戏内启动一次钓鱼或战斗检测后下线。'
     $save=New-Object WowAuto.DimButton;$save.Text='保存编排';$save.SetBounds(430,300,135,36);Set-UiButtonStyle $save $true
     $cancel=New-Object WowAuto.DimButton;$cancel.Text='取消';$cancel.SetBounds(585,300,125,36);Set-UiButtonStyle $cancel
     $dialog.Tag=[pscustomobject]@{Row=$Row;Plan=$plan;Slots=$controls;Error=$errorLabel;Save=$save}
