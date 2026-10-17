@@ -1,0 +1,207 @@
+﻿# These adapters run only on the dedicated STA UI thread. Workers receive JSON snapshots.
+$script:legacySettingsFactory=${function:New-UnifiedSettingsDialog}
+$script:legacyRotationSave=${function:Save-RotationConfiguration}
+function Save-RotationConfiguration($Interval=$script:rotation.IntervalSeconds,$Plans=$script:rotation.Plans,$OcrIntervalMs=$script:rotation.OcrIntervalMs,$GameDirectories=$script:rotation.GameDirectories) {
+    $old=$script:rotation.IntervalSeconds
+    & $script:legacyRotationSave -Interval $Interval -Plans $Plans -OcrIntervalMs $OcrIntervalMs -GameDirectories $GameDirectories
+    if($old -ne $script:rotation.IntervalSeconds){
+        $script:parallelNextAt=if($script:rotation.IntervalSeconds -and @($script:rows.Values | Where-Object {$_.RuntimeRunning -and -not $_.RuntimeDirect}).Count){$script:parallelHub.Now+[long]$script:rotation.IntervalSeconds*1000}else{0L}
+    }
+}
+function Release-AutoFightHold {return $true} # All native input, including release, belongs to the operator.
+function Test-UnifiedTaskRunning($Row) {return [bool]$Row.RuntimeRunning}
+function Test-UnifiedRowRunning($Row) {return [bool]$Row.RuntimeRunning}
+function Read-RowWindowPosition($Row) {return $Row.Position}
+function Update-WindowPositions {} # Positions arrive as detector messages.
+function Add-ProcessTaskControls($Row) {
+    $Row | Add-Member NoteProperty DefaultTaskMode 'fish'
+    foreach($entry in @{TaskMode='fish';FightRow=$null;SlotUseItem=$false;AccountName='';UpdatingAccount=$false;RuntimeRunning=$false;RuntimeDirect=$false;RuntimeScanning=$false;RuntimeExiting=$false;RuntimePhase='stopped';TargetRole='';CurrentRole='';CurrentIndex=-1;ExecutionRound=0;ExcludedNames=@();RotationSwitchCount=0L;CycleCount=0L;CurrentClassId=0;Metrics=$null;RenderedStatus=''}.GetEnumerator()){$Row | Add-Member NoteProperty $entry.Key $entry.Value}
+    $accountLabel=New-Object Windows.Forms.Label;$accountLabel.Text='子战网';$accountLabel.SetBounds(12,106,90,28)
+    $account=New-Object Windows.Forms.ComboBox;$account.DropDownStyle='DropDownList';$account.SetBounds(110,102,400,34)
+    $account.BackColor=$script:uiColors.Input;$account.ForeColor=$script:uiColors.Text;$account.FlatStyle='Flat';$account.Tag=$Row
+    $account.DrawMode='OwnerDrawFixed';$account.ItemHeight=26
+    $account.Add_DrawItem({param($sender,$e)
+        if($e.Index -lt 0){return};$brush=New-Object Drawing.SolidBrush($sender.BackColor)
+        try{$e.Graphics.FillRectangle($brush,$e.Bounds)}finally{$brush.Dispose()}
+        [Windows.Forms.TextRenderer]::DrawText($e.Graphics,[string]$sender.Items[$e.Index],$sender.Font,$e.Bounds,[Drawing.Color]::White)
+    })
+    $configure=New-Object WowAuto.DimButton;$configure.Text='配置角色任务';$configure.SetBounds(520,102,178,34);Set-UiButtonStyle $configure
+    $configure.Tag=$Row;$configure.Add_Click({param($sender,$e) Show-AccountTaskSettings $sender.Tag})
+    $summary=New-Object Windows.Forms.Label;$summary.SetBounds(12,146,686,34);$summary.AutoEllipsis=$true
+    $progress=New-Object Windows.Forms.Label;$progress.SetBounds(12,192,686,26);$progress.AutoEllipsis=$true
+    $Row | Add-Member NoteProperty AccountBox $account;$Row | Add-Member NoteProperty RotationLabel $summary;$Row | Add-Member NoteProperty RotationProgress $progress
+    $Row | Add-Member NoteProperty AccountSettings $configure
+    $Row.Panel.Controls.AddRange([Windows.Forms.Control[]]@($accountLabel,$account,$configure,$summary,$progress))
+    Update-RowAccountChoices $Row
+    $account.Add_SelectedIndexChanged({param($sender,$e)
+        $row=$sender.Tag;if($row.UpdatingAccount){return}
+        try {
+            $name=if($sender.SelectedIndex -gt 0){[string]$sender.SelectedItem}else{''}
+            $next=ConvertTo-TaskMap ($script:accountTasks.Config | ConvertTo-Json -Depth 12 | ConvertFrom-Json)
+            $next.Bindings[$row.Key]=@{Flavor=$row.Client.Flavor;Account=$name}
+            Save-AccountTasks $next
+            Stop-Row $row '子战网绑定已保存，请刷新验证或开始轮转。'
+            $row.Validated=$false;$row.AccountName=$name;$row.ExcludedNames=@();Update-RowAccountChoices $row;Update-WowAutoRunInfo
+        }catch{Update-RowAccountChoices $row;Set-RowStatusText $row ('子战网绑定未保存：'+$_.Exception.Message)}
+    })
+}
+function Update-RowAccountChoices($Row) {
+    if(-not $Row.PSObject.Properties['AccountBox']){return}
+    $Row.UpdatingAccount=$true
+    try {
+        $binding=$script:accountTasks.Config.Bindings[$Row.Key]
+        $selected=if($binding -and $binding.Flavor -eq $Row.Client.Flavor){$binding.Account}else{''}
+        if(-not $binding -and $script:rotation.Plans.ContainsKey($Row.Key)){
+            $legacy=$script:rotation.Plans[$Row.Key];$selected=[string]$legacy.Account
+            if($selected){$script:accountTasks.Config.Bindings[$Row.Key]=@{Flavor=$Row.Client.Flavor;Account=$selected}}
+        }
+        $Row.AccountBox.Items.Clear();[void]$Row.AccountBox.Items.Add('请选择子战网')
+        foreach($account in @(Get-RowAccounts $Row)){[void]$Row.AccountBox.Items.Add($account.Name)}
+        $Row.AccountName=$selected
+        $Row.AccountBox.SelectedIndex=if($selected -and $Row.AccountBox.Items.Contains($selected)){$Row.AccountBox.Items.IndexOf($selected)}else{0}
+        $roles=@(Get-AccountTaskRoles $Row)
+        $defaultMode=if($roles.Count){$roles[0].Mode}else{'fish'}
+        if($defaultMode -cne $Row.DefaultTaskMode){$Row.DefaultTaskMode=$defaultMode;$Row.Validated=$false}
+        if(-not $Row.RuntimeRunning -and -not $Row.Validated){$Row.TaskMode=$defaultMode;$Row.SlotUseItem=($roles.Count -gt 0 -and $roles[0].UseItem)}
+        Update-RotationRow $Row
+    }catch{$Row.AccountName='';Set-RowStatusText $Row ('子战网目录读取失败：'+$_.Exception.Message)}
+    finally{$Row.UpdatingAccount=$false}
+}
+function Update-RotationRow($Row) {
+    if(-not $Row.PSObject.Properties['RotationLabel']){return}
+    $roles=@(Get-AccountTaskRoles $Row)
+    $Row.RotationLabel.Text='启用 '+$roles.Count+' 个角色：'+(($roles | ForEach-Object {$_.Name+' / '+$(if($_.Mode -eq 'fight'){'战斗'}else{'钓鱼'})}) -join '、')
+    $remaining=if($Row.RuntimeDirect){'直接开始'}elseif(-not $Row.RuntimeRunning){'--'}elseif($script:parallelHub.Batch -and -not $script:parallelHub.Batch.All(8)){'角色切换中'}elseif($script:parallelNextAt){[Math]::Max(0,[int][Math]::Ceiling(($script:parallelNextAt-$script:parallelHub.Now)/1000.0)).ToString()+'秒'}else{'未启用定时轮转'}
+    $Row.RotationProgress.Text='当前角色：'+$(if($Row.CurrentRole){$Row.CurrentRole}elseif($Row.TargetRole){'切换至'+$Row.TargetRole}elseif($Row.RuntimeDirect -and $Row.RuntimeRunning){'当前已登录角色'}elseif($Row.RuntimeRunning){'确认中'}else{'未运行'})+'   剩余时间：'+$remaining+'   切换：'+$Row.RotationSwitchCount+'次'
+}
+function Set-RowControls($Row) {
+    if(-not $Row.PSObject.Properties['RuntimeRunning']){return}
+    $available=-not $Row.Exited -and -not $Row.RuntimeExiting -and -not $script:scanning -and -not $script:editingSettings -and -not $script:parallelHub.Closing
+    if($script:parallelWorkers.ContainsKey($Row.Key) -and $script:parallelWorkers[$Row.Key].Endpoint.Closed){$available=$false}
+    $Row.Start.Enabled=$available -and -not $Row.RuntimeRunning -and @(Get-AccountTaskRoles $Row).Count -gt 0
+    $Row.DirectStart.Enabled=$available -and -not $Row.RuntimeRunning -and $Row.Validated
+    $Row.Stop.Enabled=$Row.RuntimeRunning -or $Row.RuntimeScanning -or $Row.RuntimeExiting
+    $Row.AccountBox.Enabled=$available -and -not $Row.RuntimeRunning
+    $Row.AccountSettings.Enabled=-not $script:scanning -and -not $script:editingSettings
+    Update-RotationRow $Row
+}
+function Set-RowStatusText($Row,[string]$Message,[switch]$FromWorker) {
+    if($Row.StatusMessage -ceq $Message){return}
+    $Row.StatusMessage=$Message;$Row.StatusHistory.Insert(0,('['+[datetime]::Now.ToString('HH:mm:ss')+'] '+$Message))
+    while($Row.StatusHistory.Count -gt $script:statusLogLimit){$Row.StatusHistory.RemoveAt($Row.StatusHistory.Count-1)}
+    $Row.Status.SetStatusText(($Row.StatusHistory -join [Environment]::NewLine))
+    if(-not $FromWorker){Write-WowAutoLog $Message $Row control}
+    Set-RowControls $Row
+}
+function Update-RowStatus($Row) {Update-RowName $Row;Set-RowControls $Row}
+function Update-RowName($Row) {
+    $extra=if($Row.TaskMode -eq 'fight' -and $Row.CurrentClassId -gt 0){'职业：'+$script:autoFightClasses[[int]$Row.CurrentClassId]}else{'循环 '+$Row.CycleCount}
+    $Row.Name.Text=$Row.Caption+[Environment]::NewLine+'PID '+$Row.Process.Id+' · '+$Row.Client.Label+' · '+$Row.Position+[Environment]::NewLine+$extra
+}
+function Update-ParallelStatusDisplay($Row) {
+    if(-not $Row.StatusHistory.Count){return}
+    $first=$Row.StatusHistory[0]
+    if($Row.RuntimePhase -eq 'running' -and $Row.Metrics) {
+        if($Row.Metrics.Deadline -gt $script:parallelHub.Now){$first+=[Environment]::NewLine+'剩余 '+[int]($Row.Metrics.Deadline-$script:parallelHub.Now)+' ms'}
+        if($Row.Metrics.Audio){$first+=[Environment]::NewLine+('音频匹配 {0:P0} · 峰值 {1:F3}' -f $Row.Metrics.Similarity,$Row.Metrics.Peak)}
+    }
+    $lines=@($first)+@($Row.StatusHistory | Select-Object -Skip 1);$text=$lines -join [Environment]::NewLine
+    if($text -cne $Row.RenderedStatus){$Row.RenderedStatus=$text;$Row.Status.SetStatusText($text)}
+}
+function Start-Row($Row,[switch]$TaskOnly) {
+    if($Row.RuntimeRunning -or $script:editingSettings -or $script:scanning){return}
+    if(-not @(Get-AccountTaskRoles $Row).Count){Set-RowStatusText $Row '请绑定子战网，并在设置中启用至少一个角色。';return}
+    $Row.ExcludedNames=@();Start-ParallelBatch @($Row) Start
+}
+function Start-RowDirect($Row) {
+    if($Row.RuntimeRunning -or -not $Row.Validated -or $script:editingSettings -or $script:scanning){return}
+    $Row.RuntimeRunning=$true;$Row.RuntimeDirect=$true
+    $script:parallelHub.ActiveTasks=@($script:rows.Values | Where-Object RuntimeRunning).Count
+    Send-ParallelCommand $Row Start '' $true;Set-RowControls $Row
+}
+function Stop-Row($Row,[string]$Reason='已停止，本进程的待执行操作已取消。',[switch]$CancelExit,[switch]$KeepRotation) {
+    if($script:parallelWorkers.ContainsKey($Row.Key)){$null=$script:parallelWorkers[$Row.Key].Endpoint.Send('Stop','{}')}
+    $script:parallelPending.Remove($Row.Key)
+    if($script:parallelHub.Batch){$script:parallelHub.Batch.Drop($Row.Key)}
+    $Row.RuntimeRunning=$false;$Row.RuntimeScanning=$false;$Row.RuntimeExiting=$false;$Row.RuntimePhase='stopped';$Row.Metrics=$null;$Row.TargetRole='';$Row.CurrentRole='';$Row.CurrentIndex=-1
+    $script:parallelHub.ActiveTasks=@($script:rows.Values | Where-Object RuntimeRunning).Count
+    Set-RowStatusText $Row $Reason;Update-WowAutoRunInfo
+}
+function Stop-AllRows {
+    foreach($row in @($script:rows.Values)){Stop-Row $row}
+    $script:parallelNextAt=0L;$script:scanning=$false;$script:parallelPending.Clear();Update-BatchControls
+}
+function Start-AllRows {
+    if($script:editingSettings -or $script:scanning){return}
+    $rows=@($script:rows.Values | Where-Object {$_.Start.Enabled -and -not $_.RuntimeRunning})
+    foreach($row in $rows){$row.ExcludedNames=@()};Start-ParallelBatch $rows Start
+}
+function Begin-RefreshScan {
+    if($script:editingSettings -or $script:scanning){return}
+    Stop-AllRows;Update-AccountTaskCatalog
+    $null=Refresh-ProcessRows
+    foreach($key in @($script:parallelWorkers.Keys)) {if(-not $script:rows.ContainsKey($key)){$script:parallelHub.Remove($key);$script:parallelRetired+=,$script:parallelWorkers[$key];$script:parallelWorkers.Remove($key)}}
+    $script:scanning=$script:rows.Count -gt 0
+    $script:parallelOriginal=if($UiTest){[IntPtr]::Zero}else{[WowAuto.NativeInput]::CurrentWindow()}
+    foreach($row in $script:rows.Values){$row.Validated=$false;$row.RuntimeScanning=$true;Update-RowAccountChoices $row;Send-ParallelCommand $row Scan;Set-RowStatusText $row '检测线程等待操作线程开启监控，完成后后台检测色块。'}
+    Update-WowAutoRunInfo;Update-BatchControls
+}
+function Update-BatchControls {
+    foreach($row in $script:rows.Values){Set-RowControls $row}
+    $countLabel.Text='进程 '+$script:rows.Count+' · 验证通过 '+@($script:rows.Values | Where-Object Validated).Count
+    $refreshButton.Enabled=-not $script:scanning -and -not $script:editingSettings
+    $settingsButton.Enabled=-not $script:scanning -and -not $script:editingSettings
+    $restartButton.Enabled=-not $script:editingSettings -and -not $script:restartRequested
+    $startAllButton.Enabled=@($script:rows.Values | Where-Object {$_.Start.Enabled}).Count -gt 0
+    $stopAllButton.Enabled=$script:scanning -or @($script:rows.Values | Where-Object {$_.RuntimeRunning -or $_.RuntimeExiting}).Count -gt 0
+}
+function New-UnifiedSettingsDialog {
+    $script:parallelHub.Paused=$true
+    try {
+        $dialog=& $script:legacySettingsFactory
+        $page=New-AccountTaskSettingsPage;$dialog.Tag.Tabs.TabPages.Add($page);$dialog.Tag | Add-Member NoteProperty Accounts $page
+        $dialog.Tag.Fish.Tag.AudioDetection.Enabled=-not @($script:rows.Values | Where-Object {$_.RuntimeRunning -and $_.TaskMode -eq 'fish'}).Count
+        # The OCR period now belongs beside all other detector periods.
+        $bar=$dialog.Tag.Rotation.Value.Parent
+        foreach($control in $bar.Controls){if($control.Top -ge 60 -and $control -ne $dialog.Tag.Rotation.Save){$control.Visible=$false}}
+        $bar.Height=62
+        $dialog.Add_Disposed({
+            Update-AccountTaskCatalog
+            foreach($row in $script:rows.Values){Update-RowAccountChoices $row}
+            foreach($row in $script:rows.Values){if($script:parallelWorkers.ContainsKey($row.Key)){$script:parallelWorkers[$row.Key].Endpoint.Notify('Configure',((Get-ParallelConfig $row) | ConvertTo-Json -Depth 15 -Compress))}}
+            $script:parallelHub.Paused=$false
+        })
+        return $dialog
+    }catch{$script:parallelHub.Paused=$false;throw}
+}
+function Show-AccountTaskSettings($Row) {
+    if($script:scanning -or $script:editingSettings){return}
+    $script:editingSettings=$true;$dialog=$null
+    try {
+        $dialog=New-UnifiedSettingsDialog;$dialog.Tag.Tabs.SelectedTab=$dialog.Tag.Accounts
+        $key=$Row.Client.Flavor+':'+$Row.AccountName
+        if($dialog.Tag.Accounts.Tag.Accounts.Items.Contains($key)){$dialog.Tag.Accounts.Tag.Accounts.SelectedItem=$key}
+        $null=$dialog.ShowDialog($form)
+    }finally{if($dialog){$dialog.Dispose()};$script:editingSettings=$false;Update-BatchControls}
+}
+function Get-WowAutoRunInfo {
+    $processes=@(foreach($row in @($script:rows.Values | Sort-Object {$_.Process.Id})) {
+        $key=$row.Client.Flavor+':'+$row.AccountName
+        $roles=@(foreach($role in $script:accountTasks.Config.Accounts[$key]){@{Role=$role.Name;Realm=$role.Realm;Task=$role.Mode;Enabled=$role.Enabled;UseItem=$role.UseItem;Excluded=($role.Name -cin $row.ExcludedNames)}})
+        @{Pid=$row.Process.Id;Client=$row.Client.Flavor;SubAccount=$row.AccountName;Roles=$roles;CurrentRole=$row.CurrentRole;CurrentRoleIndex=$row.CurrentIndex;CurrentTask=$(if($row.RuntimePhase -eq 'running'){$row.TaskMode}else{''});CurrentPhase=$row.RuntimePhase;ExecutionRound=$row.ExecutionRound}
+    })
+    return @{StartTime=$script:wowAutoLog.StartedAt.ToString('o');ProcessCount=$processes.Count;Processes=$processes}
+}
+function Update-WowAutoRunInfo {
+    if($script:parallelHub){try{$script:parallelHub.WriteInfo((Get-WowAutoRunInfo | ConvertTo-Json -Depth 10))}catch{$settingsSummary.Text='日志快照保存失败：'+$_.Exception.Message}}
+}
+function Write-WowAutoLog([string]$Message,$Row=$null,[string]$Kind='status') {
+    if(-not $script:parallelHub){return}
+    $endpoint=if($Row -and $script:parallelWorkers.ContainsKey($Row.Key)){$script:parallelWorkers[$Row.Key].Endpoint}else{$null}
+    if($Row -and -not $endpoint){$endpoint=New-Object WowAuto.Threading.Endpoint;$endpoint.Key=$Row.Key;$endpoint.Pid=$Row.Process.Id;$endpoint.StartTicks=$Row.StartTime.Ticks;$endpoint.Path=$Row.Client.ExecutablePath;$endpoint.Flavor=$Row.Client.Flavor}
+    try{$script:parallelHub.Log($endpoint,$(if($endpoint){$endpoint.Version}else{0}),$Kind,$Message)}catch{$settingsSummary.Text='日志写入失败：'+$_.Exception.Message}
+}
+function Set-WowAutoLogSizeMB($Value) {
+    $size=0;if(-not [int]::TryParse([string]$Value,[ref]$size) -or $size -lt 1 -or $size -gt 1024){throw '日志大小须为1–1024 MB。'}
+    $script:wowAutoLog.MaxSizeMB=$size;$script:parallelHub.LogMaxSizeMB=$size;return $size
+}

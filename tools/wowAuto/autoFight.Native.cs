@@ -158,8 +158,17 @@ namespace WowAutoFight
         }
         public static Func<int,long,string,Bitmap> FrameReader;
         public static Func<Exception,bool> CapturePending;
-        public static bool LastReadPending { get; private set; }
-        public static string LastReadError { get; private set; }
+        [ThreadStatic] private static bool lastReadPending;
+        [ThreadStatic] private static string lastReadError;
+        public static bool LastReadPending { get { return lastReadPending; } private set {lastReadPending=value;} }
+        public static string LastReadError { get { return lastReadError; } private set {lastReadError=value;} }
+        public sealed class Observation {
+            public Packet Packet; public bool Pending; public string Error;
+        }
+        public static Observation Observe(Client client) {
+            Packet packet=Read(client);
+            return new Observation {Packet=packet,Pending=LastReadPending,Error=LastReadError};
+        }
         private static Packet ReadFailed(string reason) { LastReadError=reason; return null; }
         private static string RGB(uint c) { return R(c)+","+G(c)+","+B(c); }
         public static Packet Read(Client c) {

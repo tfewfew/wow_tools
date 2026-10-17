@@ -5,8 +5,10 @@ $tool=Split-Path $PSScriptRoot -Parent
 Add-Type -Path (Join-Path $tool 'wowAuto.Rotation.Native.cs') -ReferencedAssemblies System.Drawing
 $parseTokens=$null;$parseErrors=$null
 $ast=[System.Management.Automation.Language.Parser]::ParseFile((Join-Path $tool 'wowAuto.Rotation.ps1'),[ref]$parseTokens,[ref]$parseErrors)
+. (Join-Path $tool 'wowAuto.Rotation.Match.ps1')
 foreach ($name in @('New-RotationPlan','Resolve-RotationOcrName','Get-RotationMenuGeometry','Get-RotationMenuRow','ConvertFrom-RotationOcr')) {
     $fn=$ast.Find({param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name},$true)
+    if(-not $fn -and (Get-Command $name -ErrorAction SilentlyContinue)){continue}
     if (-not $fn) {throw 'OCR classifier function missing.'}
     Invoke-Expression $fn.Extent.Text
 }

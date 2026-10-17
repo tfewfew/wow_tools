@@ -5,14 +5,25 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 # wow_tools
 
+## 当前生产架构：进程检测线程与子战网任务（2026-10-18）
+
+本节覆盖下文历史三槽位、单个OCR任务和GUI线程执行输入的约定；旧实现仅保留兼容性回归。完整线程协议见 [PARALLEL_RUNTIME.md](../../tools/wowAuto/PARALLEL_RUNTIME.md)。
+
+- 每个真实进程身份有独立MTA检测runspace，OCR也在该线程同步执行。需要操作时提交Hub.Request，暂停本进程检测直到操作线程回执。唯一操作runspace执行所有前台、按键、点击、保持和退出；STA主线程只协调全局换角、接收通知和更新控件，不调用游戏输入。工作线程不传控件或可变全局对象。
+- Endpoint会话版本使停止、刷新、换角、重新开始和PID复用后的旧请求/结果失效。操作前复核版本、PID/启动Ticks/路径/版本、白点和当前主副色；原生读色Pending/Error按线程隔离。不要重新引入共享的rotation.OcrWork或autoFight.Pending。
+- 主线程发起换角批次，各线程负责自身登出、OCR和登录。保留全批登出→并行识别全部位置→依次点击→全部点击后并行确认登录→全批验证后恢复输入的屏障；退出、失败或停止者解除屏障。保留前台200ms稳定、换角500ms重试/5秒上限、普通800ms上限、三连击后跨进程1秒及客户区每轴5%原始基准尺寸复核。
+- account-tasks.config.json v1以客户端:子战网保存有序角色任务Name/Realm/Mode/Enabled/UseItem，以PID:StartTicks保存Bindings；不再提供进程三槽位。设置新增子战网页，主行下拉绑定账号。新记录默认停用；旧Plans仅无冲突时按账号迁移，任务冲突或跨客户端归属不明停用待核对，读取不改文件。同时启用的角色名须唯一；目录/角色仍只读安全插件记录。
+- 子战网页一起保存任务和10项检测周期，25–60000ms、步进25，取消/写入失败不应用。FishMs100、FightMs1000、MenuMs300、LoginMs300、BaitMs300、DeathMs1000、AudioMs50、PositionMs1000、CaptureRetryMs100、OcrMs1000；迁移保留旧OCR周期。动作保持/冷却/退出超时不当成检测周期。死亡/包满排除仅本进程本次运行，不改账号配置；耗尽才退出该进程，直接开始只停止本行。
+- 检测线程经Hub.Log写PID/ThreadId，统一锁保证JSON完整和两文件合计上限。info新进程项用Roles而非Slots，并有CurrentRole/CurrentTask/CurrentPhase/ExecutionRound。主验证Run.ParallelUi.Tests、Operator.Tests、Threading.Tests、AccountTasks.Tests；另跑旧-UiTest和离线Rotation.Ocr回归，禁止真实游戏输入/退出/重启。关闭先取消并结束线程，再释放音频、WGC和界面。
+
 ## 状态查询与进展通报
 
 用户说“检查状态”“查一下”“进展通报”等且上下文指向wowAuto运行时，按本节即时只读查询，不复用上次回答里的角色名或状态，也不创建定时任务。
 
 - 每次读取 `tools/wowAuto/log/info.log` 的完整小型JSON快照和 `tools/wowAuto/log/wowAuto.log` 末尾50条JSON Lines，同时获取查询时间及日志最后写入时间。不默认扫描全文件或十分钟历史。
-- 以info的Processes为当前进程清单，按Pid关联日志；名称用CurrentRole，任务用CurrentSlot对应Slots中的Task，附ExecutionRound仅在进展通报需要时显示。CurrentRole为空时报告“当前角色未运行/未记录”，不能用槽位1或上次角色填充。ExecutionRound是本次工具启动后的任务开始次数，不是钓获、击杀或收竿次数。
-- 进展通报还须覆盖各进程Slots中所有非空角色的背包剩余空格，包括当前未运行或本轮已跳过的角色。读取rotation.config.json的GameDirectories，用对应Client和info中的已配置SubAccount限定范围；旧配置缺路径时使用本文件两服安装目标，明确停用的空路径或未配置账号则报告无法关联。可只读点载tools/wowAuto/wowAuto.Accounts.ps1，调用Get-WowAccountCatalog取得Name/Realm/Level/FreeBagSlots/RecordedAt，禁止执行或点载游戏SavedVariables。
-- 背包数据来自每角色SavedVariables/wow_tools.lua的wowToolsCharacterRecord，是最近一次正常下线（或重载保存）快照；通报为“槽1 角色：剩余12格（下线快照，MM-dd HH:mm）”，0格明确包满，null、缺失、格式损坏或读取失败写“未记录/未知”，不能填0或沿用上次回答。RecordedAt为Unix秒，按Asia/Hong_Kong显示；允许早于info.StartTime，不能当作当前实时背包。跨服务器同名须分别列出Realm及各自空格，不凭时间或名字任选一条；相同角色配置多个槽位可合并槽位标注，不遗漏角色。
+- 以info的Processes为当前进程清单，按Pid关联日志；名称用CurrentRole，任务优先用CurrentTask；CurrentPhase为switching/exiting时明确报告切换/退出。旧快照才用CurrentSlot对应Slots中的Task，附ExecutionRound仅在进展通报需要时显示。CurrentRole为空时报告“当前角色未运行/未记录”，不能用槽位1或上次角色填充。ExecutionRound是本次工具启动后的任务开始次数，不是钓获、击杀或收竿次数。
+- 进展通报还须覆盖各进程Roles中所有Enabled=true角色的背包剩余空格（旧快照用Slots），包括当前未运行或本轮已跳过的角色。读取rotation.config.json的GameDirectories，用对应Client和info中的已配置SubAccount限定范围；旧配置缺路径时使用本文件两服安装目标，明确停用的空路径或未配置账号则报告无法关联。可只读点载tools/wowAuto/wowAuto.Accounts.ps1，调用Get-WowAccountCatalog取得Name/Realm/Level/FreeBagSlots/RecordedAt，禁止执行或点载游戏SavedVariables。
+- 背包数据来自每角色SavedVariables/wow_tools.lua的wowToolsCharacterRecord，是最近一次正常下线（或重载保存）快照；通报为“角色（服务器）：剩余12格（下线快照，MM-dd HH:mm）”，0格明确包满，null、缺失、格式损坏或读取失败写“未记录/未知”，不能填0或沿用上次回答。RecordedAt为Unix秒，按Asia/Hong_Kong显示；允许早于info.StartTime，不能当作当前实时背包。跨服务器同名须分别列出Realm及各自空格，不凭时间或名字任选一条；Roles提供Realm时精确关联同名记录，并标注Excluded的本轮排除状态；旧Slots同名可合并槽位标注，不遗漏角色。
 - 每个进程取最新status/error及最后一条任意类型记录，保留时间。action可证明队列近期活动，但不能当作成功钓获或拾取收益；没有状态时仅报告最近动作及状态未知。末尾50条不足以覆盖info里的某个PID时，按需补读至150条、最多300条；仍缺失就明确“最近300条无该进程记录”，不默认为正常或停止。仅排查历史异常时扩大范围。
 - 只使用info.StartTime之后的日志，避免混入上次启动。日志缺失、尾行写入中或JSON暂时无效时可以重读一次；仍失败就说明证据不足。info可能在轮换期间更新，发现日志显示换角/停止或任务模式与快照矛盾时再读一次info，仍不一致则注明正在切换或快照未更新，不强行绑定旧名字。
 - 简洁通报“截至HH:mm:ss”及每行“角色（PID）：任务/当前状态”，必要时说明近期错误及是否已有后续恢复证据。根据最新记录说明数据新鲜度；日志久未更新只说明时间间隔，不能仅凭静默断言脚本卡死。正常等待也可能不写新状态。不把读取范围内无报错表述为整个运行期间无异常。

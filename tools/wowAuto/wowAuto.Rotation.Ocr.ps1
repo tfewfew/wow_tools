@@ -1,4 +1,4 @@
-param([byte[]]$ScreenBytes,[byte[]]$NamesBytes)
+﻿param([byte[]]$ScreenBytes,[byte[]]$NamesBytes,$OcrOwner=$null,[long]$OcrVersion=0)
 $ErrorActionPreference='Stop'
 # Runs in an isolated PowerShell runspace. No window input or disk image files.
 $namesBounds=$null
@@ -26,8 +26,17 @@ $null=[Windows.Globalization.Language,Windows.Globalization,ContentType=WindowsR
 $asTask=[System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object {$_.Name -eq 'AsTask' -and $_.IsGenericMethod -and $_.GetGenericArguments().Count -eq 1 -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1'} | Select-Object -First 1
 function Wait-OcrOperation($Operation,[type]$ResultType) {
     $task=$asTask.MakeGenericMethod($ResultType).Invoke($null,@($Operation))
+    if($OcrOwner) {
+        while(-not $task.Wait(50)) {
+            if(-not $OcrOwner.Current($OcrVersion) -or $ocrTimer.ElapsedMilliseconds -gt 3000) {
+                try {$Operation.Cancel()}catch{}
+                throw 'OCR sample timed out or its process task was cancelled.'
+            }
+        }
+    }
     $task.GetAwaiter().GetResult()
 }
+$ocrTimer=[Diagnostics.Stopwatch]::StartNew()
 $engine=[Windows.Media.Ocr.OcrEngine]::TryCreateFromLanguage((New-Object Windows.Globalization.Language 'zh-Hans-CN'))
 if (-not $engine) {throw 'Windows Chinese OCR is unavailable. Install the Simplified Chinese OCR language feature.'}
 function Read-OcrImage([byte[]]$Bytes) {

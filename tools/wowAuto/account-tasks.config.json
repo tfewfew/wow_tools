@@ -1,0 +1,18 @@
+{
+  "Version": 1,
+  "MigrationComplete": false,
+  "Accounts": {},
+  "Bindings": {},
+  "Periods": {
+    "FishMs": 100,
+    "FightMs": 1000,
+    "MenuMs": 300,
+    "LoginMs": 300,
+    "BaitMs": 300,
+    "DeathMs": 1000,
+    "AudioMs": 50,
+    "PositionMs": 1000,
+    "CaptureRetryMs": 100,
+    "OcrMs": 1000
+  }
+}

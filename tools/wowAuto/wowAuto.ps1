@@ -1,5 +1,6 @@
 ﻿param([string]$PreviewPath, [switch]$UiTest)
 $ErrorActionPreference = 'Stop'
+$script:useWorkers=-not $UiTest -or $env:WOWAUTO_PARALLEL_TEST_MODE -eq '1'
 . (Join-Path $PSScriptRoot 'wowAuto.Logging.ps1')
 $script:logMaxSizeMB=50
 $script:logTestDirectory=if ($UiTest) {Join-Path ([IO.Path]::GetTempPath()) ('wowAuto-log-test-'+[guid]::NewGuid().ToString('N'))} else {$null}
@@ -1632,6 +1633,7 @@ function Restart-WowAutoIfRequested {
     catch {Show-WowAutoRestartError ('重启失败：'+$_.Exception.Message+' 请从桌面 wowAuto 快捷方式重新打开。')}
 }
 $startAllButton.Add_Click({
+    if($script:useWorkers){Start-AllRows;return}
     if ($script:scanning) { return }
     foreach ($row in @($script:rows.Values | Sort-Object { $_.Process.Id })) {
         if ($row.Start.Enabled) { Start-Row $row }
@@ -1934,6 +1936,7 @@ function Invoke-SchedulerTick([long]$Now,$QueuedWork=$null) {
 $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 25
 $timer.Add_Tick({
+    if($script:useWorkers){Update-ParallelMessages;return}
     Invoke-UnifiedTick $script:schedulerClock.ElapsedMilliseconds
     foreach ($row in @($script:rows.Values)) { Update-RowStatus $row }
     Update-BatchControls
@@ -1942,6 +1945,7 @@ $positionTimer = New-Object System.Windows.Forms.Timer
 $positionTimer.Interval = 1000
 $positionTimer.Add_Tick({ Update-WindowPositions })
 $form.Add_FormClosing({
+    if($script:useWorkers){$timer.Stop();$positionTimer.Stop();$scanTimer.Stop();Stop-AllRows;$script:parallelHub.Close();return}
     Remove-GameActions -IncludeProcess
     $script:gameActions.Closing=$true
     [WowAutoCapture.Native]::Shutdown()
@@ -1958,7 +1962,7 @@ $form.Add_FormClosing({
 . (Join-Path $PSScriptRoot 'wowAuto.Accounts.ps1')
 . (Join-Path $PSScriptRoot 'wowAuto.Rotation.ps1')
 # One process list and one timer coordinate input across both detector engines.
-if (-not $UiTest) {
+if (-not $UiTest -or $script:useWorkers) {
     try {
         . (Join-Path $PSScriptRoot 'autoFight.ps1')
         Initialize-AutoFightTab $tabs $form -Unified
@@ -1969,7 +1973,12 @@ if (-not $UiTest) {
     }
 }
 
+if($script:useWorkers) {
+    . (Join-Path $PSScriptRoot 'wowAuto.Parallel.ps1')
+}
+
 try {
+    if($script:useWorkers){Initialize-ParallelRuntime;. (Join-Path $PSScriptRoot 'wowAuto.Parallel.Ui.ps1')}
     if ($UiTest) {
         # Test fixtures are never passed to native input, capture, or termination.
         foreach ($id in @(101, 202, 303)) {
@@ -1986,11 +1995,15 @@ try {
         }
     }
     $null = Refresh-ProcessRows
+    if($script:useWorkers){foreach($row in $script:rows.Values){$null=Ensure-ParallelWorker $row}}
     if (-not $PreviewPath -and -not $UiTest) { $timer.Start(); $positionTimer.Start() }
     if ($PreviewPath -or $UiTest) {
         $form.Show()
         [System.Windows.Forms.Application]::DoEvents()
         if ($UiTest) {
+            if($script:useWorkers) {
+                . (Join-Path $PSScriptRoot 'tests\Parallel.UiTests.ps1')
+            } else {
             . (Join-Path $PSScriptRoot 'tests\Layout.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Refresh.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Scheduler.UiTests.ps1')
@@ -2013,6 +2026,7 @@ try {
             . (Join-Path $PSScriptRoot 'tests\Accounts.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Logging.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Restart.UiTests.ps1')
+            }
         }
         if ($PreviewPath) {
             [System.Windows.Forms.Application]::DoEvents()
@@ -2027,6 +2041,7 @@ try {
     else { [void]$form.ShowDialog() }
 }
 finally {
+    if($script:useWorkers){Stop-ParallelRuntime}
     if ($script:autoFight) { Close-AutoFightTab }
     foreach ($entry in @($script:audioCaptures.Values)) { $entry.Capture.Dispose() }
     $script:audioCaptures.Clear()
