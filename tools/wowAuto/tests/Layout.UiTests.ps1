@@ -5,6 +5,9 @@ if ($countLabel.Parent -ne $toolbar -or $countLabel.Left -le $stopAllButton.Righ
 if (@($toolbar.Controls | Where-Object { $_ -is [System.Windows.Forms.NumericUpDown] }).Count) { throw 'Hold input remains in toolbar.' }
 if (@($toolbar.Controls | Where-Object { $_ -is [System.Windows.Forms.CheckBox] -and $_ -ne $audioCheck }).Count) { throw 'Global item checkbox remains in toolbar.' }
 if (-not $toolbar.ClientRectangle.Contains($audioCheck.Bounds)) { throw 'Audio mode checkbox is clipped.' }
+if (-not $toolbar.ClientRectangle.Contains($restartButton.Bounds) -or $restartButton.Left -lt $audioCheck.Right) {
+    throw 'Restart button is clipped or overlaps the audio checkbox.'
+}
 foreach ($row in $script:rows.Values) {
     if (-not $row.Panel.ClientRectangle.Contains($row.AccountBox.Bounds) -or $row.AccountBox.Left -le $row.RotationButton.Right) {
         throw 'Subaccount selector is clipped or overlaps rotation button.'

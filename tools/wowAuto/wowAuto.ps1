@@ -811,6 +811,15 @@ $audioCheck.SetBounds(790, 13, 195, 32)
 $audioCheck.FlatStyle = 'Flat'
 $audioCheck.Checked = $script:audioDetectionEnabled
 $toolbar.Controls.Add($audioCheck)
+$script:restartRequested=$false
+$script:restartCleanupComplete=$false
+$script:restartOptions=$null
+$restartButton = New-Object WowAuto.DimButton
+$restartButton.Text = '重启脚本'
+$restartButton.SetBounds(1000, 10, 130, 35)
+Set-UiButtonStyle $restartButton
+$toolbar.Controls.Add($restartButton)
+$restartButton.Add_Click({ Request-WowAutoRestart })
 $audioCheck.Add_CheckedChanged({ param($sender,$eventArgs)
     if ($script:updatingPreferenceControls) { return }
     try { Save-PreferenceSwitches -AudioDetectionEnabled $sender.Checked }
@@ -1592,6 +1601,7 @@ function Update-BatchControls {
     $eligible = @($script:rows.Values | Where-Object { $_.Start.Enabled })
     $startAllButton.Enabled = -not $script:scanning -and -not $script:editingSettings -and $eligible.Count -gt 0
     $settingsButton.Enabled = -not $script:scanning -and -not $script:editingSettings
+    $restartButton.Enabled = -not $script:editingSettings -and -not $script:restartRequested
     $audioCheck.Enabled = -not $script:scanning -and -not $script:editingSettings -and $script:scheduler.Tasks.Count -eq 0
     $stopAllButton.Enabled = $script:scanning -or $script:pendingGameExits.Count -gt 0 -or @($script:rows.Values | Where-Object {Test-UnifiedRowRunning $_}).Count -gt 0
 }
@@ -1602,6 +1612,42 @@ function Stop-AllRows {
     foreach ($row in @($script:rows.Values)) { Stop-Row $row }
     $script:pendingWork=$null
     Update-BatchControls
+}
+function Get-WowAutoRestartOptions([string]$EntryPath=(Join-Path $PSScriptRoot 'wowAuto.ps1')) {
+    $entry=[IO.Path]::GetFullPath($EntryPath)
+    $hostPath=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    if (-not [IO.File]::Exists($entry) -or -not [IO.File]::Exists($hostPath)) {throw '找不到 wowAuto 脚本或 Windows PowerShell。'}
+    return @{FilePath=$hostPath;WorkingDirectory=(Split-Path $entry -Parent);WindowStyle='Hidden';ErrorAction='Stop';
+        ArgumentList=@('-NoLogo','-NoProfile','-STA','-WindowStyle','Hidden','-ExecutionPolicy','Bypass','-File',('"'+$entry+'"'))}
+}
+function Close-WowAutoForRestart { $form.Close() }
+function Show-WowAutoRestartError([string]$Message) {
+    [void][System.Windows.Forms.MessageBox]::Show($Message,'wowAuto',
+        [System.Windows.Forms.MessageBoxButtons]::OK,[System.Windows.Forms.MessageBoxIcon]::Error)
+}
+function Request-WowAutoRestart {
+    if ($script:restartRequested -or $script:editingSettings) {return}
+    try {
+        $script:restartOptions=Get-WowAutoRestartOptions
+        $script:restartRequested=$true
+        $restartButton.Enabled=$false
+        Stop-AllRows
+        Remove-GameActions -IncludeProcess
+        Write-WowAutoLog '正在重启脚本；当前任务已停止，新窗口需手动开始。' -Kind system
+        Close-WowAutoForRestart
+    } catch {
+        $script:restartRequested=$false;$script:restartOptions=$null
+        Update-BatchControls
+        $countLabel.Text='无法重启：'+$_.Exception.Message
+        Write-WowAutoLog $countLabel.Text -Kind error
+    }
+}
+function Restart-WowAutoIfRequested {
+    # Only the final cleanup path may launch the replacement, after old inputs/log writes stop.
+    if (-not $script:restartRequested -or -not $script:restartCleanupComplete) {return}
+    $script:restartRequested=$false
+    try { $options=$script:restartOptions;Start-Process @options }
+    catch {Show-WowAutoRestartError ('重启失败：'+$_.Exception.Message+' 请从桌面 wowAuto 快捷方式重新打开。')}
 }
 $startAllButton.Add_Click({
     if ($script:scanning) { return }
@@ -1984,6 +2030,7 @@ try {
             . (Join-Path $PSScriptRoot 'tests\Rotation.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Accounts.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Logging.UiTests.ps1')
+            . (Join-Path $PSScriptRoot 'tests\Restart.UiTests.ps1')
         }
         if ($PreviewPath) {
             [System.Windows.Forms.Application]::DoEvents()
@@ -2021,4 +2068,6 @@ finally {
         }
         [IO.Directory]::Delete($script:logTestDirectory)
     }
+    $script:restartCleanupComplete=$true
 }
+Restart-WowAutoIfRequested
