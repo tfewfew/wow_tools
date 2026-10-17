@@ -145,7 +145,14 @@ function Update-RowAccountChoices($Row) {
         foreach ($account in $accounts) {[void]$Row.AccountBox.Items.Add($account.Name)}
         $Row.AccountName=$selected
         $Row.AccountBox.SelectedIndex=if ($selected -and $Row.AccountBox.Items.Contains($selected)) {$Row.AccountBox.Items.IndexOf($selected)} else {0}
-        $Row.AccountHint.Text=if ($selected -and $Row.AccountBox.SelectedIndex -eq 0) {'已保存子战网不存在，请重新选择'} else {'角色列表来自所选子战网的插件下线记录'}
+        if ($selected -and $Row.AccountBox.SelectedIndex -eq 0) {$Row.AccountHint.Text='已保存子战网不存在，请重新选择'}
+        elseif (-not $selected) {$Row.AccountHint.Text='子战网与角色记录已刷新，请选择子战网。'}
+        else {
+            $account=@($accounts | Where-Object {$_.Name -ceq $selected})[0]
+            $count=@($account.Characters.Name | Sort-Object -Unique).Count
+            $Row.AccountHint.Text='角色已刷新：'+$count+' 个（插件下线记录）'
+            if (-not $count) {$Row.AccountHint.Text+='；请启动检测后正常下线。'}
+        }
     } catch {
         $Row.AccountName='';$Row.AccountBox.Items.Clear();[void]$Row.AccountBox.Items.Add('请选择子战网');$Row.AccountBox.SelectedIndex=0
         $Row.AccountHint.Text='账号目录读取失败：'+$_.Exception.Message

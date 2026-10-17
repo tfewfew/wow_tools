@@ -2,7 +2,7 @@
 Stop-AllRows
 . (Join-Path $PSScriptRoot 'CharacterRecords.Fixtures.ps1')
 Initialize-AutoFightTab $tabs $form -Unified
-$savedAccountState=@{Path=$script:rotation.Path;Plans=$script:rotation.Plans;Roots=$script:rotation.GameDirectories;History=$script:rotation.NameHistory;Interval=$script:rotation.IntervalSeconds;Items=$script:processItemPreferences}
+$savedAccountState=@{Path=$script:rotation.Path;Plans=$script:rotation.Plans;Roots=$script:rotation.GameDirectories;History=$script:rotation.NameHistory;Interval=$script:rotation.IntervalSeconds;Items=$script:processItemPreferences;Processes=$script:mockProcesses}
 $fixture=Join-Path ([IO.Path]::GetTempPath()) ('wowAuto-account-ui-'+[Guid]::NewGuid())
 $script:rotation.Path=Join-Path $fixture 'rotation.json';$script:rotation.Plans=@{};$script:rotation.NameHistory=@()
 $script:rotation.GameDirectories=@{};$script:rotation.IntervalSeconds=0
@@ -41,6 +41,25 @@ try {
     Assert-Ui ($row.AccountName -ceq 'ACCOUNT#1') 'Unique legacy plan did not suggest its account.'
     $names=@(Get-RowAccountNames $row)
     Assert-Ui ($names.Count -eq 2 -and $names -ccontains '钓鱼角色' -and $names -cnotcontains '另一个角色' -and $names -cnotcontains '虚假角色') 'Account isolation, deduplication or SavedVariables exclusion failed.'
+    # Exercise the actual refresh button after logout creates/updates character files.
+    $script:mockProcesses=@($row.Process)
+    $newRole=Join-Path $script:rotation.GameDirectories[$row.Client.Flavor] 'WTF\Account\ACCOUNT#1\RealmA\新下线角色'
+    $updatedRole=Join-Path $script:rotation.GameDirectories[$row.Client.Flavor] 'WTF\Account\ACCOUNT#1\RealmA\钓鱼角色'
+    Write-TestCharacterRecord $newRole '新下线角色' 'RealmA'
+    Write-TestCharacterRecord $updatedRole '钓鱼角色' 'RealmA' 82 4 1792200060
+    $planHash=(Get-FileHash $script:rotation.Path).Hash
+    $refreshButton.PerformClick();Complete-TestScan
+    Assert-Ui ([object]::ReferenceEquals($row,$script:rows[$row.Key]) -and $row.AccountName -ceq 'ACCOUNT#1' -and
+        $row.AccountHint.Text -match '角色已刷新：3 个' -and (Get-FileHash $script:rotation.Path).Hash -eq $planHash) 'Refresh did not report fresh roles or changed the selected account/role plan.'
+    $updated=@(@(Get-RowAccounts $row | Where-Object Name -eq 'ACCOUNT#1')[0].Characters | Where-Object {$_.Name -ceq '钓鱼角色' -and $_.Realm -eq 'RealmA'})[0]
+    Assert-Ui ($updated.Level -eq 82 -and $updated.FreeBagSlots -eq 4 -and $updated.RecordedAt -eq 1792200060) 'Process refresh did not expose updated character metadata.'
+    $editor=New-RotationEditor $row
+    try {Assert-Ui ($editor.Tag.Slots[0].Name.Items.Count -eq 3 -and $editor.Tag.Slots[0].Name.Items.Contains('新下线角色')) 'New logout record was missing from the refreshed character menu.'} finally {$editor.Dispose()}
+    [IO.File]::WriteAllText((Join-Path $newRole 'SavedVariables\wow_tools.lua'),'wowToolsCharacterRecord = {')
+    $refreshButton.PerformClick();Complete-TestScan
+    $editor=New-RotationEditor $row
+    try {Assert-Ui ($row.AccountHint.Text -match '角色已刷新：2 个' -and -not $editor.Tag.Slots[0].Name.Items.Contains('新下线角色') -and
+        $editor.Tag.Slots[0].Name.Text -ceq '钓鱼角色' -and (Get-FileHash $script:rotation.Path).Hash -eq $planHash) 'Invalidated character record stayed in the refreshed menu or altered the saved slots.'} finally {$editor.Dispose()}
     $row.Validated=$true;$row.State=Add-WowAutoTask $script:scheduler $row.Key 1000 1000 0 -UseItem $true
     $row.AccountBox.SelectedItem='ACCOUNT#2'
     Assert-Ui ($row.AccountName -ceq 'ACCOUNT#2' -and $script:rotation.Plans[$row.Key].Account -ceq 'ACCOUNT#2' -and -not (Test-UnifiedTaskRunning $row) -and -not $row.Validated) 'Account change did not persist and stop/invalidate its task.'
@@ -109,7 +128,7 @@ try {
 } finally {
     Stop-AllRows;$row.Process.ExecutablePath=$oldPath;$row.Client.ExecutablePath=$oldClientPath
     $script:rotation.Path=$savedAccountState.Path;$script:rotation.Plans=$savedAccountState.Plans;$script:rotation.GameDirectories=$savedAccountState.Roots
-    $script:rotation.NameHistory=$savedAccountState.History;$script:rotation.IntervalSeconds=$savedAccountState.Interval;$script:processItemPreferences=$savedAccountState.Items
+    $script:rotation.NameHistory=$savedAccountState.History;$script:rotation.IntervalSeconds=$savedAccountState.Interval;$script:processItemPreferences=$savedAccountState.Items;$script:mockProcesses=$savedAccountState.Processes
     $cleanup=[IO.Path]::GetFullPath($fixture)
     if (-not $cleanup.StartsWith([IO.Path]::GetFullPath([IO.Path]::GetTempPath()),[StringComparison]::OrdinalIgnoreCase) -or (Split-Path $cleanup -Leaf) -notlike 'wowAuto-account-ui-*') {throw 'Unsafe temporary fixture cleanup path.'}
     if ([IO.Directory]::Exists($cleanup)) {[IO.Directory]::Delete($cleanup,$true)}

@@ -1381,9 +1381,10 @@ function Refresh-ProcessRows {
             $key = if ($null -ne $started) { "$($process.Id):$($started.Ticks)" } else { "$($process.Id):unknown" }
             $row = $script:rows[$key]
             if ($null -eq $row) { $row = New-ProcessRow $process $started $key $process.WowAutoClient }
-            else {Update-RowAccountChoices $row}
             $row.Process=$process
             $row.Client=$process.WowAutoClient
+            # Refresh character snapshots for every detected process using its current installation.
+            Update-RowAccountChoices $row
             $row.Position=Read-RowWindowPosition $row
             $caption = [IO.Path]::GetFileName($row.Client.ExecutablePath)
             try { if ($process.MainWindowTitle) { $caption = $process.MainWindowTitle } } catch { }
