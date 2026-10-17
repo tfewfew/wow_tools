@@ -126,7 +126,12 @@ try {
     Assert-Ui (-not $b.DirectStart.Enabled) 'Direct start was enabled before detector validation.'
     $b.Validated=$true;Set-RowControls $b
     Assert-Ui ($b.DirectStart.Enabled) 'Validated planned row cannot start its current character directly.'
+    $a.Validated=$true;Set-RowControls $a
     $b.DirectStart.PerformClick()
+    Assert-Ui ($a.DirectStart.Enabled) 'Starting one process disabled another validated direct-start button.'
+    $a.DirectStart.PerformClick()
+    Assert-Ui ((Test-UnifiedTaskRunning $a) -and (Test-UnifiedTaskRunning $b)) 'Sequential direct starts did not run both processes.'
+    Stop-Row $a
     Assert-Ui ((Test-UnifiedTaskRunning $b) -and -not $script:rotation.Active.ContainsKey($b.Key) -and
         $script:rotation.LogoutQueue.Count -eq 0 -and $script:rotation.Queue.Count -eq 0 -and
         $script:rotation.Actions.Count -eq 0 -and $b.Process.RotationOcrReads -eq 0) 'Direct start entered character selection instead of starting the current task.'
@@ -262,6 +267,15 @@ try {
     } finally {$dialog.Dispose()}
     # Exercise actual save/cancel and a locked config with an editable history combo.
     $savedPlans=$script:rotation.Plans.Clone()
+    Set-RowTaskMode $a fish
+    $a.Validated=$true;Set-RowControls $a
+    $sameModeEditor=New-RotationEditor $a
+    try {
+        $sameModeEditor.Show($form);[System.Windows.Forms.Application]::DoEvents()
+        $sameModeEditor.Tag.Slots[0].UseItem.Checked=-not $sameModeEditor.Tag.Slots[0].UseItem.Checked
+        $sameModeEditor.Tag.Save.PerformClick()
+        Assert-Ui (-not $sameModeEditor.Visible -and $a.Validated -and $a.DirectStart.Enabled) 'Saving a same-mode rotation erased a valid direct-start detector result.'
+    } finally {$sameModeEditor.Dispose()}
     $historyBefore=($script:rotation.NameHistory -join '|')
     $dialog=New-RotationEditor $a
     try {

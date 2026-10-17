@@ -717,9 +717,13 @@ function New-RotationEditor($Row) {
             $next=$script:rotation.Plans.Clone();$next[$editor.Row.Key]=Copy-RotationPlan $editor.Plan
             Save-RotationConfiguration -Plans $next
             Stop-Row $editor.Row '编排已保存，任务停止；点击开始从首个有效槽位运行。' -CancelExit
-            $editor.Row.Validated=$false
+            # The detector validates the process and task mode, not the planned name/order/items.
+            # Set-RowSlotTask invalidates it through Set-RowTaskMode if the mode changes.
             $index=Get-RotationNextSlot $editor.Plan -1
             if ($index -ge 0) {Set-RowSlotTask $editor.Row $editor.Plan.Slots[$index]} else {Set-RowSlotTask $editor.Row ([pscustomobject]@{Mode='fish';UseItem=$false})}
+            if ($editor.Row.Validated) {
+                Set-RowStatusText $editor.Row '编排已保存，任务停止；当前任务类型的检测仍有效，可“直接开始”，或点击“开始”按编排切换角色。'
+            }
             $sender.Tag.Close()
         } catch {$editor.Error.Text=$_.Exception.Message}
     })
