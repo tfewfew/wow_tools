@@ -1259,8 +1259,13 @@ function Stop-Row($Row, [string]$Reason = '已停止，当前等待已取消。'
     Clear-WowAutoCurrentRole $Row
 }
 
+function Start-RowDirect($Row) {
+    # A delayed/repeated click belongs only to this row and must not restart it.
+    if (Test-UnifiedRowRunning $Row) {return}
+    Start-Row $Row -TaskOnly
+}
 function Start-Row($Row,[switch]$TaskOnly) {
-    Remove-GameActions -Domain Restore
+    if (-not $TaskOnly) {Remove-GameActions -Domain Restore}
     try {
         if (-not $TaskOnly -and (Test-RowHasRotation $Row)) {Start-RowRotation $Row;return}
         if ($TaskOnly -and -not (Test-RowLoginPoint $Row)) {throw '常驻登录白点不存在，未启动任务。'}
@@ -1356,7 +1361,7 @@ function New-ProcessRow($Process, $StartTime, [string]$Key, $Client) {
     $directStart.Tag = $row
     $stop.Tag = $row
     $start.Add_Click({ param($sender, $eventArgs) Start-Row $sender.Tag })
-    $directStart.Add_Click({ param($sender, $eventArgs) Start-Row $sender.Tag -TaskOnly })
+    $directStart.Add_Click({ param($sender, $eventArgs) Start-RowDirect $sender.Tag })
     $stop.Add_Click({ param($sender, $eventArgs) Stop-Row $sender.Tag -CancelExit })
     if ($null -eq $StartTime) { $row.StatusMessage = '无法读取进程信息，请检查权限后刷新。' }
     Add-ProcessTaskControls $row
@@ -1439,6 +1444,9 @@ function Finish-RefreshScan {
     Add-GameAction -Id restore -Kind Scan.Restore -Domain Restore -Owner $script:scanGeneration -Due $script:schedulerClock.ElapsedMilliseconds -Data $script:scanOriginalWindow -Execute {
         param($event,$now)
         Assert-GameActionContext
+        # A task started after the scan owns future foreground input. Complete the
+        # scan restore without activating another window or cancelling any row's work.
+        if (@($script:rows.Values | Where-Object {Test-UnifiedRowRunning $_}).Count -gt 0) {return}
         if ($UiTest) {$script:restored=$true}
         elseif ($event.Data -ne [IntPtr]::Zero -and -not [WowAuto.NativeInput]::RestoreAfterScan($event.Data)) {$countLabel.Text+=' 请手动切回工具窗口。'}
     }

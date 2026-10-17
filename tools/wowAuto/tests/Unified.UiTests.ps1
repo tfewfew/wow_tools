@@ -155,15 +155,52 @@ try {
     $plans=@{};$plans[$combat.Key]=$plan;Save-RotationConfiguration -Plans $plans
     $combat.Validated=$true;$combat.FightRow.CanStart=$true;Set-RowControls $combat
     Stop-Row $fishing;$fishing.Validated=$true;Set-RowControls $fishing
+    $fishingStatus=$fishing.StatusMessage
+    Finish-RefreshScan
+    $scanRestore=@($script:gameActions.Events | Where-Object {$_.Id -eq 'restore'})[0]
+    $script:restored=$false
+    Add-GameAction -Id direct-isolation-restore -Kind Scan.Restore -Domain Restore -Key $fishing.Key -Row $fishing -Owner $script:scanGeneration -Due 999999 -Execute {param($event,$now)}
+    $otherRestore=@($script:gameActions.Events | Where-Object {$_.Id -eq 'direct-isolation-restore'})[0]
     Assert-Ui ($combat.DirectStart.Enabled) 'Validated combat row cannot start directly with a saved role plan.'
     $combat.DirectStart.PerformClick()
     Assert-Ui ($combat.FightRow.Session -and -not $script:rotation.Active.ContainsKey($combat.Key) -and
         $script:rotation.LogoutQueue.Count -eq 0) 'Direct combat start entered role rotation.'
     Assert-Ui ($fishing.DirectStart.Enabled) 'Direct combat start disabled a different fishing process.'
+    Assert-Ui ($script:gameActions.Events.Contains($otherRestore) -and -not $otherRestore.Cancelled -and
+        $fishing.StatusMessage -eq $fishingStatus -and $fishing.Validated) 'Direct start removed another process restore or changed its validation/status.'
+    Assert-Ui ($script:gameActions.Events.Contains($scanRestore)) 'Direct start cancelled the shared scan restore.'
+    $null=Invoke-QueuedGameAction $scanRestore $script:schedulerClock.ElapsedMilliseconds
+    Assert-Ui (-not $script:restored -and $combat.FightRow.Session -and $fishing.DirectStart.Enabled) 'A delayed scan restore changed foreground or controls after direct start.'
+    $otherSession=$combat.FightRow.Session
+    $otherSession.RecoveryReadyAt=98765L;$otherSession.BuffRemaining=2;$otherSession.NextJumpAt=123456L
+    $otherPending=New-AutoFightPending $combat.FightRow $otherSession $false $script:schedulerClock.ElapsedMilliseconds
+    $script:autoFight.Pending=$otherPending
+    Add-GameAction -Id direct-isolation-combat -Kind Fight.Combat -Domain Fight -Key $combat.Key -Row $combat -Owner $otherSession -Due 999999 -Data ([pscustomobject]@{Row=$combat.FightRow;Action='combat'}) -Execute {param($event,$now)}
+    $otherInput=@($script:gameActions.Events | Where-Object {$_.Id -eq 'direct-isolation-combat'})[0]
+    $script:gameActions.Focus=$otherInput;$otherInput.ReadyAt=777L;$otherInput.FocusUntil=888L
+    $sendsBeforeDirect=[WowAutoFight.Native]::Sends;$keysBeforeDirect=$script:workerKeys.Count
     $fishing.DirectStart.PerformClick()
     Assert-Ui ((Test-UnifiedTaskRunning $combat) -and (Test-UnifiedTaskRunning $fishing) -and
         $script:rotation.Active.Count -eq 0) 'Mixed-mode direct starts did not keep both tasks running without rotation.'
+    Assert-Ui ([object]::ReferenceEquals($combat.FightRow.Session,$otherSession) -and
+        [object]::ReferenceEquals($script:autoFight.Pending,$otherPending) -and
+        [object]::ReferenceEquals($script:gameActions.Focus,$otherInput) -and $script:gameActions.Events.Contains($otherInput) -and
+        $otherInput.ReadyAt -eq 777 -and $otherInput.FocusUntil -eq 888 -and
+        $otherSession.RecoveryReadyAt -eq 98765 -and $otherSession.BuffRemaining -eq 2 -and $otherSession.NextJumpAt -eq 123456 -and
+        [WowAutoFight.Native]::Sends -eq $sendsBeforeDirect -and $script:workerKeys.Count -eq $keysBeforeDirect) 'Direct fishing start changed another process pending input, focus, cooldown/buff/jump timers, or sent input.'
+    $fishingSession=$fishing.State
+    $fishing.Process | Add-Member NoteProperty LoginPointPresent $false -Force
+    Start-RowDirect $fishing
+    Assert-Ui ([object]::ReferenceEquals($fishing.State,$fishingSession) -and $fishingSession.Running -and
+        [object]::ReferenceEquals($combat.FightRow.Session,$otherSession)) 'Repeated direct start restarted a running row or affected another process.'
     Stop-Row $fishing
+    Start-RowDirect $fishing
+    Assert-Ui (-not (Test-UnifiedTaskRunning $fishing) -and
+        [object]::ReferenceEquals($combat.FightRow.Session,$otherSession) -and
+        [object]::ReferenceEquals($script:autoFight.Pending,$otherPending) -and
+        [object]::ReferenceEquals($script:gameActions.Focus,$otherInput) -and $script:gameActions.Events.Contains($otherInput) -and
+        $otherSession.RecoveryReadyAt -eq 98765 -and -not $combat.DirectStart.Enabled -and $combat.Stop.Enabled) 'A failed direct start changed another process task, pending input, timers or buttons.'
+    $fishing.Process.PSObject.Properties.Remove('LoginPointPresent')
     Stop-Row $combat
     # Same-process refresh/reconstruction remembers mode; PID reuse inherits neither mode nor task.
     $null=Refresh-ProcessRows
@@ -178,7 +215,7 @@ try {
     $replacement=@($script:rows.Values | Where-Object {$_.Process.Id -eq 701})[0]
     Assert-Ui ($replacement.TaskMode -eq 'fish' -and -not $replacement.FightRow -and -not $script:autoFight.Rows.ContainsKey($oldKey)) 'Reused PID inherited mode/combat adapter.'
     Assert-Ui ((Get-FileHash $sourceIni).Hash -eq $iniHash -and (Get-FileHash $sourceFight).Hash -eq $fightHash) 'Unified tests changed user source configuration.'
-    Write-Output 'PASS: unified process selector/settings tabs, mixed command-before-sample refresh, focus/command failure, manual start, slot-mode refresh/reconstruction/PID reuse without a process mode selector and mixed-mode foreground/reel priority. All game input, pixels and audio mocked.'
+    Write-Output 'PASS: unified process selector/settings tabs, mixed command-before-sample refresh, focus/command failure, independent direct-start buttons/tasks/queues/timers including repeated clicks and failed starts, delayed scan restore suppression, slot-mode refresh/reconstruction/PID reuse without a process mode selector and mixed-mode foreground/reel priority. All game input, pixels and audio mocked.'
 } finally {
     Stop-AllRows; Close-AutoFightTab
     if ([IO.File]::Exists($script:rotation.Path)) {[IO.File]::Delete($script:rotation.Path)}
