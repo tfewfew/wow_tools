@@ -9,6 +9,11 @@ foreach ($row in $script:rows.Values) {
     if (-not $row.Panel.ClientRectangle.Contains($row.AccountBox.Bounds) -or $row.AccountBox.Left -le $row.RotationButton.Right) {
         throw 'Subaccount selector is clipped or overlaps rotation button.'
     }
+    if (-not $row.Panel.ClientRectangle.Contains($row.RotationLabel.Bounds) -or
+        -not $row.Panel.ClientRectangle.Contains($row.RotationProgress.Bounds) -or
+        $row.RotationProgress.Top -lt $row.RotationLabel.Bottom -or $row.RotationProgress.Top -lt $row.AccountBox.Bottom) {
+        throw 'Rotation summary/progress is clipped or overlaps other controls.'
+    }
 }
 $screenArea=[System.Windows.Forms.Screen]::FromControl($form).WorkingArea
 if (-not $screenArea.Contains($form.Bounds)) { throw 'Startup window exceeds screen working area.' }
@@ -17,4 +22,4 @@ foreach ($row in $script:rows.Values) { $totalRowsHeight += $row.Panel.Height+$r
 if ($form.Height -lt $screenArea.Height -and $totalRowsHeight -gt $list.ClientSize.Height) {
     throw 'Startup height clips rows even though screen space is available.'
 }
-Write-Output 'PASS: settings-only hold input, process count after Stop All, content-fit startup bounds and visible rows.'
+Write-Output 'PASS: settings-only hold input, process count after Stop All, visible rotation summary/progress, content-fit startup bounds and visible rows.'

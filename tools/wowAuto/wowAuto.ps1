@@ -1273,7 +1273,7 @@ function Start-Row($Row,[switch]$TaskOnly) {
             if (-not $Row.Validated -or $script:scanning -or $script:editingSettings) {throw '请刷新并通过战斗色块检测。'}
             $wasRunning=$null -ne $Row.FightRow.Session
             Start-AutoFightRow $Row.FightRow
-            if (-not $wasRunning -and $Row.FightRow.Session) {Register-WowAutoExecutionRound $Row}
+            if (-not $wasRunning -and $Row.FightRow.Session) {Register-WowAutoExecutionRound $Row;Register-RotationTaskStart $Row}
             return
         }
         if ($script:pendingGameExits.ContainsKey($Row.Key)) { throw '正在等待游戏退出，请先停止以取消超时保护。' }
@@ -1303,6 +1303,7 @@ function Start-Row($Row,[switch]$TaskOnly) {
         }
         Update-RowStatus $Row
         Register-WowAutoExecutionRound $Row
+        Register-RotationTaskStart $Row
     }
     catch {
         Stop-Row $Row ('无法开始：' + $_.Exception.Message)

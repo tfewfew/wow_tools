@@ -131,6 +131,8 @@ try {
     Assert-Ui ($a.DirectStart.Enabled) 'Starting one process disabled another validated direct-start button.'
     $a.DirectStart.PerformClick()
     Assert-Ui ((Test-UnifiedTaskRunning $a) -and (Test-UnifiedTaskRunning $b)) 'Sequential direct starts did not run both processes.'
+    Assert-Ui ($a.RotationProgress.Text -match '直接开始（当前角色）' -and $b.RotationProgress.Text -match '剩余时间：不参与轮换' -and
+        $a.RotationSwitchCount -eq 0 -and $b.RotationSwitchCount -eq 0) 'Direct start claimed an unverified active slot or a rotation countdown.'
     Stop-Row $a
     Assert-Ui ((Test-UnifiedTaskRunning $b) -and -not $script:rotation.Active.ContainsKey($b.Key) -and
         $script:rotation.LogoutQueue.Count -eq 0 -and $script:rotation.Queue.Count -eq 0 -and
@@ -139,6 +141,8 @@ try {
     Assert-Ui ($b.Start.Enabled -and $b.DirectStart.Enabled) 'Stopping direct start did not restore both start choices.'
     Start-Row $a;Start-Row $b
     Assert-Ui ($script:rotation.Active.Count -eq 2 -and -not (Test-UnifiedTaskRunning $a) -and $script:rotation.NextAt -eq 20000) 'Start bypassed role selection or timers are not global.'
+    Assert-Ui ($a.RotationProgress.Text -match '切换中（目标槽 1）' -and $b.RotationProgress.Text -match '切换中（目标槽 2）' -and
+        $a.RotationSwitchCount -eq 0 -and $b.RotationSwitchCount -eq 0) 'Pending login was shown as an effective slot or counted as a completed switch.'
     $now=0L;$logoutSteps=0
     while (($script:rotation.LogoutQueue.Count -or ($script:rotation.Current -and $script:rotation.Current.Phase -like 'logout-*')) -and $logoutSteps++ -lt 20) {
         Step-RotationTest $now;$now+=300
@@ -163,6 +167,8 @@ try {
     Assert-Ui (($script:rotation.Actions.Action -join ',') -eq 'logout,logout,tripleclick,tripleclick') 'All-process phase barriers or click order changed.'
     Complete-RotationTest ([ref]$now)
     Assert-Ui ((Test-UnifiedTaskRunning $a) -and (Test-UnifiedTaskRunning $b) -and (Get-WowAutoCycleCount $script:scheduler $a.Key) -eq 0 -and [long]$script:scheduler.CyclesSinceJump[$a.Key] -eq 0) 'Initial role login/task start or character counter reset failed.'
+    Assert-Ui ($a.RotationProgress.Text -match '当前生效槽位：槽 1（钓鱼）' -and $b.RotationProgress.Text -match '当前生效槽位：槽 2（钓鱼）' -and
+        $a.RotationSwitchCount -eq 0 -and $b.RotationSwitchCount -eq 0) 'First successful login did not show its effective slot or incorrectly counted a switch.'
     Assert-Ui ($a.State.UseItem -and -not $b.State.UseItem) 'Initial per-slot item choices did not reach engine.'
     $actions=@($script:rotation.Actions | Where-Object {$_.Key -eq $a.Key})
     Assert-Ui (($actions.Action -join ',') -eq 'logout,tripleclick' -and $a.Process.RotationCursorParks -eq 0) 'First-page three-click selection failed or background OCR moved the cursor.'
@@ -171,8 +177,16 @@ try {
     $oldCount=$script:rotation.Actions.Count
     Step-RotationTest 19999
     Assert-Ui ($script:rotation.Actions.Count -eq $oldCount -and -not $script:rotation.Current) 'Switched before global deadline.'
+    $historyCount=$a.StatusHistory.Count;$statusTime=$a.StatusTimestamp
+    Update-BatchControls
+    Assert-Ui ($a.RotationProgress.Text -match '剩余时间：00:00:01' -and $b.RotationProgress.Text -match '剩余时间：00:00:01') 'Per-process countdown did not use the shared deadline or round up remaining milliseconds.'
+    $script:schedulerClock.ElapsedMilliseconds=20000;Update-BatchControls
+    Assert-Ui ($a.RotationProgress.Text -match '剩余时间：00:00:00' -and $a.StatusHistory.Count -eq $historyCount -and
+        $a.StatusTimestamp -eq $statusTime -and $script:rotation.Actions.Count -eq $oldCount) 'Countdown went negative, changed status history/timestamps or generated a game action.'
     Step-RotationTest 20000
     Assert-Ui (-not (Test-UnifiedTaskRunning $a) -and -not (Test-UnifiedTaskRunning $b) -and $script:rotation.Active[$a.Key].Index -eq 2 -and $script:rotation.Active[$b.Key].Index -eq 1) 'Batch did not stop all tasks or cycle slots atomically.'
+    Assert-Ui ($a.RotationProgress.Text -match '切换中（目标槽 3）' -and $a.RotationProgress.Text -match '剩余时间：本轮切换中' -and
+        $a.RotationSwitchCount -eq 0 -and $b.RotationSwitchCount -eq 0) 'Beginning a batch prematurely increased completed switches or kept the old slot effective.'
     $now=20300L;$logoutSteps=0
     $ocrBefore=$a.Process.RotationOcrReads+$b.Process.RotationOcrReads
     while (($script:rotation.LogoutQueue.Count -or ($script:rotation.Current -and $script:rotation.Current.Phase -like 'logout-*')) -and $logoutSteps++ -lt 20) {
@@ -187,12 +201,23 @@ try {
     Complete-RotationTest ([ref]$now)
     Assert-Ui (-not $a.SlotUseItem) 'Combat slot inherited fishing item.'
     Assert-Ui ($a.TaskMode -eq 'fight' -and $a.FightRow.Session -and $b.State.Running) 'Per-slot task modes not started.'
+    Update-BatchControls
+    Assert-Ui ($a.RotationSwitchCount -eq 1 -and $b.RotationSwitchCount -eq 1 -and
+        $a.RotationProgress.Text -match '当前生效槽位：槽 3（战斗）' -and $b.RotationProgress.Text -match '当前生效槽位：槽 2（钓鱼）' -and
+        $a.RotationProgress.Text -match '槽位切换：1 次') 'Completed multi-slot or single-slot relogin was not counted exactly once.'
+    if ($env:WOWAUTO_UNIFIED_PREVIEW_DIRECTORY) {
+        [System.Windows.Forms.Application]::DoEvents()
+        $image=New-Object Drawing.Bitmap($form.Width,$form.Height)
+        try {$form.DrawToBitmap($image,(New-Object Drawing.Rectangle(0,0,$image.Width,$image.Height)));$image.Save((Join-Path $env:WOWAUTO_UNIFIED_PREVIEW_DIRECTORY 'rotation-progress.png'),[Drawing.Imaging.ImageFormat]::Png)} finally {$image.Dispose()}
+    }
     Assert-Ui ($a.FightRow.Session.BuffIntervalSeconds -eq 120 -and $a.FightRow.Session.BuffCount -eq 2 -and
         $a.FightRow.Session.NextBuffAt -lt $now -and $a.FightRow.Session.BuffRemaining -eq 0) 'Rotation login did not arm the first per-class buff cycle.'
     $actions=@($script:rotation.Actions | Select-Object -Skip $oldCount | Where-Object {$_.Key -eq $b.Key})
     Assert-Ui (@($actions | Where-Object {$_.Action -eq 'logout'}).Count -eq 1 -and @($actions | Where-Object {$_.Action -eq 'tripleclick'}).Count -eq 1) 'Single configured character did not log out and log back in.'
     # Unknown screens and incomplete OCR never receive navigation, chat or task input.
     Stop-AllRows;$script:rotation.Actions=@();Start-Row $a
+    Assert-Ui ($a.RotationSwitchCount -eq 0 -and $b.RotationSwitchCount -eq 1 -and $b.RotationProgress.Text -match '当前生效槽位：未运行' -and
+        $b.RotationProgress.Text -match '剩余时间：--') 'Restart did not reset only its own count, or a stopped row kept an active countdown.'
     Step-RotationTest 30000;Step-RotationTest 30300 'unknown';Step-RotationTest 30600 'unknown'
     Assert-Ui (-not $script:rotation.Actions.Count) 'Unknown screen received input.'
     Step-RotationTest 30900 'world';Step-RotationTest 31200 'world';Step-RotationTest 31500 'world';Step-RotationTest 31800 'unknown'
@@ -201,6 +226,7 @@ try {
     Assert-Ui ($script:rotation.Actions.Count -eq $before) 'Settings failed to pause orchestration.'
     Step-RotationTest $script:rotation.Current.Deadline 'unknown'
     Assert-Ui (-not $script:rotation.Active.ContainsKey($a.Key) -and -not (Test-UnifiedTaskRunning $a)) 'Timeout restarted work.'
+    Assert-Ui ($a.RotationSwitchCount -eq 0 -and $a.RotationProgress.Text -match '当前生效槽位：未运行') 'Failed login increased the switch count or left a slot effective.'
     Start-Row $b;Step-RotationTest 211000;$script:workerFocus=-1;$b.Process.FocusAllowed=$false;Step-RotationTest 211300;Step-RotationTest 211600
     Assert-Ui ($script:rotation.Active.ContainsKey($b.Key) -and $script:rotation.Current.FocusUntil -eq 216600) 'First failed activation stopped rotation or missed the five-second deadline.'
     Step-RotationTest 211799
@@ -233,6 +259,7 @@ try {
     Assert-Ui ($script:rotation.NextAt -eq $deadline) 'Saving unchanged interval reset global deadline.'
     Save-RotationConfiguration 0
     Assert-Ui ($script:rotation.NextAt -eq 0 -and $b.State.Running -and $script:rotation.Active.Count -eq 1) 'Disabling timer stopped current role or retained deadline.'
+    Assert-Ui ($b.RotationProgress.Text -match '剩余时间：未启用定时轮换') 'Disabled rotation still displayed a countdown.'
     Save-RotationConfiguration 20;Stop-AllRows
     $b.Process.CommandAllowed=$false;Start-Row $b;$now=220000L;Complete-RotationTest ([ref]$now)
     Assert-Ui (-not $script:rotation.Active.ContainsKey($b.Key) -and -not (Test-UnifiedTaskRunning $b)) 'Failed monitor command started character task.'
@@ -324,6 +351,7 @@ try {
     Complete-RotationTest ([ref]$now)
     Assert-Ui ($a.State.Running -and $script:rotation.Active[$a.Key].Index -eq 2 -and
         (Get-WowAutoCycleCount $script:scheduler $a.Key) -eq 0 -and $script:rotation.Plans[$a.Key].Slots[0].Name -ceq '双持船橘二咪') 'Remaining character did not start or runtime exclusion changed saved plan.'
+    Assert-Ui ($a.RotationSwitchCount -eq 1 -and $b.RotationSwitchCount -eq 0) 'Bag-full role switch changed another process counter or was not counted.'
     $batchAt=$script:rotation.NextAt;Step-RotationTest $batchAt
     Assert-Ui ($script:rotation.Active[$a.Key].Index -eq 2) 'Global batch selected the excluded character.'
     $now=$batchAt+300;Complete-RotationTest ([ref]$now)
@@ -507,6 +535,7 @@ try {
     $a.Process.StartTime=$a.Process.StartTime.AddSeconds(1);$null=Refresh-ProcessRows
     $replacement=@($script:rows.Values | Where-Object {$_.Process.Id -eq $a.Process.Id})[0]
     Assert-Ui (-not (Test-RowHasRotation $replacement)) 'Reused PID inherited character plan.'
+    Assert-Ui ($replacement.RotationSwitchCount -eq 0 -and $replacement.RotationProgress.Text -match '当前生效槽位：未运行') 'Reused PID inherited rotation progress.'
     Assert-Ui ([WowAuto.NativeInput]::RotationCommand('logout',0) -eq '/logout') 'Logout command mapping wrong.'
     foreach ($action in @('arm','probe','delete')) {
         $failed=$false;try {$null=[WowAuto.NativeInput]::RotationCommand($action,77)} catch {$failed=$true};Assert-Ui $failed 'Removed/arbitrary command accepted.'

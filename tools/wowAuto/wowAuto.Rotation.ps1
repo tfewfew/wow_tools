@@ -110,6 +110,32 @@ function Get-RowRotationPlan($Row) {
     return (New-RotationPlan)
 }
 function Test-RowHasRotation($Row) {return (Get-RotationNextSlot (Get-RowRotationPlan $Row) -1) -ge 0}
+function Register-RotationTaskStart($Row) {
+    $entry=$script:rotation.Active[$Row.Key]
+    if ($entry) {
+        $entry.CompletedLogins++
+        $Row.RotationSwitchCount=[Math]::Max(0L,$entry.CompletedLogins-1)
+    } else {$Row.RotationSwitchCount=0L}
+    Update-RotationRow $Row
+}
+function Update-RotationProgress($Row) {
+    $entry=$script:rotation.Active[$Row.Key]
+    $slotText='未运行';$remaining='--'
+    if ($entry) {
+        if (Test-UnifiedTaskRunning $Row) {
+            $mode=if ($entry.Plan.Slots[$entry.Index].Mode -eq 'fight') {'战斗'} else {'钓鱼'}
+            $slotText='槽 '+($entry.Index+1)+'（'+$mode+'）'
+        } else {$slotText='切换中（目标槽 '+($entry.Index+1)+'）'}
+        if (Test-RotationWorkPending) {$remaining='本轮切换中'}
+        elseif (-not $script:rotation.IntervalSeconds) {$remaining='未启用定时轮换'}
+        else {
+            $seconds=[long][Math]::Ceiling([Math]::Max(0L,$script:rotation.NextAt-$script:schedulerClock.ElapsedMilliseconds)/1000.0)
+            $remaining='{0:00}:{1:00}:{2:00}' -f [long][Math]::Floor($seconds/3600.0),([long][Math]::Floor($seconds/60.0)%60),($seconds%60)
+        }
+    } elseif (Test-UnifiedTaskRunning $Row) {$slotText='直接开始（当前角色）';$remaining='不参与轮换'}
+    $text='当前生效槽位：'+$slotText+'    剩余时间：'+$remaining+'    槽位切换：'+$Row.RotationSwitchCount+' 次'
+    if ($Row.RotationProgress.Text -cne $text) {$Row.RotationProgress.Text=$text}
+}
 function Update-RotationRow($Row) {
     if (-not $Row.PSObject.Properties['RotationLabel']) {return}
     $plan=Get-RowRotationPlan $Row
@@ -119,17 +145,20 @@ function Update-RotationRow($Row) {
         if ($slot.Name) {"槽$($i+1)：$($slot.Name) / $mode$(if ($slot.Name -cin $excluded) {'（包满跳过）'})"} else {"槽$($i+1)：空"}
     }
     $Row.RotationLabel.Text=($labels -join '    ')
-    if ($script:rotation.Active.ContainsKey($Row.Key)) {$Row.RotationLabel.Text+='    当前槽：'+($script:rotation.Active[$Row.Key].Index+1)}
+    Update-RotationProgress $Row
     $Row.RotationButton.Enabled=-not $script:scanning -and -not $script:editingSettings
 }
 function Add-RotationRow($Row) {
-    $Row.Panel.Height=190
+    $Row.Panel.Height=224
     $button=New-Object WowAuto.DimButton;$button.Text='角色编排';$button.SetBounds(12,102,130,32);Set-UiButtonStyle $button
-    $label=New-Object System.Windows.Forms.Label;$label.SetBounds(12,146,1180,35);$label.AutoEllipsis=$true
+    $label=New-Object System.Windows.Forms.Label;$label.SetBounds(12,146,($Row.Panel.Width-24),30);$label.AutoEllipsis=$true;$label.Anchor='Top, Left, Right'
+    $progress=New-Object System.Windows.Forms.Label;$progress.SetBounds(12,182,($Row.Panel.Width-24),30);$progress.AutoEllipsis=$true;$progress.Anchor='Top, Left, Right'
     $Row | Add-Member NoteProperty RotationButton $button
     $Row | Add-Member NoteProperty RotationLabel $label
+    $Row | Add-Member NoteProperty RotationProgress $progress
+    $Row | Add-Member NoteProperty RotationSwitchCount 0L
     $button.Tag=$Row;$button.Add_Click({param($sender,$e) Show-RotationEditor $sender.Tag})
-    $Row.Panel.Controls.AddRange([System.Windows.Forms.Control[]]@($button,$label));Update-RotationRow $Row
+    $Row.Panel.Controls.AddRange([System.Windows.Forms.Control[]]@($button,$label,$progress));Update-RotationRow $Row
 }
 function Set-RotationPendingWork($Entry,$Work) {
     $Entry | Add-Member NoteProperty PendingWork $Work -Force
@@ -207,7 +236,8 @@ function Start-RowRotation($Row) {
     $plan=Get-RowRotationPlan $Row;Test-RotationPlan $plan;Test-RowAccountPlan $Row $plan
     $index=Get-RotationNextSlot $plan -1
     Stop-Row $Row '开始角色编排，准备登录第一个有效槽位。' -CancelExit
-    $entry=[pscustomobject]@{Row=$Row;Plan=(Copy-RotationPlan $plan);Index=$index;ExcludedNames=@();LastLogout=-30000L;PreparedTarget=$null;PreparedSlot=-1;SelectionDeadline=0L;RecognitionRetries=0;PendingWork=$null}
+    $entry=[pscustomobject]@{Row=$Row;Plan=(Copy-RotationPlan $plan);Index=$index;CompletedLogins=0L;ExcludedNames=@();LastLogout=-30000L;PreparedTarget=$null;PreparedSlot=-1;SelectionDeadline=0L;RecognitionRetries=0;PendingWork=$null}
+    $Row.RotationSwitchCount=0L
     $script:rotation.Active[$Row.Key]=$entry;$script:rotation.LogoutQueue.Enqueue($entry)
     if (-not $script:rotation.NextAt -and $script:rotation.IntervalSeconds) {$script:rotation.NextAt=$script:schedulerClock.ElapsedMilliseconds+[long]$script:rotation.IntervalSeconds*1000}
     Update-RotationRow $Row
