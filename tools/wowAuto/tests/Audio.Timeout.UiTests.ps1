@@ -104,7 +104,7 @@ try {
     Assert-Ui ($script:settingsWarning -eq '' -and $script:versionRanges.titan.AudioTimeoutMs -eq 35000 -and $script:versionRanges.forerver.AudioTimeoutMs -eq 35000 -and (Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $legacyHash) 'Legacy twelve-key INI failed or was rewritten.'
     $script:scheduler=New-WowAutoScheduler
     $script:schedulerClock=[pscustomobject]@{ElapsedMilliseconds=1000L}
-    $audioCheck.Checked=$true
+    $script:audioDetectionEnabled=$true
     Set-VersionWaitRanges 300 300 600 600 -Persist $false -TitanAudioTimeoutMs 5000 -ForerverAudioTimeoutMs 20000
     $t=@($script:rows.Values | Where-Object {$_.Client.Flavor -eq 'titan'})[0]
     $f=@($script:rows.Values | Where-Object {$_.Client.Flavor -eq 'forerver'})[0]
@@ -136,7 +136,7 @@ try {
     $null=Complete-WowAutoPoll $script:scheduler $t.Key 7200 'green'
     Assert-Ui ($t.State.Deadline -eq 16200) 'Next fishing wait ignored the newly configured client timeout.'
     Stop-AllRows
-    $audioCheck.Checked=$false
+    $script:audioDetectionEnabled=$false
     Start-Row $t
     $null=Complete-WowAutoPoll $script:scheduler $t.Key 20000 'green'
     Assert-Ui (-not $t.State.UseAudio -and $t.State.Deadline -eq 20300 -and @($script:scheduler.Events | Where-Object Kind -eq 'AudioTimeout').Count -eq 0) 'Audio protection altered timed mode.'

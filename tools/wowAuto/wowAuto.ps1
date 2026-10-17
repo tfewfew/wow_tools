@@ -487,7 +487,6 @@ $script:keyBindings=@{
 $script:audioDetectionEnabled=-not $UiTest
 $script:processItemPreferences=@{}
 $script:processModePreferences=@{}
-$script:updatingPreferenceControls=$false
 $script:requiredSettingsKeys = @('TitanMinimumMs','TitanMaximumMs','ForerverMinimumMs','ForerverMaximumMs','FocusRetryIntervalMs')
 $script:audioSettingsKeys = @('TitanAudioThresholdPercent','ForerverAudioThresholdPercent')
 $script:audioTimeoutSettingsKeys = @('TitanAudioTimeoutMs','ForerverAudioTimeoutMs')
@@ -697,16 +696,10 @@ function Import-VersionWaitSettings {
     catch { $script:settingsWarning="config.ini 读取失败，保留当前配置：$($_.Exception.Message)" }
 }
 function Sync-PreferenceControls {
-    $previousGuard=$script:updatingPreferenceControls
-    $script:updatingPreferenceControls=$true
-    try {
-        if ($null -ne $audioCheck) { $audioCheck.Checked=$script:audioDetectionEnabled }
-        foreach ($row in $script:rows.Values) {
-            # Legacy INI choices are read for migration; live task choices belong to the current slot.
-            Set-WowAutoItemEnabled $script:scheduler $row.Key $row.SlotUseItem $script:schedulerClock.ElapsedMilliseconds
-        }
+    foreach ($row in $script:rows.Values) {
+        # Legacy INI choices are read for migration; live task choices belong to the current slot.
+        Set-WowAutoItemEnabled $script:scheduler $row.Key $row.SlotUseItem $script:schedulerClock.ElapsedMilliseconds
     }
-    finally { $script:updatingPreferenceControls=$previousGuard }
 }
 function Save-PreferenceSwitches($AudioDetectionEnabled=$script:audioDetectionEnabled, $ProcessItemPreferences=$script:processItemPreferences, $ProcessModePreferences=$script:processModePreferences) {
     $t=$script:versionRanges.titan; $f=$script:versionRanges.forerver
@@ -716,6 +709,7 @@ if (-not $UiTest) { Import-VersionWaitSettings }
 $script:uiColors=@{
     Background=[System.Drawing.Color]::FromArgb(58,58,58)
     Surface=[System.Drawing.Color]::FromArgb(72,72,72)
+    Heading=[System.Drawing.Color]::FromArgb(92,92,92)
     Input=[System.Drawing.Color]::FromArgb(50,50,50)
     Text=[System.Drawing.Color]::White
     Button=[System.Drawing.Color]::FromArgb(86,86,86)
@@ -805,32 +799,15 @@ $settingsButton.Text = '设置'
 Set-UiButtonStyle $settingsButton
 $settingsButton.SetBounds(665, 10, 110, 35)
 $toolbar.Controls.Add($settingsButton)
-$audioCheck = New-Object WowAuto.DimCheckBox
-$audioCheck.Text = '音频咬钩检测'
-$audioCheck.SetBounds(790, 13, 195, 32)
-$audioCheck.FlatStyle = 'Flat'
-$audioCheck.Checked = $script:audioDetectionEnabled
-$toolbar.Controls.Add($audioCheck)
 $script:restartRequested=$false
 $script:restartCleanupComplete=$false
 $script:restartOptions=$null
 $restartButton = New-Object WowAuto.DimButton
 $restartButton.Text = '重启脚本'
-$restartButton.SetBounds(1000, 10, 130, 35)
+$restartButton.SetBounds(790, 10, 130, 35)
 Set-UiButtonStyle $restartButton
 $toolbar.Controls.Add($restartButton)
 $restartButton.Add_Click({ Request-WowAutoRestart })
-$audioCheck.Add_CheckedChanged({ param($sender,$eventArgs)
-    if ($script:updatingPreferenceControls) { return }
-    try { Save-PreferenceSwitches -AudioDetectionEnabled $sender.Checked }
-    catch {
-        $script:updatingPreferenceControls=$true
-        try { $sender.Checked=$script:audioDetectionEnabled }
-        finally { $script:updatingPreferenceControls=$false }
-        $script:settingsWarning='config.ini 保存失败，音频选项未改变：'+$_.Exception.Message
-        Update-VersionSummary
-    }
-})
 $settingsSummary = New-Object System.Windows.Forms.Label
 $settingsSummary.SetBounds(12, 56, 1250, 52)
 $settingsSummary.Anchor = 'Top, Left, Right'
@@ -992,6 +969,13 @@ function New-WaitSettingsDialog([switch]$Embedded) {
     $keyHint=New-Object System.Windows.Forms.Label
     $keyHint.Text='点击输入框后直接按键，支持 Ctrl / Shift / Alt 组合键。'
     $keyHint.SetBounds(16,98,715,28); $keyGroup.Controls.Add($keyHint)
+    $audioCheck=New-Object WowAuto.DimCheckBox
+    $audioCheck.Text='音频咬钩检测'; $audioCheck.SetBounds(780,414,160,36); $audioCheck.FlatStyle='Flat'
+    $audioCheck.Checked=$script:audioDetectionEnabled
+    $audioCheck.Enabled=$script:scheduler.Tasks.Count -eq 0
+    $dialog.Controls.Add($audioCheck)
+    $audioHint=New-Object System.Windows.Forms.Label
+    $audioHint.Text='停止钓鱼后可修改'; $audioHint.SetBounds(780,460,160,65); $dialog.Controls.Add($audioHint)
     $note=New-Object System.Windows.Forms.Label
     $note.Text="音频模式：匹配成功后随机等待；定时模式：变绿后随机等待。`r`n无咬钩保护从确认绿色开始计时，仅用于音频模式。`r`n配置保存到 config.ini；保护新值从下轮生效，已有截止不变。"
     $note.Text+="`r`n片段选择保存后从下轮使用；试听仅播放1秒匹配片段。"
@@ -1005,7 +989,7 @@ function New-WaitSettingsDialog([switch]$Embedded) {
     $cancel.Text='取消'; $cancel.SetBounds(645,715,95,36); Set-UiButtonStyle $cancel
     $cancel.DialogResult='Cancel'; $dialog.Controls.Add($cancel)
     $dialog.AcceptButton=$apply; $dialog.CancelButton=$cancel
-    $dialog.Tag=[pscustomobject]@{Inputs=$inputs; FocusRetry=$retryInput; ReelHold=$reelHoldInput; StatusLogLimit=$logLimitInput; JumpEveryCycles=$jumpInput; Apply=$apply; Cancel=$cancel; Error=$errorLabel; KeyInputs=$keyInputs; KeyBindings=$draftBindings; KeyTip=$keyTip; Recordings=$recordInputs; StopPreview=$stopPreview; PreviewStatus=$previewStatus; PreviewPlayer=$null}
+    $dialog.Tag=[pscustomobject]@{Inputs=$inputs; FocusRetry=$retryInput; ReelHold=$reelHoldInput; StatusLogLimit=$logLimitInput; JumpEveryCycles=$jumpInput; AudioDetection=$audioCheck; Apply=$apply; Cancel=$cancel; Error=$errorLabel; KeyInputs=$keyInputs; KeyBindings=$draftBindings; KeyTip=$keyTip; Recordings=$recordInputs; StopPreview=$stopPreview; PreviewStatus=$previewStatus; PreviewPlayer=$null}
     $dialog.Add_FormClosed({param($sender,$eventArgs) Stop-AudioPreview $sender})
     $dialog.Add_Disposed({ param($sender,$eventArgs) Stop-AudioPreview $sender; $sender.Tag.KeyTip.Dispose() })
     $cancel.Tag=$dialog; $cancel.Add_Click({param($sender,$eventArgs) Stop-AudioPreview $sender.Tag})
@@ -1024,7 +1008,7 @@ function New-WaitSettingsDialog([switch]$Embedded) {
                 $nextBindings[$action]=New-KeyBinding $draft.Code $draft.Ctrl $draft.Shift $draft.Alt
                 if ($null -eq $nextBindings[$action]) { throw '请选择有效的快捷键。' }
             }
-            Set-VersionWaitRanges $fields.titan.Minimum.Text.Trim() $fields.titan.Maximum.Text.Trim() $fields.forerver.Minimum.Text.Trim() $fields.forerver.Maximum.Text.Trim() -FocusRetryIntervalMs $settingsDialog.Tag.FocusRetry.Text.Trim() -TitanAudioThresholdPercent $fields.titan.AudioThreshold.Text.Trim() -ForerverAudioThresholdPercent $fields.forerver.AudioThreshold.Text.Trim() -ReelHoldMs $nextHold -KeyBindings $nextBindings -TitanAudioTimeoutMs $fields.titan.AudioTimeout.Text.Trim() -ForerverAudioTimeoutMs $fields.forerver.AudioTimeout.Text.Trim() -TitanAudioRecordingId $settingsDialog.Tag.Recordings.titan.Selection.SelectedItem.Id -ForerverAudioRecordingId $settingsDialog.Tag.Recordings.forerver.Selection.SelectedItem.Id -StatusLogLimit $settingsDialog.Tag.StatusLogLimit.Text.Trim() -JumpEveryCycles $settingsDialog.Tag.JumpEveryCycles.Text.Trim()
+            Set-VersionWaitRanges $fields.titan.Minimum.Text.Trim() $fields.titan.Maximum.Text.Trim() $fields.forerver.Minimum.Text.Trim() $fields.forerver.Maximum.Text.Trim() -FocusRetryIntervalMs $settingsDialog.Tag.FocusRetry.Text.Trim() -TitanAudioThresholdPercent $fields.titan.AudioThreshold.Text.Trim() -ForerverAudioThresholdPercent $fields.forerver.AudioThreshold.Text.Trim() -ReelHoldMs $nextHold -KeyBindings $nextBindings -TitanAudioTimeoutMs $fields.titan.AudioTimeout.Text.Trim() -ForerverAudioTimeoutMs $fields.forerver.AudioTimeout.Text.Trim() -TitanAudioRecordingId $settingsDialog.Tag.Recordings.titan.Selection.SelectedItem.Id -ForerverAudioRecordingId $settingsDialog.Tag.Recordings.forerver.Selection.SelectedItem.Id -StatusLogLimit $settingsDialog.Tag.StatusLogLimit.Text.Trim() -JumpEveryCycles $settingsDialog.Tag.JumpEveryCycles.Text.Trim() -AudioDetectionEnabled $settingsDialog.Tag.AudioDetection.Checked
             Stop-AudioPreview $settingsDialog
             if ($settingsDialog.Tag.Embedded) {$settingsDialog.Tag.Error.Text='钓鱼设置已保存。'}
             else {$settingsDialog.DialogResult='OK'}
@@ -1052,7 +1036,7 @@ $intro.Text = '每行通过角色编排设置名称和任务；“开始”按�
 $headings = New-Object System.Windows.Forms.Panel
 $headings.Dock = 'Top'
 $headings.Height = 32
-$headings.BackColor = $script:uiColors.Surface
+$headings.BackColor = $script:uiColors.Heading
 foreach ($heading in @(@('游戏进程 / 版本 / 窗口位置',12,360), @('操作',386,310), @('实时状态（最新日志在上）',716,350))) {
     $label = New-Object System.Windows.Forms.Label
     $label.Text = $heading[0]
@@ -1086,7 +1070,7 @@ function Fit-WindowToContent {
     $workingArea = [System.Windows.Forms.Screen]::FromControl($form).WorkingArea
     $scale = $form.CurrentAutoScaleDimensions.Width / 96.0
     $frameWidth = $form.Width - $form.ClientSize.Width
-    $desiredWidth = [int][Math]::Ceiling([Math]::Max(1330 * $scale, $audioCheck.Right + 28) + $frameWidth)
+    $desiredWidth = [int][Math]::Ceiling([Math]::Max(1330 * $scale, $restartButton.Right + 28) + $frameWidth)
     $rowHeight = $list.Padding.Vertical + 12
     foreach ($row in $script:rows.Values) { $rowHeight += $row.Panel.Height + $row.Panel.Margin.Vertical }
     $rowHeight = [Math]::Max([int](80 * $scale), $rowHeight)
@@ -1171,7 +1155,6 @@ function Set-RowControls($Row) {
     $Row.Start.Enabled = $eligible -and -not $running
     $Row.DirectStart.Enabled = $directEligible -and -not $script:editingSettings -and -not $running
     $Row.Stop.Enabled = $running -or $eligible -or $exiting
-    if ($Row.PSObject.Properties['AccountBox']) {$Row.AccountBox.Enabled=-not $script:scanning -and -not $script:editingSettings -and -not $running -and -not $exiting}
     Update-RotationRow $Row
 }
 
@@ -1296,8 +1279,8 @@ function Start-Row($Row,[switch]$TaskOnly) {
             throw '进程身份已变化，请刷新。'
         }
         $template=$null
-        if ($audioCheck.Checked -and $script:audioUseTemplate) { $template=Get-AudioTemplate $Row.Client.Flavor }
-        $Row.State = Add-WowAutoTask $script:scheduler $Row.Key $newState.MinimumMs $newState.MaximumMs $script:schedulerClock.ElapsedMilliseconds -UseItem $Row.SlotUseItem -UseAudio $audioCheck.Checked -AudioTimeoutMs $range.AudioTimeoutMs
+        if ($script:audioDetectionEnabled -and $script:audioUseTemplate) { $template=Get-AudioTemplate $Row.Client.Flavor }
+        $Row.State = Add-WowAutoTask $script:scheduler $Row.Key $newState.MinimumMs $newState.MaximumMs $script:schedulerClock.ElapsedMilliseconds -UseItem $Row.SlotUseItem -UseAudio $script:audioDetectionEnabled -AudioTimeoutMs $range.AudioTimeoutMs
         if ($Row.State.UseAudio) {
             if ($UiTest) {
                 $capture=[pscustomobject]@{Status='Listening'; Error=''; Peak=0.0; Similarity=0.0; Rejected=0; Session=0L; Bite=0L; Disposed=$false; MinimumSimilarity=$script:audioThresholds[$Row.Client.Flavor]/100.0; Template=$template; TemplateChanges=0}
@@ -1321,7 +1304,7 @@ function Start-Row($Row,[switch]$TaskOnly) {
 
 function New-ProcessRow($Process, $StartTime, [string]$Key, $Client) {
     $panel = New-Object System.Windows.Forms.Panel
-    $panel.Height = 106
+    $panel.Height = 224
     $panel.Width = [Math]::Max(1170, $list.ClientSize.Width - 32)
     $panel.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 6)
     $panel.BackColor = $script:uiColors.Surface
@@ -1347,8 +1330,8 @@ function New-ProcessRow($Process, $StartTime, [string]$Key, $Client) {
     $stop.Enabled = $false
     $panel.Controls.Add($stop)
     $status = New-Object WowAuto.DimStatusLog
-    $status.SetBounds(710, 12, $panel.Width - 722, 82)
-    $status.Anchor = 'Top, Left, Right'
+    $status.SetBounds(710, 12, $panel.Width - 722, $panel.Height - 12)
+    $status.Anchor = 'Top, Bottom, Left, Right'
     $status.Multiline = $true
     $status.MaxLength = 0
     $status.ReadOnly = $true
@@ -1602,7 +1585,6 @@ function Update-BatchControls {
     $startAllButton.Enabled = -not $script:scanning -and -not $script:editingSettings -and $eligible.Count -gt 0
     $settingsButton.Enabled = -not $script:scanning -and -not $script:editingSettings
     $restartButton.Enabled = -not $script:editingSettings -and -not $script:restartRequested
-    $audioCheck.Enabled = -not $script:scanning -and -not $script:editingSettings -and $script:scheduler.Tasks.Count -eq 0
     $stopAllButton.Enabled = $script:scanning -or $script:pendingGameExits.Count -gt 0 -or @($script:rows.Values | Where-Object {Test-UnifiedRowRunning $_}).Count -gt 0
 }
 function Stop-AllRows {

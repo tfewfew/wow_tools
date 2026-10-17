@@ -1,6 +1,6 @@
 ﻿# Run only in wowAuto.ps1 -UiTest; captures and all window/input adapters are mocked.
 Stop-AllRows
-$audioCheck.Checked=$true
+$script:audioDetectionEnabled=$true
 $savedAudioClock=$script:schedulerClock
 $savedAudioRanges=$script:versionRanges
 $script:schedulerClock=[pscustomobject]@{ElapsedMilliseconds=0L}
@@ -96,7 +96,7 @@ try {
     Assert-Ui ($cb.Disposed -and $script:audioCaptures.Count -eq 0 -and $script:scheduler.Events.Count -eq 0) 'Stop all leaked listeners or events.'
 }
 finally {
-    Stop-AllRows; $audioCheck.Checked=$false; $script:schedulerClock=$savedAudioClock
+    Stop-AllRows; $script:audioDetectionEnabled=$false; $script:schedulerClock=$savedAudioClock
     Set-VersionWaitRanges $savedAudioRanges.titan.MinimumMs $savedAudioRanges.titan.MaximumMs $savedAudioRanges.forerver.MinimumMs $savedAudioRanges.forerver.MaximumMs -Persist $false
 }
 Write-Output 'PASS: mocked per-PID capture startup/arming, post-match version delays/live updates/stable countdowns, no early input, item suppression, reel hold/priority, targeted input, stale/idle signal rejection, failure status and listener cleanup.'

@@ -1,6 +1,6 @@
 ﻿# Numerical fixtures only. No audio recording, media playback or game actions.
 Stop-AllRows
-$audioCheck.Checked=$true
+$script:audioDetectionEnabled=$true
 $savedTemplateMode=$script:audioUseTemplate
 $savedThresholds=@{titan=$script:audioThresholds.titan; forerver=$script:audioThresholds.forerver}
 $script:audioUseTemplate=$true
@@ -43,5 +43,5 @@ try {
     Start-Row $row
     Assert-Ui (-not $row.State.Running -and $script:audioCaptures.Count -eq 0) 'Invalid calibration silently fell back to peak detection.'
 }
-finally { Stop-AllRows; $script:audioThresholds=$savedThresholds; Update-VersionSummary; $script:audioUseTemplate=$savedTemplateMode; $audioCheck.Checked=$false }
+finally { Stop-AllRows; $script:audioThresholds=$savedThresholds; Update-VersionSummary; $script:audioUseTemplate=$savedTemplateMode; $script:audioDetectionEnabled=$false }
 Write-Output 'PASS: no recording UI/API, per-version features/configured live thresholds, missing/invalid feature gate, signal/session preservation and stable metric timestamps. No game audio/input.'

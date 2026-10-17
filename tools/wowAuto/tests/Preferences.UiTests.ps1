@@ -32,11 +32,20 @@ try {
         Set-KeyBinding $dialog.Tag.KeyInputs.Cast 49 $true $false $false
         Set-KeyBinding $dialog.Tag.KeyInputs.Reel 187 $false $true $false
         Set-KeyBinding $dialog.Tag.KeyInputs.Item 189 $false $false $true
+        $dialog.Tag.AudioDetection.Checked=$true
         $dialog.Tag.Apply.PerformClick()
         Assert-Ui ($dialog.DialogResult -eq 'OK') 'Complete preferences save failed.'
     }
     finally { $dialog.Dispose() }
-    $audioCheck.Checked=$true
+    $dialog=New-WaitSettingsDialog
+    try {
+        $dialog.Show($form)
+        Assert-Ui ($dialog.Tag.AudioDetection.Checked -and $dialog.ClientRectangle.Contains($dialog.Tag.AudioDetection.Bounds)) 'Saved audio mode missing/clipped in fishing settings.'
+        $dialog.Tag.AudioDetection.Checked=$false
+        Assert-Ui ($script:audioDetectionEnabled) 'Audio draft applied before saving.'
+        $dialog.Tag.Cancel.PerformClick()
+        Assert-Ui ($script:audioDetectionEnabled) 'Cancelling settings changed audio mode.'
+    } finally {$dialog.Dispose()}
     $legacyChoices=@{};$legacyChoices[$preferenceA.Key]=$true;$legacyChoices[$preferenceB.Key]=$false;Save-PreferenceSwitches -ProcessItemPreferences $legacyChoices
     $saved=Read-WowAutoSettingsIni $script:settingsPath
     Assert-Ui ($saved.ReelHoldMs -eq 420 -and $saved.CastKey -eq 'Ctrl+1' -and $saved.ReelKey -eq 'Shift+=' -and $saved.ItemKey -eq 'Alt+-' -and $saved.AudioDetectionEnabled -eq 1) 'Hold/keys/audio mode were not persisted.'
@@ -49,7 +58,7 @@ try {
     Sync-PreferenceControls
     Import-VersionWaitSettings
     Assert-Ui ($script:settingsWarning -eq '' -and $script:scheduler.ReelHoldMs -eq 420 -and $script:keyBindings.Cast.Text -eq 'Ctrl+1' -and $script:keyBindings.Reel.Text -eq 'Shift+=' -and $script:keyBindings.Item.Text -eq 'Alt+-') 'Startup loader lost hold or shortcut preferences.'
-    Assert-Ui ($audioCheck.Checked -and $script:processItemPreferences[$preferenceA.Key] -and -not $script:processItemPreferences[$preferenceB.Key] -and $script:scheduler.Tasks.Count -eq 0) 'Startup loader lost checkbox preferences or started a task.'
+    Assert-Ui ($script:audioDetectionEnabled -and $script:processItemPreferences[$preferenceA.Key] -and -not $script:processItemPreferences[$preferenceB.Key] -and $script:scheduler.Tasks.Count -eq 0) 'Startup loader lost checkbox preferences or started a task.'
     $restoredRow=New-ProcessRow $preferenceA.Process $preferenceA.StartTime $preferenceA.Key $preferenceA.Client
     $newStart=$preferenceA.StartTime.AddSeconds(1)
     $reusedRow=New-ProcessRow $preferenceA.Process $newStart "$($preferenceA.Process.Id):$($newStart.Ticks)" $preferenceA.Client
@@ -58,16 +67,15 @@ try {
     $beforeHash=(Get-FileHash -LiteralPath $script:settingsPath).Hash
     $locked=[IO.File]::Open($script:settingsPath,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
     try {
-        $audioCheck.Checked=$false
         $failed=$false;try {Save-PreferenceSwitches -ProcessItemPreferences @{}} catch {$failed=$true};Assert-Ui $failed "Locked legacy INI should reject save."
-        Assert-Ui ($audioCheck.Checked -and $script:audioDetectionEnabled -and $script:processItemPreferences[$preferenceA.Key] -and $script:processItemPreferences[$preferenceA.Key]) 'Failed checkbox write was applied instead of rolled back.'
         $dialog=New-WaitSettingsDialog
         try {
             $dialog.Show($form)
             $dialog.Tag.ReelHold.Value=700
+            $dialog.Tag.AudioDetection.Checked=$false
             Set-KeyBinding $dialog.Tag.KeyInputs.Cast 113 $false $false $false
             $dialog.Tag.Apply.PerformClick()
-            Assert-Ui ($dialog.DialogResult -ne 'OK' -and $dialog.Tag.Error.Text -ne '' -and $script:scheduler.ReelHoldMs -eq 420 -and $script:keyBindings.Cast.Text -eq 'Ctrl+1') 'Failed complete settings write partially applied hold/keys.'
+            Assert-Ui ($dialog.DialogResult -ne 'OK' -and $dialog.Tag.Error.Text -ne '' -and $script:scheduler.ReelHoldMs -eq 420 -and $script:keyBindings.Cast.Text -eq 'Ctrl+1' -and $script:audioDetectionEnabled) 'Failed settings write partially applied hold/keys/audio.'
         }
         finally { $dialog.Dispose() }
     }
@@ -86,7 +94,7 @@ try {
         [IO.File]::WriteAllText($script:settingsPath,$invalid)
         $invalidHash=(Get-FileHash -LiteralPath $script:settingsPath).Hash
         Import-VersionWaitSettings
-        Assert-Ui ($script:settingsWarning -ne '' -and $script:scheduler.ReelHoldMs -eq 420 -and $script:keyBindings.Cast.Text -eq 'Ctrl+1' -and $audioCheck.Checked -and $script:processItemPreferences[$preferenceA.Key]) 'Invalid preferences partially applied.'
+        Assert-Ui ($script:settingsWarning -ne '' -and $script:scheduler.ReelHoldMs -eq 420 -and $script:keyBindings.Cast.Text -eq 'Ctrl+1' -and $script:audioDetectionEnabled -and $script:processItemPreferences[$preferenceA.Key]) 'Invalid preferences partially applied.'
         Assert-Ui ((Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $invalidHash) 'Loader rewrote an invalid preference file.'
     }
     foreach ($legacyCount in @(5,7)) {
@@ -95,7 +103,7 @@ try {
         [IO.File]::WriteAllText($script:settingsPath,($legacyLines -join "`r`n")+"`r`n")
         $legacyHash=(Get-FileHash -LiteralPath $script:settingsPath).Hash
         Import-VersionWaitSettings
-        Assert-Ui ($script:settingsWarning -eq '' -and $script:scheduler.ReelHoldMs -eq 420 -and $script:keyBindings.Reel.Text -eq 'Shift+=' -and $audioCheck.Checked -and -not $script:processItemPreferences[$preferenceA.Key]) 'Legacy INI compatibility lost defaults or kept unrecorded process choices.'
+        Assert-Ui ($script:settingsWarning -eq '' -and $script:scheduler.ReelHoldMs -eq 420 -and $script:keyBindings.Reel.Text -eq 'Shift+=' -and $script:audioDetectionEnabled -and -not $script:processItemPreferences[$preferenceA.Key]) 'Legacy INI compatibility lost defaults or kept unrecorded process choices.'
         Assert-Ui ((Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $legacyHash) 'Startup rewrote a legacy INI.'
     }
     Assert-Ui ($script:workerKeys.Count -eq $keysBefore -and $script:workerActivations.Count -eq $focusBefore -and $script:scheduler.Tasks.Count -eq 0) 'Preference restoration sent game input, switched focus or started work.'

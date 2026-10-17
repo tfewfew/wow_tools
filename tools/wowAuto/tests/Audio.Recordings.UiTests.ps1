@@ -114,7 +114,7 @@ try {
     [IO.File]::WriteAllText($script:settingsPath,$legacy); $legacyHash=(Get-FileHash -LiteralPath $script:settingsPath).Hash
     Import-VersionWaitSettings
     Assert-Ui ($script:settingsWarning -eq '' -and (Get-FileHash -LiteralPath $script:settingsPath).Hash -eq $legacyHash) 'Legacy fourteen-key INI failed or was rewritten.'
-    $audioCheck.Checked=$true
+    $script:audioDetectionEnabled=$true
     $t=@($script:rows.Values | Where-Object {$_.Client.Flavor -eq 'titan'})[0]
     $f=@($script:rows.Values | Where-Object {$_.Client.Flavor -eq 'forerver'})[0]
     foreach($row in @($t,$f)) {$row.Validated=$true; $row.Exited=$false; $row.Process.HasExited=$false; $row.Process.FocusAllowed=$true; $row.Process.ScanColor='green'; $row.SlotUseItem=$false; Start-Row $row; $row.State.AudioReady=$true; $null=Complete-WowAutoPoll $script:scheduler $row.Key 1000 'green'}

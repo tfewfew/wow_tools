@@ -34,7 +34,9 @@ try {
     Assert-Ui ($catalog.Count -eq 3 -and @($catalog | Where-Object {$_.Name -eq 'SavedVariables'}).Count -eq 0) 'Non-account folder leaked into catalog.'
     Assert-Ui (@(Get-RowAccountNames $row 'EMPTY').Count -eq 0) 'Empty account invented character names.'
     Update-RowAccountChoices $row
-    Assert-Ui ($row.AccountBox.Items.Count -eq 4 -and $row.AccountBox.SelectedIndex -eq 0 -and -not $row.AccountName) 'Ambiguous process account was guessed.'
+    Assert-Ui ($row.AccountNames.Count -eq 3 -and -not $row.AccountName -and -not $row.PSObject.Properties['AccountBox'] -and -not $row.PSObject.Properties['AccountHint']) 'Ambiguous account was guessed or main-row account controls remain.'
+    $editor=New-RotationEditor $row
+    try {Assert-Ui ($editor.Tag.Account.Items.Count -eq 4 -and $editor.Tag.Account.SelectedIndex -eq 0) 'Editor account selector is missing or guessed an account.'} finally {$editor.Dispose()}
     Assert-Ui (-not $row.PSObject.Properties['ItemCheck']) 'Old per-process item checkbox remains.'
     $plan=New-RotationPlan;$plan.Slots[0].Name='钓鱼角色';$plan.Slots[0].UseItem=$true;$plan.Slots[2].Name='战斗角色';$plan.Slots[2].Mode='fight'
     $plans=@{};$plans[$row.Key]=$plan;Save-RotationConfiguration -Plans $plans;Update-RowAccountChoices $row
@@ -50,7 +52,7 @@ try {
     $planHash=(Get-FileHash $script:rotation.Path).Hash
     $refreshButton.PerformClick();Complete-TestScan
     Assert-Ui ([object]::ReferenceEquals($row,$script:rows[$row.Key]) -and $row.AccountName -ceq 'ACCOUNT#1' -and
-        $row.AccountHint.Text -match '角色已刷新：3 个' -and (Get-FileHash $script:rotation.Path).Hash -eq $planHash) 'Refresh did not report fresh roles or changed the selected account/role plan.'
+        @(Get-RowAccountNames $row).Count -eq 3 -and (Get-FileHash $script:rotation.Path).Hash -eq $planHash) 'Refresh did not read fresh roles or changed the selected account/role plan.'
     $updated=@(@(Get-RowAccounts $row | Where-Object Name -eq 'ACCOUNT#1')[0].Characters | Where-Object {$_.Name -ceq '钓鱼角色' -and $_.Realm -eq 'RealmA'})[0]
     Assert-Ui ($updated.Level -eq 82 -and $updated.FreeBagSlots -eq 4 -and $updated.RecordedAt -eq 1792200060) 'Process refresh did not expose updated character metadata.'
     $editor=New-RotationEditor $row
@@ -58,23 +60,41 @@ try {
     [IO.File]::WriteAllText((Join-Path $newRole 'SavedVariables\wow_tools.lua'),'wowToolsCharacterRecord = {')
     $refreshButton.PerformClick();Complete-TestScan
     $editor=New-RotationEditor $row
-    try {Assert-Ui ($row.AccountHint.Text -match '角色已刷新：2 个' -and -not $editor.Tag.Slots[0].Name.Items.Contains('新下线角色') -and
+    try {Assert-Ui ($editor.Tag.Slots[0].Name.Items.Count -eq 2 -and -not $editor.Tag.Slots[0].Name.Items.Contains('新下线角色') -and
         $editor.Tag.Slots[0].Name.Text -ceq '钓鱼角色' -and (Get-FileHash $script:rotation.Path).Hash -eq $planHash) 'Invalidated character record stayed in the refreshed menu or altered the saved slots.'} finally {$editor.Dispose()}
     $row.Validated=$true;$row.State=Add-WowAutoTask $script:scheduler $row.Key 1000 1000 0 -UseItem $true
-    $row.AccountBox.SelectedItem='ACCOUNT#2'
-    Assert-Ui ($row.AccountName -ceq 'ACCOUNT#2' -and $script:rotation.Plans[$row.Key].Account -ceq 'ACCOUNT#2' -and -not (Test-UnifiedTaskRunning $row) -and -not $row.Validated) 'Account change did not persist and stop/invalidate its task.'
+    $editor=New-RotationEditor $row
+    try {
+        $editor.Show($form);[Windows.Forms.Application]::DoEvents()
+        Assert-Ui ($editor.ClientRectangle.Contains($editor.Tag.Account.Bounds) -and $editor.Tag.Account.Bottom -lt $editor.Tag.Slots[0].Name.Top) 'Account selector is clipped or overlaps slots.'
+        $editor.Tag.Account.SelectedItem='ACCOUNT#2'
+        Assert-Ui ($editor.Tag.Slots[0].Name.Items.Count -eq 1 -and $editor.Tag.Slots[0].Name.Items.Contains('另一个角色') -and $editor.Tag.Slots[0].Name.Text -ceq '钓鱼角色') 'Account dropdown leaked history or silently cleared old plan.'
+        Assert-Ui ($row.AccountName -ceq 'ACCOUNT#1' -and $row.Validated -and (Test-UnifiedTaskRunning $row) -and (Get-FileHash $script:rotation.Path).Hash -eq $planHash) 'Account draft changed the saved selection, validation or running task.'
+        $editor.Tag.Save.PerformClick()
+        Assert-Ui ($editor.Visible -and $editor.Tag.Error.Text -match '没有角色') 'Invalid old role was silently saved for another account.'
+        $editor.Tag.Cancel.PerformClick()
+        Assert-Ui ($row.AccountName -ceq 'ACCOUNT#1' -and $row.Validated -and (Test-UnifiedTaskRunning $row)) 'Cancelling account draft changed its running process.'
+    } finally {$editor.Dispose()}
+    $hash=(Get-FileHash $script:rotation.Path).Hash
+    $editor=New-RotationEditor $row
+    try {
+        $editor.Show($form);[Windows.Forms.Application]::DoEvents()
+        $editor.Tag.Account.SelectedItem='ACCOUNT#2';$editor.Tag.Slots[0].Name.Text='另一个角色';$editor.Tag.Slots[2].Name.Text=''
+        $locked=[IO.File]::Open($script:rotation.Path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
+        try {$editor.Tag.Save.PerformClick()} finally {$locked.Dispose()}
+        Assert-Ui ($editor.Visible -and $row.AccountName -ceq 'ACCOUNT#1' -and $row.Validated -and (Test-UnifiedTaskRunning $row) -and (Get-FileHash $script:rotation.Path).Hash -eq $hash) 'Failed account save applied draft or stopped the task.'
+        $editor.Tag.Save.PerformClick()
+        Assert-Ui (-not $editor.Visible -and $row.AccountName -ceq 'ACCOUNT#2' -and $script:rotation.Plans[$row.Key].Account -ceq 'ACCOUNT#2' -and -not (Test-UnifiedTaskRunning $row) -and -not $row.Validated) 'Account/slot save did not persist and stop/invalidate its task.'
+    } finally {$editor.Dispose()}
     $failed=$false;try {Test-RowAccountPlan $row $plan} catch {$failed=$true};Assert-Ui $failed 'Foreign-account role was accepted.'
     $editor=New-RotationEditor $row
     try {
-        Assert-Ui ($editor.Tag.Slots[0].Name.Items.Count -eq 1 -and $editor.Tag.Slots[0].Name.Items.Contains('另一个角色') -and $editor.Tag.Slots[0].Name.Text -ceq '钓鱼角色') 'Account dropdown leaked history or silently cleared old plan.'
-        $editor.Show($form);[Windows.Forms.Application]::DoEvents();$editor.Tag.Save.PerformClick()
-        Assert-Ui ($editor.Visible -and $editor.Tag.Error.Text -match '没有角色') 'Invalid old role was silently saved for another account.'
+        $editor.Show($form);[Windows.Forms.Application]::DoEvents()
+        $editor.Tag.Account.SelectedItem='ACCOUNT#1'
+        $editor.Tag.Slots[0].Name.Text='钓鱼角色';$editor.Tag.Slots[2].Name.Text='战斗角色'
+        $editor.Tag.Save.PerformClick()
+        Assert-Ui (-not $editor.Visible -and $row.AccountName -ceq 'ACCOUNT#1') 'Changing back to the original account failed.'
     } finally {$editor.Dispose()}
-    $hash=(Get-FileHash $script:rotation.Path).Hash
-    $locked=[IO.File]::Open($script:rotation.Path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
-    try {$row.AccountBox.SelectedItem='ACCOUNT#1'} finally {$locked.Dispose()}
-    Assert-Ui ($row.AccountName -ceq 'ACCOUNT#2' -and $row.AccountBox.SelectedItem -ceq 'ACCOUNT#2' -and (Get-FileHash $script:rotation.Path).Hash -eq $hash) 'Failed account save was not rolled back.'
-    $row.AccountBox.SelectedItem='ACCOUNT#1'
     $editor=New-RotationEditor $row
     try {
         $editor.Show($form);[Windows.Forms.Application]::DoEvents()

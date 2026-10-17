@@ -144,15 +144,15 @@ function Update-RotationRow($Row) {
         $slot=$plan.Slots[$i];$mode=if ($slot.Mode -eq 'fight') {'战斗'} else {'钓鱼'}
         if ($slot.Name) {"槽$($i+1)：$($slot.Name) / $mode$(if ($slot.Name -cin $excluded) {'（包满跳过）'})"} else {"槽$($i+1)：空"}
     }
-    $Row.RotationLabel.Text=($labels -join '    ')
+    $Row.RotationLabel.Text=($labels -join [Environment]::NewLine)
     Update-RotationProgress $Row
     $Row.RotationButton.Enabled=-not $script:scanning -and -not $script:editingSettings
 }
 function Add-RotationRow($Row) {
     $Row.Panel.Height=224
     $button=New-Object WowAuto.DimButton;$button.Text='角色编排';$button.SetBounds(12,102,130,32);Set-UiButtonStyle $button
-    $label=New-Object System.Windows.Forms.Label;$label.SetBounds(12,146,($Row.Panel.Width-24),30);$label.AutoEllipsis=$true;$label.Anchor='Top, Left, Right'
-    $progress=New-Object System.Windows.Forms.Label;$progress.SetBounds(12,182,($Row.Panel.Width-24),30);$progress.AutoEllipsis=$true;$progress.Anchor='Top, Left, Right'
+    $label=New-Object System.Windows.Forms.Label;$label.SetBounds(160,100,538,84);$label.AutoEllipsis=$true
+    $progress=New-Object System.Windows.Forms.Label;$progress.SetBounds(12,192,686,26);$progress.AutoEllipsis=$true
     $Row | Add-Member NoteProperty RotationButton $button
     $Row | Add-Member NoteProperty RotationLabel $label
     $Row | Add-Member NoteProperty RotationProgress $progress
@@ -705,23 +705,45 @@ function New-RotationIntervalControls($SettingsOwner) {
     $bar.Controls.AddRange([System.Windows.Forms.Control[]]@($label,$value,$ocrLabel,$ocrValue,$hint,$save,$errorLabel));$SettingsOwner.Controls.Add($bar);$bar.SendToBack()
     return [pscustomobject]@{Value=$value;OcrValue=$ocrValue;Save=$save;Error=$errorLabel}
 }
+function Update-RotationEditorNames($Editor) {
+    $account=if ($Editor.Account.SelectedIndex -gt 0) {[string]$Editor.Account.SelectedItem} else {''}
+    $names=@(Get-RowAccountNames $Editor.Row $account)
+    foreach ($slot in $Editor.Slots) {
+        # Keep old/draft names visible; membership is checked atomically when saving.
+        $text=$slot.Name.Text
+        $slot.Name.Items.Clear();$slot.Name.Items.AddRange([object[]]$names);$slot.Name.Text=$text
+    }
+}
 function New-RotationEditor($Row) {
     $dialog=New-Object WowAuto.DimForm;$dialog.Text='PID '+$Row.Process.Id+' · 三槽位角色编排';$dialog.Font=$form.Font
     $dialog.BackColor=$script:uiColors.Background;$dialog.ForeColor=$script:uiColors.Text;$dialog.AutoScaleMode='Dpi'
-    $dialog.StartPosition='CenterParent';$dialog.ClientSize=New-Object Drawing.Size(950,355)
+    $dialog.StartPosition='CenterParent';$dialog.ClientSize=New-Object Drawing.Size(950,415)
     Update-RowAccountChoices $Row
-    $names=@(Get-RowAccountNames $Row)
     $plan=Copy-RotationPlan (Get-RowRotationPlan $Row)
     foreach ($slot in $plan.Slots) {if (-not $slot.PSObject.Properties['UseItem']) {$slot | Add-Member NoteProperty UseItem $false}}
-    $hint=New-Object System.Windows.Forms.Label;$hint.Text='子战网：'+$Row.AccountName+'。输入或选择该子战网插件记录中的完整角色名；留空为空槽，每槽独立选择任务与钓鱼道具。';$hint.SetBounds(15,15,920,52);$dialog.Controls.Add($hint)
+    $accountLabel=New-Object System.Windows.Forms.Label;$accountLabel.Text='子战网';$accountLabel.SetBounds(20,20,190,30)
+    $accountBox=New-Object System.Windows.Forms.ComboBox;$accountBox.DropDownStyle='DropDownList';$accountBox.SetBounds(220,15,475,34)
+    $accountBox.BackColor=$script:uiColors.Input;$accountBox.ForeColor=$script:uiColors.Text;$accountBox.FlatStyle='Flat'
+    $accountBox.DrawMode='OwnerDrawFixed';$accountBox.ItemHeight=26
+    $accountBox.Add_DrawItem({param($sender,$e)
+        if ($e.Index -lt 0) {return}
+        $brush=New-Object Drawing.SolidBrush($sender.BackColor)
+        try {$e.Graphics.FillRectangle($brush,$e.Bounds)} finally {$brush.Dispose()}
+        [System.Windows.Forms.TextRenderer]::DrawText($e.Graphics,[string]$sender.Items[$e.Index],$sender.Font,$e.Bounds,[Drawing.Color]::White)
+        $e.DrawFocusRectangle()
+    })
+    [void]$accountBox.Items.Add('请选择子战网');$accountBox.Items.AddRange([object[]]$Row.AccountNames)
+    $accountBox.SelectedIndex=if ($Row.AccountName -and $accountBox.Items.Contains($Row.AccountName)) {$accountBox.Items.IndexOf($Row.AccountName)} else {0}
+    $hint=New-Object System.Windows.Forms.Label;$hint.Text='输入或选择该子战网插件记录中的完整角色名；留空为空槽，每槽独立选择任务与钓鱼道具。';$hint.SetBounds(20,64,910,52)
+    $dialog.Controls.AddRange([System.Windows.Forms.Control[]]@($accountLabel,$accountBox,$hint))
     $controls=@()
     for ($i=0;$i -lt 3;$i++) {
-        $label=New-Object System.Windows.Forms.Label;$label.Text='槽位 '+($i+1)+' · 角色名称';$label.SetBounds(20,(75+$i*48),190,30)
+        $label=New-Object System.Windows.Forms.Label;$label.Text='槽位 '+($i+1)+' · 角色名称';$label.SetBounds(20,(135+$i*48),190,30)
         $text=New-Object System.Windows.Forms.ComboBox;$text.DropDownStyle='DropDown';$text.MaxLength=24
-        $text.Items.AddRange([object[]]$names);$text.Text=$plan.Slots[$i].Name;$text.SetBounds(220,(70+$i*48),270,34)
+        $text.Text=$plan.Slots[$i].Name;$text.SetBounds(220,(130+$i*48),270,34)
         $text.FlatStyle='Flat';$text.AutoCompleteMode='Suggest';$text.AutoCompleteSource='ListItems'
         $text.BackColor=$script:uiColors.Input;$text.ForeColor=$script:uiColors.Text
-        $mode=New-Object System.Windows.Forms.ComboBox;$mode.DropDownStyle='DropDownList';$mode.Items.AddRange([object[]]@('钓鱼','战斗'));$mode.SelectedIndex=if ($plan.Slots[$i].Mode -eq 'fight') {1} else {0};$mode.SetBounds(525,(70+$i*48),170,34)
+        $mode=New-Object System.Windows.Forms.ComboBox;$mode.DropDownStyle='DropDownList';$mode.Items.AddRange([object[]]@('钓鱼','战斗'));$mode.SelectedIndex=if ($plan.Slots[$i].Mode -eq 'fight') {1} else {0};$mode.SetBounds(525,(130+$i*48),170,34)
         $mode.BackColor=$script:uiColors.Input;$mode.ForeColor=$script:uiColors.Text;$mode.FlatStyle='Flat';$mode.DrawMode='OwnerDrawFixed';$mode.ItemHeight=26
         $mode.Add_DrawItem({param($sender,$e)
             if ($e.Index -lt 0) {return}
@@ -729,24 +751,35 @@ function New-RotationEditor($Row) {
             try {$e.Graphics.FillRectangle($brush,$e.Bounds)} finally {$brush.Dispose()}
             [System.Windows.Forms.TextRenderer]::DrawText($e.Graphics,[string]$sender.Items[$e.Index],$sender.Font,$e.Bounds,[Drawing.Color]::White)
         })
-        $item=New-Object WowAuto.DimCheckBox;$item.Text='钓鱼道具';$item.SetBounds(720,(70+$i*48),190,34);$item.FlatStyle='Flat';$item.Checked=[bool]$plan.Slots[$i].UseItem;$item.Enabled=$mode.SelectedIndex -eq 0
+        $item=New-Object WowAuto.DimCheckBox;$item.Text='钓鱼道具';$item.SetBounds(720,(130+$i*48),190,34);$item.FlatStyle='Flat';$item.Checked=[bool]$plan.Slots[$i].UseItem;$item.Enabled=$mode.SelectedIndex -eq 0
         $mode.Tag=$item;$mode.Add_SelectedIndexChanged({param($sender,$e) $sender.Tag.Enabled=$sender.SelectedIndex -eq 0})
         $dialog.Controls.AddRange([System.Windows.Forms.Control[]]@($label,$text,$mode,$item));$controls+=,[pscustomobject]@{Name=$text;Mode=$mode;UseItem=$item}
     }
-    $errorLabel=New-Object System.Windows.Forms.Label;$errorLabel.SetBounds(20,223,910,70)
+    $errorLabel=New-Object System.Windows.Forms.Label;$errorLabel.SetBounds(20,283,910,70)
     $errorLabel.Text='下拉框只显示启动过检测并正常下线留下插件记录的角色；旧名称保留在输入框供核对。新角色须先在游戏内启动一次钓鱼或战斗检测后下线。'
-    $save=New-Object WowAuto.DimButton;$save.Text='保存编排';$save.SetBounds(430,300,135,36);Set-UiButtonStyle $save $true
-    $cancel=New-Object WowAuto.DimButton;$cancel.Text='取消';$cancel.SetBounds(585,300,125,36);Set-UiButtonStyle $cancel
-    $dialog.Tag=[pscustomobject]@{Row=$Row;Plan=$plan;Slots=$controls;Error=$errorLabel;Save=$save}
+    if ($Row.AccountError) {$errorLabel.Text=$Row.AccountError}
+    $save=New-Object WowAuto.DimButton;$save.Text='保存编排';$save.SetBounds(430,360,135,36);Set-UiButtonStyle $save $true
+    $cancel=New-Object WowAuto.DimButton;$cancel.Text='取消';$cancel.SetBounds(585,360,125,36);Set-UiButtonStyle $cancel
+    $dialog.Tag=[pscustomobject]@{Row=$Row;Plan=$plan;Account=$accountBox;Slots=$controls;Error=$errorLabel;Save=$save;Cancel=$cancel}
+    try {Update-RotationEditorNames $dialog.Tag} catch {$errorLabel.Text=$_.Exception.Message}
+    $accountBox.Tag=$dialog
+    $accountBox.Add_SelectedIndexChanged({param($sender,$e)
+        try {Update-RotationEditorNames $sender.Tag.Tag;$sender.Tag.Tag.Error.Text=''}
+        catch {$sender.Tag.Tag.Error.Text=$_.Exception.Message}
+    })
     $save.Tag=$dialog;$save.Add_Click({param($sender,$e)
         $editor=$sender.Tag.Tag
         try {
             for ($i=0;$i -lt 3;$i++) {$editor.Plan.Slots[$i].Name=$editor.Slots[$i].Name.Text.Trim();$editor.Plan.Slots[$i].Mode=if ($editor.Slots[$i].Mode.SelectedIndex -eq 1) {'fight'} else {'fish'};$editor.Plan.Slots[$i].UseItem=$editor.Slots[$i].UseItem.Checked -and $editor.Plan.Slots[$i].Mode -eq 'fish'}
-            $editor.Plan | Add-Member NoteProperty Account $editor.Row.AccountName -Force
-            Test-RotationPlan $editor.Plan;Test-RowAccountPlan $editor.Row $editor.Plan
+            $account=if ($editor.Account.SelectedIndex -gt 0) {[string]$editor.Account.SelectedItem} else {''}
+            $accountChanged=$editor.Row.AccountName -cne $account
+            $editor.Plan | Add-Member NoteProperty Account $account -Force
+            Test-RotationPlan $editor.Plan;Test-RowAccountPlan $editor.Row $editor.Plan $account
             $next=$script:rotation.Plans.Clone();$next[$editor.Row.Key]=Copy-RotationPlan $editor.Plan
             Save-RotationConfiguration -Plans $next
+            $editor.Row.AccountName=$account
             Stop-Row $editor.Row '编排已保存，任务停止；点击开始从首个有效槽位运行。' -CancelExit
+            if ($accountChanged) {$editor.Row.Validated=$false}
             # The detector validates the process and task mode, not the planned name/order/items.
             # Set-RowSlotTask invalidates it through Set-RowTaskMode if the mode changes.
             $index=Get-RotationNextSlot $editor.Plan -1

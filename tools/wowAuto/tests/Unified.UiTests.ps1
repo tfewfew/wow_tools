@@ -34,7 +34,7 @@ try {
     $null=Refresh-ProcessRows
     $combat=@($script:rows.Values | Where-Object {$_.Process.Id -eq 701})[0]
     $fishing=@($script:rows.Values | Where-Object {$_.Process.Id -eq 702})[0]
-    Assert-Ui ($tabs.TabPages.Count -eq 1 -and -not $combat.PSObject.Properties['ModeBox'] -and @($combat.Panel.Controls | Where-Object {$_ -is [System.Windows.Forms.ComboBox]}).Count -eq 1) 'Main UI still has two task tabs or incorrect default.'
+    Assert-Ui ($tabs.TabPages.Count -eq 1 -and -not $combat.PSObject.Properties['ModeBox'] -and @($combat.Panel.Controls | Where-Object {$_ -is [System.Windows.Forms.ComboBox]}).Count -eq 0) 'Main UI still has two task tabs or a main-row selector.'
     Set-RowTaskMode $combat fight
     Assert-Ui ($combat.TaskMode -eq 'fight' -and $combat.FightRow -and -not $combat.Validated) 'Mode selector failed to attach combat engine.'
     Assert-Ui (-not $combat.FightRow.PSObject.Properties['MoveButtons'] -and
@@ -74,7 +74,7 @@ try {
     $combat.Process.FocusAllowed=$true
     Begin-RefreshScan; Complete-TestScan
     # Due combat precedes a fishing reel; activation settling and post-reel holds still apply.
-    Stop-AllRows; $audioCheck.Checked=$false
+    Stop-AllRows; $script:audioDetectionEnabled=$false
     $script:scheduler=New-WowAutoScheduler
     $script:autoFight.CommandGate=New-AutoFightCommandGate
     $combat.FightRow.CanStart=$true; $combat.Validated=$true; Start-Row $combat
@@ -100,6 +100,8 @@ try {
     Assert-Ui ($script:workerKeys.Count -eq $keys+1 -and $script:workerKeys[-1] -eq "$($fishing.Process.Id):$($script:keyBindings.Reel.Code)" -and (Get-WowAutoCycleCount $script:scheduler $fishing.Key) -eq 1) 'Due reel was lost after combat or cycle state changed.'
     $script:schedulerClock.ElapsedMilliseconds=1401; Invoke-UnifiedTick 1401
     Assert-Ui ([WowAutoFight.Native]::Sends -eq $sends+1 -and $script:workerFocus -eq $fishing.Process.Id) 'Combat stole post-reel foreground hold.'
+    $audioEditor=New-WaitSettingsDialog
+    try {Assert-Ui (-not $audioEditor.Tag.AudioDetection.Enabled) 'Audio mode can change while fishing tasks are active.'} finally {$audioEditor.Dispose()}
     Stop-AllRows
     $script:editingSettings=$true
     $dialog=New-UnifiedSettingsDialog
@@ -109,12 +111,15 @@ try {
         $savedTarget=$script:autoFight.Common.TargetKey
         $dialog.Tag.Fight.Tag.CommonBindings.TargetKey.Text='Ctrl+Tab'
         $before=$script:versionRanges.titan.MinimumMs
+        $beforeAudio=$script:audioDetectionEnabled
+        $dialog.Tag.Fish.Tag.AudioDetection.Checked=-not $beforeAudio
         $dialog.Tag.Fish.Tag.Inputs.titan.Minimum.Value=$before+100
         $dialog.Tag.Fish.Tag.Inputs.titan.Maximum.Value=$before+200
         Assert-Ui ($script:versionRanges.titan.MinimumMs -eq $before -and $script:autoFight.Common.TargetKey -eq $savedTarget) 'Embedded drafts applied before save.'
         $dialog.Tag.Tabs.SelectedIndex=1; $dialog.Tag.Fight.Tag.Save.PerformClick()
-        Assert-Ui ($script:autoFight.Common.TargetKey -eq 'Ctrl+Tab' -and $script:versionRanges.titan.MinimumMs -eq $before -and $dialog.Visible) 'Saving combat changed fishing or closed embedded page.'
+        Assert-Ui ($script:autoFight.Common.TargetKey -eq 'Ctrl+Tab' -and $script:versionRanges.titan.MinimumMs -eq $before -and $script:audioDetectionEnabled -eq $beforeAudio -and $dialog.Visible) 'Saving combat changed fishing/audio or closed embedded page.'
         $dialog.Tag.Tabs.SelectedIndex=0; $dialog.Tag.Fish.Tag.Apply.PerformClick()
+        Assert-Ui ($script:audioDetectionEnabled -eq (-not $beforeAudio) -and (Read-WowAutoSettingsIni $script:settingsPath).AudioDetectionEnabled -eq [int](-not $beforeAudio)) 'Embedded fishing save did not persist audio mode.'
         Assert-Ui ($script:versionRanges.titan.MinimumMs -eq $before+100 -and $dialog.Visible) ('Embedded fishing save failed: '+$dialog.Tag.Fish.Tag.Error.Text+'; actual='+$script:versionRanges.titan.MinimumMs+'; before='+$before+'; visible='+$dialog.Visible)
         if ($env:WOWAUTO_UNIFIED_PREVIEW_DIRECTORY) {
             foreach ($preview in @(@('unified-main.png',$form),@('unified-settings-fish.png',$dialog))) {

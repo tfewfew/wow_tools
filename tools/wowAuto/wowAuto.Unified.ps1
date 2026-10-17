@@ -18,7 +18,7 @@ function Add-ProcessTaskControls($Row) {
     $plan=Get-RowRotationPlan $Row;$index=Get-RotationNextSlot $plan -1
     if ($index -ge 0) {Set-RowSlotTask $Row $plan.Slots[$index]}
     Add-RotationRow $Row
-    Add-RowAccountControls $Row
+    Initialize-RowAccount $Row
 }
 function Ensure-UnifiedFightRow($Row) {
     if ($Row.FightRow) {return}

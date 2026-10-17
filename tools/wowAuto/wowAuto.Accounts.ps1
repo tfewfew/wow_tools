@@ -126,8 +126,7 @@ function Test-RowAccountPlan($Row,$Plan,[string]$Account=$Row.AccountName) {
     }
 }
 function Update-RowAccountChoices($Row) {
-    if (-not $Row.PSObject.Properties['AccountBox']) {return}
-    $Row.UpdatingAccount=$true
+    if (-not $Row.PSObject.Properties['AccountName']) {return}
     try {
         $accounts=@(Get-RowAccounts $Row)
         $plan=Get-RowRotationPlan $Row
@@ -141,46 +140,18 @@ function Update-RowAccountChoices($Row) {
             })
             if ($candidates.Count -eq 1) {$selected=$candidates[0].Name}
         }
-        $Row.AccountBox.Items.Clear();[void]$Row.AccountBox.Items.Add('请选择子战网')
-        foreach ($account in $accounts) {[void]$Row.AccountBox.Items.Add($account.Name)}
         $Row.AccountName=$selected
-        $Row.AccountBox.SelectedIndex=if ($selected -and $Row.AccountBox.Items.Contains($selected)) {$Row.AccountBox.Items.IndexOf($selected)} else {0}
-        if ($selected -and $Row.AccountBox.SelectedIndex -eq 0) {$Row.AccountHint.Text='已保存子战网不存在，请重新选择'}
-        elseif (-not $selected) {$Row.AccountHint.Text='子战网与角色记录已刷新，请选择子战网。'}
-        else {
-            $account=@($accounts | Where-Object {$_.Name -ceq $selected})[0]
-            $count=@($account.Characters.Name | Sort-Object -Unique).Count
-            $Row.AccountHint.Text='角色已刷新：'+$count+' 个（插件下线记录）'
-            if (-not $count) {$Row.AccountHint.Text+='；请启动检测后正常下线。'}
-        }
+        $Row.AccountNames=@($accounts | ForEach-Object {$_.Name})
+        $Row.AccountError=if ($selected -and $selected -cnotin $Row.AccountNames) {'已保存子战网不存在，请重新选择。'} else {''}
     } catch {
-        $Row.AccountName='';$Row.AccountBox.Items.Clear();[void]$Row.AccountBox.Items.Add('请选择子战网');$Row.AccountBox.SelectedIndex=0
-        $Row.AccountHint.Text='账号目录读取失败：'+$_.Exception.Message
-    } finally {$Row.UpdatingAccount=$false}
+        $Row.AccountName='';$Row.AccountNames=@();$Row.AccountError='账号目录读取失败：'+$_.Exception.Message
+    }
 }
-function Add-RowAccountControls($Row) {
+function Initialize-RowAccount($Row) {
     $Row | Add-Member NoteProperty AccountName ''
-    $Row | Add-Member NoteProperty UpdatingAccount $false
-    $label=New-Object System.Windows.Forms.Label;$label.Text='子战网';$label.SetBounds(165,106,80,28)
-    $box=New-Object System.Windows.Forms.ComboBox;$box.DropDownStyle='DropDownList';$box.SetBounds(245,102,260,34)
-    $box.BackColor=$script:uiColors.Input;$box.ForeColor=$script:uiColors.Text;$box.FlatStyle='Flat'
-    $hint=New-Object System.Windows.Forms.Label;$hint.SetBounds(520,106,700,30);$hint.AutoEllipsis=$true
-    $Row | Add-Member NoteProperty AccountBox $box;$Row | Add-Member NoteProperty AccountHint $hint
-    $Row.Panel.Controls.AddRange([System.Windows.Forms.Control[]]@($label,$box,$hint));$box.Tag=$Row
+    $Row | Add-Member NoteProperty AccountNames @()
+    $Row | Add-Member NoteProperty AccountError ''
     Update-RowAccountChoices $Row
-    $box.Add_SelectedIndexChanged({param($sender,$e)
-        $row=$sender.Tag;if ($row.UpdatingAccount -or $sender.SelectedIndex -lt 0) {return}
-        try {
-            $account=if ($sender.SelectedIndex -gt 0) {[string]$sender.SelectedItem} else {''}
-            $plan=Copy-RotationPlan (Get-RowRotationPlan $row)
-            $plan | Add-Member NoteProperty Account $account -Force
-            # Preserve old slots visibly; invalid names must be corrected in the editor before starting.
-            $next=$script:rotation.Plans.Clone();$next[$row.Key]=$plan
-            Save-RotationConfiguration -Plans $next
-            Stop-Row $row '子战网已保存，任务停止；请核对角色编排后开始。' -CancelExit
-            $row.Validated=$false;Update-RowAccountChoices $row;Set-RowControls $row
-        } catch {$message=$_.Exception.Message;Update-RowAccountChoices $row;$row.AccountHint.Text='子战网保存失败：'+$message}
-    })
 }
 function New-GameDirectorySettingsPage {
     $page=New-Object System.Windows.Forms.TabPage;$page.Text='游戏目录';$page.BackColor=$script:uiColors.Background;$page.AutoScroll=$true
