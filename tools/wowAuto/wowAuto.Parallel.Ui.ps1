@@ -159,6 +159,8 @@ function New-UnifiedSettingsDialog {
     $script:parallelHub.Paused=$true
     try {
         $dialog=& $script:legacySettingsFactory
+        $area=[Windows.Forms.Screen]::FromControl($form).WorkingArea
+        $dialog.Width=[Math]::Min(1440,$area.Width)
         $page=New-AccountTaskSettingsPage;$dialog.Tag.Tabs.TabPages.Add($page);$dialog.Tag | Add-Member NoteProperty Accounts $page
         $periodPage=New-DetectionPeriodSettingsPage;$dialog.Tag.Tabs.TabPages.Add($periodPage);$dialog.Tag | Add-Member NoteProperty DetectionPeriods $periodPage
         $dialog.Tag.Fish.Tag.AudioDetection.Enabled=-not @($script:rows.Values | Where-Object {$_.RuntimeRunning -and $_.TaskMode -eq 'fish'}).Count

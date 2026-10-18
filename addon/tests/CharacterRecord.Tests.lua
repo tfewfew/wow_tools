@@ -44,7 +44,8 @@ for _,flavor in ipairs({"titan","forerver"}) do
     level=81;now=now+60
     f.scripts.OnEvent(f,"PLAYER_LOGOUT")
     local record=wowToolsCharacterRecord
-    assert(record.version==1 and record.name==name and record.realm==realm and record.level==81 and record.freeBagSlots==9 and record.recordedAt==now,"Logout did not use latest general-bag/level data")
+    assert(record.version==2 and record.name==name and record.realm==realm and record.level==81 and record.freeBagSlots==9 and record.recordedAt==now,"Logout did not use latest general-bag/level data")
+    assert(record.professions=="?" and record.secondarySkills=="?","Missing skill APIs were mistaken for unlearned skills")
     -- bagFamily is optional: nil on a valid general bag must not discard the entire snapshot.
     families[0]=nil;families[1]=nil
     f.scripts.OnEvent(f,"PLAYER_LOGOUT")

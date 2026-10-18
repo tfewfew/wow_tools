@@ -1,4 +1,25 @@
 ﻿# Read account folders and the addon's own character snapshots, never login credentials.
+function ConvertFrom-WowSkillRecord([string]$Text,[string]$Group) {
+    if($Text -ceq '?'){return $null}
+    if($Text -ceq ''){return ,@()}
+    if($Text.Length -gt 4096){throw 'Skill record is too large.'}
+    $allowed=if($Group -ceq 'primary'){@(164,165,171,182,186,197,202,333,393,755,773)}else{@(185,356,794)}
+    $skills=@();$seen=@{}
+    foreach($part in $Text.Split(';')){
+        $match=[regex]::Match($part,'\A(?<id>[1-9]\d{0,5})\|(?<name>[^|;{}\p{C}]{1,128})\|(?<rank>\d{1,6})\|(?<max>\d{1,6})\z')
+        if(-not $match.Success){throw 'Invalid skill record.'}
+        $id=[int]$match.Groups['id'].Value;$rank=[int]$match.Groups['rank'].Value;$maximum=[int]$match.Groups['max'].Value
+        if($id -notin $allowed -or $seen.ContainsKey($id) -or $maximum -lt 1 -or $maximum -gt 100000 -or $rank -gt $maximum){throw 'Invalid skill identity or rank.'}
+        $seen[$id]=$true
+        $skills+=,[pscustomobject]@{Id=$id;Name=$match.Groups['name'].Value;Rank=$rank;MaxRank=$maximum}
+    }
+    return ,$skills
+}
+function Format-WowCharacterSkills($Skills) {
+    if($null -eq $Skills){return '未知'}
+    if(-not @($Skills).Count){return '未学习'}
+    return (@($Skills | ForEach-Object {$_.Name+' '+$_.Rank+'/'+$_.MaxRank}) -join "`n")
+}
 function ConvertFrom-WowCharacterRecord([string]$Text) {
     # Parse only our flat data table. SavedVariables are never executed.
     if ($Text.Length -gt 64KB) {return $null}
@@ -12,8 +33,8 @@ function ConvertFrom-WowCharacterRecord([string]$Text) {
             $match=$reader.Match($body,$position)
             if (-not $match.Success -or $match.Index -ne $position) {return $null}
             $key=$match.Groups['key'].Value
-            if ($key -cnotin @('version','name','realm','level','freeBagSlots','recordedAt') -or $values.ContainsKey($key)) {return $null}
-            if ($key -cin @('name','realm')) {
+            if ($key -cnotin @('version','name','realm','level','freeBagSlots','recordedAt','professions','secondarySkills') -or $values.ContainsKey($key)) {return $null}
+            if ($key -cin @('name','realm','professions','secondarySkills')) {
                 if (-not $match.Groups['text'].Success) {return $null}
                 $values[$key]=[regex]::Replace($match.Groups['text'].Value,'\\(?<escape>\d{1,3}|.)',{
                     param($escape)
@@ -31,13 +52,17 @@ function ConvertFrom-WowCharacterRecord([string]$Text) {
             }
             $position=$match.Index+$match.Length
         }
-        if ($values.Count -ne 6 -or $values.version -ne 1 -or $values.name -notmatch '^[\p{L}\p{M}]{1,24}$' -or
+        $expected=@('version','name','realm','level','freeBagSlots','recordedAt')
+        if($values.version -eq 2){$expected+=@('professions','secondarySkills')}
+        if ($values.Count -ne $expected.Count -or @($expected | Where-Object {-not $values.ContainsKey($_)}).Count -or $values.version -notin @(1,2) -or $values.name -notmatch '^[\p{L}\p{M}]{1,24}$' -or
             -not $values.realm -or $values.realm.Length -gt 128 -or $values.realm -match '[\p{C}\\/]' -or
             $values.level -lt 0 -or $values.level -gt 1000 -or $values.freeBagSlots -lt -1 -or $values.freeBagSlots -gt 11000 -or
             $values.recordedAt -lt 1 -or $values.recordedAt -gt 253402300799) {return $null}
         return [pscustomobject]@{Name=$values.name;Realm=$values.realm;
             Level=$(if ($values.level -gt 0) {$values.level} else {$null});
-            FreeBagSlots=$(if ($values.freeBagSlots -ge 0) {$values.freeBagSlots} else {$null});RecordedAt=$values.recordedAt}
+            FreeBagSlots=$(if ($values.freeBagSlots -ge 0) {$values.freeBagSlots} else {$null});RecordedAt=$values.recordedAt;
+            Professions=$(if($values.version -eq 2){ConvertFrom-WowSkillRecord $values.professions 'primary'}else{$null});
+            SecondarySkills=$(if($values.version -eq 2){ConvertFrom-WowSkillRecord $values.secondarySkills 'secondary'}else{$null})}
     } catch {return $null}
 }
 function Read-WowCharacterRecord([string]$CharacterDirectory,[string]$Name,[string]$Realm) {

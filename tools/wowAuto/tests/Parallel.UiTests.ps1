@@ -25,6 +25,13 @@ try {
     Assert-Parallel ($editor.Accounts.SelectedItem -ceq 'ACCOUNT-A' -and $forever.Accounts.SelectedItem -ceq 'ACCOUNT-A' -and $editor.Grid.Rows[0].Cells['Mode'].Value -eq '钓鱼' -and $forever.Grid.Rows[0].Cells['Mode'].Value -eq '战斗') 'Same-name accounts leaked across client tabs or dropdown still contains client prefixes.'
     foreach($client in @($editor,$forever)){
         Assert-Parallel ($client.Grid.Rows[0].Cells['FreeBagSlots'].Value -ceq '未知' -and $client.Grid.Rows[1].Cells['FreeBagSlots'].Value -eq 0 -and $client.Grid.Rows[2].Cells['FreeBagSlots'].Value -eq 12) 'Unknown, full and available bag snapshots are not distinguished in the role table.'
+        Assert-Parallel ($client.Grid.Columns['Professions'].Index -eq $client.Grid.Columns['FreeBagSlots'].Index+1 -and
+            $client.Grid.Columns['SecondarySkills'].Index -eq $client.Grid.Columns['Professions'].Index+1 -and
+            $client.Grid.Columns['Professions'].ReadOnly -and $client.Grid.Columns['SecondarySkills'].ReadOnly) 'Read-only skill columns are missing after bag space.'
+        Assert-Parallel ($client.Grid.Rows[0].Cells['Professions'].Value -ceq '未知' -and $client.Grid.Rows[1].Cells['Professions'].Value -ceq '未学习' -and
+            $client.Grid.Rows[2].Cells['Professions'].Value -ceq "采矿 450/450`n剥皮 425/450" -and
+            $client.Grid.Rows[2].Cells['SecondarySkills'].Value -ceq "烹饪 300/450`n钓鱼 450/450" -and
+            $client.Grid.Rows[3].Cells['Professions'].Value -ceq '炼金术 0/75') 'Skill names/ranks, unknown or unlearned skills were not presented correctly.'
     }
     $before=(Get-FileHash $script:accountTasks.Path).Hash
     $editor.Grid.Rows[0].Cells['Enabled'].Value=$false
