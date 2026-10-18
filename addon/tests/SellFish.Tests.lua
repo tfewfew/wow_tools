@@ -3,7 +3,7 @@ local root = TEST_ROOT or "."
 local function Run(flavor, legacy)
     local frames, names, messages, calls, requests = {}, {}, {}, {}, {}
     local bags, catalog = {}, {[101] = "新鲜的美味小鱼", [102] = "新鲜的长嘴泥鳅"}
-    local sendEvent
+    local sendEvent, afterUse
     local combat, cursor, mode, failInfo, secretField = false, false, "success", false, nil
     local secret = setmetatable({}, {
         __eq = function() error("Compared a secret") end,
@@ -81,6 +81,7 @@ local function Run(flavor, legacy)
         if mode == "false" then return false end
         if mode == "unconfirmed" then return end
         bags[bag][slot] = nil
+        if afterUse then afterUse() end
         if mode == "close" then
             MerchantFrame:Hide()
             for _, frame in ipairs(frames) do
@@ -123,10 +124,10 @@ local function Run(flavor, legacy)
         end
     end
     sendEvent = Event
-    local function Tick(n)
+    local function Tick(n, elapsed)
         for _ = 1, n or 1 do
             for _, frame in ipairs(frames) do
-                if frame.scripts.OnUpdate then frame.scripts.OnUpdate(frame, 0.16) end
+                if frame.scripts.OnUpdate then frame.scripts.OnUpdate(frame, elapsed or 0.16) end
             end
         end
     end
@@ -201,12 +202,59 @@ local function Run(flavor, legacy)
     assert(#calls == 3 and not HasUpdate() and button.enabled)
     assert(bags[0][2] and bags[0][3] and bags[0][4] and bags[-1][1])
     assert(messages[#messages]:find("已出售 3 组", 1, true))
+    -- A large backpack is dispatched in bounded batches, without serial confirmation waits.
+    local function FillBags()
+        bags = {}
+        for bag = 0, 4 do
+            bags[bag] = {}
+            for slot = 1, 8 do bags[bag][slot] = {id = 101} end
+        end
+    end
+    FillBags()
+    calls = {}
+    Click("WoWToolsSellFishButton")
+    Tick(1, 0.049)
+    assert(#calls == 0, "Batch interval was ignored")
+    Tick(1, 0.0011)
+    assert(#calls == 5, "First batch was not bounded to five stacks")
+    Tick(9, 0.05)
+    assert(#calls == 40 and not HasUpdate(), "Forty stacks should finish within half a simulated second")
+    assert(messages[#messages]:find("已出售 40 组", 1, true))
+    -- Slow or out-of-order confirmations do not block later slots or create unlimited requests.
+    FillBags()
+    mode, calls = "unconfirmed", {}
+    Click("WoWToolsSellFishButton")
+    Tick(8, 0.05)
+    assert(#calls == 20 and HasUpdate(), "Outstanding sale limit was not enforced")
+    for index = 16, 20 do
+        local call = calls[index]
+        bags[call.bag][call.slot] = nil
+    end
+    Tick(1, 0.05)
+    assert(#calls == 25, "Later confirmations were blocked by the oldest pending stack")
+    Close(); Tick(5, 0.05)
+    assert(#calls == 25 and not HasUpdate(), "Queued batches continued after merchant close")
+    Open()
+    mode, calls = "success", {}
+    -- Revalidation also applies between two uses within the same batch.
+    bags = {[0] = {}}
+    for slot = 1, 6 do bags[0][slot] = {id = 101} end
+    afterUse = function()
+        afterUse = nil
+        bags[0][5] = {id = 500}
+        bags[0][4].count = 1
+        bags[0][3].locked = true
+        bags[0][2].noValue = true
+    end
+    Click("WoWToolsSellFishButton")
+    Tick(4, 0.05)
+    assert(#calls == 2 and calls[1].slot == 6 and calls[2].slot == 1 and not HasUpdate())
+    assert(bags[0][5].id == 500 and bags[0][4].count == 1 and bags[0][3].locked and bags[0][2].noValue)
     -- Replacement items, changed stacks, and mid-run deletion never get sold.
     bags = {[0] = {[1] = {id = 101}, [2] = {id = 101}}}
     calls = {}
     Click("WoWToolsSellFishButton")
     bags[0][2] = {id = 500}
-    Tick(1)
     bags[0][1].count = 5
     Tick(5)
     assert(#calls == 0 and not HasUpdate())
@@ -264,6 +312,7 @@ local function Run(flavor, legacy)
     assert(#calls == 0 and not HasUpdate())
     MerchantFrame.selectedTab = 1
     mode = "close" -- Reentrant merchant-close event from inside the bag API.
+    bags = {[0] = {[1] = {id = 101}, [2] = {id = 101}, [3] = {id = 101}}}
     Click("WoWToolsSellFishButton")
     Tick(5)
     assert(#calls == 1 and not HasUpdate())

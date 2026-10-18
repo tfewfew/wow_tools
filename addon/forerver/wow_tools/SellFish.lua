@@ -23,6 +23,7 @@ local eventFrame = CreateFrame("Frame")
 local items, selectedID, settings, input, status, scroll, content, deleteButton
 local rows, requested, failed = {}, {}, {}
 local merchantOpen, merchantButton, sale = false, nil, nil
+local SALE_INTERVAL, SALE_BATCH_SIZE, MAX_PENDING_SALES, CONFIRM_TIMEOUT = 0.05, 5, 20, 1.5
 local RefreshList
 
 local function Readable(value)
@@ -213,44 +214,53 @@ local function SameStack(a, b)
     return a and b and a.id == b.id and a.count == b.count and a.link == b.link
 end
 local function SaleTick(_, elapsed)
-    if not sale then return end
+    local currentSale = sale
+    if not currentSale then return end
     if not MerchantReady() then StopSale("出售已停止：商店关闭、切页或当前无法出售。"); return end
-    sale.elapsed = sale.elapsed + elapsed
-    if sale.elapsed < 0.15 then return end
-    local delta = sale.elapsed
-    sale.elapsed = 0
-    if sale.pending then
-        local pending = sale.pending
+    currentSale.elapsed = currentSale.elapsed + elapsed
+    if currentSale.elapsed < SALE_INTERVAL then return end
+    local delta = currentSale.elapsed
+    currentSale.elapsed = 0
+    -- Confirm all in-flight stacks independently; one slow response must not block the queue.
+    for index = #currentSale.pending, 1, -1 do
+        local pending = currentSale.pending[index]
         local current, readable = Snapshot(pending.bag, pending.slot)
         if readable and (not current or current.id ~= pending.data.id or current.count < pending.data.count) then
-            sale.sold = sale.sold + 1
-            sale.pending = nil
+            currentSale.sold = currentSale.sold + 1
+            table.remove(currentSale.pending, index)
         else
             pending.wait = pending.wait + delta
-            if pending.wait < 1.5 then return end
-            sale.skipped = sale.skipped + 1
-            sale.pending = nil -- No repeat use of a failed or unconfirmed stack.
+            if pending.wait >= CONFIRM_TIMEOUT then
+                currentSale.skipped = currentSale.skipped + 1
+                table.remove(currentSale.pending, index) -- Failed/unconfirmed stacks are never retried.
+            end
         end
     end
-    local entry = sale.queue[sale.index]
-    if not entry then
-        StopSale("完成：已出售 " .. sale.sold .. " 组，跳过 / 未确认 " .. sale.skipped .. " 组。")
-        return
+    -- Bound both per-tick work and outstanding requests instead of waiting after every stack.
+    for _ = 1, SALE_BATCH_SIZE do
+        if #currentSale.pending >= MAX_PENDING_SALES then break end
+        local entry = currentSale.queue[currentSale.index]
+        if not entry then break end
+        if not MerchantReady() then StopSale("出售已停止：商店关闭、切页或当前无法出售。"); return end
+        currentSale.index = currentSale.index + 1
+        local current = Snapshot(entry.bag, entry.slot)
+        -- Re-read the exact slot immediately before use; never sell a replacement item.
+        if not SameStack(current, entry.data) or (current.locked ~= false and current.locked ~= 0)
+            or current.noValue == true or current.noValue == 1 or not FindID(current.id) then
+            currentSale.skipped = currentSale.skipped + 1
+        else
+            local pending = {bag = entry.bag, slot = entry.slot, data = current, wait = 0}
+            local ok, result = pcall(SellBagItem, entry.bag, entry.slot)
+            if sale ~= currentSale then return end -- Merchant close may run inside the API call.
+            if not ok or not Readable(result) or result == false then
+                currentSale.skipped = currentSale.skipped + 1
+            else
+                currentSale.pending[#currentSale.pending + 1] = pending
+            end
+        end
     end
-    sale.index = sale.index + 1
-    local current = Snapshot(entry.bag, entry.slot)
-    -- Re-read the exact slot immediately before use; never sell a replacement item.
-    if not SameStack(current, entry.data) or (current.locked ~= false and current.locked ~= 0)
-        or current.noValue == true or current.noValue == 1 or not FindID(current.id) then
-        sale.skipped = sale.skipped + 1
-        return
-    end
-    sale.pending = {bag = entry.bag, slot = entry.slot, data = current, wait = 0}
-    local ok, result = pcall(SellBagItem, entry.bag, entry.slot)
-    if not sale then return end
-    if not ok or not Readable(result) or result == false then
-        sale.skipped = sale.skipped + 1
-        sale.pending = nil
+    if not currentSale.queue[currentSale.index] and #currentSale.pending == 0 then
+        StopSale("完成：已出售 " .. currentSale.sold .. " 组，跳过 / 未确认 " .. currentSale.skipped .. " 组。")
     end
 end
 local function StartSale()
@@ -278,7 +288,7 @@ local function StartSale()
         end
     end
     if #queue == 0 then Say("没有可出售的清单物品（锁定或不可出售的物品会跳过）。"); return end
-    sale = {queue = queue, index = 1, sold = 0, skipped = skipped, elapsed = 0}
+    sale = {queue = queue, index = 1, sold = 0, skipped = skipped, elapsed = 0, pending = {}}
     merchantButton:SetText("出售中…")
     merchantButton:Disable()
     eventFrame:SetScript("OnUpdate", SaleTick)
