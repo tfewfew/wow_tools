@@ -323,6 +323,40 @@ local function Run(flavor, legacy)
             "Synchronous item event was overwritten by stale loading text")
         window:Hide()
     end
+    -- Preset merges with the custom list; repeated imports and manual additions share deduplication.
+    catalog[41813], catalog[41806], catalog[41809] = "预设鱼一", "预设鱼二", "预设鱼三"
+    SlashCmdList.WOWTOOLSSELLFISH()
+    local preset = assert(names.WoWToolsSellFishWintergrasp)
+    assert(preset.text == "冬拥湖三杰")
+    Add("41806")
+    local beforePreset, beforeCalls = #wowDetectorDB.sellFishItems, #calls
+    Click("WoWToolsSellFishWintergrasp")
+    assert(#wowDetectorDB.sellFishItems == beforePreset + 2, "Preset did not merge existing IDs")
+    assert(wowDetectorDB.sellFishItems[1] == 102 and wowDetectorDB.sellFishItems[2] == 777,
+        "Preset replaced or reordered custom items")
+    for _, id in ipairs({41813, 41806, 41809}) do
+        local count = 0
+        for index, value in ipairs(wowDetectorDB.sellFishItems) do
+            if value == id then
+                count = count + 1
+                assert(names["WoWToolsSellFishRow" .. index].label.text:find(catalog[id], 1, true),
+                    "Preset row did not resolve its item name")
+            end
+        end
+        assert(count == 1, "Preset ID is missing or duplicated")
+    end
+    Click("WoWToolsSellFishWintergrasp")
+    Click("WoWToolsSellFishWintergrasp")
+    Add("041813")
+    assert(#wowDetectorDB.sellFishItems == beforePreset + 2, "Repeated import or manual ID created duplicates")
+    for index, id in ipairs(wowDetectorDB.sellFishItems) do
+        if id == 41809 then Click("WoWToolsSellFishRow" .. index); break end
+    end
+    Click("WoWToolsSellFishDelete")
+    Click("WoWToolsSellFishWintergrasp")
+    assert(#wowDetectorDB.sellFishItems == beforePreset + 2, "Deleted preset item was not restored once")
+    assert(#calls == beforeCalls and not HasUpdate(), "Preset import triggered sales or polling")
+    window:Hide()
     -- Settings persist independently of detector activation, and survive reload.
     local saved = wowDetectorDB.sellFishItems
     dofile(root .. "/addon/" .. flavor .. "/wow_tools/SellFish.lua")

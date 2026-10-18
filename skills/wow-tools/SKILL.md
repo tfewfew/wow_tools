@@ -55,7 +55,9 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 - 卖鱼加速（titan 2.1.38 / forerver 2.2.37）：每50ms最多处理5个清单槽位，最多20组在途；所有在途槽位独立确认/1.5秒超时，不能再逐组阻塞后续提交，也不能一次无界遍历发出全部出售。每次调用前复核商店状态及物品，调用后复核原出售会话，关闭商店的同步事件必须立即中止同批剩余调用。失败/未确认不重试；队列及在途列表均清空才报告完成并移除OnUpdate。SellFish.Tests以40组/0.5秒模拟吞吐、20组在途上限、乱序回执、批次内换物品/锁定/不可售及中途关闭验证；这些模拟时间不代表真实服务器保证。
 
-- titan版基于原2.1.1独立维护，当前2.1.38/接口38002。forerver版当前2.2.37/接口16001按无限服1.60.1.70338的Blizzard导出源码943764493e6b16d63ded3ab304150d1f05e58b57移植；以后跟随对应分支源码核对API，不能仅改TOC号。
+- 卖鱼设置的“冬拥湖三杰”按钮（titan 2.1.39 / forerver 2.2.38）按41813、41806、41809追加缺失ID，保留已有清单与顺序；与数字框手动添加共用AddID校验和去重，不自动开始出售。重载读入同样清理重复数字ID，列表沿用异步物品名称加载。SellFish.Tests模拟覆盖已有部分预设、连续导入、带前导零的手动重复ID、名称显示、删除后补回和重载保存。
+
+- titan版基于原2.1.1独立维护，当前2.1.39/接口38002。forerver版当前2.2.38/接口16001按无限服1.60.1.70338的Blizzard导出源码943764493e6b16d63ded3ab304150d1f05e58b57移植；以后跟随对应分支源码核对API，不能仅改TOC号。
 - forerver在Init.lua后加载Compatibility.lua：ItemLocation主手槽16及C_Item.GetItemID/GetItemInfoInstant识别鱼竿，C_Item.GetWeaponEnchantInfo(Enum.WeaponSlot.MainHand)返回列表，只接受有效Temporary附魔，排除Permanent/Imbue；失败或受限/不完整数据为unknown。UnitChannelInfo的技能ID在第8项，绿色只认钓鱼引导；先用issecretvalue排除受限返回再比较/输出，受限引导使主色块灰色。注册WEAPON_ENCHANT_CHANGED并每0.1秒刷新。菜单使用MenuUtil.CreateContextMenu；画面模块移动FramerateFrame整体，不再依赖FramerateLabel全局。未提供的CVar继续禁用，禁止加载时自动改变图形设置。forever测试覆盖全TOC加载，不发送游戏按键。
 - wowAuto同时识别时光服_classic_titan_/WowClassic.exe 3.80.和无限服_cn_beta_/Wow.exe 1.60.，允许游戏根目录位于其他盘符，但产品目录名须匹配。GetClientFlavor同时核对可执行文件名、父目录与构建前缀；未知/无法读取/零售服不加入列表。每行Client保存Flavor、Label、ExecutablePath；启动、取色、焦点切换、发键及正常/超时退出均核对PID、StartTime、路径与客户端身份。C#方法接收启动Ticks和预期路径，不能退回只按Wow进程名操作。
 

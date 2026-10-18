@@ -55,6 +55,12 @@ local function FindID(id)
         if value == id then return index end
     end
 end
+local function AddID(id)
+    if not items or not ValidID(id) or FindID(id) then return false end
+    items[#items + 1] = id
+    requested[id], failed[id] = nil, nil
+    return true
+end
 
 local function CreateSettings()
     if settings then return end
@@ -91,9 +97,8 @@ local function CreateSettings()
         local text = input:GetText() or ""
         local id = text:match("^%d+$") and tonumber(text)
         if not ValidID(id) then status:SetText("请输入有效的正整数物品 ID。"); return end
-        if FindID(id) then status:SetText("该物品已在列表中。"); return end
-        items[#items + 1] = id
-        selectedID, requested[id], failed[id] = id, nil, nil
+        if not AddID(id) then status:SetText("该物品已在列表中。"); return end
+        selectedID = id
         input:SetText("")
         input:ClearFocus()
         status:SetText("已添加；名称未缓存时会自动加载。")
@@ -121,6 +126,22 @@ local function CreateSettings()
         table.remove(items, index)
         selectedID = nil
         status:SetText("已删除。")
+        RefreshList()
+    end)
+    local wintergrasp = CreateFrame("Button", "WoWToolsSellFishWintergrasp", settings, "UIPanelButtonTemplate")
+    wintergrasp:SetSize(116, 24)
+    wintergrasp:SetPoint("BOTTOMRIGHT", -18, 38)
+    wintergrasp:SetText("冬拥湖三杰")
+    wintergrasp:SetScript("OnClick", function()
+        if not items then return end
+        local added = 0
+        for _, id in ipairs({41813, 41806, 41809}) do
+            if AddID(id) then
+                added = added + 1
+                selectedID = id
+            end
+        end
+        status:SetText("冬拥湖三杰：新增 " .. added .. " 项，跳过 " .. (3 - added) .. " 项重复物品。")
         RefreshList()
     end)
     status = settings:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
