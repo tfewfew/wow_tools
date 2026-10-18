@@ -144,11 +144,13 @@ for _,flavor in ipairs({"titan","forerver"}) do
         assert(math.abs(fishAux.width/unit-12)<.001 and math.abs(signal.textures[2].width/unit-12)<.001)
     end
     state(false,false)
-    assert(not recordFrame.events.PLAYER_LOGOUT and recordReads==0,"Inactive character record is subscribed or reading")
+    assert(recordFrame.events.PLAYER_LOGOUT and recordReads>0 and not wowToolsCharacterRecord,
+        "Character recording still requires detection or persisted before logout")
+    local automaticReads=recordReads
     SlashCmdList.WOWDETECTOR("on"); state(true,false)
     local enrollmentReads=recordReads
-    assert(enrollmentReads>0 and not wowToolsCharacterRecord and not recordFrame.scripts.OnUpdate,
-        "Enrollment did not cache live metadata or wrote a disk snapshot before logout")
+    assert(enrollmentReads==automaticReads and not wowToolsCharacterRecord and not recordFrame.scripts.OnUpdate,
+        "Starting a detector resampled character metadata or wrote before logout")
     local lootStops=0
     local oldUnregister=lootFrame.UnregisterEvent
     lootFrame.UnregisterEvent=function(self,name) lootStops=lootStops+1; oldUnregister(self,name) end

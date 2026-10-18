@@ -40,13 +40,8 @@ for _,flavor in ipairs({"titan","forerver"}) do
         Event("ADDON_LOADED","wow_tools")
     end
     wowToolsCharacterRecord=nil;Load()
-    Event("HEARTHSTONE_BOUND");Event("PLAYER_ENTERING_WORLD");Event("PLAYER_LOGOUT")
-    assert(reads==0 and wowToolsCharacterRecord==nil and not frame.events.HEARTHSTONE_BOUND,
-        "Unmonitored character subscribed to or read hearthstone data")
-    WoWTools.MarkCharacterMonitored()
     assert(reads==1 and frame.events.HEARTHSTONE_BOUND and not frame.scripts.OnUpdate
-        and wowToolsCharacterRecord==nil,"Enrollment did not sample once, persisted early, or introduced polling")
-    WoWTools.MarkCharacterMonitored();assert(reads==1)
+        and wowToolsCharacterRecord==nil,"Automatic recording did not sample once, persisted early, or introduced polling")
     Event("BAG_UPDATE_DELAYED");Event("SKILL_LINES_CHANGED");Event("PLAYER_LEVEL_UP",81)
     assert(reads==1,"Unrelated bag/skill events resampled the hearthstone")
     location="狮王之傲旅店";Event("HEARTHSTONE_BOUND")
@@ -55,7 +50,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     Event("PLAYER_LEAVING_WORLD")
     local before=reads
     location="退出中的无效地点";Event("HEARTHSTONE_BOUND");Event("PLAYER_LOGOUT")
-    assert(reads==before and wowToolsCharacterRecord.version==3
+    assert(reads==before and wowToolsCharacterRecord.version==4
         and wowToolsCharacterRecord.bindLocation=="狮王之傲旅店",
         "Logout teardown or restricted reads replaced this login's cached binding")
     location="闪金镇";Event("PLAYER_ENTERING_WORLD")
@@ -73,10 +68,10 @@ for _,flavor in ipairs({"titan","forerver"}) do
     fail=false;GetBindLocation=nil;Load();Event("PLAYER_LOGOUT")
     assert(wowToolsCharacterRecord.bindLocation=="?","Missing binding API prevented a valid character snapshot")
     GetBindLocation=ReadLocation;location='Lion\'s Pride "Inn"'
-    for _,version in ipairs({1,2,3}) do
+    for _,version in ipairs({1,2,3,4}) do
         wowToolsCharacterRecord={version=version};Load();Event("PLAYER_LOGOUT")
-        assert(wowToolsCharacterRecord.version==3 and wowToolsCharacterRecord.bindLocation==location,
-            "A legacy or current record lost enrollment after the schema upgrade")
+        assert(wowToolsCharacterRecord.version==4 and wowToolsCharacterRecord.bindLocation==location,
+            "A legacy or current record prevented automatic recording after the schema upgrade")
     end
-    print("PASS: "..flavor.." native hearthstone binding, enrollment/rebind/enter events, logout cache/freeze, no stale disk fallback, unknown/restricted/missing APIs and v1/v2/v3 enrollment; no polling or game actions.")
+    print("PASS: "..flavor.." native hearthstone binding for all characters, rebind/enter events, logout cache/freeze, no stale disk fallback, unknown/restricted/missing APIs and v1-v4 upgrades; no polling or game actions.")
 end

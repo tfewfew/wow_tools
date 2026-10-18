@@ -1,4 +1,30 @@
-﻿function New-AccountTaskSettingsPage {
+﻿function New-AccountRoleGrid([int]$Y) {
+    $grid=New-Object Windows.Forms.DataGridView;$grid.SetBounds(18,$Y,1340,220)
+    $grid.AllowUserToAddRows=$false;$grid.AllowUserToDeleteRows=$false;$grid.AllowUserToOrderColumns=$false;$grid.RowHeadersVisible=$false
+    $grid.BackgroundColor=$script:uiColors.Input;$grid.GridColor=$script:uiColors.Border;$grid.AutoGenerateColumns=$false
+    $grid.DefaultCellStyle.BackColor=$script:uiColors.Input;$grid.DefaultCellStyle.ForeColor=$script:uiColors.Text
+    $grid.DefaultCellStyle.SelectionBackColor=$script:uiColors.Tab;$grid.DefaultCellStyle.SelectionForeColor=$script:uiColors.Text
+    $grid.EnableHeadersVisualStyles=$false;$grid.ColumnHeadersDefaultCellStyle.BackColor=$script:uiColors.Heading;$grid.ColumnHeadersDefaultCellStyle.ForeColor=$script:uiColors.Text
+    $grid.RowTemplate.Height=32;$grid.ColumnHeadersHeight=34;$grid.AutoSizeRowsMode='AllCells'
+    foreach($columnSpec in @(@('Enabled','启用',65,'check'),@('Name','角色',165,'text'),@('Realm','服务器',135,'text'),@('Mode','任务',95,'mode'),@('UseItem','钓鱼道具',100,'check'),@('Level','等级',55,'text'),@('FreeBagSlots','背包空格',95,'text'),@('Professions','生产 / 采集技能',220,'text'),@('SecondarySkills','生活技能',180,'text'),@('BindLocation','炉石位置',180,'text'))) {
+        $column=switch($columnSpec[3]) {'check'{New-Object Windows.Forms.DataGridViewCheckBoxColumn}'mode'{New-Object Windows.Forms.DataGridViewComboBoxColumn}default{New-Object Windows.Forms.DataGridViewTextBoxColumn}}
+        $column.Name=$columnSpec[0];$column.HeaderText=$columnSpec[1];$column.Width=$columnSpec[2];$column.SortMode='NotSortable'
+        if($columnSpec[3] -eq 'mode'){$column.Items.AddRange([object[]]@('钓鱼','战斗'));$column.FlatStyle='Flat'}
+        $column.ReadOnly=$columnSpec[0] -in @('Name','Realm','Level','FreeBagSlots','Professions','SecondarySkills','BindLocation')
+        if($columnSpec[0] -in @('Professions','SecondarySkills')){$column.DefaultCellStyle.WrapMode='True';$column.ToolTipText='最近正常下线时的专业技能快照；生活技能不含急救。'}
+        if($columnSpec[0] -eq 'BindLocation'){$column.DefaultCellStyle.WrapMode='True';$column.ToolTipText='炉石绑定地点，来自最近正常下线的插件快照；旧记录或读取失败显示未知。'}
+        [void]$grid.Columns.Add($column)
+    }
+    $grid.Add_CurrentCellDirtyStateChanged({param($sender,$e) if($sender.IsCurrentCellDirty){$null=$sender.CommitEdit([Windows.Forms.DataGridViewDataErrorContexts]::Commit)}})
+    $grid.Add_CellValueChanged({param($sender,$e)
+        if($sender.Tag.Loading -or $e.RowIndex -lt 0){return}
+        $row=$sender.Rows[$e.RowIndex];$combat=$row.Cells['Mode'].Value -eq '战斗'
+        $row.Cells['UseItem'].ReadOnly=$combat;if($combat){$row.Cells['UseItem'].Value=$false}
+    })
+    $grid.Add_DataError({param($sender,$e) $sender.Tag.Error.Text='角色任务输入无效，请选择钓鱼或战斗。';$e.ThrowException=$false})
+    return $grid
+}
+function New-AccountTaskSettingsPage {
     Update-AccountTaskCatalog
     $page=New-Object Windows.Forms.TabPage;$page.Text='子战网';$page.BackColor=$script:uiColors.Background;$page.AutoScroll=$true
     $draft=ConvertTo-TaskMap ($script:accountTasks.Config | ConvertTo-Json -Depth 12 | ConvertFrom-Json)
@@ -17,38 +43,19 @@
         foreach($key in @($script:accountTasks.Catalog.Keys | Sort-Object)) {
             if($key.StartsWith($spec[0]+':',[StringComparison]::Ordinal)){[void]$accounts.Items.Add($script:accountTasks.Catalog[$key].Name)}
         }
-        $hint=New-Object Windows.Forms.Label;$hint.Text='角色按表中顺序轮转，新角色默认停用。等级、背包、技能和炉石绑定位置为最近正常下线快照；技能显示当前 / 上限，不采集急救。';$hint.SetBounds(18,58,1340,52)
+        $hint=New-Object Windows.Forms.Label;$hint.Text='满级角色在上，未满级角色按等级降序，新角色默认停用。分表不改变已保存的轮转顺序；等级、背包、技能及炉石位置均为最近正常下线快照。';$hint.SetBounds(18,58,1340,52)
         if(-not $accounts.Items.Count){$hint.Text='尚未发现该服的子战网角色记录，请检查游戏目录，正常下线保存角色记录后刷新进程。'}
-        $grid=New-Object Windows.Forms.DataGridView;$grid.SetBounds(18,116,1340,500)
-        $grid.AllowUserToAddRows=$false;$grid.AllowUserToDeleteRows=$false;$grid.AllowUserToOrderColumns=$false;$grid.RowHeadersVisible=$false
-        $grid.BackgroundColor=$script:uiColors.Input;$grid.GridColor=$script:uiColors.Border;$grid.AutoGenerateColumns=$false
-        $grid.DefaultCellStyle.BackColor=$script:uiColors.Input;$grid.DefaultCellStyle.ForeColor=$script:uiColors.Text
-        $grid.DefaultCellStyle.SelectionBackColor=$script:uiColors.Tab;$grid.DefaultCellStyle.SelectionForeColor=$script:uiColors.Text
-        $grid.EnableHeadersVisualStyles=$false;$grid.ColumnHeadersDefaultCellStyle.BackColor=$script:uiColors.Heading;$grid.ColumnHeadersDefaultCellStyle.ForeColor=$script:uiColors.Text
-        $grid.RowTemplate.Height=32;$grid.ColumnHeadersHeight=34;$grid.AutoSizeRowsMode='AllCells'
-        foreach($columnSpec in @(@('Enabled','启用',65,'check'),@('Name','角色',165,'text'),@('Realm','服务器',135,'text'),@('Mode','任务',95,'mode'),@('UseItem','钓鱼道具',100,'check'),@('Level','等级',55,'text'),@('FreeBagSlots','背包空格',95,'text'),@('Professions','生产 / 采集技能',220,'text'),@('SecondarySkills','生活技能',180,'text'),@('BindLocation','炉石位置',180,'text'))) {
-            $column=switch($columnSpec[3]) {'check'{New-Object Windows.Forms.DataGridViewCheckBoxColumn}'mode'{New-Object Windows.Forms.DataGridViewComboBoxColumn}default{New-Object Windows.Forms.DataGridViewTextBoxColumn}}
-            $column.Name=$columnSpec[0];$column.HeaderText=$columnSpec[1];$column.Width=$columnSpec[2];$column.SortMode='NotSortable'
-            if($columnSpec[3] -eq 'mode'){$column.Items.AddRange([object[]]@('钓鱼','战斗'));$column.FlatStyle='Flat'}
-            $column.ReadOnly=$columnSpec[0] -in @('Name','Realm','Level','FreeBagSlots','Professions','SecondarySkills','BindLocation')
-            if($columnSpec[0] -in @('Professions','SecondarySkills')){$column.DefaultCellStyle.WrapMode='True';$column.ToolTipText='最近正常下线时的专业技能快照；生活技能不含急救。'}
-            if($columnSpec[0] -eq 'BindLocation'){$column.DefaultCellStyle.WrapMode='True';$column.ToolTipText='炉石绑定地点，来自最近正常下线的插件快照；旧记录或读取失败显示未知。'}
-            [void]$grid.Columns.Add($column)
-        }
-        $clientEditor=[pscustomobject]@{Draft=$draft;Flavor=$spec[0];Page=$clientPage;Accounts=$accounts;Grid=$grid;Selected='';Error=$errorLabel;Loading=$false}
-        $editor.Clients[$spec[0]]=$clientEditor;$clientPage.Tag=$clientEditor;$grid.Tag=$clientEditor;$accounts.Tag=$clientEditor
+        $fullLabel=New-Object Windows.Forms.Label;$fullLabel.SetBounds(18,106,1340,26);$fullLabel.Text='满级角色'
+        $fullGrid=New-AccountRoleGrid 134
+        $levelingLabel=New-Object Windows.Forms.Label;$levelingLabel.SetBounds(18,364,1340,26);$levelingLabel.Text='未满级角色'
+        $levelingGrid=New-AccountRoleGrid 394
+        $clientEditor=[pscustomobject]@{Draft=$draft;Flavor=$spec[0];Page=$clientPage;Accounts=$accounts;FullGrid=$fullGrid;LevelingGrid=$levelingGrid;Grids=@($fullGrid,$levelingGrid);FullLabel=$fullLabel;LevelingLabel=$levelingLabel;Selected='';Error=$errorLabel;Loading=$false}
+        $editor.Clients[$spec[0]]=$clientEditor;$clientPage.Tag=$clientEditor;$fullGrid.Tag=$clientEditor;$levelingGrid.Tag=$clientEditor;$accounts.Tag=$clientEditor
         $accounts.Add_SelectedIndexChanged({param($sender,$e)
             $editor=$sender.Tag
             try {Save-AccountGridDraft $editor;Show-AccountGridDraft $editor ($editor.Flavor+':'+[string]$sender.SelectedItem)}catch{$editor.Error.Text=$_.Exception.Message}
         })
-        $grid.Add_CurrentCellDirtyStateChanged({param($sender,$e) if($sender.IsCurrentCellDirty){$null=$sender.CommitEdit([Windows.Forms.DataGridViewDataErrorContexts]::Commit)}})
-        $grid.Add_CellValueChanged({param($sender,$e)
-            if($sender.Tag.Loading -or $e.RowIndex -lt 0){return}
-            $row=$sender.Rows[$e.RowIndex];$combat=$row.Cells['Mode'].Value -eq '战斗'
-            $row.Cells['UseItem'].ReadOnly=$combat;if($combat){$row.Cells['UseItem'].Value=$false}
-        })
-        $grid.Add_DataError({param($sender,$e) $sender.Tag.Error.Text='角色任务输入无效，请选择钓鱼或战斗。';$e.ThrowException=$false})
-        $clientPage.Controls.AddRange([Windows.Forms.Control[]]@($label,$accounts,$hint,$grid));$clients.TabPages.Add($clientPage)
+        $clientPage.Controls.AddRange([Windows.Forms.Control[]]@($label,$accounts,$hint,$fullLabel,$fullGrid,$levelingLabel,$levelingGrid));$clients.TabPages.Add($clientPage)
         if($accounts.Items.Count){$accounts.SelectedIndex=0}
     }
     $save.Add_Click({param($sender,$e)
@@ -106,25 +113,43 @@ function New-DetectionPeriodSettingsPage {
 }
 function Save-AccountGridDraft($Editor) {
     if(-not $Editor.Selected){return}
-    $null=$Editor.Grid.EndEdit()
-    $roles=@(foreach($row in $Editor.Grid.Rows){@{Name=[string]$row.Cells['Name'].Value;Realm=[string]$row.Cells['Realm'].Value;
-        Enabled=[bool]$row.Cells['Enabled'].Value;Mode=$(if($row.Cells['Mode'].Value -eq '战斗'){'fight'}else{'fish'});UseItem=([bool]$row.Cells['UseItem'].Value -and $row.Cells['Mode'].Value -eq '钓鱼')}})
-    $Editor.Draft.Accounts[$Editor.Selected]=$roles
+    $edits=@{}
+    foreach($grid in $Editor.Grids){
+        $null=$grid.EndEdit()
+        foreach($row in $grid.Rows){
+            $role=@{Name=[string]$row.Cells['Name'].Value;Realm=[string]$row.Cells['Realm'].Value;
+                Enabled=[bool]$row.Cells['Enabled'].Value;Mode=$(if($row.Cells['Mode'].Value -eq '战斗'){'fight'}else{'fish'});UseItem=([bool]$row.Cells['UseItem'].Value -and $row.Cells['Mode'].Value -eq '钓鱼')}
+            $edits[$role.Realm+'|'+$role.Name]=$role
+        }
+    }
+    # Grouping/sorting is presentation only. Merge both grids in the saved role order.
+    $Editor.Draft.Accounts[$Editor.Selected]=@(foreach($role in $Editor.Draft.Accounts[$Editor.Selected]){
+        $key=$role.Realm+'|'+$role.Name
+        if($edits.ContainsKey($key)){$edits[$key]}else{$role}
+    })
 }
 function Show-AccountGridDraft($Editor,[string]$Key) {
     $Editor.Loading=$true
     try {
-        $Editor.Grid.Rows.Clear();$Editor.Selected=$Key
+        foreach($grid in $Editor.Grids){$grid.Rows.Clear()}
+        $Editor.Selected=$Key
         if(-not $Key){return}
         $records=$script:accountTasks.Catalog[$Key].Characters
-        foreach($role in $Editor.Draft.Accounts[$Key]) {
-            $record=@($records | Where-Object {$_.Name -ceq $role.Name -and $_.Realm -ceq $role.Realm})
-            if($record.Count -ne 1){continue}
-            $freeSlots=if($null -eq $record[0].FreeBagSlots){'未知'}else{$record[0].FreeBagSlots}
-            $professions=Format-WowCharacterSkills $record[0].Professions;$secondary=Format-WowCharacterSkills $record[0].SecondarySkills
-            $location=if([string]::IsNullOrWhiteSpace($record[0].BindLocation)){'未知'}else{$record[0].BindLocation}
-            $index=$Editor.Grid.Rows.Add([object[]]@($role.Enabled,$role.Name,$role.Realm,$(if($role.Mode -eq 'fight'){'战斗'}else{'钓鱼'}),$role.UseItem,$record[0].Level,$freeSlots,$professions,$secondary,$location))
-            $Editor.Grid.Rows[$index].Cells['UseItem'].ReadOnly=$role.Mode -eq 'fight'
+        $groups=Get-WowCharacterLevelGroups $Editor.Draft.Accounts[$Key] $records
+        $Editor.FullLabel.Text='满级角色（'+$groups.Full.Count+'）'
+        $Editor.LevelingLabel.Text='未满级角色（'+$groups.Leveling.Count+'，按等级降序；上限未知列于此，等级未知置后）'
+        foreach($group in @(@{Grid=$Editor.FullGrid;Entries=$groups.Full},@{Grid=$Editor.LevelingGrid;Entries=$groups.Leveling})){
+            $grid=$group.Grid
+            foreach($entry in $group.Entries){
+                $role=$entry.Role;$record=$entry.Record
+                $freeSlots=if($null -eq $record.FreeBagSlots){'未知'}else{$record.FreeBagSlots}
+                $level=if($null -eq $record.Level){'未知'}else{$record.Level}
+                $professions=Format-WowCharacterSkills $record.Professions;$secondary=Format-WowCharacterSkills $record.SecondarySkills
+                $location=if([string]::IsNullOrWhiteSpace($record.BindLocation)){'未知'}else{$record.BindLocation}
+                $index=$grid.Rows.Add([object[]]@($role.Enabled,$role.Name,$role.Realm,$(if($role.Mode -eq 'fight'){'战斗'}else{'钓鱼'}),$role.UseItem,$level,$freeSlots,$professions,$secondary,$location))
+                $grid.Rows[$index].Cells['UseItem'].ReadOnly=$role.Mode -eq 'fight'
+                $grid.Rows[$index].Cells['Level'].ToolTipText=if($null -eq $record.MaxLevel){'等级上限未知，加载新插件后正常下线并刷新进程。'}else{'满级等级：'+$record.MaxLevel}
+            }
         }
     }finally{$Editor.Loading=$false}
 }

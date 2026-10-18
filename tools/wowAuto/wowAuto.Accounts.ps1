@@ -33,7 +33,7 @@ function ConvertFrom-WowCharacterRecord([string]$Text) {
             $match=$reader.Match($body,$position)
             if (-not $match.Success -or $match.Index -ne $position) {return $null}
             $key=$match.Groups['key'].Value
-            if ($key -cnotin @('version','name','realm','level','freeBagSlots','recordedAt','professions','secondarySkills','bindLocation') -or $values.ContainsKey($key)) {return $null}
+            if ($key -cnotin @('version','name','realm','level','freeBagSlots','recordedAt','professions','secondarySkills','bindLocation','maxLevel') -or $values.ContainsKey($key)) {return $null}
             if ($key -cin @('name','realm','professions','secondarySkills','bindLocation')) {
                 if (-not $match.Groups['text'].Success) {return $null}
                 $values[$key]=[regex]::Replace($match.Groups['text'].Value,'\\(?<escape>\d{1,3}|.)',{
@@ -53,21 +53,36 @@ function ConvertFrom-WowCharacterRecord([string]$Text) {
             $position=$match.Index+$match.Length
         }
         $expected=@('version','name','realm','level','freeBagSlots','recordedAt')
-        if($values.version -in @(2,3)){$expected+=@('professions','secondarySkills')}
-        if($values.version -eq 3){$expected+='bindLocation'}
-        if ($values.Count -ne $expected.Count -or @($expected | Where-Object {-not $values.ContainsKey($_)}).Count -or $values.version -notin @(1,2,3) -or $values.name -notmatch '^[\p{L}\p{M}]{1,24}$' -or
+        if($values.version -in @(2,3,4)){$expected+=@('professions','secondarySkills')}
+        if($values.version -in @(3,4)){$expected+='bindLocation'}
+        if($values.version -eq 4){$expected+='maxLevel'}
+        if ($values.Count -ne $expected.Count -or @($expected | Where-Object {-not $values.ContainsKey($_)}).Count -or $values.version -notin @(1,2,3,4) -or $values.name -notmatch '^[\p{L}\p{M}]{1,24}$' -or
             -not $values.realm -or $values.realm.Length -gt 128 -or $values.realm -match '[\p{C}\\/]' -or
             $values.level -lt 0 -or $values.level -gt 1000 -or $values.freeBagSlots -lt -1 -or $values.freeBagSlots -gt 11000 -or
             $values.recordedAt -lt 1 -or $values.recordedAt -gt 253402300799) {return $null}
-        if($values.version -eq 3 -and ([string]::IsNullOrWhiteSpace($values.bindLocation) -or $values.bindLocation.Length -gt 256 -or
+        if($values.version -in @(3,4) -and ([string]::IsNullOrWhiteSpace($values.bindLocation) -or $values.bindLocation.Length -gt 256 -or
             $values.bindLocation -match '[{}\p{C}]')){return $null}
+        if($values.version -eq 4 -and ($values.maxLevel -lt 0 -or $values.maxLevel -gt 1000)){return $null}
         return [pscustomobject]@{Name=$values.name;Realm=$values.realm;
             Level=$(if ($values.level -gt 0) {$values.level} else {$null});
             FreeBagSlots=$(if ($values.freeBagSlots -ge 0) {$values.freeBagSlots} else {$null});RecordedAt=$values.recordedAt;
-            Professions=$(if($values.version -in @(2,3)){ConvertFrom-WowSkillRecord $values.professions 'primary'}else{$null});
-            SecondarySkills=$(if($values.version -in @(2,3)){ConvertFrom-WowSkillRecord $values.secondarySkills 'secondary'}else{$null});
-            BindLocation=$(if($values.version -eq 3 -and $values.bindLocation -cne '?'){$values.bindLocation}else{$null})}
+            Professions=$(if($values.version -in @(2,3,4)){ConvertFrom-WowSkillRecord $values.professions 'primary'}else{$null});
+            SecondarySkills=$(if($values.version -in @(2,3,4)){ConvertFrom-WowSkillRecord $values.secondarySkills 'secondary'}else{$null});
+            BindLocation=$(if($values.version -in @(3,4) -and $values.bindLocation -cne '?'){$values.bindLocation}else{$null});
+            MaxLevel=$(if($values.version -eq 4 -and $values.maxLevel -gt 0){$values.maxLevel}else{$null})}
     } catch {return $null}
+}
+function Get-WowCharacterLevelGroups($Roles,$Records) {
+    $full=@();$leveling=@();$order=0
+    foreach($role in $Roles){
+        $record=@($Records | Where-Object {$_.Name -ceq $role.Name -and $_.Realm -ceq $role.Realm})
+        if($record.Count -ne 1){continue}
+        $entry=[pscustomobject]@{Role=$role;Record=$record[0];Order=$order++}
+        if($null -ne $record[0].Level -and $null -ne $record[0].MaxLevel -and $record[0].Level -ge $record[0].MaxLevel){$full+=,$entry}
+        else{$leveling+=,$entry}
+    }
+    $leveling=@($leveling | Sort-Object -Property @{Expression={if($null -eq $_.Record.Level){-1}else{$_.Record.Level}};Descending=$true},Order)
+    return [pscustomobject]@{Full=$full;Leveling=$leveling}
 }
 function Read-WowCharacterRecord([string]$CharacterDirectory,[string]$Name,[string]$Realm) {
     try {
@@ -151,7 +166,7 @@ function Test-RowAccountPlan($Row,$Plan,[string]$Account=$Row.AccountName) {
     if (-not $Account -or -not @($accounts | Where-Object {$_.Name -ceq $Account}).Count) {throw '请设置游戏目录，并为当前进程选择存在的子战网。'}
     $names=@(Get-RowAccountNames $Row $Account)
     foreach ($slot in $Plan.Slots) {
-        if ($slot.Name -and $slot.Name -cnotin $names) {throw "子战网 $Account 的插件记录中没有角色：$($slot.Name)。请登录该角色，启动钓鱼或战斗检测后正常下线，再刷新。"}
+        if ($slot.Name -and $slot.Name -cnotin $names) {throw "子战网 $Account 的插件记录中没有角色：$($slot.Name)。请登录该角色并正常下线，再刷新。"}
     }
 }
 function Update-RowAccountChoices($Row) {
@@ -199,7 +214,7 @@ function New-GameDirectorySettingsPage {
         $inputs[$flavor]=$text;$page.Controls.AddRange([System.Windows.Forms.Control[]]@($label,$text,$browse))
     }
     $errorLabel=New-Object System.Windows.Forms.Label;$errorLabel.SetBounds(20,305,900,110)
-    $errorLabel.Text='角色列表只显示有插件下线记录的角色。请先登录角色，启动过钓鱼或战斗检测后正常下线，再刷新。等级与背包空格为最近下线快照。留空可停用该版本扫描。'
+    $errorLabel.Text='角色列表只显示有插件下线记录的角色。登录角色后正常下线，再刷新即可，无需启动检测。等级与背包空格为最近下线快照。留空可停用该版本扫描。'
     $save=New-Object WowAuto.DimButton;$save.Text='保存游戏目录';$save.SetBounds(20,440,180,38);Set-UiButtonStyle $save $true
     $page.Tag=[pscustomobject]@{Inputs=$inputs;Error=$errorLabel;Save=$save};$save.Tag=$page
     $save.Add_Click({param($sender,$e)

@@ -657,7 +657,7 @@ function New-RotationEditor($Row) {
         $dialog.Controls.AddRange([System.Windows.Forms.Control[]]@($label,$text,$mode,$item));$controls+=,[pscustomobject]@{Name=$text;Mode=$mode;UseItem=$item}
     }
     $errorLabel=New-Object System.Windows.Forms.Label;$errorLabel.SetBounds(20,283,910,70)
-    $errorLabel.Text='下拉框只显示启动过检测并正常下线留下插件记录的角色；旧名称保留在输入框供核对。新角色须先在游戏内启动一次钓鱼或战斗检测后下线。'
+    $errorLabel.Text='下拉框只显示正常下线留下插件记录的角色；旧名称保留在输入框供核对。新角色登录后正常下线并刷新即可，无需启动检测。'
     if ($Row.AccountError) {$errorLabel.Text=$Row.AccountError}
     $save=New-Object WowAuto.DimButton;$save.Text='保存编排';$save.SetBounds(430,360,135,36);Set-UiButtonStyle $save $true
     $cancel=New-Object WowAuto.DimButton;$cancel.Text='取消';$cancel.SetBounds(585,360,125,36);Set-UiButtonStyle $cancel

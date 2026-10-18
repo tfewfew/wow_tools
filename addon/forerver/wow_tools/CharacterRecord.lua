@@ -1,7 +1,7 @@
 -- Forever uses its own per-character SavedVariables and namespaced container APIs.
--- Cache live metadata after enrollment; persist only at normal logout. No polling.
+-- Cache every character's live metadata; persist only at normal logout. No polling.
 local events=CreateFrame("Frame")
-local monitored=false
+local initialized=false
 local function Readable(value)
     return not (issecretvalue and issecretvalue(value))
 end
@@ -12,6 +12,11 @@ local function Read(getter,...)
 end
 local function Integer(value,minimum,maximum)
     return Readable(value) and type(value)=="number" and value>=minimum and value<=maximum and value==math.floor(value)
+end
+local function MaximumLevel()
+    local maximum=Read(GetMaxPlayerLevel)
+    if not Integer(maximum,1,1000) then maximum=Read(GetMaxLevelForPlayerExpansion) end
+    if Integer(maximum,1,1000) then return maximum end
 end
 local function FreeSlots()
     local slots=C_Container and C_Container.GetContainerNumSlots or GetContainerNumSlots
@@ -174,13 +179,15 @@ local function BindLocation()
         and not location:find("[{}%c]") and location~="?" then return location end
 end
 local function Sample(bags,skills,bind)
-    if not monitored or sampling then return end
+    if not initialized or sampling then return end
     local name,realm=Read(UnitName,"player"),Read(GetRealmName)
     if type(name)~="string" or name=="" or type(realm)~="string" or realm=="" then return end
     if not cached or cached.name~=name or cached.realm~=realm then cached={name=name,realm=realm} end
     sampling=true
     local level=Read(UnitLevel,"player")
     if Integer(level,1,1000) then cached.level=level end
+    local maximum=MaximumLevel()
+    if maximum then cached.maxLevel=maximum end
     if bind then
         local location=BindLocation()
         if location then cached.bindLocation=location end
@@ -197,9 +204,9 @@ local function Sample(bags,skills,bind)
     sampling=false
 end
 local liveEvents={"PLAYER_ENTERING_WORLD","PLAYER_LEAVING_WORLD","BAG_UPDATE_DELAYED","SKILL_LINES_CHANGED","PLAYER_LEVEL_UP","HEARTHSTONE_BOUND"}
-function WoWTools.MarkCharacterMonitored()
-    if monitored then return end
-    monitored=true
+local function StartRecording()
+    if initialized then return end
+    initialized=true
     events:RegisterEvent("PLAYER_LOGOUT")
     for _,event in ipairs(liveEvents) do events:RegisterEvent(event) end
     Sample(true,true,true)
@@ -209,11 +216,10 @@ events:SetScript("OnEvent",function(_,event,addon)
     if event=="ADDON_LOADED" then
         if addon~="wow_tools" then return end
         events:UnregisterEvent("ADDON_LOADED")
-        if type(wowToolsCharacterRecord)=="table" and (wowToolsCharacterRecord.version==1 or wowToolsCharacterRecord.version==2
-            or wowToolsCharacterRecord.version==3) then WoWTools.MarkCharacterMonitored() end
+        StartRecording()
         return
     end
-    if not monitored then return end
+    if not initialized then return end
     if event~="PLAYER_LOGOUT" then
         if event=="PLAYER_LEAVING_WORLD" then leavingWorld=true;return end
         if event=="PLAYER_ENTERING_WORLD" then leavingWorld=false;Sample(true,true,true);return end
@@ -236,9 +242,10 @@ events:SetScript("OnEvent",function(_,event,addon)
     local primary,secondary
     if not leavingWorld and (current.professions==nil or current.secondarySkills==nil) then primary,secondary=CharacterSkills() end
     local location=not leavingWorld and BindLocation() or nil
-    wowToolsCharacterRecord={version=3,name=name,realm=realm,
+    local maximum=not leavingWorld and MaximumLevel() or nil
+    wowToolsCharacterRecord={version=4,name=name,realm=realm,
         level=Integer(level,1,1000) and level or current.level or 0,
         freeBagSlots=Integer(free,0,11000) and free or current.freeBagSlots or -1,recordedAt=recordedAt,
         professions=current.professions or primary or "?",secondarySkills=current.secondarySkills or secondary or "?",
-        bindLocation=location or current.bindLocation or "?"}
+        bindLocation=location or current.bindLocation or "?",maxLevel=maximum or current.maxLevel or 0}
 end)

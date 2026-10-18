@@ -1,4 +1,9 @@
 ﻿function Assert-Parallel($Condition,[string]$Message){if(-not $Condition){throw $Message}}
+function Get-ParallelRoleRow($Editor,[string]$Name) {
+    $matches=@(foreach($grid in $Editor.Grids){foreach($row in $grid.Rows){if($row.Cells['Name'].Value -ceq $Name){$row}}})
+    Assert-Parallel ($matches.Count -eq 1) ('Expected one role row: '+$Name)
+    return $matches[0]
+}
 function Select-ParallelSettingsPage($Dialog,$Page) {
     if($Page -eq $Dialog.Tag.DetectionPeriods -or $Page -eq $Dialog.Tag.Operations){$Dialog.Tag.Tabs.SelectedTab=$Dialog.Tag.Timing;$Dialog.Tag.Timing.Tag.Tabs.SelectedTab=$Page}
     else{$Dialog.Tag.Tabs.SelectedTab=$Page}
@@ -23,30 +28,43 @@ $dialog=New-UnifiedSettingsDialog
 try {
     $dialog.Show($form);$dialog.Tag.Tabs.SelectedTab=$dialog.Tag.Accounts;[Windows.Forms.Application]::DoEvents()
     $accountEditor=$dialog.Tag.Accounts.Tag;$editor=$accountEditor.Clients.titan;$forever=$accountEditor.Clients.forerver;$periodEditor=$dialog.Tag.DetectionPeriods.Tag
-    Assert-Parallel ($dialog.Tag.Tabs.TabPages.Count -eq 5 -and $editor.Grid.Rows.Count -eq 4 -and $script:parallelHub.Paused) 'Separate global period settings tab or runtime pause is missing.'
+    Assert-Parallel ($dialog.Tag.Tabs.TabPages.Count -eq 5 -and ($editor.FullGrid.Rows.Count+$editor.LevelingGrid.Rows.Count) -eq 4 -and $script:parallelHub.Paused) 'Separate global period settings tab or runtime pause is missing.'
     Assert-Parallel ($dialog.Tag.DetectionPeriods.Text -eq '检测周期' -and $periodEditor.Periods.Count -eq 10 -and -not $accountEditor.PSObject.Properties['Periods']) 'Global detection controls still belong to account settings.'
     Assert-Parallel ($dialog.Tag.Timing.Text -eq '检测与操作' -and $dialog.Tag.Timing.Tag.Tabs.TabPages.Count -eq 2 -and $dialog.Tag.Operations.Tag.Values.Count -eq 22) 'Detection and queue settings are not sibling child tabs.'
     Assert-Parallel (-not $dialog.Tag.Fish.Tag.FocusRetry.Visible -and -not $dialog.Tag.Fish.Tag.ReelHold.Visible -and -not $dialog.Tag.Fight.Tag.CommandInterval.Visible -and -not $dialog.Tag.Fight.Tag.CommonNumbers.InteractionHoldMs.Visible) 'Moved timing controls remain editable in their original pages.'
     Assert-Parallel ($accountEditor.ClientTabs.TabPages.Count -eq 2 -and $editor.Page.Text -eq '时光服' -and $forever.Page.Text -eq '永恒服') 'Clients do not have separate child tabs.'
     Assert-Parallel ($editor.Accounts.Items.Count -eq 2 -and $forever.Accounts.Items.Count -eq 1 -and $editor.Selected -ceq 'titan:ACCOUNT-A' -and $forever.Selected -ceq 'forerver:ACCOUNT-A') 'Child account lists are not filtered by client.'
-    Assert-Parallel ($editor.Accounts.SelectedItem -ceq 'ACCOUNT-A' -and $forever.Accounts.SelectedItem -ceq 'ACCOUNT-A' -and $editor.Grid.Rows[0].Cells['Mode'].Value -eq '钓鱼' -and $forever.Grid.Rows[0].Cells['Mode'].Value -eq '战斗') 'Same-name accounts leaked across client tabs or dropdown still contains client prefixes.'
+    Assert-Parallel ($editor.Accounts.SelectedItem -ceq 'ACCOUNT-A' -and $forever.Accounts.SelectedItem -ceq 'ACCOUNT-A' -and (Get-ParallelRoleRow $editor '角色甲').Cells['Mode'].Value -eq '钓鱼' -and (Get-ParallelRoleRow $forever '角色甲').Cells['Mode'].Value -eq '战斗') 'Same-name accounts leaked across client tabs or dropdown still contains client prefixes.'
     foreach($client in @($editor,$forever)){
-        Assert-Parallel ($client.Grid.Rows[0].Cells['FreeBagSlots'].Value -ceq '未知' -and $client.Grid.Rows[1].Cells['FreeBagSlots'].Value -eq 0 -and $client.Grid.Rows[2].Cells['FreeBagSlots'].Value -eq 12) 'Unknown, full and available bag snapshots are not distinguished in the role table.'
-        Assert-Parallel ($client.Grid.Columns['Professions'].Index -eq $client.Grid.Columns['FreeBagSlots'].Index+1 -and
-            $client.Grid.Columns['SecondarySkills'].Index -eq $client.Grid.Columns['Professions'].Index+1 -and
-            $client.Grid.Columns['Professions'].ReadOnly -and $client.Grid.Columns['SecondarySkills'].ReadOnly) 'Read-only skill columns are missing after bag space.'
-        Assert-Parallel ($client.Grid.Rows[0].Cells['Professions'].Value -ceq '未知' -and $client.Grid.Rows[1].Cells['Professions'].Value -ceq '未学习' -and
-            $client.Grid.Rows[2].Cells['Professions'].Value -ceq "采矿 450/450`n剥皮 425/450" -and
-            $client.Grid.Rows[2].Cells['SecondarySkills'].Value -ceq "烹饪 300/450`n钓鱼 450/450" -and
-            $client.Grid.Rows[3].Cells['Professions'].Value -ceq '炼金术 0/75') 'Skill names/ranks, unknown or unlearned skills were not presented correctly.'
+        Assert-Parallel ($client.FullGrid.Bottom -lt $client.LevelingGrid.Top -and $client.FullGrid.Rows.Count -eq 1 -and
+            $client.FullGrid.Rows[0].Cells['Name'].Value -ceq '角色乙' -and
+            (($client.LevelingGrid.Rows | ForEach-Object {$_.Cells['Name'].Value}) -join ',') -ceq '角色丙,角色丁,角色甲') 'Full/leveling tables lost client caps, top placement, descending levels or unknown-last order.'
+        $signature=Get-AccountTaskSignature $client.Draft.Accounts[$client.Selected]
+        Save-AccountGridDraft $client
+        Assert-Parallel ((Get-AccountTaskSignature $client.Draft.Accounts[$client.Selected]) -ceq $signature) 'Display grouping/sorting reordered saved rotation tasks.'
+        Assert-Parallel ((Get-ParallelRoleRow $client '角色甲').Cells['FreeBagSlots'].Value -ceq '未知' -and (Get-ParallelRoleRow $client '角色乙').Cells['FreeBagSlots'].Value -eq 0 -and (Get-ParallelRoleRow $client '角色丙').Cells['FreeBagSlots'].Value -eq 12) 'Unknown, full and available bag snapshots are not distinguished in the role table.'
+        Assert-Parallel ($client.FullGrid.Columns['Professions'].Index -eq $client.FullGrid.Columns['FreeBagSlots'].Index+1 -and
+            $client.FullGrid.Columns['SecondarySkills'].Index -eq $client.FullGrid.Columns['Professions'].Index+1 -and
+            $client.FullGrid.Columns['Professions'].ReadOnly -and $client.FullGrid.Columns['SecondarySkills'].ReadOnly) 'Read-only skill columns are missing after bag space.'
+        Assert-Parallel ((Get-ParallelRoleRow $client '角色甲').Cells['Professions'].Value -ceq '未知' -and (Get-ParallelRoleRow $client '角色乙').Cells['Professions'].Value -ceq '未学习' -and
+            (Get-ParallelRoleRow $client '角色丙').Cells['Professions'].Value -ceq "采矿 450/450`n剥皮 425/450" -and
+            (Get-ParallelRoleRow $client '角色丙').Cells['SecondarySkills'].Value -ceq "烹饪 300/450`n钓鱼 450/450" -and
+            (Get-ParallelRoleRow $client '角色丁').Cells['Professions'].Value -ceq '炼金术 0/75') 'Skill names/ranks, unknown or unlearned skills were not presented correctly.'
         $location=if($client.Flavor -eq 'titan'){'达拉然'}else{'奥格瑞玛'}
-        Assert-Parallel ($client.Grid.Columns['BindLocation'].ReadOnly -and $client.Grid.Columns['BindLocation'].HeaderText -ceq '炉石位置' -and
-            $client.Grid.Rows[0].Cells['BindLocation'].Value -ceq '未知' -and $client.Grid.Rows[1].Cells['BindLocation'].Value -ceq '未知' -and
-            $client.Grid.Rows[2].Cells['BindLocation'].Value -ceq $location -and $client.Grid.Rows[3].Cells['BindLocation'].Value -ceq '未知') 'Hearthstone binding column lost old/unknown snapshots or mixed the clients.'
-        Assert-Parallel (($client.Grid.Columns | Measure-Object -Property Width -Sum).Sum -le $client.Grid.Width) 'Hearthstone column requires horizontal scrolling at the default window size.'
+        Assert-Parallel ($client.FullGrid.Columns['BindLocation'].ReadOnly -and $client.FullGrid.Columns['BindLocation'].HeaderText -ceq '炉石位置' -and
+            (Get-ParallelRoleRow $client '角色甲').Cells['BindLocation'].Value -ceq '未知' -and (Get-ParallelRoleRow $client '角色乙').Cells['BindLocation'].Value -ceq '未知' -and
+            (Get-ParallelRoleRow $client '角色丙').Cells['BindLocation'].Value -ceq $location -and (Get-ParallelRoleRow $client '角色丁').Cells['BindLocation'].Value -ceq '未知') 'Hearthstone binding column lost old/unknown snapshots or mixed the clients.'
+        Assert-Parallel (($client.FullGrid.Columns | Measure-Object -Property Width -Sum).Sum -le $client.FullGrid.Width) 'Hearthstone column requires horizontal scrolling at the default window size.'
     }
+    (Get-ParallelRoleRow $editor '角色乙').Cells['Mode'].Value='钓鱼'
+    (Get-ParallelRoleRow $editor '角色乙').Cells['UseItem'].Value=$true
+    Save-AccountGridDraft $editor
+    Assert-Parallel ($editor.Draft.Accounts[$editor.Selected][1].UseItem -and $editor.Draft.Accounts[$editor.Selected][1].Mode -eq 'fish' -and
+        $script:accountTasks.Config.Accounts[$editor.Selected][1].Mode -eq 'fight') 'Upper-table task/item edits did not enter the draft independently.'
+    (Get-ParallelRoleRow $editor '角色乙').Cells['Mode'].Value='战斗'
+    Assert-Parallel ((Get-ParallelRoleRow $editor '角色乙').Cells['UseItem'].ReadOnly -and -not (Get-ParallelRoleRow $editor '角色乙').Cells['UseItem'].Value) 'Upper-table combat task did not disable and clear its fishing item.'
     $before=(Get-FileHash $script:accountTasks.Path).Hash
-    $editor.Grid.Rows[0].Cells['Enabled'].Value=$false
+    (Get-ParallelRoleRow $editor '角色甲').Cells['Enabled'].Value=$false
     $periodEditor.Periods.OcrMs.Value=50
     $dialog.Tag.Operations.Tag.Values.KeyPressMs.Value=57
     Assert-Parallel ($script:accountTasks.Config.Accounts[$editor.Selected][0].Enabled) 'Role draft applied before save.'
@@ -62,7 +80,7 @@ $dialog=New-UnifiedSettingsDialog
 try {
     $dialog.Show($form);$dialog.Tag.Tabs.SelectedTab=$dialog.Tag.Accounts;[Windows.Forms.Application]::DoEvents()
     $accountEditor=$dialog.Tag.Accounts.Tag;$editor=$accountEditor.Clients.titan;$forever=$accountEditor.Clients.forerver;$periodEditor=$dialog.Tag.DetectionPeriods.Tag
-    $editor.Grid.Rows[3].Cells['Enabled'].Value=$false;$periodEditor.Periods.OcrMs.Value=50
+    (Get-ParallelRoleRow $editor '角色丁').Cells['Enabled'].Value=$false;$periodEditor.Periods.OcrMs.Value=50
     $operationEditor=$dialog.Tag.Operations.Tag
     $operationEditor.Values.KeyPressMs.Value=17;$operationEditor.Values.ForegroundSettleMs.Value=75;$operationEditor.Values.UiRefreshMs.Value=40
     $locked=[IO.File]::Open($script:accountTasks.Path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
@@ -78,14 +96,14 @@ try {
     Assert-Parallel ($script:accountTasks.Config.Accounts['titan:ACCOUNT-A'][3].Enabled -and $script:accountTasks.Config.Periods.OcrMs -eq 50) 'Saving global periods applied the unsaved role draft.'
     $periodEditor.Periods.OcrMs.Value=75;$dialog.Tag.Tabs.SelectedTab=$dialog.Tag.Accounts;$accountEditor.Save.PerformClick()
     Assert-Parallel (-not $script:accountTasks.Config.Accounts['titan:ACCOUNT-A'][3].Enabled -and $script:accountTasks.Config.Periods.OcrMs -eq 50 -and $script:accountTasks.Config.Accounts['forerver:ACCOUNT-A'][3].Enabled) 'Role save applied unsaved periods, reverted saved periods or changed the other client.'
-    $editor.Grid.Rows[3].Cells['Enabled'].Value=$true;$accountEditor.ClientTabs.SelectedTab=$forever.Page;$forever.Grid.Rows[2].Cells['UseItem'].Value=$true
+    (Get-ParallelRoleRow $editor '角色丁').Cells['Enabled'].Value=$true;$accountEditor.ClientTabs.SelectedTab=$forever.Page;(Get-ParallelRoleRow $forever '角色丙').Cells['UseItem'].Value=$true
     $accountEditor.ClientTabs.SelectedTab=$editor.Page;$editor.Accounts.SelectedItem='ACCOUNT-B'
     Assert-Parallel (-not $script:accountTasks.Config.Accounts['titan:ACCOUNT-A'][3].Enabled) 'Further edits after Save shared the active configuration object.'
     $editor.Accounts.SelectedItem='ACCOUNT-A'
-    Assert-Parallel ($editor.Grid.Rows[3].Cells['Enabled'].Value -and $forever.Grid.Rows[2].Cells['UseItem'].Value -and $forever.Selected -ceq 'forerver:ACCOUNT-A') 'Changing account/client tabs discarded another tab draft or selection.'
+    Assert-Parallel ((Get-ParallelRoleRow $editor '角色丁').Cells['Enabled'].Value -and (Get-ParallelRoleRow $forever '角色丙').Cells['UseItem'].Value -and $forever.Selected -ceq 'forerver:ACCOUNT-A') 'Changing account/client tabs discarded another tab draft or selection.'
     $accountEditor.Save.PerformClick();Select-ParallelSettingsPage $dialog $dialog.Tag.DetectionPeriods;$periodEditor.Periods.OcrMs.Value=25;$periodEditor.Save.PerformClick()
     Assert-Parallel ($script:accountTasks.Config.Accounts['titan:ACCOUNT-A'][3].Enabled -and $script:accountTasks.Config.Accounts['forerver:ACCOUNT-A'][2].UseItem -and $script:accountTasks.Config.Periods.OcrMs -eq 25) 'Saving periods reverted the latest saved roles in another client.'
-    $dialog.Tag.Tabs.SelectedTab=$dialog.Tag.Accounts;$accountEditor.ClientTabs.SelectedTab=$forever.Page;$forever.Grid.Rows[2].Cells['UseItem'].Value=$false;$accountEditor.Save.PerformClick()
+    $dialog.Tag.Tabs.SelectedTab=$dialog.Tag.Accounts;$accountEditor.ClientTabs.SelectedTab=$forever.Page;(Get-ParallelRoleRow $forever '角色丙').Cells['UseItem'].Value=$false;$accountEditor.Save.PerformClick()
     $savedSettings=[IO.File]::ReadAllText($script:accountTasks.Path) | ConvertFrom-Json
     Assert-Parallel ($savedSettings.Periods.OcrMs -eq 25 -and $savedSettings.Accounts.'titan:ACCOUNT-A'[3].Enabled -and -not $savedSettings.Accounts.'forerver:ACCOUNT-A'[2].UseItem) 'Separate settings pages did not persist their latest values.'
     Assert-Parallel ($savedSettings.Operations.KeyPressMs -eq 17 -and $script:accountTasks.Config.Operations.KeyPressMs -eq 17) 'Role/period saves changed saved operation timing or applied a later unsaved draft.'

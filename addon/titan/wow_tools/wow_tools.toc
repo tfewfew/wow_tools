@@ -2,7 +2,7 @@
 ## Title: wow_tools
 ## Notes-zhCN: 工具合集：钓鱼检测、战斗检测、内部画面设置与商店一键卖鱼。
 ## Author: Ray
-## Version: 2.1.44
+## Version: 2.1.45
 ## SavedVariables: wowDetectorDB, fightDetectorDB
 ## SavedVariablesPerCharacter: wowToolsCharacterRecord
 

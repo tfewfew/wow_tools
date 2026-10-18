@@ -22,6 +22,9 @@ for _,flavor in ipairs({"titan","forerver"}) do
     function UnitName() reads=reads+1;return name end
     function GetRealmName() reads=reads+1;return realm end
     function UnitLevel() reads=reads+1;return level end
+    local maximum=flavor=="titan" and 80 or 60
+    function GetMaxLevelForPlayerExpansion() return maximum end
+    GetMaxPlayerLevel=flavor=="forerver" and GetMaxLevelForPlayerExpansion or nil
     function time() return now end
     NUM_BAG_SLOTS=4
     local function slots(bag) reads=reads+1;if missing then error("API failed") end;return counts[bag] end
@@ -35,18 +38,21 @@ for _,flavor in ipairs({"titan","forerver"}) do
     end
     wowToolsCharacterRecord=nil
     local f=load()
-    wowToolsCharacterRecord={previous=true}
-    local previous=wowToolsCharacterRecord
+    assert(reads>0 and wowToolsCharacterRecord==nil and f.events.PLAYER_LOGOUT and not f.scripts.OnUpdate,
+        "Every character must cache live metadata without needing a detector")
     f.scripts.OnEvent(f,"PLAYER_LOGOUT")
-    assert(reads==0 and wowToolsCharacterRecord==previous and not next(f.events) and not f.scripts.OnUpdate,"Inactive role was read or rewritten")
+    local previous=wowToolsCharacterRecord
+    assert(previous and previous.version==4 and previous.level==80 and previous.freeBagSlots==9 and previous.maxLevel==maximum,
+        "Never starting a detector prevented normal logout persistence")
+    local beforeStart=reads
     WoWTools.ActivateDetector("wowDetector")
     assert(f.events.PLAYER_LOGOUT and f.events.BAG_UPDATE_DELAYED and f.events.SKILL_LINES_CHANGED
-        and reads>0 and wowToolsCharacterRecord==previous and not f.scripts.OnUpdate,
-        "Start did not cache live metadata, persisted early, or introduced polling")
+        and reads==beforeStart and wowToolsCharacterRecord==previous and not f.scripts.OnUpdate,
+        "Detector start still controls character recording or introduced polling")
     level=81;now=now+60
     f.scripts.OnEvent(f,"PLAYER_LOGOUT")
     local record=wowToolsCharacterRecord
-    assert(record.version==3 and record.name==name and record.realm==realm and record.level==81 and record.freeBagSlots==9 and record.recordedAt==now,"Logout did not use latest general-bag/level data")
+    assert(record.version==4 and record.name==name and record.realm==realm and record.level==81 and record.freeBagSlots==9 and record.recordedAt==now and record.maxLevel==maximum,"Logout did not use latest general-bag/level/cap data")
     assert(record.professions=="?" and record.secondarySkills=="?","Missing skill APIs were mistaken for unlearned skills")
     -- bagFamily is optional: nil on a valid general bag must not discard the entire snapshot.
     families[0]=nil;families[1]=nil
@@ -60,13 +66,20 @@ for _,flavor in ipairs({"titan","forerver"}) do
     f.scripts.OnEvent(f,"BAG_UPDATE_DELAYED")
     f.scripts.OnEvent(f,"PLAYER_LOGOUT")
     assert(wowToolsCharacterRecord.freeBagSlots==0,"A full backpack was confused with unknown data")
-    missing=true;level=secret
+    if flavor=="forerver" then
+        local primaryCap=GetMaxPlayerLevel
+        GetMaxPlayerLevel=function() return secret end
+        f.scripts.OnEvent(f,"PLAYER_LOGOUT")
+        assert(wowToolsCharacterRecord.maxLevel==maximum,"Restricted primary cap did not fall back to the supported expansion API")
+        GetMaxPlayerLevel=primaryCap
+    end
+    missing=true;level=secret;maximum=secret
     f.scripts.OnEvent(f,"PLAYER_LOGOUT")
-    assert(wowToolsCharacterRecord.freeBagSlots==0 and wowToolsCharacterRecord.level==81,
+    assert(wowToolsCharacterRecord.freeBagSlots==0 and wowToolsCharacterRecord.level==81 and wowToolsCharacterRecord.maxLevel==record.maxLevel,
         "Logout API teardown discarded this login's valid cache")
     f=load() -- No valid live samples in this new login; prior disk values are not current data.
     f.scripts.OnEvent(f,"PLAYER_LOGOUT")
-    assert(wowToolsCharacterRecord.freeBagSlots==-1 and wowToolsCharacterRecord.level==0,"Failed/restricted reads were not unknown")
+    assert(wowToolsCharacterRecord.freeBagSlots==-1 and wowToolsCharacterRecord.level==0 and wowToolsCharacterRecord.maxLevel==0,"Failed/restricted reads were not unknown")
     missing=false;restricted=true
     f.scripts.OnEvent(f,"PLAYER_LOGOUT")
     assert(wowToolsCharacterRecord.freeBagSlots==-1,"Restricted container values were compared or counted")
@@ -81,5 +94,5 @@ for _,flavor in ipairs({"titan","forerver"}) do
     assert(wowToolsCharacterRecord==previous,"Missing identity overwrote a character record")
     local file=assert(io.open(addon.."wow_tools.toc","r"));local toc=file:read("*a");file:close()
     assert(toc:find("## SavedVariablesPerCharacter: wowToolsCharacterRecord",1,true) and toc:find("CharacterRecord.lua",1,true),"Per-character persistence is absent")
-    print("PASS: "..flavor.." live event cache and logout-only persistence, optional bag family, valid zero retention, current-login fallback versus previous disk values, restricted/API failures and no unmonitored reads or polling.")
+    print("PASS: "..flavor.." all-character live event cache and logout-only persistence, client level cap, detector independence, optional bag family, zero retention, current-login fallback, restricted/API failures and no polling.")
 end

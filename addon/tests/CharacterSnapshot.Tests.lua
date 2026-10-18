@@ -93,8 +93,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     wowToolsCharacterRecord=nil
     Event("ADDON_LOADED","wow_tools")
     Event("BAG_UPDATE_DELAYED");Event("SKILL_LINES_CHANGED")
-    assert(reads==0 and not frame.scripts.OnUpdate,"Unmonitored character was sampled")
-    WoWTools.MarkCharacterMonitored()
+    assert(reads>0 and not frame.scripts.OnUpdate,"Character cache still requires detector enrollment or polls")
     assert(reads>0 and wowToolsCharacterRecord==nil and not rows[1].expanded and not rows[4].expanded,
         "Live capture did not restore UI folding or wrote disk data early")
     free,rank,level=0,449,81

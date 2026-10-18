@@ -69,7 +69,31 @@ try {
         ($bindText+"`nmalicious()"))) {
         Assert-Record (-not (ConvertFrom-WowCharacterRecord $bad)) 'Invalid binding, extra field, unknown schema or executable data was accepted.'
     }
-    Write-Output 'PASS: strict read-only v1/v2/v3 parsing, hearthstone binding/unknown/quoted names, skills, malformed/duplicate/cross-group rejection, identity/account isolation and no SavedVariables execution.'
+    Assert-Record ($null -eq $bound.MaxLevel) 'Legacy v3 record invented a level cap.'
+    Write-TestCharacterRecord $role '角色甲' '服务器甲' -Version 4 -Level 80 -MaxLevel 80 -BindLocation '达拉然' -Professions $primary -SecondarySkills $secondary
+    $maxText=[IO.File]::ReadAllText($path);$maxed=Read-WowCharacterRecord $role '角色甲' '服务器甲'
+    Assert-Record ($maxed.MaxLevel -eq 80 -and $maxed.Level -eq 80 -and $maxed.BindLocation -ceq '达拉然' -and $maxed.Professions.Count -eq 2) 'v4 lost the level cap or earlier metadata.'
+    $noCap=ConvertFrom-WowCharacterRecord ($maxText.Replace('["maxLevel"] = 80,','["maxLevel"] = 0,'))
+    Assert-Record ($noCap -and $null -eq $noCap.MaxLevel) 'Unknown cap hid a valid character or became a real cap.'
+    foreach($bad in @($maxText.Replace('["maxLevel"] = 80,','["maxLevel"] = -1,'),$maxText.Replace('["maxLevel"] = 80,','["maxLevel"] = 1001,'),
+        $maxText.Replace('["maxLevel"] = 80,','["maxLevel"] = "80",'),$maxText.Replace('["maxLevel"]','["level"]'),
+        $maxText.Replace('["version"] = 4,','["version"] = 3,'),$maxText.Replace('["version"] = 4,','["version"] = 5,'))){
+        Assert-Record (-not (ConvertFrom-WowCharacterRecord $bad)) 'Malformed/duplicate/extra/unsupported level-cap data was accepted.'
+    }
+    $groupRecords=@(
+        [pscustomobject]@{Name='旧角色';Realm='服务器甲';Level=85;MaxLevel=$null},
+        [pscustomobject]@{Name='低级角色';Realm='服务器甲';Level=20;MaxLevel=80},
+        [pscustomobject]@{Name='满级角色';Realm='服务器甲';Level=60;MaxLevel=60},
+        [pscustomobject]@{Name='高级角色';Realm='服务器甲';Level=79;MaxLevel=80},
+        [pscustomobject]@{Name='同级角色';Realm='服务器甲';Level=79;MaxLevel=80},
+        [pscustomobject]@{Name='未知角色';Realm='服务器甲';Level=$null;MaxLevel=80})
+    $groupRoles=@($groupRecords | ForEach-Object {@{Name=$_.Name;Realm=$_.Realm}})
+    $groups=Get-WowCharacterLevelGroups $groupRoles $groupRecords
+    Assert-Record ($groups.Full.Count -eq 1 -and $groups.Full[0].Role.Name -ceq '满级角色' -and
+        (($groups.Leveling | ForEach-Object {$_.Role.Name}) -join ',') -ceq '旧角色,高级角色,同级角色,低级角色,未知角色') 'Level groups guessed a cap, lost stable descending order or failed to put unknown levels last.'
+    $emptyGroups=Get-WowCharacterLevelGroups @() @()
+    Assert-Record ($emptyGroups.Full.Count -eq 0 -and $emptyGroups.Leveling.Count -eq 0) 'Empty groups lost their array shape.'
+    Write-Output 'PASS: strict read-only v1-v4 parsing, client level caps, stable descending level groups/unknowns, hearthstone/skills, invalid data rejection, identity/account isolation and no SavedVariables execution.'
 } finally {
     $cleanup=[IO.Path]::GetFullPath($fixture)
     if (-not $cleanup.StartsWith([IO.Path]::GetFullPath([IO.Path]::GetTempPath()),[StringComparison]::OrdinalIgnoreCase) -or (Split-Path $cleanup -Leaf) -notlike 'wowAuto-records-*') {throw 'Unsafe fixture cleanup.'}
