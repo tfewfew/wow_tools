@@ -57,7 +57,9 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 - 卖鱼设置的“冬拥湖三杰”按钮（titan 2.1.39 / forerver 2.2.38）按41813、41806、41809追加缺失ID，保留已有清单与顺序；与数字框手动添加共用AddID校验和去重，不自动开始出售。重载读入同样清理重复数字ID，列表沿用异步物品名称加载。SellFish.Tests模拟覆盖已有部分预设、连续导入、带前导零的手动重复ID、名称显示、删除后补回和重载保存。
 
-- titan版基于原2.1.1独立维护，当前2.1.39/接口38002。forerver版当前2.2.38/接口16001按无限服1.60.1.70338的Blizzard导出源码943764493e6b16d63ded3ab304150d1f05e58b57移植；以后跟随对应分支源码核对API，不能仅改TOC号。
+- 卖鱼完成复查（titan 2.1.40 / forerver 2.2.39）覆盖旧版只处理初次快照的行为：当前队列及在途列表清空后每100ms重扫，连续两次无可售条目才结束；发现新物品则续接队列，没有总时长/总组数截止。无效或小于4的NUM_BAG_SLOTS回退4，至少查询随身背包0–4，最高只接受5，禁止扫描银行/装备。可用时用C_Item.GetItemGUID(ItemLocation:CreateFromBagAndSlot)区分相同ID/数量/链接的新旧物品并先排除受限值；实际失败/超时按GUID及物品快照（无GUID按格子快照）去重，不反复使用。可变物品须重新入队并再次核对；非清单物品始终不出售。未知数据连续复查最多5秒后明确扫描未完成，不写全部完成；开始/结束打印每背包匹配组数/总格数、结束打印剩余组数。SellFish.Tests已用旧源码复现初次20组、另一背包稍后可读时提前完成，验证新版补卖40组、缺失/过期背包全局、8秒运行无总时长截止、GUID换物、未知不误报及失败无重复。仅模拟，不操作真实出售。
+
+- titan版基于原2.1.1独立维护，当前2.1.40/接口38002。forerver版当前2.2.39/接口16001按无限服1.60.1.70338的Blizzard导出源码943764493e6b16d63ded3ab304150d1f05e58b57移植；以后跟随对应分支源码核对API，不能仅改TOC号。
 - forerver在Init.lua后加载Compatibility.lua：ItemLocation主手槽16及C_Item.GetItemID/GetItemInfoInstant识别鱼竿，C_Item.GetWeaponEnchantInfo(Enum.WeaponSlot.MainHand)返回列表，只接受有效Temporary附魔，排除Permanent/Imbue；失败或受限/不完整数据为unknown。UnitChannelInfo的技能ID在第8项，绿色只认钓鱼引导；先用issecretvalue排除受限返回再比较/输出，受限引导使主色块灰色。注册WEAPON_ENCHANT_CHANGED并每0.1秒刷新。菜单使用MenuUtil.CreateContextMenu；画面模块移动FramerateFrame整体，不再依赖FramerateLabel全局。未提供的CVar继续禁用，禁止加载时自动改变图形设置。forever测试覆盖全TOC加载，不发送游戏按键。
 - wowAuto同时识别时光服_classic_titan_/WowClassic.exe 3.80.和无限服_cn_beta_/Wow.exe 1.60.，允许游戏根目录位于其他盘符，但产品目录名须匹配。GetClientFlavor同时核对可执行文件名、父目录与构建前缀；未知/无法读取/零售服不加入列表。每行Client保存Flavor、Label、ExecutablePath；启动、取色、焦点切换、发键及正常/超时退出均核对PID、StartTime、路径与客户端身份。C#方法接收启动Ticks和预期路径，不能退回只按Wow进程名操作。
 

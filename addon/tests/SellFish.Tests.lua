@@ -4,6 +4,7 @@ local function Run(flavor, legacy)
     local frames, names, messages, calls, requests = {}, {}, {}, {}, {}
     local bags, catalog = {}, {[101] = "新鲜的美味小鱼", [102] = "新鲜的长嘴泥鳅"}
     local sendEvent, afterUse
+    local bagSlots, hiddenBags, unreadableBags = {}, {}, {}
     local combat, cursor, mode, failInfo, secretField = false, false, "success", false, nil
     local secret = setmetatable({}, {
         __eq = function() error("Compared a secret") end,
@@ -61,7 +62,11 @@ local function Run(flavor, legacy)
     NUM_BAG_SLOTS = 4
     function InCombatLockdown() return combat end
     function CursorHasItem() return cursor end
-    local function NumSlots(bag) return bag <= 4 and 8 or 100 end
+    local function NumSlots(bag)
+        if hiddenBags[bag] then return 0 end
+        if unreadableBags[bag] then error("Bag metadata unavailable") end
+        return bagSlots[bag] or (bag <= 4 and 8 or 100)
+    end
     local function Info(bag, slot)
         if failInfo then error("Unreadable container") end
         local data = bags[bag] and bags[bag][slot]
@@ -76,7 +81,7 @@ local function Run(flavor, legacy)
         assert(MerchantFrame:IsShown() and MerchantFrame.selectedTab == 1 and not combat and not cursor)
         assert(bag >= 0 and bag <= 4, "Bank slot touched")
         local data = bags[bag][slot]
-        calls[#calls + 1] = {id = data.id, bag = bag, slot = slot}
+        calls[#calls + 1] = {id = data.id, count = data.count or 20, bag = bag, slot = slot}
         if mode == "error" then error("API rejected sale") end
         if mode == "false" then return false end
         if mode == "unconfirmed" then return end
@@ -97,6 +102,12 @@ local function Run(flavor, legacy)
             sendEvent("ITEM_DATA_LOAD_RESULT", id, true)
         end
     end}
+    ItemLocation = {CreateFromBagAndSlot = function(_, bag, slot) return {bag = bag, slot = slot} end}
+    C_Item.GetItemGUID = function(location)
+        if secretField == "guid" then return secret end
+        local data = bags[location.bag] and bags[location.bag][location.slot]
+        return data and data.guid
+    end
     GetItemInfo = nil
     GetContainerNumSlots, GetContainerItemInfo, GetContainerItemID, UseContainerItem = nil, nil, nil, nil
     if legacy then
@@ -218,7 +229,9 @@ local function Run(flavor, legacy)
     Tick(1, 0.0011)
     assert(#calls == 5, "First batch was not bounded to five stacks")
     Tick(9, 0.05)
-    assert(#calls == 40 and not HasUpdate(), "Forty stacks should finish within half a simulated second")
+    assert(#calls == 40, "Forty stacks should be dispatched within half a simulated second")
+    Tick(5, 0.05)
+    assert(not HasUpdate(), "Empty bag verification did not finish")
     assert(messages[#messages]:find("已出售 40 组", 1, true))
     -- Slow or out-of-order confirmations do not block later slots or create unlimited requests.
     FillBags()
@@ -236,6 +249,61 @@ local function Run(flavor, legacy)
     assert(#calls == 25 and not HasUpdate(), "Queued batches continued after merchant close")
     Open()
     mode, calls = "success", {}
+    -- Backpack-only/partial first reads must not become a successful 20-stack termination.
+    for _, partial in ipairs({"hidden", "unreadable"}) do
+        bags, bagSlots, calls = {[0] = {}, [1] = {}}, {[0] = 20, [1] = 20}, {}
+        for slot = 1, 20 do bags[0][slot], bags[1][slot] = {id = 101}, {id = 101} end
+        if partial == "hidden" then hiddenBags[1] = true else unreadableBags[1] = true end
+        Click("WoWToolsSellFishButton")
+        Tick(6, 0.05)
+        assert(#calls == 20 and HasUpdate(), "Partial first scan incorrectly finished at twenty stacks")
+        if partial == "unreadable" then
+            Tick(12, 0.1)
+            assert(HasUpdate(), "Unreadable bag was treated as empty")
+        end
+        hiddenBags[1], unreadableBags[1] = nil, nil
+        Tick(25, 0.05)
+        assert(#calls == 40 and not HasUpdate(), "Remaining bag was not picked up by final rescans")
+        assert(messages[#messages]:find("复查清单剩余 0 组", 1, true))
+    end
+    bagSlots = {}
+    NUM_BAG_SLOTS = 0
+    FillBags()
+    calls = {}
+    Click("WoWToolsSellFishButton")
+    Tick(30, 0.05)
+    assert(#calls == 40 and not HasUpdate(), "Stale bag global restricted sales to the backpack")
+    NUM_BAG_SLOTS = 4
+    -- Total running time is unlimited; each server acknowledgement can arrive late.
+    FillBags()
+    mode, calls = "unconfirmed", {}
+    Click("WoWToolsSellFishButton")
+    for _ = 1, 10 do
+        for _, call in ipairs(calls) do bags[call.bag][call.slot] = nil end
+        Tick(1, 0.8)
+    end
+    assert(#calls == 40 and not HasUpdate(), "Sale was capped by total duration or total stack count")
+    assert(messages[#messages]:find("已出售 40 组", 1, true))
+    mode, calls = "success", {}
+    if not legacy then
+        -- Bag sorting may replace a sold slot with an identical-looking stack before the next tick.
+        bags = {[0] = {[1] = {id = 101, count = 20, guid = "first-stack"}}}
+        afterUse = function()
+            afterUse = nil
+            bags[0][1] = {id = 101, count = 20, guid = "second-stack"}
+        end
+        Click("WoWToolsSellFishButton")
+        Tick(20, 0.05)
+        assert(#calls == 2 and not bags[0][1] and not HasUpdate(),
+            "Identical replacement stack was confused with the original pending stack")
+        secretField = "guid"
+        bags = {[0] = {[1] = {id = 101}}}
+        Click("WoWToolsSellFishButton")
+        Tick(40)
+        assert(#calls == 2 and not HasUpdate(), "Restricted GUID was inspected or sold")
+        secretField = nil
+    end
+    calls = {}
     -- Revalidation also applies between two uses within the same batch.
     bags = {[0] = {}}
     for slot = 1, 6 do bags[0][slot] = {id = 101} end
@@ -247,9 +315,9 @@ local function Run(flavor, legacy)
         bags[0][2].noValue = true
     end
     Click("WoWToolsSellFishButton")
-    Tick(4, 0.05)
-    assert(#calls == 2 and calls[1].slot == 6 and calls[2].slot == 1 and not HasUpdate())
-    assert(bags[0][5].id == 500 and bags[0][4].count == 1 and bags[0][3].locked and bags[0][2].noValue)
+    Tick(15, 0.05)
+    assert(#calls == 3 and calls[1].slot == 6 and calls[2].slot == 1 and calls[3].slot == 4 and not HasUpdate())
+    assert(bags[0][5].id == 500 and not bags[0][4] and bags[0][3].locked and bags[0][2].noValue)
     -- Replacement items, changed stacks, and mid-run deletion never get sold.
     bags = {[0] = {[1] = {id = 101}, [2] = {id = 101}}}
     calls = {}
@@ -257,7 +325,9 @@ local function Run(flavor, legacy)
     bags[0][2] = {id = 500}
     bags[0][1].count = 5
     Tick(5)
-    assert(#calls == 0 and not HasUpdate())
+    assert(#calls == 1 and calls[1].id == 101 and calls[1].count == 5 and not HasUpdate(),
+        "Rescan did not revalidate the changed allowlisted stack")
+    calls = {}
     bags = {[0] = {[1] = {id = 101}}}
     Click("WoWToolsSellFishButton")
     SlashCmdList.WOWTOOLSSELLFISH()
@@ -280,11 +350,11 @@ local function Run(flavor, legacy)
     for _, field in ipairs({"itemID", "stackCount", "isLocked", "hasNoValue", "hyperlink", "table"}) do
         secretField = field
         Click("WoWToolsSellFishButton")
-        Tick(5)
+        Tick(40)
         assert(#calls == 0 and not HasUpdate(), "Restricted item was sold")
     end
     secretField, failInfo = nil, true
-    Click("WoWToolsSellFishButton"); Tick(5)
+    Click("WoWToolsSellFishButton"); Tick(40)
     assert(#calls == 0 and not HasUpdate())
     failInfo = false
     for _, tab in ipairs({2, secret}) do
