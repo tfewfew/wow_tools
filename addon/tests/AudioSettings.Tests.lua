@@ -64,7 +64,7 @@ for _, flavor in ipairs({ "titan", "forerver" }) do
     assert(writes == 0 and wowDetectorDB.audioSnapshot == nil, "Loading a disabled addon changed audio")
     SlashCmdList.WOWDETECTOR("on")
     assert(values.Sound_EnableAllSound == "1" and values.Sound_EnableSFX == "1"
-        and values.Sound_MasterVolume == "1" and values.Sound_SFXVolume == "1"
+        and values.Sound_MasterVolume == "0.2" and values.Sound_SFXVolume == "1"
         and values.Sound_EnableSoundWhenGameIsInBG == "1", "Fishing audio was not enabled")
     assert(values.Sound_EnableMusic == "0" and values.Sound_EnableAmbience == "0"
         and values.Sound_EnableDialog == "0" and values.Sound_OutputDriverIndex == "7", "Wrong muted channels/device changed")

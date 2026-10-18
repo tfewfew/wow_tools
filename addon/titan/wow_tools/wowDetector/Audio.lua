@@ -4,7 +4,7 @@ local Audio = {}
 WoWTools.audio = Audio
 local profile = {
     Sound_EnableAllSound = "1", Sound_EnableSFX = "1",
-    Sound_MasterVolume = "1", Sound_SFXVolume = "1",
+    Sound_MasterVolume = "0.2", Sound_SFXVolume = "1",
     Sound_EnableSoundWhenGameIsInBG = "1",
     Sound_EnableMusic = "0", Sound_MusicVolume = "0",
     Sound_EnableAmbience = "0", Sound_AmbienceVolume = "0",

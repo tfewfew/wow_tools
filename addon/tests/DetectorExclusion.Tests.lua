@@ -154,7 +154,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     local lootStops=0
     local oldUnregister=lootFrame.UnregisterEvent
     lootFrame.UnregisterEvent=function(self,name) lootStops=lootStops+1; oldUnregister(self,name) end
-    assert(wowDetectorDB.audioSnapshot and sound.Sound_MasterVolume=="1")
+    assert(wowDetectorDB.audioSnapshot and sound.Sound_MasterVolume=="0.2")
     SlashCmdList.FIGHTDETECTOR("on"); state(false,true); restored(); geometry()
     assert(lootStops==0,"Switching detectors briefly disabled loot processing")
     assert(not wowDetectorDB.locked and wowDetectorDB.panelHidden,"Fishing switch did not unlock/hide")
