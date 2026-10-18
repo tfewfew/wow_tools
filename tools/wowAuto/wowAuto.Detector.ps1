@@ -67,6 +67,24 @@ function Test-DetectorAlive {
 }
 function Get-DetectorPosition {if($Hub.Simulation){throw 'Simulation requires a position adapter.'};return [WowAuto.NativeInput]::ReadWindowPosition($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
 function Stop-DetectorAudio {if($script:audio){$script:audio.Dispose();$script:audio=$null}}
+function Sync-DetectorAudioSession {
+    if(-not $script:audio -or $script:mode -ne 'fish' -or -not $script:fish -or $script:audioSession -eq $script:fish.AudioSession){return}
+    if($script:audioFeature -cne $script:config.FeaturePath){
+        $script:audio.Arm(0)
+        $script:audio.SetTemplate([WowAuto.Audio.AudioTemplate]::LoadFeatures($script:config.FeaturePath),($script:config.AudioThreshold/100.0))
+        $script:audioFeature=$script:config.FeaturePath
+    }
+    $script:audio.Arm($script:fish.AudioSession);$script:audioSession=$script:fish.AudioSession
+}
+function Receive-DetectorAudioBite($Command) {
+    if($Command.Version -ne $script:version -or -not (Test-DetectorCurrent) -or -not $script:running -or
+        $script:mode -ne 'fish' -or -not $script:audio){return}
+    $data=$Command.Json | ConvertFrom-Json
+    if($data.Session -le 0 -or $data.MatchedAt -lt 0 -or $data.MatchedAt -gt $Hub.Now){return}
+    if(Complete-WowAutoAudioBite $script:scheduler $Endpoint.Key ([long]$data.MatchedAt) ([long]$data.Session)){
+        Write-Detector $script:fish.Status
+    }
+}
 function Get-DetectorObservationReady {
     $until=$Hub.Now+5000
     while(Test-DetectorCurrent) {
@@ -101,7 +119,8 @@ function Start-DetectorTask {
         if($script:config.UseAudio) {
             if($Hub.Simulation){throw 'Simulation cannot open live audio.'}
             $template=[WowAuto.Audio.AudioTemplate]::LoadFeatures($script:config.FeaturePath)
-            $script:audio=New-Object WowAuto.Audio.ProcessCapture($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,$template,($script:config.AudioThreshold/100.0))
+            $notification=$Hub.CreateAudioNotifier($Endpoint,$script:version)
+            $script:audio=New-Object WowAuto.Audio.ProcessCapture($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,$template,($script:config.AudioThreshold/100.0),$notification)
             $script:audioFeature=$script:config.FeaturePath;$script:audioSession=-1L
         }
     } else {
@@ -255,6 +274,9 @@ function Apply-DetectorConfiguration {
     if($script:audio){$script:audio.SetMinimumSimilarity($script:config.AudioThreshold/100.0)}
 }
 function Invoke-DetectorTask {
+    try {Invoke-DetectorTaskCore} finally {Sync-DetectorAudioSession}
+}
+function Invoke-DetectorTaskCore {
     $now=$Hub.Now
     if($now -ge $script:nextColor -or $now -ge $script:nextDeath) {
         $observation=Get-DetectorObservation
@@ -290,16 +312,8 @@ function Invoke-DetectorTask {
     $state=$script:fish
     if($script:audio -and $now -ge $script:nextAudio) {
         $script:nextAudio=$now+$script:config.Periods.AudioMs
-        if($script:audio.Status -eq 'Failed'){throw $script:audio.Error}
+        if($script:audio.Status -in @('Failed','Error')){throw $script:audio.Error}
         $state.AudioReady=$script:audio.Status -eq 'Listening'
-        if($script:audioSession -ne $state.AudioSession) {
-            if($script:audioFeature -cne $script:config.FeaturePath){
-                $script:audio.Arm(0);$script:audio.SetTemplate([WowAuto.Audio.AudioTemplate]::LoadFeatures($script:config.FeaturePath),($script:config.AudioThreshold/100.0));$script:audioFeature=$script:config.FeaturePath
-            }
-            $script:audioSession=$state.AudioSession
-        }
-        $script:audio.Arm($state.AudioSession)
-        $session=0L;if($script:audio.TryTakeBite([ref]$session)){$null=Complete-WowAutoAudioBite $script:scheduler $Endpoint.Key $now $session}
     }
     if($state.UseItem -and -not $state.ItemDetectionDisabled -and $state.ItemConfirmUntil -gt 0 -and $now -ge $state.ItemConfirmUntil){$null=Complete-WowAutoItemCheck $script:scheduler $Endpoint.Key $now 'unknown' $script:observation.Color}
     $work=Get-WowAutoWork $script:scheduler $now
@@ -349,6 +363,10 @@ try {
         try {
             $command=$Endpoint.Receive($(if($script:config){$script:config.Operations.CommandReceiveMs}else{10}))
             Apply-DetectorConfiguration
+            if($command -and $command.Kind -eq 'Audio.Bite'){
+                Receive-DetectorAudioBite $command
+                $command=$null
+            }
             if($command) {
                 if($command.Kind -eq 'Configure') {
                     $script:config=$command.Json | ConvertFrom-Json;Set-DetectorScheduler

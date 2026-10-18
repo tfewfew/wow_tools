@@ -98,6 +98,8 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 ## 音频咬钩检测及设置恢复
 
+- 生产音频匹配达到阈值后由采集线程调用Hub.CreateAudioNotifier返回的纯C#委托，向所属Endpoint.Commands投递Audio.Bite并即时唤醒Receive；禁止在采集线程调用PowerShell脚本块或操作控件/按键。消息带Endpoint版本/钓鱼轮次/Hub单调匹配时间，检测线程在自己的runspace校验后按匹配时间登记随机收竿延迟，重复/旧轮次/停止/关闭忽略；等操作回执期间保留队列，不提前恢复检测。会话状态变化立即Arm/Disarm；生产不再TryTakeBite或按AudioMs查咬钩标记，旧接口仅兼容适配器。AudioMs改为音频就绪/错误检查，配置键保留，界面匹配度快照仍250ms。新增Audio.Notifications离线用例，本次用户自行实测，未运行模拟或游戏测试。
+
 - 两服钓鱼检测启用时音频配置固定主音量20%（Sound_MasterVolume=0.2）、音效音量100%（Sound_SFXVolume=1），其余声道开关、后台音效和关闭/死亡/下线/reload恢复原值的快照流程保留；战斗检测不应用此配置。脚本音频门槛与模板不随本次音量调整改变。用户要求自行实测，本次只更新两服源码、既有测试期望与说明，未运行测试或真实游戏采样。
 
 - wowAuto不提供录音、WAV导入/导出或制样界面；设置支持试听已保留的录音。ProcessCapture仅实时监听，在内存中保留短帧用于匹配，不保存音频。audio-features/titan-01.feature、titan-02.feature及forerver.feature保存经过校准的数值特征，按版本独立加载；缺失/无效时阻止对应行启动，不隐式退回纯峰值。保留config.ini原五项计时值，新增两项音频门槛见下面约定；audio-samples目录继续忽略并保留本地完整WAV；设置试听只读它们，匹配只读对应数值特征。

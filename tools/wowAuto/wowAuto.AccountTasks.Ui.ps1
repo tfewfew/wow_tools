@@ -88,7 +88,7 @@ function New-DetectionPeriodSettingsPage {
     $hint=New-Object Windows.Forms.Label;$hint.Text='全局设置：对两服所有进程生效，单位为毫秒（ms）。保存后关闭设置窗口，新周期用于后续检测。';$hint.SetBounds(18,18,920,60)
     $periodGroup=New-Object Windows.Forms.GroupBox;$periodGroup.Text='检测周期（ms，25–60000）';$periodGroup.SetBounds(18,94,920,482)
     $periodGroup.BackColor=$script:uiColors.Surface;$periodGroup.ForeColor=$script:uiColors.Text;$periods=@{};$i=0
-    foreach($spec in @(@('FishMs','钓鱼色块'),@('FightMs','战斗色块'),@('MenuMs','选角画面'),@('LoginMs','登录确认 / 退出检查'),@('BaitMs','钓鱼道具'),@('DeathMs','角色死亡'),@('AudioMs','音频事件'),@('PositionMs','窗口位置'),@('CaptureRetryMs','画面等待重试'),@('OcrMs','OCR采样'))) {
+    foreach($spec in @(@('FishMs','钓鱼色块'),@('FightMs','战斗色块'),@('MenuMs','选角画面'),@('LoginMs','登录确认 / 退出检查'),@('BaitMs','钓鱼道具'),@('DeathMs','角色死亡'),@('AudioMs','音频状态检查'),@('PositionMs','窗口位置'),@('CaptureRetryMs','画面等待重试'),@('OcrMs','OCR采样'))) {
         $x=20+($i%2)*450;$y=44+[Math]::Floor($i/2)*86;$i++
         $name=New-Object Windows.Forms.Label;$name.Text=$spec[1];$name.SetBounds($x,$y,245,30)
         $value=New-Object Windows.Forms.NumericUpDown;$value.Minimum=25;$value.Maximum=60000;$value.Increment=25;$value.Value=$script:accountTasks.Config.Periods[$spec[0]];$value.SetBounds(($x+250),($y-3),175,32)

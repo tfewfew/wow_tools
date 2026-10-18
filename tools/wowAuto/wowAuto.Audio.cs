@@ -340,6 +340,7 @@ namespace WowAuto.Audio
         private TemplateDetector matcher;
         private int downsampleCount, downsampleSum;
         private readonly Thread thread;
+        private readonly Action<long> biteNotification;
         private string status = "Starting";
         private string error = "";
         private long session;
@@ -374,10 +375,12 @@ namespace WowAuto.Audio
         public ProcessCapture(int processId, long expectedStartTicks, string expectedPath)
             : this(processId, expectedStartTicks, expectedPath, null, 0.88) { }
         public ProcessCapture(int processId, long expectedStartTicks, string expectedPath, AudioTemplate template, double threshold)
+            : this(processId, expectedStartTicks, expectedPath, template, threshold, null) { }
+        public ProcessCapture(int processId, long expectedStartTicks, string expectedPath, AudioTemplate template, double threshold, Action<long> notification)
         {
             if (Native.WindowsBuild() < 20348)
                 throw new NotSupportedException("Process audio capture requires Windows build 20348 or later.");
-            pid = processId; startTicks = expectedStartTicks; path = expectedPath;
+            pid = processId; startTicks = expectedStartTicks; path = expectedPath; biteNotification = notification;
             if (template != null) matcher = new TemplateDetector(template, threshold);
             CheckIdentity();
             thread = new Thread(Run);
@@ -464,6 +467,7 @@ namespace WowAuto.Audio
                         Native.Check(capture.GetBuffer(out data, out frames, out flags, out devicePosition, out qpcPosition));
                         try
                         {
+                            long matchedSession = 0;
                             double packetPeak = 0;
                             int count = checked((int)frames * 2);
                             if (samples.Length != count) samples = new short[count];
@@ -486,8 +490,14 @@ namespace WowAuto.Audio
                                     ? detector.Observe(packetPeak, clock.ElapsedMilliseconds)
                                     : matcher.Feed(mono.ToArray(), packetPeak, clock.ElapsedMilliseconds));
                                 if (bite)
-                                    pendingBite = session;
+                                {
+                                    if (biteNotification == null) pendingBite = session; // Legacy adapter only.
+                                    else matchedSession = session;
+                                }
                             }
+                            // Deliver outside the capture lock. This only queues a
+                            // versioned message; the audio thread never runs input.
+                            if (matchedSession != 0) biteNotification(matchedSession);
                         }
                         finally { Native.Check(capture.ReleaseBuffer(frames)); }
                         Native.Check(capture.GetNextPacketSize(out available));

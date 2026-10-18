@@ -225,6 +225,17 @@ namespace WowAuto.Threading {
             notices.Enqueue(new Notice {Key=endpoint.Key,Version=version,Kind=kind,Json=json,ThreadId=Thread.CurrentThread.ManagedThreadId});
         }
         public Notice NextNotice() {Notice notice;return notices.TryDequeue(out notice)?notice:null;}
+        // A native C# delegate is safe on the audio thread; PowerShell callbacks
+        // would require a runspace there. Queue insertion wakes Endpoint.Receive.
+        public Action<long> CreateAudioNotifier(Endpoint endpoint,long version) {
+            if(endpoint==null) throw new ArgumentNullException("endpoint");
+            return session=>{
+                if(session<=0 || Closing || !endpoint.Current(version)) return;
+                string json=String.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    "{{\"Session\":{0},\"MatchedAt\":{1}}}",session,Now);
+                endpoint.Commands.Add(new Command {Kind="Audio.Bite",Version=version,Json=json});
+            };
+        }
         public Operation Request(Endpoint owner,long version,string kind,string domain,int priority,string json) {
             return Request(owner,version,kind,domain,priority,json,Timing);
         }
