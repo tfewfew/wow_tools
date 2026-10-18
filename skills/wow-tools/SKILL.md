@@ -18,6 +18,12 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 - 操作队列22项时间统一由wowAuto.Timing.ps1定义标签/默认/范围/交叉校验，account-tasks.config.json v1可选Operations保存。缺少该字段时只读迁移INI的焦点重试/收竿等待和战斗配置的公共间隔/交互等待，其他使用默认；原页对应输入隐藏。角色/检测/操作三页分别原子保存，各自合并最新配置；关闭设置后应用。Hub和检测线程各持时间快照，每个请求复制所属检测线程的快照，已提交请求/已登记截止不重算。Native保留旧签名，通过新增重载传入实际按键时长与点击范围；不得重新硬编码生产路径的22项时间。空闲/回执事件可即时唤醒；道具后等待0–4000ms保留5秒确认期限。Operator/Threading/AccountTasks/Parallel UI测试覆盖自定义值生效、迁移、独立保存/回滚、旧草稿隔离和请求快照，全部禁止真实输入。
 
+## 职业资料、职业色与勾选（2026-10-18）
+
+- 两服角色快照升级v6十字段，新增classId。UnitClass取稳定英文token及可选数值ID，交叉核对本服职业表，受限/失败/冲突为未知，不借旧磁盘资料；上线/下线采样和本次缓存保护沿用，未知写0。时光服10职业含死亡骑士，无限服9职业；不加入武僧等不存在职业。PC安全平表解析兼容v1-v6，v6只接受0/1/2/3/4/5/6/7/8/9/11；旧记录ClassId=null，不猜职业。等级上限仍为服务器全局字段。
+- wowAuto.Classes.ps1统一职业名称和经典代表色；职业下拉（含选中项）、角色表Name/Class文字（含选中项）、当前进程职业与角色文字使用职业色，作为历史全白样式的明确例外。新增只读职业列，表内其他资料/任务编辑及原轮转顺序保留。刷新从插件记录更新职业，无OCR采职业；直接钓鱼未知角色不猜职业。
+- wowAuto.Controls.cs统一22个96DPI逻辑像素的独立/表格勾选图形并随DPI缩放。LargeCheckBoxCell支持勾选单元格任意位置左键点击，一次点击只切换一次；只读/禁用/战斗角色UseItem保护保留，不将角色名、职业或任务等其他单元格误作勾选。角色草稿仍需保存后生效。CharacterClass、CharacterRecords、ClassStyle.Controls及Parallel.UiTests覆盖记录兼容、职业色和勾选隔离；只使用离线数据/模拟输入。
+
 ## 状态查询与进展通报
 
 用户说“检查状态”“查一下”“进展通报”等且上下文指向wowAuto运行时，按本节即时只读查询，不复用上次回答里的角色名或状态，也不创建定时任务。
@@ -62,7 +68,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - 固定清单卖鱼（titan 2.1.48 / forerver 2.2.47）：点击后先一次性扫描0–4全部随身格子，打印背包数/总格数/匹配组数/可售组数/物品总个数及各包计数；有任一不可读数据或已装备却报告0格的包，整次扫描失败且不发送任何出售。清单冻结后只允许发送前核对原格子ID/数量/链接/GUID，禁止售后整包复核、读取已售格子或动态补建清单。锁定项目累计等待至多5秒、不跳过。每50ms至多连续发送8组且总在途上限为8，等待这一批各包BAG_UPDATE或BAG_UPDATE_DELAYED及PLAYER_MONEY到账足额后再发下一批；不能仅以正向金币事件或API无异常判为整批完成。扫描时按本服GetItemInfo第11项sellPrice乘原堆叠数记录应收款，缺少/受限价格只降为逐组路径、不使扫描失败。同步明确的忙/锁定/暂不可执行或拒绝先等待已接受前缀的回执，再重试被拒原项（含首次最多3次、间隔250ms），本轮余下清单降为逐组；异步多组错误无法定位时先等晚到回执，5秒仍不足报告未完成，禁止重放可能已成功的批次。完整金额已到账时即使API报错也保留待确认，不重发。单组异步明确失败沿用有限重试，长期锁定/永久错误/内容改变均报告未完成及尚未确认数。没有总时长或20组总数限制；整张清单回执齐全才报告全部完成。事件和OnUpdate仅在手动出售期间启用，批次内部也复核商店/切页/战斗状态。SellFish.Tests按截图19+21+2=42组、104格模拟完整预扫描、300ms合并回执约2.45秒、部分金额不得推进、跨包/乱序事件、20组后锁定继续、忙后仅重试原项、无售后读格、扫描不完整零发送及清单不追加；不执行真实游戏出售。
 
 - 一键卖鱼按钮（titan 2.1.51 / forerver 2.2.50）放在商店内修理区域下方，按钮下沿贴住商人/回购标签上沿；78×24 UI单位，BOTTOMLEFT相对MerchantFrameTab1.TOPLEFT零偏移，未提供标签时相对MerchantFrame.BOTTOMLEFT偏移16/0。随原生标签及MerchantFrame缩放，不移动原生修理按钮或标签；左键出售/右键设置及8组批次行为保留。既有SellFish用例同步布局期望，本次只做语法检查，由用户验证游戏布局。
-- titan版基于原2.1.1独立维护，当前2.1.51/接口38002。forerver版当前2.2.50/接口16001按无限服1.60.1.70338的Blizzard导出源码943764493e6b16d63ded3ab304150d1f05e58b57移植；以后跟随对应分支源码核对API，不能仅改TOC号。
+- titan版基于原2.1.1独立维护，当前2.1.52/接口38002。forerver版当前2.2.51/接口16001按无限服1.60.1.70338的Blizzard导出源码943764493e6b16d63ded3ab304150d1f05e58b57移植；以后跟随对应分支源码核对API，不能仅改TOC号。
 - forerver在Init.lua后加载Compatibility.lua：ItemLocation主手槽16及C_Item.GetItemID/GetItemInfoInstant识别鱼竿，C_Item.GetWeaponEnchantInfo(Enum.WeaponSlot.MainHand)返回列表，只接受有效Temporary附魔，排除Permanent/Imbue；失败或受限/不完整数据为unknown。UnitChannelInfo的技能ID在第8项，绿色只认钓鱼引导；先用issecretvalue排除受限返回再比较/输出，受限引导使主色块灰色。注册WEAPON_ENCHANT_CHANGED并每0.1秒刷新。菜单使用MenuUtil.CreateContextMenu；画面模块移动FramerateFrame整体，不再依赖FramerateLabel全局。未提供的CVar继续禁用，禁止加载时自动改变图形设置。forever测试覆盖全TOC加载，不发送游戏按键。
 - wowAuto同时识别时光服_classic_titan_/WowClassic.exe 3.80.和无限服_cn_beta_/Wow.exe 1.60.，允许游戏根目录位于其他盘符，但产品目录名须匹配。GetClientFlavor同时核对可执行文件名、父目录与构建前缀；未知/无法读取/零售服不加入列表。每行Client保存Flavor、Label、ExecutablePath；启动、取色、焦点切换、发键及正常/超时退出均核对PID、StartTime、路径与客户端身份。C#方法接收启动Ticks和预期路径，不能退回只按Wow进程名操作。
 

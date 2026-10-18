@@ -36,11 +36,11 @@ for _,flavor in ipairs({"titan","forerver"}) do
         frame=frames[#frames];Event("ADDON_LOADED","wow_tools");Event("PLAYER_ENTERING_WORLD",true,false)
     end
     wowToolsCharacterRecord={version=4,maxLevel=12};Load()
-    assert(wowToolsCharacterRecord.version==5 and wowToolsCharacterRecord.maxLevel==nil
+    assert(wowToolsCharacterRecord.version==6 and wowToolsCharacterRecord.maxLevel==nil
         and wowToolsRealmLevels[realm].maxLevel==80 and wowToolsRealmLevels['保留服务器'].maxLevel==50,
         "Realm cap was not global, or loading one realm erased another")
     local count=0;for _ in pairs(wowToolsCharacterRecord) do count=count+1 end
-    assert(count==9,"Character snapshot still carries a server field")
+    assert(count==10,"Character snapshot still carries a server field")
     name="角色乙";now=now+60;Load();Event("PLAYER_LOGOUT")
     assert(wowToolsCharacterRecord.name==name and wowToolsCharacterRecord.maxLevel==nil
         and wowToolsRealmLevels[realm].maxLevel==80 and wowToolsRealmLevels[realm].recordedAt==now

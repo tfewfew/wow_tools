@@ -189,6 +189,14 @@ local function BindLocation()
     if type(location)=="string" and location:match("%S") and #location<=256
         and not location:find("[{}%c]") and location~="?" then return location end
 end
+local classIDs={WARRIOR=1,PALADIN=2,HUNTER=3,ROGUE=4,PRIEST=5,DEATHKNIGHT=6,SHAMAN=7,MAGE=8,WARLOCK=9,DRUID=11}
+local function CharacterClass()
+    if type(UnitClass)~="function" then return end
+    local ok,_,token,id=pcall(UnitClass,"player")
+    if not ok or not Readable(token) or not Readable(id) then return end
+    local mapped=type(token)=="string" and classIDs[token]
+    if mapped and (id==nil or id==mapped) then return mapped end
+end
 local function Sample(bags,skills,bind,forLogout)
     if not initialized or sampling then return end
     local name,realm
@@ -202,6 +210,8 @@ local function Sample(bags,skills,bind,forLogout)
     local level=Read(UnitLevel,"player")
     if Integer(level,1,1000) then cached.level=level end
     if bags and skills and bind then
+        local classID=CharacterClass()
+        if classID then cached.classId=classID end
         local maximum,recordedAt=MaximumLevel(),Read(time)
         if maximum and Integer(recordedAt,1,253402300799) then
             -- Account SavedVariables, keyed by realm, shared by every character.
@@ -233,7 +243,7 @@ local function SaveSnapshot()
     if not cached or not Integer(recordedAt,1,253402300799) then return false end
     -- SavedVariables are updated in memory here. The client flushes them to disk
     -- on logout/reload; addons cannot force an online disk write.
-    wowToolsCharacterRecord={version=5,name=cached.name,realm=cached.realm,
+    wowToolsCharacterRecord={version=6,name=cached.name,realm=cached.realm,classId=cached.classId or 0,
         level=cached.level or 0,freeBagSlots=cached.freeBagSlots or -1,recordedAt=recordedAt,
         professions=cached.professions or "?",secondarySkills=cached.secondarySkills or "?",
         bindLocation=cached.bindLocation or "?"}

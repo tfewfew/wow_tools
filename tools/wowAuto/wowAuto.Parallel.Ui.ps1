@@ -67,12 +67,28 @@ function Update-RowAccountChoices($Row) {
     }catch{$Row.AccountName='';Set-RowStatusText $Row ('子战网目录读取失败：'+$_.Exception.Message)}
     finally{$Row.UpdatingAccount=$false}
 }
+function Get-ParallelRoleRecord($Row,[string]$Name=$Row.CurrentRole) {
+    if(-not $Name){return $null}
+    $key=$Row.Client.Flavor+':'+$Row.AccountName
+    $roles=@($script:accountTasks.Config.Accounts[$key] | Where-Object {$_.Name -ceq $Name})
+    if($roles.Count -ne 1){return $null}
+    $records=@($script:accountTasks.Catalog[$key].Characters | Where-Object {$_.Name -ceq $Name -and $_.Realm -ceq $roles[0].Realm})
+    if($records.Count -eq 1){return $records[0]}
+    return $null
+}
+function Get-ParallelRowClassId($Row) {
+    if($Row.RuntimePhase -eq 'running' -and $Row.TaskMode -eq 'fight' -and $Row.CurrentClassId -gt 0){return [int]$Row.CurrentClassId}
+    $record=Get-ParallelRoleRecord $Row
+    if($record){return [int]$record.ClassId}
+    return 0
+}
 function Update-RotationRow($Row) {
     if(-not $Row.PSObject.Properties['RotationLabel']){return}
     $roles=@(Get-AccountTaskRoles $Row)
     $Row.RotationLabel.Text='启用 '+$roles.Count+' 个角色：'+(($roles | ForEach-Object {$_.Name+' / '+$(if($_.Mode -eq 'fight'){'战斗'}else{'钓鱼'})}) -join '、')
     $remaining=if($Row.RuntimeDirect){'直接开始'}elseif(-not $Row.RuntimeRunning){'--'}elseif($script:parallelHub.Batch -and -not $script:parallelHub.Batch.All(8)){'角色切换中'}elseif($script:parallelNextAt){[Math]::Max(0,[int][Math]::Ceiling(($script:parallelNextAt-$script:parallelHub.Now)/1000.0)).ToString()+'秒'}else{'未启用定时轮转'}
     $Row.RotationProgress.Text='当前角色：'+$(if($Row.CurrentRole){$Row.CurrentRole}elseif($Row.TargetRole){'切换至'+$Row.TargetRole}elseif($Row.RuntimeDirect -and $Row.RuntimeRunning){'当前已登录角色'}elseif($Row.RuntimeRunning){'确认中'}else{'未运行'})+'   剩余时间：'+$remaining+'   切换：'+$Row.RotationSwitchCount+'次'
+    $Row.RotationProgress.ForeColor=Get-WowClassColor (Get-ParallelRowClassId $Row)
 }
 function Set-RowControls($Row) {
     if(-not $Row.PSObject.Properties['RuntimeRunning']){return}
@@ -95,7 +111,10 @@ function Set-RowStatusText($Row,[string]$Message,[switch]$FromWorker) {
 }
 function Update-RowStatus($Row) {Update-RowName $Row;Set-RowControls $Row}
 function Update-RowName($Row) {
-    $extra=if($Row.TaskMode -eq 'fight' -and $Row.CurrentClassId -gt 0){'职业：'+$script:autoFightClasses[[int]$Row.CurrentClassId]}else{'循环 '+$Row.CycleCount}
+    $classId=Get-ParallelRowClassId $Row
+    $extra='职业：'+(Get-WowClassName $classId)
+    if($Row.TaskMode -eq 'fish'){$extra+=' · 循环 '+$Row.CycleCount}
+    $Row.Name.ForeColor=Get-WowClassColor $classId
     $Row.Name.Text=$Row.Caption+[Environment]::NewLine+'PID '+$Row.Process.Id+' · '+$Row.Client.Label+' · '+$Row.Position+[Environment]::NewLine+$extra
 }
 function Update-ParallelStatusDisplay($Row) {

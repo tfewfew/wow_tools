@@ -55,6 +55,10 @@ try {
             (Get-ParallelRoleRow $client '角色甲').Cells['BindLocation'].Value -ceq '未知' -and (Get-ParallelRoleRow $client '角色乙').Cells['BindLocation'].Value -ceq '未知' -and
             (Get-ParallelRoleRow $client '角色丙').Cells['BindLocation'].Value -ceq $location -and (Get-ParallelRoleRow $client '角色丁').Cells['BindLocation'].Value -ceq '未知') 'Hearthstone binding column lost old/unknown snapshots or mixed the clients.'
         Assert-Parallel (($client.FullGrid.Columns | Measure-Object -Property Width -Sum).Sum -le $client.FullGrid.Width) 'Hearthstone column requires horizontal scrolling at the default window size.'
+        Assert-Parallel ($client.FullGrid.Columns['Class'].ReadOnly -and (Get-ParallelRoleRow $client '角色甲').Cells['Class'].Value -ceq '未知' -and
+            (Get-ParallelRoleRow $client '角色丙').Cells['Class'].Value -ceq '法师' -and
+            (Get-ParallelRoleRow $client '角色丙').Cells['Name'].Style.ForeColor.ToArgb() -eq (Get-WowClassColor 8).ToArgb() -and
+            (Get-ParallelRoleRow $client '角色丁').Cells['Class'].Style.SelectionForeColor.ToArgb() -eq (Get-WowClassColor 11).ToArgb()) 'Class column, old-record unknowns or class-colored role/class selection text was lost.'
     }
     (Get-ParallelRoleRow $editor '角色乙').Cells['Mode'].Value='钓鱼'
     (Get-ParallelRoleRow $editor '角色乙').Cells['UseItem'].Value=$true

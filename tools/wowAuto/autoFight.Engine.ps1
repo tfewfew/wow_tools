@@ -1,8 +1,6 @@
 ﻿# autoFight configuration and state transitions. No fishing dependencies.
-$script:autoFightClasses = [ordered]@{
-    '1'='战士'; '2'='圣骑士'; '3'='猎人'; '4'='潜行者'; '5'='牧师'; '6'='死亡骑士';
-    '7'='萨满祭司'; '8'='法师'; '9'='术士'; '11'='德鲁伊'
-}
+. (Join-Path $PSScriptRoot 'wowAuto.Classes.ps1')
+$script:autoFightClasses=$script:wowClassNames
 function Get-AutoFightClassIds([string]$Flavor) {
     return @($script:autoFightClasses.Keys | Where-Object {$Flavor -eq 'titan' -or $_ -ne '6'} | ForEach-Object {[int]$_})
 }

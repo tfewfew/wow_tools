@@ -5,14 +5,15 @@
     $grid.DefaultCellStyle.BackColor=$script:uiColors.Input;$grid.DefaultCellStyle.ForeColor=$script:uiColors.Text
     $grid.DefaultCellStyle.SelectionBackColor=$script:uiColors.Tab;$grid.DefaultCellStyle.SelectionForeColor=$script:uiColors.Text
     $grid.EnableHeadersVisualStyles=$false;$grid.ColumnHeadersDefaultCellStyle.BackColor=$script:uiColors.Heading;$grid.ColumnHeadersDefaultCellStyle.ForeColor=$script:uiColors.Text
-    $grid.RowTemplate.Height=32;$grid.ColumnHeadersHeight=34;$grid.AutoSizeRowsMode='AllCells'
-    foreach($columnSpec in @(@('Enabled','启用',65,'check'),@('Name','角色',165,'text'),@('Realm','服务器',135,'text'),@('Mode','任务',95,'mode'),@('UseItem','钓鱼道具',100,'check'),@('Level','等级',55,'text'),@('FreeBagSlots','背包空格',95,'text'),@('Professions','生产 / 采集技能',220,'text'),@('SecondarySkills','生活技能',180,'text'),@('BindLocation','炉石位置',180,'text'))) {
-        $column=switch($columnSpec[3]) {'check'{New-Object Windows.Forms.DataGridViewCheckBoxColumn}'mode'{New-Object Windows.Forms.DataGridViewComboBoxColumn}default{New-Object Windows.Forms.DataGridViewTextBoxColumn}}
+    $grid.RowTemplate.Height=36;$grid.RowTemplate.MinimumHeight=36;$grid.ColumnHeadersHeight=34;$grid.AutoSizeRowsMode='AllCells'
+    foreach($columnSpec in @(@('Enabled','启用',65,'check'),@('Name','角色',150,'text'),@('Class','职业',100,'text'),@('Realm','服务器',125,'text'),@('Mode','任务',85,'mode'),@('UseItem','钓鱼道具',90,'check'),@('Level','等级',55,'text'),@('FreeBagSlots','背包空格',90,'text'),@('Professions','生产 / 采集技能',210,'text'),@('SecondarySkills','生活技能',170,'text'),@('BindLocation','炉石位置',170,'text'))) {
+        $column=switch($columnSpec[3]) {'check'{New-Object WowAuto.LargeCheckBoxColumn}'mode'{New-Object Windows.Forms.DataGridViewComboBoxColumn}default{New-Object Windows.Forms.DataGridViewTextBoxColumn}}
         $column.Name=$columnSpec[0];$column.HeaderText=$columnSpec[1];$column.Width=$columnSpec[2];$column.SortMode='NotSortable'
         if($columnSpec[3] -eq 'mode'){$column.Items.AddRange([object[]]@('钓鱼','战斗'));$column.FlatStyle='Flat'}
-        $column.ReadOnly=$columnSpec[0] -in @('Name','Realm','Level','FreeBagSlots','Professions','SecondarySkills','BindLocation')
+        $column.ReadOnly=$columnSpec[0] -in @('Name','Class','Realm','Level','FreeBagSlots','Professions','SecondarySkills','BindLocation')
         if($columnSpec[0] -in @('Professions','SecondarySkills')){$column.DefaultCellStyle.WrapMode='True';$column.ToolTipText='最近保存的专业技能快照；生活技能不含急救。'}
         if($columnSpec[0] -eq 'BindLocation'){$column.DefaultCellStyle.WrapMode='True';$column.ToolTipText='炉石绑定地点，来自最近保存的插件快照；旧记录或读取失败显示未知。'}
+        if($columnSpec[0] -eq 'Class'){$column.ToolTipText='职业来自插件记录；旧记录显示未知，更新插件后正常下线或重载，再刷新进程。'}
         [void]$grid.Columns.Add($column)
     }
     $grid.Add_CurrentCellDirtyStateChanged({param($sender,$e) if($sender.IsCurrentCellDirty){$null=$sender.CommitEdit([Windows.Forms.DataGridViewDataErrorContexts]::Commit)}})
@@ -146,7 +147,11 @@ function Show-AccountGridDraft($Editor,[string]$Key) {
                 $level=if($null -eq $record.Level){'未知'}else{$record.Level}
                 $professions=Format-WowCharacterSkills $record.Professions;$secondary=Format-WowCharacterSkills $record.SecondarySkills
                 $location=if([string]::IsNullOrWhiteSpace($record.BindLocation)){'未知'}else{$record.BindLocation}
-                $index=$grid.Rows.Add([object[]]@($role.Enabled,$role.Name,$role.Realm,$(if($role.Mode -eq 'fight'){'战斗'}else{'钓鱼'}),$role.UseItem,$level,$freeSlots,$professions,$secondary,$location))
+                $index=$grid.Rows.Add([object[]]@($role.Enabled,$role.Name,(Get-WowClassName $record.ClassId),$role.Realm,$(if($role.Mode -eq 'fight'){'战斗'}else{'钓鱼'}),$role.UseItem,$level,$freeSlots,$professions,$secondary,$location))
+                foreach($field in @('Name','Class')){
+                    $grid.Rows[$index].Cells[$field].Style.ForeColor=Get-WowClassColor $record.ClassId
+                    $grid.Rows[$index].Cells[$field].Style.SelectionForeColor=Get-WowClassColor $record.ClassId
+                }
                 $grid.Rows[$index].Cells['UseItem'].ReadOnly=$role.Mode -eq 'fight'
                 $grid.Rows[$index].Cells['Level'].ToolTipText=if($null -eq $entry.MaxLevel){'服务器等级上限未知，该服务器任一角色保存资料后刷新进程。'}else{'服务器满级等级：'+$entry.MaxLevel}
             }

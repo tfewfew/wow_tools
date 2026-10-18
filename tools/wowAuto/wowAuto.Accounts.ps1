@@ -1,4 +1,5 @@
 ﻿# Read account folders and the addon's own character snapshots, never login credentials.
+. (Join-Path $PSScriptRoot 'wowAuto.Classes.ps1')
 function ConvertFrom-WowSkillRecord([string]$Text,[string]$Group) {
     if($Text -ceq '?'){return $null}
     if($Text -ceq ''){return ,@()}
@@ -44,7 +45,7 @@ function ConvertFrom-WowCharacterRecord([string]$Text) {
             $match=$reader.Match($body,$position)
             if (-not $match.Success -or $match.Index -ne $position) {return $null}
             $key=$match.Groups['key'].Value
-            if ($key -cnotin @('version','name','realm','level','freeBagSlots','recordedAt','professions','secondarySkills','bindLocation','maxLevel') -or $values.ContainsKey($key)) {return $null}
+            if ($key -cnotin @('version','name','realm','level','freeBagSlots','recordedAt','professions','secondarySkills','bindLocation','maxLevel','classId') -or $values.ContainsKey($key)) {return $null}
             if ($key -cin @('name','realm','professions','secondarySkills','bindLocation')) {
                 if (-not $match.Groups['text'].Success) {return $null}
                 $values[$key]=ConvertFrom-WowLuaString $match.Groups['text'].Value
@@ -56,22 +57,25 @@ function ConvertFrom-WowCharacterRecord([string]$Text) {
             $position=$match.Index+$match.Length
         }
         $expected=@('version','name','realm','level','freeBagSlots','recordedAt')
-        if($values.version -in @(2,3,4,5)){$expected+=@('professions','secondarySkills')}
-        if($values.version -in @(3,4,5)){$expected+='bindLocation'}
+        if($values.version -in @(2,3,4,5,6)){$expected+=@('professions','secondarySkills')}
+        if($values.version -in @(3,4,5,6)){$expected+='bindLocation'}
+        if($values.version -eq 6){$expected+='classId'}
         if($values.version -eq 4){$expected+='maxLevel'}
-        if ($values.Count -ne $expected.Count -or @($expected | Where-Object {-not $values.ContainsKey($_)}).Count -or $values.version -notin @(1,2,3,4,5) -or $values.name -notmatch '^[\p{L}\p{M}]{1,24}$' -or
+        if ($values.Count -ne $expected.Count -or @($expected | Where-Object {-not $values.ContainsKey($_)}).Count -or $values.version -notin @(1,2,3,4,5,6) -or $values.name -notmatch '^[\p{L}\p{M}]{1,24}$' -or
             -not $values.realm -or $values.realm.Length -gt 128 -or $values.realm -match '[\p{C}\\/]' -or
             $values.level -lt 0 -or $values.level -gt 1000 -or $values.freeBagSlots -lt -1 -or $values.freeBagSlots -gt 11000 -or
             $values.recordedAt -lt 1 -or $values.recordedAt -gt 253402300799) {return $null}
-        if($values.version -in @(3,4,5) -and ([string]::IsNullOrWhiteSpace($values.bindLocation) -or $values.bindLocation.Length -gt 256 -or
+        if($values.version -in @(3,4,5,6) -and ([string]::IsNullOrWhiteSpace($values.bindLocation) -or $values.bindLocation.Length -gt 256 -or
             $values.bindLocation -match '[{}\p{C}]')){return $null}
         if($values.version -eq 4 -and ($values.maxLevel -lt 0 -or $values.maxLevel -gt 1000)){return $null}
+        if($values.version -eq 6 -and $values.classId -notin @(0,1,2,3,4,5,6,7,8,9,11)){return $null}
         return [pscustomobject]@{Name=$values.name;Realm=$values.realm;
+            ClassId=$(if($values.version -eq 6 -and $values.classId -gt 0){[int]$values.classId}else{$null});
             Level=$(if ($values.level -gt 0) {$values.level} else {$null});
             FreeBagSlots=$(if ($values.freeBagSlots -ge 0) {$values.freeBagSlots} else {$null});RecordedAt=$values.recordedAt;
-            Professions=$(if($values.version -in @(2,3,4,5)){ConvertFrom-WowSkillRecord $values.professions 'primary'}else{$null});
-            SecondarySkills=$(if($values.version -in @(2,3,4,5)){ConvertFrom-WowSkillRecord $values.secondarySkills 'secondary'}else{$null});
-            BindLocation=$(if($values.version -in @(3,4,5) -and $values.bindLocation -cne '?'){$values.bindLocation}else{$null})}
+            Professions=$(if($values.version -in @(2,3,4,5,6)){ConvertFrom-WowSkillRecord $values.professions 'primary'}else{$null});
+            SecondarySkills=$(if($values.version -in @(2,3,4,5,6)){ConvertFrom-WowSkillRecord $values.secondarySkills 'secondary'}else{$null});
+            BindLocation=$(if($values.version -in @(3,4,5,6) -and $values.bindLocation -cne '?'){$values.bindLocation}else{$null})}
     } catch {return $null}
 }
 function Get-WowCharacterLevelGroups($Roles,$Records,$RealmLevels=@{}) {

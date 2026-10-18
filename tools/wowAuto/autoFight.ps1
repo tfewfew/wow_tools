@@ -149,7 +149,8 @@ function Start-AutoFightRow($Row) {
 function Update-AutoFightRowName($Row) {
     try {$Row.Position=[WowAutoFight.Native]::ReadWindowPosition($Row.Client)} catch {$Row.Position='位置未知'}
     $label=if ($Row.Client.Flavor -eq 'titan') {'时光服'} else {'无限服'}
-    $class=if ($Row.ClassId) {$script:autoFightClasses[[string]$Row.ClassId]} else {'等待插件识别'}
+    $class=if ($Row.ClassId) {Get-WowClassName $Row.ClassId} else {'等待插件识别'}
+    $Row.Name.ForeColor=Get-WowClassColor $Row.ClassId
     $Row.Name.Text="PID $($Row.Client.ProcessId) · $label · $($Row.Position)`r`n$($Row.Client.Title)`r`n职业：$class"
 }
 function New-AutoFightRow($Client,[int]$Order) {
@@ -421,6 +422,7 @@ function Select-AutoFightDraftProfile([string]$Flavor) {
     if ($page.Class.SelectedIndex -lt 0) {return}
     Save-AutoFightDraftSelection
     $id=$page.ClassIds[$page.Class.SelectedIndex]
+    $page.Class.ForeColor=Get-WowClassColor $id
     $page.CurrentKey="${Flavor}:$id"
     $profile=$editor.Draft[$page.CurrentKey]
     foreach ($field in $page.Bindings.Keys) {$page.Bindings[$field].Text=$profile.$field}
@@ -480,7 +482,7 @@ function New-AutoFightSettingsDialog([switch]$Embedded) {
             $brush=New-Object Drawing.SolidBrush($sender.BackColor)
             try {$eventArgs.Graphics.FillRectangle($brush,$eventArgs.Bounds)} finally {$brush.Dispose()}
             [System.Windows.Forms.TextRenderer]::DrawText($eventArgs.Graphics,[string]$sender.Items[$eventArgs.Index],
-                $sender.Font,$eventArgs.Bounds,[Drawing.Color]::White,
+                $sender.Font,$eventArgs.Bounds,(Get-WowClassColor (Get-WowClassId ([string]$sender.Items[$eventArgs.Index]))),
                 ([System.Windows.Forms.TextFormatFlags]::Left -bor [System.Windows.Forms.TextFormatFlags]::VerticalCenter))
             $eventArgs.DrawFocusRectangle()
         })

@@ -52,7 +52,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     location="退出中的无效地点";Event("HEARTHSTONE_BOUND")
     assert(reads==before,"An ordinary rebind event ran while leaving the world")
     location=secret;Event("PLAYER_LOGOUT")
-    assert(reads==before+1 and wowToolsCharacterRecord.version==5
+    assert(reads==before+1 and wowToolsCharacterRecord.version==6
         and wowToolsCharacterRecord.bindLocation=="狮王之傲旅店",
         "Logout did not resample binding once, or a restricted read replaced valid cache")
     location="闪金镇";Event("PLAYER_ENTERING_WORLD")
@@ -72,7 +72,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     GetBindLocation=ReadLocation;location='Lion\'s Pride "Inn"'
     for _,version in ipairs({1,2,3,4,5}) do
         wowToolsCharacterRecord={version=version};Load();Event("PLAYER_LOGOUT")
-        assert(wowToolsCharacterRecord.version==5 and wowToolsCharacterRecord.bindLocation==location,
+        assert(wowToolsCharacterRecord.version==6 and wowToolsCharacterRecord.bindLocation==location,
             "A legacy or current record prevented automatic recording after the schema upgrade")
     end
     print("PASS: "..flavor.." native hearthstone binding for all characters, rebind/enter events, logout cache/freeze, no stale disk fallback, unknown/restricted/missing APIs and v1-v5 upgrades; no polling or game actions.")

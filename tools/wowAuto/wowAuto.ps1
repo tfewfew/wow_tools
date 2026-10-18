@@ -373,21 +373,6 @@ namespace WowAuto {
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
         }
     }
-    public sealed class DimCheckBox : CheckBox {
-        protected override void OnPaint(PaintEventArgs e) {
-            base.OnPaint(e);
-            if (Enabled) return;
-            e.Graphics.Clear(BackColor);
-            int size = (int)Math.Round(13 * e.Graphics.DpiX / 96);
-            Rectangle glyph = new Rectangle(0, (Height - size) / 2, size, size);
-            ControlPaint.DrawCheckBox(e.Graphics, glyph,
-                ButtonState.Inactive | (Checked ? ButtonState.Checked : ButtonState.Normal));
-            int textLeft = size + (int)Math.Round(4 * e.Graphics.DpiX / 96);
-            Rectangle textBounds = new Rectangle(textLeft, 0, Math.Max(0, Width - textLeft), Height);
-            TextRenderer.DrawText(e.Graphics, Text, Font, textBounds, ForeColor,
-                TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
-        }
-    }
     public sealed class DimTabControl : TabControl {
         public Color HeaderBackground { get; set; }
         public Color HeaderSurface { get; set; }
@@ -416,6 +401,8 @@ namespace WowAuto {
 '@
 }
 . (Join-Path $PSScriptRoot 'wowAuto.Engine.ps1')
+if(-not ('WowAuto.DimCheckBox' -as [type])) {Add-Type -Path (Join-Path $PSScriptRoot 'wowAuto.Controls.cs') -ReferencedAssemblies System.Drawing,System.Windows.Forms}
+. (Join-Path $PSScriptRoot 'wowAuto.Classes.ps1')
 . (Join-Path $PSScriptRoot 'wowAuto.ActionQueue.ps1')
 Initialize-GameActionQueue (Join-Path $PSScriptRoot 'action-priorities.json')
 if (-not ('WowAuto.Audio.ProcessCapture' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'wowAuto.Audio.cs') }
@@ -1138,11 +1125,13 @@ function Read-RowWindowPosition($Row) {
 }
 function Update-RowName($Row) {
     if ($Row.TaskMode -eq 'fight' -and $Row.FightRow) {
-        $class=if ($Row.FightRow.ClassId) {$script:autoFightClasses[[string]$Row.FightRow.ClassId]} else {'等待插件识别'}
+        $class=if ($Row.FightRow.ClassId) {Get-WowClassName $Row.FightRow.ClassId} else {'等待插件识别'}
+        $Row.Name.ForeColor=Get-WowClassColor $Row.FightRow.ClassId
         $Row.Name.Text="$($Row.Caption)`r`nPID $($Row.Process.Id) · $($Row.Client.Label) · $($Row.Position)`r`n职业：$class"
         return
     }
     $cycles=Get-WowAutoCycleCount $script:scheduler $Row.Key
+    $Row.Name.ForeColor=$script:uiColors.Text
     $Row.Name.Text="$($Row.Caption)`r`nPID $($Row.Process.Id) · $($Row.Client.Label) · $($Row.Position) · 循环 $cycles"
 }
 function Update-WindowPositions {

@@ -97,7 +97,20 @@ try {
     $v5=Read-WowCharacterRecord $role '角色甲' '服务器甲';$v5Text=[IO.File]::ReadAllText($path)
     Assert-Record ($v5 -and $v5.Level -eq 80 -and -not $v5.PSObject.Properties['MaxLevel'] -and $v5Text -notmatch 'maxLevel') 'v5 character snapshot still stores the server cap.'
     Assert-Record (-not (ConvertFrom-WowCharacterRecord ($v5Text.Replace('["level"] = 80,','["level"] = 80, ["maxLevel"] = 80,')))) 'v5 accepted a character-specific level cap.'
-    Write-Output 'PASS: strict read-only v1-v5 parsing, legacy cap ignored/new cap absent, server-based stable level groups, unknowns, hearthstone/skills, invalid data rejection and no SavedVariables execution.'
+    Assert-Record ($null -eq $v5.ClassId) 'Legacy metadata invented a class.'
+    Write-TestCharacterRecord $role '角色甲' '服务器甲' -Version 6 -ClassId 8 -BindLocation '达拉然'
+    $v6Text=[IO.File]::ReadAllText($path);$v6=Read-WowCharacterRecord $role '角色甲' '服务器甲'
+    Assert-Record ($v6.ClassId -eq 8 -and (Get-WowClassName $v6.ClassId) -ceq '法师' -and $v6.BindLocation -ceq '达拉然') 'v6 class or other metadata was lost.'
+    foreach($id in @(0,1,2,3,4,5,6,7,8,9,11)){
+        $parsed=ConvertFrom-WowCharacterRecord ($v6Text.Replace('["classId"] = 8,',('["classId"] = '+$id+',')))
+        Assert-Record ($parsed -and $(if($id){$parsed.ClassId -eq $id}else{$null -eq $parsed.ClassId})) 'Supported/unknown class rejected.'
+    }
+    foreach($bad in @($v6Text.Replace('["classId"] = 8,','["classId"] = 10,'),$v6Text.Replace('["classId"] = 8,','["classId"] = -1,'),
+        $v6Text.Replace('["classId"] = 8,','["classId"] = "8",'),$v6Text.Replace('["classId"] = 8,','["classId"] = 8, ["classId"] = 8,'),
+        $v6Text.Replace('["version"] = 6,','["version"] = 5,'),$v6Text.Replace('["classId"] = 8,',''))){
+        Assert-Record (-not (ConvertFrom-WowCharacterRecord $bad)) 'Malformed/duplicate/unsupported class accepted.'
+    }
+    Write-Output 'PASS: strict read-only v1-v6 parsing, class identities/unknowns, legacy cap ignored/new cap absent, realm-based level groups, hearthstone/skills and invalid data rejection.'
 } finally {
     $cleanup=[IO.Path]::GetFullPath($fixture)
     if (-not $cleanup.StartsWith([IO.Path]::GetFullPath([IO.Path]::GetTempPath()),[StringComparison]::OrdinalIgnoreCase) -or (Split-Path $cleanup -Leaf) -notlike 'wowAuto-records-*') {throw 'Unsafe fixture cleanup.'}
