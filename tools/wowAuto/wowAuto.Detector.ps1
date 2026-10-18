@@ -11,7 +11,7 @@ function Write-Detector([string]$Text,[string]$Kind='status') {
 function Test-DetectorCurrent {return -not $Hub.Closing -and $Endpoint.Current($script:version)}
 function Wait-Detector([int]$Milliseconds) {
     $until=$Hub.Now+$Milliseconds
-    while((Test-DetectorCurrent) -and ($Hub.Now -lt $until -or $Hub.Paused)){Apply-DetectorConfiguration;[Threading.Thread]::Sleep(20)}
+    while((Test-DetectorCurrent) -and ($Hub.Now -lt $until -or $Hub.Paused)){Apply-DetectorConfiguration;[Threading.Thread]::Sleep($script:config.Operations.DetectorWaitMs)}
     return Test-DetectorCurrent
 }
 function Request-DetectorOperation([string]$Kind,[string]$Domain,$Body=@{}) {
@@ -19,9 +19,9 @@ function Request-DetectorOperation([string]$Kind,[string]$Domain,$Body=@{}) {
     $priorityKey=switch($Kind){'Process.Exit'{'Process.Close'}'Rotation.Up'{'Rotation.Select'}default{$Kind}}
     if(-not $script:config.Priorities.PSObject.Properties[$priorityKey]){throw ('缺少操作优先级：'+$priorityKey)}
     $priority=[int]$script:config.Priorities.$priorityKey
-    $request=$Hub.Request($Endpoint,$script:version,$Kind,$Domain,$priority,($Body | ConvertTo-Json -Depth 12 -Compress))
+    $request=$Hub.Request($Endpoint,$script:version,$Kind,$Domain,$priority,($Body | ConvertTo-Json -Depth 12 -Compress),$script:operationTiming)
     # No capture, OCR, or state detection is performed between submission and acknowledgement.
-    while(-not $request.Done.Wait(25)){if(-not (Test-DetectorCurrent)){return $null}}
+    while(-not $request.Done.Wait($request.Timing.ReplyCheckMs)){if(-not (Test-DetectorCurrent)){return $null}}
     if(-not (Test-DetectorCurrent)){return $null}
     if(-not $request.Success){throw $request.Error}
     return ($request.Result | ConvertFrom-Json)
@@ -192,7 +192,8 @@ function Invoke-DetectorRotation {
             Write-Detector ('已定位第'+$target.MenuRow+'个角色槽位“'+$script:roleName+'”，等待所有进程识别完成。')
             while((Test-DetectorCurrent) -and -not $script:batch.All(2)){$null=Wait-Detector 25}
             # Generate both random intervals before handing one indivisible click transaction to the operator.
-            $first=Get-Random -Minimum 100 -Maximum 251;$second=Get-Random -Minimum 100 -Maximum 251
+            $first=Get-Random -Minimum $script:config.Operations.ClickMinMs -Maximum ($script:config.Operations.ClickMaxMs+1)
+            $second=Get-Random -Minimum $script:config.Operations.ClickMinMs -Maximum ($script:config.Operations.ClickMaxMs+1)
             $reply=Request-DetectorOperation Rotation.Click Rotation @{X=$target.X;Y=$target.Y;Width=$target.ClientSize.Width;Height=$target.ClientSize.Height;FirstDelay=$first;SecondDelay=$second}
             if(-not $reply){return}
             if(-not $reply.Executed){$script:batch.Clear($Endpoint.Key,2);$targetStable=0;$candidate=$null;continue}
@@ -239,8 +240,11 @@ function Repair-DetectorCapture {
     if(@([WowAutoCapture.Native]::PendingRestores() | Where-Object Key -eq $Endpoint.Key).Count){$null=Request-DetectorOperation Capture.Restore Capture}
 }
 function Set-DetectorScheduler {
+    $script:operationTiming=New-Object WowAuto.Threading.QueueTimings
+    foreach($key in $script:config.Operations.PSObject.Properties.Name){$script:operationTiming.$key=[int]$script:config.Operations.$key}
     $script:scheduler.JumpEveryCycles=$script:config.JumpEveryCycles;$script:scheduler.ReelHoldMs=$script:config.ReelHoldMs
     $script:scheduler.FocusRetryIntervalMs=$script:config.FocusRetryMs
+    $script:scheduler.ItemHoldMs=$script:config.Operations.ItemHoldMs
 }
 function Apply-DetectorConfiguration {
     $message=$Endpoint.Configuration
@@ -311,7 +315,7 @@ function Invoke-DetectorTask {
         if($item -eq 'Wait'){Write-Detector $state.Status;return}
         if($item -eq 'UseItem') {
             $reply=$null
-            try{$reply=Request-DetectorOperation Fish.Item Fish @{Keys=@($script:config.Keys.Item);HoldMs=3000}}
+            try{$reply=Request-DetectorOperation Fish.Item Fish @{Keys=@($script:config.Keys.Item);HoldMs=$script:config.Operations.ItemHoldMs}}
             finally{if(Test-DetectorCurrent){$null=Complete-WowAutoItem $script:scheduler $Endpoint.Key $(if($reply){$reply.SentAt}else{$Hub.Now}) ([bool]($reply -and $reply.Executed))}}
             return
         }
@@ -343,7 +347,7 @@ $script:scheduler=New-WowAutoScheduler
 try {
     while(-not $Hub.Closing -and -not $Endpoint.Closed) {
         try {
-            $command=$Endpoint.Receive(10)
+            $command=$Endpoint.Receive($(if($script:config){$script:config.Operations.CommandReceiveMs}else{10}))
             Apply-DetectorConfiguration
             if($command) {
                 if($command.Kind -eq 'Configure') {

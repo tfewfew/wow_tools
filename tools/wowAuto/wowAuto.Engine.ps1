@@ -51,7 +51,7 @@ function New-WowAutoScheduler {
         Tasks=@{}; CompletedCycles=@{}; CyclesSinceJump=@{}; JumpEveryCycles=0; Order=(New-Object 'System.Collections.Generic.List[string]')
         Events=(New-Object System.Collections.ArrayList)
         Cursor=0; ActiveKey=$null; Sequence=0L; ReelHoldUntil=0L; ReelHoldMs=100
-        ItemHoldUntil=0L; FocusRetryIntervalMs=30000
+        ItemHoldUntil=0L; ItemHoldMs=3000; FocusRetryIntervalMs=30000
     }
 }
 function Set-WowAutoHoldDuration($Scheduler, [ValidateRange(0,60000)][int]$Milliseconds) {
@@ -119,8 +119,8 @@ function Complete-WowAutoItem($Scheduler, [string]$Key, [long]$Now, [bool]$Sent)
     if (-not $state.ItemConfirmUntil) { $state.ItemConfirmUntil=$Now+5000 }
     if ($Sent) {
         $state.InitialItemPending=$true
-        $Scheduler.ItemHoldUntil=$Now+3000
-        $state.ItemDue=$Now+3000
+        $Scheduler.ItemHoldUntil=$Now+$Scheduler.ItemHoldMs
+        $state.ItemDue=$Now+$Scheduler.ItemHoldMs
         $state.ItemRetryAt=$state.ItemConfirmUntil
         $state.ItemStatus='道具键已发送，等待确认鱼竿附魔。'
     } else {

@@ -17,6 +17,16 @@ try {
     $hub.Batch.Drop($a.Key);Assert-Threading (-not $hub.Batch.All(8)) 'One completed member released the whole batch.'
     $hub.Batch.Drop($b.Key);Assert-Threading ([object]::ReferenceEquals($hub.NextOperation(),$normal)) 'Dropping stopped batch members did not release queued input.'
     Assert-Threading (-not [ThreadingChecks]::ReadIsolation()) 'Native read errors leaked between detector threads.'
+    $timing=New-Object WowAuto.Threading.QueueTimings;$timing.ForegroundSettleMs=73;$hub.ConfigureTiming($timing)
+    $null=$hub.Wake.Reset();$oldTiming=$hub.Request($a,$a.Version,'Fish.Cast','Fish',70,'{}')
+    Assert-Threading ($hub.Wake.WaitOne(0)) 'A new request did not immediately wake the operator.'
+    $timing.ForegroundSettleMs=147;$hub.ConfigureTiming($timing)
+    $newTiming=$hub.Request($b,$b.Version,'Fish.Cast','Fish',70,'{}');$timing.ForegroundSettleMs=999
+    Assert-Threading ($oldTiming.Timing.ForegroundSettleMs -eq 73 -and $newTiming.Timing.ForegroundSettleMs -eq 147 -and $hub.Timing.ForegroundSettleMs -eq 147) 'A timing update changed queued requests or kept a mutable caller object.'
+    $ownerTiming=New-Object WowAuto.Threading.QueueTimings;$ownerTiming.ClickMinMs=11
+    $owned=$hub.Request($a,$a.Version,'Rotation.Click','Rotation',50,'{}',$ownerTiming);$ownerTiming.ClickMinMs=19
+    Assert-Threading ($owned.Timing.ClickMinMs -eq 11) 'Per-worker request body and timing snapshots were mixed during a global timing update.'
+    $null=$hub.NextOperation();$null=$hub.NextOperation();$null=$hub.NextOperation()
     $hub.WriteInfo('{"StartTime":"fixture","Processes":[]}');[ThreadingChecks]::Logs($hub,$a)
     $size=(Get-Item (Join-Path $temporary 'wowAuto.log')).Length+(Get-Item (Join-Path $temporary 'info.log')).Length
     Assert-Threading ($size -le 1MB) 'Concurrent logs exceeded their combined size limit.'

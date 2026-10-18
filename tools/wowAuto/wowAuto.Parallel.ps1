@@ -2,6 +2,7 @@
 if(-not ('WowAuto.Threading.Hub' -as [type])){Add-Type -Path (Join-Path $PSScriptRoot 'wowAuto.Threading.cs') -ReferencedAssemblies System.Core}
 . (Join-Path $PSScriptRoot 'wowAuto.AccountTasks.ps1')
 . (Join-Path $PSScriptRoot 'wowAuto.AccountTasks.Ui.ps1')
+. (Join-Path $PSScriptRoot 'wowAuto.Timing.Ui.ps1')
 function New-ParallelPipeline([string]$Script,$Endpoint=$null,[string]$Mock='') {
     $runspace=[RunspaceFactory]::CreateRunspace();$runspace.ApartmentState='MTA';$runspace.ThreadOptions='ReuseThread';$runspace.Open()
     $pipeline=[PowerShell]::Create();$pipeline.Runspace=$runspace
@@ -13,12 +14,23 @@ function New-ParallelPipeline([string]$Script,$Endpoint=$null,[string]$Mock='') 
 }
 function Get-ParallelConfig($Row) {
     $range=$script:versionRanges[$Row.Client.Flavor];$recording=Get-AudioRecording $Row.Client.Flavor $script:audioRecordingSelections[$Row.Client.Flavor]
+    $operations=$script:accountTasks.Config.Operations
+    $common=ConvertTo-TaskMap $script:autoFight.Common;$common.InteractionHoldMs=$operations.InteractionHoldMs
     return @{MinimumMs=$range.MinimumMs;MaximumMs=$range.MaximumMs;AudioTimeoutMs=$range.AudioTimeoutMs;
-        FocusRetryMs=$script:scheduler.FocusRetryIntervalMs;ReelHoldMs=$script:scheduler.ReelHoldMs;JumpEveryCycles=$script:scheduler.JumpEveryCycles;
+        FocusRetryMs=$operations.FocusRetryMs;ReelHoldMs=$operations.ReelHoldMs;JumpEveryCycles=$script:scheduler.JumpEveryCycles;
         UseAudio=$script:audioDetectionEnabled;FeaturePath=(Join-Path $script:audioFeatureDirectory $recording.Feature);AudioThreshold=$script:audioThresholds[$Row.Client.Flavor];
         Keys=@{Cast=$script:keyBindings.Cast.Text;Reel=$script:keyBindings.Reel.Text;Item=$script:keyBindings.Item.Text};
-        Profiles=$script:autoFight.Profiles;ProfilesReady=$script:autoFight.ConfigReady;Common=$script:autoFight.Common;CommandIntervalMs=$script:autoFight.CommandGate.IntervalMs;
-        Periods=$script:accountTasks.Config.Periods;Priorities=$script:gameActions.Priorities}
+        Profiles=$script:autoFight.Profiles;ProfilesReady=$script:autoFight.ConfigReady;Common=$common;CommandIntervalMs=$operations.CommandIntervalMs;
+        Operations=$operations;Periods=$script:accountTasks.Config.Periods;Priorities=$script:gameActions.Priorities}
+}
+function Apply-ParallelTimings {
+    $values=$script:accountTasks.Config.Operations
+    $timing=New-Object WowAuto.Threading.QueueTimings
+    foreach($key in $values.Keys){$timing.$key=[int]$values[$key]}
+    $script:parallelHub.ConfigureTiming($timing);$timer.Interval=$values.UiRefreshMs
+    $script:scheduler.FocusRetryIntervalMs=$values.FocusRetryMs;$script:scheduler.ReelHoldMs=$values.ReelHoldMs
+    $script:autoFight.CommandGate.IntervalMs=$values.CommandIntervalMs;$script:autoFight.Common.InteractionHoldMs=$values.InteractionHoldMs
+    Update-VersionSummary
 }
 function Ensure-ParallelWorker($Row) {
     if($script:parallelWorkers.ContainsKey($Row.Key) -and $script:parallelWorkers[$Row.Key].Endpoint.Closed){
@@ -136,7 +148,7 @@ function Initialize-ParallelRuntime {
     try{Initialize-AccountTasks $accountPath}
     catch{
         $accountError=$_.Exception.Message
-        $script:accountTasks=[pscustomobject]@{Path=$accountPath;Config=@{Version=1;Accounts=@{};Bindings=@{};Periods=(New-DetectionPeriods)};Catalog=@{};Warnings=@('子战网配置读取失败：'+$accountError+'；所有角色保持停用，请核对后保存。')}
+        $script:accountTasks=[pscustomobject]@{Path=$accountPath;Config=@{Version=1;Accounts=@{};Bindings=@{};Periods=(New-DetectionPeriods);Operations=(Get-LegacyOperationTimings)};Catalog=@{};Warnings=@('子战网配置读取失败：'+$accountError+'；所有角色保持停用，请核对后保存。')}
         Update-AccountTaskCatalog
         foreach($roles in $script:accountTasks.Config.Accounts.Values){foreach($role in $roles){$role.Enabled=$false}}
     }
@@ -145,6 +157,7 @@ function Initialize-ParallelRuntime {
     $directory=if($UiTest){$script:logTestDirectory}else{Join-Path $PSScriptRoot 'log'}
     $script:parallelHub=New-Object WowAuto.Threading.Hub($directory,$script:logMaxSizeMB)
     $script:parallelHub.Simulation=[bool]$UiTest
+    Apply-ParallelTimings
     $script:parallelOperator=New-ParallelPipeline 'wowAuto.Operator.ps1' -Mock $mockOperator
     $intro.Text='每个进程绑定一个子战网；在设置中启用角色并配置任务。“开始”按账号角色轮转，“直接开始”使用当前已登录角色。'
     $footer.Text='检测与OCR按进程独立运行；所有按键和点击由操作线程统一执行。角色死亡或包满时移出本次轮转，角色耗尽才退出该进程。'

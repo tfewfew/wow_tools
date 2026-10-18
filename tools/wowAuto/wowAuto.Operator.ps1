@@ -5,7 +5,7 @@ function Wait-Operator($Request,[int]$Milliseconds) {
     $until=$Hub.Now+$Milliseconds
     while ($Hub.Now -lt $until) {
         if ($Hub.Closing -or -not $Request.Current) {return $false}
-        [Threading.Thread]::Sleep([Math]::Min(25,[Math]::Max(1,$until-$Hub.Now)))
+        [Threading.Thread]::Sleep([Math]::Min($Request.Timing.WaitCheckMs,[Math]::Max(1,$until-$Hub.Now)))
     }
     return $Request.Current
 }
@@ -22,7 +22,7 @@ function Assert-OperatorIdentity($Endpoint) {
             [WowAuto.NativeInput]::GetClientFlavor($Endpoint.Path,[Diagnostics.FileVersionInfo]::GetVersionInfo($Endpoint.Path).FileVersion) -ne $Endpoint.Flavor) {throw '操作前进程身份已变化。'}
     } finally {$process.Dispose()}
 }
-function Invoke-OperatorAdapter([string]$Action,$Endpoint,$Data=$null) {
+function Invoke-OperatorAdapter([string]$Action,$Endpoint,$Data=$null,[int]$DurationMs=30) {
     if($Hub.Simulation){throw 'Simulation requires an explicit operator adapter; native input is forbidden.'}
     switch($Action) {
         'Identity' {Assert-OperatorIdentity $Endpoint;return $true}
@@ -32,11 +32,11 @@ function Invoke-OperatorAdapter([string]$Action,$Endpoint,$Data=$null) {
         'Color' {return [WowAuto.NativeInput]::ReadCenterColor($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
         'Lure' {return [WowAuto.NativeInput]::ReadLureColor($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
         'Packet' {return [WowAutoFight.Native]::Observe((Get-OperatorClient $Endpoint))}
-        'Press' {$binding=ConvertFrom-AutoFightBinding ([string]$Data);return [WowAutoFight.Native]::Press((Get-OperatorClient $Endpoint),$binding.Code,$binding.Ctrl,$binding.Shift,$binding.Alt)}
-        'Up' {return [WowAuto.NativeInput]::PressChord($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,38,$false,$false,$false)}
-        'Enable' {return [WowAuto.NativeInput]::SendDetectorCommand($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,$Data.Mode)}
-        'Logout' {return [WowAuto.NativeInput]::SendRotationCommand($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,'logout',0)}
-        'Click' {return [WowAutoRotation.Native]::ClickCharacter($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,$Data.X,$Data.Y,$Data.Width,$Data.Height,$Data.FirstDelay,$Data.SecondDelay)}
+        'Press' {$binding=ConvertFrom-AutoFightBinding ([string]$Data);return [WowAutoFight.Native]::Press((Get-OperatorClient $Endpoint),$binding.Code,$binding.Ctrl,$binding.Shift,$binding.Alt,$DurationMs)}
+        'Up' {return [WowAuto.NativeInput]::PressChord($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,38,$false,$false,$false,$DurationMs)}
+        'Enable' {return [WowAuto.NativeInput]::SendDetectorCommand($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,$Data.Mode,$DurationMs)}
+        'Logout' {return [WowAuto.NativeInput]::SendRotationCommand($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,'logout',0,$DurationMs)}
+        'Click' {return [WowAutoRotation.Native]::ClickCharacter($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,$Data.X,$Data.Y,$Data.Width,$Data.Height,$Data.FirstDelay,$Data.SecondDelay,$Data.MinimumMs,$Data.MaximumMs)}
         'Restore' {return [WowAuto.NativeInput]::RestoreAfterScan([IntPtr][long]$Data.Window)}
         'Capture.Restore' {$restore=@([WowAutoCapture.Native]::PendingRestores() | Where-Object Key -eq $Endpoint.Key | Select-Object -First 1);if($restore.Count){[WowAutoCapture.Native]::RestoreMinimized($restore[0])};return $true}
         'Exit' {$process=[Diagnostics.Process]::GetProcessById($Endpoint.Pid);try{$null=$process.CloseMainWindow()}finally{$process.Dispose()};return $true}
@@ -45,7 +45,7 @@ function Invoke-OperatorAdapter([string]$Action,$Endpoint,$Data=$null) {
     }
 }
 function Invoke-OperatorRequest($Request) {
-    $endpoint=$Request.Owner;$body=$Request.Json | ConvertFrom-Json
+    $endpoint=$Request.Owner;$body=$Request.Json | ConvertFrom-Json;$timing=$Request.Timing
     if($Request.Kind -eq 'Scan.Restore') {
         if($Hub.ActiveTasks -eq 0){$null=Invoke-OperatorAdapter Restore $endpoint $body}
         return @{Executed=($Hub.ActiveTasks -eq 0);SentAt=$Hub.Now}
@@ -65,34 +65,35 @@ function Invoke-OperatorRequest($Request) {
     }
     $foreground=Invoke-OperatorAdapter Foreground $endpoint
     if(-not $foreground) {
-        if(-not $Request.FocusUntil){$Request.FocusUntil=$Hub.Now+$(if($Request.Domain -eq 'Rotation'){5000}else{800})}
+        if(-not $Request.FocusUntil){$Request.FocusUntil=$Hub.Now+$(if($Request.Domain -eq 'Rotation'){$timing.RotationFocusTimeoutMs}else{$timing.ForegroundTimeoutMs})}
         if($Hub.Now -ge $Request.FocusUntil){throw '操作线程未能在前台保护时间内取得窗口。'}
         if($Hub.Now -ge $Request.NextActivateAt) {
             $null=Invoke-OperatorAdapter Activate $endpoint
-            $Request.NextActivateAt=$Hub.Now+$(if($Request.Domain -eq 'Rotation'){500}else{100})
+            $Request.NextActivateAt=$Hub.Now+$(if($Request.Domain -eq 'Rotation'){$timing.RotationFocusRetryMs}else{$timing.ForegroundRetryMs})
         }
-        $Request.ReadyAt=$Hub.Now+200;$Hub.Focus=$Request;$Hub.Requeue($Request,25);return $null
+        $Request.ReadyAt=$Hub.Now+$timing.ForegroundSettleMs;$Hub.Focus=$Request;$Hub.Requeue($Request,$timing.WaitCheckMs);return $null
     }
-    if(-not $Request.ReadyAt){$Request.ReadyAt=$Hub.Now+200}
+    if(-not $Request.ReadyAt){$Request.ReadyAt=$Hub.Now+$timing.ForegroundSettleMs}
     if($Hub.Now -lt $Request.ReadyAt){$Hub.Focus=$Request;$Hub.Requeue($Request,[int]($Request.ReadyAt-$Hub.Now));return $null}
     if(-not $Request.Current){return @{Executed=$false;SentAt=$Hub.Now}}
     if($Request.Kind -eq 'Rotation.Click') {
         if(Invoke-OperatorAdapter Login $endpoint){return @{Executed=$false;SentAt=$Hub.Now}}
+        $body | Add-Member NoteProperty MinimumMs $timing.ClickMinMs -Force;$body | Add-Member NoteProperty MaximumMs $timing.ClickMaxMs -Force
         $sent=Invoke-OperatorAdapter Click $endpoint $body
-        if($sent){$script:lastClickKey=$endpoint.Key;$script:clickUntil=$Hub.Now+1000}
+        if($sent){$script:lastClickKey=$endpoint.Key;$script:clickUntil=$Hub.Now+$timing.ClickGuardMs}
         return @{Executed=$sent;SentAt=$Hub.Now}
     }
     if($Request.Kind -eq 'Rotation.Up') {
         if(Invoke-OperatorAdapter Login $endpoint){return @{Executed=$false;SentAt=$Hub.Now}}
-        $sent=Invoke-OperatorAdapter Up $endpoint
+        $sent=Invoke-OperatorAdapter Up $endpoint $null $timing.ChatKeyPressMs
         return @{Executed=$sent;SentAt=$Hub.Now}
     }
     if(-not (Invoke-OperatorAdapter Login $endpoint)){throw '操作前未检测到插件右下角登录白点。'}
     if($Request.Kind -eq 'Rotation.Logout') {
-        return @{Executed=(Invoke-OperatorAdapter Logout $endpoint);SentAt=$Hub.Now}
+        return @{Executed=(Invoke-OperatorAdapter Logout $endpoint $null $timing.ChatKeyPressMs);SentAt=$Hub.Now}
     }
     if($Request.Kind -in @('Scan.Enable','Rotation.Enable')) {
-        return @{Executed=(Invoke-OperatorAdapter Enable $endpoint $body);SentAt=$Hub.Now}
+        return @{Executed=(Invoke-OperatorAdapter Enable $endpoint $body $timing.ChatKeyPressMs);SentAt=$Hub.Now}
     }
     if($Request.Domain -eq 'Fight') {
         $observation=Invoke-OperatorAdapter Packet $endpoint;$packet=$observation.Packet
@@ -116,11 +117,11 @@ function Invoke-OperatorRequest($Request) {
     $sent=$true
     foreach($key in @($body.Keys)) {
         if(-not $Request.Current){$sent=$false;break}
-        $sent=Invoke-OperatorAdapter Press $endpoint $key
+        $sent=Invoke-OperatorAdapter Press $endpoint $key $timing.KeyPressMs
         if(-not $sent){break}
     }
     $sentAt=$Hub.Now
-    if($sent -and $Request.Domain -eq 'Fight'){$script:commandReadyAt=$sentAt+[int]$body.CommandIntervalMs}
+    if($sent -and $Request.Domain -eq 'Fight'){$script:commandReadyAt=$sentAt+$timing.CommandIntervalMs}
     if($sent -and $body.HoldMs -gt 0){$null=Wait-Operator $Request $body.HoldMs}
     return @{Executed=$sent;SentAt=$sentAt}
 }
@@ -129,7 +130,7 @@ $script:commandReadyAt=0L;$script:lastClickKey='';$script:clickUntil=0L
 try {
     while(-not $Hub.Closing) {
         $request=$Hub.NextOperation()
-        if(-not $request){$null=$Hub.Wake.WaitOne(25);continue}
+        if(-not $request){$null=$Hub.Wake.WaitOne($Hub.Timing.OperatorIdleMs);continue}
         try {
             if(-not $request.Current){$request.Complete($false,$false,$null,'cancelled');continue}
             $result=Invoke-OperatorRequest $request
@@ -139,7 +140,7 @@ try {
             try{$Hub.Log($request.Owner,$request.Version,'action',('操作完成：'+$request.Kind+'；已执行='+$result.Executed))}
             catch{$Hub.Publish($request.Owner,$request.Version,'status',('操作已完成，但日志写入失败：'+$_.Exception.Message))}
         } catch {
-            if([WowAutoCapture.Native]::IsPending($_.Exception) -and $request.Current) {$Hub.Requeue($request,100);continue}
+            if([WowAutoCapture.Native]::IsPending($_.Exception) -and $request.Current) {$Hub.Requeue($request,$request.Timing.CaptureRetryMs);continue}
             if([object]::ReferenceEquals($Hub.Focus,$request)){$Hub.Focus=$null}
             $request.Complete($false,$false,$null,$_.Exception.Message)
             try{$Hub.Log($request.Owner,$request.Version,'error',('操作失败：'+$request.Kind+'：'+$_.Exception.Message))}

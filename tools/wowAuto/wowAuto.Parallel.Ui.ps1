@@ -162,13 +162,20 @@ function New-UnifiedSettingsDialog {
         $area=[Windows.Forms.Screen]::FromControl($form).WorkingArea
         $dialog.Width=[Math]::Min(1440,$area.Width)
         $page=New-AccountTaskSettingsPage;$dialog.Tag.Tabs.TabPages.Add($page);$dialog.Tag | Add-Member NoteProperty Accounts $page
-        $periodPage=New-DetectionPeriodSettingsPage;$dialog.Tag.Tabs.TabPages.Add($periodPage);$dialog.Tag | Add-Member NoteProperty DetectionPeriods $periodPage
+        $timingPage=New-GlobalTimingSettingsPage;$dialog.Tag.Tabs.TabPages.Add($timingPage);$dialog.Tag | Add-Member NoteProperty Timing $timingPage
+        $dialog.Tag | Add-Member NoteProperty DetectionPeriods $timingPage.Tag.Detection
+        $dialog.Tag | Add-Member NoteProperty Operations $timingPage.Tag.Operations
+        Hide-LegacyTimingInput $dialog.Tag.Fish.Tag.FocusRetry '焦点重试间隔（ms，所有进程）'
+        Hide-LegacyTimingInput $dialog.Tag.Fish.Tag.ReelHold '收竿后保持（ms，所有进程）'
+        Hide-LegacyTimingInput $dialog.Tag.Fight.Tag.CommandInterval '公共最小按键间隔 (ms)'
+        Hide-LegacyTimingInput $dialog.Tag.Fight.Tag.CommonNumbers.InteractionHoldMs '交互等待 (ms)'
         $dialog.Tag.Fish.Tag.AudioDetection.Enabled=-not @($script:rows.Values | Where-Object {$_.RuntimeRunning -and $_.TaskMode -eq 'fish'}).Count
         # The OCR period now belongs beside all other detector periods.
         $bar=$dialog.Tag.Rotation.Value.Parent
         foreach($control in $bar.Controls){if($control.Top -ge 60 -and $control -ne $dialog.Tag.Rotation.Save){$control.Visible=$false}}
         $bar.Height=62
         $dialog.Add_Disposed({
+            Apply-ParallelTimings
             Update-AccountTaskCatalog
             foreach($row in $script:rows.Values){Update-RowAccountChoices $row}
             foreach($row in $script:rows.Values){if($script:parallelWorkers.ContainsKey($row.Key)){$script:parallelWorkers[$row.Key].Endpoint.Notify('Configure',((Get-ParallelConfig $row) | ConvertTo-Json -Depth 15 -Compress))}}

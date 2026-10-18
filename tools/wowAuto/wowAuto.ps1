@@ -234,7 +234,10 @@ namespace WowAuto
 
 
         public static bool PressChord(int targetProcessId, long startTimeTicks, string executablePath, ushort number, bool ctrl, bool shift, bool alt)
+        {return PressChord(targetProcessId,startTimeTicks,executablePath,number,ctrl,shift,alt,50);}
+        public static bool PressChord(int targetProcessId, long startTimeTicks, string executablePath, ushort number, bool ctrl, bool shift, bool alt,int durationMs)
         {
+            if(durationMs<1 || durationMs>5000) throw new ArgumentOutOfRangeException("durationMs");
             if (!IsTargetForeground(targetProcessId, startTimeTicks, executablePath)) return false;
             var down = new System.Collections.Generic.List<INPUT>();
             var up = new System.Collections.Generic.List<INPUT>();
@@ -249,7 +252,7 @@ namespace WowAuto
             try
             {
                 Send(down.ToArray());
-                Thread.Sleep(50);
+                Thread.Sleep(durationMs);
             }
             finally
             {
@@ -260,10 +263,12 @@ namespace WowAuto
 
         // Send only the two addon start commands, never arbitrary chat text or macros.
         public static bool SendDetectorCommand(int processId, long startTicks, string path, string mode)
+        {return SendDetectorCommand(processId,startTicks,path,mode,50);}
+        public static bool SendDetectorCommand(int processId, long startTicks, string path, string mode,int durationMs)
         {
             string command = DetectorCommand(mode);
-            if (!PressChord(processId,startTicks,path,13,false,false,false)) return false;
-            if (!PressChord(processId,startTicks,path,65,true,false,false)) return false;
+            if (!PressChord(processId,startTicks,path,13,false,false,false,durationMs)) return false;
+            if (!PressChord(processId,startTicks,path,65,true,false,false,durationMs)) return false;
             if (!IsTargetForeground(processId,startTicks,path)) return false;
             var inputs = new System.Collections.Generic.List<INPUT>();
             foreach (char character in command) {
@@ -273,7 +278,7 @@ namespace WowAuto
                 inputs.Add(down); inputs.Add(up);
             }
             Send(inputs.ToArray());
-            return PressChord(processId,startTicks,path,13,false,false,false);
+            return PressChord(processId,startTicks,path,13,false,false,false,durationMs);
         }
         public static string DetectorCommand(string mode)
         {
@@ -287,14 +292,16 @@ namespace WowAuto
             throw new ArgumentException("Unknown rotation command.");
         }
         public static bool SendRotationCommand(int pid,long ticks,string path,string action,int token)
+        {return SendRotationCommand(pid,ticks,path,action,token,50);}
+        public static bool SendRotationCommand(int pid,long ticks,string path,string action,int token,int durationMs)
         {
             string command=RotationCommand(action,token);
-            if(action=="logout" && !SendChatCommand(pid,ticks,path,"/stopcasting")) return false;
-            return SendChatCommand(pid,ticks,path,command);
+            if(action=="logout" && !SendChatCommand(pid,ticks,path,"/stopcasting",durationMs)) return false;
+            return SendChatCommand(pid,ticks,path,command,durationMs);
         }
-        private static bool SendChatCommand(int pid,long ticks,string path,string command)
+        private static bool SendChatCommand(int pid,long ticks,string path,string command,int durationMs)
         {
-            if(!PressChord(pid,ticks,path,13,false,false,false) || !PressChord(pid,ticks,path,65,true,false,false)) return false;
+            if(!PressChord(pid,ticks,path,13,false,false,false,durationMs) || !PressChord(pid,ticks,path,65,true,false,false,durationMs)) return false;
             if(!IsTargetForeground(pid,ticks,path)) return false;
             var inputs=new System.Collections.Generic.List<INPUT>();
             foreach(char c in command) {
@@ -302,7 +309,7 @@ namespace WowAuto
                 INPUT up=down;up.data.keyboard.dwFlags=6;inputs.Add(down);inputs.Add(up);
             }
             Send(inputs.ToArray());
-            return PressChord(pid,ticks,path,13,false,false,false);
+            return PressChord(pid,ticks,path,13,false,false,false,durationMs);
         }
     }
 }

@@ -1,4 +1,8 @@
 ﻿function Assert-Parallel($Condition,[string]$Message){if(-not $Condition){throw $Message}}
+function Select-ParallelSettingsPage($Dialog,$Page) {
+    if($Page -eq $Dialog.Tag.DetectionPeriods -or $Page -eq $Dialog.Tag.Operations){$Dialog.Tag.Tabs.SelectedTab=$Dialog.Tag.Timing;$Dialog.Tag.Timing.Tag.Tabs.SelectedTab=$Page}
+    else{$Dialog.Tag.Tabs.SelectedTab=$Page}
+}
 function Pump-Parallel([scriptblock]$Until,[int]$Timeout=6000) {
     $deadline=$script:parallelHub.Now+$Timeout
     do {
@@ -9,6 +13,7 @@ function Pump-Parallel([scriptblock]$Until,[int]$Timeout=6000) {
 }
 $rows=@($script:rows.Values | Sort-Object {$_.Process.Id});$a=$rows[0];$b=$rows[1];$c=$rows[2]
 $script:autoFight.Profiles['forerver:1'].BuffIntervalSeconds=0;$script:autoFight.Common.JumpIntervalSeconds=0
+$originalOperations=ConvertTo-TaskMap ($script:accountTasks.Config.Operations | ConvertTo-Json | ConvertFrom-Json)
 Assert-Parallel ($rows.Count -eq 3 -and $script:parallelWorkers.Count -eq 3) 'Each process must have one detector runspace.'
 foreach($row in $rows) {
     Assert-Parallel ($row.AccountBox.Parent -eq $row.Panel -and -not $row.PSObject.Properties['RotationButton'] -and @(Get-AccountTaskRoles $row).Count -eq 4) 'Account binding missing or process slots still limit roles.'
@@ -20,6 +25,8 @@ try {
     $accountEditor=$dialog.Tag.Accounts.Tag;$editor=$accountEditor.Clients.titan;$forever=$accountEditor.Clients.forerver;$periodEditor=$dialog.Tag.DetectionPeriods.Tag
     Assert-Parallel ($dialog.Tag.Tabs.TabPages.Count -eq 5 -and $editor.Grid.Rows.Count -eq 4 -and $script:parallelHub.Paused) 'Separate global period settings tab or runtime pause is missing.'
     Assert-Parallel ($dialog.Tag.DetectionPeriods.Text -eq '检测周期' -and $periodEditor.Periods.Count -eq 10 -and -not $accountEditor.PSObject.Properties['Periods']) 'Global detection controls still belong to account settings.'
+    Assert-Parallel ($dialog.Tag.Timing.Text -eq '检测与操作' -and $dialog.Tag.Timing.Tag.Tabs.TabPages.Count -eq 2 -and $dialog.Tag.Operations.Tag.Values.Count -eq 22) 'Detection and queue settings are not sibling child tabs.'
+    Assert-Parallel (-not $dialog.Tag.Fish.Tag.FocusRetry.Visible -and -not $dialog.Tag.Fish.Tag.ReelHold.Visible -and -not $dialog.Tag.Fight.Tag.CommandInterval.Visible -and -not $dialog.Tag.Fight.Tag.CommonNumbers.InteractionHoldMs.Visible) 'Moved timing controls remain editable in their original pages.'
     Assert-Parallel ($accountEditor.ClientTabs.TabPages.Count -eq 2 -and $editor.Page.Text -eq '时光服' -and $forever.Page.Text -eq '永恒服') 'Clients do not have separate child tabs.'
     Assert-Parallel ($editor.Accounts.Items.Count -eq 2 -and $forever.Accounts.Items.Count -eq 1 -and $editor.Selected -ceq 'titan:ACCOUNT-A' -and $forever.Selected -ceq 'forerver:ACCOUNT-A') 'Child account lists are not filtered by client.'
     Assert-Parallel ($editor.Accounts.SelectedItem -ceq 'ACCOUNT-A' -and $forever.Accounts.SelectedItem -ceq 'ACCOUNT-A' -and $editor.Grid.Rows[0].Cells['Mode'].Value -eq '钓鱼' -and $forever.Grid.Rows[0].Cells['Mode'].Value -eq '战斗') 'Same-name accounts leaked across client tabs or dropdown still contains client prefixes.'
@@ -36,23 +43,32 @@ try {
     $before=(Get-FileHash $script:accountTasks.Path).Hash
     $editor.Grid.Rows[0].Cells['Enabled'].Value=$false
     $periodEditor.Periods.OcrMs.Value=50
+    $dialog.Tag.Operations.Tag.Values.KeyPressMs.Value=57
     Assert-Parallel ($script:accountTasks.Config.Accounts[$editor.Selected][0].Enabled) 'Role draft applied before save.'
     if($env:WOWAUTO_PARALLEL_PREVIEW){
-        foreach($preview in @(@($dialog.Tag.Accounts,$editor.Page,'account-settings.png'),@($dialog.Tag.Accounts,$forever.Page,'account-settings-forever.png'),@($dialog.Tag.DetectionPeriods,$null,'detection-periods.png'))){
-            $dialog.Tag.Tabs.SelectedTab=$preview[0];if($preview[1]){$accountEditor.ClientTabs.SelectedTab=$preview[1]};[Windows.Forms.Application]::DoEvents()
+        foreach($preview in @(@($dialog.Tag.Accounts,$editor.Page,'account-settings.png'),@($dialog.Tag.Accounts,$forever.Page,'account-settings-forever.png'),@($dialog.Tag.DetectionPeriods,$null,'detection-periods.png'),@($dialog.Tag.Operations,$null,'operation-timings.png'))){
+            Select-ParallelSettingsPage $dialog $preview[0];if($preview[1]){$accountEditor.ClientTabs.SelectedTab=$preview[1]};[Windows.Forms.Application]::DoEvents()
             $bitmap=New-Object Drawing.Bitmap($dialog.Width,$dialog.Height);try{$dialog.DrawToBitmap($bitmap,(New-Object Drawing.Rectangle(0,0,$bitmap.Width,$bitmap.Height)));$bitmap.Save((Join-Path $env:WOWAUTO_PARALLEL_PREVIEW $preview[2]))}finally{$bitmap.Dispose()}
         }
     }
 }finally{$dialog.Dispose()}
-Assert-Parallel ((Get-FileHash $script:accountTasks.Path).Hash -eq $before -and $script:accountTasks.Config.Periods.OcrMs -eq 25 -and -not $script:parallelHub.Paused) 'Cancel changed account tasks/periods or left workers paused.'
+Assert-Parallel ((Get-FileHash $script:accountTasks.Path).Hash -eq $before -and $script:accountTasks.Config.Periods.OcrMs -eq 25 -and $script:accountTasks.Config.Operations.KeyPressMs -eq 30 -and -not $script:parallelHub.Paused) 'Cancel changed account tasks/periods/operations or left workers paused.'
 $dialog=New-UnifiedSettingsDialog
 try {
     $dialog.Show($form);$dialog.Tag.Tabs.SelectedTab=$dialog.Tag.Accounts;[Windows.Forms.Application]::DoEvents()
     $accountEditor=$dialog.Tag.Accounts.Tag;$editor=$accountEditor.Clients.titan;$forever=$accountEditor.Clients.forerver;$periodEditor=$dialog.Tag.DetectionPeriods.Tag
     $editor.Grid.Rows[3].Cells['Enabled'].Value=$false;$periodEditor.Periods.OcrMs.Value=50
+    $operationEditor=$dialog.Tag.Operations.Tag
+    $operationEditor.Values.KeyPressMs.Value=17;$operationEditor.Values.ForegroundSettleMs.Value=75;$operationEditor.Values.UiRefreshMs.Value=40
     $locked=[IO.File]::Open($script:accountTasks.Path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
-    try{$accountEditor.Save.PerformClick();$dialog.Tag.Tabs.SelectedTab=$dialog.Tag.DetectionPeriods;$periodEditor.Save.PerformClick()}finally{$locked.Dispose()}
+    try{$accountEditor.Save.PerformClick();Select-ParallelSettingsPage $dialog $dialog.Tag.DetectionPeriods;$periodEditor.Save.PerformClick();Select-ParallelSettingsPage $dialog $dialog.Tag.Operations;$operationEditor.Save.PerformClick()}finally{$locked.Dispose()}
     Assert-Parallel ($script:accountTasks.Config.Accounts['titan:ACCOUNT-A'][3].Enabled -and $script:accountTasks.Config.Periods.OcrMs -eq 25 -and (Get-FileHash $script:accountTasks.Path).Hash -eq $before) 'Locked save partly applied either settings page.'
+    $operationEditor.Values.ClickMinMs.Value=1000;$operationEditor.Save.PerformClick()
+    Assert-Parallel ((Get-FileHash $script:accountTasks.Path).Hash -eq $before -and $script:accountTasks.Config.Operations.KeyPressMs -eq 30) 'Invalid click interval partly saved queue settings.'
+    $operationEditor.Values.ClickMinMs.Value=100;$operationEditor.Save.PerformClick()
+    Assert-Parallel ($script:accountTasks.Config.Operations.KeyPressMs -eq 17 -and $script:accountTasks.Config.Periods.OcrMs -eq 25 -and $script:accountTasks.Config.Accounts['titan:ACCOUNT-A'][3].Enabled -and $script:parallelHub.Timing.KeyPressMs -eq 30) 'Queue save applied another draft or changed active operations before dialog close.'
+    $operationEditor.Values.KeyPressMs.Value=99
+    Select-ParallelSettingsPage $dialog $dialog.Tag.DetectionPeriods
     $periodEditor.Save.PerformClick()
     Assert-Parallel ($script:accountTasks.Config.Accounts['titan:ACCOUNT-A'][3].Enabled -and $script:accountTasks.Config.Periods.OcrMs -eq 50) 'Saving global periods applied the unsaved role draft.'
     $periodEditor.Periods.OcrMs.Value=75;$dialog.Tag.Tabs.SelectedTab=$dialog.Tag.Accounts;$accountEditor.Save.PerformClick()
@@ -62,11 +78,19 @@ try {
     Assert-Parallel (-not $script:accountTasks.Config.Accounts['titan:ACCOUNT-A'][3].Enabled) 'Further edits after Save shared the active configuration object.'
     $editor.Accounts.SelectedItem='ACCOUNT-A'
     Assert-Parallel ($editor.Grid.Rows[3].Cells['Enabled'].Value -and $forever.Grid.Rows[2].Cells['UseItem'].Value -and $forever.Selected -ceq 'forerver:ACCOUNT-A') 'Changing account/client tabs discarded another tab draft or selection.'
-    $accountEditor.Save.PerformClick();$dialog.Tag.Tabs.SelectedTab=$dialog.Tag.DetectionPeriods;$periodEditor.Periods.OcrMs.Value=25;$periodEditor.Save.PerformClick()
+    $accountEditor.Save.PerformClick();Select-ParallelSettingsPage $dialog $dialog.Tag.DetectionPeriods;$periodEditor.Periods.OcrMs.Value=25;$periodEditor.Save.PerformClick()
     Assert-Parallel ($script:accountTasks.Config.Accounts['titan:ACCOUNT-A'][3].Enabled -and $script:accountTasks.Config.Accounts['forerver:ACCOUNT-A'][2].UseItem -and $script:accountTasks.Config.Periods.OcrMs -eq 25) 'Saving periods reverted the latest saved roles in another client.'
     $dialog.Tag.Tabs.SelectedTab=$dialog.Tag.Accounts;$accountEditor.ClientTabs.SelectedTab=$forever.Page;$forever.Grid.Rows[2].Cells['UseItem'].Value=$false;$accountEditor.Save.PerformClick()
     $savedSettings=[IO.File]::ReadAllText($script:accountTasks.Path) | ConvertFrom-Json
     Assert-Parallel ($savedSettings.Periods.OcrMs -eq 25 -and $savedSettings.Accounts.'titan:ACCOUNT-A'[3].Enabled -and -not $savedSettings.Accounts.'forerver:ACCOUNT-A'[2].UseItem) 'Separate settings pages did not persist their latest values.'
+    Assert-Parallel ($savedSettings.Operations.KeyPressMs -eq 17 -and $script:accountTasks.Config.Operations.KeyPressMs -eq 17) 'Role/period saves changed saved operation timing or applied a later unsaved draft.'
+}finally{$dialog.Dispose()}
+Assert-Parallel ($script:parallelHub.Timing.KeyPressMs -eq 17 -and $script:parallelHub.Timing.ForegroundSettleMs -eq 75 -and $timer.Interval -eq 40) 'Saved operation timings were not applied on dialog close.'
+$dialog=New-UnifiedSettingsDialog
+try {
+    $dialog.Show($form);Select-ParallelSettingsPage $dialog $dialog.Tag.Operations
+    foreach($key in $originalOperations.Keys){$dialog.Tag.Operations.Tag.Values[$key].Value=$originalOperations[$key]}
+    $dialog.Tag.Operations.Tag.Save.PerformClick()
 }finally{$dialog.Dispose()}
 $refreshButton.PerformClick();Pump-Parallel {-not $script:scanning}
 Assert-Parallel (@($rows | Where-Object Validated).Count -eq 3) 'Independent scan/operation acknowledgements did not validate every row.'

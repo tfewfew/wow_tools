@@ -6,6 +6,8 @@ $tool=Split-Path $PSScriptRoot -Parent
 function Assert-AccountTask($Condition,[string]$Message){if(-not $Condition){throw $Message}}
 $temporary=Join-Path ([IO.Path]::GetTempPath()) ('wowAuto-account-tasks-'+[guid]::NewGuid().ToString('N'))
 $script:rotation=[pscustomobject]@{GameDirectories=@{titan=(Join-Path $temporary '_classic_titan_');forerver=(Join-Path $temporary '_cn_beta_')};OcrIntervalMs=900;Plans=@{}}
+$script:scheduler=[pscustomobject]@{FocusRetryIntervalMs=17000;ReelHoldMs=140}
+$script:autoFight=[pscustomobject]@{CommandGate=[pscustomobject]@{IntervalMs=1100};Common=[pscustomobject]@{InteractionHoldMs=2300}}
 try {
     foreach($name in @('角色甲','角色乙','角色丙','角色丁','冲突角色','从未配置')){Write-TestCharacterRecord (Join-Path $script:rotation.GameDirectories.titan ('WTF\Account\ACCOUNT-A\测试服\'+$name)) $name '测试服'}
     foreach($flavor in @('titan','forerver')){Write-TestCharacterRecord (Join-Path $script:rotation.GameDirectories[$flavor] 'WTF\Account\SHARED\测试服\同名角色') '同名角色' '测试服'}
@@ -22,6 +24,13 @@ try {
     Assert-AccountTask (-not ($roles | Where-Object {$_.Name -ceq '冲突角色'}).Enabled -and -not ($roles | Where-Object {$_.Name -ceq '从未配置'}).Enabled -and $script:accountTasks.Warnings.Count) 'Conflicting or new roles were silently enabled.'
     Assert-AccountTask (-not $script:accountTasks.Config.Accounts['titan:SHARED'][0].Enabled -and -not $script:accountTasks.Config.Accounts['forerver:SHARED'][0].Enabled) 'Ambiguous legacy client ownership leaked across clients.'
     Assert-AccountTask ($script:accountTasks.Config.Periods.OcrMs -eq 900 -and (Get-FileHash $path).Hash -eq $before) 'Read-only migration rewrote configuration or lost the old OCR interval.'
+    $timing=$script:accountTasks.Config.Operations
+    Assert-AccountTask ($timing.Count -eq 22 -and $timing.FocusRetryMs -eq 17000 -and $timing.ReelHoldMs -eq 140 -and $timing.CommandIntervalMs -eq 1100 -and $timing.InteractionHoldMs -eq 2300) 'Existing scattered timing settings were not migrated read-only.'
+    foreach($case in @('missing','extra','type','range','click','retry')){
+        $bad=$timing.Clone()
+        switch($case){'missing'{$bad.Remove('KeyPressMs')}'extra'{$bad.Other=1}'type'{$bad.KeyPressMs='30'}'range'{$bad.KeyPressMs=0}'click'{$bad.ClickMinMs=500}'retry'{$bad.ForegroundRetryMs=1000}}
+        $failed=$false;try{Test-OperationTimings $bad}catch{$failed=$true};Assert-AccountTask $failed ('Invalid operation timing accepted: '+$case)
+    }
     $row=[pscustomobject]@{Client=[pscustomobject]@{Flavor='titan';ExecutablePath=(Join-Path $script:rotation.GameDirectories.titan 'WowClassic.exe')};AccountName='ACCOUNT-A'}
     Assert-AccountTask (@(Get-AccountTaskRoles $row).Count -eq 4) 'Account role membership filtering failed.'
     $row.Client.ExecutablePath='C:\another\_classic_titan_\WowClassic.exe';Assert-AccountTask (@(Get-AccountTaskRoles $row).Count -eq 0) 'Another installation inherited account tasks.'

@@ -9,7 +9,8 @@ function Assert-OperatorTest($Condition,[string]$Message){if(-not $Condition){th
 $Hub=[pscustomobject]@{Now=0L;Closing=$false;Focus=$null;ActiveTasks=0}
 $Hub | Add-Member ScriptMethod Requeue {param($request,$delay) $request.Due=$this.Now+$delay}
 $script:adapter=@{Foreground=$true;Login=$true;Color='red';Lure='missing';Identity=$true;Activations=0;Pressed=@();Clicks=@();Enabled=0;Packet=[pscustomobject]@{ClassId=1;Action='opening';Recovery='none';Busy=$false}}
-function Invoke-OperatorAdapter([string]$Action,$Endpoint,$Data=$null) {
+function Invoke-OperatorAdapter([string]$Action,$Endpoint,$Data=$null,[int]$DurationMs=30) {
+    $script:lastAdapterDuration=$DurationMs
     switch($Action) {
         'Identity' {if(-not $script:adapter.Identity){throw 'fixture identity changed'};return $true}
         'Foreground' {return $script:adapter.Foreground}
@@ -61,4 +62,22 @@ $script:adapter.Foreground=$true;$script:adapter.Login=$false;$ordinary.ReadyAt=
 try{$null=Invoke-OperatorRequest $ordinary}catch{$failed=$true};Assert-OperatorTest $failed 'Input was allowed without a fresh login marker.'
 $script:adapter.Identity=$false;$failed=$false;try{$null=Invoke-OperatorRequest $ordinary}catch{$failed=$true}
 Assert-OperatorTest $failed 'Queued input ignored a changed process identity.'
-Write-Output 'PASS: production operator routing with substituted native primitives, target/opener transaction, fresh color/recovery/class/identity/marker checks, 200ms settle, exact one-second click guard, 500ms rotation retries/five-second limit and 800ms ordinary limit. No native input.'
+$script:adapter.Identity=$true;$script:adapter.Login=$true;$script:adapter.Foreground=$true;$script:adapter.Packet.Action='combat';$Hub.Now=0L;$script:commandReadyAt=0L
+$custom=New-OperatorTestRequest Fight.Combat Fight @{ClassId=1;Action='combat';Keys=@('Z');RecoveryReadyAt=0;HoldMs=0}
+$custom.Timing.ForegroundSettleMs=73;$custom.Timing.KeyPressMs=41;$custom.Timing.CommandIntervalMs=1234
+Assert-OperatorTest (-not (Invoke-OperatorRequest $custom) -and $custom.ReadyAt -eq 73) 'Custom settle duration was ignored.'
+$Hub.Now=72L;Assert-OperatorTest (-not (Invoke-OperatorRequest $custom)) 'Custom settle executed early.'
+$Hub.Now=73L;Assert-OperatorTest ((Invoke-OperatorRequest $custom).Executed -and $script:lastAdapterDuration -eq 41 -and $script:commandReadyAt -eq 1307) 'Custom native key duration or shared combat interval was ignored.'
+$script:adapter.Foreground=$false;$Hub.Now=0L;$script:adapter.Activations=0
+$customFocus=New-OperatorTestRequest Rotation.Logout Rotation;$customFocus.Timing.RotationFocusRetryMs=80;$customFocus.Timing.RotationFocusTimeoutMs=240
+foreach($now in 0,79,80,159,160){$Hub.Now=[long]$now;$null=Invoke-OperatorRequest $customFocus}
+Assert-OperatorTest ($script:adapter.Activations -eq 3) 'Custom foreground retry interval was ignored.'
+$Hub.Now=240L;$failed=$false;try{$null=Invoke-OperatorRequest $customFocus}catch{$failed=$true};Assert-OperatorTest $failed 'Custom foreground timeout was ignored.'
+$script:adapter.Foreground=$true;$script:adapter.Login=$false;$Hub.Now=1000L
+$customClick=New-OperatorTestRequest Rotation.Click Rotation @{X=0.84;Y=0.119;Width=800;Height=500;FirstDelay=11;SecondDelay=19}
+$customClick.ReadyAt=1;$customClick.Timing.ClickMinMs=10;$customClick.Timing.ClickMaxMs=20;$customClick.Timing.ClickGuardMs=65
+Assert-OperatorTest ((Invoke-OperatorRequest $customClick).Executed -and $script:adapter.Clicks[-1].MinimumMs -eq 10 -and $script:adapter.Clicks[-1].MaximumMs -eq 20) 'Custom click bounds did not reach the native adapter.'
+$customEnable=New-OperatorTestRequest Rotation.Enable Rotation @{Mode='fish'};$customEnable.Owner=$other;$customEnable.ReadyAt=1;$customEnable.Timing.ChatKeyPressMs=47;$script:adapter.Login=$true
+$Hub.Now=1064L;Assert-OperatorTest (-not (Invoke-OperatorRequest $customEnable)) 'Custom cross-process click guard executed early.'
+$Hub.Now=1065L;Assert-OperatorTest ((Invoke-OperatorRequest $customEnable).Executed -and $script:lastAdapterDuration -eq 47) 'Custom click guard or chat key duration was ignored.'
+Write-Output 'PASS: production operator routing with substituted native primitives; default and custom settle/retry/timeout, native key/chat durations, combat interval and click bounds/guard; target/opener transaction and fresh color/recovery/class/identity/marker checks. No native input.'

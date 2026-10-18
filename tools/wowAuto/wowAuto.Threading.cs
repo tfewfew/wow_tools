@@ -8,6 +8,13 @@ using System.Text;
 using System.Threading;
 
 namespace WowAuto.Threading {
+    public sealed class QueueTimings {
+        public int OperatorIdleMs=25,CommandReceiveMs=10,ReplyCheckMs=25,WaitCheckMs=25,DetectorWaitMs=20,UiRefreshMs=25;
+        public int ForegroundSettleMs=200,ForegroundRetryMs=100,ForegroundTimeoutMs=800,RotationFocusRetryMs=500,RotationFocusTimeoutMs=5000,FocusRetryMs=30000;
+        public int KeyPressMs=30,ChatKeyPressMs=50,CommandIntervalMs=500,ReelHoldMs=100,ItemHoldMs=3000,InteractionHoldMs=3500;
+        public int ClickMinMs=100,ClickMaxMs=250,ClickGuardMs=1000,CaptureRetryMs=100;
+        public QueueTimings Copy() {return (QueueTimings)MemberwiseClone();}
+    }
     public sealed class Command {
         public string Kind, Json;
         public long Version;
@@ -38,6 +45,7 @@ namespace WowAuto.Threading {
         public Command Receive(int timeout) {Command command;return Commands.TryTake(out command,timeout)?command:null;}
     }
     public sealed class Operation {
+        public QueueTimings Timing=new QueueTimings();
         public Endpoint Owner;
         public long Version, Sequence, Due, ReadyAt, FocusUntil, NextActivateAt;
         public string Kind, Domain, Json, Result, Error;
@@ -75,6 +83,9 @@ namespace WowAuto.Threading {
         readonly string logPath,infoPath;
         readonly Encoding utf8=new UTF8Encoding(false);
         long sequence;
+        QueueTimings timing=new QueueTimings();
+        public QueueTimings Timing {get {return Interlocked.CompareExchange(ref timing,null,null);}}
+        public void ConfigureTiming(QueueTimings value) {if(value==null) throw new ArgumentNullException("value");Interlocked.Exchange(ref timing,value.Copy());Wake.Set();}
         public volatile bool Closing, Paused;
         public bool Simulation;
         public volatile RotationBatch Batch;
@@ -98,8 +109,11 @@ namespace WowAuto.Threading {
         }
         public Notice NextNotice() {Notice notice;return notices.TryDequeue(out notice)?notice:null;}
         public Operation Request(Endpoint owner,long version,string kind,string domain,int priority,string json) {
+            return Request(owner,version,kind,domain,priority,json,Timing);
+        }
+        public Operation Request(Endpoint owner,long version,string kind,string domain,int priority,string json,QueueTimings requestedTiming) {
             var operation=new Operation {Owner=owner,Version=version,Kind=kind,Domain=domain,Priority=priority,Json=json,
-                Sequence=Interlocked.Increment(ref sequence),Due=Now};
+                Sequence=Interlocked.Increment(ref sequence),Due=Now,Timing=(requestedTiming??Timing).Copy()};
             lock(requestsGate) {
                 if(Closing || !operation.Current) operation.Complete(false,false,null,"cancelled");
                 else requests.Add(operation);

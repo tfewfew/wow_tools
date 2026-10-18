@@ -1,4 +1,5 @@
 ﻿# Account-scoped task configuration. Loading and legacy migration never rewrite user files.
+. (Join-Path $PSScriptRoot 'wowAuto.Timing.ps1')
 function ConvertTo-TaskMap($Value) {
     if ($Value -is [Collections.IDictionary]) {$map=@{};foreach($key in $Value.Keys){$map[$key]=ConvertTo-TaskMap $Value[$key]};return $map}
     if ($Value -is [pscustomobject]) {$map=@{};foreach($property in $Value.PSObject.Properties){$map[$property.Name]=ConvertTo-TaskMap $property.Value};return $map}
@@ -10,7 +11,8 @@ function New-DetectionPeriods {
 }
 function Test-AccountTaskConfiguration($Config) {
     if ($Config.Version -isnot [int] -or $Config.Version -ne 1 -or $Config.Accounts -isnot [Collections.IDictionary] -or $Config.Bindings -isnot [Collections.IDictionary] -or
-        @($Config.Keys | Where-Object {$_ -cnotin @('Version','MigrationComplete','Accounts','Bindings','Periods')}).Count) {throw '子战网任务配置格式无效。'}
+        @($Config.Keys | Where-Object {$_ -cnotin @('Version','MigrationComplete','Accounts','Bindings','Periods','Operations')}).Count) {throw '子战网任务配置格式无效。'}
+    if($Config.ContainsKey('Operations')){Test-OperationTimings $Config.Operations}
     if($Config.ContainsKey('MigrationComplete') -and $Config.MigrationComplete -isnot [bool]){throw '旧配置迁移标识无效。'}
     $defaults=New-DetectionPeriods
     if ($Config.Periods -isnot [Collections.IDictionary] -or $Config.Periods.Count -ne $defaults.Count) {throw '检测周期配置不完整。'}
@@ -43,6 +45,8 @@ function Test-AccountTaskConfiguration($Config) {
 function Initialize-AccountTasks([string]$Path=(Join-Path $PSScriptRoot 'account-tasks.config.json')) {
     $config=@{Version=1;Accounts=@{};Bindings=@{};Periods=(New-DetectionPeriods)}
     if ([IO.File]::Exists($Path)) {$config=ConvertTo-TaskMap ([IO.File]::ReadAllText($Path) | ConvertFrom-Json);Test-AccountTaskConfiguration $config}
+    if(-not $config.ContainsKey('Operations')){$config.Operations=Get-LegacyOperationTimings}
+    Test-OperationTimings $config.Operations
     if(-not $config.MigrationComplete -and -not $config.Accounts.Count -and $script:rotation.OcrIntervalMs){$config.Periods.OcrMs=[int]$script:rotation.OcrIntervalMs}
     $script:accountTasks=[pscustomobject]@{Path=$Path;Config=$config;Catalog=@{};Warnings=@()}
     Update-AccountTaskCatalog
@@ -84,6 +88,8 @@ function Save-AccountTasks($Config=$script:accountTasks.Config) {
     Test-AccountTaskConfiguration $Config
     # The editor continues to live after Save; do not make its mutable draft the active configuration.
     $snapshot=ConvertTo-TaskMap ($Config | ConvertTo-Json -Depth 12 | ConvertFrom-Json)
+    if(-not $snapshot.ContainsKey('Operations')){$snapshot.Operations=if($script:accountTasks.Config.Operations){ConvertTo-TaskMap $script:accountTasks.Config.Operations}else{Get-LegacyOperationTimings}}
+    Test-OperationTimings $snapshot.Operations
     $snapshot.MigrationComplete=$true
     $temporary=$script:accountTasks.Path+'.'+[guid]::NewGuid().ToString('N')+'.tmp'
     try {

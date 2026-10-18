@@ -94,10 +94,13 @@ namespace WowAutoRotation {
             } finally {if(old!=IntPtr.Zero) SetThreadDpiAwarenessContext(old);}
         }
         public static bool ClickCharacter(int pid,long ticks,string path,double x,double y,int expectedWidth,int expectedHeight,int firstDelayMs,int secondDelayMs) {
+            return ClickCharacter(pid,ticks,path,x,y,expectedWidth,expectedHeight,firstDelayMs,secondDelayMs,100,250);
+        }
+        public static bool ClickCharacter(int pid,long ticks,string path,double x,double y,int expectedWidth,int expectedHeight,int firstDelayMs,int secondDelayMs,int minimumMs,int maximumMs) {
             IntPtr old=SetThreadDpiAwarenessContext(new IntPtr(-4));
             try {
-                if(firstDelayMs<100 || firstDelayMs>250 || secondDelayMs<100 || secondDelayMs>250)
-                    throw new ArgumentOutOfRangeException("Character click intervals must be 100-250 ms.");
+                if(minimumMs<1 || maximumMs>2000 || minimumMs>maximumMs || firstDelayMs<minimumMs || firstDelayMs>maximumMs || secondDelayMs<minimumMs || secondDelayMs>maximumMs)
+                    throw new ArgumentOutOfRangeException("Character click intervals are outside the configured range.");
                 IntPtr h=Window(pid,ticks,path);Rect r;Point p=new Point();
                 if(x<=0 || x>=1 || y<=0 || y>=1 || !GetClientRect(h,out r) || !ClientToScreen(h,ref p)) throw new ArgumentException("Invalid client point.");
                 // Apply the same 5% tolerance, then map cached ratios using the current dimensions.

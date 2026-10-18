@@ -255,9 +255,12 @@ namespace WowAutoFight
             return true;
         }
         public static bool Press(Client c,ushort code,bool ctrl,bool shift,bool alt)
+        {return Press(c,code,ctrl,shift,alt,30);}
+        public static bool Press(Client c,ushort code,bool ctrl,bool shift,bool alt,int durationMs)
         {
+            if(durationMs<1 || durationMs>5000) throw new ArgumentOutOfRangeException("durationMs");
             if (!BeginHold(c,code,ctrl,shift,alt)) return false;
-            try { Thread.Sleep(30); }
+            try { Thread.Sleep(durationMs); }
             finally { ReleaseHold(); }
             return true;
         }
