@@ -2053,6 +2053,7 @@ finally {
     foreach ($entry in @($script:audioCaptures.Values)) { $entry.Capture.Dispose() }
     $script:audioCaptures.Clear()
     $positionTimer.Dispose(); $scanTimer.Dispose(); $timer.Dispose(); $form.Dispose()
+    Stop-WowAutoLogging
     if ($UiTest -and (Test-Path -LiteralPath $script:settingsPath)) { Remove-Item -LiteralPath $script:settingsPath }
     if ($UiTest -and (Test-Path -LiteralPath $script:audioRecordingDirectory)) {
         foreach ($recording in $script:audioRecordings.Values | ForEach-Object {$_}) {

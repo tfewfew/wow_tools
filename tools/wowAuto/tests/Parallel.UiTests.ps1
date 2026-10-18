@@ -144,6 +144,13 @@ Assert-Parallel ([ParallelFixture]::EarlyOcr -eq 0 -and [ParallelFixture]::Early
 Assert-Parallel (@([ParallelFixture]::ReadThread.Values | Sort-Object -Unique).Count -eq 3 -and @([ParallelFixture]::OpThread.Values | Sort-Object -Unique).Count -eq 1) 'Detection is not per-process or operations are not serialized.'
 foreach($id in @(101,202,303)){Assert-Parallel ([ParallelFixture]::ReadThread[$id] -eq [ParallelFixture]::OcrThread[$id]) 'OCR ran outside its detector thread.'}
 Assert-Parallel (-not ([Threading.Thread]::CurrentThread.ManagedThreadId -in [ParallelFixture]::ReadThread.Values)) 'UI thread performed detection.'
+Assert-Parallel ($script:parallelHub.OperatorThreadId -in [ParallelFixture]::OpThread.Values -and
+    $script:parallelHub.OperatorThreadId -ne [Threading.Thread]::CurrentThread.ManagedThreadId -and
+    $script:wowAutoLog.Writer.ThreadId -ne $script:parallelHub.OperatorThreadId -and
+    $script:wowAutoLog.Writer.ThreadId -notin [ParallelFixture]::ReadThread.Values -and
+    [object]::ReferenceEquals($script:parallelHub.Logger,$script:wowAutoLog.Writer)) 'The UI, operator, detector and single log-writer thread ownership overlapped.'
+$rejected=$false;try{$null=$script:parallelHub.NextOperation()}catch{$rejected=$true}
+Assert-Parallel $rejected 'UI thread was allowed to dequeue game operations.'
 [ParallelFixture]::BlockPid=101;[ParallelFixture]::Release.Reset()
 Pump-Parallel {[ParallelFixture]::BlockedPid -eq 101}
 $readsA=[ParallelFixture]::Reads[101];$readsB=[ParallelFixture]::Reads[202]
@@ -187,15 +194,18 @@ Stop-AllRows;[ParallelFixture]::MissingPid=202;$b.Start.PerformClick()
 Pump-Parallel {$b.Exited} 12000
 Assert-Parallel ([ParallelFixture]::UpCount -eq 30 -and [ParallelFixture]::ExitRequests -eq 2 -and [ParallelFixture]::KillRequests -eq 0) 'Missing-name retries were not one arrow/one OCR exactly thirty times before normal exit.'
 Stop-AllRows;Update-WowAutoRunInfo
+Sync-WowAutoLogging
 $info=[IO.File]::ReadAllText($script:wowAutoLog.InfoPath) | ConvertFrom-Json
 Assert-Parallel ($info.ProcessCount -eq 3 -and $info.Processes[0].Roles.Count -eq 4 -and -not $info.Processes[0].PSObject.Properties['Slots']) 'Info snapshot still describes three process slots.'
 $log=@([IO.File]::ReadAllLines($script:wowAutoLog.LogPath) | ForEach-Object {$_ | ConvertFrom-Json})
 Assert-Parallel (@($log | Where-Object {$_.Kind -eq 'status' -and $_.Pid -and $_.ThreadId -in [ParallelFixture]::ReadThread.Values}).Count -gt 0) 'Detection threads did not write PID-associated logs.'
+Assert-Parallel (@($log.WriterThreadId | Sort-Object -Unique).Count -eq 1 -and $log[0].WriterThreadId -eq $script:wowAutoLog.Writer.ThreadId) 'Startup/UI/detector/operator logs were not written by one dedicated log thread.'
 Write-Output 'PASS: per-process detector/OCR threads, one operator, request acknowledgement pauses only its detector, parallel OCR/batch barriers, cancellation isolation, independent direct starts, client child tabs and independent atomic account/period saves, global four-role wraparound, death exhaustion isolated to one process, exactly thirty arrow/OCR retries, UI-only updates and PID/thread logs. All frames/OCR/inputs/process exits are substitutes.'
 ${function:Get-WowAutoRestartOptions}={return @{FilePath='mock-wowAuto-restart';WorkingDirectory=$PSScriptRoot;WindowStyle='Hidden';ErrorAction='Stop';ArgumentList=@()}}
 ${function:Show-WowAutoRestartError}={param([string]$Message) [ParallelFixture]::RestartError=$Message}
 function global:Start-Process([string]$FilePath,[string]$WorkingDirectory,[string]$WindowStyle,[string[]]$ArgumentList,[string]$ErrorAction) {
     Assert-Parallel ($script:restartCleanupComplete -and $script:parallelHub.Closing -and $script:parallelWorkers.Count -eq 0 -and $script:parallelOperator.Async.IsCompleted) 'Restart launched before the worker/operator cleanup barrier.'
+    Assert-Parallel (-not $script:wowAutoLog.Writer.IsAlive) 'Restart launched before the log queue drained and the log thread stopped.'
     [ParallelFixture]::RestartLaunched=$true
 }
 $before=$c.ExecutionRound;$c.Validated=$true;Set-RowControls $c;$c.DirectStart.PerformClick();Pump-Parallel {$c.ExecutionRound -gt $before}

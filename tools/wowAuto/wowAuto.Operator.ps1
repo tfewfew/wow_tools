@@ -23,6 +23,7 @@ function Assert-OperatorIdentity($Endpoint) {
     } finally {$process.Dispose()}
 }
 function Invoke-OperatorAdapter([string]$Action,$Endpoint,$Data=$null,[int]$DurationMs=30) {
+    $Hub.AssertOperatorThread()
     if($Hub.Simulation){throw 'Simulation requires an explicit operator adapter; native input is forbidden.'}
     switch($Action) {
         'Identity' {Assert-OperatorIdentity $Endpoint;return $true}
@@ -127,6 +128,7 @@ function Invoke-OperatorRequest($Request) {
 }
 if($MockSource){. ([scriptblock]::Create($MockSource))}
 $script:commandReadyAt=0L;$script:lastClickKey='';$script:clickUntil=0L
+$Hub.BindOperator()
 try {
     while(-not $Hub.Closing) {
         $request=$Hub.NextOperation()

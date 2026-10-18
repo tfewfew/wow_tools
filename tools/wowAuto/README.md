@@ -2,7 +2,7 @@
 
 通过插件色块检测状态的 Windows 图形化工具，支持为每个游戏进程选择自动钓鱼或自动战斗。钓鱼通过进程音频及声音特征匹配触发收竿，也保留定时模式；战斗根据主色块执行选目标、攻击和恢复。
 
-当前生产版本采用每进程检测线程、独立操作线程和子战网角色轮转，使用说明见下方“子战网角色轮转与并行检测”，内部协议见 [PARALLEL_RUNTIME.md](PARALLEL_RUNTIME.md)。旧三槽位适配器仅用于兼容回归。
+当前生产版本采用每进程检测线程、专用操作线程、专用日志线程和子战网角色轮转。主线程只更新界面、协调轮转和传递消息，操作与日志文件写入分别由两个专用线程执行。使用说明见下方“子战网角色轮转与并行检测”，内部协议见 [PARALLEL_RUNTIME.md](PARALLEL_RUNTIME.md)。旧三槽位适配器仅用于兼容回归。
 
 ## 文件
 
@@ -11,7 +11,7 @@
 - `wowAuto.Engine.ps1`：钓鱼状态、截止时间及循环计数。
 - `wowAuto.Capture.cs`、`wowAuto.Capture.ps1`：统一Windows.Graphics.Capture窗口捕获、最小化恢复请求和画面读取适配。
 - `wowAuto.ActionQueue.ps1`：所有进程、钓鱼、战斗、刷新、角色切换及退出保护共用的优先级执行队列；每轮循环处理所有已到期且可执行事件，逐事件重查冷却 / 保持 / 优先级，等待前台稳定时保留窗口并继续处理独立后台事务。
-- `wowAuto.Logging.ps1`、`log/`：本次启动的合并事件日志与进程编排快照；运行日志不纳入 Git。
+- `wowAuto.Logging.ps1`、`wowAuto.Threading.cs`、`log/`：专用日志线程排队写入本次启动的合并事件日志与进程编排快照；保留消息来源 ThreadId，新增实际写入 WriterThreadId；运行日志不纳入 Git。
 - `action-priorities.json`：集中配置事件优先级；完整清单和调度规则见 [ACTION_PRIORITIES.md](ACTION_PRIORITIES.md)。
 - `wowAuto.Audio.cs`：Windows按进程实时监听、音量突变及FFT/包络特征匹配，启动时用系统.NET Framework编译。
 - `wowAuto.Recordings.ps1`：编号录音目录、特征选择及设置窗口试听。

@@ -28,15 +28,19 @@ try {
     Assert-Threading ($owned.Timing.ClickMinMs -eq 11) 'Per-worker request body and timing snapshots were mixed during a global timing update.'
     $null=$hub.NextOperation();$null=$hub.NextOperation();$null=$hub.NextOperation()
     $hub.WriteInfo('{"StartTime":"fixture","Processes":[]}');[ThreadingChecks]::Logs($hub,$a)
+    Assert-Threading ($hub.Logger.Flush(5000) -and -not $hub.Logger.LastError) 'Log worker failed to drain the concurrent messages.'
     $size=(Get-Item (Join-Path $temporary 'wowAuto.log')).Length+(Get-Item (Join-Path $temporary 'info.log')).Length
     Assert-Threading ($size -le 1MB) 'Concurrent logs exceeded their combined size limit.'
     $lines=@([IO.File]::ReadAllLines((Join-Path $temporary 'wowAuto.log')) | ForEach-Object {$_ | ConvertFrom-Json})
     Assert-Threading ($lines.Count -gt 0 -and @($lines | Where-Object {$_.Pid -ne 11}).Count -eq 0 -and @($lines.ThreadId | Sort-Object -Unique).Count -ge 2) 'Concurrent log lines were lost/corrupted or lacked PID/thread identity.'
+    Assert-Threading (@($lines.WriterThreadId | Sort-Object -Unique).Count -eq 1 -and $lines[0].WriterThreadId -eq $hub.Logger.ThreadId -and
+        $hub.Logger.ThreadId -ne [Threading.Thread]::CurrentThread.ManagedThreadId -and @($lines | Where-Object {$_.ThreadId -eq $_.WriterThreadId}).Count -eq 0) 'File logging ran on a producer/UI thread or used more than one writer.'
     $waiting=$hub.Request($a,$a.Version,'Fish.Cast','Fish',70,'{}');$hub.Close()
     Assert-Threading ($waiting.Done.IsSet -and -not $waiting.Success -and $a.Closed -and $b.Closed) 'Shutdown did not cancel and acknowledge pending work.'
     Write-Output 'PASS: priority ordering, generation cancellation, rotation/input barriers, process-exit progress, per-thread native read results, concurrent bounded JSON logging and shutdown acknowledgements. No game operations.'
 }finally {
     $hub.Close()
+    if(-not $hub.Logger.Close(5000)){throw 'Log thread did not stop before fixture cleanup.'}
     $resolved=[IO.Path]::GetFullPath($temporary)
     if(-not $resolved.StartsWith([IO.Path]::GetFullPath([IO.Path]::GetTempPath()),[StringComparison]::OrdinalIgnoreCase) -or (Split-Path $resolved -Leaf) -notlike 'wowAuto-threading-*'){throw 'Unsafe fixture cleanup'}
     if([IO.Directory]::Exists($resolved)){[IO.Directory]::Delete($resolved,$true)}

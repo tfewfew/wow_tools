@@ -8,6 +8,116 @@ using System.Text;
 using System.Threading;
 
 namespace WowAuto.Threading {
+    // Callers enqueue immutable values; only this thread touches the two log files.
+    public sealed class LogWriter {
+        sealed class Entry {
+            public string Kind,Message,Json,Time;
+            public int? Pid;
+            public int SourceThreadId,Limit;
+            public ManualResetEventSlim Barrier;
+        }
+        readonly object queueGate=new object();
+        readonly BlockingCollection<Entry> queue=new BlockingCollection<Entry>(4096);
+        readonly ManualResetEventSlim ready=new ManualResetEventSlim(false);
+        readonly Thread thread;
+        readonly string directory,logPath,infoPath;
+        readonly Encoding utf8=new UTF8Encoding(false);
+        string lastError="",startupError="",pendingError;
+        bool accepting=true;
+        int requestedLimit,limit,threadId;
+        public LogWriter(string directory,int maximum) {
+            ValidateLimit(maximum);this.directory=directory;requestedLimit=limit=maximum;
+            logPath=Path.Combine(directory,"wowAuto.log");infoPath=Path.Combine(directory,"info.log");
+            thread=new Thread(Run) {IsBackground=true,Name="wowAuto.LogWriter"};thread.Start();
+            if(!ready.Wait(5000)) {Close(0);throw new IOException("Log thread initialization timed out");}
+            if(startupError.Length>0) {Close(5000);throw new IOException(startupError);}
+        }
+        public int ThreadId {get {return Volatile.Read(ref threadId);}}
+        public bool IsAlive {get {return thread.IsAlive;}}
+        public string LastError {get {return Volatile.Read(ref lastError);}}
+        public string TakeError() {return Interlocked.Exchange(ref pendingError,null);}
+        public int MaxSizeMB {get {return Volatile.Read(ref requestedLimit);} set {
+            ValidateLimit(value);
+            lock(queueGate) {Enqueue(new Entry {Kind="limit",Limit=value});Volatile.Write(ref requestedLimit,value);}
+        }}
+        static void ValidateLimit(int value) {if(value<1 || value>1024) throw new ArgumentOutOfRangeException("maximum");}
+        void Enqueue(Entry entry) {
+            lock(queueGate) {
+                if(!accepting) throw new InvalidOperationException("Log thread has stopped accepting messages");
+                if(!queue.TryAdd(entry)) throw new IOException("Log queue is full; message was not accepted");
+            }
+        }
+        public void Log(int? pid,string kind,string message) {
+            Enqueue(new Entry {Kind="log",Pid=pid,Json=kind,Message=message,
+                Time=DateTimeOffset.Now.ToString("o"),SourceThreadId=Thread.CurrentThread.ManagedThreadId});
+        }
+        public void WriteInfo(string json) {Enqueue(new Entry {Kind="info",Json=json});}
+        // Barriers are used by offline tests and shutdown, never by a UI refresh.
+        public bool Flush(int timeout) {
+            var barrier=new ManualResetEventSlim(false);
+            Enqueue(new Entry {Kind="barrier",Barrier=barrier});return barrier.Wait(timeout);
+        }
+        public bool Close(int timeout) {
+            lock(queueGate) {if(accepting) {accepting=false;queue.CompleteAdding();}}
+            return thread.Join(timeout);
+        }
+        void Run() {
+            Volatile.Write(ref threadId,Thread.CurrentThread.ManagedThreadId);
+            try {
+                Directory.CreateDirectory(directory);
+                File.WriteAllText(logPath,"",utf8);File.WriteAllText(infoPath,"",utf8);
+            } catch(Exception error) {startupError=error.Message;Volatile.Write(ref lastError,error.Message);return;}
+            finally {ready.Set();}
+            foreach(var entry in queue.GetConsumingEnumerable()) {
+                try {
+                    if(entry.Kind=="barrier") {entry.Barrier.Set();continue;}
+                    if(entry.Kind=="info") WriteInfoFile(entry.Json);
+                    else if(entry.Kind=="limit") {limit=entry.Limit;Append(new byte[0]);}
+                    else {
+                        string line="{\"Time\":"+Quote(entry.Time)+",\"Pid\":"+(entry.Pid.HasValue?entry.Pid.Value.ToString():"null")+
+                            ",\"Kind\":"+Quote(entry.Json)+",\"ThreadId\":"+entry.SourceThreadId+",\"WriterThreadId\":"+ThreadId+
+                            ",\"Message\":"+Quote(entry.Message)+"}\n";
+                        Append(utf8.GetBytes(line));
+                    }
+                    Volatile.Write(ref lastError,"");
+                } catch(Exception error) {Volatile.Write(ref lastError,error.Message);Interlocked.Exchange(ref pendingError,error.Message);}
+            }
+        }
+        static string Quote(string text) {
+            var result=new StringBuilder("\"");
+            foreach(char c in text??"") {
+                if(c=='"' || c=='\\') result.Append('\\').Append(c);
+                else if(c=='\n') result.Append("\\n");else if(c=='\r') result.Append("\\r");
+                else if(c<32) result.Append("\\u").Append(((int)c).ToString("x4"));else result.Append(c);
+            }
+            return result.Append('"').ToString();
+        }
+        void Append(byte[] bytes) {
+            long info=File.Exists(infoPath)?new FileInfo(infoPath).Length:0;
+            long budget=(long)limit*1024*1024-info;
+            if(bytes.Length>budget || budget<=0) throw new IOException("Log size limit is too small for the current info snapshot");
+            long length=File.Exists(logPath)?new FileInfo(logPath).Length:0;
+            if(length+bytes.Length>budget) {
+                string temporary=logPath+"."+Guid.NewGuid().ToString("N")+".tmp";
+                try {
+                    using(var target=File.Create(temporary)) using(var source=File.Open(logPath,FileMode.Open,FileAccess.Read,FileShare.ReadWrite)) {
+                        long keep=(long)((budget-bytes.Length)*0.9);source.Position=Math.Max(0,length-keep);
+                        if(source.Position>0) while(source.Position<length && source.ReadByte()!=10) {}
+                        source.CopyTo(target);target.Write(bytes,0,bytes.Length);
+                    }
+                    File.Replace(temporary,logPath,null);
+                } finally {if(File.Exists(temporary)) File.Delete(temporary);}
+            } else using(var target=File.Open(logPath,FileMode.Append,FileAccess.Write,FileShare.Read)) target.Write(bytes,0,bytes.Length);
+        }
+        void WriteInfoFile(string json) {
+            byte[] bytes=utf8.GetBytes(json+"\n");
+            if(bytes.Length>=(long)limit*1024*1024) throw new IOException("Info snapshot exceeds the log limit");
+            string temporary=infoPath+"."+Guid.NewGuid().ToString("N")+".tmp";
+            try {File.WriteAllBytes(temporary,bytes);File.Replace(temporary,infoPath,null);}
+            finally {if(File.Exists(temporary)) File.Delete(temporary);}
+            Append(new byte[0]);
+        }
+    }
     public sealed class QueueTimings {
         public int OperatorIdleMs=25,CommandReceiveMs=10,ReplyCheckMs=25,WaitCheckMs=25,DetectorWaitMs=20,UiRefreshMs=25;
         public int ForegroundSettleMs=200,ForegroundRetryMs=100,ForegroundTimeoutMs=800,RotationFocusRetryMs=500,RotationFocusTimeoutMs=5000,FocusRetryMs=30000;
@@ -75,13 +185,22 @@ namespace WowAuto.Threading {
         public bool Contains(string key) {lock(gate) return members.ContainsKey(key);}
     }
     public sealed class Hub {
-        readonly object requestsGate=new object(), logGate=new object();
+        readonly object requestsGate=new object();
         readonly List<Operation> requests=new List<Operation>();
         readonly ConcurrentQueue<Notice> notices=new ConcurrentQueue<Notice>();
         readonly ConcurrentDictionary<string,Endpoint> endpoints=new ConcurrentDictionary<string,Endpoint>();
         readonly Stopwatch clock=Stopwatch.StartNew();
-        readonly string logPath,infoPath;
-        readonly Encoding utf8=new UTF8Encoding(false);
+        public readonly LogWriter Logger;
+        int operatorThreadId;
+        public int OperatorThreadId {get {return Volatile.Read(ref operatorThreadId);}}
+        public void BindOperator() {
+            int current=Thread.CurrentThread.ManagedThreadId;
+            int previous=Interlocked.CompareExchange(ref operatorThreadId,current,0);
+            if(previous!=0 && previous!=current) throw new InvalidOperationException("An operator thread is already assigned");
+        }
+        public void AssertOperatorThread() {
+            if(OperatorThreadId!=Thread.CurrentThread.ManagedThreadId) throw new InvalidOperationException("Game input belongs to the operator thread");
+        }
         long sequence;
         QueueTimings timing=new QueueTimings();
         public QueueTimings Timing {get {return Interlocked.CompareExchange(ref timing,null,null);}}
@@ -90,13 +209,11 @@ namespace WowAuto.Threading {
         public bool Simulation;
         public volatile RotationBatch Batch;
         public Operation Focus;
-        public int LogMaxSizeMB;
+        public int LogMaxSizeMB {get {return Logger.MaxSizeMB;} set {Logger.MaxSizeMB=value;}}
         public volatile int ActiveTasks;
         public readonly AutoResetEvent Wake=new AutoResetEvent(false);
-        public Hub(string directory,int limit) {
-            Directory.CreateDirectory(directory);logPath=System.IO.Path.Combine(directory,"wowAuto.log");
-            infoPath=System.IO.Path.Combine(directory,"info.log");LogMaxSizeMB=limit;
-        }
+        public Hub(string directory,int limit):this(new LogWriter(directory,limit)) {}
+        public Hub(LogWriter logger) {if(logger==null) throw new ArgumentNullException("logger");Logger=logger;}
         public long Now {get {return clock.ElapsedMilliseconds;}}
         public Endpoint Register(string key,int pid,long ticks,string path,string flavor) {
             var endpoint=new Endpoint {Key=key,Pid=pid,StartTicks=ticks,Path=path,Flavor=flavor};
@@ -121,6 +238,7 @@ namespace WowAuto.Threading {
             Wake.Set();return operation;
         }
         public Operation NextOperation() {
+            if(OperatorThreadId!=0) AssertOperatorThread();
             lock(requestsGate) {
                 for(int i=requests.Count-1;i>=0;i--) if(!requests[i].Current) {
                     requests[i].Complete(false,false,null,"cancelled");requests.RemoveAt(i);
@@ -149,47 +267,10 @@ namespace WowAuto.Threading {
             lock(requestsGate) {foreach(var request in requests) request.Complete(false,false,null,"cancelled");requests.Clear();}
             Wake.Set();
         }
-        static string Quote(string text) {
-            var result=new StringBuilder("\"");
-            foreach(char c in text??"") {
-                if(c=='"' || c=='\\') result.Append('\\').Append(c);
-                else if(c=='\n') result.Append("\\n");else if(c=='\r') result.Append("\\r");
-                else if(c<32) result.Append("\\u").Append(((int)c).ToString("x4"));else result.Append(c);
-            }
-            return result.Append('"').ToString();
-        }
         public void Log(Endpoint endpoint,long version,string kind,string message) {
-            string line="{\"Time\":"+Quote(DateTimeOffset.Now.ToString("o"))+",\"Pid\":"+(endpoint==null?"null":endpoint.Pid.ToString())+
-                ",\"Kind\":"+Quote(kind)+",\"ThreadId\":"+Thread.CurrentThread.ManagedThreadId+",\"Message\":"+Quote(message)+"}\n";
-            lock(logGate) {Append(utf8.GetBytes(line));}
+            Logger.Log(endpoint==null?(int?)null:endpoint.Pid,kind,message);
             if(endpoint!=null && (kind=="status" || kind=="error")) Publish(endpoint,version,"status",message);
         }
-        void Append(byte[] bytes) {
-            long info=File.Exists(infoPath)?new FileInfo(infoPath).Length:0;
-            long budget=(long)LogMaxSizeMB*1024*1024-info;
-            if(bytes.Length>budget || budget<=0) throw new IOException("Log size limit is too small for the current info snapshot");
-            long length=File.Exists(logPath)?new FileInfo(logPath).Length:0;
-            if(length+bytes.Length>budget) {
-                string temporary=logPath+"."+Guid.NewGuid().ToString("N")+".tmp";
-                try {
-                    using(var target=File.Create(temporary)) using(var source=File.Open(logPath,FileMode.Open,FileAccess.Read,FileShare.ReadWrite)) {
-                        long keep=(long)((budget-bytes.Length)*0.9);source.Position=Math.Max(0,length-keep);
-                        if(source.Position>0) while(source.Position<length && source.ReadByte()!=10) {}
-                        source.CopyTo(target);target.Write(bytes,0,bytes.Length);
-                    }
-                    File.Replace(temporary,logPath,null);
-                } finally {if(File.Exists(temporary)) File.Delete(temporary);}
-            } else using(var target=File.Open(logPath,FileMode.Append,FileAccess.Write,FileShare.Read)) target.Write(bytes,0,bytes.Length);
-        }
-        public void WriteInfo(string json) {
-            lock(logGate) {
-                byte[] bytes=utf8.GetBytes(json+"\n");
-                if(bytes.Length>=(long)LogMaxSizeMB*1024*1024) throw new IOException("Info snapshot exceeds the log limit");
-                string temporary=infoPath+"."+Guid.NewGuid().ToString("N")+".tmp";
-                try {File.WriteAllBytes(temporary,bytes);if(File.Exists(infoPath)) File.Replace(temporary,infoPath,null);else File.Move(temporary,infoPath);}
-                finally {if(File.Exists(temporary)) File.Delete(temporary);}
-                Append(new byte[0]);
-            }
-        }
+        public void WriteInfo(string json) {Logger.WriteInfo(json);}
     }
 }

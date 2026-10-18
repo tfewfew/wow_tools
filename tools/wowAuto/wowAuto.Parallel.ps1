@@ -72,6 +72,8 @@ function Stop-ParallelRuntime {
     $script:parallelWorkers.Clear();[WowAutoCapture.Native]::Shutdown()
 }
 function Update-ParallelMessages {
+    $logError=$script:wowAutoLog.Writer.TakeError()
+    if($logError){$settingsSummary.Text='日志写入失败：'+$logError}
     for($i=0;$i -lt 500;$i++) {
         $notice=$script:parallelHub.NextNotice();if(-not $notice){break}
         $row=$script:rows[$notice.Key]
@@ -154,13 +156,12 @@ function Initialize-ParallelRuntime {
     }
     [WowAutoFight.Native]::FrameReader=[WowAutoCapture.Native]::FrameReader
     [WowAutoFight.Native]::CapturePending=[WowAutoCapture.Native]::PendingReader
-    $directory=if($UiTest){$script:logTestDirectory}else{Join-Path $PSScriptRoot 'log'}
-    $script:parallelHub=New-Object WowAuto.Threading.Hub($directory,$script:logMaxSizeMB)
+    $script:parallelHub=New-Object WowAuto.Threading.Hub($script:wowAutoLog.Writer)
     $script:parallelHub.Simulation=[bool]$UiTest
     Apply-ParallelTimings
     $script:parallelOperator=New-ParallelPipeline 'wowAuto.Operator.ps1' -Mock $mockOperator
     $intro.Text='每个进程绑定一个子战网；在设置中启用角色并配置任务。“开始”按账号角色轮转，“直接开始”使用当前已登录角色。'
-    $footer.Text='检测与OCR按进程独立运行；所有按键和点击由操作线程统一执行。角色死亡或包满时移出本次轮转，角色耗尽才退出该进程。'
-    $script:parallelHub.Log($null,0,'system','独立检测线程 / 操作线程 / UI消息模式已初始化。')
+    $footer.Text='检测与OCR按进程独立运行；操作线程执行按键和点击，日志线程统一写文件。角色死亡或包满时移出本次轮转，耗尽才退出该进程。'
+    $script:parallelHub.Log($null,0,'system','独立检测线程 / 专用操作线程 / 专用日志线程 / UI消息模式已初始化。')
     if($accountError){$settingsSummary.Text='子战网配置读取失败，角色已停用，请打开设置核对：'+$accountError;$script:parallelHub.Log($null,0,'error',$settingsSummary.Text)}
 }

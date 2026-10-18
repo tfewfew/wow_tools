@@ -13,6 +13,7 @@ try {
         [pscustomobject]@{Name='';Mode='fish';UseItem=$false})}
     $script:rotation=[pscustomobject]@{Plans=@{'123:456'=$plan};Active=@{}}
     Update-WowAutoRunInfo
+    Sync-WowAutoLogging
     $info=Get-Content -LiteralPath $script:wowAutoLog.InfoPath -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-Log ($info.StartTime -eq $started.ToString('o') -and $info.ProcessCount -eq 1 -and
         $info.Processes[0].Pid -eq 123 -and $info.Processes[0].SubAccount -eq 'WoW1' -and
@@ -20,14 +21,17 @@ try {
     $script:rotation.Active['123:456']=[pscustomobject]@{Index=1;Plan=$plan}
     Register-WowAutoExecutionRound $row
     Register-WowAutoExecutionRound $row
+    Sync-WowAutoLogging
     $info=Get-Content -LiteralPath $script:wowAutoLog.InfoPath -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-Log ($info.Processes[0].CurrentSlot -eq 2 -and $info.Processes[0].CurrentRole -eq '角色乙' -and
         $info.Processes[0].ExecutionRound -eq 2) 'Execution rounds or current role were not updated.'
     Write-WowAutoLog '状态更新' $row status
+    Sync-WowAutoLogging
     $last=(Get-Content -LiteralPath $script:wowAutoLog.LogPath -Encoding UTF8 | Select-Object -Last 1) | ConvertFrom-Json
     Assert-Log ($last.Pid -eq 123 -and $last.Kind -eq 'status' -and $last.Message -eq '状态更新') 'Process log omitted PID or message.'
     $payload='x'*4000
     foreach ($index in 1..350) {Write-WowAutoLog ("event-$index $payload") $row action}
+    Sync-WowAutoLogging
     $total=(Get-Item $script:wowAutoLog.LogPath).Length+(Get-Item $script:wowAutoLog.InfoPath).Length
     Assert-Log ($total -le 1MB -and $total -gt 0) 'Combined log files exceeded the configured size.'
     $lines=@(Get-Content -LiteralPath $script:wowAutoLog.LogPath -Encoding UTF8)
@@ -35,9 +39,11 @@ try {
     foreach ($line in $lines) {$null=$line | ConvertFrom-Json}
     Assert-Log (($lines[-1] | ConvertFrom-Json).Message.StartsWith('event-350 ')) 'Rollover lost the newest event.'
     Clear-WowAutoCurrentRole $row
+    Sync-WowAutoLogging
     $info=Get-Content -LiteralPath $script:wowAutoLog.InfoPath -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-Log ($info.Processes[0].CurrentRole -eq '' -and $info.Processes[0].ExecutionRound -eq 2) 'Stop lost the cumulative execution round.'
     $script:rows=@{};Update-WowAutoRunInfo
+    Sync-WowAutoLogging
     $info=Get-Content -LiteralPath $script:wowAutoLog.InfoPath -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-Log ($info.ProcessCount -eq 0) 'Exited process remained in info snapshot.'
     foreach ($bad in @(0,1025,'1.5')) {
@@ -45,10 +51,11 @@ try {
         Assert-Log $rejected 'Invalid size limit was accepted.'
     }
     Initialize-WowAutoLogging $directory $started 1
+    Sync-WowAutoLogging
     $after=@(Get-Content -LiteralPath $script:wowAutoLog.LogPath -Encoding UTF8)
     $info=Get-Content -LiteralPath $script:wowAutoLog.InfoPath -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-Log ($after.Count -eq 1 -and ($after[0] | ConvertFrom-Json).Kind -eq 'system' -and
         $info.ProcessCount -eq 0 -and $info.StartTime -eq $started.ToString('o')) 'New launch did not overwrite both logs.'
     Write-Output 'PASS: per-launch overwrite, process PID, account/roles/rounds snapshot, one-MB combined cap, complete JSON lines and invalid limits. No game input.'
 }
-finally {if ([IO.Directory]::Exists($directory)) {[IO.Directory]::Delete($directory,$true)}}
+finally {Stop-WowAutoLogging;if ([IO.Directory]::Exists($directory)) {[IO.Directory]::Delete($directory,$true)}}
