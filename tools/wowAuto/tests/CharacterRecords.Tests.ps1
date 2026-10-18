@@ -50,7 +50,26 @@ try {
         (Format-WowCharacterSkills $empty.Professions) -ceq '未学习' -and (Format-WowCharacterSkills $empty.SecondarySkills) -ceq '未知') 'Unlearned and unknown skills were confused.'
     $fresh=@(Get-WowAccountCatalog $fixture | Where-Object Name -eq 'ACCOUNT#1')[0].Characters[0]
     Assert-Record ($fresh -and $fresh.Professions.Count -eq 0 -and $null -eq $fresh.SecondarySkills) 'Catalog filtered a valid version 2 role.'
-    Write-Output 'PASS: strict read-only v1/v2 parsing, skill names/ranks, unknown/unlearned skills, First Aid and malformed/duplicate/cross-group rejection, identity/account isolation, bag/timestamp freshness and no SavedVariables execution.'
+    Assert-Record ($null -eq $fresh.BindLocation) 'Legacy v2 record invented a hearthstone binding.'
+    Write-TestCharacterRecord $role '角色甲' '服务器甲' -Version 3 -Professions $primary -SecondarySkills $secondary -BindLocation '达拉然'
+    $bindText=[IO.File]::ReadAllText($path);$bound=Read-WowCharacterRecord $role '角色甲' '服务器甲'
+    Assert-Record ($bound -and $bound.BindLocation -ceq '达拉然' -and $bound.Professions.Count -eq 2 -and $bound.FreeBagSlots -eq 12) 'v3 binding corrupted other role metadata.'
+    $catalogBound=@(Get-WowAccountCatalog $fixture | Where-Object Name -eq 'ACCOUNT#1')[0].Characters[0]
+    Assert-Record ($catalogBound.BindLocation -ceq '达拉然') 'Catalog did not expose the binding snapshot.'
+    Write-TestCharacterRecord $role '角色甲' '服务器甲' -Version 3 -BindLocation 'Lion''s Pride "Inn"'
+    $quoted=Read-WowCharacterRecord $role '角色甲' '服务器甲'
+    Assert-Record ($quoted.BindLocation -ceq 'Lion''s Pride "Inn"') 'Localized binding with quotes did not round trip.'
+    Write-TestCharacterRecord $role '角色甲' '服务器甲' -Version 3 -BindLocation '?'
+    $unbound=Read-WowCharacterRecord $role '角色甲' '服务器甲'
+    Assert-Record ($unbound -and $null -eq $unbound.BindLocation) 'Unknown binding hid a valid role or invented a location.'
+    foreach($bad in @($bindText.Replace('["bindLocation"]','["professions"]'),$bindText.Replace('"达拉然"','12'),
+        $bindText.Replace('达拉然',''),$bindText.Replace('达拉然','   '),$bindText.Replace('达拉然',('x'*257)),
+        $bindText.Replace('达拉然','bad\nlocation'),$bindText.Replace('达拉然','{bad}'),
+        $bindText.Replace('["version"] = 3,','["version"] = 2,'),$bindText.Replace('["version"] = 3,','["version"] = 4,'),
+        ($bindText+"`nmalicious()"))) {
+        Assert-Record (-not (ConvertFrom-WowCharacterRecord $bad)) 'Invalid binding, extra field, unknown schema or executable data was accepted.'
+    }
+    Write-Output 'PASS: strict read-only v1/v2/v3 parsing, hearthstone binding/unknown/quoted names, skills, malformed/duplicate/cross-group rejection, identity/account isolation and no SavedVariables execution.'
 } finally {
     $cleanup=[IO.Path]::GetFullPath($fixture)
     if (-not $cleanup.StartsWith([IO.Path]::GetFullPath([IO.Path]::GetTempPath()),[StringComparison]::OrdinalIgnoreCase) -or (Split-Path $cleanup -Leaf) -notlike 'wowAuto-records-*') {throw 'Unsafe fixture cleanup.'}

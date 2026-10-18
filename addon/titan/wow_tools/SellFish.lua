@@ -37,7 +37,7 @@ local items, selectedID, settings, input, status, scroll, content, deleteButton
 local rows, requested, failed = {}, {}, {}
 local merchantOpen, merchantButton, sale = false, nil, nil
 local SALE_INTERVAL, RETRY_INTERVAL, RECEIPT_TIMEOUT, LOCK_TIMEOUT, MAX_ATTEMPTS = 0.05, 0.25, 5, 5, 3
-local BATCH_SIZE = 5
+local BATCH_SIZE = 8
 local saleEvents = {"BAG_UPDATE", "BAG_UPDATE_DELAYED", "PLAYER_MONEY", "UI_ERROR_MESSAGE"}
 local RefreshList
 

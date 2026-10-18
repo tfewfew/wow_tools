@@ -93,8 +93,8 @@ function Wait-Detector([int]$Milliseconds) {
             $freeSlots=if($role.Name -ceq '角色甲'){-1}elseif($role.Name -ceq '角色乙'){0}else{12}
             $skillArgs=@{}
             if($role.Name -ceq '角色乙'){$skillArgs=@{Version=2;Professions='';SecondarySkills=''}}
-            if($role.Name -ceq '角色丙'){$skillArgs=@{Version=2;Professions='186|采矿|450|450;393|剥皮|425|450';SecondarySkills='185|烹饪|300|450;356|钓鱼|450|450'}}
-            if($role.Name -ceq '角色丁'){$skillArgs=@{Version=2;Professions='171|炼金术|0|75';SecondarySkills='?'}}
+            if($role.Name -ceq '角色丙'){$skillArgs=@{Version=3;Professions='186|采矿|450|450;393|剥皮|425|450';SecondarySkills='185|烹饪|300|450;356|钓鱼|450|450';BindLocation=$(if($spec[1] -eq 'titan'){'达拉然'}else{'奥格瑞玛'})}}
+            if($role.Name -ceq '角色丁'){$skillArgs=@{Version=3;Professions='171|炼金术|0|75';SecondarySkills='?';BindLocation='?'}}
             Write-TestCharacterRecord (Join-Path $fixture ($product+'\WTF\Account\'+$spec[2]+'\测试服\'+$role.Name)) $role.Name $role.Realm -FreeBagSlots $freeSlots @skillArgs
         }
         $accounts[$spec[1]+':'+$spec[2]]=$roles;$bindings[([string]$spec[0]+':'+$ticks)]=@{Flavor=$spec[1];Account=$spec[2]};[ParallelFixture]::World[$spec[0]]=1

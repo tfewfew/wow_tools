@@ -33,8 +33,8 @@ function ConvertFrom-WowCharacterRecord([string]$Text) {
             $match=$reader.Match($body,$position)
             if (-not $match.Success -or $match.Index -ne $position) {return $null}
             $key=$match.Groups['key'].Value
-            if ($key -cnotin @('version','name','realm','level','freeBagSlots','recordedAt','professions','secondarySkills') -or $values.ContainsKey($key)) {return $null}
-            if ($key -cin @('name','realm','professions','secondarySkills')) {
+            if ($key -cnotin @('version','name','realm','level','freeBagSlots','recordedAt','professions','secondarySkills','bindLocation') -or $values.ContainsKey($key)) {return $null}
+            if ($key -cin @('name','realm','professions','secondarySkills','bindLocation')) {
                 if (-not $match.Groups['text'].Success) {return $null}
                 $values[$key]=[regex]::Replace($match.Groups['text'].Value,'\\(?<escape>\d{1,3}|.)',{
                     param($escape)
@@ -53,16 +53,20 @@ function ConvertFrom-WowCharacterRecord([string]$Text) {
             $position=$match.Index+$match.Length
         }
         $expected=@('version','name','realm','level','freeBagSlots','recordedAt')
-        if($values.version -eq 2){$expected+=@('professions','secondarySkills')}
-        if ($values.Count -ne $expected.Count -or @($expected | Where-Object {-not $values.ContainsKey($_)}).Count -or $values.version -notin @(1,2) -or $values.name -notmatch '^[\p{L}\p{M}]{1,24}$' -or
+        if($values.version -in @(2,3)){$expected+=@('professions','secondarySkills')}
+        if($values.version -eq 3){$expected+='bindLocation'}
+        if ($values.Count -ne $expected.Count -or @($expected | Where-Object {-not $values.ContainsKey($_)}).Count -or $values.version -notin @(1,2,3) -or $values.name -notmatch '^[\p{L}\p{M}]{1,24}$' -or
             -not $values.realm -or $values.realm.Length -gt 128 -or $values.realm -match '[\p{C}\\/]' -or
             $values.level -lt 0 -or $values.level -gt 1000 -or $values.freeBagSlots -lt -1 -or $values.freeBagSlots -gt 11000 -or
             $values.recordedAt -lt 1 -or $values.recordedAt -gt 253402300799) {return $null}
+        if($values.version -eq 3 -and ([string]::IsNullOrWhiteSpace($values.bindLocation) -or $values.bindLocation.Length -gt 256 -or
+            $values.bindLocation -match '[{}\p{C}]')){return $null}
         return [pscustomobject]@{Name=$values.name;Realm=$values.realm;
             Level=$(if ($values.level -gt 0) {$values.level} else {$null});
             FreeBagSlots=$(if ($values.freeBagSlots -ge 0) {$values.freeBagSlots} else {$null});RecordedAt=$values.recordedAt;
-            Professions=$(if($values.version -eq 2){ConvertFrom-WowSkillRecord $values.professions 'primary'}else{$null});
-            SecondarySkills=$(if($values.version -eq 2){ConvertFrom-WowSkillRecord $values.secondarySkills 'secondary'}else{$null})}
+            Professions=$(if($values.version -in @(2,3)){ConvertFrom-WowSkillRecord $values.professions 'primary'}else{$null});
+            SecondarySkills=$(if($values.version -in @(2,3)){ConvertFrom-WowSkillRecord $values.secondarySkills 'secondary'}else{$null});
+            BindLocation=$(if($values.version -eq 3 -and $values.bindLocation -cne '?'){$values.bindLocation}else{$null})}
     } catch {return $null}
 }
 function Read-WowCharacterRecord([string]$CharacterDirectory,[string]$Name,[string]$Realm) {

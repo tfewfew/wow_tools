@@ -324,18 +324,18 @@ local function Run(flavor, legacy)
     assert(#calls==42 and not HasUpdate(),"Sale was limited by total time or total group count")
     assert(postSaleReads==0)
 
-    -- Cached vendor prices allow five requests per batch. A partial money receipt
+    -- Cached vendor prices allow eight requests per batch. A partial money receipt
     -- must not advance the batch, even if a bag event has already arrived.
     priced, mode, calls = true, "unconfirmed", {}
     Fill42();ResetTrace()
     Click("WoWToolsSellFishButton");Tick(1,0.05)
-    assert(#calls==5 and slotReads==109, "Priced sales still wait for each individual receipt")
+    assert(#calls==8 and slotReads==112, "Priced sales did not send an eight-group batch")
     Ack(calls[1],false);Event("BAG_UPDATE",0);Event("PLAYER_MONEY")
     Tick(5,0.05)
-    assert(#calls==5 and HasUpdate(), "A partial batch receipt was reported as complete")
-    for i=2,5 do Ack(calls[i],false) end
+    assert(#calls==8 and HasUpdate(), "A partial batch receipt was reported as complete")
+    for i=2,8 do Ack(calls[i],false) end
     Event("PLAYER_MONEY");Tick(1,0.05)
-    assert(#calls==10, "Aggregate money receipt did not release the next batch")
+    assert(#calls==16, "Aggregate money receipt did not release the next batch")
     Close();Open()
 
     -- Coalesced, out-of-order events must cover every bag in this batch.
@@ -349,15 +349,15 @@ local function Run(flavor, legacy)
     Event("BAG_UPDATE",1);Tick(1,0.05)
     assert(not HasUpdate() and postSaleReads==0)
 
-    -- With 300 ms server latency, 42 groups should take about nine round trips,
-    -- not 42. Limit in-flight requests to five, with no rescan or sold-slot reads.
+    -- With 300 ms server latency, 42 groups should take about six round trips,
+    -- not 42. Limit in-flight requests to eight, with no rescan or sold-slot reads.
     Fill42();ResetTrace();calls={}
     local started=simulationTime
     Click("WoWToolsSellFishButton")
     for _=1,100 do
         local before=#calls
         Tick(1,0.05)
-        assert(#calls-before<=5, "A single update flooded the merchant")
+        assert(#calls-before<=8, "A single update exceeded the eight-group batch")
         local changed,waiting=false,0
         for _,call in ipairs(calls) do
             if not call.acked then
@@ -365,7 +365,7 @@ local function Run(flavor, legacy)
                 if simulationTime-call.sentAt>=0.3 then Ack(call,false);changed=true end
             end
         end
-        assert(waiting<=5, "More than five requests were in flight")
+        assert(waiting<=8, "More than eight requests were in flight")
         if changed then Event("BAG_UPDATE_DELAYED");Event("PLAYER_MONEY") end
         if not HasUpdate() then break end
     end
@@ -403,13 +403,13 @@ local function Run(flavor, legacy)
     acknowledge=Ack
 
     -- An ambiguous asynchronous batch error must not replay possibly sold slots,
-    -- or count partial proceeds as all five successes.
+    -- or count partial proceeds as all eight successes.
     Fill42();ResetTrace();mode,calls="unconfirmed",{}
     Click("WoWToolsSellFishButton");Tick(1,0.05)
     Ack(calls[1],false);Ack(calls[2],false)
     Event("BAG_UPDATE_DELAYED");Event("PLAYER_MONEY");Event("UI_ERROR_MESSAGE",1,ERR_OBJECT_IS_BUSY)
     Tick(110,0.05)
-    assert(#calls==5 and not HasUpdate() and postSaleReads==0)
+    assert(#calls==8 and not HasUpdate() and postSaleReads==0)
     assert(messages[#messages]:find("未完成",1,true))
 
     -- Unknown or restricted prices preserve the previous single-item path.

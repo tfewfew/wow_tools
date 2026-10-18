@@ -68,7 +68,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
         return wowToolsCharacterRecord
     end
     local record=Logout()
-    assert(record.version==2 and record.professions=="186|采矿|450|450;393|剥皮|425|450","Gathering skills were missed or misclassified")
+    assert(record.version==3 and record.professions=="186|采矿|450|450;393|剥皮|425|450","Gathering skills were missed or misclassified")
     assert(record.secondarySkills=="185|烹饪|300|450;356|钓鱼|450|450","Life skills or First Aid exclusion failed")
     assert(not rows[1].expanded and not rows[4].expanded and rows[8].expanded,"Logout altered collapsed skill categories")
     if flavor=="titan" then

@@ -39,6 +39,11 @@ try {
             $client.Grid.Rows[2].Cells['Professions'].Value -ceq "采矿 450/450`n剥皮 425/450" -and
             $client.Grid.Rows[2].Cells['SecondarySkills'].Value -ceq "烹饪 300/450`n钓鱼 450/450" -and
             $client.Grid.Rows[3].Cells['Professions'].Value -ceq '炼金术 0/75') 'Skill names/ranks, unknown or unlearned skills were not presented correctly.'
+        $location=if($client.Flavor -eq 'titan'){'达拉然'}else{'奥格瑞玛'}
+        Assert-Parallel ($client.Grid.Columns['BindLocation'].ReadOnly -and $client.Grid.Columns['BindLocation'].HeaderText -ceq '炉石位置' -and
+            $client.Grid.Rows[0].Cells['BindLocation'].Value -ceq '未知' -and $client.Grid.Rows[1].Cells['BindLocation'].Value -ceq '未知' -and
+            $client.Grid.Rows[2].Cells['BindLocation'].Value -ceq $location -and $client.Grid.Rows[3].Cells['BindLocation'].Value -ceq '未知') 'Hearthstone binding column lost old/unknown snapshots or mixed the clients.'
+        Assert-Parallel (($client.Grid.Columns | Measure-Object -Property Width -Sum).Sum -le $client.Grid.Width) 'Hearthstone column requires horizontal scrolling at the default window size.'
     }
     $before=(Get-FileHash $script:accountTasks.Path).Hash
     $editor.Grid.Rows[0].Cells['Enabled'].Value=$false

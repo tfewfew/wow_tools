@@ -169,7 +169,12 @@ local function CharacterSkills()
 end
 -- Cache only this login's valid live values. Disk records are not used as fresh data.
 local cached, sampling, leavingWorld
-local function Sample(bags,skills)
+local function BindLocation()
+    local location=Read(GetBindLocation)
+    if type(location)=="string" and location:match("%S") and #location<=256
+        and not location:find("[{}%c]") and location~="?" then return location end
+end
+local function Sample(bags,skills,bind)
     if not monitored or sampling then return end
     local name,realm=Read(UnitName,"player"),Read(GetRealmName)
     if type(name)~="string" or name=="" or type(realm)~="string" or realm=="" then return end
@@ -177,6 +182,10 @@ local function Sample(bags,skills)
     sampling=true
     local level=Read(UnitLevel,"player")
     if Integer(level,1,1000) then cached.level=level end
+    if bind then
+        local location=BindLocation()
+        if location then cached.bindLocation=location end
+    end
     if bags then
         local free=FreeSlots()
         if Integer(free,0,11000) then cached.freeBagSlots=free end
@@ -188,29 +197,31 @@ local function Sample(bags,skills)
     end
     sampling=false
 end
-local liveEvents={"PLAYER_ENTERING_WORLD","PLAYER_LEAVING_WORLD","BAG_UPDATE_DELAYED","SKILL_LINES_CHANGED","PLAYER_LEVEL_UP"}
+local liveEvents={"PLAYER_ENTERING_WORLD","PLAYER_LEAVING_WORLD","BAG_UPDATE_DELAYED","SKILL_LINES_CHANGED","PLAYER_LEVEL_UP","HEARTHSTONE_BOUND"}
 function WoWTools.MarkCharacterMonitored()
     if monitored then return end
     monitored=true
     events:RegisterEvent("PLAYER_LOGOUT")
     for _,event in ipairs(liveEvents) do events:RegisterEvent(event) end
-    Sample(true,true)
+    Sample(true,true,true)
 end
 events:RegisterEvent("ADDON_LOADED")
 events:SetScript("OnEvent",function(_,event,addon)
     if event=="ADDON_LOADED" then
         if addon~="wow_tools" then return end
         events:UnregisterEvent("ADDON_LOADED")
-        if type(wowToolsCharacterRecord)=="table" and (wowToolsCharacterRecord.version==1 or wowToolsCharacterRecord.version==2) then WoWTools.MarkCharacterMonitored() end
+        if type(wowToolsCharacterRecord)=="table" and (wowToolsCharacterRecord.version==1 or wowToolsCharacterRecord.version==2
+            or wowToolsCharacterRecord.version==3) then WoWTools.MarkCharacterMonitored() end
         return
     end
     if not monitored then return end
     if event~="PLAYER_LOGOUT" then
         if event=="PLAYER_LEAVING_WORLD" then leavingWorld=true;return end
-        if event=="PLAYER_ENTERING_WORLD" then leavingWorld=false;Sample(true,true);return end
+        if event=="PLAYER_ENTERING_WORLD" then leavingWorld=false;Sample(true,true,true);return end
         if leavingWorld then return end
         if event=="BAG_UPDATE_DELAYED" then Sample(true,false)
         elseif event=="SKILL_LINES_CHANGED" then Sample(false,true)
+        elseif event=="HEARTHSTONE_BOUND" then Sample(false,false,true)
         elseif event=="PLAYER_LEVEL_UP" then
             Sample(false,false)
             if cached and Integer(addon,1,1000) then cached.level=addon end
@@ -225,8 +236,10 @@ events:SetScript("OnEvent",function(_,event,addon)
     local free=not leavingWorld and FreeSlots() or -1
     local primary,secondary
     if not leavingWorld and (current.professions==nil or current.secondarySkills==nil) then primary,secondary=CharacterSkills() end
-    wowToolsCharacterRecord={version=2,name=name,realm=realm,
+    local location=not leavingWorld and BindLocation() or nil
+    wowToolsCharacterRecord={version=3,name=name,realm=realm,
         level=Integer(level,1,1000) and level or current.level or 0,
         freeBagSlots=Integer(free,0,11000) and free or current.freeBagSlots or -1,recordedAt=recordedAt,
-        professions=current.professions or primary or "?",secondarySkills=current.secondarySkills or secondary or "?"}
+        professions=current.professions or primary or "?",secondarySkills=current.secondarySkills or secondary or "?",
+        bindLocation=location or current.bindLocation or "?"}
 end)
