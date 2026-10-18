@@ -20,7 +20,7 @@ public static class ParallelFixture {
     public static readonly ConcurrentDictionary<int,int> OcrThread=new ConcurrentDictionary<int,int>();
     public static readonly ConcurrentDictionary<int,int> OpThread=new ConcurrentDictionary<int,int>();
     public static readonly ConcurrentDictionary<int,string> Colors=new ConcurrentDictionary<int,string>();
-    public static int BlockPid,BlockedPid,Clicks,Logouts,EarlyClicks,EarlyOcr,MissingPid,UpCount,ExitRequests,KillRequests,FailFocusPid,Reels,Jumps,EarlyJumps;
+    public static int BlockPid,BlockedPid,Clicks,Logouts,EarlyClicks,EarlyOcr,MissingPid,UpCount,ExitRequests,KillRequests,FailFocusPid,Reels,Jumps,EarlyJumps,NoBitePid;
     public static bool AutoFish;
     public static bool RestartLaunched;
     public static string RestartError;
@@ -65,6 +65,14 @@ function Get-DetectorObservation {
     return [pscustomobject]@{Login=([ParallelFixture]::World[$Endpoint.Pid] -eq 1);Color=$color;Packet=$packet;Lure='present'}
 }
 function Get-DetectorLure {return 'present'}
+${function:Start-FixtureTask}=${function:Start-DetectorTask}
+function Start-DetectorTask {
+    Start-FixtureTask
+    if($script:mode -eq 'fish' -and $Endpoint.Pid -eq [ParallelFixture]::NoBitePid){
+        # Arm the production no-bite timer without creating any audio capture.
+        $script:fish.UseAudio=$true;$script:fish.AudioReady=$true;$script:fish.AudioTimeoutMs=1000
+    }
+}
 function Test-DetectorAlive {return [ParallelFixture]::World[$Endpoint.Pid] -ne 2}
 function Get-DetectorPosition {return '左上'}
 function Get-DetectorScreen {

@@ -149,9 +149,8 @@ function Start-AutoFightRow($Row) {
 function Update-AutoFightRowName($Row) {
     try {$Row.Position=[WowAutoFight.Native]::ReadWindowPosition($Row.Client)} catch {$Row.Position='位置未知'}
     $label=if ($Row.Client.Flavor -eq 'titan') {'时光服'} else {'无限服'}
-    $class=if ($Row.ClassId) {Get-WowClassName $Row.ClassId} else {'等待插件识别'}
     $Row.Name.ForeColor=Get-WowClassColor $Row.ClassId
-    $Row.Name.Text="PID $($Row.Client.ProcessId) · $label · $($Row.Position)`r`n$($Row.Client.Title)`r`n职业：$class"
+    $Row.Name.Text="PID $($Row.Client.ProcessId) · $label · $($Row.Position)`r`n$($Row.Client.Title)"
 }
 function New-AutoFightRow($Client,[int]$Order) {
     $panel=New-Object System.Windows.Forms.Panel
@@ -160,7 +159,7 @@ function New-AutoFightRow($Client,[int]$Order) {
     $name=New-Object System.Windows.Forms.Label
     $name.SetBounds(12,12,370,86); $name.AutoEllipsis=$true
     $label=if ($Client.Flavor -eq 'titan') { '时光服' } else { '永恒服 / 无限服' }
-    $name.Text="PID $($Client.ProcessId) · $label`r`n$($Client.Title)`r`n职业：等待插件识别"
+    $name.Text="PID $($Client.ProcessId) · $label`r`n$($Client.Title)"
     $start=New-Object WowAuto.DimButton
     $start.Text='开始'; $start.SetBounds(395,33,90,36); Set-AutoFightButtonStyle $start $true
     $stop=New-Object WowAuto.DimButton

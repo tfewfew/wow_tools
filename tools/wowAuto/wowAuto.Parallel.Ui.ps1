@@ -15,7 +15,7 @@ function Read-RowWindowPosition($Row) {return $Row.Position}
 function Update-WindowPositions {} # Positions arrive as detector messages.
 function Add-ProcessTaskControls($Row) {
     $Row | Add-Member NoteProperty DefaultTaskMode 'fish'
-    foreach($entry in @{TaskMode='fish';FightRow=$null;SlotUseItem=$false;AccountName='';UpdatingAccount=$false;RuntimeRunning=$false;RuntimeDirect=$false;RuntimeScanning=$false;RuntimeExiting=$false;RuntimePhase='stopped';TargetRole='';CurrentRole='';CurrentIndex=-1;ExecutionRound=0;ExcludedNames=@();RotationSwitchCount=0L;CycleCount=0L;CurrentClassId=0;Metrics=$null;RenderedStatus=''}.GetEnumerator()){$Row | Add-Member NoteProperty $entry.Key $entry.Value}
+    foreach($entry in @{TaskMode='fish';FightRow=$null;SlotUseItem=$false;AccountName='';UpdatingAccount=$false;RuntimeRunning=$false;RuntimeDirect=$false;RuntimeScanning=$false;RuntimeExiting=$false;RuntimePhase='stopped';TargetRole='';CurrentRole='';CurrentIndex=-1;ExecutionRound=0;ExcludedNames=@();RotationSwitchCount=0L;CycleCount=0L;BiteTimeoutCount=0L;CurrentClassId=0;Metrics=$null;RenderedStatus=''}.GetEnumerator()){$Row | Add-Member NoteProperty $entry.Key $entry.Value}
     $accountLabel=New-Object Windows.Forms.Label;$accountLabel.Text='子战网';$accountLabel.SetBounds(12,106,90,28)
     $account=New-Object Windows.Forms.ComboBox;$account.DropDownStyle='DropDownList';$account.SetBounds(110,102,400,34)
     $account.BackColor=$script:uiColors.Input;$account.ForeColor=$script:uiColors.Text;$account.FlatStyle='Flat';$account.Tag=$Row
@@ -112,10 +112,9 @@ function Set-RowStatusText($Row,[string]$Message,[switch]$FromWorker) {
 function Update-RowStatus($Row) {Update-RowName $Row;Set-RowControls $Row}
 function Update-RowName($Row) {
     $classId=Get-ParallelRowClassId $Row
-    $extra='职业：'+(Get-WowClassName $classId)
-    if($Row.TaskMode -eq 'fish'){$extra+=' · 循环 '+$Row.CycleCount}
     $Row.Name.ForeColor=Get-WowClassColor $classId
-    $Row.Name.Text=$Row.Caption+[Environment]::NewLine+'PID '+$Row.Process.Id+' · '+$Row.Client.Label+' · '+$Row.Position+[Environment]::NewLine+$extra
+    $Row.Name.Text=$Row.Caption+[Environment]::NewLine+'PID '+$Row.Process.Id+' · '+$Row.Client.Label+' · '+$Row.Position
+    if($Row.TaskMode -eq 'fish'){$Row.Name.Text+=[Environment]::NewLine+'循环 '+$Row.CycleCount+' · 无咬钩超时 '+$Row.BiteTimeoutCount}
 }
 function Update-ParallelStatusDisplay($Row) {
     if(-not $Row.StatusHistory.Count){return}

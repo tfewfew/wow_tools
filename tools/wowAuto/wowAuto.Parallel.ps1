@@ -84,8 +84,9 @@ function Update-ParallelMessages {
             'position' {$row.Position=$data.Text;Update-RowName $row}
             'scanned' {$row.Validated=$data.Valid;$row.RuntimeScanning=$false;Set-RowControls $row}
             'switching' {$row.CurrentRole='';$row.CurrentIndex=-1;$row.Metrics=$null;$row.TargetRole=$data.TargetRole;$row.RuntimePhase='switching';Update-WowAutoRunInfo}
-            'taskstart' {$row.RuntimeRunning=$true;$row.RuntimeExiting=$false;$row.RuntimePhase='running';$row.Validated=$true;$row.Metrics=$null;$row.TargetRole='';$row.CurrentRole=$data.Role;$row.CurrentIndex=$data.Index;$row.ExecutionRound=$data.Round;$row.TaskMode=$data.Mode;$row.SlotUseItem=$data.UseItem;$row.RuntimeDirect=$data.Direct;$row.RotationSwitchCount=$data.SwitchCount;$row.CycleCount=$data.Cycles;$row.CurrentClassId=$data.ClassId;Update-RowName $row;Update-WowAutoRunInfo}
-            'metrics' {$row.Metrics=$data;$row.CycleCount=$data.Cycles;Update-RowName $row}
+            'taskstart' {$row.RuntimeRunning=$true;$row.RuntimeExiting=$false;$row.RuntimePhase='running';$row.Validated=$true;$row.Metrics=$null;$row.TargetRole='';$row.CurrentRole=$data.Role;$row.CurrentIndex=$data.Index;$row.ExecutionRound=$data.Round;$row.TaskMode=$data.Mode;$row.SlotUseItem=$data.UseItem;$row.RuntimeDirect=$data.Direct;$row.RotationSwitchCount=$data.SwitchCount;$row.CycleCount=$data.Cycles;$row.BiteTimeoutCount=$data.BiteTimeouts;$row.CurrentClassId=$data.ClassId;Update-RowName $row;Update-WowAutoRunInfo}
+            'metrics' {$row.Metrics=$data;$row.CycleCount=$data.Cycles;$row.BiteTimeoutCount=$data.BiteTimeouts;Update-RowName $row}
+            'counters' {$row.CycleCount=$data.Cycles;$row.BiteTimeoutCount=$data.BiteTimeouts;Update-RowName $row}
             'exiting' {$row.RuntimeRunning=$false;$row.RuntimeExiting=$true;$row.RuntimePhase='exiting';Set-RowControls $row;Update-WowAutoRunInfo}
             'stopped' {$row.RuntimeRunning=$false;$row.RuntimeScanning=$false;$row.RuntimeExiting=$false;$row.RuntimePhase='stopped';$row.TargetRole='';$row.CurrentRole='';$row.CurrentIndex=-1;if($data.Exited){$row.Exited=$true};Set-RowControls $row;Update-WowAutoRunInfo}
             'excluded' {$row.ExcludedNames+=,$data.Name;Update-WowAutoRunInfo}

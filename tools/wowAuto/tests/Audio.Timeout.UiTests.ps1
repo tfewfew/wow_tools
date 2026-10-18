@@ -131,6 +131,8 @@ try {
     $keysBeforeTimeout=$script:workerKeys.Count
     Invoke-SchedulerTick 6000
     Assert-Ui ($t.State.Mode -eq 'Ready' -and $t.State.Status -match '5000 ms内' -and $script:workerKeys.Count -eq $keysBeforeTimeout -and (Get-WowAutoCycleCount $script:scheduler $t.Key) -eq 0) 'Timeout sent/counted a reel or reported the new duration for an old event.'
+    Assert-Ui ((Get-WowAutoBiteTimeoutCount $script:scheduler $t.Key) -eq 1 -and (Get-WowAutoBiteTimeoutCount $script:scheduler $f.Key) -eq 0 -and
+        $t.Name.Text -match '循环 0 · 无咬钩超时 1' -and $t.Name.Text -notmatch '职业：') 'No-bite timeout counter is missing, misplaced or not isolated to its process.'
     $null=Complete-WowAutoPoll $script:scheduler $t.Key 7000 'red'
     Complete-WowAutoCast $script:scheduler $t.Key $true
     $null=Complete-WowAutoPoll $script:scheduler $t.Key 7200 'green'

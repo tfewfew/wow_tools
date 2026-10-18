@@ -132,7 +132,7 @@ function Start-DetectorTask {
     }
     $script:running=$true;$script:round++
     if(-not $script:direct){$script:runLogins++}
-    Publish-Detector taskstart @{Role=$script:roleName;Index=$script:index;Mode=$script:mode;UseItem=$script:useItem;Round=$script:round;Direct=$script:direct;SwitchCount=([Math]::Max(0,$script:runLogins-1));Cycles=(Get-WowAutoCycleCount $script:scheduler $Endpoint.Key);ClassId=$(if($script:combat -and $script:mode -eq 'fight'){$script:combat.ClassId}else{0})}
+    Publish-Detector taskstart @{Role=$script:roleName;Index=$script:index;Mode=$script:mode;UseItem=$script:useItem;Round=$script:round;Direct=$script:direct;SwitchCount=([Math]::Max(0,$script:runLogins-1));Cycles=(Get-WowAutoCycleCount $script:scheduler $Endpoint.Key);BiteTimeouts=(Get-WowAutoBiteTimeoutCount $script:scheduler $Endpoint.Key);ClassId=$(if($script:combat -and $script:mode -eq 'fight'){$script:combat.ClassId}else{0})}
     Write-Detector ('已开始'+$(if($script:mode -eq 'fight'){'战斗'}else{'钓鱼'})+'；角色：'+$script:roleName+'；执行轮次 '+$script:round)
 }
 function Get-DetectorProfile([int]$ClassId) {
@@ -318,7 +318,11 @@ function Invoke-DetectorTaskCore {
     if($state.UseItem -and -not $state.ItemDetectionDisabled -and $state.ItemConfirmUntil -gt 0 -and $now -ge $state.ItemConfirmUntil){$null=Complete-WowAutoItemCheck $script:scheduler $Endpoint.Key $now 'unknown' $script:observation.Color}
     $work=Get-WowAutoWork $script:scheduler $now
     if(-not $work){Write-Detector $state.Status;return}
-    if($work.Kind -eq 'AudioTimeout'){Reset-WowAutoAudioWait $script:scheduler $Endpoint.Key $now '无咬钩声音超时，重新抛竿，不计成功收竿循环。';return}
+    if($work.Kind -eq 'AudioTimeout'){
+        Complete-WowAutoAudioTimeout $script:scheduler $Endpoint.Key $now '无咬钩声音超时，重新抛竿，不计成功收竿循环。'
+        Publish-Detector counters @{Cycles=(Get-WowAutoCycleCount $script:scheduler $Endpoint.Key);BiteTimeouts=(Get-WowAutoBiteTimeoutCount $script:scheduler $Endpoint.Key)}
+        Write-Detector $state.Status;return
+    }
     if($work.Kind -eq 'FocusRetry'){Resume-WowAutoFocus $script:scheduler $Endpoint.Key;return}
     if(-not $script:observation -or -not $script:observation.Login){Write-Detector '等待插件登录白点和钓鱼色块。';return}
     $color=$script:observation.Color
@@ -407,7 +411,7 @@ try {
             if($script:running -and $Hub.Now -ge $script:nextMetrics) {
                 $script:nextMetrics=$Hub.Now+250
                 Publish-Detector metrics @{Deadline=$(if($script:mode -eq 'fish'){$script:fish.Deadline}else{0L});
-                    Cycles=(Get-WowAutoCycleCount $script:scheduler $Endpoint.Key);Audio=[bool]$script:audio;
+                    Cycles=(Get-WowAutoCycleCount $script:scheduler $Endpoint.Key);BiteTimeouts=(Get-WowAutoBiteTimeoutCount $script:scheduler $Endpoint.Key);Audio=[bool]$script:audio;
                     Similarity=$(if($script:audio){$script:audio.Similarity}else{0.0});Peak=$(if($script:audio){$script:audio.Peak}else{0.0})}
             }
         } catch {

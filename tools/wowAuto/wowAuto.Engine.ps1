@@ -48,7 +48,7 @@ function Get-WowAutoInterval {
 }
 function New-WowAutoScheduler {
     [pscustomobject]@{
-        Tasks=@{}; CompletedCycles=@{}; CyclesSinceJump=@{}; JumpEveryCycles=0; Order=(New-Object 'System.Collections.Generic.List[string]')
+        Tasks=@{}; CompletedCycles=@{}; BiteTimeouts=@{}; CyclesSinceJump=@{}; JumpEveryCycles=0; Order=(New-Object 'System.Collections.Generic.List[string]')
         Events=(New-Object System.Collections.ArrayList)
         Cursor=0; ActiveKey=$null; Sequence=0L; ReelHoldUntil=0L; ReelHoldMs=100
         ItemHoldUntil=0L; ItemHoldMs=3000; FocusRetryIntervalMs=30000
@@ -131,6 +131,10 @@ function Complete-WowAutoItem($Scheduler, [string]$Key, [long]$Now, [bool]$Sent)
 }
 function Get-WowAutoCycleCount($Scheduler, [string]$Key) {
     if ($Scheduler.CompletedCycles.ContainsKey($Key)) { return [long]$Scheduler.CompletedCycles[$Key] }
+    return 0L
+}
+function Get-WowAutoBiteTimeoutCount($Scheduler, [string]$Key) {
+    if ($Scheduler.BiteTimeouts.ContainsKey($Key)) { return [long]$Scheduler.BiteTimeouts[$Key] }
     return 0L
 }
 function Remove-WowAutoEvents($Scheduler, [string]$Key) {
@@ -312,6 +316,13 @@ function Complete-WowAutoAudioBite($Scheduler, [string]$Key, [long]$Now, [long]$
     $state.Status="音频匹配成功：随机等待 $delay ms 后收竿，已登记收竿事件。"
     Add-WowAutoEvent $Scheduler $Key 'Reel' $state.Deadline
     return $true
+}
+function Complete-WowAutoAudioTimeout($Scheduler, [string]$Key, [long]$Now, [string]$Reason) {
+    $state=$Scheduler.Tasks[$Key]
+    if ($null -eq $state -or -not $state.Running -or -not $state.UseAudio -or $state.Mode -ne 'Wait' -or
+        $state.AudioReelPending -or $state.Deadline -le 0 -or $Now -lt $state.Deadline) { return }
+    $Scheduler.BiteTimeouts[$Key]=(Get-WowAutoBiteTimeoutCount $Scheduler $Key)+1
+    Reset-WowAutoAudioWait $Scheduler $Key $Now $Reason
 }
 function Reset-WowAutoAudioWait($Scheduler, [string]$Key, [long]$Now, [string]$Reason) {
     $state=$Scheduler.Tasks[$Key]

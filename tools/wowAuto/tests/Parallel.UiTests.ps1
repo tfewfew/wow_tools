@@ -23,6 +23,8 @@ Assert-Parallel ($rows.Count -eq 3 -and $script:parallelWorkers.Count -eq 3) 'Ea
 foreach($row in $rows) {
     Assert-Parallel ($row.AccountBox.Parent -eq $row.Panel -and -not $row.PSObject.Properties['RotationButton'] -and @(Get-AccountTaskRoles $row).Count -eq 4) 'Account binding missing or process slots still limit roles.'
     Assert-Parallel ($row.Status.Bottom -eq $row.Panel.ClientSize.Height) 'Status lost bottom alignment.'
+    Assert-Parallel ($row.Name.Text -notmatch '职业：') 'PID area still shows a class.'
+    if($row.TaskMode -eq 'fish'){Assert-Parallel ($row.Name.Text -match '循环 0 · 无咬钩超时 0') 'Fishing row omits the initial no-bite timeout count.'}
 }
 $dialog=New-UnifiedSettingsDialog
 try {
@@ -172,6 +174,7 @@ $startAllButton.PerformClick();Pump-Parallel {@($rows | Where-Object {$_.Current
 foreach($expected in @('角色乙','角色丙','角色丁','角色甲')) {
     $script:parallelNextAt=$script:parallelHub.Now
     Pump-Parallel {@($rows | Where-Object {$_.CurrentRole -eq $expected}).Count -eq 3}
+    Assert-Parallel (@($rows | Where-Object {$_.Name.Text -match '职业：'}).Count -eq 0) 'Role rotation restored a class line in the PID area.'
 }
 Assert-Parallel ($a.RotationSwitchCount -ge 4 -and $b.RotationSwitchCount -ge 4) 'Main-thread global rotation did not cycle through all four account roles.'
 Stop-AllRows;Pump-Parallel {@($rows | Where-Object RuntimeRunning).Count -eq 0}
@@ -189,6 +192,15 @@ Assert-Parallel ([ParallelFixture]::Jumps -eq 0) 'Inherited jump request execute
 Pump-Parallel {[ParallelFixture]::Jumps -eq 1}
 Assert-Parallel ([ParallelFixture]::EarlyJumps -eq 0 -and [ParallelFixture]::Reels -ge 2) 'Cycle jump did not wait for a successful reel and full cooldown.'
 [ParallelFixture]::AutoFish=$false;[ParallelFixture]::Colors[101]='red'
+Stop-AllRows
+$cycles=$a.CycleCount;[ParallelFixture]::NoBitePid=101;[ParallelFixture]::Colors[101]='green'
+$a.Validated=$true;Set-RowControls $a;$a.DirectStart.PerformClick()
+Pump-Parallel {$a.BiteTimeoutCount -eq 1}
+Assert-Parallel ($a.CycleCount -eq $cycles -and $b.BiteTimeoutCount -eq 0 -and $c.BiteTimeoutCount -eq 0 -and
+    $a.Name.Text -match ('循环 '+$cycles+' · 无咬钩超时 1') -and $a.Name.Text -notmatch '职业：') 'Detector timeout did not reach its own UI counter or changed the successful cycle count.'
+$a.Stop.PerformClick();[ParallelFixture]::NoBitePid=0;[ParallelFixture]::Colors[101]='red'
+$before=$a.ExecutionRound;$a.DirectStart.PerformClick();Pump-Parallel {$a.ExecutionRound -gt $before}
+Assert-Parallel ($a.BiteTimeoutCount -eq 1 -and $a.Name.Text -match '无咬钩超时 1') 'Stopping/restarting lost the no-bite timeout count in task-start messages.'
 Stop-AllRows;$startAllButton.PerformClick();Pump-Parallel {@($rows | Where-Object {$_.CurrentRole -eq '角色甲'}).Count -eq 3}
 $configurationHash=(Get-FileHash $script:accountTasks.Path).Hash
 [ParallelFixture]::Colors[101]='dead'

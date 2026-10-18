@@ -40,15 +40,30 @@ Assert-Audio (-not (Complete-WowAutoAudioBite $q 'A' 7000 $session)) 'Restart ac
 Suspend-WowAutoFocus $q 'A' 7000 'mock focus denial'
 Assert-Audio (Complete-WowAutoAudioBite $q 'A' 8000 $fresh.AudioSession) 'Focus pause discarded a valid signal.'
 Assert-Audio ((Get-WowAutoWork $q 35010).Kind -eq 'AudioTimeout') 'Other row timeout was blocked by focus pause.'
-Reset-WowAutoAudioWait $q 'B' 35010 'mock timeout'
+Complete-WowAutoAudioTimeout $q 'B' 35009 'too early'
+Assert-Audio ((Get-WowAutoBiteTimeoutCount $q 'B') -eq 0 -and $b.Mode -eq 'Wait') 'No-bite timeout counted before its deadline.'
+Complete-WowAutoAudioTimeout $q 'B' 35010 'mock timeout'
+Complete-WowAutoAudioTimeout $q 'B' 35011 'duplicate timeout'
+Complete-WowAutoAudioTimeout $q 'A' 40000 'already matched'
 Assert-Audio ($b.AudioSession -eq 0 -and $b.ForceNextCast -and $b.AwaitingFishingTransition -and
     (Get-WowAutoCycleCount $q 'B') -eq 0 -and @($q.Events | Where-Object Key -eq 'B').Count -eq 0) 'Timeout sent/counted a reel or kept stale events.'
+Assert-Audio ((Get-WowAutoBiteTimeoutCount $q 'B') -eq 1 -and (Get-WowAutoBiteTimeoutCount $q 'A') -eq 0) 'No-bite timeout duplicated, leaked across processes or counted a matched wait.'
 Resume-WowAutoFocus $q 'A'
 Assert-Audio ((Get-WowAutoWork $q 35011).Kind -eq 'Reel') 'Retained audio signal did not resume after focus recovery.'
 Stop-WowAutoTask $q 'A'; Stop-WowAutoTask $q 'B'
 Assert-Audio ($q.Tasks.Count -eq 0 -and $q.Events.Count -eq 0) 'Stopping left audio actions queued.'
+$b=Add-WowAutoTask $q 'B' 300 300 50000 -UseAudio $true
+$b.AudioReady=$true;$null=Complete-WowAutoPoll $q 'B' 50000 'green'
+Reset-WowAutoAudioWait $q 'B' 51000 'state changed, not a timeout'
+Complete-WowAutoAudioTimeout $q 'B' 85000 'cancelled wait'
+Assert-Audio ((Get-WowAutoBiteTimeoutCount $q 'B') -eq 1 -and (Get-WowAutoBiteTimeoutCount $q 'new-process-identity') -eq 0) 'Restart lost the process timeout count or ordinary reset/reused PID inherited a timeout.'
+Stop-WowAutoTask $q 'B';Complete-WowAutoAudioTimeout $q 'B' 90000 'stopped task'
+$timed=Add-WowAutoTask $q 'timed' 1000 1000 0
+$null=Complete-WowAutoPoll $q 'timed' 0 'green';Complete-WowAutoAudioTimeout $q 'timed' 1000 'timed reel'
+Assert-Audio ((Get-WowAutoBiteTimeoutCount $q 'B') -eq 1 -and (Get-WowAutoBiteTimeoutCount $q 'timed') -eq 0) 'Stopped task or timed reel counted a no-bite timeout.'
 # Each signal uses the current per-version range; existing deadlines remain fixed.
 $q=New-WowAutoScheduler
+Assert-Audio ((Get-WowAutoBiteTimeoutCount $q 'B') -eq 0) 'A new tool run inherited no-bite timeouts.'
 $a=Add-WowAutoTask $q 'A' 300 300 0 -UseAudio $true
 $b=Add-WowAutoTask $q 'B' 600 600 0 -UseAudio $true
 foreach ($key in @('A','B')) { $q.Tasks[$key].AudioReady=$true; $null=Complete-WowAutoPoll $q $key 0 'green' }
@@ -62,4 +77,4 @@ Stop-WowAutoTask $q 'A'
 Assert-Audio ($null -eq (Get-WowAutoWork $q 35000) -and (Get-WowAutoWork $q 35300).Key -eq 'B') 'Original no-signal timeout cancelled the post-match delay.'
 Stop-WowAutoTask $q 'B'
 Assert-Audio ($q.Events.Count -eq 0 -and $null -eq (Get-WowAutoWork $q 36000)) 'Stop retained a delayed reel.'
-Write-Output 'PASS: audio startup gate, green arms audio only, random/fixed post-match delay, other-window scheduling, current ranges/immutable deadlines, cast suppression, session isolation/deduplication, hold/focus/priority, reel counting, timeout recast and delayed cancellation.'
+Write-Output 'PASS: audio startup gate, post-match delay, session isolation/deduplication, hold/focus/priority, reel counting, no-bite timeout counting at deadline only, per-process restart retention, no count for matched/cancelled/stopped/timed waits, timeout recast and delayed cancellation.'

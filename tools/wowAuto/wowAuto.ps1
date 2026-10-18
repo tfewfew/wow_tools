@@ -1125,14 +1125,14 @@ function Read-RowWindowPosition($Row) {
 }
 function Update-RowName($Row) {
     if ($Row.TaskMode -eq 'fight' -and $Row.FightRow) {
-        $class=if ($Row.FightRow.ClassId) {Get-WowClassName $Row.FightRow.ClassId} else {'等待插件识别'}
         $Row.Name.ForeColor=Get-WowClassColor $Row.FightRow.ClassId
-        $Row.Name.Text="$($Row.Caption)`r`nPID $($Row.Process.Id) · $($Row.Client.Label) · $($Row.Position)`r`n职业：$class"
+        $Row.Name.Text="$($Row.Caption)`r`nPID $($Row.Process.Id) · $($Row.Client.Label) · $($Row.Position)"
         return
     }
     $cycles=Get-WowAutoCycleCount $script:scheduler $Row.Key
+    $timeouts=Get-WowAutoBiteTimeoutCount $script:scheduler $Row.Key
     $Row.Name.ForeColor=$script:uiColors.Text
-    $Row.Name.Text="$($Row.Caption)`r`nPID $($Row.Process.Id) · $($Row.Client.Label) · $($Row.Position) · 循环 $cycles"
+    $Row.Name.Text="$($Row.Caption)`r`nPID $($Row.Process.Id) · $($Row.Client.Label) · $($Row.Position)`r`n循环 $cycles · 无咬钩超时 $timeouts"
 }
 function Update-WindowPositions {
     foreach ($row in $script:rows.Values) {
@@ -1854,7 +1854,7 @@ function Invoke-SchedulerTick([long]$Now,$QueuedWork=$null) {
         }
         if ($work.Kind -eq 'AudioTimeout') {
             $timeoutMs=$row.State.Deadline-$row.State.FishingStartedAt
-            Reset-WowAutoAudioWait $script:scheduler $work.Key $Now "$timeoutMs ms内未检测到咬钩声音，重新抛竿；不计有效循环。"
+            Complete-WowAutoAudioTimeout $script:scheduler $work.Key $Now "$timeoutMs ms内未检测到咬钩声音，重新抛竿；不计有效循环。"
             $script:pendingWork=$null
             Update-RowStatus $row
             return
