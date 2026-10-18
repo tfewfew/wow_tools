@@ -3,7 +3,9 @@ local root = TEST_ROOT or "."
 local function Run(flavor, legacy)
     local frames, names, messages, calls, requests = {}, {}, {}, {}, {}
     local bags, catalog = {}, {[101] = "新鲜的美味小鱼", [102] = "新鲜的长嘴泥鳅"}
-    local sendEvent, afterUse
+    local sendEvent, afterUse, acknowledge
+    local money=10000
+    local soldSlots,postSaleReads,bagReads,slotReads={},0,{},0
     local bagSlots, hiddenBags, unreadableBags = {}, {}, {}
     local combat, cursor, mode, failInfo, secretField = false, false, "success", false, nil
     local secret = setmetatable({}, {
@@ -62,12 +64,19 @@ local function Run(flavor, legacy)
     NUM_BAG_SLOTS = 4
     function InCombatLockdown() return combat end
     function CursorHasItem() return cursor end
+    function GetMoney() return money end
+    ERR_OBJECT_IS_BUSY="物品正忙";ERR_ITEM_LOCKED="物品锁定";ERR_CANT_DO_THAT_RIGHT_NOW="暂时无法执行"
+    function ContainerIDToInventoryID(bag) return 20+bag end
+    function GetInventoryItemID(_,slot) return bags[slot-20] and next(bags[slot-20]) and 1 or nil end
     local function NumSlots(bag)
+        bagReads[bag]=(bagReads[bag] or 0)+1
         if hiddenBags[bag] then return 0 end
         if unreadableBags[bag] then error("Bag metadata unavailable") end
         return bagSlots[bag] or (bag <= 4 and 8 or 100)
     end
     local function Info(bag, slot)
+        slotReads=slotReads+1
+        if soldSlots[bag..":"..slot] then postSaleReads=postSaleReads+1 end
         if failInfo then error("Unreadable container") end
         local data = bags[bag] and bags[bag][slot]
         if not data then return nil end
@@ -85,8 +94,12 @@ local function Run(flavor, legacy)
         if mode == "error" then error("API rejected sale") end
         if mode == "false" then return false end
         if mode == "unconfirmed" then return end
-        bags[bag][slot] = nil
-        if afterUse then afterUse() end
+        if mode=="busyAlways" or (mode=="busyOnce" and #calls==1) then
+            sendEvent("BAG_UPDATE",bag) -- A lock update alone is not a successful sale.
+            sendEvent("UI_ERROR_MESSAGE",1,ERR_OBJECT_IS_BUSY);return
+        end
+        if mode=="permanent" then sendEvent("UI_ERROR_MESSAGE",2,"无法出售该物品");return end
+        acknowledge(calls[#calls])
         if mode == "close" then
             MerchantFrame:Hide()
             for _, frame in ipairs(frames) do
@@ -203,194 +216,187 @@ local function Run(flavor, legacy)
         assert(not frame.events.GET_ITEM_INFO_RECEIVED and not frame.events.ITEM_DATA_LOAD_RESULT)
     end
     assert(not HasUpdate())
-    -- Exact allowlist, all carried bags/stacks, no unlisted/locked/unsellable/bank items.
+    -- The entire carried inventory must be counted before any request is sent.
+    local function ResetTrace()
+        soldSlots, postSaleReads, bagReads, slotReads = {}, 0, {}, 0
+    end
+    local function Ack(call, notify)
+        if call.acked then return end
+        call.acked = true
+        bags[call.bag][call.slot] = nil
+        soldSlots[call.bag .. ":" .. call.slot] = true
+        money = money + call.count
+        if afterUse then afterUse() end
+        if notify ~= false then
+            Event("BAG_UPDATE",call.bag)
+            Event("PLAYER_MONEY")
+        end
+    end
+    acknowledge = Ack
+    local function Fill42()
+        bags,bagSlots = {[0]={},[1]={},[2]={}}, {[0]=20,[1]=24,[2]=20,[3]=20,[4]=20}
+        for slot=1,19 do bags[0][slot]={id=101} end
+        for slot=1,21 do bags[1][slot]={id=102} end
+        for slot=1,2 do bags[2][slot]={id=777} end
+    end
     bags = {[0] = {[1] = {id = 101}, [2] = {id = 500}, [3] = {id = 102, locked = true},
         [4] = {id = 777, noValue = true}, [8] = {id = 101}},
         [4] = {[2] = {id = 102}}, [-1] = {[1] = {id = 101}}}
+    ResetTrace()
     Click("WoWToolsSellFishButton")
-    assert(HasUpdate() and not button.enabled)
-    Tick(30)
-    assert(#calls == 3 and not HasUpdate() and button.enabled)
-    assert(bags[0][2] and bags[0][3] and bags[0][4] and bags[-1][1])
-    assert(messages[#messages]:find("已出售 3 组", 1, true))
-    -- A large backpack is dispatched in bounded batches, without serial confirmation waits.
-    local function FillBags()
-        bags = {}
-        for bag = 0, 4 do
-            bags[bag] = {}
-            for slot = 1, 8 do bags[bag][slot] = {id = 101} end
+    assert(#calls==0 and slotReads==40 and bagReads[0]==1 and bagReads[4]==1,
+        "A sale request was sent before all five bags were scanned")
+    assert(messages[#messages]:find("清单匹配 5 组，可出售 4 组",1,true))
+    Tick(2,0.05)
+    assert(#calls==1 and HasUpdate(),"Locked queued entry was skipped instead of waiting")
+    bags[0][3].locked=false
+    Tick(10,0.05)
+    assert(#calls==4 and not HasUpdate() and button.enabled)
+    assert(bags[0][2] and bags[0][4] and bags[-1][1] and not bags[0][3])
+    assert(messages[#messages]:find("固定清单 4 组已全部出售",1,true))
+    assert(postSaleReads==0 and bagReads[0]==1,"Seller inspected sold slots or rescanned inventory")
+
+    -- Screenshot regression: 19 + 21 + 2 = 42 groups, not a 20-group partial plan.
+    Fill42();ResetTrace();calls={}
+    NUM_BAG_SLOTS=0
+    Click("WoWToolsSellFishButton")
+    assert(#calls==0 and slotReads==104 and messages[#messages]:find("可出售 42 组",1,true))
+    assert(messages[#messages]:find("0:19/20，1:21/24，2:2/20，3:0/20，4:0/20",1,true))
+    Tick(1,0.049);assert(#calls==0)
+    Tick(1,0.0011);assert(#calls==1)
+    Tick(50,0.05)
+    assert(#calls==42 and not HasUpdate(),"Fixed 42-group plan did not finish past twenty")
+    assert(postSaleReads==0 and slotReads==104+42,"Post-sale inventory verification was performed")
+    for bag=0,4 do assert(bagReads[bag]==1,"Inventory was scanned more than once") end
+    assert(messages[#messages]:find("固定清单 42 组已全部出售",1,true))
+    NUM_BAG_SLOTS=4
+
+    -- A server-side lock after the twentieth sale must pause, not discard, the remaining plan.
+    Fill42();ResetTrace();calls={}
+    afterUse=function()
+        if #calls==20 then
+            afterUse=nil
+            for _,bag in pairs(bags) do for _,data in pairs(bag) do data.locked=true end end
         end
     end
-    FillBags()
-    calls = {}
-    Click("WoWToolsSellFishButton")
-    Tick(1, 0.049)
-    assert(#calls == 0, "Batch interval was ignored")
-    Tick(1, 0.0011)
-    assert(#calls == 5, "First batch was not bounded to five stacks")
-    Tick(9, 0.05)
-    assert(#calls == 40, "Forty stacks should be dispatched within half a simulated second")
-    Tick(5, 0.05)
-    assert(not HasUpdate(), "Empty bag verification did not finish")
-    assert(messages[#messages]:find("已出售 40 组", 1, true))
-    -- Slow or out-of-order confirmations do not block later slots or create unlimited requests.
-    FillBags()
-    mode, calls = "unconfirmed", {}
-    Click("WoWToolsSellFishButton")
-    Tick(8, 0.05)
-    assert(#calls == 20 and HasUpdate(), "Outstanding sale limit was not enforced")
-    for index = 16, 20 do
-        local call = calls[index]
-        bags[call.bag][call.slot] = nil
+    Click("WoWToolsSellFishButton");Tick(25,0.05)
+    assert(#calls==20 and HasUpdate(),"Temporary lock after twenty dropped later queued groups")
+    for _,bag in pairs(bags) do for _,data in pairs(bag) do data.locked=false end end
+    Tick(30,0.05)
+    assert(#calls==42 and not HasUpdate() and postSaleReads==0,"Original plan did not resume through all 42 groups")
+
+    -- An equipped but unreadable/zero-slot bag aborts the whole scan before the first sale.
+    for _,partial in ipairs({"hidden","unreadable"}) do
+        Fill42();ResetTrace();calls={}
+        if partial=="hidden" then hiddenBags[1]=true else unreadableBags[1]=true end
+        Click("WoWToolsSellFishButton");Tick(10)
+        assert(#calls==0 and not HasUpdate() and messages[#messages]:find("扫描未完成",1,true))
+        hiddenBags[1],unreadableBags[1]=nil,nil
+        Click("WoWToolsSellFishButton");Tick(50,0.05)
+        assert(#calls==42 and not HasUpdate())
     end
-    Tick(1, 0.05)
-    assert(#calls == 25, "Later confirmations were blocked by the oldest pending stack")
-    Close(); Tick(5, 0.05)
-    assert(#calls == 25 and not HasUpdate(), "Queued batches continued after merchant close")
-    Open()
-    mode, calls = "success", {}
-    -- Backpack-only/partial first reads must not become a successful 20-stack termination.
-    for _, partial in ipairs({"hidden", "unreadable"}) do
-        bags, bagSlots, calls = {[0] = {}, [1] = {}}, {[0] = 20, [1] = 20}, {}
-        for slot = 1, 20 do bags[0][slot], bags[1][slot] = {id = 101}, {id = 101} end
-        if partial == "hidden" then hiddenBags[1] = true else unreadableBags[1] = true end
-        Click("WoWToolsSellFishButton")
-        Tick(6, 0.05)
-        assert(#calls == 20 and HasUpdate(), "Partial first scan incorrectly finished at twenty stacks")
-        if partial == "unreadable" then
-            Tick(12, 0.1)
-            assert(HasUpdate(), "Unreadable bag was treated as empty")
-        end
-        hiddenBags[1], unreadableBags[1] = nil, nil
-        Tick(25, 0.05)
-        assert(#calls == 40 and not HasUpdate(), "Remaining bag was not picked up by final rescans")
-        assert(messages[#messages]:find("复查清单剩余 0 组", 1, true))
+
+    -- Delayed receipts block only the current original queue entry; no bag re-reads.
+    Fill42();ResetTrace();mode,calls="unconfirmed",{}
+    Click("WoWToolsSellFishButton");Tick(1,0.05)
+    local first=calls[1]
+    Ack(first,false)
+    Event("BAG_UPDATE",4);Event("PLAYER_MONEY")
+    local readCount=slotReads
+    Tick(3,0.05)
+    assert(#calls==1 and HasUpdate() and slotReads==readCount,
+        "Wrong bag event advanced the queue or pending sales read inventory")
+    Event("BAG_UPDATE",first.bag)
+    Tick(1,0.05);assert(#calls==2)
+    for _=1,45 do
+        Ack(calls[#calls])
+        Tick(1,0.8)
     end
-    bagSlots = {}
-    NUM_BAG_SLOTS = 0
-    FillBags()
-    calls = {}
-    Click("WoWToolsSellFishButton")
-    Tick(30, 0.05)
-    assert(#calls == 40 and not HasUpdate(), "Stale bag global restricted sales to the backpack")
-    NUM_BAG_SLOTS = 4
-    -- Total running time is unlimited; each server acknowledgement can arrive late.
-    FillBags()
-    mode, calls = "unconfirmed", {}
-    Click("WoWToolsSellFishButton")
-    for _ = 1, 10 do
-        for _, call in ipairs(calls) do bags[call.bag][call.slot] = nil end
-        Tick(1, 0.8)
+    assert(#calls==42 and not HasUpdate(),"Sale was limited by total time or total group count")
+    assert(postSaleReads==0)
+
+    -- Temporary server-busy responses retry the same queue entry, not skip it.
+    mode,calls="busyOnce",{}
+    bags={[0]={[1]={id=101},[2]={id=102}}};ResetTrace()
+    Click("WoWToolsSellFishButton");Tick(30,0.05)
+    assert(#calls==3 and calls[1].slot==2 and calls[2].slot==2 and calls[3].slot==1 and not HasUpdate())
+    assert(messages[#messages]:find("固定清单 2 组已全部出售",1,true))
+
+    -- No new items are appended after the fixed plan was created.
+    mode,calls="success",{}
+    bags={[0]={[1]={id=101,guid="original"}}};ResetTrace()
+    afterUse=function()
+        afterUse=nil
+        bags[0][1]={id=101,guid="new-item"}
     end
-    assert(#calls == 40 and not HasUpdate(), "Sale was capped by total duration or total stack count")
-    assert(messages[#messages]:find("已出售 40 组", 1, true))
-    mode, calls = "success", {}
-    if not legacy then
-        -- Bag sorting may replace a sold slot with an identical-looking stack before the next tick.
-        bags = {[0] = {[1] = {id = 101, count = 20, guid = "first-stack"}}}
-        afterUse = function()
-            afterUse = nil
-            bags[0][1] = {id = 101, count = 20, guid = "second-stack"}
-        end
-        Click("WoWToolsSellFishButton")
-        Tick(20, 0.05)
-        assert(#calls == 2 and not bags[0][1] and not HasUpdate(),
-            "Identical replacement stack was confused with the original pending stack")
-        secretField = "guid"
-        bags = {[0] = {[1] = {id = 101}}}
-        Click("WoWToolsSellFishButton")
-        Tick(40)
-        assert(#calls == 2 and not HasUpdate(), "Restricted GUID was inspected or sold")
-        secretField = nil
-    end
-    calls = {}
-    -- Revalidation also applies between two uses within the same batch.
-    bags = {[0] = {}}
-    for slot = 1, 6 do bags[0][slot] = {id = 101} end
-    afterUse = function()
-        afterUse = nil
-        bags[0][5] = {id = 500}
-        bags[0][4].count = 1
-        bags[0][3].locked = true
-        bags[0][2].noValue = true
-    end
+    Click("WoWToolsSellFishButton");Tick(5,0.05)
+    assert(#calls==1 and bags[0][1].guid=="new-item" and not HasUpdate() and postSaleReads==0)
+
+    -- Before-send checks stop on changes; no changed/unlisted item is blindly sold.
+    bags={[0]={[1]={id=101},[2]={id=101}}};ResetTrace();calls={}
     Click("WoWToolsSellFishButton")
-    Tick(15, 0.05)
-    assert(#calls == 3 and calls[1].slot == 6 and calls[2].slot == 1 and calls[3].slot == 4 and not HasUpdate())
-    assert(bags[0][5].id == 500 and not bags[0][4] and bags[0][3].locked and bags[0][2].noValue)
-    -- Replacement items, changed stacks, and mid-run deletion never get sold.
-    bags = {[0] = {[1] = {id = 101}, [2] = {id = 101}}}
-    calls = {}
-    Click("WoWToolsSellFishButton")
-    bags[0][2] = {id = 500}
-    bags[0][1].count = 5
-    Tick(5)
-    assert(#calls == 1 and calls[1].id == 101 and calls[1].count == 5 and not HasUpdate(),
-        "Rescan did not revalidate the changed allowlisted stack")
-    calls = {}
-    bags = {[0] = {[1] = {id = 101}}}
+    bags[0][2]={id=500}
+    Tick(3,0.05)
+    assert(#calls==0 and not HasUpdate() and messages[#messages]:find("未完成",1,true))
+    bags={[0]={[1]={id=101}}};ResetTrace()
     Click("WoWToolsSellFishButton")
     SlashCmdList.WOWTOOLSSELLFISH()
-    Click("WoWToolsSellFishRow2") -- List order: 102, 101, 777.
+    Click("WoWToolsSellFishRow2")
     Click("WoWToolsSellFishDelete")
-    Tick(5)
-    assert(#calls == 0)
-    Add("101")
-    window:Hide()
-    -- Each failed/unconfirmed use is attempted once; no permanent timer or retry.
-    for _, failure in ipairs({"error", "false", "unconfirmed"}) do
-        mode, calls = failure, {}
-        bags = {[0] = {[1] = {id = 101}}}
-        Click("WoWToolsSellFishButton")
-        Tick(30)
-        assert(#calls == 1 and bags[0][1] and not HasUpdate(), "Unbounded or repeated sale")
-        assert(messages[#messages]:find("已出售 0 组", 1, true), "API return counted as successful sale")
+    Tick(3,0.05);assert(#calls==0 and not HasUpdate())
+    Add("101");window:Hide()
+
+    -- Errors, missing receipts and a persistent lock are reported as incomplete, never all sold.
+    for _,failure in ipairs({"error","false","unconfirmed","busyAlways","permanent"}) do
+        mode,calls=failure,{}
+        bags={[0]={[1]={id=101}}};ResetTrace()
+        Click("WoWToolsSellFishButton");Tick(50,0.16)
+        local expected=(failure=="unconfirmed" or failure=="permanent") and 1 or 3
+        assert(#calls==expected and bags[0][1] and not HasUpdate(),"Retries were unbounded or a failed item was lost")
+        assert(messages[#messages]:find("未完成：已出售 0/1 组",1,true),"Unconfirmed request was reported as sold")
+        assert(postSaleReads==0)
     end
-    mode, calls = "success", {}
-    for _, field in ipairs({"itemID", "stackCount", "isLocked", "hasNoValue", "hyperlink", "table"}) do
-        secretField = field
-        Click("WoWToolsSellFishButton")
-        Tick(40)
-        assert(#calls == 0 and not HasUpdate(), "Restricted item was sold")
+    mode,calls="success",{}
+    bags={[0]={[1]={id=101,locked=true}}};ResetTrace()
+    Click("WoWToolsSellFishButton");Tick(40,0.16)
+    assert(#calls==0 and not HasUpdate() and messages[#messages]:find("未跳过该组",1,true))
+
+    local restrictedFields={"itemID","stackCount","isLocked","hasNoValue","hyperlink","table"}
+    if not legacy then restrictedFields[#restrictedFields+1]="guid" end
+    for _,field in ipairs(restrictedFields) do
+        bags={[0]={[1]={id=101}}};ResetTrace();secretField=field
+        Click("WoWToolsSellFishButton");Tick(5)
+        assert(#calls==0 and not HasUpdate(),"Restricted item was sold")
     end
-    secretField, failInfo = nil, true
-    Click("WoWToolsSellFishButton"); Tick(40)
-    assert(#calls == 0 and not HasUpdate())
-    failInfo = false
-    for _, tab in ipairs({2, secret}) do
-        MerchantFrame.selectedTab = tab
-        Click("WoWToolsSellFishButton")
-        assert(#calls == 0 and not HasUpdate())
+    secretField,failInfo=nil,true
+    Click("WoWToolsSellFishButton");Tick(5)
+    assert(#calls==0 and not HasUpdate())
+    failInfo=false
+    for _,tab in ipairs({2,secret}) do
+        MerchantFrame.selectedTab=tab
+        Click("WoWToolsSellFishButton");assert(#calls==0 and not HasUpdate())
     end
-    MerchantFrame.selectedTab = 1
-    for _, value in ipairs({true, secret}) do
-        combat = value; Click("WoWToolsSellFishButton"); assert(not HasUpdate())
+    MerchantFrame.selectedTab=1
+    for _,value in ipairs({true,secret}) do combat=value;Click("WoWToolsSellFishButton");assert(not HasUpdate()) end
+    combat=false
+    for _,value in ipairs({true,secret}) do cursor=value;Click("WoWToolsSellFishButton");assert(not HasUpdate()) end
+    cursor=false
+    Click("WoWToolsSellFishButton");Close();Tick(5)
+    assert(#calls==0 and not HasUpdate() and not button:IsShown())
+    Open();Tick(5);assert(#calls==0,"Opening resumed a cancelled plan")
+    Click("WoWToolsSellFishButton");MerchantFrame.selectedTab=2;Tick(5)
+    assert(#calls==0 and not HasUpdate())
+    MerchantFrame.selectedTab=1
+    mode="close";bags={[0]={[1]={id=101},[2]={id=101}}};ResetTrace()
+    Click("WoWToolsSellFishButton");Tick(5)
+    assert(#calls==1 and not HasUpdate())
+    for _,frame in ipairs(frames) do
+        assert(not frame.events.BAG_UPDATE and not frame.events.PLAYER_MONEY and not frame.events.UI_ERROR_MESSAGE,
+            "Receipt events remained active after stop")
     end
-    combat = false
-    for _, value in ipairs({true, secret}) do
-        cursor = value; Click("WoWToolsSellFishButton"); assert(not HasUpdate())
-    end
-    cursor = false
-    Click("WoWToolsSellFishButton")
-    Close(); Tick(5)
-    assert(#calls == 0 and not HasUpdate() and not button:IsShown())
-    Open(); Tick(5)
-    assert(#calls == 0, "Opening resumed a cancelled sale")
-    Click("WoWToolsSellFishButton")
-    MerchantFrame.selectedTab = 2
-    Tick(5)
-    assert(#calls == 0 and not HasUpdate())
-    MerchantFrame.selectedTab = 1
-    mode = "close" -- Reentrant merchant-close event from inside the bag API.
-    bags = {[0] = {[1] = {id = 101}, [2] = {id = 101}, [3] = {id = 101}}}
-    Click("WoWToolsSellFishButton")
-    Tick(5)
-    assert(#calls == 1 and not HasUpdate())
     if not legacy then
-        SlashCmdList.WOWTOOLSSELLFISH()
-        Add("888")
-        assert(names.WoWToolsSellFishRow4.label.text:find(catalog[888], 1, true),
-            "Synchronous item event was overwritten by stale loading text")
+        SlashCmdList.WOWTOOLSSELLFISH();Add("888")
+        assert(names.WoWToolsSellFishRow4.label.text:find(catalog[888],1,true))
         window:Hide()
     end
     -- Preset merges with the custom list; repeated imports and manual additions share deduplication.

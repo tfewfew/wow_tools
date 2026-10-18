@@ -36,8 +36,8 @@ local eventFrame = CreateFrame("Frame")
 local items, selectedID, settings, input, status, scroll, content, deleteButton
 local rows, requested, failed = {}, {}, {}
 local merchantOpen, merchantButton, sale = false, nil, nil
-local SALE_INTERVAL, SALE_BATCH_SIZE, MAX_PENDING_SALES, CONFIRM_TIMEOUT = 0.05, 5, 20, 1.5
-local RESCAN_INTERVAL, SCAN_READ_TIMEOUT = 0.1, 5
+local SALE_INTERVAL, RETRY_INTERVAL, RECEIPT_TIMEOUT, LOCK_TIMEOUT, MAX_ATTEMPTS = 0.05, 0.25, 5, 5, 3
+local saleEvents = {"BAG_UPDATE", "BAG_UPDATE_DELAYED", "PLAYER_MONEY", "UI_ERROR_MESSAGE"}
 local RefreshList
 
 local function Readable(value)
@@ -230,9 +230,15 @@ local function MerchantReady()
     end
     return true
 end
+local function ReadMoney()
+    if type(GetMoney) ~= "function" then return nil end
+    local ok, value = pcall(GetMoney)
+    if ok and Readable(value) and type(value) == "number" and value >= 0 and value <= 9007199254740991 then return value end
+end
 local function StopSale(message)
     sale = nil
     eventFrame:SetScript("OnUpdate", nil)
+    for _, event in ipairs(saleEvents) do eventFrame:UnregisterEvent(event) end
     if merchantButton then merchantButton:SetText("一键卖鱼"); merchantButton:Enable() end
     if message then Say(message) end
 end
@@ -255,143 +261,130 @@ local function SameStack(a, b)
     return a and b and a.id == b.id and a.count == b.count and a.link == b.link
         and (not a.guid or not b.guid or a.guid == b.guid)
 end
-local function StackKey(bag, slot, data)
-    local identity = data.guid or (bag .. ":" .. slot)
-    return identity .. ":" .. data.id .. ":" .. data.count .. ":" .. (data.link or "")
-end
-local function SkipStack(currentSale, bag, slot, data)
-    local key = StackKey(bag, slot, data)
-    if currentSale.skippedStacks[key] then return end
-    currentSale.skippedStacks[key] = true
-    currentSale.skipped = currentSale.skipped + 1
-end
-local function ScanBags(currentSale)
+-- The scan is completed once, before the first sale request.
+local function ScanBags()
     local allowed, queue, summary = {}, {}, {}
-    local remaining, unknown = 0, 0
+    local matched, unavailable, unknown, slots, units = 0, 0, 0, 0, 0
     for _, id in ipairs(items or {}) do allowed[id] = true end
-    -- Always inspect backpack + four carried bags; a missing/stale global must not
-    -- silently restrict sales to the backpack. Index 5 is carried only when exposed.
-    local lastBag = NUM_BAG_SLOTS
-    if not Readable(lastBag) or type(lastBag) ~= "number" or lastBag ~= math.floor(lastBag)
-        or lastBag < 4 or lastBag > 5 then lastBag = 4 end
-    for bag = 0, lastBag do
-        local count, matched = BagSlotCount(bag), 0
+    for bag = 0, 4 do
+        local count, found = BagSlotCount(bag), 0
         if not Readable(count) or type(count) ~= "number" or count < 0 or count > 1000
             or count ~= math.floor(count) then
             unknown = unknown + 1
             summary[#summary + 1] = bag .. ":?"
         else
+            if count == 0 then
+                local inventorySlot = C_Container and C_Container.ContainerIDToInventoryID or ContainerIDToInventoryID
+                if bag == 0 then
+                    unknown = unknown + 1
+                elseif type(inventorySlot) == "function" and type(GetInventoryItemID) == "function" then
+                    local ok, equipped = pcall(function() return GetInventoryItemID("player", inventorySlot(bag)) end)
+                    if not ok or not Readable(equipped) or equipped ~= nil then unknown = unknown + 1 end
+                end
+            end
+            slots = slots + count
             for slot = count, 1, -1 do
                 local data, readable = Snapshot(bag, slot)
                 if not readable then
                     unknown = unknown + 1
                 elseif data and allowed[data.id] then
-                    remaining, matched = remaining + 1, matched + 1
-                    local key = StackKey(bag, slot, data)
-                    if not currentSale.skippedStacks[key] then
-                        if (data.locked == false or data.locked == 0) and data.noValue ~= true and data.noValue ~= 1 then
-                            queue[#queue + 1] = {bag = bag, slot = slot, data = data}
-                        else
-                            SkipStack(currentSale, bag, slot, data)
-                        end
+                    matched, found = matched + 1, found + 1
+                    if data.noValue == true or data.noValue == 1 then
+                        unavailable = unavailable + 1
+                    else
+                        queue[#queue + 1] = {bag = bag, slot = slot, data = data, attempts = 0, lockWait = 0}
+                        units = units + data.count
                     end
                 end
             end
-            summary[#summary + 1] = bag .. ":" .. matched .. "/" .. count
+            summary[#summary + 1] = bag .. ":" .. found .. "/" .. count
         end
     end
-    currentSale.remaining, currentSale.unknown = remaining, unknown
-    currentSale.scanSummary = table.concat(summary, "，")
-    return queue
+    return queue, matched, unavailable, unknown, slots, units, table.concat(summary, "，")
 end
-local function FinishOrRescan(currentSale, delta)
-    currentSale.rescanWait = currentSale.rescanWait + delta
-    if currentSale.rescanWait < RESCAN_INTERVAL then return end
-    local waited = currentSale.rescanWait
-    currentSale.rescanWait = 0
-    local queue = ScanBags(currentSale)
-    if #queue > 0 then
-        currentSale.queue, currentSale.index = queue, 1
-        currentSale.emptyScans, currentSale.unreadWait = 0, 0
-        return
-    end
-    if currentSale.unknown > 0 then
-        currentSale.emptyScans = 0
-        currentSale.unreadWait = currentSale.unreadWait + waited
-        if currentSale.unreadWait < SCAN_READ_TIMEOUT then return end
-        StopSale("扫描未完成：已出售 " .. currentSale.sold .. " 组；仍有 " .. currentSale.unknown
-            .. " 处数据不可读，请稍后重试。背包匹配组数/格数：" .. currentSale.scanSummary)
-        return
-    end
-    currentSale.emptyScans = currentSale.emptyScans + 1
-    if currentSale.emptyScans < 2 then return end
-    local result = currentSale.remaining == 0 and "完成：" or "结束："
-    StopSale(result .. "已出售 " .. currentSale.sold .. " 组，跳过 / 未确认 " .. currentSale.skipped
-        .. " 组；复查清单剩余 " .. currentSale.remaining .. " 组。背包匹配组数/格数：" .. currentSale.scanSummary)
+local function FailSale(currentSale, reason)
+    StopSale("未完成：已出售 " .. currentSale.sold .. "/" .. #currentSale.queue .. " 组，尚有 "
+        .. (#currentSale.queue - currentSale.sold) .. " 组未完成；" .. reason)
 end
 local function SaleTick(_, elapsed)
     local currentSale = sale
     if not currentSale then return end
-    if not MerchantReady() then StopSale("出售已停止：商店关闭、切页或当前无法出售。"); return end
+    if not MerchantReady() then FailSale(currentSale, "商店关闭、切页或当前无法出售。"); return end
     currentSale.elapsed = currentSale.elapsed + elapsed
     if currentSale.elapsed < SALE_INTERVAL then return end
     local delta = currentSale.elapsed
     currentSale.elapsed = 0
-    for index = #currentSale.pending, 1, -1 do
-        local pending = currentSale.pending[index]
-        local current, readable = Snapshot(pending.bag, pending.slot)
-        if readable and (not current or current.id ~= pending.data.id or current.count < pending.data.count
-            or (current.guid and pending.data.guid and current.guid ~= pending.data.guid)) then
+    local pending = currentSale.pending
+    if pending then
+        -- Merchant inventory/money events acknowledge a request; never rescan sold slots.
+        if pending.bagUpdated and pending.moneyReceived then
             currentSale.sold = currentSale.sold + 1
-            table.remove(currentSale.pending, index)
+            currentSale.index = currentSale.index + 1
+            currentSale.pending = nil
+        elseif pending.error and not pending.moneyReceived then
+            if pending.retryable and pending.entry.attempts < MAX_ATTEMPTS then
+                currentSale.pending = nil
+                currentSale.retryWait = RETRY_INTERVAL
+            else
+                FailSale(currentSale, pending.error)
+                return
+            end
         else
             pending.wait = pending.wait + delta
-            if pending.wait >= CONFIRM_TIMEOUT then
-                SkipStack(currentSale, pending.bag, pending.slot, pending.data)
-                table.remove(currentSale.pending, index)
+            if pending.wait >= RECEIPT_TIMEOUT then
+                FailSale(currentSale, "未收到商店售卖回执，已停止，未将该组计为完成。")
             end
+            return
         end
     end
-    -- 20 is only the in-flight bound. Draining one scan must never end the whole sale.
-    for _ = 1, SALE_BATCH_SIZE do
-        if #currentSale.pending >= MAX_PENDING_SALES then break end
-        local entry = currentSale.queue[currentSale.index]
-        if not entry then break end
-        if not MerchantReady() then StopSale("出售已停止：商店关闭、切页或当前无法出售。"); return end
-        currentSale.index = currentSale.index + 1
-        local current = Snapshot(entry.bag, entry.slot)
-        if not SameStack(current, entry.data) or (current.locked ~= false and current.locked ~= 0)
-            or current.noValue == true or current.noValue == 1 or not FindID(current.id) then
-            SkipStack(currentSale, entry.bag, entry.slot, entry.data)
-        else
-            local pending = {bag = entry.bag, slot = entry.slot, data = current, wait = 0}
-            local ok, result = pcall(SellBagItem, entry.bag, entry.slot)
-            if sale ~= currentSale then return end
-            if not ok or not Readable(result) or result == false then
-                SkipStack(currentSale, entry.bag, entry.slot, current)
-            else
-                currentSale.pending[#currentSale.pending + 1] = pending
-            end
-        end
+    local entry = currentSale.queue[currentSale.index]
+    if not entry then
+        StopSale("完成：固定清单 " .. #currentSale.queue .. " 组已全部出售（" .. currentSale.units .. " 个物品）。")
+        return
     end
-    if not currentSale.queue[currentSale.index] and #currentSale.pending == 0 then
-        FinishOrRescan(currentSale, delta)
+    if currentSale.retryWait > 0 then
+        currentSale.retryWait = math.max(0, currentSale.retryWait - delta)
+        return
+    end
+    -- Only a pre-send check of the original queued slot; no post-sale inventory checks.
+    local current, readable = Snapshot(entry.bag, entry.slot)
+    if not readable then FailSale(currentSale, "待售物品数据不可读，未继续发送。"); return end
+    if not SameStack(current, entry.data) or not FindID(entry.data.id) then
+        FailSale(currentSale, "待售背包格或清单已变化，请重新点击建立清单。")
+        return
+    end
+    if current.noValue == true or current.noValue == 1 then FailSale(currentSale, "清单中的物品当前不可出售。"); return end
+    if current.locked ~= false and current.locked ~= 0 then
+        entry.lockWait = entry.lockWait + delta
+        if entry.lockWait >= LOCK_TIMEOUT then FailSale(currentSale, "待售物品持续锁定，未跳过该组。") end
+        return
+    end
+    local beforeMoney = ReadMoney()
+    if beforeMoney == nil then FailSale(currentSale, "无法读取商店金币回执所需数据。"); return end
+    entry.attempts = entry.attempts + 1
+    pending = {entry = entry, beforeMoney = beforeMoney, wait = 0}
+    currentSale.pending = pending -- Events can be synchronous inside UseContainerItem.
+    local ok, result = pcall(SellBagItem, entry.bag, entry.slot)
+    if sale ~= currentSale then return end
+    if not ok or not Readable(result) or result == false then
+        pending.error, pending.retryable = "售卖请求未被接受。", true
     end
 end
 local function StartSale()
     if sale then return end
     if not MerchantReady() then Say("请在商店购买页、非战斗且鼠标未拿取物品时使用。"); return end
     if not items or #items == 0 then Say("清单为空，请右键按钮添加物品 ID。"); return end
-    local nextSale = {index = 1, sold = 0, skipped = 0, elapsed = 0, pending = {},
-        skippedStacks = {}, rescanWait = 0, emptyScans = 0, unreadWait = 0}
-    nextSale.queue = ScanBags(nextSale)
-    if #nextSale.queue == 0 and nextSale.unknown == 0 then
-        Say("没有可出售的清单物品；清单匹配 " .. nextSale.remaining
-            .. " 组（锁定或不可出售会跳过）。背包匹配组数/格数：" .. nextSale.scanSummary)
+    local queue, matched, unavailable, unknown, slots, units, summary = ScanBags()
+    if unknown > 0 then
+        Say("扫描未完成：" .. unknown .. " 处背包数据不可读，尚未出售任何物品。背包匹配组数/格数：" .. summary)
         return
     end
-    sale = nextSale
-    Say("开始：本次扫描可出售 " .. #sale.queue .. " 组，无总时长 / 总组数限制。背包匹配组数/格数：" .. sale.scanSummary)
+    Say("扫描完成：5 个随身背包、" .. slots .. " 格，清单匹配 " .. matched .. " 组，可出售 "
+        .. #queue .. " 组（" .. units .. " 个物品），不可售 " .. unavailable .. " 组。背包匹配组数/格数：" .. summary)
+    if #queue == 0 then Say("没有可出售的清单物品。"); return end
+    if ReadMoney() == nil then Say("金币回执数据不可读，尚未开始出售。"); return end
+    sale = {queue = queue, index = 1, sold = 0, units = units, elapsed = 0, retryWait = 0}
+    for _, event in ipairs(saleEvents) do eventFrame:RegisterEvent(event) end
     merchantButton:SetText("出售中…")
     merchantButton:Disable()
     eventFrame:SetScript("OnUpdate", SaleTick)
@@ -445,6 +438,17 @@ eventFrame:SetScript("OnEvent", function(_, event, id, success)
         merchantOpen = false
         if sale then StopSale("商店关闭，出售已停止。") end
         if merchantButton then merchantButton:Hide() end
+    elseif sale and sale.pending and (event == "BAG_UPDATE" or event == "BAG_UPDATE_DELAYED") then
+        if event == "BAG_UPDATE_DELAYED" or (Readable(id) and id == sale.pending.entry.bag) then
+            sale.pending.bagUpdated = true
+        end
+    elseif sale and sale.pending and event == "PLAYER_MONEY" then
+        local money = ReadMoney()
+        if money and money > sale.pending.beforeMoney then sale.pending.moneyReceived = true end
+    elseif sale and sale.pending and event == "UI_ERROR_MESSAGE" and Readable(success) and type(success) == "string" then
+        sale.pending.error = success
+        sale.pending.retryable = success == ERR_OBJECT_IS_BUSY or success == ERR_ITEM_LOCKED
+            or success == ERR_CANT_DO_THAT_RIGHT_NOW
     elseif ValidID(id) and FindID(id) and settings and settings:IsShown() then
         if Readable(success) then
             if success == false then failed[id] = true elseif success == true then failed[id] = nil end
