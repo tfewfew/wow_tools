@@ -14,7 +14,7 @@ local function Integer(value,minimum,maximum)
     return Readable(value) and type(value)=="number" and value>=minimum and value<=maximum and value==math.floor(value)
 end
 local function MaximumLevel()
-    local maximum=Read(GetMaxLevelForPlayerExpansion)
+    local maximum=Read(GetMaxLevelForLatestExpansion)
     if Integer(maximum,1,1000) then return maximum end
 end
 local function FreeSlots()
@@ -201,8 +201,13 @@ local function Sample(bags,skills,bind,forLogout)
     sampling=true
     local level=Read(UnitLevel,"player")
     if Integer(level,1,1000) then cached.level=level end
-    local maximum=MaximumLevel()
-    if maximum then cached.maxLevel=maximum end
+    if bags and skills and bind then
+        local maximum,recordedAt=MaximumLevel(),Read(time)
+        if maximum and Integer(recordedAt,1,253402300799) then
+            -- Account SavedVariables, keyed by realm, shared by every character.
+            wowToolsRealmLevels[realm]={maxLevel=maximum,recordedAt=recordedAt}
+        end
+    end
     if bind then
         local location=BindLocation()
         if location then cached.bindLocation=location end
@@ -228,16 +233,17 @@ local function SaveSnapshot()
     if not cached or not Integer(recordedAt,1,253402300799) then return false end
     -- SavedVariables are updated in memory here. The client flushes them to disk
     -- on logout/reload; addons cannot force an online disk write.
-    wowToolsCharacterRecord={version=4,name=cached.name,realm=cached.realm,
+    wowToolsCharacterRecord={version=5,name=cached.name,realm=cached.realm,
         level=cached.level or 0,freeBagSlots=cached.freeBagSlots or -1,recordedAt=recordedAt,
         professions=cached.professions or "?",secondarySkills=cached.secondarySkills or "?",
-        bindLocation=cached.bindLocation or "?",maxLevel=cached.maxLevel or 0}
+        bindLocation=cached.bindLocation or "?"}
     return true
 end
 local liveEvents={"PLAYER_ENTERING_WORLD","PLAYER_LEAVING_WORLD","BAG_UPDATE_DELAYED","SKILL_LINES_CHANGED","PLAYER_LEVEL_UP","HEARTHSTONE_BOUND"}
 local function StartRecording()
     if initialized then return end
     initialized=true
+    if not Readable(wowToolsRealmLevels) or type(wowToolsRealmLevels)~="table" then wowToolsRealmLevels={} end
     events:RegisterEvent("PLAYER_LOGOUT")
     for _,event in ipairs(liveEvents) do events:RegisterEvent(event) end
     Sample(true,true,true)

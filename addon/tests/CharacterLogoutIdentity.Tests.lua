@@ -18,7 +18,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     function GetRealmName() return realm end
     function UnitLevel() return level end
     function GetBindLocation() return bind end
-    function GetMaxLevelForPlayerExpansion() return 80 end
+    function GetMaxLevelForLatestExpansion() return 80 end
     function GetMaxPlayerLevel() return 80 end
     function time() return now end
     C_Container={GetContainerNumSlots=function(bag) return bag==0 and 16 or 0 end,
@@ -46,7 +46,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
         Event("PLAYER_LOGOUT")
         local record=wowToolsCharacterRecord
         assert(record and record.name=="测试角色" and record.realm=="服务器甲" and record.level==80
-            and record.freeBagSlots==12 and record.bindLocation=="达拉然" and record.maxLevel==80
+            and record.freeBagSlots==12 and record.bindLocation=="达拉然" and record.maxLevel==nil and wowToolsRealmLevels["服务器甲"].maxLevel==80
             and record.secondarySkills=="356|钓鱼|300|450" and record.recordedAt==now,
             "Cleared logout identity discarded the current login's snapshot: "..missing)
     end

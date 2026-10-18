@@ -22,8 +22,8 @@ for _,flavor in ipairs({"titan","forerver"}) do
     function UnitName() return name end
     function GetRealmName() return realm end
     function UnitLevel() reads.level=reads.level+1;return level end
-    function GetMaxLevelForPlayerExpansion() reads.maximum=reads.maximum+1;return maximum end
-    GetMaxPlayerLevel=flavor=="forerver" and GetMaxLevelForPlayerExpansion or nil
+    function GetMaxLevelForLatestExpansion() reads.maximum=reads.maximum+1;return maximum end
+    GetMaxPlayerLevel=flavor=="forerver" and GetMaxLevelForLatestExpansion or nil
     function GetBindLocation() reads.bind=reads.bind+1;return bind end
     function time() return now end
     C_Container={
@@ -51,7 +51,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     assert(wowToolsCharacterRecord==nil,"Addon loading published before the world was ready")
     free=9;Event("PLAYER_ENTERING_WORLD",true,false)
     local online=wowToolsCharacterRecord
-    assert(online and online.level==70 and online.maxLevel==80 and online.freeBagSlots==9
+    assert(online and online.level==70 and online.maxLevel==nil and wowToolsRealmLevels[realm].maxLevel==80 and online.freeBagSlots==9
         and online.professions=="186|采矿|100|450" and online.secondarySkills=="356|钓鱼|200|450"
         and online.bindLocation=="暴风城" and online.recordedAt==now and not frame.scripts.OnUpdate,
         "World entry did not immediately publish current character metadata without detection")
@@ -88,7 +88,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
     -- A new login cannot label the previous disk snapshot as a fresh reading.
     Reset();level,maximum,bind=secret,secret,secret;mode="unknown"
     Load();Event("PLAYER_ENTERING_WORLD",true,false)
-    assert(wowToolsCharacterRecord.level==0 and wowToolsCharacterRecord.maxLevel==0
+    assert(wowToolsCharacterRecord.level==0 and wowToolsCharacterRecord.maxLevel==nil
         and wowToolsCharacterRecord.freeBagSlots==-1 and wowToolsCharacterRecord.professions=="?"
         and wowToolsCharacterRecord.secondarySkills=="?" and wowToolsCharacterRecord.bindLocation=="?",
         "World-entry publication borrowed previous-login metadata")

@@ -121,7 +121,7 @@ $snapshotRole=Join-Path $script:rotation.GameDirectories.titan 'WTF\Account\ACCO
 $snapshotFile=Join-Path $snapshotRole 'SavedVariables\wow_tools.lua'
 $snapshotBytes=[IO.File]::ReadAllBytes($snapshotFile)
 try {
-    Write-TestCharacterRecord $snapshotRole '角色丙' '测试服' -Version 4 -Level 80 -MaxLevel 80 -FreeBagSlots 7 -BindLocation '铁炉堡' -RecordedAt 1792300060
+    Write-TestCharacterRecord $snapshotRole '角色丙' '测试服' -Version 5 -Level 80 -FreeBagSlots 7 -BindLocation '铁炉堡' -RecordedAt 1792300060
     $refreshButton.PerformClick();Pump-Parallel {-not $script:scanning}
     $freshRecord=@($script:accountTasks.Catalog['titan:ACCOUNT-A'].Characters | Where-Object Name -ceq '角色丙')[0]
     Assert-Parallel ($freshRecord.Level -eq 80 -and $freshRecord.FreeBagSlots -eq 7 -and $freshRecord.BindLocation -ceq '铁炉堡' -and $freshRecord.RecordedAt -eq 1792300060) 'Refresh reused old disk metadata.'

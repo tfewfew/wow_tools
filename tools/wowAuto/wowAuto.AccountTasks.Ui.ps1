@@ -135,7 +135,7 @@ function Show-AccountGridDraft($Editor,[string]$Key) {
         $Editor.Selected=$Key
         if(-not $Key){return}
         $records=$script:accountTasks.Catalog[$Key].Characters
-        $groups=Get-WowCharacterLevelGroups $Editor.Draft.Accounts[$Key] $records
+        $groups=Get-WowCharacterLevelGroups $Editor.Draft.Accounts[$Key] $records $script:accountTasks.Catalog[$Key].RealmLevels
         $Editor.FullLabel.Text='满级角色（'+$groups.Full.Count+'）'
         $Editor.LevelingLabel.Text='未满级角色（'+$groups.Leveling.Count+'，按等级降序；上限未知列于此，等级未知置后）'
         foreach($group in @(@{Grid=$Editor.FullGrid;Entries=$groups.Full},@{Grid=$Editor.LevelingGrid;Entries=$groups.Leveling})){
@@ -148,7 +148,7 @@ function Show-AccountGridDraft($Editor,[string]$Key) {
                 $location=if([string]::IsNullOrWhiteSpace($record.BindLocation)){'未知'}else{$record.BindLocation}
                 $index=$grid.Rows.Add([object[]]@($role.Enabled,$role.Name,$role.Realm,$(if($role.Mode -eq 'fight'){'战斗'}else{'钓鱼'}),$role.UseItem,$level,$freeSlots,$professions,$secondary,$location))
                 $grid.Rows[$index].Cells['UseItem'].ReadOnly=$role.Mode -eq 'fight'
-                $grid.Rows[$index].Cells['Level'].ToolTipText=if($null -eq $record.MaxLevel){'等级上限未知，加载新插件后正常下线并刷新进程。'}else{'满级等级：'+$record.MaxLevel}
+                $grid.Rows[$index].Cells['Level'].ToolTipText=if($null -eq $entry.MaxLevel){'服务器等级上限未知，该服务器任一角色保存资料后刷新进程。'}else{'服务器满级等级：'+$entry.MaxLevel}
             }
         }
     }finally{$Editor.Loading=$false}

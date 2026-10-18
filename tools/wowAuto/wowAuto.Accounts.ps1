@@ -20,6 +20,17 @@ function Format-WowCharacterSkills($Skills) {
     if(-not @($Skills).Count){return '未学习'}
     return (@($Skills | ForEach-Object {$_.Name+' '+$_.Rank+'/'+$_.MaxRank}) -join "`n")
 }
+function ConvertFrom-WowLuaString([string]$Text) {
+    return [regex]::Replace($Text,'\\(?<escape>\d{1,3}|.)',{
+        param($escape)
+        $value=$escape.Groups['escape'].Value
+        switch($value){
+            'n'{return "`n"} 'r'{return "`r"} 't'{return "`t"}
+            '"'{return '"'} '\'{return '\'}
+            default{if([int]$value -gt 255){throw 'Invalid Lua string escape.'};return [string][char][int]$value}
+        }
+    })
+}
 function ConvertFrom-WowCharacterRecord([string]$Text) {
     # Parse only our flat data table. SavedVariables are never executed.
     if ($Text.Length -gt 64KB) {return $null}
@@ -36,15 +47,7 @@ function ConvertFrom-WowCharacterRecord([string]$Text) {
             if ($key -cnotin @('version','name','realm','level','freeBagSlots','recordedAt','professions','secondarySkills','bindLocation','maxLevel') -or $values.ContainsKey($key)) {return $null}
             if ($key -cin @('name','realm','professions','secondarySkills','bindLocation')) {
                 if (-not $match.Groups['text'].Success) {return $null}
-                $values[$key]=[regex]::Replace($match.Groups['text'].Value,'\\(?<escape>\d{1,3}|.)',{
-                    param($escape)
-                    $value=$escape.Groups['escape'].Value
-                    switch ($value) {
-                        'n' {return "`n"} 'r' {return "`r"} 't' {return "`t"}
-                        '"' {return '"'} '\' {return '\'}
-                        default {if ([int]$value -gt 255) {throw 'Invalid Lua string escape.'};return [string][char][int]$value}
-                    }
-                })
+                $values[$key]=ConvertFrom-WowLuaString $match.Groups['text'].Value
             } else {
                 $number=0L
                 if (-not $match.Groups['number'].Success -or -not [long]::TryParse($match.Groups['number'].Value,[ref]$number)) {return $null}
@@ -53,32 +56,33 @@ function ConvertFrom-WowCharacterRecord([string]$Text) {
             $position=$match.Index+$match.Length
         }
         $expected=@('version','name','realm','level','freeBagSlots','recordedAt')
-        if($values.version -in @(2,3,4)){$expected+=@('professions','secondarySkills')}
-        if($values.version -in @(3,4)){$expected+='bindLocation'}
+        if($values.version -in @(2,3,4,5)){$expected+=@('professions','secondarySkills')}
+        if($values.version -in @(3,4,5)){$expected+='bindLocation'}
         if($values.version -eq 4){$expected+='maxLevel'}
-        if ($values.Count -ne $expected.Count -or @($expected | Where-Object {-not $values.ContainsKey($_)}).Count -or $values.version -notin @(1,2,3,4) -or $values.name -notmatch '^[\p{L}\p{M}]{1,24}$' -or
+        if ($values.Count -ne $expected.Count -or @($expected | Where-Object {-not $values.ContainsKey($_)}).Count -or $values.version -notin @(1,2,3,4,5) -or $values.name -notmatch '^[\p{L}\p{M}]{1,24}$' -or
             -not $values.realm -or $values.realm.Length -gt 128 -or $values.realm -match '[\p{C}\\/]' -or
             $values.level -lt 0 -or $values.level -gt 1000 -or $values.freeBagSlots -lt -1 -or $values.freeBagSlots -gt 11000 -or
             $values.recordedAt -lt 1 -or $values.recordedAt -gt 253402300799) {return $null}
-        if($values.version -in @(3,4) -and ([string]::IsNullOrWhiteSpace($values.bindLocation) -or $values.bindLocation.Length -gt 256 -or
+        if($values.version -in @(3,4,5) -and ([string]::IsNullOrWhiteSpace($values.bindLocation) -or $values.bindLocation.Length -gt 256 -or
             $values.bindLocation -match '[{}\p{C}]')){return $null}
         if($values.version -eq 4 -and ($values.maxLevel -lt 0 -or $values.maxLevel -gt 1000)){return $null}
         return [pscustomobject]@{Name=$values.name;Realm=$values.realm;
             Level=$(if ($values.level -gt 0) {$values.level} else {$null});
             FreeBagSlots=$(if ($values.freeBagSlots -ge 0) {$values.freeBagSlots} else {$null});RecordedAt=$values.recordedAt;
-            Professions=$(if($values.version -in @(2,3,4)){ConvertFrom-WowSkillRecord $values.professions 'primary'}else{$null});
-            SecondarySkills=$(if($values.version -in @(2,3,4)){ConvertFrom-WowSkillRecord $values.secondarySkills 'secondary'}else{$null});
-            BindLocation=$(if($values.version -in @(3,4) -and $values.bindLocation -cne '?'){$values.bindLocation}else{$null});
-            MaxLevel=$(if($values.version -eq 4 -and $values.maxLevel -gt 0){$values.maxLevel}else{$null})}
+            Professions=$(if($values.version -in @(2,3,4,5)){ConvertFrom-WowSkillRecord $values.professions 'primary'}else{$null});
+            SecondarySkills=$(if($values.version -in @(2,3,4,5)){ConvertFrom-WowSkillRecord $values.secondarySkills 'secondary'}else{$null});
+            BindLocation=$(if($values.version -in @(3,4,5) -and $values.bindLocation -cne '?'){$values.bindLocation}else{$null})}
     } catch {return $null}
 }
-function Get-WowCharacterLevelGroups($Roles,$Records) {
+function Get-WowCharacterLevelGroups($Roles,$Records,$RealmLevels=@{}) {
     $full=@();$leveling=@();$order=0
     foreach($role in $Roles){
         $record=@($Records | Where-Object {$_.Name -ceq $role.Name -and $_.Realm -ceq $role.Realm})
         if($record.Count -ne 1){continue}
-        $entry=[pscustomobject]@{Role=$role;Record=$record[0];Order=$order++}
-        if($null -ne $record[0].Level -and $null -ne $record[0].MaxLevel -and $record[0].Level -ge $record[0].MaxLevel){$full+=,$entry}
+        $maximum=$null
+        if($RealmLevels -and $RealmLevels.ContainsKey($record[0].Realm)){$maximum=$RealmLevels[$record[0].Realm].MaxLevel}
+        $entry=[pscustomobject]@{Role=$role;Record=$record[0];MaxLevel=$maximum;Order=$order++}
+        if($null -ne $record[0].Level -and $null -ne $maximum -and $record[0].Level -ge $maximum){$full+=,$entry}
         else{$leveling+=,$entry}
     }
     $leveling=@($leveling | Sort-Object -Property @{Expression={if($null -eq $_.Record.Level){-1}else{$_.Record.Level}};Descending=$true},Order)
@@ -114,11 +118,77 @@ function Set-RowSlotTask($Row,$Slot) {
     $Row.SlotUseItem=$Slot.Mode -eq 'fish' -and $Slot.PSObject.Properties['UseItem'] -and [bool]$Slot.UseItem
     Set-RowTaskMode $Row $Slot.Mode
 }
+function ConvertFrom-WowRealmLevels([string]$Text) {
+    # Read only this exact data table; other account SavedVariables are never executed.
+    if($Text.Length -gt 1MB){return $null}
+    try {
+        $headers=[regex]::Matches($Text,'(?m)^[ \t]*wowToolsRealmLevels[ \t]*=[ \t]*')
+        if($headers.Count -ne 1){return $null}
+        $position=$headers[0].Index+$headers[0].Length
+        $open=[regex]::new('\G\s*\{').Match($Text,$position)
+        if(-not $open.Success -or $open.Index -ne $position){return $null}
+        $position=$open.Index+$open.Length;$start=$position
+        $records=[Collections.Generic.Dictionary[string,object]]::new([StringComparer]::Ordinal)
+        $entry=[regex]::new('\G\s*\["(?<realm>(?:[^"\\\r\n]|\\(?:["\\nrt]|\d{1,3}))*)"\]\s*=\s*\{(?<fields>[^{}]{1,256})\}\s*(?:,|(?=\}))',[Text.RegularExpressions.RegexOptions]::None,[timespan]::FromSeconds(1))
+        $field=[regex]::new('\G\s*(?:\["(?<key>maxLevel|recordedAt)"\]|(?<key>maxLevel|recordedAt))\s*=\s*(?<value>\d{1,12})\s*(?:,|\z)')
+        $close=[regex]::new('\G\s*\}')
+        while($position -lt $Text.Length -and $position-$start -le 64KB -and $records.Count -le 500){
+            $end=$close.Match($Text,$position)
+            if($end.Success -and $end.Index -eq $position){return ,$records}
+            $match=$entry.Match($Text,$position)
+            if(-not $match.Success -or $match.Index -ne $position){return $null}
+            $realm=ConvertFrom-WowLuaString $match.Groups['realm'].Value
+            if(-not $realm -or $realm.Length -gt 128 -or $realm -match '[\p{C}\\/]' -or $records.ContainsKey($realm)){return $null}
+            $body=$match.Groups['fields'].Value;$offset=0;$values=@{}
+            while($offset -lt $body.Length -and $body.Substring($offset).Trim()){
+                $part=$field.Match($body,$offset)
+                if(-not $part.Success -or $part.Index -ne $offset){return $null}
+                $key=$part.Groups['key'].Value
+                if($values.ContainsKey($key)){return $null}
+                $values[$key]=[long]$part.Groups['value'].Value;$offset=$part.Index+$part.Length
+            }
+            if($values.Count -ne 2 -or $values.maxLevel -lt 1 -or $values.maxLevel -gt 1000 -or
+                $values.recordedAt -lt 1 -or $values.recordedAt -gt 253402300799){return $null}
+            $records[$realm]=[pscustomobject]@{MaxLevel=$values.maxLevel;RecordedAt=$values.recordedAt}
+            $position=$match.Index+$match.Length
+        }
+    }catch{return $null}
+    return $null
+}
+function Read-WowRealmLevels([string]$AccountDirectory) {
+    try {
+        $saved=Join-Path $AccountDirectory 'SavedVariables';$path=Join-Path $saved 'wow_tools.lua'
+        foreach($itemPath in @($saved,$path)){
+            $item=Get-Item -LiteralPath $itemPath -Force -ErrorAction Stop
+            if($item.Attributes -band [IO.FileAttributes]::ReparsePoint){return $null}
+        }
+        if($item.Length -gt 1MB){return $null}
+        return ConvertFrom-WowRealmLevels ([IO.File]::ReadAllText($path))
+    }catch{return $null}
+}
+function Get-WowRealmLevelsCatalog([string]$AccountRoot) {
+    $levels=[Collections.Generic.Dictionary[string,object]]::new([StringComparer]::Ordinal)
+    foreach($account in @(Get-ChildItem -LiteralPath $AccountRoot -Directory -ErrorAction Stop)){
+        if($account.Name -eq 'SavedVariables' -or ($account.Attributes -band [IO.FileAttributes]::ReparsePoint)){continue}
+        $records=Read-WowRealmLevels $account.FullName
+        if(-not $records){continue}
+        foreach($realm in $records.Keys){
+            $next=$records[$realm]
+            if(-not $levels.ContainsKey($realm) -or $next.RecordedAt -gt $levels[$realm].RecordedAt){$levels[$realm]=$next}
+            elseif($next.RecordedAt -eq $levels[$realm].RecordedAt -and $next.MaxLevel -ne $levels[$realm].MaxLevel){
+                # A timestamp tie with conflicting values is unknown, never an arbitrary choice.
+                $levels[$realm]=[pscustomobject]@{MaxLevel=$null;RecordedAt=$next.RecordedAt}
+            }
+        }
+    }
+    return ,$levels
+}
 function Get-WowAccountCatalog([string]$GameDirectory) {
     $accounts=@()
     if (-not $GameDirectory) {return $accounts}
     $root=Join-Path $GameDirectory 'WTF\Account'
     if (-not [IO.Directory]::Exists($root)) {return $accounts}
+    $realmLevels=Get-WowRealmLevelsCatalog $root
     foreach ($account in @(Get-ChildItem -LiteralPath $root -Directory -ErrorAction Stop | Sort-Object Name)) {
         if ($account.Name -eq 'SavedVariables' -or ($account.Attributes -band [IO.FileAttributes]::ReparsePoint)) {continue}
         $characters=@()
@@ -131,7 +201,7 @@ function Get-WowAccountCatalog([string]$GameDirectory) {
             }
         }
         # Empty accounts are selectable too, but do not invent character names for them.
-        $accounts+=,[pscustomobject]@{Name=$account.Name;Characters=$characters}
+        $accounts+=,[pscustomobject]@{Name=$account.Name;Characters=$characters;RealmLevels=$realmLevels}
     }
     return $accounts
 }
