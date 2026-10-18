@@ -47,8 +47,10 @@ namespace WowAuto.Audio
             {
                 return true;
             }
-            // A possible event must not raise its own background threshold.
-            if (!fired && (peak <= baseline * 3 || peak < QuantizationFloor)) UpdateNoise(peak, 0.04);
+            // Stop learning a rise before the stricter candidate gate is reached.
+            // Learning up to 3x baseline lets a gradual splash inflate baseline and
+            // variance until its own peak can no longer cross that gate.
+            if (!fired && (peak <= baseline * 1.5 || peak < QuantizationFloor)) UpdateNoise(peak, 0.04);
             return false;
         }
         public static double Pcm16Peak(short[] samples)
