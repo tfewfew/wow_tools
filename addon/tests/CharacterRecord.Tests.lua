@@ -40,7 +40,9 @@ for _,flavor in ipairs({"titan","forerver"}) do
     f.scripts.OnEvent(f,"PLAYER_LOGOUT")
     assert(reads==0 and wowToolsCharacterRecord==previous and not next(f.events) and not f.scripts.OnUpdate,"Inactive role was read or rewritten")
     WoWTools.ActivateDetector("wowDetector")
-    assert(f.events.PLAYER_LOGOUT and reads==0,"Start sampled metadata or missed logout subscription")
+    assert(f.events.PLAYER_LOGOUT and f.events.BAG_UPDATE_DELAYED and f.events.SKILL_LINES_CHANGED
+        and reads>0 and wowToolsCharacterRecord==previous and not f.scripts.OnUpdate,
+        "Start did not cache live metadata, persisted early, or introduced polling")
     level=81;now=now+60
     f.scripts.OnEvent(f,"PLAYER_LOGOUT")
     local record=wowToolsCharacterRecord
@@ -55,9 +57,14 @@ for _,flavor in ipairs({"titan","forerver"}) do
     assert(reads>before and wowToolsCharacterRecord~=record and wowToolsCharacterRecord.freeBagSlots==9,"Previously monitored role did not refresh its later logout snapshot")
     WoWTools.ActivateDetector("fight_detector")
     for bag=0,4 do spaces[bag]=0 end
+    f.scripts.OnEvent(f,"BAG_UPDATE_DELAYED")
     f.scripts.OnEvent(f,"PLAYER_LOGOUT")
     assert(wowToolsCharacterRecord.freeBagSlots==0,"A full backpack was confused with unknown data")
     missing=true;level=secret
+    f.scripts.OnEvent(f,"PLAYER_LOGOUT")
+    assert(wowToolsCharacterRecord.freeBagSlots==0 and wowToolsCharacterRecord.level==81,
+        "Logout API teardown discarded this login's valid cache")
+    f=load() -- No valid live samples in this new login; prior disk values are not current data.
     f.scripts.OnEvent(f,"PLAYER_LOGOUT")
     assert(wowToolsCharacterRecord.freeBagSlots==-1 and wowToolsCharacterRecord.level==0,"Failed/restricted reads were not unknown")
     missing=false;restricted=true
@@ -74,5 +81,5 @@ for _,flavor in ipairs({"titan","forerver"}) do
     assert(wowToolsCharacterRecord==previous,"Missing identity overwrote a character record")
     local file=assert(io.open(addon.."wow_tools.toc","r"));local toc=file:read("*a");file:close()
     assert(toc:find("## SavedVariablesPerCharacter: wowToolsCharacterRecord",1,true) and toc:find("CharacterRecord.lua",1,true),"Per-character persistence is absent")
-    print("PASS: "..flavor.." monitor use enrolls logout snapshots, previously recorded role refresh, optional bag family, latest level/general bags, full versus unknown, secret/API failure safety and no unmonitored-role reads.")
+    print("PASS: "..flavor.." live event cache and logout-only persistence, optional bag family, valid zero retention, current-login fallback versus previous disk values, restricted/API failures and no unmonitored reads or polling.")
 end

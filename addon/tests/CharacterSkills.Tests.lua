@@ -46,7 +46,7 @@ for _,flavor in ipairs({"titan","forerver"}) do
             reads=reads+1;local row=Visible()[index]
             return row.name,row.header,row.expanded,row.rank,0,0,row.maxRank
         end
-        function ExpandSkillHeader(index) assert(index==0);for _,row in ipairs(rows) do if row.header then row.expanded=true end end end
+        function ExpandSkillHeader(index) local row=Visible()[index];assert(row.header);row.expanded=true end
         function CollapseSkillHeader(index) local row=Visible()[index];assert(row.header);row.expanded=false end
     else
         C_SkillInfo={GetSkillLineInfoByID=function(id) reads=reads+1;assert(id~=129,"First Aid was queried");return learned[id] end}
@@ -56,8 +56,17 @@ for _,flavor in ipairs({"titan","forerver"}) do
     local frame=frames[#frames]
     wowToolsCharacterRecord={version=1} -- Prior records remain enrolled after the schema upgrade.
     frame.scripts.OnEvent(frame,"ADDON_LOADED","wow_tools")
-    assert(frame.events.PLAYER_LOGOUT and reads==0 and not frame.scripts.OnUpdate,"Skills were polled or old record was not enrolled")
-    local function Logout() frame.scripts.OnEvent(frame,"PLAYER_LOGOUT");return wowToolsCharacterRecord end
+    assert(frame.events.PLAYER_LOGOUT and frame.events.SKILL_LINES_CHANGED and reads>0
+        and wowToolsCharacterRecord.version==1 and not frame.scripts.OnUpdate,
+        "Live skills were not cached, disk record changed early, or polling was added")
+    local function Logout()
+        -- Each scenario is a new login, so unknown reads cannot borrow another login's cache.
+        dofile(addon.."CharacterRecord.lua")
+        frame=frames[#frames]
+        frame.scripts.OnEvent(frame,"ADDON_LOADED","wow_tools")
+        frame.scripts.OnEvent(frame,"PLAYER_LOGOUT")
+        return wowToolsCharacterRecord
+    end
     local record=Logout()
     assert(record.version==2 and record.professions=="186|采矿|450|450;393|剥皮|425|450","Gathering skills were missed or misclassified")
     assert(record.secondarySkills=="185|烹饪|300|450;356|钓鱼|450|450","Life skills or First Aid exclusion failed")

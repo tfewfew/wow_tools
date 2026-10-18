@@ -146,6 +146,9 @@ for _,flavor in ipairs({"titan","forerver"}) do
     state(false,false)
     assert(not recordFrame.events.PLAYER_LOGOUT and recordReads==0,"Inactive character record is subscribed or reading")
     SlashCmdList.WOWDETECTOR("on"); state(true,false)
+    local enrollmentReads=recordReads
+    assert(enrollmentReads>0 and not wowToolsCharacterRecord and not recordFrame.scripts.OnUpdate,
+        "Enrollment did not cache live metadata or wrote a disk snapshot before logout")
     local lootStops=0
     local oldUnregister=lootFrame.UnregisterEvent
     lootFrame.UnregisterEvent=function(self,name) lootStops=lootStops+1; oldUnregister(self,name) end
@@ -186,7 +189,8 @@ for _,flavor in ipairs({"titan","forerver"}) do
     combat=true; fish.Show(); state(true,false); assert(not binding,"Detector changed a target binding")
     combat=false; event("PLAYER_REGEN_ENABLED"); assert(not binding,"Deferred target binding survived")
     fish.Hide(); state(false,false); restored()
-    assert(recordReads==0 and recordFrame.events.PLAYER_LOGOUT,"Stopping detection lost used-this-login flag or introduced background metadata reads")
+    assert(recordReads==enrollmentReads and recordFrame.events.PLAYER_LOGOUT,
+        "Stopping detection lost enrollment or introduced periodic metadata reads")
     event("PLAYER_LOGOUT")
     assert(wowToolsCharacterRecord and wowToolsCharacterRecord.level==80 and wowToolsCharacterRecord.freeBagSlots==10,"Real detector starts did not persist the logout record")
     event("ADDON_LOADED","wow_tools"); state(false,false)

@@ -1,5 +1,5 @@
 -- Per-character SavedVariables prevent concurrent clients from overwriting other roles.
--- No polling: enroll on a successful monitor start, then sample at normal logout.
+-- Cache live metadata after enrollment; persist only at normal logout. No polling.
 local events=CreateFrame("Frame")
 local monitored=false
 local function Readable(value)
@@ -19,8 +19,7 @@ local function FreeSlots()
     if type(slots)~="function" or type(free)~="function" then return -1 end
     local backpack=Read(slots,0)
     if not Integer(backpack,1,1000) then return -1 end
-    local bags=NUM_BAG_SLOTS or 4
-    if not Integer(bags,0,10) then return -1 end
+    local bags=4 -- Backpack + ordinary carried bags; never reagent/bank containers.
     local total=0
     for bag=0,bags do
         local count=Read(slots,bag)
@@ -53,12 +52,29 @@ for id,names in pairs({
     [186]={"采矿","採礦","Mining"},[393]={"剥皮","剝皮","Skinning"},[197]={"裁缝","裁縫","Tailoring"},
     [185]={"烹饪","烹飪","Cooking"},[356]={"钓鱼","釣魚","Fishing"},[794]={"考古学","考古學","Archaeology"},
 }) do for _,name in ipairs(names) do skillNames[name]=id end end
+local function SkillLineAPI()
+    local api=C_SkillInfo
+    if api and type(api.GetNumSkillLines)=="function" and type(api.GetSkillLineInfo)=="function" then
+        return api.GetNumSkillLines,function(index)
+            local info=api.GetSkillLineInfo(index)
+            if not Readable(info) or type(info)~="table" then error("Skill row unavailable") end
+            if not Readable(info.isHeader) or not Readable(info.isCollapsed) then error("Skill header unavailable") end
+            return info.name,info.isHeader,not info.isCollapsed,info.rank,info.tempPoints,info.modifier,info.maxRank,info.skillID
+        end,api.ExpandSkillHeader,api.CollapseSkillHeader
+    end
+    if type(GetNumSkillLines)=="function" and type(GetSkillLineInfo)=="function" then
+        return GetNumSkillLines,function(index)
+            local name,header,expanded,rank,temp,modifier,maximum=GetSkillLineInfo(index)
+            return name,header,expanded,rank,temp,modifier,maximum
+        end,ExpandSkillHeader,CollapseSkillHeader
+    end
+end
 local function CharacterSkills()
     local result={primary={},secondary={}}
     local unknown,seen={},{}
     local function Add(id,name,rank,maximum,group)
         if not Readable(id) or not Readable(name) then unknown[group]=true;return end
-        if id==129 then return end -- First Aid is intentionally excluded.
+        if id==129 then return end
         if not Integer(id,1,100000) then id=type(name)=="string" and skillNames[name] end
         if not id or skillGroups[id]~=group or type(name)~="string" or name=="" or #name>128
             or name:find("[|;{}%c]") or not Integer(rank,0,100000) or not Integer(maximum,1,100000) or rank>maximum then
@@ -66,9 +82,55 @@ local function CharacterSkills()
         end
         if not seen[id] then result[group][#result[group]+1]={id=id,name=name,rank=rank,maximum=maximum};seen[id]=true end
     end
+    local countLines,readLine,expand,collapse=SkillLineAPI()
     local byId=C_SkillInfo and C_SkillInfo.GetSkillLineInfoByID
-    if type(byId)=="function" then
-        -- Forever: query learned skill IDs directly, independent of collapsed skill headers.
+    if countLines then
+        -- Use the client's skill list before optional profession-index stubs.
+        local count=Read(countLines)
+        if not Integer(count,1,1000) then return "?","?" end
+        local collapsed,collapsedIndices={},{}
+        for index=1,count do
+            local ok,name,header,expanded=pcall(readLine,index)
+            if not ok or not Readable(name) or not Readable(header) or not Readable(expanded) then return "?","?" end
+            if header and not expanded then
+                if type(name)~="string" then return "?","?" end
+                collapsed[name]=true
+                collapsedIndices[#collapsedIndices+1]=index
+            end
+        end
+        local expansionOK=true
+        if next(collapsed) then
+            if type(expand)~="function" or type(collapse)~="function" then return "?","?" end
+            for index=#collapsedIndices,1,-1 do
+                if not pcall(expand,collapsedIndices[index]) then expansionOK=false;break end
+            end
+        end
+        local ok=expansionOK and pcall(function()
+            count=Read(countLines)
+            if not Integer(count,1,1000) then error("Skills unavailable") end
+            for index=1,count do
+                local good,name,header,expanded,rank,temp,modifier,maximum,id=pcall(readLine,index)
+                if not good or not Readable(name) or not Readable(header) then error("Skills unavailable") end
+                local namedID=type(name)=="string" and skillNames[name]
+                local knownID=Readable(id) and skillGroups[id] and id or namedID
+                if not header and knownID then
+                    if not Readable(id) then unknown[skillGroups[knownID]]=true
+                    else Add(id or knownID,name,rank,maximum,skillGroups[knownID]) end
+                end
+            end
+        end)
+        if next(collapsed) then
+            local restoreCount=Read(countLines)
+            if not Integer(restoreCount,0,1000) then return "?","?" end
+            for index=restoreCount,1,-1 do
+                local good,name,header=pcall(readLine,index)
+                if good and Readable(name) and Readable(header) and header and type(name)=="string" and collapsed[name] then
+                    if not pcall(collapse,index) then ok=false end
+                end
+            end
+        end
+        if not ok then return "?","?" end
+    elseif type(byId)=="function" then
         for _,id in ipairs(skillIds) do
             local group=skillGroups[id]
             local ok,info=pcall(byId,id)
@@ -81,7 +143,6 @@ local function CharacterSkills()
     elseif type(GetProfessions)=="function" and type(GetProfessionInfo)=="function" then
         local indices={pcall(GetProfessions)}
         if not indices[1] then return "?","?" end
-        -- Preserve holes: absent first/second professions must not hide fishing or cooking.
         for index=2,6 do
             local group=index<=3 and "primary" or "secondary"
             local profession=indices[index]
@@ -94,45 +155,6 @@ local function CharacterSkills()
                 end
             end
         end
-    elseif type(GetNumSkillLines)=="function" and type(GetSkillLineInfo)=="function" then
-        -- Titan's classic tuple API can omit collapsed categories. Expand only for this logout read,
-        -- then restore the exact collapsed categories in reverse order before returning.
-        local count=Read(GetNumSkillLines)
-        if not Integer(count,0,1000) then return "?","?" end
-        local collapsed={}
-        for index=1,count do
-            local ok,name,header,expanded=pcall(GetSkillLineInfo,index)
-            if not ok or not Readable(name) or not Readable(header) or not Readable(expanded) then return "?","?" end
-            if header and not expanded then
-                if type(name)~="string" then return "?","?" end
-                collapsed[name]=true
-            end
-        end
-        if next(collapsed) then
-            if type(ExpandSkillHeader)~="function" or type(CollapseSkillHeader)~="function" then return "?","?" end
-            if not pcall(ExpandSkillHeader,0) then return "?","?" end
-        end
-        local ok=pcall(function()
-            count=Read(GetNumSkillLines)
-            if not Integer(count,0,1000) then error("Skills unavailable") end
-            for index=1,count do
-                local good,name,header,expanded,rank,temp,modifier,maximum=pcall(GetSkillLineInfo,index)
-                if not good or not Readable(name) or not Readable(header) then error("Skills unavailable") end
-                local id=type(name)=="string" and skillNames[name]
-                if not header and id then Add(id,name,rank,maximum,skillGroups[id]) end
-            end
-        end)
-        if next(collapsed) then
-            local restoreCount=Read(GetNumSkillLines)
-            if not Integer(restoreCount,0,1000) then return "?","?" end
-            for index=restoreCount,1,-1 do
-                local good,name,header=pcall(GetSkillLineInfo,index)
-                if good and Readable(name) and Readable(header) and header and type(name)=="string" and collapsed[name] then
-                    if not pcall(CollapseSkillHeader,index) then ok=false end
-                end
-            end
-        end
-        if not ok then return "?","?" end
     else return "?","?" end
     local function Encode(group)
         if unknown[group] then return "?" end
@@ -145,10 +167,34 @@ local function CharacterSkills()
     end
     return Encode("primary"),Encode("secondary")
 end
+-- Cache only this login's valid live values. Disk records are not used as fresh data.
+local cached, sampling, leavingWorld
+local function Sample(bags,skills)
+    if not monitored or sampling then return end
+    local name,realm=Read(UnitName,"player"),Read(GetRealmName)
+    if type(name)~="string" or name=="" or type(realm)~="string" or realm=="" then return end
+    if not cached or cached.name~=name or cached.realm~=realm then cached={name=name,realm=realm} end
+    sampling=true
+    local level=Read(UnitLevel,"player")
+    if Integer(level,1,1000) then cached.level=level end
+    if bags then
+        local free=FreeSlots()
+        if Integer(free,0,11000) then cached.freeBagSlots=free end
+    end
+    if skills then
+        local ok,primary,secondary=pcall(CharacterSkills)
+        if ok and type(primary)=="string" and primary~="?" then cached.professions=primary end
+        if ok and type(secondary)=="string" and secondary~="?" then cached.secondarySkills=secondary end
+    end
+    sampling=false
+end
+local liveEvents={"PLAYER_ENTERING_WORLD","PLAYER_LEAVING_WORLD","BAG_UPDATE_DELAYED","SKILL_LINES_CHANGED","PLAYER_LEVEL_UP"}
 function WoWTools.MarkCharacterMonitored()
     if monitored then return end
     monitored=true
     events:RegisterEvent("PLAYER_LOGOUT")
+    for _,event in ipairs(liveEvents) do events:RegisterEvent(event) end
+    Sample(true,true)
 end
 events:RegisterEvent("ADDON_LOADED")
 events:SetScript("OnEvent",function(_,event,addon)
@@ -158,12 +204,29 @@ events:SetScript("OnEvent",function(_,event,addon)
         if type(wowToolsCharacterRecord)=="table" and (wowToolsCharacterRecord.version==1 or wowToolsCharacterRecord.version==2) then WoWTools.MarkCharacterMonitored() end
         return
     end
-    if event~="PLAYER_LOGOUT" or not monitored then return end
+    if not monitored then return end
+    if event~="PLAYER_LOGOUT" then
+        if event=="PLAYER_LEAVING_WORLD" then leavingWorld=true;return end
+        if event=="PLAYER_ENTERING_WORLD" then leavingWorld=false;Sample(true,true);return end
+        if leavingWorld then return end
+        if event=="BAG_UPDATE_DELAYED" then Sample(true,false)
+        elseif event=="SKILL_LINES_CHANGED" then Sample(false,true)
+        elseif event=="PLAYER_LEVEL_UP" then
+            Sample(false,false)
+            if cached and Integer(addon,1,1000) then cached.level=addon end
+        end
+        return
+    end
     local name,realm=Read(UnitName,"player"),Read(GetRealmName)
     local recordedAt=Read(time)
     if type(name)~="string" or name=="" or type(realm)~="string" or realm=="" or not Integer(recordedAt,1,253402300799) then return end
-    local level=Read(UnitLevel,"player")
-    local professions,secondarySkills=CharacterSkills()
-    wowToolsCharacterRecord={version=2,name=name,realm=realm,level=Integer(level,1,1000) and level or 0,
-        freeBagSlots=FreeSlots(),recordedAt=recordedAt,professions=professions,secondarySkills=secondarySkills}
+    local current=cached and cached.name==name and cached.realm==realm and cached or {}
+    local level=not leavingWorld and Read(UnitLevel,"player") or nil
+    local free=not leavingWorld and FreeSlots() or -1
+    local primary,secondary
+    if not leavingWorld and (current.professions==nil or current.secondarySkills==nil) then primary,secondary=CharacterSkills() end
+    wowToolsCharacterRecord={version=2,name=name,realm=realm,
+        level=Integer(level,1,1000) and level or current.level or 0,
+        freeBagSlots=Integer(free,0,11000) and free or current.freeBagSlots or -1,recordedAt=recordedAt,
+        professions=current.professions or primary or "?",secondarySkills=current.secondarySkills or secondary or "?"}
 end)
