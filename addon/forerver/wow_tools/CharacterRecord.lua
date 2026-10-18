@@ -1,5 +1,5 @@
 -- Forever uses its own per-character SavedVariables and namespaced container APIs.
--- Cache every character's live metadata; persist only at normal logout. No polling.
+-- Sample/publish at world entry and sample/publish again at logout. No polling.
 local events=CreateFrame("Frame")
 local initialized=false
 local function Readable(value)
@@ -172,7 +172,7 @@ local function CharacterSkills()
     return Encode("primary"),Encode("secondary")
 end
 -- Cache only this login's valid live values. Disk records are not used as fresh data.
-local cached, sampling, leavingWorld
+local cached, sampling, leavingWorld, enteredSnapshotSaved
 local function LogoutIdentity()
     local name,realm=Read(UnitName,"player"),Read(GetRealmName)
     local hasName=type(name)=="string" and name~=""
@@ -189,11 +189,15 @@ local function BindLocation()
     if type(location)=="string" and location:match("%S") and #location<=256
         and not location:find("[{}%c]") and location~="?" then return location end
 end
-local function Sample(bags,skills,bind)
+local function Sample(bags,skills,bind,forLogout)
     if not initialized or sampling then return end
-    local name,realm=Read(UnitName,"player"),Read(GetRealmName)
+    local name,realm
+    if forLogout then name,realm=LogoutIdentity()
+    else name,realm=Read(UnitName,"player"),Read(GetRealmName) end
     if type(name)~="string" or name=="" or type(realm)~="string" or realm=="" then return end
-    if not cached or cached.name~=name or cached.realm~=realm then cached={name=name,realm=realm} end
+    if not cached or cached.name~=name or cached.realm~=realm then
+        cached={name=name,realm=realm};enteredSnapshotSaved=false
+    end
     sampling=true
     local level=Read(UnitLevel,"player")
     if Integer(level,1,1000) then cached.level=level end
@@ -209,10 +213,26 @@ local function Sample(bags,skills,bind)
     end
     if skills then
         local ok,primary,secondary=pcall(CharacterSkills)
-        if ok and type(primary)=="string" and primary~="?" then cached.professions=primary end
-        if ok and type(secondary)=="string" and secondary~="?" then cached.secondarySkills=secondary end
+        -- Empty skill APIs during teardown are ambiguous, unlike a valid new
+        -- nonempty reading. Live unlearning events still clear known skills.
+        if ok and type(primary)=="string" and primary~="?"
+            and (not forLogout or not leavingWorld or primary~="") then cached.professions=primary end
+        if ok and type(secondary)=="string" and secondary~="?"
+            and (not forLogout or not leavingWorld or secondary~="") then cached.secondarySkills=secondary end
     end
     sampling=false
+    return true
+end
+local function SaveSnapshot()
+    local recordedAt=Read(time)
+    if not cached or not Integer(recordedAt,1,253402300799) then return false end
+    -- SavedVariables are updated in memory here. The client flushes them to disk
+    -- on logout/reload; addons cannot force an online disk write.
+    wowToolsCharacterRecord={version=4,name=cached.name,realm=cached.realm,
+        level=cached.level or 0,freeBagSlots=cached.freeBagSlots or -1,recordedAt=recordedAt,
+        professions=cached.professions or "?",secondarySkills=cached.secondarySkills or "?",
+        bindLocation=cached.bindLocation or "?",maxLevel=cached.maxLevel or 0}
+    return true
 end
 local liveEvents={"PLAYER_ENTERING_WORLD","PLAYER_LEAVING_WORLD","BAG_UPDATE_DELAYED","SKILL_LINES_CHANGED","PLAYER_LEVEL_UP","HEARTHSTONE_BOUND"}
 local function StartRecording()
@@ -233,7 +253,12 @@ events:SetScript("OnEvent",function(_,event,addon)
     if not initialized then return end
     if event~="PLAYER_LOGOUT" then
         if event=="PLAYER_LEAVING_WORLD" then leavingWorld=true;return end
-        if event=="PLAYER_ENTERING_WORLD" then leavingWorld=false;Sample(true,true,true);return end
+        if event=="PLAYER_ENTERING_WORLD" then
+            leavingWorld=false
+            local sampled=Sample(true,true,true)
+            if sampled and not enteredSnapshotSaved then enteredSnapshotSaved=SaveSnapshot() end
+            return
+        end
         if leavingWorld then return end
         if event=="BAG_UPDATE_DELAYED" then Sample(true,false)
         elseif event=="SKILL_LINES_CHANGED" then Sample(false,true)
@@ -244,19 +269,7 @@ events:SetScript("OnEvent",function(_,event,addon)
         end
         return
     end
-    local name,realm=LogoutIdentity()
-    local recordedAt=Read(time)
-    if type(name)~="string" or name=="" or type(realm)~="string" or realm=="" or not Integer(recordedAt,1,253402300799) then return end
-    local current=cached and cached.name==name and cached.realm==realm and cached or {}
-    local level=not leavingWorld and Read(UnitLevel,"player") or nil
-    local free=not leavingWorld and FreeSlots() or -1
-    local primary,secondary
-    if not leavingWorld and (current.professions==nil or current.secondarySkills==nil) then primary,secondary=CharacterSkills() end
-    local location=not leavingWorld and BindLocation() or nil
-    local maximum=not leavingWorld and MaximumLevel() or nil
-    wowToolsCharacterRecord={version=4,name=name,realm=realm,
-        level=Integer(level,1,1000) and level or current.level or 0,
-        freeBagSlots=Integer(free,0,11000) and free or current.freeBagSlots or -1,recordedAt=recordedAt,
-        professions=current.professions or primary or "?",secondarySkills=current.secondarySkills or secondary or "?",
-        bindLocation=location or current.bindLocation or "?",maxLevel=maximum or current.maxLevel or 0}
+    -- Probe every field again, even after LEAVING_WORLD. Unreadable values retain
+    -- only this login's valid samples; readable values refresh the final record.
+    if Sample(true,true,true,true) then SaveSnapshot() end
 end)

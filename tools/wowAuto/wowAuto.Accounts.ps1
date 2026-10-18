@@ -214,7 +214,7 @@ function New-GameDirectorySettingsPage {
         $inputs[$flavor]=$text;$page.Controls.AddRange([System.Windows.Forms.Control[]]@($label,$text,$browse))
     }
     $errorLabel=New-Object System.Windows.Forms.Label;$errorLabel.SetBounds(20,305,900,110)
-    $errorLabel.Text='角色列表只显示有插件下线记录的角色。登录角色后正常下线，再刷新即可，无需启动检测。等级与背包空格为最近下线快照。留空可停用该版本扫描。'
+    $errorLabel.Text='角色列表只显示有插件保存记录的角色。上线和下线都会采集资料，无需启动检测；正常下线或 /reload 落盘后再刷新。等级与背包空格为最近保存快照。留空可停用该版本扫描。'
     $save=New-Object WowAuto.DimButton;$save.Text='保存游戏目录';$save.SetBounds(20,440,180,38);Set-UiButtonStyle $save $true
     $page.Tag=[pscustomobject]@{Inputs=$inputs;Error=$errorLabel;Save=$save};$save.Tag=$page
     $save.Add_Click({param($sender,$e)

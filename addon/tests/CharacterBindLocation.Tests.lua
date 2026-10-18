@@ -49,10 +49,12 @@ for _,flavor in ipairs({"titan","forerver"}) do
     location=secret;Event("HEARTHSTONE_BOUND")
     Event("PLAYER_LEAVING_WORLD")
     local before=reads
-    location="退出中的无效地点";Event("HEARTHSTONE_BOUND");Event("PLAYER_LOGOUT")
-    assert(reads==before and wowToolsCharacterRecord.version==4
+    location="退出中的无效地点";Event("HEARTHSTONE_BOUND")
+    assert(reads==before,"An ordinary rebind event ran while leaving the world")
+    location=secret;Event("PLAYER_LOGOUT")
+    assert(reads==before+1 and wowToolsCharacterRecord.version==4
         and wowToolsCharacterRecord.bindLocation=="狮王之傲旅店",
-        "Logout teardown or restricted reads replaced this login's cached binding")
+        "Logout did not resample binding once, or a restricted read replaced valid cache")
     location="闪金镇";Event("PLAYER_ENTERING_WORLD")
     location="暴风城旅店";Event("PLAYER_LOGOUT")
     assert(wowToolsCharacterRecord.bindLocation=="暴风城旅店",

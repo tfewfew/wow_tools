@@ -11,8 +11,8 @@
         $column.Name=$columnSpec[0];$column.HeaderText=$columnSpec[1];$column.Width=$columnSpec[2];$column.SortMode='NotSortable'
         if($columnSpec[3] -eq 'mode'){$column.Items.AddRange([object[]]@('钓鱼','战斗'));$column.FlatStyle='Flat'}
         $column.ReadOnly=$columnSpec[0] -in @('Name','Realm','Level','FreeBagSlots','Professions','SecondarySkills','BindLocation')
-        if($columnSpec[0] -in @('Professions','SecondarySkills')){$column.DefaultCellStyle.WrapMode='True';$column.ToolTipText='最近正常下线时的专业技能快照；生活技能不含急救。'}
-        if($columnSpec[0] -eq 'BindLocation'){$column.DefaultCellStyle.WrapMode='True';$column.ToolTipText='炉石绑定地点，来自最近正常下线的插件快照；旧记录或读取失败显示未知。'}
+        if($columnSpec[0] -in @('Professions','SecondarySkills')){$column.DefaultCellStyle.WrapMode='True';$column.ToolTipText='最近保存的专业技能快照；生活技能不含急救。'}
+        if($columnSpec[0] -eq 'BindLocation'){$column.DefaultCellStyle.WrapMode='True';$column.ToolTipText='炉石绑定地点，来自最近保存的插件快照；旧记录或读取失败显示未知。'}
         [void]$grid.Columns.Add($column)
     }
     $grid.Add_CurrentCellDirtyStateChanged({param($sender,$e) if($sender.IsCurrentCellDirty){$null=$sender.CommitEdit([Windows.Forms.DataGridViewDataErrorContexts]::Commit)}})
@@ -43,7 +43,7 @@ function New-AccountTaskSettingsPage {
         foreach($key in @($script:accountTasks.Catalog.Keys | Sort-Object)) {
             if($key.StartsWith($spec[0]+':',[StringComparison]::Ordinal)){[void]$accounts.Items.Add($script:accountTasks.Catalog[$key].Name)}
         }
-        $hint=New-Object Windows.Forms.Label;$hint.Text='满级角色在上，未满级角色按等级降序，新角色默认停用。分表不改变已保存的轮转顺序；等级、背包、技能及炉石位置均为最近正常下线快照。';$hint.SetBounds(18,58,1340,52)
+        $hint=New-Object Windows.Forms.Label;$hint.Text='满级角色在上，未满级按等级降序。分表保留轮转顺序，新角色默认停用。资料为最近保存快照；上线和下线都会采集，需下线或 /reload 落盘后刷新。';$hint.SetBounds(18,58,1340,52)
         if(-not $accounts.Items.Count){$hint.Text='尚未发现该服的子战网角色记录，请检查游戏目录，正常下线保存角色记录后刷新进程。'}
         $fullLabel=New-Object Windows.Forms.Label;$fullLabel.SetBounds(18,106,1340,26);$fullLabel.Text='满级角色'
         $fullGrid=New-AccountRoleGrid 134

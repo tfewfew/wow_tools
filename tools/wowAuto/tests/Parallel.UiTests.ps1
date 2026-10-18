@@ -115,7 +115,26 @@ try {
     foreach($key in $originalOperations.Keys){$dialog.Tag.Operations.Tag.Values[$key].Value=$originalOperations[$key]}
     $dialog.Tag.Operations.Tag.Save.PerformClick()
 }finally{$dialog.Dispose()}
-$refreshButton.PerformClick();Pump-Parallel {-not $script:scanning}
+# Updating a fixture on disk must be reflected by the real Refresh button,
+# including moving a newly capped role from the lower table to the upper one.
+$snapshotRole=Join-Path $script:rotation.GameDirectories.titan 'WTF\Account\ACCOUNT-A\测试服\角色丙'
+$snapshotFile=Join-Path $snapshotRole 'SavedVariables\wow_tools.lua'
+$snapshotBytes=[IO.File]::ReadAllBytes($snapshotFile)
+try {
+    Write-TestCharacterRecord $snapshotRole '角色丙' '测试服' -Version 4 -Level 80 -MaxLevel 80 -FreeBagSlots 7 -BindLocation '铁炉堡' -RecordedAt 1792300060
+    $refreshButton.PerformClick();Pump-Parallel {-not $script:scanning}
+    $freshRecord=@($script:accountTasks.Catalog['titan:ACCOUNT-A'].Characters | Where-Object Name -ceq '角色丙')[0]
+    Assert-Parallel ($freshRecord.Level -eq 80 -and $freshRecord.FreeBagSlots -eq 7 -and $freshRecord.BindLocation -ceq '铁炉堡' -and $freshRecord.RecordedAt -eq 1792300060) 'Refresh reused old disk metadata.'
+    $dialog=New-UnifiedSettingsDialog
+    try {
+        $client=$dialog.Tag.Accounts.Tag.Clients.titan
+        $roleRow=Get-ParallelRoleRow $client '角色丙'
+        Assert-Parallel ($client.FullGrid.Rows.Count -eq 2 -and $client.LevelingGrid.Rows.Count -eq 2 -and $roleRow.DataGridView -eq $client.FullGrid -and
+            $roleRow.Cells['FreeBagSlots'].Value -eq 7 -and $roleRow.Cells['BindLocation'].Value -ceq '铁炉堡') 'Refreshed metadata or level grouping did not reach the role tables.'
+    }finally{$dialog.Dispose()}
+}finally{
+    [IO.File]::WriteAllBytes($snapshotFile,$snapshotBytes);Update-AccountTaskCatalog
+}
 Assert-Parallel (@($rows | Where-Object Validated).Count -eq 3) 'Independent scan/operation acknowledgements did not validate every row.'
 $startAllButton.PerformClick()
 Pump-Parallel {[ParallelFixture]::Ocr[101] -eq 1 -and [ParallelFixture]::Ocr[202] -gt 0} 2000
