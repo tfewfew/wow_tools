@@ -89,9 +89,9 @@ for _,flavor in ipairs({"titan","forerver"}) do
     families[1]=nil;spaces[0]=nil
     f.scripts.OnEvent(f,"PLAYER_LOGOUT")
     assert(wowToolsCharacterRecord.freeBagSlots==-1,"Missing slot count was treated as an empty bag")
-    previous=wowToolsCharacterRecord;name=nil
+    previous=wowToolsCharacterRecord;name="其他角色";realm=nil
     f.scripts.OnEvent(f,"PLAYER_LOGOUT")
-    assert(wowToolsCharacterRecord==previous,"Missing identity overwrote a character record")
+    assert(wowToolsCharacterRecord==previous,"Conflicting partial identity overwrote a character record")
     local file=assert(io.open(addon.."wow_tools.toc","r"));local toc=file:read("*a");file:close()
     assert(toc:find("## SavedVariablesPerCharacter: wowToolsCharacterRecord",1,true) and toc:find("CharacterRecord.lua",1,true),"Per-character persistence is absent")
     print("PASS: "..flavor.." all-character live event cache and logout-only persistence, client level cap, detector independence, optional bag family, zero retention, current-login fallback, restricted/API failures and no polling.")

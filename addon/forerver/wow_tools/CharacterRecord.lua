@@ -173,6 +173,17 @@ local function CharacterSkills()
 end
 -- Cache only this login's valid live values. Disk records are not used as fresh data.
 local cached, sampling, leavingWorld
+local function LogoutIdentity()
+    local name,realm=Read(UnitName,"player"),Read(GetRealmName)
+    local hasName=type(name)=="string" and name~=""
+    local hasRealm=type(realm)=="string" and realm~=""
+    if hasName and hasRealm then return name,realm end
+    -- The player object can be cleared before PLAYER_LOGOUT. Only reuse this
+    -- login's sampled identity; a readable conflicting value must never be filled.
+    if cached and (not hasName or name==cached.name) and (not hasRealm or realm==cached.realm) then
+        return cached.name,cached.realm
+    end
+end
 local function BindLocation()
     local location=Read(GetBindLocation)
     if type(location)=="string" and location:match("%S") and #location<=256
@@ -233,7 +244,7 @@ events:SetScript("OnEvent",function(_,event,addon)
         end
         return
     end
-    local name,realm=Read(UnitName,"player"),Read(GetRealmName)
+    local name,realm=LogoutIdentity()
     local recordedAt=Read(time)
     if type(name)~="string" or name=="" or type(realm)~="string" or realm=="" or not Integer(recordedAt,1,253402300799) then return end
     local current=cached and cached.name==name and cached.realm==realm and cached or {}
