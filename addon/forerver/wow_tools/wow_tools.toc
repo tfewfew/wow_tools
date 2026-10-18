@@ -1,8 +1,8 @@
 ## Interface: 16001
 ## Title: wow_tools (Forever)
-## Notes-zhCN: 无限服工具合集：wowDetector 钓鱼检测、fight_detector 战斗检测与 inner_graphic_config 内部画面设置。
+## Notes-zhCN: 无限服工具合集：钓鱼检测、战斗检测、内部画面设置与商店一键卖鱼。
 ## Author: Ray
-## Version: 2.2.35
+## Version: 2.2.36
 ## X-WoWTools-Flavor: forerver
 ## SavedVariables: wowDetectorDB, fightDetectorDB
 ## SavedVariablesPerCharacter: wowToolsCharacterRecord
@@ -12,6 +12,7 @@ LoginPoint.lua
 Compatibility.lua
 CharacterRecord.lua
 Loot.lua
+SellFish.lua
 wowDetector\Audio.lua
 wowDetector\wowDetector.lua
 fight_detector\Range.lua

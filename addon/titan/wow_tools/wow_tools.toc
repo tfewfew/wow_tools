@@ -1,8 +1,8 @@
 ## Interface: 38002
 ## Title: wow_tools
-## Notes-zhCN: 工具合集：wowDetector 钓鱼检测、fight_detector 战斗检测与 inner_graphic_config 内部画面设置。
+## Notes-zhCN: 工具合集：钓鱼检测、战斗检测、内部画面设置与商店一键卖鱼。
 ## Author: Ray
-## Version: 2.1.36
+## Version: 2.1.37
 ## SavedVariables: wowDetectorDB, fightDetectorDB
 ## SavedVariablesPerCharacter: wowToolsCharacterRecord
 
@@ -10,6 +10,7 @@ Init.lua
 CharacterRecord.lua
 LoginPoint.lua
 Loot.lua
+SellFish.lua
 wowDetector\Audio.lua
 wowDetector\wowDetector.lua
 fight_detector\Range.lua
