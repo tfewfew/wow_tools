@@ -319,6 +319,12 @@ function Invoke-DetectorTaskCore {
     $work=Get-WowAutoWork $script:scheduler $now
     if(-not $work){Write-Detector $state.Status;return}
     if($work.Kind -eq 'AudioTimeout'){
+        if($script:audio){
+            $detail=('无咬钩保护诊断：保护 {0} ms；采集 {1}；最高峰值 {2:F2}%；已比较候选 {3}；最高相似度 {4:F1}%；匹配门槛 {5}%；模板 {6}。' -f
+                ($state.Deadline-$state.FishingStartedAt),$script:audio.Status,($script:audio.MaximumPeak*100),$script:audio.ComparedCandidates,
+                ($script:audio.BestSimilarity*100),$script:config.AudioThreshold,([IO.Path]::GetFileName($script:config.FeaturePath)))
+            $Hub.Log($Endpoint,$script:version,'audio-timeout',$detail)
+        }
         Complete-WowAutoAudioTimeout $script:scheduler $Endpoint.Key $now '无咬钩声音超时，重新抛竿，不计成功收竿循环。'
         Publish-Detector counters @{Cycles=(Get-WowAutoCycleCount $script:scheduler $Endpoint.Key);BiteTimeouts=(Get-WowAutoBiteTimeoutCount $script:scheduler $Endpoint.Key)}
         Write-Detector $state.Status;return

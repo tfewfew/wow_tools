@@ -17,7 +17,9 @@ foreach($name in $fields.Keys) {$capture.GetType().GetField($name,$flags).SetVal
 $rejected=$false
 try {$capture.SetTemplate($b,0.90)} catch {$rejected=$true}
 Assert-Switch ($rejected -and [object]::ReferenceEquals($fields.matcher,$capture.GetType().GetField('matcher',$flags).GetValue($capture)) -and $capture.GetType().GetField('pendingBite',$flags).GetValue($capture) -eq 41L) 'Armed template replacement discarded the current matcher or bite.'
+$capture.GetType().GetField('maximumPeak',$flags).SetValue($capture,0.5)
 $capture.Arm(0)
+Assert-Switch ($capture.MaximumPeak -eq 0 -and $capture.BestSimilarity -eq 0 -and $capture.ComparedCandidates -eq 0) 'Disarming retained prior-round audio diagnostics.'
 foreach($invalid in @([double]::NaN,0.49,1.01)) {
     $rejected=$false; try {$capture.SetTemplate($b,$invalid)} catch {$rejected=$true}
     Assert-Switch ($rejected -and [object]::ReferenceEquals($fields.matcher,$capture.GetType().GetField('matcher',$flags).GetValue($capture))) 'Invalid threshold changed a matcher.'

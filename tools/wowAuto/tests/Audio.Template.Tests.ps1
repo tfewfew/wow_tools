@@ -73,6 +73,18 @@ function Feed-Synthetic($Detector,[int16[]]$Samples,[long]$Start) {
     }
     return $fired
 }
+# Fingerprint normalization already handles quiet sound, but the old fixed
+# amplitude gate can prevent that sound from reaching comparison at all.
+$faint=[SampleFixture]::Tone(880,0.04,1.4)
+$oldGate=[WowAuto.Audio.TemplateDetector]::new($template,0.88);$oldGate.Reset(-1500)
+Assert-Template ((Feed-Synthetic $oldGate $faint 0) -eq 0 -and $oldGate.ComparedCandidates -eq 0) 'Fixed-volume reproduction unexpectedly compared the faint candidate.'
+$scaledGate=[WowAuto.Audio.TemplateDetector]::new($template,0.88,[WowAuto.Audio.ProcessCapture]::MasterVolumeScale)
+$scaledGate.Reset(-1500)
+Assert-Template ((Feed-Synthetic $scaledGate $other 0) -eq 0 -and $scaledGate.Rejected -gt 0) 'Scaled amplitude gate accepted a different fingerprint.'
+Assert-Template ((Feed-Synthetic $scaledGate $faint 2000) -eq 1 -and $scaledGate.BestSimilarity -gt 0.99 -and $scaledGate.ComparedCandidates -ge 2 -and
+    $scaledGate.MinimumSimilarity -eq 0.88) '20% volume lost a real fingerprint, changed the similarity threshold or failed to retain diagnostics.'
+$scaledGate.Reset(4000)
+Assert-Template ($scaledGate.BestSimilarity -eq 0 -and $scaledGate.ComparedCandidates -eq 0) 'New fishing session retained old matching diagnostics.'
 Assert-Template ((Feed-Synthetic $matcher $other 1000) -eq 0 -and $matcher.Rejected -gt 0) 'Interference was not rejected.'
 Assert-Template ((Feed-Synthetic $matcher $tone 3000) -eq 1) 'Rejected interference consumed the session or real template failed.'
 $matcher.SetMinimumSimilarity(0.5)

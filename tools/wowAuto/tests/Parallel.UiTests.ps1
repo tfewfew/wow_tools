@@ -214,6 +214,8 @@ Sync-WowAutoLogging
 $info=[IO.File]::ReadAllText($script:wowAutoLog.InfoPath) | ConvertFrom-Json
 Assert-Parallel ($info.ProcessCount -eq 3 -and $info.Processes[0].Roles.Count -eq 4 -and -not $info.Processes[0].PSObject.Properties['Slots']) 'Info snapshot still describes three process slots.'
 $log=@([IO.File]::ReadAllLines($script:wowAutoLog.LogPath) | ForEach-Object {$_ | ConvertFrom-Json})
+Assert-Parallel (@($log | Where-Object {$_.Kind -eq 'audio-timeout' -and $_.Pid -eq 101 -and $_.Message -match '保护 1000 ms' -and
+    $_.Message -match '最高峰值 0.90%' -and $_.Message -match '已比较候选 0' -and $_.Message -match '模板 titan-'}).Count -eq 1) 'No-bite timeout did not log one per-process audio diagnostic snapshot.'
 Assert-Parallel (@($log | Where-Object {$_.Kind -eq 'status' -and $_.Pid -and $_.ThreadId -in [ParallelFixture]::ReadThread.Values}).Count -gt 0) 'Detection threads did not write PID-associated logs.'
 Assert-Parallel (@($log.WriterThreadId | Sort-Object -Unique).Count -eq 1 -and $log[0].WriterThreadId -eq $script:wowAutoLog.Writer.ThreadId) 'Startup/UI/detector/operator logs were not written by one dedicated log thread.'
 Write-Output 'PASS: per-process detector/OCR threads, one operator, request acknowledgement pauses only its detector, parallel OCR/batch barriers, cancellation isolation, independent direct starts, client child tabs and independent atomic account/period saves, global four-role wraparound, death exhaustion isolated to one process, exactly thirty arrow/OCR retries, UI-only updates and PID/thread logs. All frames/OCR/inputs/process exits are substitutes.'

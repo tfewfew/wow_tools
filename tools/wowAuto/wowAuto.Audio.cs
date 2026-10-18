@@ -14,6 +14,14 @@ namespace WowAuto.Audio
         private double baseline;
         private long armedAt;
         private bool fired;
+        private readonly double minimumPeak, minimumRise;
+        public SpikeDetector() : this(1.0) { }
+        public SpikeDetector(double volumeScale)
+        {
+            if (Double.IsNaN(volumeScale) || volumeScale < 0.01 || volumeScale > 1)
+                throw new ArgumentOutOfRangeException("volumeScale");
+            minimumPeak = 0.06 * volumeScale; minimumRise = 0.025 * volumeScale;
+        }
         public double Baseline { get { return baseline; } }
         public void Reset(long now) { baseline = 0; armedAt = now; fired = false; }
         public bool Observe(double peak, long now)
@@ -30,7 +38,7 @@ namespace WowAuto.Audio
                 baseline += 0.12 * (peak - baseline);
                 return false;
             }
-            if (!fired && peak >= 0.06 && peak >= baseline + 0.025 && peak >= baseline * 3)
+            if (!fired && peak >= minimumPeak && peak >= baseline + minimumRise && peak >= baseline * 3)
             {
                 return true;
             }
@@ -285,19 +293,23 @@ namespace WowAuto.Audio
     {
         private readonly AudioTemplate template;
         private double threshold;
-        private readonly SpikeDetector spike = new SpikeDetector();
+        private readonly SpikeDetector spike;
         private readonly Queue<short> history = new Queue<short>();
         private List<short> candidate;
         private int candidateTarget;
         private long retryAt;
         public double LastSimilarity { get; private set; }
+        public double BestSimilarity { get; private set; }
+        public int ComparedCandidates { get; private set; }
         public int Rejected { get; private set; }
         public double MinimumSimilarity { get { return threshold; } }
         public TemplateDetector(AudioTemplate sample, double minimumSimilarity)
+            : this(sample, minimumSimilarity, 1.0) { }
+        public TemplateDetector(AudioTemplate sample, double minimumSimilarity, double volumeScale)
         {
             if (sample == null || minimumSimilarity < 0.5 || minimumSimilarity > 1 || Double.IsNaN(minimumSimilarity))
                 throw new ArgumentException("Template and similarity threshold 0.5-1 are required.");
-            template = sample; threshold = minimumSimilarity;
+            template = sample; threshold = minimumSimilarity; spike = new SpikeDetector(volumeScale);
         }
         public void SetMinimumSimilarity(double value)
         {
@@ -306,7 +318,7 @@ namespace WowAuto.Audio
             threshold = value;
         }
         public void Reset(long now)
-        { spike.Reset(now); history.Clear(); candidate = null; candidateTarget = 0; retryAt = 0; LastSimilarity = 0; Rejected = 0; }
+        { spike.Reset(now); history.Clear(); candidate = null; candidateTarget = 0; retryAt = 0; LastSimilarity = 0; BestSimilarity = 0; ComparedCandidates = 0; Rejected = 0; }
         public bool Feed(short[] mono, double peak, long now)
         {
             if (candidate == null && now >= retryAt && spike.Probe(peak, now))
@@ -321,6 +333,7 @@ namespace WowAuto.Audio
             if (needed > candidate.Count && needed <= AudioTemplate.MaximumCandidateSamples)
             { candidateTarget = needed; return false; }
             LastSimilarity = template.Compare(frames); candidate = null;
+            BestSimilarity = Math.Max(BestSimilarity, LastSimilarity); ComparedCandidates++;
             if (LastSimilarity >= threshold) { spike.Accept(); return true; }
             Rejected++; retryAt = now + 150; return false;
         }
@@ -330,13 +343,16 @@ namespace WowAuto.Audio
     // capturing a playback endpoint or the system-wide audio mix.
     public sealed class ProcessCapture : IDisposable
     {
+        // Both addon audio profiles set master volume to 20% and SFX to 100%.
+        // Scale only the pre-match amplitude gate; fingerprint thresholds stay unchanged.
+        public const double MasterVolumeScale = 0.2;
         private readonly int pid;
         private readonly long startTicks;
         private readonly string path;
         private readonly object gate = new object();
         private readonly ManualResetEvent stop = new ManualResetEvent(false);
         private readonly Stopwatch clock = Stopwatch.StartNew();
-        private readonly SpikeDetector detector = new SpikeDetector();
+        private readonly SpikeDetector detector = new SpikeDetector(MasterVolumeScale);
         private TemplateDetector matcher;
         private int downsampleCount, downsampleSum;
         private readonly Thread thread;
@@ -347,10 +363,14 @@ namespace WowAuto.Audio
         private long pendingBite;
         private bool disposed;
         private double peak;
+        private double maximumPeak;
         public string Status { get { lock (gate) return status; } }
         public string Error { get { lock (gate) return error; } }
         public double Peak { get { lock (gate) return peak; } }
+        public double MaximumPeak { get { lock (gate) return maximumPeak; } }
         public double Similarity { get { lock (gate) return matcher == null ? 0 : matcher.LastSimilarity; } }
+        public double BestSimilarity { get { lock (gate) return matcher == null ? 0 : matcher.BestSimilarity; } }
+        public int ComparedCandidates { get { lock (gate) return matcher == null ? 0 : matcher.ComparedCandidates; } }
         public int Rejected { get { lock (gate) return matcher == null ? 0 : matcher.Rejected; } }
         public void SetMinimumSimilarity(double value)
         {
@@ -367,7 +387,7 @@ namespace WowAuto.Audio
             {
                 if (disposed) return;
                 if (session != 0) throw new InvalidOperationException("Disarm capture before switching recordings.");
-                matcher = new TemplateDetector(template, threshold);
+                matcher = new TemplateDetector(template, threshold, MasterVolumeScale);
                 matcher.Reset(clock.ElapsedMilliseconds);
                 pendingBite = 0;
             }
@@ -381,7 +401,7 @@ namespace WowAuto.Audio
             if (Native.WindowsBuild() < 20348)
                 throw new NotSupportedException("Process audio capture requires Windows build 20348 or later.");
             pid = processId; startTicks = expectedStartTicks; path = expectedPath; biteNotification = notification;
-            if (template != null) matcher = new TemplateDetector(template, threshold);
+            if (template != null) matcher = new TemplateDetector(template, threshold, MasterVolumeScale);
             CheckIdentity();
             thread = new Thread(Run);
             thread.IsBackground = true;
@@ -395,7 +415,7 @@ namespace WowAuto.Audio
             {
                 if (disposed) return;
                 if (session == fishingSession) return;
-                session = fishingSession; pendingBite = 0;
+                session = fishingSession; pendingBite = 0; maximumPeak = 0;
                 detector.Reset(clock.ElapsedMilliseconds);
                 if (matcher != null) matcher.Reset(clock.ElapsedMilliseconds);
             }
@@ -486,6 +506,7 @@ namespace WowAuto.Audio
                                     if (++downsampleCount == 4) { mono.Add((short)(downsampleSum / 4)); downsampleCount = 0; downsampleSum = 0; }
                                 }
                                 peak = packetPeak;
+                                if (session != 0) maximumPeak = Math.Max(maximumPeak, packetPeak);
                                 bool bite = !disposed && session != 0 && (matcher == null
                                     ? detector.Observe(packetPeak, clock.ElapsedMilliseconds)
                                     : matcher.Feed(mono.ToArray(), packetPeak, clock.ElapsedMilliseconds));
