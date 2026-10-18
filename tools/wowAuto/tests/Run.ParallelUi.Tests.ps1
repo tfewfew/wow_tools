@@ -71,7 +71,7 @@ function Start-DetectorTask {
     if($script:mode -eq 'fish' -and $Endpoint.Pid -eq [ParallelFixture]::NoBitePid){
         # Arm the production no-bite timer without creating any audio capture.
         $script:fish.UseAudio=$true;$script:fish.AudioReady=$true;$script:fish.AudioTimeoutMs=1000
-        $script:audio=[pscustomobject]@{Status='Listening';Error='';MaximumPeak=0.009;ComparedCandidates=0;BestSimilarity=0;Similarity=0;Peak=0}
+        $script:audio=[pscustomobject]@{Status='Listening';Error='';MaximumPeak=0.009;ComparedCandidates=0;BestSimilarity=0;Similarity=0;Peak=0;CandidatePeakThreshold=0.0034}
         $script:audio | Add-Member ScriptMethod Arm {param([long]$session)}
         $script:audio | Add-Member ScriptMethod Dispose {}
         $script:audioFeature=$script:config.FeaturePath;$script:audioSession=-1L
