@@ -20,6 +20,10 @@ public static class ParallelFixture {
     public static readonly ConcurrentDictionary<int,int> OcrThread=new ConcurrentDictionary<int,int>();
     public static readonly ConcurrentDictionary<int,int> OpThread=new ConcurrentDictionary<int,int>();
     public static readonly ConcurrentDictionary<int,string> Colors=new ConcurrentDictionary<int,string>();
+    public static readonly ConcurrentDictionary<int,int> RodEquips=new ConcurrentDictionary<int,int>();
+    public static readonly ConcurrentDictionary<int,int> Enables=new ConcurrentDictionary<int,int>();
+    public static readonly ConcurrentDictionary<int,int> UnknownReads=new ConcurrentDictionary<int,int>();
+    public static readonly ConcurrentQueue<string> InputOrder=new ConcurrentQueue<string>();
     public static int BlockPid,BlockedPid,Clicks,Logouts,EarlyClicks,EarlyOcr,MissingPid,UpCount,ExitRequests,KillRequests,FailFocusPid,Reels,Jumps,EarlyJumps,NoBitePid;
     public static bool AutoFish;
     public static bool RestartLaunched;
@@ -39,6 +43,16 @@ function Invoke-OperatorRequest($Request) {
     }
     if(-not $Request.Current){return @{Executed=$false;SentAt=$Hub.Now}}
     [ParallelFixture]::Add([ParallelFixture]::Actions,$id)
+    [ParallelFixture]::InputOrder.Enqueue($id.ToString()+':'+$Request.Kind)
+    if($Request.Kind -eq 'Rotation.EquipRod'){
+        $body=$Request.Json | ConvertFrom-Json
+        if($body.Mode -cne 'fish' -or $body.Key -cne 'Ctrl+F3'){throw 'Unexpected rod equip task/key.'}
+        [ParallelFixture]::Add([ParallelFixture]::RodEquips,$id)
+    }
+    if($Request.Kind -eq 'Rotation.Enable'){
+        [ParallelFixture]::Add([ParallelFixture]::Enables,$id)
+        if($id -eq 101 -and [ParallelFixture]::Enables[$id] -eq 1){[ParallelFixture]::UnknownReads[$id]=1}
+    }
     if($Request.Kind -eq 'Rotation.Logout'){[ParallelFixture]::World[$id]=0;[ParallelFixture]::Logouts++}
     if($Request.Kind -eq 'Rotation.Click'){
         if(-not $Hub.Batch.All(2)){[ParallelFixture]::EarlyClicks++}
@@ -62,6 +76,7 @@ function Get-DetectorObservation {
     [ParallelFixture]::ReadThread[$Endpoint.Pid]=[Threading.Thread]::CurrentThread.ManagedThreadId
     $packet=New-Object WowAutoFight.Packet;$packet.Flavor=$Endpoint.Flavor;$packet.ClassId=1;$packet.Action='idle';$packet.Recovery='none'
     $color=if([ParallelFixture]::Colors.ContainsKey($Endpoint.Pid)){[ParallelFixture]::Colors[$Endpoint.Pid]}else{'red'}
+    if([ParallelFixture]::UnknownReads[$Endpoint.Pid] -gt 0){[ParallelFixture]::UnknownReads[$Endpoint.Pid]--;$color='unknown';$packet=$null}
     return [pscustomobject]@{Login=([ParallelFixture]::World[$Endpoint.Pid] -eq 1);Color=$color;Packet=$packet;Lure='present'}
 }
 function Get-DetectorLure {return 'present'}

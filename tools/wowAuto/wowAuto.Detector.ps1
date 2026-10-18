@@ -223,13 +223,21 @@ function Invoke-DetectorRotation {
         }
     }
     while((Test-DetectorCurrent) -and -not $script:batch.All(4)){$null=Wait-Detector 25}
-    $stable=0
+    $stable=0;$rodEquipped=$false
     while(Test-DetectorCurrent) {
         if($Hub.Now -ge $deadline){throw '登录超过180秒，已停止本进程编排。'}
         try {
             $observation=Get-DetectorObservation
             if($observation.Login){$stable++}else{$stable=0}
             if($stable -ge 3) {
+                if($script:mode -eq 'fish' -and -not $rodEquipped) {
+                    if([string]::IsNullOrWhiteSpace([string]$script:config.Keys.EquipRod)){throw '请先在钓鱼全局设置中配置“装备鱼竿”按键，再开始角色编排。'}
+                    $reply=Request-DetectorOperation Rotation.EquipRod Rotation @{Mode='fish';Key=$script:config.Keys.EquipRod}
+                    if(-not (Test-DetectorCurrent)){return}
+                    if(-not $reply -or -not $reply.Executed){throw '装备鱼竿按键未发送，已停止本进程编排。'}
+                    $rodEquipped=$true
+                    Write-Detector ('已发送一次装备鱼竿按键：'+$script:config.Keys.EquipRod)
+                }
                 $null=Request-DetectorOperation Rotation.Enable Rotation @{Mode=$script:mode}
                 $null=Wait-Detector $script:config.Periods.LoginMs
                 $observation=Get-DetectorObservation

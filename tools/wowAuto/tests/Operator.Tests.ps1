@@ -1,5 +1,7 @@
 ﻿$ErrorActionPreference='Stop'
 $tool=Split-Path $PSScriptRoot -Parent
+Add-Type -AssemblyName System.Windows.Forms
+. (Join-Path $tool 'autoFight.Engine.ps1')
 Add-Type -Path (Join-Path $tool 'wowAuto.Threading.cs') -ReferencedAssemblies System.Core
 $tokens=$null;$errors=$null
 $ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $tool 'wowAuto.Operator.ps1'),[ref]$tokens,[ref]$errors)
@@ -80,4 +82,14 @@ Assert-OperatorTest ((Invoke-OperatorRequest $customClick).Executed -and $script
 $customEnable=New-OperatorTestRequest Rotation.Enable Rotation @{Mode='fish'};$customEnable.Owner=$other;$customEnable.ReadyAt=1;$customEnable.Timing.ChatKeyPressMs=47;$script:adapter.Login=$true
 $Hub.Now=1064L;Assert-OperatorTest (-not (Invoke-OperatorRequest $customEnable)) 'Custom cross-process click guard executed early.'
 $Hub.Now=1065L;Assert-OperatorTest ((Invoke-OperatorRequest $customEnable).Executed -and $script:lastAdapterDuration -eq 47) 'Custom click guard or chat key duration was ignored.'
-Write-Output 'PASS: production operator routing with substituted native primitives; default and custom settle/retry/timeout, native key/chat durations, combat interval and click bounds/guard; target/opener transaction and fresh color/recovery/class/identity/marker checks. No native input.'
+$script:lastClickKey='';$script:adapter.Color='unknown';$script:adapter.Pressed=@();$Hub.Now=2000L
+$rod=New-OperatorTestRequest Rotation.EquipRod Rotation @{Mode='fish';Key='Ctrl+F3'};$rod.ReadyAt=1;$rod.Timing.KeyPressMs=43
+Assert-OperatorTest ((Invoke-OperatorRequest $rod).Executed -and ($script:adapter.Pressed -join ',') -ceq 'Ctrl+F3' -and $script:lastAdapterDuration -eq 43) 'Rod equip required an active monitor color or ignored its configured chord/duration.'
+foreach($case in @('marker','identity','stale','mode','empty','invalid')) {
+    $script:adapter.Login=$case -ne 'marker';$script:adapter.Identity=$case -ne 'identity'
+    $testRod=New-OperatorTestRequest Rotation.EquipRod Rotation @{Mode=$(if($case -eq 'mode'){'fight'}else{'fish'});Key=$(if($case -eq 'empty'){''}elseif($case -eq 'invalid'){'Ctrl+Ctrl+F3'}else{'Ctrl+F3'})};$testRod.ReadyAt=1
+    if($case -eq 'stale'){$testRod.Version--}
+    try{$null=Invoke-OperatorRequest $testRod}catch{}
+    Assert-OperatorTest ($script:adapter.Pressed.Count -eq 1) ('Unsafe rod input was sent: '+$case)
+}
+Write-Output 'PASS: production operator routing with substituted native primitives; timing and foreground guards, fresh protocol/identity checks, and rod equip before monitoring with stale/missing/invalid requests rejected. No native input.'

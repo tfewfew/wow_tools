@@ -17,6 +17,7 @@ function Pump-Parallel([scriptblock]$Until,[int]$Timeout=6000) {
     throw ('Parallel UI timed out; '+(($script:rows.Values | ForEach-Object {$_.Process.Id.ToString()+': '+$_.StatusMessage}) -join '; '))
 }
 $rows=@($script:rows.Values | Sort-Object {$_.Process.Id});$a=$rows[0];$b=$rows[1];$c=$rows[2]
+$script:equipRodBinding=ConvertFrom-KeyBindingText 'Ctrl+F3'
 $script:autoFight.Profiles['forerver:1'].BuffIntervalSeconds=0;$script:autoFight.Common.JumpIntervalSeconds=0
 $originalOperations=ConvertTo-TaskMap ($script:accountTasks.Config.Operations | ConvertTo-Json | ConvertFrom-Json)
 Assert-Parallel ($rows.Count -eq 3 -and $script:parallelWorkers.Count -eq 3) 'Each process must have one detector runspace.'
@@ -146,6 +147,11 @@ $startAllButton.PerformClick()
 Pump-Parallel {[ParallelFixture]::Ocr[101] -eq 1 -and [ParallelFixture]::Ocr[202] -gt 0} 2000
 Assert-Parallel ([ParallelFixture]::Clicks -eq 0) 'A process clicked before all OCR positions were ready.'
 Pump-Parallel {@($rows | Where-Object {$_.CurrentRole -eq '角色甲'}).Count -eq 3}
+Assert-Parallel ([ParallelFixture]::RodEquips[101] -eq 1 -and [ParallelFixture]::RodEquips[303] -eq 1 -and -not [ParallelFixture]::RodEquips.ContainsKey(202) -and [ParallelFixture]::Enables[101] -eq 2) 'Fishing login did not equip exactly once across monitor retries, or combat login equipped a rod.'
+foreach($id in @(101,303)) {
+    $order=@([ParallelFixture]::InputOrder.ToArray() | Where-Object {$_ -like ($id.ToString()+':*')})
+    Assert-Parallel ([Array]::IndexOf($order,($id.ToString()+':Rotation.EquipRod')) -lt [Array]::IndexOf($order,($id.ToString()+':Rotation.Enable'))) 'Monitoring started before the rod equip acknowledgement.'
+}
 Assert-Parallel ([ParallelFixture]::EarlyOcr -eq 0 -and [ParallelFixture]::EarlyClicks -eq 0) 'Logout/position barriers were broken.'
 Assert-Parallel (@([ParallelFixture]::ReadThread.Values | Sort-Object -Unique).Count -eq 3 -and @([ParallelFixture]::OpThread.Values | Sort-Object -Unique).Count -eq 1) 'Detection is not per-process or operations are not serialized.'
 foreach($id in @(101,202,303)){Assert-Parallel ([ParallelFixture]::ReadThread[$id] -eq [ParallelFixture]::OcrThread[$id]) 'OCR ran outside its detector thread.'}
@@ -172,16 +178,21 @@ Assert-Parallel ([ParallelFixture]::Reads[101] -gt $reads -and $a.RuntimeRunning
 Stop-AllRows;Pump-Parallel {@($rows | Where-Object RuntimeRunning).Count -eq 0}
 $startAllButton.PerformClick();Pump-Parallel {@($rows | Where-Object {$_.CurrentRole -eq '角色甲'}).Count -eq 3}
 foreach($expected in @('角色乙','角色丙','角色丁','角色甲')) {
+    $rodBefore=[ParallelFixture]::RodEquips[101]
     $script:parallelNextAt=$script:parallelHub.Now
     Pump-Parallel {@($rows | Where-Object {$_.CurrentRole -eq $expected}).Count -eq 3}
+    $rodExpected=if($expected -eq '角色乙'){0}else{1}
+    Assert-Parallel ([ParallelFixture]::RodEquips[101] -eq $rodBefore+$rodExpected) 'A new fishing login missed/repeated equip, or a combat role equipped a rod.'
     Assert-Parallel (@($rows | Where-Object {$_.Name.Text -match '职业：'}).Count -eq 0) 'Role rotation restored a class line in the PID area.'
 }
 Assert-Parallel ($a.RotationSwitchCount -ge 4 -and $b.RotationSwitchCount -ge 4) 'Main-thread global rotation did not cycle through all four account roles.'
 Stop-AllRows;Pump-Parallel {@($rows | Where-Object RuntimeRunning).Count -eq 0}
 $beforeA=$a.ExecutionRound;$beforeB=$b.ExecutionRound
+$rodBefore=[ParallelFixture]::RodEquips[101]
 $a.Validated=$true;$b.Validated=$true;Set-RowControls $a;Set-RowControls $b;$a.DirectStart.PerformClick();$b.DirectStart.PerformClick()
 Pump-Parallel {$a.ExecutionRound -gt $beforeA -and $b.ExecutionRound -gt $beforeB}
 Assert-Parallel ($a.RuntimeDirect -and $b.RuntimeDirect) 'Direct start did not remain independent.'
+Assert-Parallel ([ParallelFixture]::RodEquips[101] -eq $rodBefore) 'Direct start was mistaken for a character login.'
 if($env:WOWAUTO_PARALLEL_PREVIEW){$bitmap=New-Object Drawing.Bitmap($form.Width,$form.Height);try{$form.DrawToBitmap($bitmap,(New-Object Drawing.Rectangle(0,0,$bitmap.Width,$bitmap.Height)));$bitmap.Save((Join-Path $env:WOWAUTO_PARALLEL_PREVIEW 'parallel-main.png'))}finally{$bitmap.Dispose()}}
 Stop-AllRows;Set-VersionWaitRanges 25 25 25 25 -Persist $false -JumpEveryCycles 1
 [ParallelFixture]::AutoFish=$true;$a.Validated=$true;Set-RowControls $a;$a.DirectStart.PerformClick()
@@ -201,7 +212,13 @@ Assert-Parallel ($a.CycleCount -eq $cycles -and $b.BiteTimeoutCount -eq 0 -and $
 $a.Stop.PerformClick();[ParallelFixture]::NoBitePid=0;[ParallelFixture]::Colors[101]='red'
 $before=$a.ExecutionRound;$a.DirectStart.PerformClick();Pump-Parallel {$a.ExecutionRound -gt $before}
 Assert-Parallel ($a.BiteTimeoutCount -eq 1 -and $a.Name.Text -match '无咬钩超时 1') 'Stopping/restarting lost the no-bite timeout count in task-start messages.'
-Stop-AllRows;$startAllButton.PerformClick();Pump-Parallel {@($rows | Where-Object {$_.CurrentRole -eq '角色甲'}).Count -eq 3}
+Stop-AllRows
+$script:equipRodBinding=$null;$rodBefore=[ParallelFixture]::RodEquips[303]
+$c.Start.PerformClick();$b.Start.PerformClick()
+Pump-Parallel {$c.Status.Text -match '装备鱼竿' -and -not $c.RuntimeRunning -and $b.RuntimeRunning}
+Assert-Parallel ([ParallelFixture]::RodEquips[303] -eq $rodBefore -and -not $c.Exited) 'An unconfigured rod key sent input, exited the game or stopped the other process.'
+Stop-AllRows;$script:equipRodBinding=ConvertFrom-KeyBindingText 'Ctrl+F3'
+$startAllButton.PerformClick();Pump-Parallel {@($rows | Where-Object {$_.CurrentRole -eq '角色甲'}).Count -eq 3}
 $configurationHash=(Get-FileHash $script:accountTasks.Path).Hash
 [ParallelFixture]::Colors[101]='dead'
 Pump-Parallel {$a.Exited} 10000

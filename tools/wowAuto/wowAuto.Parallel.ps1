@@ -19,7 +19,7 @@ function Get-ParallelConfig($Row) {
     return @{MinimumMs=$range.MinimumMs;MaximumMs=$range.MaximumMs;AudioTimeoutMs=$range.AudioTimeoutMs;
         FocusRetryMs=$operations.FocusRetryMs;ReelHoldMs=$operations.ReelHoldMs;JumpEveryCycles=$script:scheduler.JumpEveryCycles;
         UseAudio=$script:audioDetectionEnabled;FeaturePath=(Join-Path $script:audioFeatureDirectory $recording.Feature);AudioThreshold=$script:audioThresholds[$Row.Client.Flavor];
-        Keys=@{Cast=$script:keyBindings.Cast.Text;Reel=$script:keyBindings.Reel.Text;Item=$script:keyBindings.Item.Text};
+        Keys=@{Cast=$script:keyBindings.Cast.Text;Reel=$script:keyBindings.Reel.Text;Item=$script:keyBindings.Item.Text;EquipRod=[string]$script:equipRodBinding.Text};
         Profiles=$script:autoFight.Profiles;ProfilesReady=$script:autoFight.ConfigReady;Common=$common;CommandIntervalMs=$operations.CommandIntervalMs;
         Operations=$operations;Periods=$script:accountTasks.Config.Periods;Priorities=$script:gameActions.Priorities}
 }
