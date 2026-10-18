@@ -4,7 +4,8 @@ local function Run(flavor, legacy)
     local frames, names, messages, calls, requests = {}, {}, {}, {}, {}
     local bags, catalog = {}, {[101] = "新鲜的美味小鱼", [102] = "新鲜的长嘴泥鳅"}
     local sendEvent, afterUse, acknowledge
-    local money=10000
+    local money, simulationTime = 10000, 0
+    local priced, prices = false, {[101] = 1, [102] = 2, [777] = 3}
     local soldSlots,postSaleReads,bagReads,slotReads={},0,{},0
     local bagSlots, hiddenBags, unreadableBags = {}, {}, {}
     local combat, cursor, mode, failInfo, secretField = false, false, "success", false, nil
@@ -90,7 +91,8 @@ local function Run(flavor, legacy)
         assert(MerchantFrame:IsShown() and MerchantFrame.selectedTab == 1 and not combat and not cursor)
         assert(bag >= 0 and bag <= 4, "Bank slot touched")
         local data = bags[bag][slot]
-        calls[#calls + 1] = {id = data.id, count = data.count or 20, bag = bag, slot = slot}
+        calls[#calls + 1] = {id = data.id, count = data.count or 20, bag = bag, slot = slot,
+            sentAt = simulationTime, price = priced and (prices[data.id] or 1) or 1}
         if mode == "error" then error("API rejected sale") end
         if mode == "false" then return false end
         if mode == "unconfirmed" then return end
@@ -100,6 +102,7 @@ local function Run(flavor, legacy)
         end
         if mode=="permanent" then sendEvent("UI_ERROR_MESSAGE",2,"无法出售该物品");return end
         acknowledge(calls[#calls])
+        if mode == "falseAfterAck" then return false end
         if mode == "close" then
             MerchantFrame:Hide()
             for _, frame in ipairs(frames) do
@@ -107,7 +110,12 @@ local function Run(flavor, legacy)
             end
         end
     end
-    local function ItemInfo(id) return catalog[id] end
+    local function ItemInfo(id)
+        if type(id) == "string" then id = tonumber(id:match("^item:(%d+)")) end
+        local price = priced and prices[id] or nil
+        if secretField == "price" then price = secret end
+        return catalog[id], nil, nil, nil, nil, nil, nil, nil, nil, nil, price
+    end
     C_Item = {GetItemInfo = ItemInfo, RequestLoadItemDataByID = function(id)
         requests[id] = true
         if id == 888 then
@@ -150,6 +158,7 @@ local function Run(flavor, legacy)
     sendEvent = Event
     local function Tick(n, elapsed)
         for _ = 1, n or 1 do
+            simulationTime = simulationTime + (elapsed or 0.16)
             for _, frame in ipairs(frames) do
                 if frame.scripts.OnUpdate then frame.scripts.OnUpdate(frame, elapsed or 0.16) end
             end
@@ -225,7 +234,7 @@ local function Run(flavor, legacy)
         call.acked = true
         bags[call.bag][call.slot] = nil
         soldSlots[call.bag .. ":" .. call.slot] = true
-        money = money + call.count
+        money = money + call.count * call.price
         if afterUse then afterUse() end
         if notify ~= false then
             Event("BAG_UPDATE",call.bag)
@@ -314,6 +323,127 @@ local function Run(flavor, legacy)
     end
     assert(#calls==42 and not HasUpdate(),"Sale was limited by total time or total group count")
     assert(postSaleReads==0)
+
+    -- Cached vendor prices allow five requests per batch. A partial money receipt
+    -- must not advance the batch, even if a bag event has already arrived.
+    priced, mode, calls = true, "unconfirmed", {}
+    Fill42();ResetTrace()
+    Click("WoWToolsSellFishButton");Tick(1,0.05)
+    assert(#calls==5 and slotReads==109, "Priced sales still wait for each individual receipt")
+    Ack(calls[1],false);Event("BAG_UPDATE",0);Event("PLAYER_MONEY")
+    Tick(5,0.05)
+    assert(#calls==5 and HasUpdate(), "A partial batch receipt was reported as complete")
+    for i=2,5 do Ack(calls[i],false) end
+    Event("PLAYER_MONEY");Tick(1,0.05)
+    assert(#calls==10, "Aggregate money receipt did not release the next batch")
+    Close();Open()
+
+    -- Coalesced, out-of-order events must cover every bag in this batch.
+    bags={[0]={[1]={id=101},[2]={id=102}},[1]={[1]={id=777}}}
+    calls={};ResetTrace()
+    Click("WoWToolsSellFishButton");Tick(1,0.05)
+    assert(#calls==3)
+    for _,call in ipairs(calls) do Ack(call,false) end
+    Event("PLAYER_MONEY");Event("BAG_UPDATE",0);Tick(2,0.05)
+    assert(HasUpdate(), "Batch completed without every affected bag's receipt")
+    Event("BAG_UPDATE",1);Tick(1,0.05)
+    assert(not HasUpdate() and postSaleReads==0)
+
+    -- With 300 ms server latency, 42 groups should take about nine round trips,
+    -- not 42. Limit in-flight requests to five, with no rescan or sold-slot reads.
+    Fill42();ResetTrace();calls={}
+    local started=simulationTime
+    Click("WoWToolsSellFishButton")
+    for _=1,100 do
+        local before=#calls
+        Tick(1,0.05)
+        assert(#calls-before<=5, "A single update flooded the merchant")
+        local changed,waiting=false,0
+        for _,call in ipairs(calls) do
+            if not call.acked then
+                waiting=waiting+1
+                if simulationTime-call.sentAt>=0.3 then Ack(call,false);changed=true end
+            end
+        end
+        assert(waiting<=5, "More than five requests were in flight")
+        if changed then Event("BAG_UPDATE_DELAYED");Event("PLAYER_MONEY") end
+        if not HasUpdate() then break end
+    end
+    assert(#calls==42 and not HasUpdate() and simulationTime-started<5,
+        "Batched 42-group sale did not complete within five simulated seconds")
+    assert(postSaleReads==0 and slotReads==146, "Acceleration added post-sale inventory verification")
+    for bag=0,4 do assert(bagReads[bag]==1) end
+    print("SellFish " .. flavor .. (legacy and " legacy" or " C_Container")
+        .. ": 42 groups / 300ms receipts in " .. string.format("%.2f",simulationTime-started) .. " simulated seconds")
+
+    -- The old twenty-group boundary cannot discard locked later entries.
+    mode,calls="success",{}
+    Fill42();ResetTrace()
+    afterUse=function()
+        if #calls==20 then
+            afterUse=nil
+            for _,bag in pairs(bags) do for _,data in pairs(bag) do data.locked=true end end
+        end
+    end
+    Click("WoWToolsSellFishButton");Tick(8,0.05)
+    assert(#calls==20 and HasUpdate())
+    for _,bag in pairs(bags) do for _,data in pairs(bag) do data.locked=false end end
+    Tick(8,0.05)
+    assert(#calls==42 and not HasUpdate() and postSaleReads==0)
+
+    -- A synchronous busy error in a batch drains the accepted prefix, then retries
+    -- only the rejected slot, sequentially. Successful entries are never replayed.
+    Fill42();ResetTrace();calls={}
+    acknowledge=function(call)
+        if #calls==3 then Event("UI_ERROR_MESSAGE",1,ERR_OBJECT_IS_BUSY) else Ack(call) end
+    end
+    Click("WoWToolsSellFishButton");Tick(100,0.05)
+    assert(#calls==43 and calls[3].slot==calls[4].slot and not HasUpdate() and postSaleReads==0,
+        "Busy response lost a fixed entry or replayed an accepted batch")
+    acknowledge=Ack
+
+    -- An ambiguous asynchronous batch error must not replay possibly sold slots,
+    -- or count partial proceeds as all five successes.
+    Fill42();ResetTrace();mode,calls="unconfirmed",{}
+    Click("WoWToolsSellFishButton");Tick(1,0.05)
+    Ack(calls[1],false);Ack(calls[2],false)
+    Event("BAG_UPDATE_DELAYED");Event("PLAYER_MONEY");Event("UI_ERROR_MESSAGE",1,ERR_OBJECT_IS_BUSY)
+    Tick(110,0.05)
+    assert(#calls==5 and not HasUpdate() and postSaleReads==0)
+    assert(messages[#messages]:find("未完成",1,true))
+
+    -- Unknown or restricted prices preserve the previous single-item path.
+    for _,priceCase in ipairs({"missing","restricted"}) do
+        mode,calls="success",{}
+        bags={[0]={[1]={id=101},[2]={id=101},[3]={id=101}}};ResetTrace()
+        if priceCase=="missing" then prices[101]=nil else secretField="price" end
+        Click("WoWToolsSellFishButton");Tick(1,0.05)
+        assert(#calls==1, "Unknown price was used for a batch receipt")
+        Tick(5,0.05)
+        assert(#calls==3 and not HasUpdate() and postSaleReads==0)
+        prices[101],secretField=1,nil
+    end
+
+    -- Pre-send checks also protect later entries within the same frame/batch.
+    mode,calls="falseAfterAck",{}
+    bags={[0]={[1]={id=101},[2]={id=102}}};ResetTrace()
+    Click("WoWToolsSellFishButton");Tick(5,0.05)
+    assert(#calls==2 and not HasUpdate() and postSaleReads==0,
+        "An API rejection after confirmed proceeds replayed an accepted sale")
+
+    mode,calls="close",{}
+    Fill42();ResetTrace()
+    Click("WoWToolsSellFishButton");Tick(5,0.05)
+    assert(#calls==1 and not HasUpdate(), "Closing the merchant did not stop inside a batch")
+    Open()
+
+    mode="success"
+    Fill42();ResetTrace();calls={}
+    afterUse=function() afterUse=nil;bags[0][18]={id=500} end
+    Click("WoWToolsSellFishButton");Tick(3,0.05)
+    assert(#calls==1 and not HasUpdate() and postSaleReads==0)
+    assert(messages[#messages]:find("未完成：已出售 1/42",1,true))
+    priced=false
 
     -- Temporary server-busy responses retry the same queue entry, not skip it.
     mode,calls="busyOnce",{}

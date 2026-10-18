@@ -37,6 +37,7 @@ local items, selectedID, settings, input, status, scroll, content, deleteButton
 local rows, requested, failed = {}, {}, {}
 local merchantOpen, merchantButton, sale = false, nil, nil
 local SALE_INTERVAL, RETRY_INTERVAL, RECEIPT_TIMEOUT, LOCK_TIMEOUT, MAX_ATTEMPTS = 0.05, 0.25, 5, 5, 3
+local BATCH_SIZE = 5
 local saleEvents = {"BAG_UPDATE", "BAG_UPDATE_DELAYED", "PLAYER_MONEY", "UI_ERROR_MESSAGE"}
 local RefreshList
 
@@ -56,6 +57,18 @@ local function ItemName(id)
         local ok, name = pcall(getter, id)
         if ok and Readable(name) and type(name) == "string" and name ~= "" then return name end
     end
+end
+-- Optional cached vendor price enables exact aggregate receipts for small batches.
+-- Missing/secret prices fall back to one item at a time without blocking the scan.
+local function SaleProceeds(data)
+    local getter = C_Item and C_Item.GetItemInfo or GetItemInfo
+    if type(getter) ~= "function" then return nil end
+    local values = {pcall(getter, data.link or data.id)}
+    local price = values[12] -- GetItemInfo's eleventh return is the per-item sell price.
+    if not values[1] or not Readable(price) or type(price) ~= "number" or price <= 0
+        or price ~= math.floor(price) then return nil end
+    local total = price * data.count
+    if total > 0 and total <= 9007199254740991 and total == math.floor(total) then return total end
 end
 local function RequestName(id)
     if requested[id] then return end
@@ -292,7 +305,8 @@ local function ScanBags()
                     if data.noValue == true or data.noValue == 1 then
                         unavailable = unavailable + 1
                     else
-                        queue[#queue + 1] = {bag = bag, slot = slot, data = data, attempts = 0, lockWait = 0}
+                        queue[#queue + 1] = {bag = bag, slot = slot, data = data, attempts = 0,
+                            lockWait = 0, proceeds = SaleProceeds(data)}
                         units = units + data.count
                     end
                 end
@@ -306,6 +320,17 @@ local function FailSale(currentSale, reason)
     StopSale("未完成：已出售 " .. currentSale.sold .. "/" .. #currentSale.queue .. " 组，尚有 "
         .. (#currentSale.queue - currentSale.sold) .. " 组未完成；" .. reason)
 end
+local function ReceiptComplete(pending)
+    if pending.expected then
+        if pending.money - pending.beforeMoney < pending.expected then return false end
+    elseif pending.money <= pending.beforeMoney then
+        return false
+    end
+    for _, updated in pairs(pending.bags) do
+        if not updated then return false end
+    end
+    return true
+end
 local function SaleTick(_, elapsed)
     local currentSale = sale
     if not currentSale then return end
@@ -316,29 +341,33 @@ local function SaleTick(_, elapsed)
     currentSale.elapsed = 0
     local pending = currentSale.pending
     if pending then
-        -- Merchant inventory/money events acknowledge a request; never rescan sold slots.
-        if pending.bagUpdated and pending.moneyReceived then
-            currentSale.sold = currentSale.sold + 1
-            currentSale.index = currentSale.index + 1
+        -- One receipt can cover several requests. Require the full batch's proceeds,
+        -- not merely any positive money event. Never inspect a sent slot again.
+        if ReceiptComplete(pending) then
+            currentSale.sold = currentSale.sold + #pending.entries
+            currentSale.index = currentSale.index + #pending.entries
             currentSale.pending = nil
-        elseif pending.error and not pending.moneyReceived then
-            if pending.retryable and pending.entry.attempts < MAX_ATTEMPTS then
+        elseif pending.error and #pending.entries == 1 and pending.money == pending.beforeMoney then
+            local entry = pending.entries[1]
+            if pending.retryable and entry.attempts < MAX_ATTEMPTS then
                 currentSale.pending = nil
-                currentSale.retryWait = RETRY_INTERVAL
+                currentSale.retryWait, currentSale.batchLimit = RETRY_INTERVAL, 1
             else
                 FailSale(currentSale, pending.error)
                 return
             end
         else
+            -- An asynchronous batch error cannot identify a failed original slot.
+            -- Drain late receipts, but never blindly replay a partially sold batch.
             pending.wait = pending.wait + delta
             if pending.wait >= RECEIPT_TIMEOUT then
-                FailSale(currentSale, "未收到商店售卖回执，已停止，未将该组计为完成。")
+                FailSale(currentSale, pending.error or "未收到完整商店售卖回执，已停止，未将本批计为完成。")
             end
             return
         end
     end
-    local entry = currentSale.queue[currentSale.index]
-    if not entry then
+    if currentSale.failureReason then FailSale(currentSale, currentSale.failureReason); return end
+    if not currentSale.queue[currentSale.index] then
         StopSale("完成：固定清单 " .. #currentSale.queue .. " 组已全部出售（" .. currentSale.units .. " 个物品）。")
         return
     end
@@ -346,29 +375,76 @@ local function SaleTick(_, elapsed)
         currentSale.retryWait = math.max(0, currentSale.retryWait - delta)
         return
     end
-    -- Only a pre-send check of the original queued slot; no post-sale inventory checks.
-    local current, readable = Snapshot(entry.bag, entry.slot)
-    if not readable then FailSale(currentSale, "待售物品数据不可读，未继续发送。"); return end
-    if not SameStack(current, entry.data) or not FindID(entry.data.id) then
-        FailSale(currentSale, "待售背包格或清单已变化，请重新点击建立清单。")
-        return
+
+    pending = nil
+    for offset = 0, currentSale.batchLimit - 1 do
+        local entry = currentSale.queue[currentSale.index + offset]
+        if not entry or (pending and (not pending.expected or not entry.proceeds)) then break end
+        if not MerchantReady() then
+            currentSale.failureReason = "商店关闭、切页或当前无法出售。"
+            break
+        end
+        -- Only a pre-send check of an unsent original slot, including within a batch.
+        local current, readable = Snapshot(entry.bag, entry.slot)
+        if not readable then
+            currentSale.failureReason = "待售物品数据不可读，未继续发送。"
+            break
+        end
+        if not SameStack(current, entry.data) or not FindID(entry.data.id) then
+            currentSale.failureReason = "待售背包格或清单已变化，请重新点击建立清单。"
+            break
+        end
+        if current.noValue == true or current.noValue == 1 then
+            currentSale.failureReason = "清单中的物品当前不可出售。"
+            break
+        end
+        if current.locked ~= false and current.locked ~= 0 then
+            entry.lockWait = entry.lockWait + delta
+            if entry.lockWait >= LOCK_TIMEOUT then currentSale.failureReason = "待售物品持续锁定，未跳过该组。" end
+            break
+        end
+        if not pending then
+            local money = ReadMoney()
+            if money == nil then currentSale.failureReason = "无法读取商店金币回执所需数据。"; break end
+            pending = {entries = {}, bags = {}, beforeMoney = money, money = money,
+                expected = entry.proceeds and 0, wait = 0}
+            currentSale.pending = pending
+        end
+        entry.attempts = entry.attempts + 1
+        entry.error, entry.retryable = nil, nil
+        local previousBag = pending.bags[entry.bag]
+        pending.bags[entry.bag] = false
+        pending.entries[#pending.entries + 1] = entry
+        if pending.expected then pending.expected = pending.expected + entry.proceeds end
+        currentSale.sending = entry -- Errors/events may be synchronous inside the API.
+        local ok, result = pcall(SellBagItem, entry.bag, entry.slot)
+        currentSale.sending = nil
+        if sale ~= currentSale then return end
+        if not ok or not Readable(result) or result == false then
+            entry.error, entry.retryable = "售卖请求未被接受。", true
+        end
+        if entry.error then
+            -- A positive full-price receipt can arrive before an API error. Keep
+            -- this batch pending for its bag event rather than replaying a sale.
+            if pending.money > pending.beforeMoney and (not pending.expected
+                or pending.money - pending.beforeMoney >= pending.expected) then break end
+            table.remove(pending.entries)
+            if pending.expected then pending.expected = pending.expected - entry.proceeds end
+            if previousBag == nil then pending.bags[entry.bag] = nil
+            else pending.bags[entry.bag] = previousBag or pending.bags[entry.bag] end
+            if #pending.entries == 0 then currentSale.pending = nil; pending = nil end
+            if entry.retryable and entry.attempts < MAX_ATTEMPTS then
+                -- Once the merchant is busy, finish the accepted prefix, then
+                -- retry this exact entry sequentially for the rest of this run.
+                currentSale.retryWait, currentSale.batchLimit = RETRY_INTERVAL, 1
+            else
+                currentSale.failureReason = entry.error
+            end
+            break
+        end
+        if not entry.proceeds then break end -- Unknown price retains the single-item receipt path.
     end
-    if current.noValue == true or current.noValue == 1 then FailSale(currentSale, "清单中的物品当前不可出售。"); return end
-    if current.locked ~= false and current.locked ~= 0 then
-        entry.lockWait = entry.lockWait + delta
-        if entry.lockWait >= LOCK_TIMEOUT then FailSale(currentSale, "待售物品持续锁定，未跳过该组。") end
-        return
-    end
-    local beforeMoney = ReadMoney()
-    if beforeMoney == nil then FailSale(currentSale, "无法读取商店金币回执所需数据。"); return end
-    entry.attempts = entry.attempts + 1
-    pending = {entry = entry, beforeMoney = beforeMoney, wait = 0}
-    currentSale.pending = pending -- Events can be synchronous inside UseContainerItem.
-    local ok, result = pcall(SellBagItem, entry.bag, entry.slot)
-    if sale ~= currentSale then return end
-    if not ok or not Readable(result) or result == false then
-        pending.error, pending.retryable = "售卖请求未被接受。", true
-    end
+    if not currentSale.pending and currentSale.failureReason then FailSale(currentSale, currentSale.failureReason) end
 end
 local function StartSale()
     if sale then return end
@@ -383,7 +459,7 @@ local function StartSale()
         .. #queue .. " 组（" .. units .. " 个物品），不可售 " .. unavailable .. " 组。背包匹配组数/格数：" .. summary)
     if #queue == 0 then Say("没有可出售的清单物品。"); return end
     if ReadMoney() == nil then Say("金币回执数据不可读，尚未开始出售。"); return end
-    sale = {queue = queue, index = 1, sold = 0, units = units, elapsed = 0, retryWait = 0}
+    sale = {queue = queue, index = 1, sold = 0, units = units, elapsed = 0, retryWait = 0, batchLimit = BATCH_SIZE}
     for _, event in ipairs(saleEvents) do eventFrame:RegisterEvent(event) end
     merchantButton:SetText("出售中…")
     merchantButton:Disable()
@@ -439,15 +515,18 @@ eventFrame:SetScript("OnEvent", function(_, event, id, success)
         if sale then StopSale("商店关闭，出售已停止。") end
         if merchantButton then merchantButton:Hide() end
     elseif sale and sale.pending and (event == "BAG_UPDATE" or event == "BAG_UPDATE_DELAYED") then
-        if event == "BAG_UPDATE_DELAYED" or (Readable(id) and id == sale.pending.entry.bag) then
-            sale.pending.bagUpdated = true
+        if event == "BAG_UPDATE_DELAYED" then
+            for bag in pairs(sale.pending.bags) do sale.pending.bags[bag] = true end
+        elseif Readable(id) and sale.pending.bags[id] ~= nil then
+            sale.pending.bags[id] = true
         end
     elseif sale and sale.pending and event == "PLAYER_MONEY" then
         local money = ReadMoney()
-        if money and money > sale.pending.beforeMoney then sale.pending.moneyReceived = true end
+        if money then sale.pending.money = money end
     elseif sale and sale.pending and event == "UI_ERROR_MESSAGE" and Readable(success) and type(success) == "string" then
-        sale.pending.error = success
-        sale.pending.retryable = success == ERR_OBJECT_IS_BUSY or success == ERR_ITEM_LOCKED
+        local target = sale.sending or sale.pending
+        target.error = success
+        target.retryable = success == ERR_OBJECT_IS_BUSY or success == ERR_ITEM_LOCKED
             or success == ERR_CANT_DO_THAT_RIGHT_NOW
     elseif ValidID(id) and FindID(id) and settings and settings:IsShown() then
         if Readable(success) then
