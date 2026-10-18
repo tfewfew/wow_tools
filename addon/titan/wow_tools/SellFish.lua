@@ -469,10 +469,10 @@ local function EnsureMerchantButton()
     if merchantButton or not MerchantFrame then return end
     merchantButton = CreateFrame("Button", "WoWToolsSellFishButton", MerchantFrame, "UIPanelButtonTemplate")
     merchantButton:SetSize(78, 24)
-    if MerchantRepairText then
-        merchantButton:SetPoint("TOPLEFT", MerchantRepairText, "BOTTOMLEFT", 0, -4)
+    if MerchantFrameTab1 then
+        merchantButton:SetPoint("BOTTOMLEFT", MerchantFrameTab1, "TOPLEFT", 0, 0)
     else
-        merchantButton:SetPoint("BOTTOMLEFT", MerchantFrame, "BOTTOMLEFT", 16, 12)
+        merchantButton:SetPoint("BOTTOMLEFT", MerchantFrame, "BOTTOMLEFT", 16, 0)
     end
     merchantButton:SetText("一键卖鱼")
     merchantButton:RegisterForClicks("LeftButtonUp", "RightButtonUp")

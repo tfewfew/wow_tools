@@ -59,7 +59,7 @@ local function Run(flavor, legacy)
     WoWTools, SlashCmdList, UISpecialFrames = {modules = {}}, {}, {}
     wowDetectorDB = {unrelated = "preserve", sellFishItems = {101, 101, -1, "102", 0, 1.2}}
     UIParent, MerchantFrame, GameTooltip = Widget(), Widget(), Widget()
-    if legacy then MerchantRepairText=nil else MerchantRepairText=Widget(nil,MerchantFrame) end
+    if legacy then MerchantFrameTab1=nil else MerchantFrameTab1=Widget(nil,MerchantFrame) end
     MerchantFrame:Hide()
     MerchantFrame.selectedTab = 1
     DEFAULT_CHAT_FRAME = {AddMessage = function(_, message) messages[#messages + 1] = message end}
@@ -194,12 +194,12 @@ local function Run(flavor, legacy)
     Open()
     local button = assert(names.WoWToolsSellFishButton)
     assert(button.parent == MerchantFrame and button.width==78 and button.height==24)
-    if MerchantRepairText then
-        assert(button.point[1]=="TOPLEFT" and button.point[2]==MerchantRepairText and button.point[3]=="BOTTOMLEFT"
-            and button.point[4]==0 and button.point[5]==-4)
+    if MerchantFrameTab1 then
+        assert(button.point[1]=="BOTTOMLEFT" and button.point[2]==MerchantFrameTab1 and button.point[3]=="TOPLEFT"
+            and button.point[4]==0 and button.point[5]==0)
     else
         assert(button.point[1]=="BOTTOMLEFT" and button.point[2]==MerchantFrame and button.point[3]=="BOTTOMLEFT"
-            and button.point[4]==16 and button.point[5]==12)
+            and button.point[4]==16 and button.point[5]==0)
     end
     assert(#calls == 0 and not HasUpdate(), "Opening merchant sold items")
     Click("WoWToolsSellFishButton", "RightButton")
