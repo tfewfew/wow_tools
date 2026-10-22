@@ -69,7 +69,7 @@ function Invoke-OperatorRequest($Request) {
         if($Request.Kind -eq 'Fish.Reel'){[ParallelFixture]::Reels++;[ParallelFixture]::LastReelAt=$Hub.Now;[ParallelFixture]::Colors[$id]='red'}
         if($Request.Kind -eq 'Fish.Jump'){[ParallelFixture]::Jumps++;if($Hub.Now -lt [ParallelFixture]::LastReelAt+1000){[ParallelFixture]::EarlyJumps++}}
     }
-    return @{Executed=$true;SentAt=$Hub.Now}
+    return @{Executed=$true;SentAt=$Hub.Now;Exited=($Request.Kind -eq 'Process.Shutdown')}
 }
 '@
     $detector=@'

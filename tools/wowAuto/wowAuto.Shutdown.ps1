@@ -1,5 +1,5 @@
 ﻿# The UI only owns the monotonic countdown and submits exits to the operator.
-$script:shutdownState=@{Deadline=0L;Started=$false;DialogOpen=$false;CloseRequested=$false;Operations=@()}
+$script:shutdownState=@{Deadline=0L;Started=$false;DialogOpen=$false;Operations=@()}
 function Get-WowAutoShutdownRemaining([long]$Now=$script:schedulerClock.ElapsedMilliseconds) {
     if($script:shutdownState.Deadline -le 0){return 0L}
     return [long][Math]::Max(0,[Math]::Ceiling(($script:shutdownState.Deadline-$Now)/1000.0))
@@ -10,7 +10,7 @@ function Set-WowAutoShutdownCountdown($Seconds,[long]$Now=$script:schedulerClock
     if($script:shutdownState.Started -or $script:restartRequested){return}
     $script:shutdownState.Deadline=$Now+[long]$value*1000
     $shutdownButton.Text='倒计时：'+$value+'秒'
-    Write-WowAutoLog ('已设置结束倒计时：'+$value+'秒；到期退出所有游戏进程及脚本。') -Kind system
+    Write-WowAutoLog ('已设置结束倒计时：'+$value+'秒；到期退出所有游戏进程，脚本保持运行。') -Kind system
 }
 function Cancel-WowAutoShutdownCountdown {
     if($script:shutdownState.Started){return}
@@ -23,7 +23,7 @@ function New-WowAutoShutdownDialog {
     $dialog.BackColor=$script:uiColors.Background;$dialog.ForeColor=$script:uiColors.Text
     $dialog.ClientSize=New-Object Drawing.Size(470,180);$dialog.FormBorderStyle='FixedDialog'
     $dialog.StartPosition='CenterParent';$dialog.MinimizeBox=$false;$dialog.MaximizeBox=$false;$dialog.ShowInTaskbar=$false
-    $label=New-Object Windows.Forms.Label;$label.Text='多久后退出全部游戏和脚本（秒）';$label.SetBounds(18,18,430,30)
+    $label=New-Object Windows.Forms.Label;$label.Text='多久后退出全部游戏（秒）';$label.SetBounds(18,18,430,30)
     $seconds=New-Object Windows.Forms.NumericUpDown;$seconds.SetBounds(18,55,430,34)
     $seconds.Minimum=1;$seconds.Maximum=[int]::MaxValue;$seconds.DecimalPlaces=0
     $seconds.BackColor=$script:uiColors.Input;$seconds.ForeColor=$script:uiColors.Text
@@ -91,7 +91,25 @@ function Start-WowAutoGameShutdown {
     }
     return $operations
 }
-function Close-WowAutoAfterShutdown {$form.Close()}
+function Complete-WowAutoGameShutdown {
+    foreach($operation in $script:shutdownState.Operations) {
+        if(-not $operation.Success){
+            if($script:useWorkers){$script:parallelHub.Log($operation.Owner,$operation.Version,'error',('倒计时退出未完成：'+$operation.Error))}
+            else{Write-WowAutoLog ('倒计时退出未完成：'+$operation.Error) -Kind error}
+        } elseif($operation.Result) {
+            $result=$operation.Result | ConvertFrom-Json
+            $row=$script:rows[([string]$operation.Owner.Pid+':'+$operation.Owner.StartTicks)]
+            if($row -and $result.Exited){$row.Exited=$true}
+        }
+        if($script:useWorkers){$script:parallelHub.Remove($operation.Owner.Key)}
+    }
+    foreach($row in $script:rows.Values){$row.Validated=$false}
+    $script:shutdownState.Operations=@();$script:shutdownState.Deadline=0L;$script:shutdownState.Started=$false
+    $shutdownButton.Text='结束倒计时';$tabs.Enabled=$true
+    $refreshButton.Enabled=-not $script:scanning -and -not $script:editingSettings
+    Write-WowAutoLog '倒计时退出处理完成，脚本继续运行，可刷新进程或重新设置倒计时。' -Kind system
+    Update-WowAutoRunInfo;Update-BatchControls
+}
 function Invoke-WowAutoShutdownTick([long]$Now=$script:schedulerClock.ElapsedMilliseconds) {
     if(-not $script:shutdownState.Deadline -or $script:restartRequested){return}
     if(-not $script:shutdownState.Started) {
@@ -105,11 +123,6 @@ function Invoke-WowAutoShutdownTick([long]$Now=$script:schedulerClock.ElapsedMil
         try {$script:shutdownState.Operations=@(Start-WowAutoGameShutdown)}
         catch {Write-WowAutoLog ('结束倒计时退出失败：'+$_.Exception.Message) -Kind error}
     }
-    if($script:shutdownState.CloseRequested -or @($script:shutdownState.Operations | Where-Object {-not $_.Done.IsSet}).Count){return}
-    foreach($operation in $script:shutdownState.Operations) {
-        if(-not $operation.Success){$script:parallelHub.Log($operation.Owner,$operation.Version,'error',('倒计时退出未完成：'+$operation.Error))}
-    }
-    $script:shutdownState.CloseRequested=$true
-    Write-WowAutoLog '倒计时退出处理完成，正在关闭脚本。' -Kind system
-    Close-WowAutoAfterShutdown
+    if(@($script:shutdownState.Operations | Where-Object {-not $_.Done.IsSet}).Count){return}
+    Complete-WowAutoGameShutdown
 }

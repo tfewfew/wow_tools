@@ -1,11 +1,12 @@
 ﻿function Assert-ShutdownUi($Condition,[string]$Message){if(-not $Condition){throw $Message}}
 # Test the real controls/countdown with a synthetic clock and queued exit acknowledgements.
 Stop-AllRows
-$savedShutdown=@{Start=${function:Start-WowAutoGameShutdown};Close=${function:Close-WowAutoAfterShutdown};Show=${function:Show-WowAutoShutdownDialog};State=$script:shutdownState;TabsEnabled=$tabs.Enabled}
-$script:shutdownState=@{Deadline=0L;Started=$false;DialogOpen=$false;CloseRequested=$false;Operations=@()}
+$savedShutdown=@{Start=${function:Start-WowAutoGameShutdown};Show=${function:Show-WowAutoShutdownDialog};State=$script:shutdownState;TabsEnabled=$tabs.Enabled}
+$script:shutdownState=@{Deadline=0L;Started=$false;DialogOpen=$false;Operations=@()}
 $script:shutdownTestStarts=0;$script:shutdownTestCloses=0;$script:shutdownTestChoice=$null
+$shutdownClosingHandler=[Windows.Forms.FormClosingEventHandler]{param($sender,$eventArgs) $script:shutdownTestCloses++;$eventArgs.Cancel=$true}
+$form.Add_FormClosing($shutdownClosingHandler)
 function Start-WowAutoGameShutdown {$script:shutdownTestStarts++;return $script:shutdownTestOperations}
-function Close-WowAutoAfterShutdown {$script:shutdownTestCloses++}
 function Show-WowAutoShutdownDialog {return $script:shutdownTestChoice}
 try {
     $dialog=New-WowAutoShutdownDialog
@@ -30,7 +31,10 @@ try {
     Assert-ShutdownUi ($shutdownButton.Text -eq '倒计时：3秒') 'Countdown truncated the remaining partial second.'
     Invoke-WowAutoShutdownTick 3999
     Assert-ShutdownUi ($shutdownButton.Text -eq '倒计时：1秒' -and $script:shutdownTestStarts -eq 0) 'Countdown exited before its exact deadline.'
-    $script:shutdownTestOperations=@(1,2 | ForEach-Object {[pscustomobject]@{Done=[pscustomobject]@{IsSet=$false};Success=$true}})
+    $script:shutdownTestOperations=@(1,2 | ForEach-Object {
+        $owner=New-Object WowAuto.Threading.Endpoint;$owner.Key='test-shutdown:'+$_;$owner.Pid=900+$_;$owner.StartTicks=1
+        [pscustomobject]@{Done=[pscustomobject]@{IsSet=$false};Success=$true;Owner=$owner;Result='{"Exited":true}';Version=0}
+    })
     Invoke-WowAutoShutdownTick 4000
     Assert-ShutdownUi ($shutdownButton.Text -eq '倒计时：0秒' -and $script:shutdownTestStarts -eq 1 -and $script:shutdownTestCloses -eq 0 -and -not $restartButton.Enabled -and -not $tabs.Enabled) 'Expiry did not start once and wait for all exit acknowledgements.'
     Invoke-WowAutoShutdownTick 9000;$script:shutdownTestOperations[0].Done.IsSet=$true
@@ -38,14 +42,20 @@ try {
     Assert-ShutdownUi ($script:shutdownTestStarts -eq 1 -and $script:shutdownTestCloses -eq 0) 'Countdown duplicated exits or closed before the last process replied.'
     $script:shutdownTestOperations[1].Done.IsSet=$true
     Invoke-WowAutoShutdownTick 10001;Invoke-WowAutoShutdownTick 10002
-    Assert-ShutdownUi ($script:shutdownTestCloses -eq 1 -and -not $script:restartRequested) 'Countdown did not close once without restarting the script.'
-    $script:shutdownState=@{Deadline=0L;Started=$false;DialogOpen=$false;CloseRequested=$false;Operations=@()}
+    Assert-ShutdownUi ($script:shutdownTestCloses -eq 0 -and -not $script:restartRequested -and $form.Visible -and -not $form.IsDisposed -and
+        $script:shutdownState.Deadline -eq 0 -and -not $script:shutdownState.Started -and $tabs.Enabled -and $refreshButton.Enabled -and $restartButton.Enabled -and $shutdownButton.Enabled -and
+        $shutdownButton.Text -eq '结束倒计时' -and $script:shutdownTestStarts -eq 1) 'Completed countdown closed/restarted the script, left controls locked or retriggered exits.'
     Set-WowAutoShutdownCountdown 1 1000;$script:shutdownTestOperations=@()
     Invoke-WowAutoShutdownTick 2000
-    Assert-ShutdownUi ($script:shutdownTestCloses -eq 2) 'Countdown with no game processes did not close the script.'
-    Write-Output 'PASS: shutdown dialog/layout, seconds validation, countdown rounding/boundary/reconfigure/cancel, one-shot expiry and close after every queued exit replies. No game input or termination.'
+    Assert-ShutdownUi ($script:shutdownTestStarts -eq 2 -and $script:shutdownTestCloses -eq 0 -and $script:shutdownState.Deadline -eq 0 -and $shutdownButton.Enabled -and $form.Visible) 'Empty-process countdown did not reset for reuse while keeping the script open.'
+    Set-WowAutoShutdownCountdown 1 1000
+    $script:shutdownTestOperations=@([pscustomobject]@{Done=[pscustomobject]@{IsSet=$true};Success=$false;Owner=$owner;Version=0;Error='fixture exit failure'})
+    Invoke-WowAutoShutdownTick 2000
+    Assert-ShutdownUi ($script:shutdownTestCloses -eq 0 -and -not $script:shutdownState.Started -and $refreshButton.Enabled -and $form.Visible) 'Failed exit left the script closed or controls locked.'
+    Write-Output 'PASS: shutdown dialog/layout, seconds validation, countdown boundaries/cancel, all-reply barrier, no script close/restart, restored controls and repeat/empty/failed countdowns. No game input or termination.'
 } finally {
+    $form.Remove_FormClosing($shutdownClosingHandler)
     $script:shutdownState=$savedShutdown.State;$tabs.Enabled=$savedShutdown.TabsEnabled
-    ${function:Start-WowAutoGameShutdown}=$savedShutdown.Start;${function:Close-WowAutoAfterShutdown}=$savedShutdown.Close;${function:Show-WowAutoShutdownDialog}=$savedShutdown.Show
+    ${function:Start-WowAutoGameShutdown}=$savedShutdown.Start;${function:Show-WowAutoShutdownDialog}=$savedShutdown.Show
     $shutdownButton.Text='结束倒计时';Update-BatchControls
 }
