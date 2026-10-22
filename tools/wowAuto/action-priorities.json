@@ -6,6 +6,7 @@
     "Fight.Emergency": 10,
     "Process.Close": 15,
     "Process.Kill": 15,
+    "Process.Shutdown": 15,
     "Fight.Combat": 20,
     "Fish.Reel": 30,
     "Fight.Recover": 10,

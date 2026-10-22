@@ -25,6 +25,7 @@ public static class ParallelFixture {
     public static readonly ConcurrentDictionary<int,int> UnknownReads=new ConcurrentDictionary<int,int>();
     public static readonly ConcurrentQueue<string> InputOrder=new ConcurrentQueue<string>();
     public static int BlockPid,BlockedPid,Clicks,Logouts,EarlyClicks,EarlyOcr,MissingPid,UpCount,ExitRequests,KillRequests,FailFocusPid,Reels,Jumps,EarlyJumps,NoBitePid;
+    public static int ShutdownRequests;
     public static bool AutoFish;
     public static bool RestartLaunched;
     public static string RestartError;
@@ -61,6 +62,7 @@ function Invoke-OperatorRequest($Request) {
     if($Request.Kind -like 'Process.*'){[ParallelFixture]::World[$id]=2}
     if($Request.Kind -eq 'Process.Exit'){[ParallelFixture]::ExitRequests++}
     if($Request.Kind -eq 'Process.Kill'){[ParallelFixture]::KillRequests++}
+    if($Request.Kind -eq 'Process.Shutdown'){[ParallelFixture]::ShutdownRequests++}
     if($Request.Kind -eq 'Rotation.Up'){[ParallelFixture]::UpCount++}
     if([ParallelFixture]::AutoFish -and $id -eq 101) {
         if($Request.Kind -eq 'Fish.Cast'){[ParallelFixture]::Colors[$id]='green'}

@@ -24,6 +24,9 @@ function Invoke-OperatorAdapter([string]$Action,$Endpoint,$Data=$null,[int]$Dura
         'Press' {$script:adapter.Pressed+=,[string]$Data;return $true}
         'Click' {$script:adapter.Clicks+=,$Data;return $true}
         'Enable' {$script:adapter.Enabled++;return $true}
+        'ProcessState' {return $script:adapter.ProcessState}
+        'Exit' {$script:adapter.Closes++;return $script:adapter.CloseAccepted}
+        'Kill' {$script:adapter.Kills++;return $true}
         default {return $true}
     }
 }
@@ -95,3 +98,36 @@ foreach($case in @('marker','identity','stale','mode','empty','invalid')) {
 $directRod=New-OperatorTestRequest Fish.EquipRod Fish @{Mode='fish';Key='Ctrl+F3'};$directRod.ReadyAt=1;$directRod.Timing.KeyPressMs=51
 Assert-OperatorTest ((Invoke-OperatorRequest $directRod).Executed -and $script:adapter.Pressed.Count -eq 2 -and $script:lastAdapterDuration -eq 51) 'Direct-start rod equip required active fish colors or bypassed configured key timing.'
 Write-Output 'PASS: production operator routing with substituted native primitives; timing and foreground guards, fresh protocol/identity checks, login/direct-start rod equip with stale/missing/invalid requests rejected. No native input.'
+$Hub | Add-Member ScriptMethod Log {param($endpoint,$version,$kind,$text)}
+$script:adapter.ProcessState='same';$script:adapter.CloseAccepted=$true;$script:adapter.Closes=0;$script:adapter.Kills=0
+$script:adapter.Foreground=$false;$script:adapter.Login=$false;$Hub.Now=1000L
+$shutdown=New-OperatorTestRequest Process.Shutdown Process
+Assert-OperatorTest ($null -eq (Invoke-OperatorRequest $shutdown) -and $shutdown.CloseRequested -and $shutdown.CloseDeadline -eq 31000 -and $script:adapter.Closes -eq 1 -and $script:adapter.Kills -eq 0) 'Shutdown required a foreground/color marker or did not yield after normal close.'
+$Hub.Now=30999L;$null=Invoke-OperatorRequest $shutdown
+Assert-OperatorTest ($script:adapter.Closes -eq 1 -and $script:adapter.Kills -eq 0) 'Shutdown repeated normal close or killed before 30 seconds.'
+$Hub.Now=31000L;$null=Invoke-OperatorRequest $shutdown
+Assert-OperatorTest ($shutdown.KillRequested -and $script:adapter.Kills -eq 1) 'Shutdown did not force-close at its actual 30-second dispatch deadline.'
+$Hub.Now=31001L;$null=Invoke-OperatorRequest $shutdown
+Assert-OperatorTest ($script:adapter.Kills -eq 1) 'Shutdown repeated a force-close request.'
+$script:adapter.ProcessState='exited'
+Assert-OperatorTest ((Invoke-OperatorRequest $shutdown).Exited) 'Shutdown did not confirm process exit.'
+$earlyExit=New-OperatorTestRequest Process.Shutdown Process
+Assert-OperatorTest ((Invoke-OperatorRequest $earlyExit).Exited -and -not $earlyExit.CloseRequested) 'Already exited process received a close request.'
+$script:adapter.ProcessState='same';$script:adapter.CloseAccepted=$false;$Hub.Now=0L
+$rejected=New-OperatorTestRequest Process.Shutdown Process;$null=Invoke-OperatorRequest $rejected
+Assert-OperatorTest ($rejected.CloseDeadline -eq 30000) 'Rejected normal close lost its timeout protection.'
+$script:adapter.ProcessState='changed';$Hub.Now=30000L;$beforeKills=$script:adapter.Kills
+$failed=$false;try{$null=Invoke-OperatorRequest $rejected}catch{$failed=$true}
+Assert-OperatorTest ($failed -and $script:adapter.Kills -eq $beforeKills) 'PID reuse received a force-close request.'
+$script:adapter.ProcessState='same';$Hub.Now=0L
+$normal=New-OperatorTestRequest Process.Shutdown Process;$null=Invoke-OperatorRequest $normal
+$script:adapter.ProcessState='exited';$Hub.Now=500L
+Assert-OperatorTest ((Invoke-OperatorRequest $normal).Exited -and $script:adapter.Kills -eq $beforeKills) 'Normal exit unnecessarily forced the game to quit.'
+$script:adapter.ProcessState='same';$Hub.Now=0L
+$stuck=New-OperatorTestRequest Process.Shutdown Process;$null=Invoke-OperatorRequest $stuck
+$Hub.Now=30000L;$null=Invoke-OperatorRequest $stuck;$Hub.Now=35000L
+$failed=$false;try{$null=Invoke-OperatorRequest $stuck}catch{$failed=$true}
+Assert-OperatorTest $failed 'Unconfirmed force-close left shutdown waiting forever.'
+$cancelled=New-OperatorTestRequest Process.Shutdown Process;$owner.Close();$beforeCloses=$script:adapter.Closes
+Assert-OperatorTest (-not (Invoke-OperatorRequest $cancelled).Executed -and $script:adapter.Closes -eq $beforeCloses) 'Cancelled shutdown operated on a game process.'
+Write-Output 'PASS: queued shutdown normal close, 30-second force-close boundary, rejected-close protection, nonblocking waits, exit confirmation, bounded kill confirmation, PID reuse and cancellation. Process primitives substituted.'

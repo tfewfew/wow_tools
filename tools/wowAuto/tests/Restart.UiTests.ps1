@@ -43,7 +43,9 @@ try {
     $script:pendingGameExits[$row.Key]=[pscustomobject]@{Row=$row}
     Add-GameAction -Id restart-mock -Kind Scan.Observe -Domain Test -Due 0 -Execute {throw 'Cancelled action was executed.'}
     $closed=$script:workerClosed.Count;$killed=$script:workerKilled.Count;$keys=$script:workerKeys.Count
+    Set-WowAutoShutdownCountdown 60
     $restartButton.PerformClick()
+    Assert-Ui ($script:shutdownState.Deadline -eq 0) 'Restart retained the armed game shutdown countdown.'
     Assert-Ui ($script:restartRequested -and -not $restartButton.Enabled -and -not $row.State.Running -and
         $capture.Disposed -and $script:audioCaptures.Count -eq 0 -and $script:pendingGameExits.Count -eq 0 -and
         $script:gameActions.Events.Count -eq 0 -and ($script:restartTestEvents -join ',') -eq 'capture-dispose,close') 'Restart did not stop tasks/captures/exits/queued input before requesting close.'

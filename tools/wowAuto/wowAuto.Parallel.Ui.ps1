@@ -127,12 +127,12 @@ function Update-ParallelStatusDisplay($Row) {
     if($text -cne $Row.RenderedStatus){$Row.RenderedStatus=$text;$Row.Status.SetStatusText($text)}
 }
 function Start-Row($Row,[switch]$TaskOnly) {
-    if($Row.RuntimeRunning -or $script:editingSettings -or $script:scanning){return}
+    if($Row.RuntimeRunning -or $script:editingSettings -or $script:scanning -or $script:shutdownState.Started){return}
     if(-not @(Get-AccountTaskRoles $Row).Count){Set-RowStatusText $Row '请绑定子战网，并在设置中启用至少一个角色。';return}
     $Row.ExcludedNames=@();Start-ParallelBatch @($Row) Start
 }
 function Start-RowDirect($Row) {
-    if($Row.RuntimeRunning -or -not $Row.Validated -or $script:editingSettings -or $script:scanning){return}
+    if($Row.RuntimeRunning -or -not $Row.Validated -or $script:editingSettings -or $script:scanning -or $script:shutdownState.Started){return}
     $Row.RuntimeRunning=$true;$Row.RuntimeDirect=$true
     $script:parallelHub.ActiveTasks=@($script:rows.Values | Where-Object RuntimeRunning).Count
     Send-ParallelCommand $Row Start '' $true;Set-RowControls $Row
@@ -150,12 +150,12 @@ function Stop-AllRows {
     $script:parallelNextAt=0L;$script:scanning=$false;$script:parallelPending.Clear();Update-BatchControls
 }
 function Start-AllRows {
-    if($script:editingSettings -or $script:scanning){return}
+    if($script:editingSettings -or $script:scanning -or $script:shutdownState.Started){return}
     $rows=@($script:rows.Values | Where-Object {$_.Start.Enabled -and -not $_.RuntimeRunning})
     foreach($row in $rows){$row.ExcludedNames=@()};Start-ParallelBatch $rows Start
 }
 function Begin-RefreshScan {
-    if($script:editingSettings -or $script:scanning){return}
+    if($script:editingSettings -or $script:scanning -or $script:shutdownState.Started){return}
     Stop-AllRows;Update-AccountTaskCatalog
     $null=Refresh-ProcessRows
     foreach($key in @($script:parallelWorkers.Keys)) {if(-not $script:rows.ContainsKey($key)){$script:parallelHub.Remove($key);$script:parallelRetired+=,$script:parallelWorkers[$key];$script:parallelWorkers.Remove($key)}}
@@ -172,6 +172,7 @@ function Update-BatchControls {
     $restartButton.Enabled=-not $script:editingSettings -and -not $script:restartRequested
     $startAllButton.Enabled=@($script:rows.Values | Where-Object {$_.Start.Enabled}).Count -gt 0
     $stopAllButton.Enabled=$script:scanning -or @($script:rows.Values | Where-Object {$_.RuntimeRunning -or $_.RuntimeExiting}).Count -gt 0
+    Update-WowAutoShutdownControls
 }
 function New-UnifiedSettingsDialog {
     $script:parallelHub.Paused=$true

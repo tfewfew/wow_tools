@@ -7,6 +7,7 @@ if (@($toolbar.Controls | Where-Object { $_ -is [System.Windows.Forms.CheckBox] 
 if (-not $toolbar.ClientRectangle.Contains($restartButton.Bounds) -or $restartButton.Left -lt $settingsButton.Right) {
     throw 'Restart button is clipped or overlaps settings.'
 }
+if(-not $toolbar.ClientRectangle.Contains($shutdownButton.Bounds) -or $shutdownButton.Left -lt $restartButton.Right){throw 'Shutdown countdown button is clipped or overlaps restart.'}
 foreach ($row in $script:rows.Values) {
     if (@($row.Panel.Controls | Where-Object {$_ -is [System.Windows.Forms.ComboBox] -or $_.Text -match '角色已刷新'}).Count) {
         throw 'Subaccount selector or refreshed-role text remains in main process row.'

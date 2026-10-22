@@ -809,6 +809,13 @@ $restartButton.SetBounds(790, 10, 130, 35)
 Set-UiButtonStyle $restartButton
 $toolbar.Controls.Add($restartButton)
 $restartButton.Add_Click({ Request-WowAutoRestart })
+$shutdownButton = New-Object WowAuto.DimButton
+$shutdownButton.Text = '结束倒计时'
+$shutdownButton.SetBounds(935, 10, 260, 35)
+Set-UiButtonStyle $shutdownButton
+$toolbar.Controls.Add($shutdownButton)
+$shutdownButton.Add_Click({ Request-WowAutoShutdownCountdown })
+. (Join-Path $PSScriptRoot 'wowAuto.Shutdown.ps1')
 $settingsSummary = New-Object System.Windows.Forms.Label
 $settingsSummary.SetBounds(12, 56, 1250, 52)
 $settingsSummary.Anchor = 'Top, Left, Right'
@@ -1079,7 +1086,7 @@ function Fit-WindowToContent {
     $workingArea = [System.Windows.Forms.Screen]::FromControl($form).WorkingArea
     $scale = $form.CurrentAutoScaleDimensions.Width / 96.0
     $frameWidth = $form.Width - $form.ClientSize.Width
-    $desiredWidth = [int][Math]::Ceiling([Math]::Max(1330 * $scale, $restartButton.Right + 28) + $frameWidth)
+    $desiredWidth = [int][Math]::Ceiling([Math]::Max(1330 * $scale, $shutdownButton.Right + 28) + $frameWidth)
     $rowHeight = $list.Padding.Vertical + 12
     foreach ($row in $script:rows.Values) { $rowHeight += $row.Panel.Height + $row.Panel.Margin.Vertical }
     $rowHeight = [Math]::Max([int](80 * $scale), $rowHeight)
@@ -1597,6 +1604,7 @@ function Update-BatchControls {
     $settingsButton.Enabled = -not $script:scanning -and -not $script:editingSettings
     $restartButton.Enabled = -not $script:editingSettings -and -not $script:restartRequested
     $stopAllButton.Enabled = $script:scanning -or $script:pendingGameExits.Count -gt 0 -or @($script:rows.Values | Where-Object {Test-UnifiedRowRunning $_}).Count -gt 0
+    Update-WowAutoShutdownControls
 }
 function Stop-AllRows {
     Remove-GameActions -IncludeProcess
@@ -1619,9 +1627,10 @@ function Show-WowAutoRestartError([string]$Message) {
         [System.Windows.Forms.MessageBoxButtons]::OK,[System.Windows.Forms.MessageBoxIcon]::Error)
 }
 function Request-WowAutoRestart {
-    if ($script:restartRequested -or $script:editingSettings) {return}
+    if ($script:restartRequested -or $script:editingSettings -or $script:shutdownState.Started -or $script:shutdownState.DialogOpen) {return}
     try {
         $script:restartOptions=Get-WowAutoRestartOptions
+        Cancel-WowAutoShutdownCountdown
         $script:restartRequested=$true
         $restartButton.Enabled=$false
         Stop-AllRows
@@ -1954,7 +1963,11 @@ $timer.Add_Tick({
 $positionTimer = New-Object System.Windows.Forms.Timer
 $positionTimer.Interval = 1000
 $positionTimer.Add_Tick({ Update-WindowPositions })
+$shutdownTimer = New-Object System.Windows.Forms.Timer
+$shutdownTimer.Interval = 200
+$shutdownTimer.Add_Tick({ Invoke-WowAutoShutdownTick })
 $form.Add_FormClosing({
+    $shutdownTimer.Stop()
     if($script:useWorkers){$timer.Stop();$positionTimer.Stop();$scanTimer.Stop();Stop-AllRows;$script:parallelHub.Close();return}
     Remove-GameActions -IncludeProcess
     $script:gameActions.Closing=$true
@@ -2006,7 +2019,7 @@ try {
     }
     $null = Refresh-ProcessRows
     if($script:useWorkers){foreach($row in $script:rows.Values){$null=Ensure-ParallelWorker $row}}
-    if (-not $PreviewPath -and -not $UiTest) { $timer.Start(); $positionTimer.Start() }
+    if (-not $PreviewPath -and -not $UiTest) { $timer.Start(); $positionTimer.Start(); $shutdownTimer.Start() }
     if ($PreviewPath -or $UiTest) {
         $form.Show()
         [System.Windows.Forms.Application]::DoEvents()
@@ -2036,6 +2049,7 @@ try {
             . (Join-Path $PSScriptRoot 'tests\Rotation.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Accounts.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Logging.UiTests.ps1')
+            . (Join-Path $PSScriptRoot 'tests\Shutdown.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Restart.UiTests.ps1')
             }
         }
@@ -2056,7 +2070,7 @@ finally {
     if ($script:autoFight) { Close-AutoFightTab }
     foreach ($entry in @($script:audioCaptures.Values)) { $entry.Capture.Dispose() }
     $script:audioCaptures.Clear()
-    $positionTimer.Dispose(); $scanTimer.Dispose(); $timer.Dispose(); $form.Dispose()
+    $shutdownTimer.Dispose(); $positionTimer.Dispose(); $scanTimer.Dispose(); $timer.Dispose(); $form.Dispose()
     Stop-WowAutoLogging
     if ($UiTest -and (Test-Path -LiteralPath $script:settingsPath)) { Remove-Item -LiteralPath $script:settingsPath }
     if ($UiTest -and (Test-Path -LiteralPath $script:audioRecordingDirectory)) {

@@ -49,6 +49,7 @@ function Send-ParallelCommand($Row,[string]$Kind,[string]$BatchId='',[bool]$Dire
     $null=$endpoint.Send($Kind,($payload | ConvertTo-Json -Depth 15 -Compress))
 }
 function Start-ParallelBatch($Rows,[string]$Kind='Rotate') {
+    if($script:shutdownState.Started){return}
     $participants=@($Rows | Where-Object {$_ -and -not $_.Exited -and @(Get-AccountTaskRoles $_).Count})
     if(-not $participants.Count){return}
     if($script:parallelHub.Batch -and -not $script:parallelHub.Batch.All(8)) {
@@ -122,7 +123,7 @@ function Update-ParallelMessages {
         }
         $script:parallelOriginal=[IntPtr]::Zero
     }
-    if(-not $script:editingSettings -and -not $script:parallelHub.Paused -and (-not $script:parallelHub.Batch -or $script:parallelHub.Batch.All(8))) {
+    if(-not $script:shutdownState.Started -and -not $script:editingSettings -and -not $script:parallelHub.Paused -and (-not $script:parallelHub.Batch -or $script:parallelHub.Batch.All(8))) {
         if($script:parallelPending.Count) {
             $pending=$script:parallelPending.Clone();$script:parallelPending.Clear()
             $startRows=@($pending.Keys | Where-Object {$pending[$_] -eq 'Start'} | ForEach-Object {$script:rows[$_]})

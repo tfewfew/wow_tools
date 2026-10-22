@@ -246,6 +246,8 @@ Assert-Parallel (@($log | Where-Object {$_.Kind -eq 'audio-timeout' -and $_.Pid 
 Assert-Parallel (@($log | Where-Object {$_.Kind -eq 'status' -and $_.Pid -and $_.ThreadId -in [ParallelFixture]::ReadThread.Values}).Count -gt 0) 'Detection threads did not write PID-associated logs.'
 Assert-Parallel (@($log.WriterThreadId | Sort-Object -Unique).Count -eq 1 -and $log[0].WriterThreadId -eq $script:wowAutoLog.Writer.ThreadId) 'Startup/UI/detector/operator logs were not written by one dedicated log thread.'
 Write-Output 'PASS: per-process detector/OCR threads, one operator, request acknowledgement pauses only its detector, parallel OCR/batch barriers, cancellation isolation, independent direct starts, client child tabs and independent atomic account/period saves, global four-role wraparound, death exhaustion isolated to one process, exactly thirty arrow/OCR retries, UI-only updates and PID/thread logs. All frames/OCR/inputs/process exits are substitutes.'
+. (Join-Path $PSScriptRoot 'Shutdown.UiTests.ps1')
+. (Join-Path $PSScriptRoot 'Shutdown.Parallel.UiTests.ps1')
 ${function:Get-WowAutoRestartOptions}={return @{FilePath='mock-wowAuto-restart';WorkingDirectory=$PSScriptRoot;WindowStyle='Hidden';ErrorAction='Stop';ArgumentList=@()}}
 ${function:Show-WowAutoRestartError}={param([string]$Message) [ParallelFixture]::RestartError=$Message}
 function global:Start-Process([string]$FilePath,[string]$WorkingDirectory,[string]$WindowStyle,[string[]]$ArgumentList,[string]$ErrorAction) {

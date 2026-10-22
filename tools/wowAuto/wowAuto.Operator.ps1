@@ -22,6 +22,18 @@ function Assert-OperatorIdentity($Endpoint) {
             [WowAuto.NativeInput]::GetClientFlavor($Endpoint.Path,[Diagnostics.FileVersionInfo]::GetVersionInfo($Endpoint.Path).FileVersion) -ne $Endpoint.Flavor) {throw '操作前进程身份已变化。'}
     } finally {$process.Dispose()}
 }
+function Get-OperatorProcessState($Endpoint) {
+    $process=$null
+    try {
+        try {$process=[Diagnostics.Process]::GetProcessById($Endpoint.Pid)}
+        catch [ArgumentException] {return 'exited'}
+        if($process.HasExited){return 'exited'}
+        if($process.StartTime.Ticks -ne $Endpoint.StartTicks -or
+            -not [string]::Equals($process.MainModule.FileName,$Endpoint.Path,[StringComparison]::OrdinalIgnoreCase) -or
+            [WowAuto.NativeInput]::GetClientFlavor($Endpoint.Path,[Diagnostics.FileVersionInfo]::GetVersionInfo($Endpoint.Path).FileVersion) -ne $Endpoint.Flavor){return 'changed'}
+        return 'same'
+    } finally {if($process){$process.Dispose()}}
+}
 function Invoke-OperatorAdapter([string]$Action,$Endpoint,$Data=$null,[int]$DurationMs=30) {
     $Hub.AssertOperatorThread()
     if($Hub.Simulation){throw 'Simulation requires an explicit operator adapter; native input is forbidden.'}
@@ -40,13 +52,49 @@ function Invoke-OperatorAdapter([string]$Action,$Endpoint,$Data=$null,[int]$Dura
         'Click' {return [WowAutoRotation.Native]::ClickCharacter($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,$Data.X,$Data.Y,$Data.Width,$Data.Height,$Data.FirstDelay,$Data.SecondDelay,$Data.MinimumMs,$Data.MaximumMs)}
         'Restore' {return [WowAuto.NativeInput]::RestoreAfterScan([IntPtr][long]$Data.Window)}
         'Capture.Restore' {$restore=@([WowAutoCapture.Native]::PendingRestores() | Where-Object Key -eq $Endpoint.Key | Select-Object -First 1);if($restore.Count){[WowAutoCapture.Native]::RestoreMinimized($restore[0])};return $true}
-        'Exit' {$process=[Diagnostics.Process]::GetProcessById($Endpoint.Pid);try{$null=$process.CloseMainWindow()}finally{$process.Dispose()};return $true}
-        'Kill' {$process=[Diagnostics.Process]::GetProcessById($Endpoint.Pid);try{$process.Kill()}finally{$process.Dispose()};return $true}
+        'ProcessState' {return Get-OperatorProcessState $Endpoint}
+        {$_ -in @('Exit','Kill')} {
+            $process=[Diagnostics.Process]::GetProcessById($Endpoint.Pid)
+            try {
+                # Recheck the same Process instance immediately before closing it.
+                if($process.HasExited){return $false}
+                if($process.StartTime.Ticks -ne $Endpoint.StartTicks -or
+                    -not [string]::Equals($process.MainModule.FileName,$Endpoint.Path,[StringComparison]::OrdinalIgnoreCase) -or
+                    [WowAuto.NativeInput]::GetClientFlavor($Endpoint.Path,[Diagnostics.FileVersionInfo]::GetVersionInfo($Endpoint.Path).FileVersion) -ne $Endpoint.Flavor){throw '退出前进程身份已变化。'}
+                if($Action -eq 'Exit'){return $process.CloseMainWindow()}
+                $process.Kill();return $true
+            }finally{$process.Dispose()}
+        }
         default {throw 'Unknown operator adapter action.'}
     }
 }
+function Invoke-OperatorShutdown($Request) {
+    if($Hub.Closing -or -not $Request.Current){return @{Executed=$false;SentAt=$Hub.Now}}
+    $endpoint=$Request.Owner
+    $state=Invoke-OperatorAdapter ProcessState $endpoint
+    if($Hub.Closing -or -not $Request.Current){return @{Executed=$false;SentAt=$Hub.Now}}
+    if($state -eq 'exited'){return @{Executed=$Request.CloseRequested;Exited=$true;SentAt=$Hub.Now}}
+    if($state -ne 'same'){throw '倒计时退出已取消：原游戏进程身份已变化。'}
+    if(-not $Request.CloseRequested) {
+        $Request.CloseRequested=$true
+        try {$accepted=Invoke-OperatorAdapter Exit $endpoint}
+        catch {$accepted=$false;$Hub.Log($endpoint,$Request.Version,'error',('正常退出请求失败：'+$_.Exception.Message))}
+        $Request.CloseDeadline=$Hub.Now+30000
+        $Hub.Log($endpoint,$Request.Version,'shutdown',('已请求正常退出游戏；窗口接受='+$accepted+'，30秒未退出再强制结束。'))
+    } elseif($Hub.Now -ge $Request.CloseDeadline -and -not $Request.KillRequested) {
+        $null=Invoke-OperatorAdapter Kill $endpoint
+        $Request.KillRequested=$true;$Request.KillDeadline=$Hub.Now+5000
+        $Hub.Log($endpoint,$Request.Version,'shutdown','正常退出超过30秒，已请求强制结束原游戏进程。')
+    } elseif($Request.KillRequested -and $Hub.Now -ge $Request.KillDeadline) {
+        throw '已发送强制结束请求，5秒后仍未确认游戏退出。'
+    }
+    # Yield while every other process receives its close request; never block the operator.
+    $Hub.Requeue($Request,500)
+    return $null
+}
 function Invoke-OperatorRequest($Request) {
     $endpoint=$Request.Owner;$body=$Request.Json | ConvertFrom-Json;$timing=$Request.Timing
+    if($Request.Kind -eq 'Process.Shutdown'){return Invoke-OperatorShutdown $Request}
     if($Request.Kind -eq 'Scan.Restore') {
         if($Hub.ActiveTasks -eq 0){$null=Invoke-OperatorAdapter Restore $endpoint $body}
         return @{Executed=($Hub.ActiveTasks -eq 0);SentAt=$Hub.Now}

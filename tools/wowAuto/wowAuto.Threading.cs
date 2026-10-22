@@ -161,6 +161,8 @@ namespace WowAuto.Threading {
         public string Kind, Domain, Json, Result, Error;
         public int Priority;
         public bool Success, Executed;
+        public bool CloseRequested, KillRequested;
+        public long CloseDeadline, KillDeadline;
         public readonly ManualResetEventSlim Done=new ManualResetEventSlim(false);
         public bool Current {get {return Owner.Current(Version);}}
         public void Complete(bool success,bool executed,string result,string error) {
