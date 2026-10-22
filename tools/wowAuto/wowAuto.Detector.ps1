@@ -82,6 +82,10 @@ function Receive-DetectorAudioBite($Command) {
     $data=$Command.Json | ConvertFrom-Json
     if($data.Session -le 0 -or $data.MatchedAt -lt 0 -or $data.MatchedAt -gt $Hub.Now){return}
     if(Complete-WowAutoAudioBite $script:scheduler $Endpoint.Key ([long]$data.MatchedAt) ([long]$data.Session)){
+        if($script:fish.ReelDelayExceededProtection){
+            $Hub.Log($Endpoint,$script:version,'audio-delay-timeout',('随机收竿延迟超过保护：保护截止 '+$script:fish.AudioProtectionDeadline+' ms；计划收竿 '+$script:fish.Deadline+' ms；本轮随机延迟 '+$script:fish.ReelDelayMs+' ms；已计入无咬钩超时。'))
+            Publish-Detector counters @{Cycles=(Get-WowAutoCycleCount $script:scheduler $Endpoint.Key);BiteTimeouts=(Get-WowAutoBiteTimeoutCount $script:scheduler $Endpoint.Key)}
+        }
         Write-Detector $script:fish.Status
     }
 }
@@ -110,6 +114,16 @@ function Invoke-DetectorScan {
     if(-not (Test-DetectorCurrent)){return}
     Publish-Detector scanned @{Valid=$valid;Mode=$script:mode}
     Write-Detector $(if($valid){'检测通过，可以开始。'}else{'未识别到有效色块，请恢复插件后刷新。'})
+}
+function Invoke-DetectorEquipRod {
+    if([string]::IsNullOrWhiteSpace([string]$script:config.Keys.EquipRod)){throw '请先在钓鱼全局设置中配置“装备鱼竿”按键，再开始钓鱼任务。'}
+    $kind=if($script:direct){'Fish.EquipRod'}else{'Rotation.EquipRod'}
+    $domain=if($script:direct){'Fish'}else{'Rotation'}
+    $reply=Request-DetectorOperation $kind $domain @{Mode='fish';Key=$script:config.Keys.EquipRod}
+    if(-not (Test-DetectorCurrent)){return $false}
+    if(-not $reply -or -not $reply.Executed){throw '装备鱼竿按键未发送，已停止本进程钓鱼任务。'}
+    Write-Detector ('已发送一次装备鱼竿按键：'+$script:config.Keys.EquipRod)
+    return $true
 }
 function Start-DetectorTask {
     Stop-DetectorAudio
@@ -231,12 +245,8 @@ function Invoke-DetectorRotation {
             if($observation.Login){$stable++}else{$stable=0}
             if($stable -ge 3) {
                 if($script:mode -eq 'fish' -and -not $rodEquipped) {
-                    if([string]::IsNullOrWhiteSpace([string]$script:config.Keys.EquipRod)){throw '请先在钓鱼全局设置中配置“装备鱼竿”按键，再开始角色编排。'}
-                    $reply=Request-DetectorOperation Rotation.EquipRod Rotation @{Mode='fish';Key=$script:config.Keys.EquipRod}
-                    if(-not (Test-DetectorCurrent)){return}
-                    if(-not $reply -or -not $reply.Executed){throw '装备鱼竿按键未发送，已停止本进程编排。'}
+                    if(-not (Invoke-DetectorEquipRod)){return}
                     $rodEquipped=$true
-                    Write-Detector ('已发送一次装备鱼竿按键：'+$script:config.Keys.EquipRod)
                 }
                 $null=Request-DetectorOperation Rotation.Enable Rotation @{Mode=$script:mode}
                 $null=Wait-Detector $script:config.Periods.LoginMs
@@ -407,7 +417,11 @@ try {
                     continue
                 }
                 if($command.Kind -eq 'Start') {$script:excluded=@();$script:index=-1;$script:runLogins=0;$script:round=[Math]::Max($script:round,[int]$body.RoundBase)}
-                if($script:direct) {$script:roleName='';$script:index=-1;$script:mode=$body.Mode;$script:useItem=[bool]$body.UseItem;Start-DetectorTask}
+                if($script:direct) {
+                    $script:roleName='';$script:index=-1;$script:mode=$body.Mode;$script:useItem=[bool]$body.UseItem
+                    if($script:mode -eq 'fish' -and -not (Invoke-DetectorEquipRod)){continue}
+                    Start-DetectorTask
+                }
                 else {
                     $script:batch=$Hub.Batch
                     if(-not $script:batch -or $script:batch.Id -ne $body.BatchId){throw '角色切换批次已失效。'}

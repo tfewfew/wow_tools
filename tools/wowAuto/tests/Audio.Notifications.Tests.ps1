@@ -19,6 +19,7 @@ foreach($name in @('Test-DetectorCurrent','Receive-DetectorAudioBite')){
     . ([scriptblock]::Create($definition.Extent.Text))
 }
 function Write-Detector([string]$Text){$script:receivedStatus=$Text}
+function Publish-Detector([string]$Kind,$Data){$script:counterNotices+=,[pscustomobject]@{Kind=$Kind;Data=$Data}}
 function Assert-Notification($Condition,[string]$Message){if(-not $Condition){throw $Message}}
 $directory=Join-Path ([IO.Path]::GetTempPath()) ('wowAuto-audio-notify-'+[guid]::NewGuid().ToString('N'))
 $Hub=New-Object WowAuto.Threading.Hub($directory,1)
@@ -40,6 +41,15 @@ try {
     Assert-Notification ($script:fish.AudioReelPending -and $script:fish.Deadline -eq $data.MatchedAt+37 -and $script:receivedStatus -match '音频匹配成功') 'Production handler did not schedule from the match time.'
     $deadline=$script:fish.Deadline;Receive-DetectorAudioBite $message
     Assert-Notification ($script:fish.Deadline -eq $deadline -and @($script:scheduler.Events | Where-Object Kind -eq Reel).Count -eq 1) 'Duplicate event changed the pending reel.'
+    $script:counterNotices=@();$script:scheduler=New-WowAutoScheduler;$begin=$Hub.Now-1200
+    $script:fish=Add-WowAutoTask $script:scheduler $Endpoint.Key 500 500 $begin -UseAudio $true -AudioTimeoutMs 1500
+    $script:fish.AudioReady=$true;$null=Complete-WowAutoPoll $script:scheduler $Endpoint.Key $begin green
+    $producer=[AudioNotificationFixture]::Notify($callback,$script:fish.AudioSession)
+    $message=$Endpoint.Receive(1000);$producer.Join();Receive-DetectorAudioBite $message
+    Assert-Notification ($script:fish.AudioReelPending -and $script:fish.ReelDelayExceededProtection -and $script:counterNotices.Count -eq 1 -and
+        $script:counterNotices[0].Kind -eq 'counters' -and $script:counterNotices[0].Data.BiteTimeouts -eq 1 -and $script:counterNotices[0].Data.Cycles -eq 0) 'Delayed reel overrun did not publish its counter without a fake cycle.'
+    Receive-DetectorAudioBite $message;$deadline=$script:fish.Deadline
+    Assert-Notification ($script:counterNotices.Count -eq 1 -and (Get-WowAutoBiteTimeoutCount $script:scheduler $Endpoint.Key) -eq 1) 'Duplicate notification recounted the delay overrun.'
     $null=$Endpoint.Send('Stop','{}');$null=$Endpoint.Receive(0)
     $callback.Invoke($script:fish.AudioSession);Receive-DetectorAudioBite $message
     Assert-Notification (-not $Endpoint.Receive(0) -and $script:fish.Deadline -eq $deadline) 'An obsolete callback/event survived a stop generation.'

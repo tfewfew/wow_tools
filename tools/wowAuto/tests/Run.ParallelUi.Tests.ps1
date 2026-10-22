@@ -36,7 +36,7 @@ public static class ParallelFixture {
     $operator=@'
 function Invoke-OperatorRequest($Request) {
     $id=$Request.Owner.Pid;[ParallelFixture]::OpThread[$id]=[Threading.Thread]::CurrentThread.ManagedThreadId
-    if($Request.Kind -like 'Fish.*' -and $id -eq [ParallelFixture]::FailFocusPid){[ParallelFixture]::FailFocusPid=0;throw '操作线程未能在前台保护时间内取得窗口。'}
+    if($Request.Kind -like 'Fish.*' -and $Request.Kind -ne 'Fish.EquipRod' -and $id -eq [ParallelFixture]::FailFocusPid){[ParallelFixture]::FailFocusPid=0;throw '操作线程未能在前台保护时间内取得窗口。'}
     if($Request.Kind -like 'Fish.*' -and $id -eq [ParallelFixture]::BlockPid) {
         [ParallelFixture]::BlockedPid=$id
         while(-not [ParallelFixture]::Release.Wait(10)){if(-not $Request.Current -or $Hub.Closing){return @{Executed=$false;SentAt=$Hub.Now}}}
@@ -44,7 +44,7 @@ function Invoke-OperatorRequest($Request) {
     if(-not $Request.Current){return @{Executed=$false;SentAt=$Hub.Now}}
     [ParallelFixture]::Add([ParallelFixture]::Actions,$id)
     [ParallelFixture]::InputOrder.Enqueue($id.ToString()+':'+$Request.Kind)
-    if($Request.Kind -eq 'Rotation.EquipRod'){
+    if($Request.Kind -in @('Rotation.EquipRod','Fish.EquipRod')){
         $body=$Request.Json | ConvertFrom-Json
         if($body.Mode -cne 'fish' -or $body.Key -cne 'Ctrl+F3'){throw 'Unexpected rod equip task/key.'}
         [ParallelFixture]::Add([ParallelFixture]::RodEquips,$id)

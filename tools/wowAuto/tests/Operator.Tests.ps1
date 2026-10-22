@@ -92,4 +92,6 @@ foreach($case in @('marker','identity','stale','mode','empty','invalid')) {
     try{$null=Invoke-OperatorRequest $testRod}catch{}
     Assert-OperatorTest ($script:adapter.Pressed.Count -eq 1) ('Unsafe rod input was sent: '+$case)
 }
-Write-Output 'PASS: production operator routing with substituted native primitives; timing and foreground guards, fresh protocol/identity checks, and rod equip before monitoring with stale/missing/invalid requests rejected. No native input.'
+$directRod=New-OperatorTestRequest Fish.EquipRod Fish @{Mode='fish';Key='Ctrl+F3'};$directRod.ReadyAt=1;$directRod.Timing.KeyPressMs=51
+Assert-OperatorTest ((Invoke-OperatorRequest $directRod).Executed -and $script:adapter.Pressed.Count -eq 2 -and $script:lastAdapterDuration -eq 51) 'Direct-start rod equip required active fish colors or bypassed configured key timing.'
+Write-Output 'PASS: production operator routing with substituted native primitives; timing and foreground guards, fresh protocol/identity checks, login/direct-start rod equip with stale/missing/invalid requests rejected. No native input.'

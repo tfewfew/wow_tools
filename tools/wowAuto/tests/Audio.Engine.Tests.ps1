@@ -77,4 +77,28 @@ Stop-WowAutoTask $q 'A'
 Assert-Audio ($null -eq (Get-WowAutoWork $q 35000) -and (Get-WowAutoWork $q 35300).Key -eq 'B') 'Original no-signal timeout cancelled the post-match delay.'
 Stop-WowAutoTask $q 'B'
 Assert-Audio ($q.Events.Count -eq 0 -and $null -eq (Get-WowAutoWork $q 36000)) 'Stop retained a delayed reel.'
-Write-Output 'PASS: audio startup gate, post-match delay, session isolation/deduplication, hold/focus/priority, reel counting, no-bite timeout counting at deadline only, per-process restart retention, no count for matched/cancelled/stopped/timed waits, timeout recast and delayed cancellation.'
+# Random-delay overruns count once against the immutable protection deadline.
+$q=New-WowAutoScheduler
+foreach($case in @(@('before',1699,0),@('equal',1700,0),@('after',1701,1))){
+    $key=$case[0];$state=Add-WowAutoTask $q $key 300 300 0 -UseAudio $true -AudioTimeoutMs 2000
+    $state.AudioReady=$true;$null=Complete-WowAutoPoll $q $key 0 green
+    $state.AudioTimeoutMs=60000
+    Assert-Audio (Complete-WowAutoAudioBite $q $key $case[1] $state.AudioSession) 'Valid near-boundary match was rejected.'
+    Assert-Audio ($state.AudioProtectionDeadline -eq 2000 -and $state.Deadline -eq $case[1]+300 -and (Get-WowAutoBiteTimeoutCount $q $key) -eq $case[2]) 'Random reel delay ignored the original protection boundary or counted its exact boundary.'
+    Assert-Audio (-not (Complete-WowAutoAudioBite $q $key ($case[1]+1) $state.AudioSession)) 'Duplicate match resampled a late reel or recounted its overrun.'
+    Complete-WowAutoAudioTimeout $q $key 2100 'must not double count an already matched delay'
+    Assert-Audio ((Get-WowAutoBiteTimeoutCount $q $key) -eq $case[2] -and $state.AudioReelPending) 'No-signal timeout duplicated the delayed-reel count or cancelled its action.'
+}
+$late=$q.Tasks.after
+Assert-Audio ($late.ReelDelayExceededProtection -and $late.Status -match '随机收竿延迟超过' -and (Get-WowAutoCycleCount $q after) -eq 0 -and -not $late.PostReelJumpAllowed) 'Delay overrun omitted its reason, counted a fake successful reel or allowed jumping.'
+Complete-WowAutoReel $q after 2001 $false
+Assert-Audio ((Get-WowAutoBiteTimeoutCount $q after) -eq 1 -and (Get-WowAutoCycleCount $q after) -eq 0) 'Failed reel recounted the delay overrun.'
+Complete-WowAutoReel $q after 2001 $true
+Assert-Audio ((Get-WowAutoBiteTimeoutCount $q after) -eq 1 -and (Get-WowAutoCycleCount $q after) -eq 1 -and $late.AudioProtectionDeadline -eq 0) 'Registered successful late reel changed its counter or retained the old protection deadline.'
+Stop-WowAutoTask $q after
+$late=Add-WowAutoTask $q after 300 300 5000 -UseAudio $true -AudioTimeoutMs 2000
+$late.AudioReady=$true;$null=Complete-WowAutoPoll $q after 5000 green
+Assert-Audio ($late.AudioProtectionDeadline -eq 7000 -and -not $late.ReelDelayExceededProtection -and (Get-WowAutoBiteTimeoutCount $q after) -eq 1) 'Restart lost cumulative overrun count or inherited the prior protection deadline.'
+Reset-WowAutoAudioWait $q after 5100 'ordinary cancellation'
+Assert-Audio ((Get-WowAutoBiteTimeoutCount $q after) -eq 1 -and $late.AudioProtectionDeadline -eq 0) 'Ordinary cancellation invented an overrun.'
+Write-Output 'PASS: audio matching/timing/holds/identity, no-bite and random-delay-overrun counters, strict protection boundary, immutable active deadlines, per-round deduplication and process isolation. No input.'

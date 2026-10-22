@@ -13,6 +13,7 @@
     "Scan.Enable": 40,
     "Rotation.Enable": 40,
     "Rotation.EquipRod": 40,
+    "Fish.EquipRod": 40,
     "Fish.Item": 45,
     "Scan.Activate": 45,
     "Rotation.Activate": 45,

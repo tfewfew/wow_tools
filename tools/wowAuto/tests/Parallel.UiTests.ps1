@@ -189,10 +189,17 @@ Assert-Parallel ($a.RotationSwitchCount -ge 4 -and $b.RotationSwitchCount -ge 4)
 Stop-AllRows;Pump-Parallel {@($rows | Where-Object RuntimeRunning).Count -eq 0}
 $beforeA=$a.ExecutionRound;$beforeB=$b.ExecutionRound
 $rodBefore=[ParallelFixture]::RodEquips[101]
+$combatRodBefore=[ParallelFixture]::RodEquips[202]
 $a.Validated=$true;$b.Validated=$true;Set-RowControls $a;Set-RowControls $b;$a.DirectStart.PerformClick();$b.DirectStart.PerformClick()
 Pump-Parallel {$a.ExecutionRound -gt $beforeA -and $b.ExecutionRound -gt $beforeB}
 Assert-Parallel ($a.RuntimeDirect -and $b.RuntimeDirect) 'Direct start did not remain independent.'
-Assert-Parallel ([ParallelFixture]::RodEquips[101] -eq $rodBefore) 'Direct start was mistaken for a character login.'
+Assert-Parallel ([ParallelFixture]::RodEquips[101] -eq $rodBefore+1 -and [ParallelFixture]::RodEquips[202] -eq $combatRodBefore) 'Direct fishing did not equip once or direct combat equipped a rod.'
+$a.Stop.PerformClick();$rodBefore=[ParallelFixture]::RodEquips[101];$roundBefore=$a.ExecutionRound
+$a.Validated=$true;Set-RowControls $a;[ParallelFixture]::BlockPid=101;[ParallelFixture]::BlockedPid=0;[ParallelFixture]::Release.Reset();$a.DirectStart.PerformClick()
+Pump-Parallel {[ParallelFixture]::BlockedPid -eq 101}
+$a.Stop.PerformClick();[ParallelFixture]::Release.Set();[ParallelFixture]::BlockPid=0
+Pump-Parallel {-not $a.RuntimeRunning}
+Assert-Parallel ([ParallelFixture]::RodEquips[101] -eq $rodBefore -and $a.ExecutionRound -eq $roundBefore -and $b.RuntimeRunning) 'Cancelled direct-start equip sent a stale key, started fishing or stopped another process.'
 if($env:WOWAUTO_PARALLEL_PREVIEW){$bitmap=New-Object Drawing.Bitmap($form.Width,$form.Height);try{$form.DrawToBitmap($bitmap,(New-Object Drawing.Rectangle(0,0,$bitmap.Width,$bitmap.Height)));$bitmap.Save((Join-Path $env:WOWAUTO_PARALLEL_PREVIEW 'parallel-main.png'))}finally{$bitmap.Dispose()}}
 Stop-AllRows;Set-VersionWaitRanges 25 25 25 25 -Persist $false -JumpEveryCycles 1
 [ParallelFixture]::AutoFish=$true;$a.Validated=$true;Set-RowControls $a;$a.DirectStart.PerformClick()
@@ -217,6 +224,9 @@ $script:equipRodBinding=$null;$rodBefore=[ParallelFixture]::RodEquips[303]
 $c.Start.PerformClick();$b.Start.PerformClick()
 Pump-Parallel {$c.Status.Text -match '装备鱼竿' -and -not $c.RuntimeRunning -and $b.RuntimeRunning}
 Assert-Parallel ([ParallelFixture]::RodEquips[303] -eq $rodBefore -and -not $c.Exited) 'An unconfigured rod key sent input, exited the game or stopped the other process.'
+$c.Validated=$true;Set-RowControls $c;$c.DirectStart.PerformClick()
+Pump-Parallel {$c.Status.Text -match '装备鱼竿' -and -not $c.RuntimeRunning}
+Assert-Parallel ([ParallelFixture]::RodEquips[303] -eq $rodBefore -and -not $c.Exited -and $b.RuntimeRunning) 'Unconfigured direct start sent a key, exited the game or stopped another process.'
 Stop-AllRows;$script:equipRodBinding=ConvertFrom-KeyBindingText 'Ctrl+F3'
 $startAllButton.PerformClick();Pump-Parallel {@($rows | Where-Object {$_.CurrentRole -eq '角色甲'}).Count -eq 3}
 $configurationHash=(Get-FileHash $script:accountTasks.Path).Hash

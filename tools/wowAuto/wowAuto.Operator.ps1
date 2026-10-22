@@ -90,7 +90,7 @@ function Invoke-OperatorRequest($Request) {
         return @{Executed=$sent;SentAt=$Hub.Now}
     }
     if(-not (Invoke-OperatorAdapter Login $endpoint)){throw '操作前未检测到插件右下角登录白点。'}
-    if($Request.Kind -eq 'Rotation.EquipRod') {
+    if($Request.Kind -in @('Rotation.EquipRod','Fish.EquipRod')) {
         if($body.Mode -cne 'fish' -or [string]::IsNullOrWhiteSpace([string]$body.Key)){throw '装备鱼竿需要钓鱼任务和已配置的按键。'}
         $null=ConvertFrom-AutoFightBinding ([string]$body.Key)
         return @{Executed=(Invoke-OperatorAdapter Press $endpoint ([string]$body.Key) $timing.KeyPressMs);SentAt=$Hub.Now}
