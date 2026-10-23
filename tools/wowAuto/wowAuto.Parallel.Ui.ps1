@@ -15,57 +15,29 @@ function Read-RowWindowPosition($Row) {return $Row.Position}
 function Update-WindowPositions {} # Positions arrive as detector messages.
 function Add-ProcessTaskControls($Row) {
     $Row | Add-Member NoteProperty DefaultTaskMode 'fish'
-    foreach($entry in @{TaskMode='fish';FightRow=$null;SlotUseItem=$false;AccountName='';UpdatingAccount=$false;RuntimeRunning=$false;RuntimeDirect=$false;RuntimeScanning=$false;RuntimeExiting=$false;RuntimePhase='stopped';TargetRole='';CurrentRole='';CurrentIndex=-1;ExecutionRound=0;ExcludedNames=@();RotationSwitchCount=0L;CycleCount=0L;BiteTimeoutCount=0L;CurrentClassId=0;Metrics=$null;RenderedStatus=''}.GetEnumerator()){$Row | Add-Member NoteProperty $entry.Key $entry.Value}
+    foreach($entry in @{TaskMode='fish';FightRow=$null;SlotUseItem=$false;AccountName='';RuntimeRunning=$false;RuntimeDirect=$false;RuntimeScanning=$false;RuntimeExiting=$false;RuntimePhase='stopped';TargetRole='';CurrentRole='';CurrentIndex=-1;ExecutionRound=0;ExcludedNames=@();RotationSwitchCount=0L;CycleCount=0L;BiteTimeoutCount=0L;CurrentClassId=0;Metrics=$null;RenderedStatus=''}.GetEnumerator()){$Row | Add-Member NoteProperty $entry.Key $entry.Value}
     $accountLabel=New-Object Windows.Forms.Label;$accountLabel.Text='子战网';$accountLabel.SetBounds(12,106,90,28)
-    $account=New-Object Windows.Forms.ComboBox;$account.DropDownStyle='DropDownList';$account.SetBounds(110,102,400,34)
-    $account.BackColor=$script:uiColors.Input;$account.ForeColor=$script:uiColors.Text;$account.FlatStyle='Flat';$account.Tag=$Row
-    $account.DrawMode='OwnerDrawFixed';$account.ItemHeight=26
-    $account.Add_DrawItem({param($sender,$e)
-        if($e.Index -lt 0){return};$brush=New-Object Drawing.SolidBrush($sender.BackColor)
-        try{$e.Graphics.FillRectangle($brush,$e.Bounds)}finally{$brush.Dispose()}
-        [Windows.Forms.TextRenderer]::DrawText($e.Graphics,[string]$sender.Items[$e.Index],$sender.Font,$e.Bounds,[Drawing.Color]::White)
-    })
+    $account=New-Object Windows.Forms.Label;$account.SetBounds(110,106,400,28);$account.AutoEllipsis=$true
+    $account.ForeColor=$script:uiColors.Text
     $configure=New-Object WowAuto.DimButton;$configure.Text='配置角色任务';$configure.SetBounds(520,102,178,34);Set-UiButtonStyle $configure
     $configure.Tag=$Row;$configure.Add_Click({param($sender,$e) Show-AccountTaskSettings $sender.Tag})
     $summary=New-Object Windows.Forms.Label;$summary.SetBounds(12,146,686,34);$summary.AutoEllipsis=$true
     $progress=New-Object Windows.Forms.Label;$progress.SetBounds(12,192,686,26);$progress.AutoEllipsis=$true
-    $Row | Add-Member NoteProperty AccountBox $account;$Row | Add-Member NoteProperty RotationLabel $summary;$Row | Add-Member NoteProperty RotationProgress $progress
+    $Row | Add-Member NoteProperty AccountText $account;$Row | Add-Member NoteProperty RotationLabel $summary;$Row | Add-Member NoteProperty RotationProgress $progress
     $Row | Add-Member NoteProperty AccountSettings $configure
     $Row.Panel.Controls.AddRange([Windows.Forms.Control[]]@($accountLabel,$account,$configure,$summary,$progress))
     Update-RowAccountChoices $Row
-    $account.Add_SelectedIndexChanged({param($sender,$e)
-        $row=$sender.Tag;if($row.UpdatingAccount){return}
-        try {
-            $name=if($sender.SelectedIndex -gt 0){[string]$sender.SelectedItem}else{''}
-            $next=ConvertTo-TaskMap ($script:accountTasks.Config | ConvertTo-Json -Depth 12 | ConvertFrom-Json)
-            $next.Bindings[$row.Key]=@{Flavor=$row.Client.Flavor;Account=$name}
-            Save-AccountTasks $next
-            Stop-Row $row '子战网绑定已保存，请刷新验证或开始轮转。'
-            $row.Validated=$false;$row.AccountName=$name;$row.ExcludedNames=@();Update-RowAccountChoices $row;Update-WowAutoRunInfo
-        }catch{Update-RowAccountChoices $row;Set-RowStatusText $row ('子战网绑定未保存：'+$_.Exception.Message)}
-    })
 }
 function Update-RowAccountChoices($Row) {
-    if(-not $Row.PSObject.Properties['AccountBox']){return}
-    $Row.UpdatingAccount=$true
+    if(-not $Row.PSObject.Properties['AccountText']){return}
     try {
-        $binding=$script:accountTasks.Config.Bindings[$Row.Key]
-        $selected=if($binding -and $binding.Flavor -eq $Row.Client.Flavor){$binding.Account}else{''}
-        if(-not $binding -and $script:rotation.Plans.ContainsKey($Row.Key)){
-            $legacy=$script:rotation.Plans[$Row.Key];$selected=[string]$legacy.Account
-            if($selected){$script:accountTasks.Config.Bindings[$Row.Key]=@{Flavor=$Row.Client.Flavor;Account=$selected}}
-        }
-        $Row.AccountBox.Items.Clear();[void]$Row.AccountBox.Items.Add('请选择子战网')
-        foreach($account in @(Get-RowAccounts $Row)){[void]$Row.AccountBox.Items.Add($account.Name)}
-        $Row.AccountName=$selected
-        $Row.AccountBox.SelectedIndex=if($selected -and $Row.AccountBox.Items.Contains($selected)){$Row.AccountBox.Items.IndexOf($selected)}else{0}
+        if($Row.AccountName -and -not $script:accountTasks.Catalog.ContainsKey($Row.Client.Flavor+':'+$Row.AccountName)){$Row.AccountName=''}
         $roles=@(Get-AccountTaskRoles $Row)
         $defaultMode=if($roles.Count){$roles[0].Mode}else{'fish'}
         if($defaultMode -cne $Row.DefaultTaskMode){$Row.DefaultTaskMode=$defaultMode;$Row.Validated=$false}
         if(-not $Row.RuntimeRunning -and -not $Row.Validated){$Row.TaskMode=$defaultMode;$Row.SlotUseItem=($roles.Count -gt 0 -and $roles[0].UseItem)}
         Update-RotationRow $Row
     }catch{$Row.AccountName='';Set-RowStatusText $Row ('子战网目录读取失败：'+$_.Exception.Message)}
-    finally{$Row.UpdatingAccount=$false}
 }
 function Get-ParallelRoleRecord($Row,[string]$Name=$Row.CurrentRole) {
     if(-not $Name){return $null}
@@ -84,8 +56,9 @@ function Get-ParallelRowClassId($Row) {
 }
 function Update-RotationRow($Row) {
     if(-not $Row.PSObject.Properties['RotationLabel']){return}
+    $Row.AccountText.Text=if($Row.AccountName){$Row.AccountName}elseif($Row.RuntimeRunning -and -not $Row.RuntimeDirect){'识别中（等待选角界面）'}else{'未识别（开始任务后自动识别）'}
     $roles=@(Get-AccountTaskRoles $Row)
-    $Row.RotationLabel.Text='启用 '+$roles.Count+' 个角色：'+(($roles | ForEach-Object {$_.Name+' / '+$(if($_.Mode -eq 'fight'){'战斗'}else{'钓鱼'})}) -join '、')
+    $Row.RotationLabel.Text=if($Row.AccountName){'启用 '+$roles.Count+' 个角色：'+(($roles | ForEach-Object {$_.Name+' / '+$(if($_.Mode -eq 'fight'){'战斗'}else{'钓鱼'})}) -join '、')}else{'开始任务后通过选角页角色名识别子战网，并加载该子战网角色任务。'}
     $remaining=if($Row.RuntimeDirect){'直接开始'}elseif(-not $Row.RuntimeRunning){'--'}elseif($script:parallelHub.Batch -and -not $script:parallelHub.Batch.All(8)){'角色切换中'}elseif($script:parallelNextAt){[Math]::Max(0,[int][Math]::Ceiling(($script:parallelNextAt-$script:parallelHub.Now)/1000.0)).ToString()+'秒'}else{'未启用定时轮转'}
     $Row.RotationProgress.Text='当前角色：'+$(if($Row.CurrentRole){$Row.CurrentRole}elseif($Row.TargetRole){'切换至'+$Row.TargetRole}elseif($Row.RuntimeDirect -and $Row.RuntimeRunning){'当前已登录角色'}elseif($Row.RuntimeRunning){'确认中'}else{'未运行'})+'   剩余时间：'+$remaining+'   切换：'+$Row.RotationSwitchCount+'次'
     $Row.RotationProgress.ForeColor=Get-WowClassColor (Get-ParallelRowClassId $Row)
@@ -94,10 +67,9 @@ function Set-RowControls($Row) {
     if(-not $Row.PSObject.Properties['RuntimeRunning']){return}
     $available=-not $Row.Exited -and -not $Row.RuntimeExiting -and -not $script:scanning -and -not $script:editingSettings -and -not $script:parallelHub.Closing
     if($script:parallelWorkers.ContainsKey($Row.Key) -and $script:parallelWorkers[$Row.Key].Endpoint.Closed){$available=$false}
-    $Row.Start.Enabled=$available -and -not $Row.RuntimeRunning -and @(Get-AccountTaskRoles $Row).Count -gt 0
+    $Row.Start.Enabled=$available -and -not $Row.RuntimeRunning -and (Test-AccountDiscoveryAvailable $Row)
     $Row.DirectStart.Enabled=$available -and -not $Row.RuntimeRunning -and $Row.Validated
     $Row.Stop.Enabled=$Row.RuntimeRunning -or $Row.RuntimeScanning -or $Row.RuntimeExiting
-    $Row.AccountBox.Enabled=$available -and -not $Row.RuntimeRunning
     $Row.AccountSettings.Enabled=-not $script:scanning -and -not $script:editingSettings
     Update-RotationRow $Row
 }
@@ -128,7 +100,7 @@ function Update-ParallelStatusDisplay($Row) {
 }
 function Start-Row($Row,[switch]$TaskOnly) {
     if($Row.RuntimeRunning -or $script:editingSettings -or $script:scanning -or $script:shutdownState.Started){return}
-    if(-not @(Get-AccountTaskRoles $Row).Count){Set-RowStatusText $Row '请绑定子战网，并在设置中启用至少一个角色。';return}
+    if(-not (Test-AccountDiscoveryAvailable $Row)){Set-RowStatusText $Row '请在设置中为本客户端的子战网启用至少一个角色。';return}
     $Row.ExcludedNames=@();Start-ParallelBatch @($Row) Start
 }
 function Start-RowDirect($Row) {
@@ -218,7 +190,7 @@ function Get-WowAutoRunInfo {
     $processes=@(foreach($row in @($script:rows.Values | Sort-Object {$_.Process.Id})) {
         $key=$row.Client.Flavor+':'+$row.AccountName
         $roles=@(foreach($role in $script:accountTasks.Config.Accounts[$key]){@{Role=$role.Name;Realm=$role.Realm;Task=$role.Mode;Enabled=$role.Enabled;UseItem=$role.UseItem;Excluded=($role.Name -cin $row.ExcludedNames)}})
-        @{Pid=$row.Process.Id;Client=$row.Client.Flavor;SubAccount=$row.AccountName;Roles=$roles;CurrentRole=$row.CurrentRole;CurrentRoleIndex=$row.CurrentIndex;CurrentTask=$(if($row.RuntimePhase -eq 'running'){$row.TaskMode}else{''});CurrentPhase=$row.RuntimePhase;ExecutionRound=$row.ExecutionRound}
+        @{Pid=$row.Process.Id;Client=$row.Client.Flavor;SubAccount=$row.AccountName;SubAccountSource=$(if($row.AccountName){'ocr'}else{'unknown'});Roles=$roles;CurrentRole=$row.CurrentRole;CurrentRoleIndex=$row.CurrentIndex;CurrentTask=$(if($row.RuntimePhase -eq 'running'){$row.TaskMode}else{''});CurrentPhase=$row.RuntimePhase;ExecutionRound=$row.ExecutionRound}
     })
     return @{StartTime=$script:wowAutoLog.StartedAt.ToString('o');ProcessCount=$processes.Count;Processes=$processes}
 }

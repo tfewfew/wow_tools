@@ -69,7 +69,8 @@ function New-AccountTaskSettingsPage {
             $next.Accounts=$editor.Draft.Accounts
             Save-AccountTasks $next
             foreach($row in $script:rows.Values){
-                if(($row.Client.Flavor+':'+$row.AccountName) -cin $changed){
+                if(($row.Client.Flavor+':'+$row.AccountName) -cin $changed -or
+                    (-not $row.AccountName -and $row.RuntimeRunning -and -not $row.RuntimeDirect -and @($changed | Where-Object {$_.StartsWith($row.Client.Flavor+':',[StringComparison]::Ordinal)}).Count)){
                     $current=@(Get-AccountTaskRoles $row | Where-Object {$_.Name -ceq $row.CurrentRole})
                     if($current.Count -eq 1){if($current[0].Mode -cne $row.TaskMode){$row.Validated=$false}else{$row.SlotUseItem=$current[0].UseItem}}
                     Stop-Row $row '子战网角色任务已保存，请重新开始。'

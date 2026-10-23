@@ -102,13 +102,33 @@ function Save-AccountTasks($Config=$script:accountTasks.Config) {
 function Get-AccountTaskSignature($Roles) {
     return ConvertTo-Json -InputObject @($Roles | ForEach-Object {[ordered]@{Name=$_.Name;Realm=$_.Realm;Mode=$_.Mode;Enabled=$_.Enabled;UseItem=$_.UseItem}}) -Depth 6 -Compress
 }
-function Get-AccountTaskRoles($Row) {
+function Get-AccountTaskRoles($Row,[string]$Account=$Row.AccountName) {
     $root=$script:rotation.GameDirectories[$Row.Client.Flavor]
     if($root -and -not [string]::Equals([IO.Path]::GetFullPath($root).TrimEnd('\','/'),(Split-Path $Row.Client.ExecutablePath -Parent),[StringComparison]::OrdinalIgnoreCase)){return @()}
-    $key=$Row.Client.Flavor+':'+$Row.AccountName
+    $key=$Row.Client.Flavor+':'+$Account
     if (-not $script:accountTasks.Config.Accounts.ContainsKey($key) -or -not $script:accountTasks.Catalog.ContainsKey($key)) {return @()}
     $records=$script:accountTasks.Catalog[$key].Characters
     return @($script:accountTasks.Config.Accounts[$key] | Where-Object {
         $role=$_;$role.Enabled -and @($records | Where-Object {$_.Name -ceq $role.Name -and $_.Realm -ceq $role.Realm}).Count
     })
+}
+function Get-AccountDiscoveryCandidates($Row) {
+    $root=$script:rotation.GameDirectories[$Row.Client.Flavor]
+    if(-not $root -or -not [string]::Equals([IO.Path]::GetFullPath($root).TrimEnd('\','/'),(Split-Path $Row.Client.ExecutablePath -Parent),[StringComparison]::OrdinalIgnoreCase)){return @()}
+    foreach($key in @($script:accountTasks.Catalog.Keys | Sort-Object)) {
+        if(-not $key.StartsWith($Row.Client.Flavor+':',[StringComparison]::Ordinal)){continue}
+        $account=$key.Substring($Row.Client.Flavor.Length+1)
+        $names=@($script:accountTasks.Catalog[$key].Characters | ForEach-Object Name | Sort-Object -Unique)
+        if($names.Count){@{Account=$account;Names=$names;Roles=@(Get-AccountTaskRoles $Row $account)}}
+    }
+}
+function Test-AccountDiscoveryAvailable($Row) {
+    $root=$script:rotation.GameDirectories[$Row.Client.Flavor]
+    if(-not $root -or -not [string]::Equals([IO.Path]::GetFullPath($root).TrimEnd('\','/'),(Split-Path $Row.Client.ExecutablePath -Parent),[StringComparison]::OrdinalIgnoreCase)){return $false}
+    # UI refresh needs only eligibility; materialize full name/task snapshots at command submission.
+    foreach($key in $script:accountTasks.Catalog.Keys){
+        if($key.StartsWith($Row.Client.Flavor+':',[StringComparison]::Ordinal) -and
+            @(Get-AccountTaskRoles $Row $key.Substring($Row.Client.Flavor.Length+1)).Count){return $true}
+    }
+    return $false
 }

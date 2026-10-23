@@ -45,22 +45,26 @@ function Ensure-ParallelWorker($Row) {
 function Send-ParallelCommand($Row,[string]$Kind,[string]$BatchId='',[bool]$Direct=$false) {
     $endpoint=Ensure-ParallelWorker $Row
     $useItem=if($Direct){$Row.TaskMode -eq 'fish' -and $script:directStartUseItem}else{$Row.SlotUseItem}
-    $payload=@{Config=(Get-ParallelConfig $Row);Roles=@(Get-AccountTaskRoles $Row);BatchId=$BatchId;Direct=$Direct;Mode=$Row.TaskMode;UseItem=$useItem;RoundBase=$Row.ExecutionRound}
+    $payload=@{Config=(Get-ParallelConfig $Row);Roles=@(Get-AccountTaskRoles $Row);Account=$Row.AccountName;AccountCandidates=@(Get-AccountDiscoveryCandidates $Row);BatchId=$BatchId;Direct=$Direct;Mode=$Row.TaskMode;UseItem=$useItem;RoundBase=$Row.ExecutionRound}
     $endpoint.Notify('Configure',($payload.Config | ConvertTo-Json -Depth 15 -Compress))
     $null=$endpoint.Send($Kind,($payload | ConvertTo-Json -Depth 15 -Compress))
 }
 function Start-ParallelBatch($Rows,[string]$Kind='Rotate') {
     if($script:shutdownState.Started){return}
-    $participants=@($Rows | Where-Object {$_ -and -not $_.Exited -and @(Get-AccountTaskRoles $_).Count})
+    $participants=@($Rows | Where-Object {$_ -and -not $_.Exited -and $(if($Kind -eq 'Start'){Test-AccountDiscoveryAvailable $_}else{@(Get-AccountTaskRoles $_).Count})})
     if(-not $participants.Count){return}
     if($script:parallelHub.Batch -and -not $script:parallelHub.Batch.All(8)) {
         foreach($row in $participants){$script:parallelPending[$row.Key]=$Kind;$row.RuntimeRunning=$true;Set-RowStatusText $row '等待当前角色切换批次完成。'}
         return
     }
     $script:parallelHub.Batch=New-Object WowAuto.Threading.RotationBatch(,[string[]]@($participants | ForEach-Object Key))
-    foreach($row in $participants){$row.RuntimeRunning=$true;$row.RuntimeDirect=$false;Send-ParallelCommand $row $Kind $script:parallelHub.Batch.Id;Set-RowControls $row}
+    foreach($row in $participants){
+        if($Kind -eq 'Start'){$row.AccountName='';$row.CurrentRole='';$row.TargetRole='';$row.TaskMode='fish';$row.SlotUseItem=$false;$row.Validated=$false}
+        $row.RuntimeRunning=$true;$row.RuntimeDirect=$false;$row.RuntimePhase='switching';Send-ParallelCommand $row $Kind $script:parallelHub.Batch.Id;Set-RowControls $row
+    }
     $script:parallelNextAt=if($script:rotation.IntervalSeconds){$script:parallelHub.Now+[long]$script:rotation.IntervalSeconds*1000}else{0L}
     $script:parallelHub.ActiveTasks=@($script:rows.Values | Where-Object RuntimeRunning).Count
+    Update-WowAutoRunInfo
 }
 function Stop-ParallelRuntime {
     if(-not $script:parallelHub){return}
@@ -83,6 +87,7 @@ function Update-ParallelMessages {
         if($notice.Kind -eq 'status'){Set-RowStatusText $row $notice.Json -FromWorker;continue}
         $data=$notice.Json | ConvertFrom-Json
         switch($notice.Kind) {
+            'account' {$row.AccountName=$data.Account;Update-RowAccountChoices $row;Update-WowAutoRunInfo}
             'position' {$row.Position=$data.Text;Update-RowName $row}
             'scanned' {$row.Validated=$data.Valid;$row.RuntimeScanning=$false;Set-RowControls $row}
             'switching' {$row.CurrentRole='';$row.CurrentIndex=-1;$row.Metrics=$null;$row.TargetRole=$data.TargetRole;$row.RuntimePhase='switching';Update-WowAutoRunInfo}
@@ -163,7 +168,7 @@ function Initialize-ParallelRuntime {
     $script:parallelHub.Simulation=[bool]$UiTest
     Apply-ParallelTimings
     $script:parallelOperator=New-ParallelPipeline 'wowAuto.Operator.ps1' -Mock $mockOperator
-    $intro.Text='每个进程绑定一个子战网；在设置中启用角色并配置任务。“开始”按账号角色轮转，“直接开始”使用当前已登录角色。'
+    $intro.Text='在设置中启用角色并配置任务。“开始”首次返回选角页时自动识别子战网，再按角色轮转；“直接开始”使用当前已登录角色。'
     $footer.Text='检测与OCR按进程独立运行；操作线程执行按键和点击，日志线程统一写文件。角色死亡或包满时移出本次轮转，耗尽才退出该进程。'
     $script:parallelHub.Log($null,0,'system','独立检测线程 / 专用操作线程 / 专用日志线程 / UI消息模式已初始化。')
     if($accountError){$settingsSummary.Text='子战网配置读取失败，角色已停用，请打开设置核对：'+$accountError;$script:parallelHub.Log($null,0,'error',$settingsSummary.Text)}

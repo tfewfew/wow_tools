@@ -33,7 +33,14 @@ try {
     }
     $row=[pscustomobject]@{Client=[pscustomobject]@{Flavor='titan';ExecutablePath=(Join-Path $script:rotation.GameDirectories.titan 'WowClassic.exe')};AccountName='ACCOUNT-A'}
     Assert-AccountTask (@(Get-AccountTaskRoles $row).Count -eq 4) 'Account role membership filtering failed.'
+    $row.AccountName=''
+    $candidates=@(Get-AccountDiscoveryCandidates $row);$accountCandidate=@($candidates | Where-Object Account -ceq 'ACCOUNT-A')[0]
+    Assert-AccountTask (@(Get-AccountTaskRoles $row).Count -eq 0 -and $accountCandidate.Roles.Count -eq 4 -and
+        '从未配置' -cin $accountCandidate.Names -and '冲突角色' -cin $accountCandidate.Names) 'Discovery requires a manual binding or excludes inactive saved character records.'
+    Assert-AccountTask (Test-AccountDiscoveryAvailable $row) 'An unknown process with configured same-client tasks cannot start discovery.'
     $row.Client.ExecutablePath='C:\another\_classic_titan_\WowClassic.exe';Assert-AccountTask (@(Get-AccountTaskRoles $row).Count -eq 0) 'Another installation inherited account tasks.'
+    Assert-AccountTask (@(Get-AccountDiscoveryCandidates $row).Count -eq 0) 'Discovery leaked a different installation catalog.'
+    Assert-AccountTask (-not (Test-AccountDiscoveryAvailable $row)) 'A different installation can start discovery.'
     foreach($invalid in @('period','switch','duplicate','unknown','partial')) {
         $next=ConvertTo-TaskMap ($script:accountTasks.Config | ConvertTo-Json -Depth 12 | ConvertFrom-Json)
         switch($invalid) {

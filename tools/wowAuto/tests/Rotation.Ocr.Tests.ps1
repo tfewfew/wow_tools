@@ -6,6 +6,11 @@ Add-Type -Path (Join-Path $tool 'wowAuto.Rotation.Native.cs') -ReferencedAssembl
 $parseTokens=$null;$parseErrors=$null
 $ast=[System.Management.Automation.Language.Parser]::ParseFile((Join-Path $tool 'wowAuto.Rotation.ps1'),[ref]$parseTokens,[ref]$parseErrors)
 . (Join-Path $tool 'wowAuto.Rotation.Match.ps1')
+. (Join-Path $tool 'wowAuto.AccountDiscovery.ps1')
+function Assert-FixtureAccount($Screen,[string[]]$Names) {
+    $candidates=@(@{Account='FIXTURE';Names=$Names},@{Account='OTHER';Names=@('无关测试角色名')})
+    if((Resolve-OcrAccount $Screen $candidates).Account -cne 'FIXTURE'){throw 'Saved character names did not identify the screenshot account.'}
+}
 foreach ($name in @('New-RotationPlan','Resolve-RotationOcrName','Get-RotationMenuGeometry','Get-RotationMenuRow','ConvertFrom-RotationOcr')) {
     $fn=$ast.Find({param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name},$true)
     if(-not $fn -and (Get-Command $name -ErrorAction SilentlyContinue)){continue}
@@ -63,6 +68,7 @@ function Read-TestOcr($Bitmap) {
 }
 function Read-TestImage($Bitmap) {ConvertFrom-RotationOcr (Read-TestOcr $Bitmap) $plan}
 function Assert-ScreenshotOcr($Ocr,$Screen,[double]$Scale,$Bitmap) {
+    Assert-FixtureAccount $Screen @('吔史呀嘞','双持船橘二咪')
     $server=@($Ocr.Lines | Where-Object {$_.Text -match '^[0一_—\-口□]*选择服务器[一_—\-口□]*$' -and $_.X -gt 0.65 -and $_.Y -lt 0.15})
     $enter=@($Ocr.Lines | Where-Object {$_.Text -match '^[0一_—\-口□]*进入魔兽世界[一_—\-口□]*$' -and $_.X -gt 0.25 -and $_.X -lt 0.70 -and $_.Y -gt 0.85})
     if (-not $server.Count -or -not $enter.Count) {
@@ -164,6 +170,7 @@ if ($runRepositoryFixtures) {
                 try {
                     $ocr=Read-TestOcr $bitmap
                     $screen=ConvertFrom-RotationOcr $ocr $fixturePlan
+                    Assert-FixtureAccount $screen @($fixture.Names | ForEach-Object Name)
                     if ($screen.Kind -ne 'menu') {throw ('Selection anchors were not recognized in '+$fixture.File+' at scale '+$scale+'.')}
                     foreach ($expected in $fixture.Names) {
                         $matches=@($screen.Targets | Where-Object {$_.Name -ceq $expected.Name -and -not $_.Ambiguous})
@@ -206,6 +213,7 @@ if ($runRepositoryFixtures) {
                 try {
                     $ocr=Read-TestOcr $bitmap
                     $screen=ConvertFrom-RotationOcr $ocr $highlightPlan
+                    Assert-FixtureAccount $screen @('吔史呀嘞')
                     $matched=@($screen.Targets | Where-Object {$_.Name -ceq '吔史呀嘞' -and -not $_.Ambiguous})
                     if ($screen.Kind -ne 'menu' -or $matched.Count -ne 1 -or $matched[0].MenuRow -ne 4) {
                         throw ('Highlight OCR failed to uniquely find fourth row in '+$fixture.File+' at scale '+$scale+': '+($screen | ConvertTo-Json -Depth 4 -Compress))

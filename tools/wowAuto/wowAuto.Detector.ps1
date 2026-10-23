@@ -3,6 +3,7 @@ $ErrorActionPreference='Stop'
 . (Join-Path $ToolRoot 'wowAuto.Engine.ps1')
 . (Join-Path $ToolRoot 'autoFight.Engine.ps1')
 . (Join-Path $ToolRoot 'wowAuto.Rotation.Match.ps1')
+. (Join-Path $ToolRoot 'wowAuto.AccountDiscovery.ps1')
 function Publish-Detector([string]$Kind,$Data) {$Hub.Publish($Endpoint,$script:version,$Kind,($Data | ConvertTo-Json -Depth 12 -Compress))}
 function Write-Detector([string]$Text,[string]$Kind='status') {
     if($Kind -eq 'status' -and $Text -ceq $script:lastStatus){return}
@@ -55,7 +56,8 @@ function Get-DetectorScreen {
     if(-not (Test-DetectorCurrent) -or $Hub.Now-$started -gt 3000){return [pscustomobject]@{Kind='pending';Targets=@()}}
     $current=[WowAutoRotation.Native]::ReadClientSize($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)
     if(-not [WowAutoRotation.Native]::ClientSizeWithinTolerance($size.Width,$size.Height,$current.Width,$current.Height)){return [pscustomobject]@{Kind='pending';Targets=@()}}
-    $screen=ConvertFrom-RotationOcr ($result | ConvertFrom-Json) ([pscustomobject]@{Slots=$script:roles})
+    $ocrRoles=if($script:discoverAccount){@($script:accountCandidates | ForEach-Object {$_.Names} | Sort-Object -Unique | ForEach-Object {[pscustomobject]@{Name=$_}})}else{$script:roles}
+    $screen=ConvertFrom-RotationOcr ($result | ConvertFrom-Json) ([pscustomobject]@{Slots=$ocrRoles})
     foreach($target in $screen.Targets){$target | Add-Member NoteProperty ClientSize $size}
     return $screen
 }
@@ -181,10 +183,11 @@ function Select-DetectorRole {
 }
 function Invoke-DetectorRotation {
     $script:running=$false;Stop-DetectorAudio
-    if(-not (Select-DetectorRole)){Exit-DetectorProcess '当前子战网所有启用角色均已移出本次轮转';return}
+    if($script:discoverAccount){$script:roleName='';$script:mode='fish'}
+    elseif(-not (Select-DetectorRole)){Exit-DetectorProcess '当前子战网所有启用角色均已移出本次轮转';return}
     Publish-Detector switching @{TargetRole=$script:roleName;Mode=$script:mode;Index=$script:index}
     $script:batch.Clear($Endpoint.Key,15)
-    Write-Detector ('开始切换到“'+$script:roleName+'”，等待选角界面后由本进程线程执行OCR。')
+    Write-Detector $(if($script:discoverAccount){'首次返回选角界面，准备OCR自动识别子战网。'}else{'开始切换到“'+$script:roleName+'”，等待选角界面后由本进程线程执行OCR。'})
     $lastLogout=$Hub.Now
     $observation=Get-DetectorObservationReady
     if($observation.Login){$null=Request-DetectorOperation Rotation.Logout Rotation}
@@ -205,12 +208,25 @@ function Invoke-DetectorRotation {
             if(-not (Test-DetectorCurrent)){return}
             if($screen.Kind -ne 'menu'){$menuStable=0;$targetStable=0;$null=Wait-Detector $script:config.Periods.MenuMs;continue}
             $deadline=$Hub.Now+180000
+            if($script:discoverAccount) {
+                $resolution=Resolve-OcrAccount $screen $script:accountCandidates
+                if($resolution.Account) {
+                    $account=@($script:accountCandidates | Where-Object {$_.Account -ceq $resolution.Account})[0]
+                    $script:account=$account.Account;$script:roles=@($account.Roles);$script:discoverAccount=$false
+                    Publish-Detector account @{Account=$script:account;Matches=$resolution.Matches}
+                    Write-Detector ('OCR已识别子战网：'+$script:account+'；匹配角色：'+($resolution.Matches -join '、')+'。')
+                    if(-not $script:roles.Count){throw ('已识别子战网“'+$script:account+'”，没有可执行的启用角色，请在设置中配置。')}
+                    if(-not (Select-DetectorRole)){throw '已识别子战网，但没有可执行角色。'}
+                    Publish-Detector switching @{TargetRole=$script:roleName;Mode=$script:mode;Index=$script:index}
+                    continue
+                }
+            }
             if($menuStable -lt 3){$menuStable++;continue}
-            Write-Detector (Get-RotationOcrLog $screen $script:roleName)
-            $targets=@($screen.Targets | Where-Object {$_.Name -ceq $script:roleName -and -not $_.Ambiguous})
+            Write-Detector (Get-RotationOcrLog $screen $(if($script:discoverAccount){'子战网待识别'}else{$script:roleName}))
+            $targets=@(if(-not $script:discoverAccount){$screen.Targets | Where-Object {$_.Name -ceq $script:roleName -and -not $_.Ambiguous}})
             if($targets.Count -gt 1){throw '列表出现多个相同角色名称，停止本进程编排。'}
             if($targets.Count -eq 0) {
-                if($retries -ge 30){Exit-DetectorProcess ('角色“'+$script:roleName+'”按↑后重识别30次仍未找到');return}
+                if($retries -ge 30){Exit-DetectorProcess $(if($script:discoverAccount){'选角页按↑后重识别30次仍未唯一确认子战网'}else{'角色“'+$script:roleName+'”按↑后重识别30次仍未找到'});return}
                 $reply=Request-DetectorOperation Rotation.Up Rotation
                 if(-not $reply -or -not $reply.Executed){continue}
                 $retries++;$targetStable=0;$candidate=$null
@@ -382,6 +398,7 @@ function Invoke-DetectorTaskCore {
 if($MockSource){. ([scriptblock]::Create($MockSource))}
 $script:version=$Endpoint.Version;$script:running=$false;$script:audio=$null;$script:batch=$null;$script:config=$null
 $script:round=0;$script:runLogins=0;$script:roleName='';$script:index=-1;$script:mode='fish';$script:useItem=$false;$script:direct=$false
+$script:account='';$script:accountCandidates=@();$script:discoverAccount=$false
 $script:excluded=@();$script:lastStatus='';$script:nextPosition=0L;$script:nextFishPoll=0L;$script:retryAt=0L
 $script:nextMetrics=0L
 $script:lastConfiguration=$null
@@ -410,6 +427,8 @@ try {
                     Write-Detector '已停止，本进程待执行操作已取消。';Publish-Detector stopped @{Reason='已停止';Exited=$false};continue
                 }
                 $body=$command.Json | ConvertFrom-Json;$script:config=$body.Config;$script:roles=@($body.Roles);$script:direct=[bool]$body.Direct
+                $script:account=[string]$body.Account;$script:accountCandidates=@($body.AccountCandidates)
+                $script:discoverAccount=$command.Kind -eq 'Start' -and -not $script:direct
                 Set-DetectorScheduler
                 if($command.Kind -eq 'Scan') {
                     $script:mode=$body.Mode

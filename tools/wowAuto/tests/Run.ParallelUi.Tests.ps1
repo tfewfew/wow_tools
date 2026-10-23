@@ -26,6 +26,11 @@ public static class ParallelFixture {
     public static readonly ConcurrentDictionary<int,int> LureReads=new ConcurrentDictionary<int,int>();
     public static readonly ConcurrentDictionary<int,int> Items=new ConcurrentDictionary<int,int>();
     public static readonly ConcurrentDictionary<int,string> Lures=new ConcurrentDictionary<int,string>();
+    public static readonly ConcurrentDictionary<int,string> CharacterNames=new ConcurrentDictionary<int,string>();
+    public static readonly ConcurrentDictionary<int,string> DiscoveryNames=new ConcurrentDictionary<int,string>();
+    public static readonly ConcurrentDictionary<int,int> DiscoveryReads=new ConcurrentDictionary<int,int>();
+    public static int DiscoveryBlockPid,DiscoveryBlockedPid;
+    public static readonly ManualResetEventSlim DiscoveryRelease=new ManualResetEventSlim(false);
     public static readonly ConcurrentQueue<string> InputOrder=new ConcurrentQueue<string>();
     public static int BlockPid,BlockedPid,Clicks,Logouts,EarlyClicks,EarlyOcr,MissingPid,UpCount,ExitRequests,KillRequests,FailFocusPid,Reels,Jumps,EarlyJumps,NoBitePid;
     public static int ShutdownRequests;
@@ -110,7 +115,15 @@ function Get-DetectorScreen {
     [ParallelFixture]::OcrThread[$Endpoint.Pid]=[Threading.Thread]::CurrentThread.ManagedThreadId
     if($Endpoint.Pid -eq 101 -and [ParallelFixture]::Ocr[101] -eq 1){[Threading.Thread]::Sleep(800)}
     if($Endpoint.Pid -eq [ParallelFixture]::MissingPid){return [pscustomobject]@{Kind='menu';Targets=@()}}
-    $index=0;$targets=@(foreach($role in $script:roles){$index++;[pscustomobject]@{Name=$role.Name;RawName=$role.Name;Ambiguous=$false;MenuRow=$index;X=0.84;Y=(0.119+($index-1)*0.0743);ClientSize=[pscustomobject]@{Width=800;Height=500}}})
+    if($script:discoverAccount){
+        [ParallelFixture]::Add([ParallelFixture]::DiscoveryReads,$Endpoint.Pid)
+        if($Endpoint.Pid -eq [ParallelFixture]::DiscoveryBlockPid){
+            [ParallelFixture]::DiscoveryBlockedPid=$Endpoint.Pid
+            while(-not [ParallelFixture]::DiscoveryRelease.Wait(10)){if(-not (Test-DetectorCurrent)){return [pscustomobject]@{Kind='pending';Targets=@()}}}
+        }
+    }
+    $names=if($script:discoverAccount -and [ParallelFixture]::DiscoveryNames[$Endpoint.Pid]){[ParallelFixture]::DiscoveryNames[$Endpoint.Pid]}else{[ParallelFixture]::CharacterNames[$Endpoint.Pid]}
+    $index=0;$targets=@(foreach($name in $names.Split('|')){$index++;[pscustomobject]@{Name=$name;RawName=$name;Ambiguous=$false;MenuRow=$index;X=0.84;Y=(0.119+($index-1)*0.0743);ClientSize=[pscustomobject]@{Width=800;Height=500}}})
     return [pscustomobject]@{Kind='menu';Targets=$targets}
 }
 $script:originalFixtureWait=${function:Wait-Detector}
@@ -127,8 +140,10 @@ function Wait-Detector([int]$Milliseconds) {
     foreach($spec in @(@(101,'titan','ACCOUNT-A'),@(202,'forerver','ACCOUNT-A'),@(303,'titan','ACCOUNT-B'))) {
         $product=if($spec[1] -eq 'titan'){'_classic_titan_'}else{'_cn_beta_'}
         $cap=if($spec[1] -eq 'titan'){80}else{60}
+        $accountRoles=@($roles | ForEach-Object {$_.Clone()})
+        if($spec[2] -eq 'ACCOUNT-B'){$accountRoles[2].Name='角色丙乙'}
         Write-TestRealmLevels (Join-Path $fixture ($product+'\WTF\Account\'+$spec[2])) @{'测试服'=$cap}
-        foreach($role in $roles){
+        foreach($role in $accountRoles){
             $freeSlots=if($role.Name -ceq '角色甲'){-1}elseif($role.Name -ceq '角色乙'){0}else{12}
             $skillArgs=@{};$roleLevel=0
             if($role.Name -ceq '角色乙'){$roleLevel=$cap;$skillArgs=@{Version=6;ClassId=5;Professions='';SecondarySkills=''}}
@@ -136,7 +151,10 @@ function Wait-Detector([int]$Milliseconds) {
             if($role.Name -ceq '角色丁'){$roleLevel=$cap-2;$skillArgs=@{Version=6;ClassId=11;Professions='171|炼金术|0|75';SecondarySkills='?';BindLocation='?'}}
             Write-TestCharacterRecord (Join-Path $fixture ($product+'\WTF\Account\'+$spec[2]+'\测试服\'+$role.Name)) $role.Name $role.Realm -Level $roleLevel -FreeBagSlots $freeSlots @skillArgs
         }
-        $accounts[$spec[1]+':'+$spec[2]]=$roles;$bindings[([string]$spec[0]+':'+$ticks)]=@{Flavor=$spec[1];Account=$spec[2]};[ParallelFixture]::World[$spec[0]]=1
+        $accounts[$spec[1]+':'+$spec[2]]=$accountRoles
+        # Deliberately wrong legacy bindings must never influence OCR ownership.
+        $bindings[([string]$spec[0]+':'+$ticks)]=@{Flavor=$spec[1];Account=$(if($spec[2] -eq 'ACCOUNT-B'){'ACCOUNT-A'}else{'ACCOUNT-B'})}
+        [ParallelFixture]::World[$spec[0]]=1;[ParallelFixture]::CharacterNames[$spec[0]]=($accountRoles.Name -join '|')
     }
     $accounts['forerver:ACCOUNT-A']=@($roles | ForEach-Object {$_.Clone()});$accounts['forerver:ACCOUNT-A'][0].Mode='fight'
     $periods=@{FishMs=50;FightMs=100;MenuMs=25;LoginMs=25;BaitMs=25;DeathMs=50;AudioMs=25;PositionMs=100;CaptureRetryMs=25;OcrMs=25}

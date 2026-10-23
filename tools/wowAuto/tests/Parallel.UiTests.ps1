@@ -22,7 +22,9 @@ $script:autoFight.Profiles['forerver:1'].BuffIntervalSeconds=0;$script:autoFight
 $originalOperations=ConvertTo-TaskMap ($script:accountTasks.Config.Operations | ConvertTo-Json | ConvertFrom-Json)
 Assert-Parallel ($rows.Count -eq 3 -and $script:parallelWorkers.Count -eq 3) 'Each process must have one detector runspace.'
 foreach($row in $rows) {
-    Assert-Parallel ($row.AccountBox.Parent -eq $row.Panel -and -not $row.PSObject.Properties['RotationButton'] -and @(Get-AccountTaskRoles $row).Count -eq 4) 'Account binding missing or process slots still limit roles.'
+    Assert-Parallel ($row.AccountText -is [Windows.Forms.Label] -and $row.AccountText.Parent -eq $row.Panel -and
+        -not @($row.Panel.Controls | Where-Object {$_ -is [Windows.Forms.ComboBox]}).Count -and -not $row.AccountName -and
+        $row.AccountText.Text -match '未识别' -and $row.Start.Enabled -and @(Get-AccountTaskRoles $row).Count -eq 0) 'Process row still requires a manual binding or trusted a legacy binding before OCR.'
     Assert-Parallel ($row.Status.Bottom -eq $row.Panel.ClientSize.Height) 'Status lost bottom alignment.'
     Assert-Parallel ($row.Name.Text -notmatch '职业：') 'PID area still shows a class.'
     if($row.TaskMode -eq 'fish'){Assert-Parallel ($row.Name.Text -match '循环 0 · 无咬钩超时 0') 'Fishing row omits the initial no-bite timeout count.'}
@@ -147,6 +149,8 @@ $startAllButton.PerformClick()
 Pump-Parallel {[ParallelFixture]::Ocr[101] -eq 1 -and [ParallelFixture]::Ocr[202] -gt 0} 2000
 Assert-Parallel ([ParallelFixture]::Clicks -eq 0) 'A process clicked before all OCR positions were ready.'
 Pump-Parallel {@($rows | Where-Object {$_.CurrentRole -eq '角色甲'}).Count -eq 3}
+Assert-Parallel ($a.AccountName -ceq 'ACCOUNT-A' -and $b.AccountName -ceq 'ACCOUNT-A' -and $c.AccountName -ceq 'ACCOUNT-B' -and
+    $a.AccountText.Text -ceq 'ACCOUNT-A' -and $c.AccountText.Text -ceq 'ACCOUNT-B') 'First-menu OCR did not replace wrong legacy bindings with the actual account labels.'
 Assert-Parallel ([ParallelFixture]::RodEquips[101] -eq 1 -and [ParallelFixture]::RodEquips[303] -eq 1 -and -not [ParallelFixture]::RodEquips.ContainsKey(202) -and [ParallelFixture]::Enables[101] -eq 2) 'Fishing login did not equip exactly once across monitor retries, or combat login equipped a rod.'
 foreach($id in @(101,303)) {
     $order=@([ParallelFixture]::InputOrder.ToArray() | Where-Object {$_ -like ($id.ToString()+':*')})
@@ -180,12 +184,13 @@ $startAllButton.PerformClick();Pump-Parallel {@($rows | Where-Object {$_.Current
 foreach($expected in @('角色乙','角色丙','角色丁','角色甲')) {
     $rodBefore=[ParallelFixture]::RodEquips[101]
     $script:parallelNextAt=$script:parallelHub.Now
-    Pump-Parallel {@($rows | Where-Object {$_.CurrentRole -eq $expected}).Count -eq 3}
+    Pump-Parallel {@($rows | Where-Object {$_.CurrentRole -eq $(if($_.Process.Id -eq 303 -and $expected -eq '角色丙'){'角色丙乙'}else{$expected})}).Count -eq 3}
     $rodExpected=if($expected -eq '角色乙'){0}else{1}
     Assert-Parallel ([ParallelFixture]::RodEquips[101] -eq $rodBefore+$rodExpected) 'A new fishing login missed/repeated equip, or a combat role equipped a rod.'
     Assert-Parallel (@($rows | Where-Object {$_.Name.Text -match '职业：'}).Count -eq 0) 'Role rotation restored a class line in the PID area.'
 }
 Assert-Parallel ($a.RotationSwitchCount -ge 4 -and $b.RotationSwitchCount -ge 4) 'Main-thread global rotation did not cycle through all four account roles.'
+. (Join-Path $PSScriptRoot 'AccountDiscovery.Parallel.UiTests.ps1')
 . (Join-Path $PSScriptRoot 'DirectStart.Settings.UiTests.ps1')
 . (Join-Path $PSScriptRoot 'DirectStart.Parallel.UiTests.ps1')
 Stop-AllRows;Pump-Parallel {@($rows | Where-Object RuntimeRunning).Count -eq 0}
@@ -235,9 +240,9 @@ $configurationHash=(Get-FileHash $script:accountTasks.Path).Hash
 [ParallelFixture]::Colors[101]='dead'
 Pump-Parallel {$a.Exited} 10000
 Assert-Parallel ($a.ExcludedNames.Count -eq 4 -and [ParallelFixture]::ExitRequests -eq 1 -and $b.RuntimeRunning -and $c.RuntimeRunning -and (Get-FileHash $script:accountTasks.Path).Hash -eq $configurationHash) 'Death exclusion did not exhaust only its own account role cycle without editing settings.'
-Stop-AllRows;[ParallelFixture]::MissingPid=202;$b.Start.PerformClick()
+Stop-AllRows;$upBeforeMissing=[ParallelFixture]::UpCount;[ParallelFixture]::MissingPid=202;$b.Start.PerformClick()
 Pump-Parallel {$b.Exited} 12000
-Assert-Parallel ([ParallelFixture]::UpCount -eq 30 -and [ParallelFixture]::ExitRequests -eq 2 -and [ParallelFixture]::KillRequests -eq 0) 'Missing-name retries were not one arrow/one OCR exactly thirty times before normal exit.'
+Assert-Parallel ([ParallelFixture]::UpCount -eq $upBeforeMissing+30 -and [ParallelFixture]::ExitRequests -eq 2 -and [ParallelFixture]::KillRequests -eq 0) 'Missing-name retries were not one arrow/one OCR exactly thirty times before normal exit.'
 Stop-AllRows;Update-WowAutoRunInfo
 Sync-WowAutoLogging
 $info=[IO.File]::ReadAllText($script:wowAutoLog.InfoPath) | ConvertFrom-Json
