@@ -1,18 +1,245 @@
 {
-  "Version": 1,
-  "MigrationComplete": false,
-  "Accounts": {},
-  "Bindings": {},
-  "Periods": {
-    "FishMs": 100,
-    "FightMs": 1000,
-    "MenuMs": 300,
-    "LoginMs": 300,
-    "BaitMs": 300,
-    "DeathMs": 1000,
-    "AudioMs": 50,
-    "PositionMs": 1000,
-    "CaptureRetryMs": 100,
-    "OcrMs": 1000
-  }
+    "Version":  1,
+    "Operations":  {
+                       "UiRefreshMs":  25,
+                       "DetectorWaitMs":  20,
+                       "ClickGuardMs":  1000,
+                       "ForegroundRetryMs":  100,
+                       "ReplyCheckMs":  25,
+                       "FocusRetryMs":  20000,
+                       "ClickMinMs":  100,
+                       "ItemHoldMs":  3000,
+                       "ReelHoldMs":  100,
+                       "CommandIntervalMs":  1000,
+                       "OperatorIdleMs":  25,
+                       "ClickMaxMs":  250,
+                       "ForegroundSettleMs":  100,
+                       "ChatKeyPressMs":  50,
+                       "InteractionHoldMs":  2500,
+                       "ForegroundTimeoutMs":  800,
+                       "WaitCheckMs":  25,
+                       "RotationFocusTimeoutMs":  5000,
+                       "RotationFocusRetryMs":  500,
+                       "KeyPressMs":  30,
+                       "CaptureRetryMs":  100,
+                       "CommandReceiveMs":  10
+                   },
+    "Bindings":  {
+                     "51552:639279364898288726":  {
+                                                      "Account":  "156249675#2",
+                                                      "Flavor":  "titan"
+                                                  },
+                     "19932:639278752277971798":  {
+                                                      "Account":  "156249675#1",
+                                                      "Flavor":  "titan"
+                                                  },
+                     "24700:639283372572824000":  {
+                                                      "Account":  "156249675#2",
+                                                      "Flavor":  "titan"
+                                                  },
+                     "20848:639283054745289731":  {
+                                                      "Account":  "156249675#2",
+                                                      "Flavor":  "titan"
+                                                  },
+                     "26504:639283404076991677":  {
+                                                      "Account":  "156249675#1",
+                                                      "Flavor":  "titan"
+                                                  },
+                     "50024:639279385464503968":  {
+                                                      "Account":  "TONGSHAOSHAO",
+                                                      "Flavor":  "titan"
+                                                  },
+                     "51876:639278674138477995":  {
+                                                      "Account":  "TONGSHAOSHAO",
+                                                      "Flavor":  "titan"
+                                                  },
+                     "55200:639279355350012148":  {
+                                                      "Account":  "156249675#1",
+                                                      "Flavor":  "titan"
+                                                  },
+                     "4124:639283055719163640":  {
+                                                     "Account":  "156249675#1",
+                                                     "Flavor":  "titan"
+                                                 },
+                     "45204:639278751316889772":  {
+                                                      "Account":  "156249675#2",
+                                                      "Flavor":  "titan"
+                                                  },
+                     "34324:639283372135913734":  {
+                                                      "Account":  "TONGSHAOSHAO",
+                                                      "Flavor":  "titan"
+                                                  },
+                     "8796:639283055490288146":  {
+                                                     "Account":  "TONGSHAOSHAO",
+                                                     "Flavor":  "titan"
+                                                 },
+                     "3092:639279562586215250":  {
+                                                     "Account":  "156249675#1",
+                                                     "Flavor":  "titan"
+                                                 },
+                     "25788:639279558319112864":  {
+                                                      "Account":  "156249675#2",
+                                                      "Flavor":  "titan"
+                                                  }
+                 },
+    "Periods":  {
+                    "BaitMs":  300,
+                    "FightMs":  1000,
+                    "AudioMs":  50,
+                    "PositionMs":  1000,
+                    "CaptureRetryMs":  100,
+                    "MenuMs":  300,
+                    "DeathMs":  1000,
+                    "OcrMs":  900,
+                    "LoginMs":  300,
+                    "FishMs":  100
+                },
+    "Accounts":  {
+                     "titan:156249675#2":  [
+                                               {
+                                                   "Mode":  "fish",
+                                                   "Realm":  "时光V - 白金瀚",
+                                                   "Name":  "加洲铁肘",
+                                                   "UseItem":  true,
+                                                   "Enabled":  true
+                                               },
+                                               {
+                                                   "Mode":  "fish",
+                                                   "Realm":  "时光V - 白金瀚",
+                                                   "Name":  "超级小船",
+                                                   "UseItem":  true,
+                                                   "Enabled":  false
+                                               },
+                                               {
+                                                   "Mode":  "fish",
+                                                   "Realm":  "时光V - 白金瀚",
+                                                   "Name":  "阁灵德渥",
+                                                   "UseItem":  true,
+                                                   "Enabled":  true
+                                               },
+                                               {
+                                                   "Mode":  "fish",
+                                                   "Realm":  "时光V - 白金瀚",
+                                                   "Name":  "洋芋巴巴",
+                                                   "UseItem":  false,
+                                                   "Enabled":  false
+                                               },
+                                               {
+                                                   "Mode":  "fish",
+                                                   "Realm":  "时光V - 白金瀚",
+                                                   "Name":  "卖鱼强哥",
+                                                   "UseItem":  false,
+                                                   "Enabled":  false
+                                               },
+                                               {
+                                                   "Mode":  "fish",
+                                                   "Realm":  "时光V - 白金瀚",
+                                                   "Name":  "呆头小橘",
+                                                   "UseItem":  false,
+                                                   "Enabled":  false
+                                               },
+                                               {
+                                                   "Mode":  "fish",
+                                                   "Realm":  "时光V - 白金瀚",
+                                                   "Name":  "药材小橘",
+                                                   "UseItem":  false,
+                                                   "Enabled":  false
+                                               },
+                                               {
+                                                   "Mode":  "fish",
+                                                   "Realm":  "时光V - 白金瀚",
+                                                   "Name":  "附魔小橘",
+                                                   "UseItem":  false,
+                                                   "Enabled":  false
+                                               }
+                                           ],
+                     "titan:156249675#1":  [
+                                               {
+                                                   "Mode":  "fish",
+                                                   "Realm":  "时光V - 白金瀚",
+                                                   "Name":  "乌木力奇",
+                                                   "UseItem":  true,
+                                                   "Enabled":  false
+                                               },
+                                               {
+                                                   "Mode":  "fish",
+                                                   "Realm":  "时光V - 白金瀚",
+                                                   "Name":  "米勒麦格",
+                                                   "UseItem":  true,
+                                                   "Enabled":  true
+                                               },
+                                               {
+                                                   "Mode":  "fish",
+                                                   "Realm":  "时光V - 白金瀚",
+                                                   "Name":  "铁皮小橘",
+                                                   "UseItem":  true,
+                                                   "Enabled":  true
+                                               }
+                                           ],
+                     "titan:TONGSHAOSHAO":  [
+                                                {
+                                                    "Mode":  "fish",
+                                                    "Realm":  "时光V - 白金瀚",
+                                                    "Name":  "不要吹牛福",
+                                                    "UseItem":  true,
+                                                    "Enabled":  true
+                                                },
+                                                {
+                                                    "Mode":  "fight",
+                                                    "Realm":  "时光V - 白金瀚",
+                                                    "Name":  "双持船橘二咪",
+                                                    "UseItem":  false,
+                                                    "Enabled":  true
+                                                },
+                                                {
+                                                    "Mode":  "fish",
+                                                    "Realm":  "时光V - 白金瀚",
+                                                    "Name":  "吔史呀嘞",
+                                                    "UseItem":  true,
+                                                    "Enabled":  false
+                                                },
+                                                {
+                                                    "Mode":  "fish",
+                                                    "Realm":  "时光VI - 铁马冰河",
+                                                    "Name":  "圣佑小船",
+                                                    "UseItem":  false,
+                                                    "Enabled":  false
+                                                },
+                                                {
+                                                    "Mode":  "fish",
+                                                    "Realm":  "时光V - 白金瀚",
+                                                    "Name":  "持剑腕豪",
+                                                    "UseItem":  false,
+                                                    "Enabled":  false
+                                                },
+                                                {
+                                                    "Mode":  "fish",
+                                                    "Realm":  "时光V - 白金瀚",
+                                                    "Name":  "曼巴傲",
+                                                    "UseItem":  false,
+                                                    "Enabled":  false
+                                                },
+                                                {
+                                                    "Mode":  "fish",
+                                                    "Realm":  "时光V - 白金瀚",
+                                                    "Name":  "小船长",
+                                                    "UseItem":  false,
+                                                    "Enabled":  false
+                                                },
+                                                {
+                                                    "Mode":  "fish",
+                                                    "Realm":  "时光V - 白金瀚",
+                                                    "Name":  "用肘击加血",
+                                                    "UseItem":  false,
+                                                    "Enabled":  false
+                                                }
+                                            ],
+                     "forerver:156249675#1":  [
+
+                                              ],
+                     "forerver:TONGSHAOSHAO":  [
+
+                                               ]
+                 },
+    "MigrationComplete":  true
 }

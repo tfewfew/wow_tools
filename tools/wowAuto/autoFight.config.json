@@ -1,5 +1,5 @@
 {
-    "Version":  6,
+    "Version":  9,
     "CommandIntervalMs":  1000,
     "Common":  {
                    "MoveForwardKey":  "W",
@@ -7,9 +7,9 @@
                    "MoveLeftKey":  "A",
                    "MoveRightKey":  "D",
                    "SkinKey":  "=",
-                   "TargetKey":  "Tab",
+                   "TargetKey":  "F10",
                    "MovementHoldMs":  400,
-                   "InteractionHoldMs":  3500,
+                   "InteractionHoldMs":  2500,
                    "SkinEnabled":  true,
                    "JumpIntervalSeconds":  0
                },
@@ -20,8 +20,10 @@
                          "OpeningKey":  "F5",
                          "CombatKey":  "F6",
                          "RecoveryKey":  "F8",
-                         "EmergencyKey":  "F9",
-                         "CombatIntervalMs":  500
+                         "BuffKey":  "F11",
+                         "RecoveryCooldownSeconds":  30,
+                         "BuffIntervalSeconds":  0,
+                         "BuffCount":  1
                      },
                      {
                          "Flavor":  "forerver",
@@ -29,8 +31,10 @@
                          "OpeningKey":  "F5",
                          "CombatKey":  "F6",
                          "RecoveryKey":  "F8",
-                         "EmergencyKey":  "F9",
-                         "CombatIntervalMs":  500
+                         "BuffKey":  "F11",
+                         "RecoveryCooldownSeconds":  30,
+                         "BuffIntervalSeconds":  0,
+                         "BuffCount":  1
                      },
                      {
                          "Flavor":  "forerver",
@@ -38,8 +42,10 @@
                          "OpeningKey":  "F5",
                          "CombatKey":  "F6",
                          "RecoveryKey":  "F8",
-                         "EmergencyKey":  "F9",
-                         "CombatIntervalMs":  500
+                         "BuffKey":  "F11",
+                         "RecoveryCooldownSeconds":  30,
+                         "BuffIntervalSeconds":  0,
+                         "BuffCount":  1
                      },
                      {
                          "Flavor":  "forerver",
@@ -47,8 +53,10 @@
                          "OpeningKey":  "F5",
                          "CombatKey":  "F6",
                          "RecoveryKey":  "F8",
-                         "EmergencyKey":  "F9",
-                         "CombatIntervalMs":  500
+                         "BuffKey":  "F11",
+                         "RecoveryCooldownSeconds":  30,
+                         "BuffIntervalSeconds":  0,
+                         "BuffCount":  1
                      },
                      {
                          "Flavor":  "forerver",
@@ -56,8 +64,10 @@
                          "OpeningKey":  "F5",
                          "CombatKey":  "F6",
                          "RecoveryKey":  "F8",
-                         "EmergencyKey":  "F9",
-                         "CombatIntervalMs":  500
+                         "BuffKey":  "F11",
+                         "RecoveryCooldownSeconds":  30,
+                         "BuffIntervalSeconds":  0,
+                         "BuffCount":  1
                      },
                      {
                          "Flavor":  "forerver",
@@ -65,8 +75,10 @@
                          "OpeningKey":  "F5",
                          "CombatKey":  "F6",
                          "RecoveryKey":  "F8",
-                         "EmergencyKey":  "F9",
-                         "CombatIntervalMs":  500
+                         "BuffKey":  "F11",
+                         "RecoveryCooldownSeconds":  30,
+                         "BuffIntervalSeconds":  0,
+                         "BuffCount":  1
                      },
                      {
                          "Flavor":  "forerver",
@@ -74,8 +86,10 @@
                          "OpeningKey":  "F5",
                          "CombatKey":  "F6",
                          "RecoveryKey":  "F8",
-                         "EmergencyKey":  "F9",
-                         "CombatIntervalMs":  500
+                         "BuffKey":  "F11",
+                         "RecoveryCooldownSeconds":  30,
+                         "BuffIntervalSeconds":  0,
+                         "BuffCount":  1
                      },
                      {
                          "Flavor":  "forerver",
@@ -83,8 +97,10 @@
                          "OpeningKey":  "F5",
                          "CombatKey":  "F6",
                          "RecoveryKey":  "F8",
-                         "EmergencyKey":  "F9",
-                         "CombatIntervalMs":  500
+                         "BuffKey":  "F11",
+                         "RecoveryCooldownSeconds":  30,
+                         "BuffIntervalSeconds":  0,
+                         "BuffCount":  1
                      },
                      {
                          "Flavor":  "forerver",
@@ -92,8 +108,10 @@
                          "OpeningKey":  "F5",
                          "CombatKey":  "F6",
                          "RecoveryKey":  "F8",
-                         "EmergencyKey":  "F9",
-                         "CombatIntervalMs":  500
+                         "BuffKey":  "F11",
+                         "RecoveryCooldownSeconds":  30,
+                         "BuffIntervalSeconds":  0,
+                         "BuffCount":  1
                      },
                      {
                          "Flavor":  "titan",
@@ -101,8 +119,10 @@
                          "OpeningKey":  "F5",
                          "CombatKey":  "F6",
                          "RecoveryKey":  "F8",
-                         "EmergencyKey":  "F9",
-                         "CombatIntervalMs":  500
+                         "BuffKey":  "F11",
+                         "RecoveryCooldownSeconds":  30,
+                         "BuffIntervalSeconds":  0,
+                         "BuffCount":  1
                      },
                      {
                          "Flavor":  "titan",
@@ -110,8 +130,10 @@
                          "OpeningKey":  "F5",
                          "CombatKey":  "F6",
                          "RecoveryKey":  "F8",
-                         "EmergencyKey":  "F9",
-                         "CombatIntervalMs":  500
+                         "BuffKey":  "F11",
+                         "RecoveryCooldownSeconds":  30,
+                         "BuffIntervalSeconds":  0,
+                         "BuffCount":  1
                      },
                      {
                          "Flavor":  "titan",
@@ -119,8 +141,10 @@
                          "OpeningKey":  "F5",
                          "CombatKey":  "F6",
                          "RecoveryKey":  "F8",
-                         "EmergencyKey":  "F9",
-                         "CombatIntervalMs":  500
+                         "BuffKey":  "F11",
+                         "RecoveryCooldownSeconds":  30,
+                         "BuffIntervalSeconds":  0,
+                         "BuffCount":  1
                      },
                      {
                          "Flavor":  "titan",
@@ -128,8 +152,10 @@
                          "OpeningKey":  "F5",
                          "CombatKey":  "F6",
                          "RecoveryKey":  "F8",
-                         "EmergencyKey":  "F9",
-                         "CombatIntervalMs":  500
+                         "BuffKey":  "F11",
+                         "RecoveryCooldownSeconds":  30,
+                         "BuffIntervalSeconds":  0,
+                         "BuffCount":  1
                      },
                      {
                          "Flavor":  "titan",
@@ -137,8 +163,10 @@
                          "OpeningKey":  "F5",
                          "CombatKey":  "F6",
                          "RecoveryKey":  "F8",
-                         "EmergencyKey":  "F9",
-                         "CombatIntervalMs":  500
+                         "BuffKey":  "F11",
+                         "RecoveryCooldownSeconds":  30,
+                         "BuffIntervalSeconds":  0,
+                         "BuffCount":  1
                      },
                      {
                          "Flavor":  "titan",
@@ -146,17 +174,21 @@
                          "OpeningKey":  "Z",
                          "CombatKey":  "Z",
                          "RecoveryKey":  "Q",
-                         "EmergencyKey":  "F",
-                         "CombatIntervalMs":  1000
+                         "BuffKey":  "F11",
+                         "RecoveryCooldownSeconds":  30,
+                         "BuffIntervalSeconds":  0,
+                         "BuffCount":  1
                      },
                      {
                          "Flavor":  "titan",
                          "ClassId":  6,
-                         "OpeningKey":  "F5",
-                         "CombatKey":  "F6",
-                         "RecoveryKey":  "F8",
-                         "EmergencyKey":  "F9",
-                         "CombatIntervalMs":  500
+                         "OpeningKey":  "Z",
+                         "CombatKey":  "E",
+                         "RecoveryKey":  "Shift+E",
+                         "BuffKey":  "V",
+                         "RecoveryCooldownSeconds":  10,
+                         "BuffIntervalSeconds":  300,
+                         "BuffCount":  1
                      },
                      {
                          "Flavor":  "titan",
@@ -164,8 +196,10 @@
                          "OpeningKey":  "F5",
                          "CombatKey":  "F6",
                          "RecoveryKey":  "F8",
-                         "EmergencyKey":  "F9",
-                         "CombatIntervalMs":  500
+                         "BuffKey":  "F11",
+                         "RecoveryCooldownSeconds":  30,
+                         "BuffIntervalSeconds":  0,
+                         "BuffCount":  1
                      },
                      {
                          "Flavor":  "titan",
@@ -173,17 +207,21 @@
                          "OpeningKey":  "F5",
                          "CombatKey":  "F6",
                          "RecoveryKey":  "F8",
-                         "EmergencyKey":  "F9",
-                         "CombatIntervalMs":  500
+                         "BuffKey":  "F11",
+                         "RecoveryCooldownSeconds":  30,
+                         "BuffIntervalSeconds":  0,
+                         "BuffCount":  1
                      },
                      {
                          "Flavor":  "titan",
                          "ClassId":  9,
-                         "OpeningKey":  "F5",
-                         "CombatKey":  "F6",
-                         "RecoveryKey":  "F8",
-                         "EmergencyKey":  "F9",
-                         "CombatIntervalMs":  500
+                         "OpeningKey":  "Shift+X",
+                         "CombatKey":  "Q",
+                         "RecoveryKey":  "1",
+                         "BuffKey":  "F11",
+                         "RecoveryCooldownSeconds":  30,
+                         "BuffIntervalSeconds":  0,
+                         "BuffCount":  1
                      }
                  ]
 }
