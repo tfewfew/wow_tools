@@ -186,6 +186,8 @@ foreach($expected in @('角色乙','角色丙','角色丁','角色甲')) {
     Assert-Parallel (@($rows | Where-Object {$_.Name.Text -match '职业：'}).Count -eq 0) 'Role rotation restored a class line in the PID area.'
 }
 Assert-Parallel ($a.RotationSwitchCount -ge 4 -and $b.RotationSwitchCount -ge 4) 'Main-thread global rotation did not cycle through all four account roles.'
+. (Join-Path $PSScriptRoot 'DirectStart.Settings.UiTests.ps1')
+. (Join-Path $PSScriptRoot 'DirectStart.Parallel.UiTests.ps1')
 Stop-AllRows;Pump-Parallel {@($rows | Where-Object RuntimeRunning).Count -eq 0}
 $beforeA=$a.ExecutionRound;$beforeB=$b.ExecutionRound
 $rodBefore=[ParallelFixture]::RodEquips[101]

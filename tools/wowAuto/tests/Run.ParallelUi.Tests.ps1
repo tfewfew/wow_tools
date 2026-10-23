@@ -23,6 +23,9 @@ public static class ParallelFixture {
     public static readonly ConcurrentDictionary<int,int> RodEquips=new ConcurrentDictionary<int,int>();
     public static readonly ConcurrentDictionary<int,int> Enables=new ConcurrentDictionary<int,int>();
     public static readonly ConcurrentDictionary<int,int> UnknownReads=new ConcurrentDictionary<int,int>();
+    public static readonly ConcurrentDictionary<int,int> LureReads=new ConcurrentDictionary<int,int>();
+    public static readonly ConcurrentDictionary<int,int> Items=new ConcurrentDictionary<int,int>();
+    public static readonly ConcurrentDictionary<int,string> Lures=new ConcurrentDictionary<int,string>();
     public static readonly ConcurrentQueue<string> InputOrder=new ConcurrentQueue<string>();
     public static int BlockPid,BlockedPid,Clicks,Logouts,EarlyClicks,EarlyOcr,MissingPid,UpCount,ExitRequests,KillRequests,FailFocusPid,Reels,Jumps,EarlyJumps,NoBitePid;
     public static int ShutdownRequests;
@@ -63,6 +66,7 @@ function Invoke-OperatorRequest($Request) {
     if($Request.Kind -eq 'Process.Exit'){[ParallelFixture]::ExitRequests++}
     if($Request.Kind -eq 'Process.Kill'){[ParallelFixture]::KillRequests++}
     if($Request.Kind -eq 'Process.Shutdown'){[ParallelFixture]::ShutdownRequests++}
+    if($Request.Kind -eq 'Fish.Item'){[ParallelFixture]::Add([ParallelFixture]::Items,$id);[ParallelFixture]::Lures[$id]='present'}
     if($Request.Kind -eq 'Rotation.Up'){[ParallelFixture]::UpCount++}
     if([ParallelFixture]::AutoFish -and $id -eq 101) {
         if($Request.Kind -eq 'Fish.Cast'){[ParallelFixture]::Colors[$id]='green'}
@@ -81,7 +85,11 @@ function Get-DetectorObservation {
     if([ParallelFixture]::UnknownReads[$Endpoint.Pid] -gt 0){[ParallelFixture]::UnknownReads[$Endpoint.Pid]--;$color='unknown';$packet=$null}
     return [pscustomobject]@{Login=([ParallelFixture]::World[$Endpoint.Pid] -eq 1);Color=$color;Packet=$packet;Lure='present'}
 }
-function Get-DetectorLure {return 'present'}
+function Get-DetectorLure {
+    [ParallelFixture]::Add([ParallelFixture]::LureReads,$Endpoint.Pid)
+    if([ParallelFixture]::Lures.ContainsKey($Endpoint.Pid)){return [ParallelFixture]::Lures[$Endpoint.Pid]}
+    return 'present'
+}
 ${function:Start-FixtureTask}=${function:Start-DetectorTask}
 function Start-DetectorTask {
     Start-FixtureTask

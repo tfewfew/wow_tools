@@ -127,7 +127,7 @@ function New-UnifiedSettingsDialog {
         $settingTabs.TabPages.Add($page)
         $child=$entry[1]; $child.TopLevel=$false; $child.FormBorderStyle='None'; $child.Location=New-Object Drawing.Point(0,0)
         $child.Dock='Fill'; $child.AutoScroll=$true
-        if ($child -eq $fish) {$child.AutoScrollMinSize=New-Object Drawing.Size(960,770)}
+        if ($child -eq $fish) {$child.AutoScrollMinSize=New-Object Drawing.Size(960,874)}
         $page.Controls.Add($child); $child.Show()
     }
     $fish.Tag.Apply.Text='保存钓鱼设置'; $fish.Tag.Apply.Width=150

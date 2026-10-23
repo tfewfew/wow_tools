@@ -44,7 +44,8 @@ function Ensure-ParallelWorker($Row) {
 }
 function Send-ParallelCommand($Row,[string]$Kind,[string]$BatchId='',[bool]$Direct=$false) {
     $endpoint=Ensure-ParallelWorker $Row
-    $payload=@{Config=(Get-ParallelConfig $Row);Roles=@(Get-AccountTaskRoles $Row);BatchId=$BatchId;Direct=$Direct;Mode=$Row.TaskMode;UseItem=$Row.SlotUseItem;RoundBase=$Row.ExecutionRound}
+    $useItem=if($Direct){$Row.TaskMode -eq 'fish' -and $script:directStartUseItem}else{$Row.SlotUseItem}
+    $payload=@{Config=(Get-ParallelConfig $Row);Roles=@(Get-AccountTaskRoles $Row);BatchId=$BatchId;Direct=$Direct;Mode=$Row.TaskMode;UseItem=$useItem;RoundBase=$Row.ExecutionRound}
     $endpoint.Notify('Configure',($payload.Config | ConvertTo-Json -Depth 15 -Compress))
     $null=$endpoint.Send($Kind,($payload | ConvertTo-Json -Depth 15 -Compress))
 }

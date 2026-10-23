@@ -480,6 +480,7 @@ $script:keyBindings=@{
     Item=(New-KeyBinding 189 $false $false $false)
 }
 $script:equipRodBinding=$null
+$script:directStartUseItem=$false
 $script:audioDetectionEnabled=-not $UiTest
 $script:processItemPreferences=@{}
 $script:processModePreferences=@{}
@@ -488,7 +489,7 @@ $script:audioSettingsKeys = @('TitanAudioThresholdPercent','ForerverAudioThresho
 $script:audioTimeoutSettingsKeys = @('TitanAudioTimeoutMs','ForerverAudioTimeoutMs')
 $script:recordingSettingsKeys = @('TitanAudioRecordingId','ForerverAudioRecordingId')
 $script:preferenceSettingsKeys = @('ReelHoldMs','CastKey','ReelKey','ItemKey','AudioDetectionEnabled')
-$script:settingsKeys = $script:requiredSettingsKeys + $script:audioSettingsKeys + $script:audioTimeoutSettingsKeys + $script:recordingSettingsKeys + $script:preferenceSettingsKeys + @('StatusLogLimit','JumpEveryCycles','LogMaxSizeMB','EquipRodKey')
+$script:settingsKeys = $script:requiredSettingsKeys + $script:audioSettingsKeys + $script:audioTimeoutSettingsKeys + $script:recordingSettingsKeys + $script:preferenceSettingsKeys + @('StatusLogLimit','JumpEveryCycles','LogMaxSizeMB','EquipRodKey','DirectStartUseItem')
 $script:settingsWarning = ''
 function Read-WowAutoSettingsIni([string]$Path) {
     $values=@{}; $items=@{}; $modes=@{}; $seen=@{}; $lineNumber=0
@@ -548,6 +549,7 @@ function Read-WowAutoSettingsIni([string]$Path) {
     if (-not $values.ContainsKey('JumpEveryCycles')) { $values.JumpEveryCycles=$script:scheduler.JumpEveryCycles }
     if (-not $values.ContainsKey('LogMaxSizeMB')) { $values.LogMaxSizeMB=$script:logMaxSizeMB }
     if (-not $values.ContainsKey('EquipRodKey')) { $values.EquipRodKey='' }
+    if (-not $values.ContainsKey('DirectStartUseItem')) { $values.DirectStartUseItem=0 }
     $values.ProcessItemPreferences=$items
     $values.ProcessModePreferences=$modes
     return $values
@@ -565,7 +567,7 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
     $TitanAudioTimeoutMs=$script:versionRanges.titan.AudioTimeoutMs, $ForerverAudioTimeoutMs=$script:versionRanges.forerver.AudioTimeoutMs,
     $TitanAudioRecordingId=$script:audioRecordingSelections.titan, $ForerverAudioRecordingId=$script:audioRecordingSelections.forerver,
     $StatusLogLimit=$script:statusLogLimit, $JumpEveryCycles=$script:scheduler.JumpEveryCycles,
-    $LogMaxSizeMB=$script:logMaxSizeMB, $EquipRodKey=$script:equipRodBinding.Text) {
+    $LogMaxSizeMB=$script:logMaxSizeMB, $EquipRodKey=$script:equipRodBinding.Text, $DirectStartUseItem=$script:directStartUseItem) {
     # Validate the entire edit before saving or changing any active task.
     $next=@{}
     foreach ($spec in @(@('titan',$TitanMinimum,$TitanMaximum),@('forerver',$ForerverMinimum,$ForerverMaximum))) {
@@ -605,6 +607,7 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
     $nextEquipRod=$null
     if (-not [string]::IsNullOrWhiteSpace([string]$EquipRodKey)) { $nextEquipRod=ConvertFrom-KeyBindingText ([string]$EquipRodKey) }
     $nextAudio=ConvertTo-PreferenceFlag $AudioDetectionEnabled
+    $nextDirectStartUseItem=ConvertTo-PreferenceFlag $DirectStartUseItem
     $nextItems=@{}
     $nextRecordings=@{titan=(Get-AudioRecording 'titan' $TitanAudioRecordingId).Id; forerver=(Get-AudioRecording 'forerver' $ForerverAudioRecordingId).Id}
     foreach ($key in $ProcessItemPreferences.Keys) {
@@ -636,6 +639,7 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
                 ReelHoldMs=$nextHold; CastKey=$nextBindings.Cast.Text; ReelKey=$nextBindings.Reel.Text; ItemKey=$nextBindings.Item.Text
                 AudioDetectionEnabled=$nextAudio; StatusLogLimit=$nextLogLimit; JumpEveryCycles=$nextJumpCycles; LogMaxSizeMB=$nextLogSize
                 EquipRodKey=$nextEquipRod.Text
+                DirectStartUseItem=$nextDirectStartUseItem
             }
             $lines=@('; wowAuto settings: ms for timing, percent for thresholds, 0/1 for switches.';
                 '; Shortcuts use Ctrl/Shift/Alt plus a key; UseItem_PID_StartTicks stores process choices.')
@@ -665,6 +669,7 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
     $script:keyBindings=$nextBindings
     $script:equipRodBinding=$nextEquipRod
     $script:audioDetectionEnabled=[bool]$nextAudio
+    $script:directStartUseItem=[bool]$nextDirectStartUseItem
     $script:processItemPreferences=$nextItems
     $script:processModePreferences=$nextModes
     Sync-PreferenceControls
@@ -692,13 +697,14 @@ function Import-VersionWaitSettings {
         $saved=Read-WowAutoSettingsIni $script:settingsPath
         $bindings=@{}
         foreach ($action in @('Cast','Reel','Item')) { $bindings[$action]=ConvertFrom-KeyBindingText $saved[($action+'Key')] }
-        Set-VersionWaitRanges $saved.TitanMinimumMs $saved.TitanMaximumMs $saved.ForerverMinimumMs $saved.ForerverMaximumMs -Persist $false -FocusRetryIntervalMs $saved.FocusRetryIntervalMs -TitanAudioThresholdPercent $saved.TitanAudioThresholdPercent -ForerverAudioThresholdPercent $saved.ForerverAudioThresholdPercent -ReelHoldMs $saved.ReelHoldMs -KeyBindings $bindings -AudioDetectionEnabled $saved.AudioDetectionEnabled -ProcessItemPreferences $saved.ProcessItemPreferences -ProcessModePreferences $saved.ProcessModePreferences -TitanAudioTimeoutMs $saved.TitanAudioTimeoutMs -ForerverAudioTimeoutMs $saved.ForerverAudioTimeoutMs -TitanAudioRecordingId $saved.TitanAudioRecordingId -ForerverAudioRecordingId $saved.ForerverAudioRecordingId -StatusLogLimit $saved.StatusLogLimit -JumpEveryCycles $saved.JumpEveryCycles -LogMaxSizeMB $saved.LogMaxSizeMB -EquipRodKey $saved.EquipRodKey
+        Set-VersionWaitRanges $saved.TitanMinimumMs $saved.TitanMaximumMs $saved.ForerverMinimumMs $saved.ForerverMaximumMs -Persist $false -FocusRetryIntervalMs $saved.FocusRetryIntervalMs -TitanAudioThresholdPercent $saved.TitanAudioThresholdPercent -ForerverAudioThresholdPercent $saved.ForerverAudioThresholdPercent -ReelHoldMs $saved.ReelHoldMs -KeyBindings $bindings -AudioDetectionEnabled $saved.AudioDetectionEnabled -ProcessItemPreferences $saved.ProcessItemPreferences -ProcessModePreferences $saved.ProcessModePreferences -TitanAudioTimeoutMs $saved.TitanAudioTimeoutMs -ForerverAudioTimeoutMs $saved.ForerverAudioTimeoutMs -TitanAudioRecordingId $saved.TitanAudioRecordingId -ForerverAudioRecordingId $saved.ForerverAudioRecordingId -StatusLogLimit $saved.StatusLogLimit -JumpEveryCycles $saved.JumpEveryCycles -LogMaxSizeMB $saved.LogMaxSizeMB -EquipRodKey $saved.EquipRodKey -DirectStartUseItem $saved.DirectStartUseItem
     }
     catch { $script:settingsWarning="config.ini 读取失败，保留当前配置：$($_.Exception.Message)" }
 }
 function Sync-PreferenceControls {
     foreach ($row in $script:rows.Values) {
         # Legacy INI choices are read for migration; live task choices belong to the current slot.
+        if($row.State -and $row.State.PSObject.Properties['DirectStart'] -and $row.State.DirectStart){continue}
         Set-WowAutoItemEnabled $script:scheduler $row.Key $row.SlotUseItem $script:schedulerClock.ElapsedMilliseconds
     }
 }
@@ -838,7 +844,7 @@ function New-WaitSettingsDialog([switch]$Embedded) {
     $dialog.BackColor=$script:uiColors.Background
     $dialog.ForeColor=$script:uiColors.Text
     $dialog.AutoScaleMode='Dpi'
-    $dialog.ClientSize=New-Object System.Drawing.Size(960,770)
+    $dialog.ClientSize=New-Object System.Drawing.Size(960,874)
     $dialog.FormBorderStyle='FixedDialog'
     $dialog.MaximizeBox=$false; $dialog.MinimizeBox=$false
     $dialog.StartPosition='CenterParent'
@@ -991,21 +997,31 @@ function New-WaitSettingsDialog([switch]$Embedded) {
     $dialog.Controls.Add($audioCheck)
     $audioHint=New-Object System.Windows.Forms.Label
     $audioHint.Text='停止钓鱼后可修改'; $audioHint.SetBounds(780,460,160,65); $dialog.Controls.Add($audioHint)
+    $directGroup=New-Object System.Windows.Forms.GroupBox
+    $directGroup.Text='直接开始（所有进程）';$directGroup.SetBounds(18,544,912,90)
+    $directGroup.BackColor=$script:uiColors.Surface;$directGroup.ForeColor=$script:uiColors.Text;$dialog.Controls.Add($directGroup)
+    $directUseItem=New-Object WowAuto.DimCheckBox
+    $directUseItem.Text='使用钓鱼道具';$directUseItem.SetBounds(16,30,250,38);$directUseItem.Checked=$script:directStartUseItem
+    $directGroup.Controls.Add($directUseItem)
+    $directHint=New-Object System.Windows.Forms.Label
+    $directHint.Text='直接开始钓鱼时检查并补充鱼竿附魔。保存后从下次直接开始生效。'
+    $directHint.SetBounds(282,27,610,52);$directGroup.Controls.Add($directHint)
     $note=New-Object System.Windows.Forms.Label
     $note.Text="音频模式：匹配成功后随机等待；定时模式：变绿后随机等待。`r`n无咬钩保护从确认绿色开始计时，仅用于音频模式。`r`n配置保存到 config.ini；保护新值从下轮生效，已有截止不变。"
     $note.Text+="`r`n片段选择保存后从下轮使用；试听仅播放1秒匹配片段。"
-    $note.SetBounds(18,546,912,100); $dialog.Controls.Add($note)
+    $note.SetBounds(18,650,912,100); $dialog.Controls.Add($note)
     $errorLabel=New-Object System.Windows.Forms.Label
     $errorLabel.ForeColor=$script:uiColors.Text
-    $errorLabel.SetBounds(18,648,912,52); $dialog.Controls.Add($errorLabel)
+    $errorLabel.SetBounds(18,752,912,52); $dialog.Controls.Add($errorLabel)
     $apply=New-Object WowAuto.DimButton
-    $apply.Text='保存'; $apply.SetBounds(540,715,95,36); Set-UiButtonStyle $apply $true; $dialog.Controls.Add($apply)
+    $apply.Text='保存'; $apply.SetBounds(540,819,95,36); Set-UiButtonStyle $apply $true; $dialog.Controls.Add($apply)
     $cancel=New-Object WowAuto.DimButton
-    $cancel.Text='取消'; $cancel.SetBounds(645,715,95,36); Set-UiButtonStyle $cancel
+    $cancel.Text='取消'; $cancel.SetBounds(645,819,95,36); Set-UiButtonStyle $cancel
     $cancel.DialogResult='Cancel'; $dialog.Controls.Add($cancel)
     $dialog.AcceptButton=$apply; $dialog.CancelButton=$cancel
     $dialog.Tag=[pscustomobject]@{Inputs=$inputs; FocusRetry=$retryInput; ReelHold=$reelHoldInput; StatusLogLimit=$logLimitInput; JumpEveryCycles=$jumpInput; AudioDetection=$audioCheck; Apply=$apply; Cancel=$cancel; Error=$errorLabel; KeyInputs=$keyInputs; KeyBindings=$draftBindings; KeyTip=$keyTip; Recordings=$recordInputs; StopPreview=$stopPreview; PreviewStatus=$previewStatus; PreviewPlayer=$null}
     $dialog.Tag | Add-Member NoteProperty ClearEquipRod $clearRod
+    $dialog.Tag | Add-Member NoteProperty DirectStartUseItem $directUseItem
     $dialog.Add_FormClosed({param($sender,$eventArgs) Stop-AudioPreview $sender})
     $dialog.Add_Disposed({ param($sender,$eventArgs) Stop-AudioPreview $sender; $sender.Tag.KeyTip.Dispose() })
     $cancel.Tag=$dialog; $cancel.Add_Click({param($sender,$eventArgs) Stop-AudioPreview $sender.Tag})
@@ -1024,7 +1040,7 @@ function New-WaitSettingsDialog([switch]$Embedded) {
                 $nextBindings[$action]=New-KeyBinding $draft.Code $draft.Ctrl $draft.Shift $draft.Alt
                 if ($null -eq $nextBindings[$action]) { throw '请选择有效的快捷键。' }
             }
-            Set-VersionWaitRanges $fields.titan.Minimum.Text.Trim() $fields.titan.Maximum.Text.Trim() $fields.forerver.Minimum.Text.Trim() $fields.forerver.Maximum.Text.Trim() -FocusRetryIntervalMs $settingsDialog.Tag.FocusRetry.Text.Trim() -TitanAudioThresholdPercent $fields.titan.AudioThreshold.Text.Trim() -ForerverAudioThresholdPercent $fields.forerver.AudioThreshold.Text.Trim() -ReelHoldMs $nextHold -KeyBindings $nextBindings -TitanAudioTimeoutMs $fields.titan.AudioTimeout.Text.Trim() -ForerverAudioTimeoutMs $fields.forerver.AudioTimeout.Text.Trim() -TitanAudioRecordingId $settingsDialog.Tag.Recordings.titan.Selection.SelectedItem.Id -ForerverAudioRecordingId $settingsDialog.Tag.Recordings.forerver.Selection.SelectedItem.Id -StatusLogLimit $settingsDialog.Tag.StatusLogLimit.Text.Trim() -JumpEveryCycles $settingsDialog.Tag.JumpEveryCycles.Text.Trim() -AudioDetectionEnabled $settingsDialog.Tag.AudioDetection.Checked -EquipRodKey $settingsDialog.Tag.KeyBindings.EquipRod.Text
+            Set-VersionWaitRanges $fields.titan.Minimum.Text.Trim() $fields.titan.Maximum.Text.Trim() $fields.forerver.Minimum.Text.Trim() $fields.forerver.Maximum.Text.Trim() -FocusRetryIntervalMs $settingsDialog.Tag.FocusRetry.Text.Trim() -TitanAudioThresholdPercent $fields.titan.AudioThreshold.Text.Trim() -ForerverAudioThresholdPercent $fields.forerver.AudioThreshold.Text.Trim() -ReelHoldMs $nextHold -KeyBindings $nextBindings -TitanAudioTimeoutMs $fields.titan.AudioTimeout.Text.Trim() -ForerverAudioTimeoutMs $fields.forerver.AudioTimeout.Text.Trim() -TitanAudioRecordingId $settingsDialog.Tag.Recordings.titan.Selection.SelectedItem.Id -ForerverAudioRecordingId $settingsDialog.Tag.Recordings.forerver.Selection.SelectedItem.Id -StatusLogLimit $settingsDialog.Tag.StatusLogLimit.Text.Trim() -JumpEveryCycles $settingsDialog.Tag.JumpEveryCycles.Text.Trim() -AudioDetectionEnabled $settingsDialog.Tag.AudioDetection.Checked -EquipRodKey $settingsDialog.Tag.KeyBindings.EquipRod.Text -DirectStartUseItem $settingsDialog.Tag.DirectStartUseItem.Checked
             Stop-AudioPreview $settingsDialog
             if ($settingsDialog.Tag.Embedded) {$settingsDialog.Tag.Error.Text='钓鱼设置已保存。'}
             else {$settingsDialog.DialogResult='OK'}
@@ -1272,9 +1288,9 @@ function Stop-Row($Row, [string]$Reason = '已停止，当前等待已取消。'
 function Start-RowDirect($Row) {
     # A delayed/repeated click belongs only to this row and must not restart it.
     if (Test-UnifiedRowRunning $Row) {return}
-    Start-Row $Row -TaskOnly
+    Start-Row $Row -TaskOnly -Direct
 }
-function Start-Row($Row,[switch]$TaskOnly) {
+function Start-Row($Row,[switch]$TaskOnly,[switch]$Direct) {
     if (-not $TaskOnly) {Remove-GameActions -Domain Restore}
     try {
         if (-not $TaskOnly -and (Test-RowHasRotation $Row)) {Start-RowRotation $Row;return}
@@ -1298,7 +1314,9 @@ function Start-Row($Row,[switch]$TaskOnly) {
         }
         $template=$null
         if ($script:audioDetectionEnabled -and $script:audioUseTemplate) { $template=Get-AudioTemplate $Row.Client.Flavor }
-        $Row.State = Add-WowAutoTask $script:scheduler $Row.Key $newState.MinimumMs $newState.MaximumMs $script:schedulerClock.ElapsedMilliseconds -UseItem $Row.SlotUseItem -UseAudio $script:audioDetectionEnabled -AudioTimeoutMs $range.AudioTimeoutMs
+        $itemEnabled=if($Direct){$script:directStartUseItem}else{$Row.SlotUseItem}
+        $Row.State = Add-WowAutoTask $script:scheduler $Row.Key $newState.MinimumMs $newState.MaximumMs $script:schedulerClock.ElapsedMilliseconds -UseItem $itemEnabled -UseAudio $script:audioDetectionEnabled -AudioTimeoutMs $range.AudioTimeoutMs
+        $Row.State | Add-Member NoteProperty DirectStart ([bool]$Direct)
         if ($Row.State.UseAudio) {
             if ($UiTest) {
                 $capture=[pscustomobject]@{Status='Listening'; Error=''; Peak=0.0; Similarity=0.0; Rejected=0; Session=0L; Bite=0L; Disposed=$false; MinimumSimilarity=$script:audioThresholds[$Row.Client.Flavor]/100.0; Template=$template; TemplateChanges=0}
@@ -2040,6 +2058,7 @@ try {
             . (Join-Path $PSScriptRoot 'tests\Audio.Features.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Preferences.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\EquipRod.UiTests.ps1')
+            . (Join-Path $PSScriptRoot 'tests\DirectStart.Settings.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Audio.Timeout.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\Audio.Recordings.UiTests.ps1')
             . (Join-Path $PSScriptRoot 'tests\StatusLog.UiTests.ps1')
