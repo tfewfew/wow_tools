@@ -25,7 +25,15 @@ try {
     Assert-AccountTask (-not $script:accountTasks.Config.Accounts['titan:SHARED'][0].Enabled -and -not $script:accountTasks.Config.Accounts['forerver:SHARED'][0].Enabled) 'Ambiguous legacy client ownership leaked across clients.'
     Assert-AccountTask ($script:accountTasks.Config.Periods.OcrMs -eq 900 -and (Get-FileHash $path).Hash -eq $before) 'Read-only migration rewrote configuration or lost the old OCR interval.'
     $timing=$script:accountTasks.Config.Operations
-    Assert-AccountTask ($timing.Count -eq 22 -and $timing.FocusRetryMs -eq 17000 -and $timing.ReelHoldMs -eq 140 -and $timing.CommandIntervalMs -eq 1100 -and $timing.InteractionHoldMs -eq 2300) 'Existing scattered timing settings were not migrated read-only.'
+    Assert-AccountTask ($timing.Count -eq 23 -and $timing.FishColorRetryMs -eq 3000 -and $timing.FocusRetryMs -eq 17000 -and $timing.ReelHoldMs -eq 140 -and $timing.CommandIntervalMs -eq 1100 -and $timing.InteractionHoldMs -eq 2300) 'Existing scattered timing settings were not migrated read-only.'
+    $legacyConfig=ConvertTo-TaskMap ($script:accountTasks.Config | ConvertTo-Json -Depth 12 | ConvertFrom-Json)
+    $originalBytes=[IO.File]::ReadAllBytes($path)
+    $legacyConfig.Operations.Remove('FishColorRetryMs')
+    [IO.File]::WriteAllText($path,($legacyConfig | ConvertTo-Json -Depth 12))
+    $legacyHash=(Get-FileHash $path).Hash
+    Initialize-AccountTasks $path
+    Assert-AccountTask ($script:accountTasks.Config.Operations.FishColorRetryMs -eq 3000 -and (Get-FileHash $path).Hash -eq $legacyHash) 'Existing operation settings did not read-only default the new retry delay.'
+    [IO.File]::WriteAllBytes($path,$originalBytes)
     foreach($case in @('missing','extra','type','range','click','retry')){
         $bad=$timing.Clone()
         switch($case){'missing'{$bad.Remove('KeyPressMs')}'extra'{$bad.Other=1}'type'{$bad.KeyPressMs='30'}'range'{$bad.KeyPressMs=0}'click'{$bad.ClickMinMs=500}'retry'{$bad.ForegroundRetryMs=1000}}

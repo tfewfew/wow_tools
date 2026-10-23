@@ -18,6 +18,18 @@ function New-WowAutoState {
         Status='已加入统一调度队列。'
     }
 }
+function Reset-WowAutoColorRetry($Scheduler, [string]$Key) {
+    $State=$Scheduler.Tasks[$Key]
+    Remove-WowAutoEvents $Scheduler $Key
+    if($Scheduler.ActiveKey -eq $Key){$Scheduler.ActiveKey=$null}
+    # Keep cycle/item counters, but never consume a bite or jump from the invalid round.
+    $State.AudioSession=0L;$State.AudioReelPending=$false;$State.ReelDelayMs=0
+    $State.AudioProtectionDeadline=0L;$State.ReelDelayExceededProtection=$false
+    $State.Mode='Ready';$State.Deadline=0L;$State.NextDue=0L
+    $State.ForceNextCast=$false;$State.FishingStartedAt=0L
+    $State.CheckReelGreen=$false;$State.PostReelJumpAllowed=$false
+    $State.AwaitingFishingTransition=$false;$State.SawIdle=$false
+}
 function Stop-WowAutoState {
     param($State, [string]$Reason='已停止。')
     $State.Running=$false; $State.Mode='Stopped'; $State.Deadline=0L; $State.Status=$Reason

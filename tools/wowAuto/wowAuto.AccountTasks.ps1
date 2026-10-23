@@ -46,6 +46,7 @@ function Initialize-AccountTasks([string]$Path=(Join-Path $PSScriptRoot 'account
     $config=@{Version=1;Accounts=@{};Bindings=@{};Periods=(New-DetectionPeriods)}
     if ([IO.File]::Exists($Path)) {$config=ConvertTo-TaskMap ([IO.File]::ReadAllText($Path) | ConvertFrom-Json);Test-AccountTaskConfiguration $config}
     if(-not $config.ContainsKey('Operations')){$config.Operations=Get-LegacyOperationTimings}
+    if(-not $config.Operations.ContainsKey('FishColorRetryMs')){$config.Operations.FishColorRetryMs=3000}
     Test-OperationTimings $config.Operations
     if(-not $config.MigrationComplete -and -not $config.Accounts.Count -and $script:rotation.OcrIntervalMs){$config.Periods.OcrMs=[int]$script:rotation.OcrIntervalMs}
     $script:accountTasks=[pscustomobject]@{Path=$Path;Config=$config;Catalog=@{};Warnings=@()}
@@ -89,6 +90,7 @@ function Save-AccountTasks($Config=$script:accountTasks.Config) {
     # The editor continues to live after Save; do not make its mutable draft the active configuration.
     $snapshot=ConvertTo-TaskMap ($Config | ConvertTo-Json -Depth 12 | ConvertFrom-Json)
     if(-not $snapshot.ContainsKey('Operations')){$snapshot.Operations=if($script:accountTasks.Config.Operations){ConvertTo-TaskMap $script:accountTasks.Config.Operations}else{Get-LegacyOperationTimings}}
+    if(-not $snapshot.Operations.ContainsKey('FishColorRetryMs')){$snapshot.Operations.FishColorRetryMs=3000}
     Test-OperationTimings $snapshot.Operations
     $snapshot.MigrationComplete=$true
     $temporary=$script:accountTasks.Path+'.'+[guid]::NewGuid().ToString('N')+'.tmp'

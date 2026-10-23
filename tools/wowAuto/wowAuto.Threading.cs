@@ -123,6 +123,7 @@ namespace WowAuto.Threading {
         public int ForegroundSettleMs=200,ForegroundRetryMs=100,ForegroundTimeoutMs=800,RotationFocusRetryMs=500,RotationFocusTimeoutMs=5000,FocusRetryMs=30000;
         public int KeyPressMs=30,ChatKeyPressMs=50,CommandIntervalMs=500,ReelHoldMs=100,ItemHoldMs=3000,InteractionHoldMs=3500;
         public int ClickMinMs=100,ClickMaxMs=250,ClickGuardMs=1000,CaptureRetryMs=100;
+        public int FishColorRetryMs=3000;
         public QueueTimings Copy() {return (QueueTimings)MemberwiseClone();}
     }
     public sealed class Command {

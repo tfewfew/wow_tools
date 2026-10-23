@@ -35,7 +35,7 @@ try {
     $accountEditor=$dialog.Tag.Accounts.Tag;$editor=$accountEditor.Clients.titan;$forever=$accountEditor.Clients.forerver;$periodEditor=$dialog.Tag.DetectionPeriods.Tag
     Assert-Parallel ($dialog.Tag.Tabs.TabPages.Count -eq 5 -and ($editor.FullGrid.Rows.Count+$editor.LevelingGrid.Rows.Count) -eq 4 -and $script:parallelHub.Paused) 'Separate global period settings tab or runtime pause is missing.'
     Assert-Parallel ($dialog.Tag.DetectionPeriods.Text -eq '检测周期' -and $periodEditor.Periods.Count -eq 10 -and -not $accountEditor.PSObject.Properties['Periods']) 'Global detection controls still belong to account settings.'
-    Assert-Parallel ($dialog.Tag.Timing.Text -eq '检测与操作' -and $dialog.Tag.Timing.Tag.Tabs.TabPages.Count -eq 2 -and $dialog.Tag.Operations.Tag.Values.Count -eq 22) 'Detection and queue settings are not sibling child tabs.'
+    Assert-Parallel ($dialog.Tag.Timing.Text -eq '检测与操作' -and $dialog.Tag.Timing.Tag.Tabs.TabPages.Count -eq 2 -and $dialog.Tag.Operations.Tag.Values.Count -eq 23) 'Detection and queue settings are not sibling child tabs.'
     Assert-Parallel (-not $dialog.Tag.Fish.Tag.FocusRetry.Visible -and -not $dialog.Tag.Fish.Tag.ReelHold.Visible -and -not $dialog.Tag.Fight.Tag.CommandInterval.Visible -and -not $dialog.Tag.Fight.Tag.CommonNumbers.InteractionHoldMs.Visible) 'Moved timing controls remain editable in their original pages.'
     Assert-Parallel ($accountEditor.ClientTabs.TabPages.Count -eq 2 -and $editor.Page.Text -eq '时光服' -and $forever.Page.Text -eq '永恒服') 'Clients do not have separate child tabs.'
     Assert-Parallel ($editor.Accounts.Items.Count -eq 2 -and $forever.Accounts.Items.Count -eq 1 -and $editor.Selected -ceq 'titan:ACCOUNT-A' -and $forever.Selected -ceq 'forerver:ACCOUNT-A') 'Child account lists are not filtered by client.'
@@ -92,6 +92,7 @@ try {
     (Get-ParallelRoleRow $editor '角色丁').Cells['Enabled'].Value=$false;$periodEditor.Periods.OcrMs.Value=50
     $operationEditor=$dialog.Tag.Operations.Tag
     $operationEditor.Values.KeyPressMs.Value=17;$operationEditor.Values.ForegroundSettleMs.Value=75;$operationEditor.Values.UiRefreshMs.Value=40
+    $operationEditor.Values.FishColorRetryMs.Value=7000
     $locked=[IO.File]::Open($script:accountTasks.Path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
     try{$accountEditor.Save.PerformClick();Select-ParallelSettingsPage $dialog $dialog.Tag.DetectionPeriods;$periodEditor.Save.PerformClick();Select-ParallelSettingsPage $dialog $dialog.Tag.Operations;$operationEditor.Save.PerformClick()}finally{$locked.Dispose()}
     Assert-Parallel ($script:accountTasks.Config.Accounts['titan:ACCOUNT-A'][3].Enabled -and $script:accountTasks.Config.Periods.OcrMs -eq 25 -and (Get-FileHash $script:accountTasks.Path).Hash -eq $before) 'Locked save partly applied either settings page.'
@@ -116,6 +117,7 @@ try {
     $savedSettings=[IO.File]::ReadAllText($script:accountTasks.Path) | ConvertFrom-Json
     Assert-Parallel ($savedSettings.Periods.OcrMs -eq 25 -and $savedSettings.Accounts.'titan:ACCOUNT-A'[3].Enabled -and -not $savedSettings.Accounts.'forerver:ACCOUNT-A'[2].UseItem) 'Separate settings pages did not persist their latest values.'
     Assert-Parallel ($savedSettings.Operations.KeyPressMs -eq 17 -and $script:accountTasks.Config.Operations.KeyPressMs -eq 17) 'Role/period saves changed saved operation timing or applied a later unsaved draft.'
+    Assert-Parallel ($savedSettings.Operations.FishColorRetryMs -eq 7000 -and $script:accountTasks.Config.Operations.FishColorRetryMs -eq 7000) 'Color retry setting was not saved through the real settings control.'
 }finally{$dialog.Dispose()}
 Assert-Parallel ($script:parallelHub.Timing.KeyPressMs -eq 17 -and $script:parallelHub.Timing.ForegroundSettleMs -eq 75 -and $timer.Interval -eq 40) 'Saved operation timings were not applied on dialog close.'
 $dialog=New-UnifiedSettingsDialog

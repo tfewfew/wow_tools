@@ -129,7 +129,7 @@ function Invoke-DetectorEquipRod {
 }
 function Start-DetectorTask {
     Stop-DetectorAudio
-    $now=$Hub.Now;$script:nextColor=0L;$script:nextDeath=0L;$script:nextBait=0L;$script:nextAudio=0L;$script:nextFishPoll=0L;$script:retryAt=0L;$script:observation=$null
+    $script:fishColorRetryAt=0L;$now=$Hub.Now;$script:nextColor=0L;$script:nextDeath=0L;$script:nextBait=0L;$script:nextAudio=0L;$script:nextFishPoll=0L;$script:retryAt=0L;$script:observation=$null
     if($script:mode -eq 'fish') {
         $script:fish=Add-WowAutoTask $script:scheduler $Endpoint.Key $script:config.MinimumMs $script:config.MaximumMs $now -UseItem $script:useItem -UseAudio $script:config.UseAudio -AudioTimeoutMs $script:config.AudioTimeoutMs
         if($script:config.UseAudio) {
@@ -312,11 +312,29 @@ function Invoke-DetectorTask {
 }
 function Invoke-DetectorTaskCore {
     $now=$Hub.Now
+    if($script:fishColorRetryAt -gt $now){
+        # Retry delays fishing actions only; terminal signals still receive their normal poll.
+        if($now -ge $script:nextDeath){
+            $terminal=Get-DetectorObservation
+            $script:nextDeath=$now+$script:config.Periods.DeathMs
+            if($terminal.Color -eq 'dead'){Remove-DetectorRole '角色死亡';return}
+            if($terminal.Color -eq 'yellow'){Remove-DetectorRole '背包已满';return}
+        }
+        return
+    }
     if($now -ge $script:nextColor -or $now -ge $script:nextDeath) {
         $observation=Get-DetectorObservation
         if($observation.Color -eq 'dead' -or ($observation.Packet -and $observation.Packet.Action -eq 'dead')){Remove-DetectorRole '角色死亡';return}
         if($script:mode -eq 'fish' -and $observation.Color -eq 'yellow'){Remove-DetectorRole '背包已满';return}
-        if($script:mode -eq 'fish' -and $script:fish.UseAudio -and $observation.Login -and $observation.Color -notin @('red','green')){throw '钓鱼检测关闭或颜色未知，已停止本行音频任务。'}
+        if($script:mode -eq 'fish' -and $script:fish.UseAudio -and $observation.Login -and $observation.Color -notin @('red','green')){
+            Reset-WowAutoColorRetry $script:scheduler $Endpoint.Key
+            $script:observation=$null
+            $script:fishColorRetryAt=$now+$script:config.Operations.FishColorRetryMs
+            $script:nextDeath=$now+$script:config.Periods.DeathMs
+            Write-Detector ('钓鱼检测关闭或颜色未知，等待 '+$script:config.Operations.FishColorRetryMs+'ms 后重试。')
+            return
+        }
+        $script:fishColorRetryAt=0L
         $script:nextDeath=$now+$script:config.Periods.DeathMs
         if($now -ge $script:nextColor){$script:observation=$observation;$script:nextColor=$now+$(if($script:mode -eq 'fight'){$script:config.Periods.FightMs}else{$script:config.Periods.FishMs})}
     }

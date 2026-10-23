@@ -11,6 +11,7 @@
         ItemHoldMs=@('钓鱼道具后等待',3000,0,4000,'按键与动作等待');InteractionHoldMs=@('拾取 / 剥皮交互后等待',3500,1000,60000,'按键与动作等待')
         ClickMinMs=@('三连击随机间隔下限',100,1,2000,'点击与画面重试');ClickMaxMs=@('三连击随机间隔上限',250,1,2000,'点击与画面重试')
         ClickGuardMs=@('三连击后跨进程保护',1000,0,60000,'点击与画面重试');CaptureRetryMs=@('操作线程新帧重试',100,1,60000,'点击与画面重试')
+        FishColorRetryMs=@('钓鱼检测关闭或颜色未知后重试',3000,1000,60000,'点击与画面重试')
     }
 }
 function New-OperationTimings {
@@ -26,8 +27,11 @@ function Get-LegacyOperationTimings {
 }
 function Test-OperationTimings($Values) {
     $specs=Get-OperationTimingSpecs
-    if($Values -isnot [Collections.IDictionary] -or $Values.Count -ne $specs.Count){throw '操作队列时间配置不完整。'}
+    if($Values -isnot [Collections.IDictionary] -or
+        ($Values.Count -ne $specs.Count -and -not ($Values.Count -eq $specs.Count-1 -and -not $Values.Contains('FishColorRetryMs')))){throw '操作队列时间配置不完整。'}
+    if(@($Values.Keys | Where-Object {-not $specs.Contains($_)}).Count){throw '操作队列时间配置包含未知字段。'}
     foreach($key in $specs.Keys){
+        if($key -eq 'FishColorRetryMs' -and -not $Values.Contains($key)){continue}
         $spec=$specs[$key];$value=$Values[$key]
         if($value -isnot [int] -or $value -lt $spec[2] -or $value -gt $spec[3]){throw ($spec[0]+'须为'+$spec[2]+'–'+$spec[3]+'ms整数。')}
     }
