@@ -9,6 +9,7 @@ local function Run(flavor, legacy)
     local soldSlots,postSaleReads,bagReads,slotReads={},0,{},0
     local bagSlots, hiddenBags, unreadableBags = {}, {}, {}
     local combat, cursor, mode, failInfo, secretField = false, false, "success", false, nil
+    local cursorData, cursorReadError, cursorClears = nil, false, 0
     local secret = setmetatable({}, {
         __eq = function() error("Compared a secret") end,
         __tostring = function() error("Printed a secret") end,
@@ -42,7 +43,8 @@ local function Run(flavor, legacy)
         function o:CreateFontString() return Widget(nil, self) end
         function o:CreateTexture() return Widget(nil, self) end
         function o:SetColorTexture(...) self.color = {...} end
-        for _, method in ipairs({"SetFrameStrata", "SetClampedToScreen", "SetMovable", "EnableMouse",
+        function o:EnableMouse(value) self.mouseEnabled = value end
+        for _, method in ipairs({"SetFrameStrata", "SetClampedToScreen", "SetMovable",
             "RegisterForDrag", "RegisterForClicks", "StartMoving", "StopMovingOrSizing", "SetAutoFocus",
             "SetMaxLetters", "ClearFocus", "SetAllPoints", "SetJustifyH", "SetOwner", "AddLine"}) do
             o[method] = function() end
@@ -66,6 +68,11 @@ local function Run(flavor, legacy)
     NUM_BAG_SLOTS = 4
     function InCombatLockdown() return combat end
     function CursorHasItem() return cursor end
+    function GetCursorInfo()
+        if cursorReadError then error("Cursor data unavailable") end
+        return unpack(cursorData or {})
+    end
+    function ClearCursor() cursorData, cursor = nil, false; cursorClears = cursorClears + 1 end
     function GetMoney() return money end
     ERR_OBJECT_IS_BUSY="物品正忙";ERR_ITEM_LOCKED="物品锁定";ERR_CANT_DO_THAT_RIGHT_NOW="暂时无法执行"
     function ContainerIDToInventoryID(bag) return 20+bag end
@@ -206,6 +213,63 @@ local function Run(flavor, legacy)
     local window, edit = names.WoWToolsSellFishSettings, names.WoWToolsSellFishIdInput
     assert(window:IsShown() and edit.numeric and #calls == 0)
     assert(names.WoWToolsSellFishRow1.label.text:find("新鲜的美味小鱼", 1, true))
+    -- Dropping onto blank space, scroll viewport or an existing row adds only the ID.
+    local list = names.WoWToolsSellFishScroll
+    assert(list.mouseEnabled and list.child.mouseEnabled)
+    local originalStack = {id=901,count=20}
+    bags[0] = {[1]=originalStack}
+    catalog[901] = "拖入测试物品"
+    local function Drop(target, kind, id, script, button)
+        cursorData, cursor = {kind,id}, true
+        target.scripts[script or "OnReceiveDrag"](target, button)
+    end
+    for _,target in ipairs({list,list.child,names.WoWToolsSellFishRow1}) do
+        local cleared = cursorClears
+        Drop(target,"item",901)
+        assert(#wowDetectorDB.sellFishItems==2 and wowDetectorDB.sellFishItems[2]==901)
+        assert(names.WoWToolsSellFishRow2.label.text:find(catalog[901],1,true))
+        assert(cursorClears==cleared+1 and not cursor and bags[0][1]==originalStack and originalStack.count==20,
+            "Drop moved/sold the physical stack instead of adding its ID")
+        Drop(target,"item",901)
+        Add("0901")
+        assert(#wowDetectorDB.sellFishItems==2, "Drag/manual additions did not share deduplication")
+        Click("WoWToolsSellFishDelete")
+        assert(#wowDetectorDB.sellFishItems==1 and wowDetectorDB.sellFishItems[1]==101)
+    end
+    -- Picking up and clicking works on both blank list space and an existing row.
+    Drop(list.child,"item",901,"OnMouseUp","RightButton")
+    assert(#wowDetectorDB.sellFishItems==1 and cursor)
+    list.child.scripts.OnMouseUp(list.child,"LeftButton")
+    assert(#wowDetectorDB.sellFishItems==2 and not cursor);Click("WoWToolsSellFishDelete")
+    Drop(names.WoWToolsSellFishRow1,"item",901,"OnClick","LeftButton")
+    assert(#wowDetectorDB.sellFishItems==2 and not cursor);Click("WoWToolsSellFishDelete")
+    -- An empty list still accepts drops; uncached names update through the existing events.
+    Click("WoWToolsSellFishRow1");Click("WoWToolsSellFishDelete")
+    Drop(list.child,"item",903)
+    assert(#wowDetectorDB.sellFishItems==1 and wowDetectorDB.sellFishItems[1]==903)
+    assert(names.WoWToolsSellFishRow1.label.text:find("名称加载中",1,true))
+    catalog[903]="异步拖入物品";Event("GET_ITEM_INFO_RECEIVED",903,true)
+    assert(names.WoWToolsSellFishRow1.label.text:find(catalog[903],1,true))
+    Click("WoWToolsSellFishDelete");Add("101")
+    for _,payload in ipairs({{}, {"spell",901}, {"item",0}, {"item",-1}, {"item",1.5},
+        {"item",2147483648}, {"item","901"}, {"item",secret}, {secret,901}}) do
+        cursorData,cursor=payload,true
+        local cleared=cursorClears
+        list.scripts.OnReceiveDrag(list)
+        assert(#wowDetectorDB.sellFishItems==1 and cursorClears==cleared and cursor,
+            "Invalid/restricted cursor was added or cleared")
+    end
+    cursorData,cursor,cursorReadError={"item",901},true,true
+    list.scripts.OnReceiveDrag(list)
+    assert(#wowDetectorDB.sellFishItems==1 and cursor)
+    cursorReadError=false
+    local savedCursorAPI=GetCursorInfo;GetCursorInfo=nil
+    list.scripts.OnReceiveDrag(list);assert(#wowDetectorDB.sellFishItems==1 and cursor)
+    GetCursorInfo=savedCursorAPI
+    window:Hide();list.scripts.OnReceiveDrag(list)
+    assert(#wowDetectorDB.sellFishItems==1 and cursor)
+    ClearCursor();window:Show()
+    assert(#calls==0 and not HasUpdate(), "Adding by drag started a sale or polling")
     for _, invalid in ipairs({"0", "-2", "1.5", "abc", "2147483648", ""}) do Add(invalid) end
     assert(#wowDetectorDB.sellFishItems == 1)
     Add("101"); assert(#wowDetectorDB.sellFishItems == 1, "Duplicate accepted")
@@ -364,6 +428,8 @@ local function Run(flavor, legacy)
     Click("WoWToolsSellFishWintergrasp")
     assert(#wowDetectorDB.sellFishItems == beforePreset + 2, "Deleted preset item was not restored once")
     assert(#calls == beforeCalls and not HasUpdate(), "Preset import triggered sales or polling")
+    Drop(list.child,"item",901)
+    assert(wowDetectorDB.sellFishItems[#wowDetectorDB.sellFishItems]==901 and #calls==beforeCalls and not HasUpdate())
     window:Hide()
     -- Settings persist independently of detector activation, and survive reload.
     local saved = wowDetectorDB.sellFishItems

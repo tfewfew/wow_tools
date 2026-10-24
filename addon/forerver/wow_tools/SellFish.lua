@@ -62,6 +62,20 @@ local function AddID(id)
     return true
 end
 
+local function AddCursorItem()
+    if not items or not settings or not settings:IsShown() or type(GetCursorInfo) ~= "function" then return false end
+    local ok, kind, id = pcall(GetCursorInfo)
+    if not ok or not Readable(kind) or not ValidID(id) then return false end
+    if kind ~= "item" then return false end
+    local added = AddID(id)
+    selectedID = id
+    -- Return the dragged stack to its bag; only its ID belongs in the sale list.
+    if type(ClearCursor) == "function" then pcall(ClearCursor) end
+    status:SetText(added and "已添加拖入物品；名称未缓存时会自动加载。" or "该物品已在列表中。")
+    RefreshList()
+    return true
+end
+
 local function CreateSettings()
     if settings then return end
     settings = CreateFrame("Frame", "WoWToolsSellFishSettings", UIParent, "BasicFrameTemplateWithInset")
@@ -109,13 +123,20 @@ local function CreateSettings()
 
     local hint = settings:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     hint:SetPoint("TOPLEFT", 18, -72)
-    hint:SetText("左键商店按钮出售清单物品；右键打开此设置。")
+    hint:SetText("可输入物品 ID，或把背包物品拖入下方列表。")
     scroll = CreateFrame("ScrollFrame", "WoWToolsSellFishScroll", settings, "UIPanelScrollFrameTemplate")
     scroll:SetPoint("TOPLEFT", 18, -98)
     scroll:SetSize(354, 240)
     content = CreateFrame("Frame", nil, scroll)
     content:SetSize(350, 240)
     scroll:SetScrollChild(content)
+    for _, target in ipairs({scroll, content}) do
+        target:EnableMouse(true)
+        target:SetScript("OnReceiveDrag", AddCursorItem)
+        target:SetScript("OnMouseUp", function(_, button)
+            if button == "LeftButton" then AddCursorItem() end
+        end)
+    end
     deleteButton = CreateFrame("Button", "WoWToolsSellFishDelete", settings, "UIPanelButtonTemplate")
     deleteButton:SetSize(100, 24)
     deleteButton:SetPoint("BOTTOMLEFT", 18, 38)
@@ -175,7 +196,9 @@ RefreshList = function()
             row.label:SetPoint("LEFT", 6, 0)
             row.label:SetWidth(338)
             row.label:SetJustifyH("LEFT")
+            row:SetScript("OnReceiveDrag", AddCursorItem)
             row:SetScript("OnClick", function(self)
+                if AddCursorItem() then return end
                 selectedID = self.itemID
                 RefreshList()
             end)
