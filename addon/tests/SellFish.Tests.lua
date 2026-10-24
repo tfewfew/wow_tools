@@ -233,310 +233,115 @@ local function Run(flavor, legacy)
         assert(not frame.events.GET_ITEM_INFO_RECEIVED and not frame.events.ITEM_DATA_LOAD_RESULT)
     end
     assert(not HasUpdate())
-    -- The entire carried inventory must be counted before any request is sent.
+    -- Simulated time only: one request every 50 seconds, no receipt subscription.
     local function ResetTrace()
         soldSlots, postSaleReads, bagReads, slotReads = {}, 0, {}, 0
+        calls = {}
     end
-    local function Ack(call, notify)
-        if call.acked then return end
-        call.acked = true
+    local function Ack(call)
         bags[call.bag][call.slot] = nil
-        soldSlots[call.bag .. ":" .. call.slot] = true
-        money = money + call.count * call.price
-        if afterUse then afterUse() end
-        if notify ~= false then
-            Event("BAG_UPDATE",call.bag)
-            Event("PLAYER_MONEY")
-        end
     end
     acknowledge = Ack
-    local function Fill42()
-        bags,bagSlots = {[0]={},[1]={},[2]={}}, {[0]=20,[1]=24,[2]=20,[3]=20,[4]=20}
-        for slot=1,19 do bags[0][slot]={id=101} end
-        for slot=1,21 do bags[1][slot]={id=102} end
-        for slot=1,2 do bags[2][slot]={id=777} end
+    local function Begin(data, behavior)
+        Close();Open();bags=data;mode=behavior or "success";ResetTrace()
+        Click("WoWToolsSellFishButton")
     end
-    bags = {[0] = {[1] = {id = 101}, [2] = {id = 500}, [3] = {id = 102, locked = true},
-        [4] = {id = 777, noValue = true}, [8] = {id = 101}},
-        [4] = {[2] = {id = 102}}, [-1] = {[1] = {id = 101}}}
-    ResetTrace()
-    Click("WoWToolsSellFishButton")
-    assert(#calls==0 and slotReads==40 and bagReads[0]==1 and bagReads[4]==1,
-        "A sale request was sent before all five bags were scanned")
-    assert(messages[#messages]:find("清单匹配 5 组，可出售 4 组",1,true))
-    Tick(2,0.05)
-    assert(#calls==1 and HasUpdate(),"Locked queued entry was skipped instead of waiting")
-    bags[0][3].locked=false
-    Tick(10,0.05)
-    assert(#calls==4 and not HasUpdate() and button.enabled)
-    assert(bags[0][2] and bags[0][4] and bags[-1][1] and not bags[0][3])
-    assert(messages[#messages]:find("固定清单 4 组已全部出售",1,true))
-    assert(postSaleReads==0 and bagReads[0]==1,"Seller inspected sold slots or rescanned inventory")
-
-    -- Screenshot regression: 19 + 21 + 2 = 42 groups, not a 20-group partial plan.
-    Fill42();ResetTrace();calls={}
-    NUM_BAG_SLOTS=0
-    Click("WoWToolsSellFishButton")
-    assert(#calls==0 and slotReads==104 and messages[#messages]:find("可出售 42 组",1,true))
-    assert(messages[#messages]:find("0:19/20，1:21/24，2:2/20，3:0/20，4:0/20",1,true))
-    Tick(1,0.049);assert(#calls==0)
-    Tick(1,0.0011);assert(#calls==1)
-    Tick(50,0.05)
-    assert(#calls==42 and not HasUpdate(),"Fixed 42-group plan did not finish past twenty")
-    assert(postSaleReads==0 and slotReads==104+42,"Post-sale inventory verification was performed")
-    for bag=0,4 do assert(bagReads[bag]==1,"Inventory was scanned more than once") end
-    assert(messages[#messages]:find("固定清单 42 组已全部出售",1,true))
-    NUM_BAG_SLOTS=4
-
-    -- A server-side lock after the twentieth sale must pause, not discard, the remaining plan.
-    Fill42();ResetTrace();calls={}
-    afterUse=function()
-        if #calls==20 then
-            afterUse=nil
-            for _,bag in pairs(bags) do for _,data in pairs(bag) do data.locked=true end end
-        end
+    local function FinishRound(count)
+        for _=1,count do Tick(1,50) end
+        Tick(1,0.5)
     end
-    Click("WoWToolsSellFishButton");Tick(25,0.05)
-    assert(#calls==20 and HasUpdate(),"Temporary lock after twenty dropped later queued groups")
-    for _,bag in pairs(bags) do for _,data in pairs(bag) do data.locked=false end end
-    Tick(30,0.05)
-    assert(#calls==42 and not HasUpdate() and postSaleReads==0,"Original plan did not resume through all 42 groups")
-
-    -- An equipped but unreadable/zero-slot bag aborts the whole scan before the first sale.
-    for _,partial in ipairs({"hidden","unreadable"}) do
-        Fill42();ResetTrace();calls={}
-        if partial=="hidden" then hiddenBags[1]=true else unreadableBags[1]=true end
-        Click("WoWToolsSellFishButton");Tick(10)
-        assert(#calls==0 and not HasUpdate() and messages[#messages]:find("扫描未完成",1,true))
-        hiddenBags[1],unreadableBags[1]=nil,nil
-        Click("WoWToolsSellFishButton");Tick(50,0.05)
-        assert(#calls==42 and not HasUpdate())
-    end
-
-    -- Delayed receipts block only the current original queue entry; no bag re-reads.
-    Fill42();ResetTrace();mode,calls="unconfirmed",{}
-    Click("WoWToolsSellFishButton");Tick(1,0.05)
-    local first=calls[1]
-    Ack(first,false)
-    Event("BAG_UPDATE",4);Event("PLAYER_MONEY")
-    local readCount=slotReads
-    Tick(3,0.05)
-    assert(#calls==1 and HasUpdate() and slotReads==readCount,
-        "Wrong bag event advanced the queue or pending sales read inventory")
-    Event("BAG_UPDATE",first.bag)
-    Tick(1,0.05);assert(#calls==2)
-    for _=1,45 do
-        Ack(calls[#calls])
-        Tick(1,0.8)
-    end
-    assert(#calls==42 and not HasUpdate(),"Sale was limited by total time or total group count")
-    assert(postSaleReads==0)
-
-    -- Cached vendor prices allow eight requests per batch. A partial money receipt
-    -- must not advance the batch, even if a bag event has already arrived.
-    priced, mode, calls = true, "unconfirmed", {}
-    Fill42();ResetTrace()
-    Click("WoWToolsSellFishButton");Tick(1,0.05)
-    assert(#calls==8 and slotReads==112, "Priced sales did not send an eight-group batch")
-    Ack(calls[1],false);Event("BAG_UPDATE",0);Event("PLAYER_MONEY")
-    Tick(5,0.05)
-    assert(#calls==8 and HasUpdate(), "A partial batch receipt was reported as complete")
-    for i=2,8 do Ack(calls[i],false) end
-    Event("PLAYER_MONEY");Tick(1,0.05)
-    assert(#calls==16, "Aggregate money receipt did not release the next batch")
-    Close();Open()
-
-    -- Coalesced, out-of-order events must cover every bag in this batch.
-    bags={[0]={[1]={id=101},[2]={id=102}},[1]={[1]={id=777}}}
-    calls={};ResetTrace()
-    Click("WoWToolsSellFishButton");Tick(1,0.05)
-    assert(#calls==3)
-    for _,call in ipairs(calls) do Ack(call,false) end
-    Event("PLAYER_MONEY");Event("BAG_UPDATE",0);Tick(2,0.05)
-    assert(HasUpdate(), "Batch completed without every affected bag's receipt")
-    Event("BAG_UPDATE",1);Tick(1,0.05)
-    assert(not HasUpdate() and postSaleReads==0)
-
-    -- With 300 ms server latency, 42 groups should take about six round trips,
-    -- not 42. Limit in-flight requests to eight, with no rescan or sold-slot reads.
-    Fill42();ResetTrace();calls={}
-    local started=simulationTime
-    Click("WoWToolsSellFishButton")
-    for _=1,100 do
-        local before=#calls
-        Tick(1,0.05)
-        assert(#calls-before<=8, "A single update exceeded the eight-group batch")
-        local changed,waiting=false,0
-        for _,call in ipairs(calls) do
-            if not call.acked then
-                waiting=waiting+1
-                if simulationTime-call.sentAt>=0.3 then Ack(call,false);changed=true end
-            end
-        end
-        assert(waiting<=8, "More than eight requests were in flight")
-        if changed then Event("BAG_UPDATE_DELAYED");Event("PLAYER_MONEY") end
-        if not HasUpdate() then break end
-    end
-    assert(#calls==42 and not HasUpdate() and simulationTime-started<5,
-        "Batched 42-group sale did not complete within five simulated seconds")
-    assert(postSaleReads==0 and slotReads==146, "Acceleration added post-sale inventory verification")
-    for bag=0,4 do assert(bagReads[bag]==1) end
-    print("SellFish " .. flavor .. (legacy and " legacy" or " C_Container")
-        .. ": 42 groups / 300ms receipts in " .. string.format("%.2f",simulationTime-started) .. " simulated seconds")
-
-    -- The old twenty-group boundary cannot discard locked later entries.
-    mode,calls="success",{}
-    Fill42();ResetTrace()
-    afterUse=function()
-        if #calls==20 then
-            afterUse=nil
-            for _,bag in pairs(bags) do for _,data in pairs(bag) do data.locked=true end end
-        end
-    end
-    Click("WoWToolsSellFishButton");Tick(8,0.05)
-    assert(#calls==20 and HasUpdate())
-    for _,bag in pairs(bags) do for _,data in pairs(bag) do data.locked=false end end
-    Tick(8,0.05)
-    assert(#calls==42 and not HasUpdate() and postSaleReads==0)
-
-    -- A synchronous busy error in a batch drains the accepted prefix, then retries
-    -- only the rejected slot, sequentially. Successful entries are never replayed.
-    Fill42();ResetTrace();calls={}
-    acknowledge=function(call)
-        if #calls==3 then Event("UI_ERROR_MESSAGE",1,ERR_OBJECT_IS_BUSY) else Ack(call) end
-    end
-    Click("WoWToolsSellFishButton");Tick(100,0.05)
-    assert(#calls==43 and calls[3].slot==calls[4].slot and not HasUpdate() and postSaleReads==0,
-        "Busy response lost a fixed entry or replayed an accepted batch")
-    acknowledge=Ack
-
-    -- An ambiguous asynchronous batch error must not replay possibly sold slots,
-    -- or count partial proceeds as all eight successes.
-    Fill42();ResetTrace();mode,calls="unconfirmed",{}
-    Click("WoWToolsSellFishButton");Tick(1,0.05)
-    Ack(calls[1],false);Ack(calls[2],false)
-    Event("BAG_UPDATE_DELAYED");Event("PLAYER_MONEY");Event("UI_ERROR_MESSAGE",1,ERR_OBJECT_IS_BUSY)
-    Tick(110,0.05)
-    assert(#calls==8 and not HasUpdate() and postSaleReads==0)
-    assert(messages[#messages]:find("未完成",1,true))
-
-    -- Unknown or restricted prices preserve the previous single-item path.
-    for _,priceCase in ipairs({"missing","restricted"}) do
-        mode,calls="success",{}
-        bags={[0]={[1]={id=101},[2]={id=101},[3]={id=101}}};ResetTrace()
-        if priceCase=="missing" then prices[101]=nil else secretField="price" end
-        Click("WoWToolsSellFishButton");Tick(1,0.05)
-        assert(#calls==1, "Unknown price was used for a batch receipt")
-        Tick(5,0.05)
-        assert(#calls==3 and not HasUpdate() and postSaleReads==0)
-        prices[101],secretField=1,nil
-    end
-
-    -- Pre-send checks also protect later entries within the same frame/batch.
-    mode,calls="falseAfterAck",{}
-    bags={[0]={[1]={id=101},[2]={id=102}}};ResetTrace()
-    Click("WoWToolsSellFishButton");Tick(5,0.05)
-    assert(#calls==2 and not HasUpdate() and postSaleReads==0,
-        "An API rejection after confirmed proceeds replayed an accepted sale")
-
-    mode,calls="close",{}
-    Fill42();ResetTrace()
-    Click("WoWToolsSellFishButton");Tick(5,0.05)
-    assert(#calls==1 and not HasUpdate(), "Closing the merchant did not stop inside a batch")
-    Open()
-
-    mode="success"
-    Fill42();ResetTrace();calls={}
-    afterUse=function() afterUse=nil;bags[0][18]={id=500} end
-    Click("WoWToolsSellFishButton");Tick(3,0.05)
-    assert(#calls==1 and not HasUpdate() and postSaleReads==0)
-    assert(messages[#messages]:find("未完成：已出售 1/42",1,true))
-    priced=false
-
-    -- Temporary server-busy responses retry the same queue entry, not skip it.
-    mode,calls="busyOnce",{}
-    bags={[0]={[1]={id=101},[2]={id=102}}};ResetTrace()
-    Click("WoWToolsSellFishButton");Tick(30,0.05)
-    assert(#calls==3 and calls[1].slot==2 and calls[2].slot==2 and calls[3].slot==1 and not HasUpdate())
-    assert(messages[#messages]:find("固定清单 2 组已全部出售",1,true))
-
-    -- No new items are appended after the fixed plan was created.
-    mode,calls="success",{}
-    bags={[0]={[1]={id=101,guid="original"}}};ResetTrace()
-    afterUse=function()
-        afterUse=nil
-        bags[0][1]={id=101,guid="new-item"}
-    end
-    Click("WoWToolsSellFishButton");Tick(5,0.05)
-    assert(#calls==1 and bags[0][1].guid=="new-item" and not HasUpdate() and postSaleReads==0)
-
-    -- Before-send checks stop on changes; no changed/unlisted item is blindly sold.
-    bags={[0]={[1]={id=101},[2]={id=101}}};ResetTrace();calls={}
-    Click("WoWToolsSellFishButton")
-    bags[0][2]={id=500}
-    Tick(3,0.05)
-    assert(#calls==0 and not HasUpdate() and messages[#messages]:find("未完成",1,true))
-    bags={[0]={[1]={id=101}}};ResetTrace()
-    Click("WoWToolsSellFishButton")
-    SlashCmdList.WOWTOOLSSELLFISH()
-    Click("WoWToolsSellFishRow2")
-    Click("WoWToolsSellFishDelete")
-    Tick(3,0.05);assert(#calls==0 and not HasUpdate())
-    Add("101");window:Hide()
-
-    -- Errors, missing receipts and a persistent lock are reported as incomplete, never all sold.
-    for _,failure in ipairs({"error","false","unconfirmed","busyAlways","permanent"}) do
-        mode,calls=failure,{}
-        bags={[0]={[1]={id=101}}};ResetTrace()
-        Click("WoWToolsSellFishButton");Tick(50,0.16)
-        local expected=(failure=="unconfirmed" or failure=="permanent") and 1 or 3
-        assert(#calls==expected and bags[0][1] and not HasUpdate(),"Retries were unbounded or a failed item was lost")
-        assert(messages[#messages]:find("未完成：已出售 0/1 组",1,true),"Unconfirmed request was reported as sold")
-        assert(postSaleReads==0)
-    end
-    mode,calls="success",{}
-    bags={[0]={[1]={id=101,locked=true}}};ResetTrace()
-    Click("WoWToolsSellFishButton");Tick(40,0.16)
-    assert(#calls==0 and not HasUpdate() and messages[#messages]:find("未跳过该组",1,true))
-
-    local restrictedFields={"itemID","stackCount","isLocked","hasNoValue","hyperlink","table"}
-    if not legacy then restrictedFields[#restrictedFields+1]="guid" end
-    for _,field in ipairs(restrictedFields) do
-        bags={[0]={[1]={id=101}}};ResetTrace();secretField=field
-        Click("WoWToolsSellFishButton");Tick(5)
-        assert(#calls==0 and not HasUpdate(),"Restricted item was sold")
-    end
-    secretField,failInfo=nil,true
-    Click("WoWToolsSellFishButton");Tick(5)
-    assert(#calls==0 and not HasUpdate())
-    failInfo=false
-    for _,tab in ipairs({2,secret}) do
-        MerchantFrame.selectedTab=tab
-        Click("WoWToolsSellFishButton");assert(#calls==0 and not HasUpdate())
-    end
-    MerchantFrame.selectedTab=1
-    for _,value in ipairs({true,secret}) do combat=value;Click("WoWToolsSellFishButton");assert(not HasUpdate()) end
-    combat=false
-    for _,value in ipairs({true,secret}) do cursor=value;Click("WoWToolsSellFishButton");assert(not HasUpdate()) end
-    cursor=false
-    Click("WoWToolsSellFishButton");Close();Tick(5)
-    assert(#calls==0 and not HasUpdate() and not button:IsShown())
-    Open();Tick(5);assert(#calls==0,"Opening resumed a cancelled plan")
-    Click("WoWToolsSellFishButton");MerchantFrame.selectedTab=2;Tick(5)
-    assert(#calls==0 and not HasUpdate())
-    MerchantFrame.selectedTab=1
-    mode="close";bags={[0]={[1]={id=101},[2]={id=101}}};ResetTrace()
-    Click("WoWToolsSellFishButton");Tick(5)
-    assert(#calls==1 and not HasUpdate())
+    Begin({[0]={[1]={id=101},[2]={id=102}},[-1]={[1]={id=101}}})
+    assert(slotReads==40 and #calls==0 and HasUpdate(), "Initial scan must finish before sends")
     for _,frame in ipairs(frames) do
-        assert(not frame.events.BAG_UPDATE and not frame.events.PLAYER_MONEY and not frame.events.UI_ERROR_MESSAGE,
-            "Receipt events remained active after stop")
+        assert(not frame.events.BAG_UPDATE and not frame.events.BAG_UPDATE_DELAYED
+            and not frame.events.PLAYER_MONEY and not frame.events.UI_ERROR_MESSAGE, "Seller still waits for receipts")
     end
-    if not legacy then
-        SlashCmdList.WOWTOOLSSELLFISH();Add("888")
-        assert(names.WoWToolsSellFishRow4.label.text:find(catalog[888],1,true))
-        window:Hide()
+    Tick(1,49.999);assert(#calls==0)
+    Tick(1,0.0011);assert(#calls==1)
+    Tick(1,49.999);assert(#calls==1)
+    Tick(1,0.0011);assert(#calls==2)
+    assert(calls[2].sentAt-calls[1].sentAt>=50)
+    assert(bagReads[0]==1 and HasUpdate(), "Rescan started before settling delay")
+    Tick(1,0.499);assert(bagReads[0]==1)
+    Tick(1,0.0011)
+    assert(bagReads[0]==2 and not HasUpdate() and bags[-1][1] and button.enabled)
+    assert(messages[#messages]:find("可出售物品为 0",1,true))
+
+    -- Rejected/unknown sales never block the rest of a round; at most three rounds.
+    for _,behavior in ipairs({"unconfirmed","false","error","busyAlways","permanent"}) do
+        Begin({[0]={[1]={id=101},[2]={id=102}}},behavior)
+        for round=1,3 do
+            local scans=bagReads[0]
+            Tick(1,50);Tick(1,50)
+            assert(#calls==round*2 and bagReads[0]==scans, "A result delayed the next queued request")
+            Tick(1,0.5)
+            assert(HasUpdate()==(round<3), "Wrong round limit")
+        end
+        assert(bagReads[0]==4 and messages[#messages]:find("仍有 2 组",1,true))
     end
+    -- A transient failure succeeds on the fresh second scan; no third round starts.
+    Begin({[0]={[1]={id=101}}},"unconfirmed")
+    FinishRound(1);assert(#calls==1 and HasUpdate())
+    mode="success";FinishRound(1)
+    assert(#calls==2 and bagReads[0]==3 and not HasUpdate())
+
+    -- Fresh scans include newly arrived matching stacks; each round is a new queue.
+    Begin({[0]={[1]={id=101}}})
+    Tick(1,50);bags[1]={[2]={id=102}};Tick(1,0.5)
+    assert(HasUpdate() and #calls==1)
+    FinishRound(1);assert(#calls==2 and calls[2].bag==1 and not HasUpdate())
+
+    -- Locks and moved/replaced stacks are skipped this round, reconsidered next scan.
+    Begin({[0]={[1]={id=101,locked=true},[2]={id=102}}})
+    Tick(1,50);Tick(1,50);assert(#calls==1)
+    bags[0][1].locked=false;Tick(1,0.5);FinishRound(1)
+    assert(#calls==2 and not HasUpdate())
+    Begin({[0]={[1]={id=101},[2]={id=101}}})
+    bags[0][2]={id=500}
+    FinishRound(2);assert(#calls==1 and bags[0][2].id==500 and not HasUpdate())
+    Begin({[0]={[1]={id=101,noValue=true}}})
+    assert(#calls==0 and not HasUpdate())
+
+    -- Long frames cannot emit a burst or consume the post-round 500ms in that frame.
+    Begin({[0]={[1]={id=101},[2]={id=101}}})
+    Tick(1,500);assert(#calls==1)
+    Tick(1,500);assert(#calls==2 and bagReads[0]==1)
+    Tick(1,0.5);assert(not HasUpdate())
+
+    -- Forty-two stacks finish without a twenty-stack cap, independently of prices/money.
+    local data={[0]={},[1]={},[2]={}}
+    bagSlots={[0]=20,[1]=24,[2]=20,[3]=20,[4]=20}
+    for slot=1,19 do data[0][slot]={id=101} end
+    for slot=1,21 do data[1][slot]={id=102} end
+    for slot=1,2 do data[2][slot]={id=777} end
+    Begin(data);assert(slotReads==104)
+    GetMoney=nil;FinishRound(42)
+    assert(#calls==42 and bagReads[0]==2 and not HasUpdate())
+    bagSlots={}
+    for _,partial in ipairs({"hidden","unreadable"}) do
+        if partial=="hidden" then hiddenBags[1]=true else unreadableBags[1]=true end
+        Begin({[0]={[1]={id=101}},[1]={[1]={id=102}}})
+        assert(#calls==0 and not HasUpdate())
+        hiddenBags[1],unreadableBags[1]=nil,nil
+    end
+    for _,field in ipairs({"itemID","stackCount","isLocked","hasNoValue","hyperlink","table"}) do
+        secretField=field;Begin({[0]={[1]={id=101}}})
+        assert(#calls==0 and not HasUpdate(), "Restricted item was sold")
+    end
+    secretField=nil
+    -- Safety gates cancel during both sending and the 500ms settling phase.
+    for _,gate in ipairs({"close","tab","combat","cursor"}) do
+        Begin({[0]={[1]={id=101}}})
+        if gate=="close" then Close() elseif gate=="tab" then MerchantFrame.selectedTab=2
+        elseif gate=="combat" then combat=true else cursor=true end
+        Tick(1,50);assert(#calls==0 and not HasUpdate())
+        combat,cursor=false,false;MerchantFrame.selectedTab=1
+        Begin({[0]={[1]={id=101}}});Tick(1,50);Close();Tick(1,0.5)
+        assert(not HasUpdate());Open();Tick(1,50);assert(#calls==1 and not HasUpdate())
+    end
+    Begin({[0]={[1]={id=101},[2]={id=102}}},"close")
+    Tick(1,50);assert(#calls==1 and not HasUpdate());Open()
+    mode="success"
     -- Preset merges with the custom list; repeated imports and manual additions share deduplication.
     catalog[41813], catalog[41806], catalog[41809] = "预设鱼一", "预设鱼二", "预设鱼三"
     SlashCmdList.WOWTOOLSSELLFISH()
@@ -546,7 +351,7 @@ local function Run(flavor, legacy)
     local beforePreset, beforeCalls = #wowDetectorDB.sellFishItems, #calls
     Click("WoWToolsSellFishWintergrasp")
     assert(#wowDetectorDB.sellFishItems == beforePreset + 2, "Preset did not merge existing IDs")
-    assert(wowDetectorDB.sellFishItems[1] == 102 and wowDetectorDB.sellFishItems[2] == 777,
+    assert(wowDetectorDB.sellFishItems[1] == 102 and wowDetectorDB.sellFishItems[2] == 101 and wowDetectorDB.sellFishItems[3] == 777,
         "Preset replaced or reordered custom items")
     for _, id in ipairs({41813, 41806, 41809}) do
         local count = 0
