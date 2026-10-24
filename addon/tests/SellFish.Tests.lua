@@ -233,90 +233,80 @@ local function Run(flavor, legacy)
         assert(not frame.events.GET_ITEM_INFO_RECEIVED and not frame.events.ITEM_DATA_LOAD_RESULT)
     end
     assert(not HasUpdate())
-    -- Simulated time only: one request every 50 seconds, no receipt subscription.
+    -- Simulated time only: immediate first stack, then 50ms, 500ms round settling.
     local function ResetTrace()
         soldSlots, postSaleReads, bagReads, slotReads = {}, 0, {}, 0
         calls = {}
     end
-    local function Ack(call)
-        bags[call.bag][call.slot] = nil
-    end
+    local function Ack(call) bags[call.bag][call.slot] = nil end
     acknowledge = Ack
     local function Begin(data, behavior)
         Close();Open();bags=data;mode=behavior or "success";ResetTrace()
         Click("WoWToolsSellFishButton")
     end
-    local function FinishRound(count)
-        for _=1,count do Tick(1,50) end
-        Tick(1,0.5)
-    end
     Begin({[0]={[1]={id=101},[2]={id=102}},[-1]={[1]={id=101}}})
-    assert(slotReads==40 and #calls==0 and HasUpdate(), "Initial scan must finish before sends")
+    assert(#calls==1 and slotReads==41 and HasUpdate(), "First stack must send immediately after complete scan")
+    assert(bagReads[0]==1 and bagReads[4]==1)
     for _,frame in ipairs(frames) do
         assert(not frame.events.BAG_UPDATE and not frame.events.BAG_UPDATE_DELAYED
             and not frame.events.PLAYER_MONEY and not frame.events.UI_ERROR_MESSAGE, "Seller still waits for receipts")
     end
-    Tick(1,49.999);assert(#calls==0)
-    Tick(1,0.0011);assert(#calls==1)
-    Tick(1,49.999);assert(#calls==1)
+    Tick(1,0.049);assert(#calls==1)
     Tick(1,0.0011);assert(#calls==2)
-    assert(calls[2].sentAt-calls[1].sentAt>=50)
-    assert(bagReads[0]==1 and HasUpdate(), "Rescan started before settling delay")
-    Tick(1,0.499);assert(bagReads[0]==1)
+    assert(calls[2].sentAt-calls[1].sentAt>=0.05)
+    Tick(1,0.499);assert(bagReads[0]==1 and HasUpdate())
     Tick(1,0.0011)
     assert(bagReads[0]==2 and not HasUpdate() and bags[-1][1] and button.enabled)
     assert(messages[#messages]:find("可出售物品为 0",1,true))
 
-    -- Rejected/unknown sales never block the rest of a round; at most three rounds.
+    -- Failed requests cannot block the next stack, and fresh rounds start immediately.
     for _,behavior in ipairs({"unconfirmed","false","error","busyAlways","permanent"}) do
         Begin({[0]={[1]={id=101},[2]={id=102}}},behavior)
+        assert(#calls==1)
         for round=1,3 do
+            Tick(1,0.05);assert(#calls==round*2)
             local scans=bagReads[0]
-            Tick(1,50);Tick(1,50)
-            assert(#calls==round*2 and bagReads[0]==scans, "A result delayed the next queued request")
-            Tick(1,0.5)
+            Tick(1,0.499);assert(bagReads[0]==scans and #calls==round*2)
+            Tick(1,0.0011)
             assert(HasUpdate()==(round<3), "Wrong round limit")
+            assert(#calls==round*2+(round<3 and 1 or 0), "Fresh round did not send its first stack immediately")
         end
         assert(bagReads[0]==4 and messages[#messages]:find("仍有 2 组",1,true))
     end
-    -- A transient failure succeeds on the fresh second scan; no third round starts.
     Begin({[0]={[1]={id=101}}},"unconfirmed")
-    FinishRound(1);assert(#calls==1 and HasUpdate())
-    mode="success";FinishRound(1)
-    assert(#calls==2 and bagReads[0]==3 and not HasUpdate())
+    mode="success";Tick(1,0.5)
+    assert(#calls==2 and HasUpdate());Tick(1,0.5)
+    assert(bagReads[0]==3 and not HasUpdate())
 
-    -- Fresh scans include newly arrived matching stacks; each round is a new queue.
+    -- Fresh scans include newly arrived stacks without waiting another interval.
     Begin({[0]={[1]={id=101}}})
-    Tick(1,50);bags[1]={[2]={id=102}};Tick(1,0.5)
-    assert(HasUpdate() and #calls==1)
-    FinishRound(1);assert(#calls==2 and calls[2].bag==1 and not HasUpdate())
-
-    -- Locks and moved/replaced stacks are skipped this round, reconsidered next scan.
+    bags[1]={[2]={id=102}};Tick(1,0.5)
+    assert(#calls==2 and calls[2].bag==1)
+    Tick(1,0.5);assert(not HasUpdate())
+    -- Locked and changed slots are reconsidered only by the next fresh scan.
     Begin({[0]={[1]={id=101,locked=true},[2]={id=102}}})
-    Tick(1,50);Tick(1,50);assert(#calls==1)
-    bags[0][1].locked=false;Tick(1,0.5);FinishRound(1)
-    assert(#calls==2 and not HasUpdate())
+    Tick(1,0.05);assert(#calls==1)
+    bags[0][1].locked=false;Tick(1,0.5)
+    assert(#calls==2);Tick(1,0.5);assert(not HasUpdate())
     Begin({[0]={[1]={id=101},[2]={id=101}}})
-    bags[0][2]={id=500}
-    FinishRound(2);assert(#calls==1 and bags[0][2].id==500 and not HasUpdate())
+    bags[0][1]={id=500};Tick(1,0.05);Tick(1,0.5)
+    assert(#calls==1 and bags[0][1].id==500 and not HasUpdate())
     Begin({[0]={[1]={id=101,noValue=true}}})
     assert(#calls==0 and not HasUpdate())
 
-    -- Long frames cannot emit a burst or consume the post-round 500ms in that frame.
-    Begin({[0]={[1]={id=101},[2]={id=101}}})
-    Tick(1,500);assert(#calls==1)
-    Tick(1,500);assert(#calls==2 and bagReads[0]==1)
+    -- A long frame emits at most one additional stack and starts a separate 500ms wait.
+    Begin({[0]={[1]={id=101},[2]={id=101},[3]={id=101}}})
+    Tick(1,5);assert(#calls==2)
+    Tick(1,5);assert(#calls==3 and bagReads[0]==1)
     Tick(1,0.5);assert(not HasUpdate())
-
-    -- Forty-two stacks finish without a twenty-stack cap, independently of prices/money.
     local data={[0]={},[1]={},[2]={}}
     bagSlots={[0]=20,[1]=24,[2]=20,[3]=20,[4]=20}
     for slot=1,19 do data[0][slot]={id=101} end
     for slot=1,21 do data[1][slot]={id=102} end
     for slot=1,2 do data[2][slot]={id=777} end
-    Begin(data);assert(slotReads==104)
-    GetMoney=nil;FinishRound(42)
-    assert(#calls==42 and bagReads[0]==2 and not HasUpdate())
+    Begin(data);assert(slotReads==105 and #calls==1)
+    GetMoney=nil;Tick(41,0.05);assert(#calls==42)
+    Tick(1,0.5);assert(bagReads[0]==2 and not HasUpdate())
     bagSlots={}
     for _,partial in ipairs({"hidden","unreadable"}) do
         if partial=="hidden" then hiddenBags[1]=true else unreadableBags[1]=true end
@@ -326,22 +316,21 @@ local function Run(flavor, legacy)
     end
     for _,field in ipairs({"itemID","stackCount","isLocked","hasNoValue","hyperlink","table"}) do
         secretField=field;Begin({[0]={[1]={id=101}}})
-        assert(#calls==0 and not HasUpdate(), "Restricted item was sold")
+        assert(#calls==0 and not HasUpdate())
     end
     secretField=nil
-    -- Safety gates cancel during both sending and the 500ms settling phase.
+    -- Safety cancellation applies between sends and during the settling phase.
     for _,gate in ipairs({"close","tab","combat","cursor"}) do
-        Begin({[0]={[1]={id=101}}})
+        Begin({[0]={[1]={id=101},[2]={id=102}}})
         if gate=="close" then Close() elseif gate=="tab" then MerchantFrame.selectedTab=2
         elseif gate=="combat" then combat=true else cursor=true end
-        Tick(1,50);assert(#calls==0 and not HasUpdate())
+        Tick(1,0.05);assert(#calls==1 and not HasUpdate())
         combat,cursor=false,false;MerchantFrame.selectedTab=1
-        Begin({[0]={[1]={id=101}}});Tick(1,50);Close();Tick(1,0.5)
-        assert(not HasUpdate());Open();Tick(1,50);assert(#calls==1 and not HasUpdate())
+        Begin({[0]={[1]={id=101}}});Close();Tick(1,0.5)
+        assert(not HasUpdate());Open();Tick(1,0.05);assert(#calls==1 and not HasUpdate())
     end
     Begin({[0]={[1]={id=101},[2]={id=102}}},"close")
-    Tick(1,50);assert(#calls==1 and not HasUpdate());Open()
-    mode="success"
+    assert(#calls==1 and not HasUpdate());Open();mode="success"
     -- Preset merges with the custom list; repeated imports and manual additions share deduplication.
     catalog[41813], catalog[41806], catalog[41809] = "预设鱼一", "预设鱼二", "预设鱼三"
     SlashCmdList.WOWTOOLSSELLFISH()

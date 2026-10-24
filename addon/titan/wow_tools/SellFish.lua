@@ -36,7 +36,7 @@ local eventFrame = CreateFrame("Frame")
 local items, selectedID, settings, input, status, scroll, content, deleteButton
 local rows, requested, failed = {}, {}, {}
 local merchantOpen, merchantButton, sale = false, nil, nil
-local SALE_INTERVAL, RESCAN_DELAY, MAX_ROUNDS = 50, 0.5, 3
+local SALE_INTERVAL, RESCAN_DELAY, MAX_ROUNDS = 0.05, 0.5, 3
 local RefreshList
 
 local function Readable(value)
@@ -312,9 +312,9 @@ local function LoadRound(currentSale)
         return false
     end
     currentSale.round = currentSale.round + 1
-    currentSale.queue, currentSale.index, currentSale.elapsed = queue, 1, 0
+    currentSale.queue, currentSale.index, currentSale.elapsed = queue, 1, SALE_INTERVAL
     currentSale.rescan = false
-    Say("开始第 " .. currentSale.round .. "/" .. MAX_ROUNDS .. " 轮，每隔 50 秒尝试发送一组，不等待出售回执。")
+    Say("开始第 " .. currentSale.round .. "/" .. MAX_ROUNDS .. " 轮，首组立即发送，随后每隔 50 毫秒尝试发送一组，不等待出售回执。")
     return true
 end
 local function SaleTick(_, elapsed)
@@ -323,7 +323,7 @@ local function SaleTick(_, elapsed)
     if not MerchantReady() then StopSale("商店关闭、切页或当前无法出售，已停止。"); return end
     currentSale.elapsed = currentSale.elapsed + elapsed
     if currentSale.rescan then
-        if currentSale.elapsed >= RESCAN_DELAY then LoadRound(currentSale) end
+        if currentSale.elapsed >= RESCAN_DELAY and LoadRound(currentSale) then SaleTick(nil, 0) end
         return
     end
     if currentSale.elapsed < SALE_INTERVAL then return end
@@ -356,6 +356,7 @@ local function StartSale()
     merchantButton:SetText("出售中…")
     merchantButton:Disable()
     eventFrame:SetScript("OnUpdate", SaleTick)
+    SaleTick(eventFrame, 0)
 end
 local function EnsureMerchantButton()
     if merchantButton or not MerchantFrame then return end
