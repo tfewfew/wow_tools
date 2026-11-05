@@ -235,7 +235,7 @@ wowAuto不提供录制、导入或制样界面；设置可试听已保留的编�
 
 同步脚本在 Windows 桌面创建 `wowAuto.lnk`，目标为源码目录的 `wowAuto.bat`，工作目录也是源码目录。确认快捷方式后，将桌面旧 `wowAuto.ps1`、`wowAuto.Engine.ps1`、`wowAuto.bat` 及 `wow-foreground-loop.bat`、`.ps1` 移入仓库 `.local-backups`，桌面只保留快捷方式。源码目录需保留完整的钓鱼、战斗及统一界面运行模块、audio-features目录及config.ini，试听还需保留本机audio-samples目录；移动仓库后重新执行同步以更新入口。插件同步至游戏的 `Interface\AddOns\wow_tools`。
 
-插件已分成 `addon/titan/wow_tools`（时光服）与 `addon/forerver/wow_tools`（无限服）独立源码，同步默认分别安装到各自客户端。wowAuto已支持两服共用调度队列：时光服按 `_classic_titan_\WowClassic.exe` 与 `3.80.` 构建识别，无限服按 `_cn_beta_\Wow.exe` 与 `1.60.` 构建识别。游戏根目录可以在其他盘符，产品目录名需匹配；零售服同名Wow.exe、其他经典版及无法读取身份的进程不加入列表。刷新、发键、取色、焦点重试和退出保护均核对PID、启动时间及客户端路径/版本身份。
+插件已分成 `addon/titan/wow_tools`（时光服）与 `addon/forerver/wow_tools`（无限服）独立源码，同步默认分别安装到各自客户端。wowAuto已支持两服共用调度队列：时光服按 `_classic_titan_\WowClassic.exe` 与 `3.80.` 构建识别，无限服按 `_forever_\Wow.exe` 与 `1.60.` 构建识别。游戏根目录可以在其他盘符，产品目录名需匹配；零售服同名Wow.exe、其他经典版及无法读取身份的进程不加入列表。刷新、发键、取色、焦点重试和退出保护均核对PID、启动时间及客户端路径/版本身份。
 
 ## 验证
 
@@ -361,7 +361,7 @@ flowchart TD
 
 ## 游戏目录、子战网与角色道具
 
-在“设置 → 游戏目录”分别指定时光服和无限服目录，可以选择 `_classic_titan_` / `_cn_beta_`，也可以选择包含它们的总目录。保存时核对对应可执行文件和版本，全部验证、原子写入成功后才更新内存；取消或失败不应用草稿。目录保存在 `rotation.config.json` v2 的可选 `GameDirectories`（`titan` / `forerver`）字段；旧配置读取使用默认安装目录，不自动重写。
+在“设置 → 游戏目录”分别指定时光服和无限服目录，可以选择 `_classic_titan_` / `_forever_`，也可以选择包含它们的总目录。保存时核对对应可执行文件和版本，全部验证、原子写入成功后才更新内存；取消或失败不应用草稿。目录保存在 `rotation.config.json` v2 的可选 `GameDirectories`（`titan` / `forerver`）字段；旧配置读取使用默认安装目录，不自动重写。
 
 列表来自各服自己的 `WTF/Account/<子战网>/<服务器>/<角色>/SavedVariables/wow_tools.lua` 中的插件记录。子战网使用实际账号目录名，角色任务在设置的子战网页配置并原子保存。每次手动开始清除旧归属，在首次选角OCR中匹配同客户端的任一已记录角色（包括停用角色），即可识别子战网；精确名称优先，唯一N−1模糊名称可辅助。重名不能唯一归属、匹配证据矛盾或无匹配时不点击角色，按↑后重试OCR，累计30次仍未识别沿用退出保护。识别成功但该账号未启用任何角色时只停止本行。识别结果写入运行日志与info快照并显示在进程行，不保存为进程绑定；重新手动开始再次识别，后续定时轮转沿用本次结果。直接开始继续跳过OCR。进程安装目录与配置不一致时拒绝关联账号列表。
 

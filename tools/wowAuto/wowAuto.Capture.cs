@@ -81,7 +81,7 @@ namespace WowAutoCapture {
                 string product=System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(path));
                 string file=System.IO.Path.GetFileName(path),version=FileVersionInfo.GetVersionInfo(path).FileVersion;
                 if(!(product.Equals("_classic_titan_",StringComparison.OrdinalIgnoreCase) && file.Equals("WowClassic.exe",StringComparison.OrdinalIgnoreCase) && version.StartsWith("3.80.") ||
-                     product.Equals("_cn_beta_",StringComparison.OrdinalIgnoreCase) && file.Equals("Wow.exe",StringComparison.OrdinalIgnoreCase) && version.StartsWith("1.60.")))
+                     (product.Equals("_forever_",StringComparison.OrdinalIgnoreCase) || product.Equals("_cn_beta_",StringComparison.OrdinalIgnoreCase)) && file.Equals("Wow.exe",StringComparison.OrdinalIgnoreCase) && version.StartsWith("1.60.")))
                     throw new InvalidOperationException("窗口捕获客户端版本不符。");
                 IntPtr window=process.MainWindowHandle;
                 if(window==IntPtr.Zero || !IsWindow(window)) throw new InvalidOperationException("窗口捕获目标不存在。");

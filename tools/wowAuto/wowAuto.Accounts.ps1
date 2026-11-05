@@ -215,9 +215,16 @@ function Resolve-WowGameDirectory([string]$Path,[string]$Flavor) {
     if (-not [IO.Path]::IsPathRooted($Path)) {throw '游戏目录须为绝对路径。'}
     $full=[IO.Path]::GetFullPath($Path.Trim())
     if ($full -ne [IO.Path]::GetPathRoot($full)) {$full=$full.TrimEnd('\','/')}
-    $product=if ($Flavor -eq 'titan') {'_classic_titan_'} else {'_cn_beta_'}
-    if ((Split-Path $full -Leaf) -ne $product) {$full=Join-Path $full $product}
-    $exe=Join-Path $full $(if ($Flavor -eq 'titan') {'WowClassic.exe'} else {'Wow.exe'})
+    [string[]]$products=if ($Flavor -eq 'titan') {@('_classic_titan_')} else {@('_forever_','_cn_beta_')}
+    $executable=if ($Flavor -eq 'titan') {'WowClassic.exe'} else {'Wow.exe'}
+    if ((Split-Path $full -Leaf) -notin $products) {
+        $parent=$full;$full=Join-Path $parent $products[0]
+        foreach($product in $products){
+            $candidate=Join-Path $parent $product
+            if([IO.File]::Exists((Join-Path $candidate $executable))){$full=$candidate;break}
+        }
+    }
+    $exe=Join-Path $full $executable
     if (-not [IO.File]::Exists($exe)) {throw "目录内没有对应客户端：$exe"}
     $version=[Diagnostics.FileVersionInfo]::GetVersionInfo($exe).FileVersion
     if ([WowAuto.NativeInput]::GetClientFlavor($exe,$version) -ne $Flavor) {throw '游戏目录与所选版本不符。'}

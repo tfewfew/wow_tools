@@ -57,7 +57,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 ## 安装目标
 
 - titan游戏：`C:\Program Files (x86)\World of Warcraft\_classic_titan_\Interface\AddOns\wow_tools`，客户端WowClassic.exe 3.80.2，接口38002。
-- forerver游戏：`C:\Program Files (x86)\World of Warcraft\_cn_beta_\Interface\AddOns\wow_tools`，客户端Wow.exe 1.60.1.70338，接口16001。
+- forerver游戏：`C:\Program Files (x86)\World of Warcraft\_forever_\Interface\AddOns\wow_tools`，客户端Wow.exe 1.60.1.70790，接口16001。
 - 桌面：通过 Windows Desktop 特殊文件夹解析，仅创建 `wowAuto.lnk`，直接指向源码 tools/wowAuto/wowAuto.bat，WorkingDirectory 设置为该源码目录；不复制运行文件到桌面。
 - 同步脚本将旧 `FishingState`、`wowDetector`、`Inner_graphic_config` 插件移到仓库忽略目录 `.local-backups`；快捷方式验证成功后，将桌面旧 wowAuto 三个运行文件及 wow-foreground-loop 两个入口移入该次备份的 Desktop 子目录。只处理确切文件名，不广泛清理桌面；移动前检查绝对路径，源码目录需保留完整运行文件。
 - 不提交本机备份、游戏配置、SavedVariables或外部依赖。tools/wowAuto/config.ini按用户要求纳入Git，属于工具共享配置，不受此条排除；保留用户在设置窗口保存的值，后续维护时检查其改动。备份按titan/forerver分子目录；SavedVariables迁移只在各自客户端内进行，不跨服复制。
@@ -83,7 +83,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - 一键卖鱼按钮（titan 2.1.51 / forerver 2.2.50）放在商店内修理区域下方，按钮下沿贴住商人/回购标签上沿；78×24 UI单位，BOTTOMLEFT相对MerchantFrameTab1.TOPLEFT零偏移，未提供标签时相对MerchantFrame.BOTTOMLEFT偏移16/0。随原生标签及MerchantFrame缩放，不移动原生修理按钮或标签；左键出售/右键设置及8组批次行为保留。既有SellFish用例同步布局期望，本次只做语法检查，由用户验证游戏布局。
 - titan版基于原2.1.1独立维护，当前2.1.52/接口38002。forerver版当前2.2.51/接口16001按无限服1.60.1.70338的Blizzard导出源码943764493e6b16d63ded3ab304150d1f05e58b57移植；以后跟随对应分支源码核对API，不能仅改TOC号。
 - forerver在Init.lua后加载Compatibility.lua：ItemLocation主手槽16及C_Item.GetItemID/GetItemInfoInstant识别鱼竿，C_Item.GetWeaponEnchantInfo(Enum.WeaponSlot.MainHand)返回列表，只接受有效Temporary附魔，排除Permanent/Imbue；失败或受限/不完整数据为unknown。UnitChannelInfo的技能ID在第8项，绿色只认钓鱼引导；先用issecretvalue排除受限返回再比较/输出，受限引导使主色块灰色。注册WEAPON_ENCHANT_CHANGED并每0.1秒刷新。菜单使用MenuUtil.CreateContextMenu；画面模块移动FramerateFrame整体，不再依赖FramerateLabel全局。未提供的CVar继续禁用，禁止加载时自动改变图形设置。forever测试覆盖全TOC加载，不发送游戏按键。
-- wowAuto同时识别时光服_classic_titan_/WowClassic.exe 3.80.和无限服_cn_beta_/Wow.exe 1.60.，允许游戏根目录位于其他盘符，但产品目录名须匹配。GetClientFlavor同时核对可执行文件名、父目录与构建前缀；未知/无法读取/零售服不加入列表。每行Client保存Flavor、Label、ExecutablePath；启动、取色、焦点切换、发键及正常/超时退出均核对PID、StartTime、路径与客户端身份。C#方法接收启动Ticks和预期路径，不能退回只按Wow进程名操作。
+- wowAuto同时识别时光服_classic_titan_/WowClassic.exe 3.80.和无限服_forever_/Wow.exe 1.60.（兼容旧_cn_beta_目录），允许游戏根目录位于其他盘符，但产品目录名须匹配。GetClientFlavor同时核对可执行文件名、父目录与构建前缀；未知/无法读取/零售服不加入列表。每行Client保存Flavor、Label、ExecutablePath；启动、取色、焦点切换、发键及正常/超时退出均核对PID、StartTime、路径与客户端身份。C#方法接收启动Ticks和预期路径，不能退回只按Wow进程名操作。
 
 - wow_tools 是唯一 TOC 插件，子目录 wowDetector 和 inner_graphic_config 分别保存模块；Init.lua 初始化 WoWTools.modules，Core.lua 统一小地图及右键菜单。图形模块来自本机 Inner_graphic_config 1.7.0，保留 /igc 和原有设置行为。同步先完整复制验证，再归档旧独立插件；首次复制账号旧 wowDetector.lua SavedVariables 为 wow_tools.lua，已有目标不覆盖。
 - 小地图右键菜单分别切换两个子模块界面，/wowtools 打开菜单。小地图钓鱼图标左键打开面板并自动启动检测，再次点击停止检测并隐藏面板；右键菜单中的wowDetector及模块Show采用相同行为，面板关闭按钮停止检测并隐藏，拖动调整入口角度；panelHidden、minimapAngle 保存到 wowDetectorDB。show/hide命令仅控制显隐，不改变检测开关；隐藏时色块也隐藏；状态更新独立于面板可见性。show/hide 命令控制显隐，on 命令先显示面板。入口不依赖外部库。
@@ -295,3 +295,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 ## 无限服字体按加载应用（2026-11-06）
 
 - forerver 2.2.56：wowDetectorDB.displayFonts沿用账号级SavedVariables持久化，每次登录/reload后首次PLAYER_ENTERING_WORLD按保存值应用一次，注销该事件。禁止SetFont钩子、PLAYER_REGEN_ENABLED、常驻OnUpdate、C_Timer延迟刷新或切地图重复应用。若保存项目的原生控件未加载，仅等待ADDON_LOADED补该项目一次，其他项目不重复设置；全部处理完注销ADDON_LOADED。同一FontString的全局/成员别名去重，手动保存只即时应用选中项目，恢复默认清除持久化值并还原本次缓存。DisplayFonts.Tests模拟初始化及重载读回、逐控件写入次数、晚加载弹药、切地图/脱战/其他插件不重设、无钩子/计时器及手动保存/恢复；配合ForeverCompatibility.Tests与ClientProfiles.Tests验证，仅部署forerver。
+
+## 无限服正式目录（2026-11-06）
+
+- 无限服默认安装和PC游戏目录改为C:\Program Files (x86)\World of Warcraft\_forever_，已核对Wow.exe 1.60.1.70790及wowf产品标记。forerver源码归档拼写保持不变，接口16001。同步默认目标及rotation.config.json/缺省目录使用_forever_；PC发键、战斗、WGC捕获和换角身份校验同时接受_forever_及旧_cn_beta_，仍严格核对Wow.exe和1.60.版本，不接受零售。父目录选择优先正式_forever_，仅其可执行文件不存在时兼容旧beta；显式旧目录仍可选，不迁移或删除游戏SavedVariables。ClientProfiles/ClientIdentity/Accounts UI及捕获适配模拟验证，提交推送后仅部署forerver到新目录。

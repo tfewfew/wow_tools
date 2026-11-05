@@ -90,7 +90,7 @@ namespace WowAuto
                 && String.Equals(product, "_classic_titan_", StringComparison.OrdinalIgnoreCase)
                 && version.StartsWith("3.80.", StringComparison.Ordinal)) return "titan";
             if (String.Equals(file, "Wow.exe", StringComparison.OrdinalIgnoreCase)
-                && String.Equals(product, "_cn_beta_", StringComparison.OrdinalIgnoreCase)
+                && (String.Equals(product, "_forever_", StringComparison.OrdinalIgnoreCase) || String.Equals(product, "_cn_beta_", StringComparison.OrdinalIgnoreCase))
                 && version.StartsWith("1.60.", StringComparison.Ordinal)) return "forerver";
             return null;
         }

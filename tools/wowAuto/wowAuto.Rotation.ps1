@@ -5,7 +5,7 @@ if (-not ('WowAutoRotation.Native' -as [type])) {
 [WowAutoRotation.Native]::FrameReader=[WowAutoCapture.Native]::FrameReader
 [WowAutoRotation.Native]::SizeReader=[WowAutoCapture.Native]::SizeReader
 $script:rotation=[pscustomobject]@{Path=(Join-Path $PSScriptRoot 'rotation.config.json');IntervalSeconds=0;OcrIntervalMs=1000;NextOcrAt=0L;Plans=@{};
-    Active=@{};LogoutQueue=(New-Object Collections.Queue);Queue=(New-Object Collections.Queue);ClickQueue=(New-Object Collections.Queue);LoginQueue=(New-Object Collections.Queue);Current=$null;NextAt=0L;ClickSwitch=$null;ConfigReady=$true;Error='';Actions=@();OcrWork=$null;NameHistory=@();GameDirectories=@{titan=$(if ($UiTest) {''} else {'C:\Program Files (x86)\World of Warcraft\_classic_titan_'});forerver=$(if ($UiTest) {''} else {'C:\Program Files (x86)\World of Warcraft\_cn_beta_'})};
+    Active=@{};LogoutQueue=(New-Object Collections.Queue);Queue=(New-Object Collections.Queue);ClickQueue=(New-Object Collections.Queue);LoginQueue=(New-Object Collections.Queue);Current=$null;NextAt=0L;ClickSwitch=$null;ConfigReady=$true;Error='';Actions=@();OcrWork=$null;NameHistory=@();GameDirectories=@{titan=$(if ($UiTest) {''} else {'C:\Program Files (x86)\World of Warcraft\_classic_titan_'});forerver=$(if ($UiTest) {''} else {'C:\Program Files (x86)\World of Warcraft\_forever_'})};
     OcrSource=([IO.File]::ReadAllText((Join-Path $PSScriptRoot 'wowAuto.Rotation.Ocr.ps1')))}
 function New-RotationPlan {
     return [pscustomobject]@{Slots=@(1..3 | ForEach-Object {[pscustomobject]@{Name='';Mode='fish';UseItem=$false}})}

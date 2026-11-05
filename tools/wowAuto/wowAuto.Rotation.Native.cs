@@ -33,7 +33,7 @@ namespace WowAutoRotation {
                 string product=System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(path));
                 string file=System.IO.Path.GetFileName(path),version=FileVersionInfo.GetVersionInfo(path).FileVersion;
                 bool valid=product.Equals("_classic_titan_",StringComparison.OrdinalIgnoreCase) && file.Equals("WowClassic.exe",StringComparison.OrdinalIgnoreCase) && version.StartsWith("3.80.") ||
-                    product.Equals("_cn_beta_",StringComparison.OrdinalIgnoreCase) && file.Equals("Wow.exe",StringComparison.OrdinalIgnoreCase) && version.StartsWith("1.60.");
+                    (product.Equals("_forever_",StringComparison.OrdinalIgnoreCase) || product.Equals("_cn_beta_",StringComparison.OrdinalIgnoreCase)) && file.Equals("Wow.exe",StringComparison.OrdinalIgnoreCase) && version.StartsWith("1.60.");
                 if(!valid || IsIconic(p.MainWindowHandle) || GetForegroundWindow()!=p.MainWindowHandle) throw new InvalidOperationException("Expected foreground WoW client unavailable.");
                 return p.MainWindowHandle;
             }

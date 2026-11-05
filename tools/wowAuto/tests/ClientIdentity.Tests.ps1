@@ -11,6 +11,10 @@ $titan='D:\games\_classic_titan_\WowClassic.exe'
 $forever='D:\games\_cn_beta_\Wow.exe'
 foreach ($case in @(
     @($titan,'3.80.2.70177','titan'), @($forever,'1.60.1.70338','forerver'),
+    @('C:\games\_forever_\Wow.exe','1.60.1.70790','forerver'),
+    @('d:\GAMES\_FOREVER_\WOW.EXE','1.60.2.99999','forerver'),
+    @('C:\games\_forever_\Wow.exe','12.1.0.69933',$null),
+    @('C:\games\_forever_\WowClassic.exe','1.60.1.70790',$null),
     @('d:\GAMES\_CN_BETA_\WOW.EXE','1.60.2.99999','forerver'),
     @('D:\games\_retail_\Wow.exe','12.1.0.69933',$null),
     @('D:\games\_retail_\Wow.exe','1.60.1.70338',$null),
@@ -20,11 +24,13 @@ foreach ($case in @(
     if ([WowAuto.NativeInput]::GetClientFlavor($case[0],$case[1]) -cne $case[2]) { throw "Wrong client classification: $($case[0]) / $($case[1])" }
 }
 if (-not [WowAuto.NativeInput]::MatchesClientIdentity('Wow',123,$forever,'1.60.1.70338',123,$forever)) { throw 'Valid Infinite process rejected.' }
+if (-not [WowAuto.NativeInput]::MatchesClientIdentity('Wow',123,'C:\games\_forever_\Wow.exe','1.60.1.70790',123,'C:\games\_forever_\Wow.exe')) {throw 'Release Infinite process rejected.'}
 foreach ($case in @(
     @('Wow',124,$forever,'1.60.1.70338',123,$forever),
     @('Other',123,$forever,'1.60.1.70338',123,$forever),
     @('Wow',123,$forever,'1.60.1.70338',123,'C:\other\_cn_beta_\Wow.exe'),
-    @('Wow',123,$forever,'12.1.0.69933',123,$forever)
+    @('Wow',123,$forever,'12.1.0.69933',123,$forever),
+    @('Wow',123,'C:\games\_forever_\Wow.exe','1.60.1.70790',123,$forever)
 )) {
     if ([WowAuto.NativeInput]::MatchesClientIdentity($case[0],$case[1],$case[2],$case[3],$case[4],$case[5])) { throw 'Changed/unsupported client passed native identity validation.' }
 }

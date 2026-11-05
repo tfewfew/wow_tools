@@ -45,7 +45,7 @@ inner_graphic_config 从原本机 1.7.0 版本收编，保留原有全部画面�
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\skills\wow-tools\scripts\sync-local.ps1
 ```
 
-同步脚本核对当前分支的远端提交和工作区状态，默认分别将titan版安装到 `_classic_titan_\Interface\AddOns\wow_tools`，forerver版安装到 `_cn_beta_\Interface\AddOns\wow_tools`，并更新桌面源码快捷方式。写入前先核对两份源码TOC及游戏可执行文件版本，防止写入错误客户端。覆盖前的文件按客户端分别备份到 `.local-backups`，不进入Git。
+同步脚本核对当前分支的远端提交和工作区状态，默认分别将titan版安装到 `_classic_titan_\Interface\AddOns\wow_tools`，forerver版安装到 `_forever_\Interface\AddOns\wow_tools`，并更新桌面源码快捷方式。写入前先核对两份源码TOC及游戏可执行文件版本，防止写入错误客户端。覆盖前的文件按客户端分别备份到 `.local-backups`，不进入Git。
 
 仅同步一服时加 `-Flavor titan` 或 `-Flavor forerver`；更换安装目录时同时指定 `-Flavor` 和 `-GameRoot`。`-Flavor all` 可通过 `-TitanGameRoot`、`-ForerverGameRoot` 分别指定目录。两份源码独立维护，后续修改应明确对应版本并验证相关模拟测试。
 

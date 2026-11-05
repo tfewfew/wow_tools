@@ -57,7 +57,7 @@ namespace WowAutoFight
             string file=System.IO.Path.GetFileName(path);
             if (String.Equals(product,"_classic_titan_",StringComparison.OrdinalIgnoreCase)
                 && String.Equals(file,"WowClassic.exe",StringComparison.OrdinalIgnoreCase) && version.StartsWith("3.80.")) return "titan";
-            if (String.Equals(product,"_cn_beta_",StringComparison.OrdinalIgnoreCase)
+            if ((String.Equals(product,"_forever_",StringComparison.OrdinalIgnoreCase) || String.Equals(product,"_cn_beta_",StringComparison.OrdinalIgnoreCase))
                 && String.Equals(file,"Wow.exe",StringComparison.OrdinalIgnoreCase) && version.StartsWith("1.60.")) return "forerver";
             return null;
         }

@@ -10,7 +10,7 @@ $row=@($script:rows.Values | Sort-Object {$_.Process.Id})[0]
 $oldPath=$row.Process.ExecutablePath;$oldClientPath=$row.Client.ExecutablePath
 try {
     foreach ($flavor in @('titan','forerver')) {
-        $product=if ($flavor -eq 'titan') {'_classic_titan_'} else {'_cn_beta_'}
+        $product=if ($flavor -eq 'titan') {'_classic_titan_'} else {'_forever_'}
         $game=Join-Path $fixture $product;$script:rotation.GameDirectories[$flavor]=$game
         foreach ($spec in @(@('ACCOUNT#1','RealmA','钓鱼角色'),@('ACCOUNT#1','RealmB','战斗角色'),@('ACCOUNT#1','RealmB','钓鱼角色'),@('ACCOUNT#2','RealmA','另一个角色'))) {
             Write-TestCharacterRecord (Join-Path $game ('WTF\Account\'+($spec -join '\'))) $spec[2] $spec[1]
@@ -23,6 +23,11 @@ try {
         $exe=Join-Path $game $(if ($flavor -eq 'titan') {'WowClassic.exe'} else {'Wow.exe'})
         Add-Type -TypeDefinition ('using System.Reflection; [assembly:AssemblyFileVersion("'+$version+'")] public class Fixture'+$flavor+' { public static void Main() {} }') -OutputAssembly $exe -OutputType ConsoleApplication
         Assert-Ui ((Resolve-WowGameDirectory $game $flavor) -eq $game -and (Resolve-WowGameDirectory $fixture $flavor) -eq $game) 'Client/product parent directory resolution failed.'
+        if($flavor -eq 'forerver'){
+            $legacyGame=Join-Path $fixture '_cn_beta_';$null=[IO.Directory]::CreateDirectory($legacyGame)
+            [IO.File]::Copy($exe,(Join-Path $legacyGame 'Wow.exe'))
+            Assert-Ui ((Resolve-WowGameDirectory $legacyGame $flavor) -eq $legacyGame -and (Resolve-WowGameDirectory $fixture $flavor) -eq $game) 'Explicit beta compatibility or release-directory preference failed.'
+        }
         $wrongGame=Join-Path (Join-Path $fixture 'wrong-version') $product
         [void][IO.Directory]::CreateDirectory($wrongGame)
         $wrongExe=Join-Path $wrongGame ([IO.Path]::GetFileName($exe))

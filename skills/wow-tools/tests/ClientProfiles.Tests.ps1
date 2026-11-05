@@ -5,6 +5,7 @@ function Assert-Profile($Condition,[string]$Message) { if (-not $Condition) { th
 $profiles=@(Get-WowToolsDeploymentProfiles -RepoRoot $repo)
 Assert-Profile ($profiles.Count -eq 2) 'Default sync does not target both clients.'
 $titan=$profiles[0]; $forever=$profiles[1]
+Assert-Profile ($forever.GameRoot -eq 'C:\Program Files (x86)\World of Warcraft\_forever_' -and $forever.Target -eq 'C:\Program Files (x86)\World of Warcraft\_forever_\Interface\AddOns\wow_tools') 'Default Infinite deployment did not migrate to the release directory.'
 Assert-Profile ($titan.Source -eq (Join-Path $repo 'addon\titan\wow_tools') -and $forever.Source -eq (Join-Path $repo 'addon\forerver\wow_tools')) 'Source archives are not independent.'
 Assert-Profile ($titan.Target -ne $forever.Target -and $titan.Executable -eq 'WowClassic.exe' -and $forever.Executable -eq 'Wow.exe') 'Client destinations or executable identities mixed.'
 Assert-Profile ((Test-WowToolsClientVersion $titan '3.80.2.70177') -and (Test-WowToolsClientVersion $forever '1.60.1.70338')) 'Expected client versions rejected.'

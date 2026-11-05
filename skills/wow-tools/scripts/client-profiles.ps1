@@ -5,7 +5,7 @@ function Get-WowToolsDeploymentProfiles {
         [ValidateSet('all','titan','forerver')][string]$Flavor='all',
         [string]$GameRoot,
         [string]$TitanGameRoot='C:\Program Files (x86)\World of Warcraft\_classic_titan_',
-        [string]$ForerverGameRoot='C:\Program Files (x86)\World of Warcraft\_cn_beta_'
+        [string]$ForerverGameRoot='C:\Program Files (x86)\World of Warcraft\_forever_'
     )
     if ($GameRoot -and $Flavor -eq 'all') { throw 'Choose -Flavor titan or forerver when passing -GameRoot.' }
     $repoPath=[IO.Path]::GetFullPath($RepoRoot)
