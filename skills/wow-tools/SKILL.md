@@ -287,7 +287,11 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 ## 无限服字体与PC角色创建（2026-11-05）
 
-- 仅forerver 2.2.55增加DisplayFonts.lua和内部画面设置的“字体”tab；经验条StatusBar.Text、背包FreeSlots和弹药Count独立设置字体路径/8–48整数字号/描边，保存wowDetectorDB.displayFonts，原始字体缓存供恢复默认。无设置不改显示，原生控件延迟加载或客户端重设字体时重应用，无常驻OnUpdate。DisplayFonts.Tests/ForeverCompatibility.Tests仅Lua5.1模拟，titan插件不改。
+- 仅forerver 2.2.55增加DisplayFonts.lua和内部画面设置的“字体”tab；经验条StatusBar.Text、背包FreeSlots和弹药Count独立设置字体路径/8–48整数字号/描边，保存wowDetectorDB.displayFonts，原始字体缓存供恢复默认。无设置不改显示；2.2.56起按下方一次加载协议应用字体，不再持续维持客户端字体。DisplayFonts.Tests/ForeverCompatibility.Tests仅Lua5.1模拟，titan插件不改。
 - PC新增“角色创建”主页面，集成桌面助手2026-11-04的纯automation/ocr_engine源码；集成版本以仓库character-create为维护源，原桌面项目不改。私有Python环境.runtime及data不入Git，requirements/install-runtime提供可复建依赖和离线模型；设置可从原便携配置迁入，日志进入统一LogWriter。Python只读OCR/运行策略，通过UTF-8 JSON Lines请求State/Capture/Activate/Click，UI只提交Hub请求；所有WGC画面、前台和点击仍由现有唯一操作runspace执行。Character.*在创建界面不要求插件白点，其他域保持原检查。
 - 创建任务与所有鱼/战斗/刷新/换角/退出任务互斥；每个输入复核Endpoint版本、PID/启动Ticks/路径/版本、前台、客户区几何、遮挡、坐标及帧龄<=5秒，F9/取消即时拒绝输入。首轮完整等待、提前最多3秒/3次前台重试失败跳过本轮，阵营提示仅确认红色“确定”；其他弹窗/3次确认仍在停止。12秒找不到红色“完成”可配置自动停止，不能当成创建成功。保留试运行、游戏/图片预览及F8/F9，关闭/重启先取消、等待私有后台，最多5秒后只清理自己创建的Python进程，不结束游戏。
 - CharacterCreate.UiTests使用合成JSON后台和模拟操作线程，Worker.Tests/verify-samples只读取离线参考截图，test_bridge使用纯模拟时钟；验证不得运行真实创建循环或向游戏发键。部署本次仅sync-local -Flavor forerver，成功推送后才写游戏目录。
+
+## 无限服字体按加载应用（2026-11-06）
+
+- forerver 2.2.56：wowDetectorDB.displayFonts沿用账号级SavedVariables持久化，每次登录/reload后首次PLAYER_ENTERING_WORLD按保存值应用一次，注销该事件。禁止SetFont钩子、PLAYER_REGEN_ENABLED、常驻OnUpdate、C_Timer延迟刷新或切地图重复应用。若保存项目的原生控件未加载，仅等待ADDON_LOADED补该项目一次，其他项目不重复设置；全部处理完注销ADDON_LOADED。同一FontString的全局/成员别名去重，手动保存只即时应用选中项目，恢复默认清除持久化值并还原本次缓存。DisplayFonts.Tests模拟初始化及重载读回、逐控件写入次数、晚加载弹药、切地图/脱战/其他插件不重设、无钩子/计时器及手动保存/恢复；配合ForeverCompatibility.Tests与ClientProfiles.Tests验证，仅部署forerver。

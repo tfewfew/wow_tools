@@ -2,9 +2,13 @@
 local module = { controls = {} }
 WoWTools.displayFonts = module
 local specs = {{key="experience", label="经验值"}, {key="bags", label="背包剩余"}, {key="ammo", label="弹药剩余"}}
-local originals, hooked, applying = {}, {}, false
+local originals, startupApplied = {}, {}
+local events, startup = nil, false
 local function Add(list, region)
-    if region and type(region.GetFont)=="function" and type(region.SetFont)=="function" then list[#list+1]=region end
+    if region and type(region.GetFont)=="function" and type(region.SetFont)=="function" then
+        for _,existing in ipairs(list) do if existing==region then return end end
+        list[#list+1]=region
+    end
 end
 local function Regions(key)
     local list = {}
@@ -39,26 +43,35 @@ local function ApplyRegion(region, value)
         original={path=path,size=size,flags=flags or ""}; originals[region]=original
     end
     local path=value.path~="" and value.path or original.path
-    applying=true
     local ok,result=pcall(region.SetFont,region,path,value.size,value.flags)
-    applying=false
     return ok and result~=false
 end
-function module.Refresh()
+local function ApplyKey(key)
+    local config=Config()
+    local regions=Regions(key)
+    if config and Valid(config[key]) then
+        for _,region in ipairs(regions) do ApplyRegion(region,config[key]) end
+    end
+    if startup then startupApplied[key]=#regions>0 end
+    return #regions
+end
+local function UpdateLoadEvents()
+    if not startup then return end
     local config=Config()
     for _,spec in ipairs(specs) do
-        for _,region in ipairs(Regions(spec.key)) do
-            if config and Valid(config[spec.key]) then ApplyRegion(region,config[spec.key]) end
-            if not hooked[region] and type(hooksecurefunc)=="function" then
-                local key=spec.key
-                hooksecurefunc(region,"SetFont",function()
-                    local current=Config()
-                    if not applying and current and Valid(current[key]) then ApplyRegion(region,current[key]) end
-                end)
-                hooked[region]=true
-            end
+        if config and Valid(config[spec.key]) and not startupApplied[spec.key] then
+            events:RegisterEvent("ADDON_LOADED")
+            return
         end
     end
+    events:UnregisterEvent("ADDON_LOADED")
+end
+local function ApplyPending()
+    local config=Config()
+    for _,spec in ipairs(specs) do
+        if config and Valid(config[spec.key]) and not startupApplied[spec.key] then ApplyKey(spec.key) end
+    end
+    UpdateLoadEvents()
 end
 function module.Save(key,path,size,flags)
     local known=false;for _,spec in ipairs(specs) do if spec.key==key then known=true end end
@@ -73,20 +86,22 @@ function module.Save(key,path,size,flags)
         if not ok or result==false then return false,"字体路径无效，设置未保存。" end
     end
     local config=Config();if not config then return false,"插件尚未初始化。" end
-    config[key]=value;module.Refresh()
+    config[key]=value;ApplyKey(key);UpdateLoadEvents()
     return true,#regions>0 and "已应用并自动保存。" or "已保存；对应原生文字加载后应用。"
 end
 function module.Reset(key)
     local config=Config();if config then config[key]=nil end
+    startupApplied[key]=true
     for _,region in ipairs(Regions(key)) do
         local original=originals[region]
         if original then ApplyRegion(region,original) end
     end
+    UpdateLoadEvents()
 end
 function module.BuildSettings(parent)
     local hint=parent:CreateFontString(nil,"ARTWORK","GameFontHighlightSmall")
     hint:SetPoint("TOPLEFT",8,-8);hint:SetWidth(398);hint:SetJustifyH("LEFT")
-    hint:SetText("分别调整原生文字。字体路径留空沿用原字体；更改自动保存，恢复默认可撤销。弹药文字在角色面板加载后生效。")
+    hint:SetText("设置自动保存到账号，每次登录或重载插件后应用一次。字体路径留空沿用原字体；恢复默认可撤销。弹药文字加载后应用。")
     module.preview=parent:CreateFontString(nil,"ARTWORK","GameFontNormal")
     module.preview:SetPoint("TOPLEFT",8,-430);module.preview:SetText("字体预览 经验 12345 / 67890")
     local flags={"","OUTLINE","THICKOUTLINE"};local labels={"无描边","描边","粗描边"}
@@ -116,6 +131,15 @@ function module.BuildSettings(parent)
     end
     parent:SetHeight(490)
 end
-local events=CreateFrame("Frame")
-events:RegisterEvent("ADDON_LOADED");events:RegisterEvent("PLAYER_ENTERING_WORLD");events:RegisterEvent("PLAYER_REGEN_ENABLED")
-events:SetScript("OnEvent",function() module.Refresh();if C_Timer and C_Timer.After then C_Timer.After(0,module.Refresh) end end)
+events=CreateFrame("Frame")
+-- Wait for native startup layout, then apply saved settings once for this addon load.
+events:RegisterEvent("PLAYER_ENTERING_WORLD")
+events:SetScript("OnEvent",function(_,event)
+    if event=="PLAYER_ENTERING_WORLD" then
+        if startup then return end
+        startup=true
+        events:UnregisterEvent("PLAYER_ENTERING_WORLD")
+    end
+    -- Only unresolved native widgets (e.g. load-on-demand ammo) may be applied later.
+    if startup then ApplyPending() end
+end)
