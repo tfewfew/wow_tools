@@ -4,3 +4,6 @@ work/
 tools/wowAuto/log/*
 !tools/wowAuto/log/.gitkeep
 tools/wowAuto/audio-samples/
+__pycache__/
+tools/wowAuto/character-create/.runtime/
+tools/wowAuto/character-create/data/

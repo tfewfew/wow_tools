@@ -1,0 +1,40 @@
+# 角色创建后台
+
+此模块把桌面“魔兽角色创建助手”的功能集成到 wowAuto 的“角色创建”页面。`automation.py` 和 `ocr_engine.py` 来自用户指定的 `C:\Users\Ray\Desktop\魔兽角色创建助手\源码`（2026-11-04 版本）；原独立助手没有改动。此目录是集成版本的维护源。
+
+## 使用
+
+1. 停止 PC 工具中的钓鱼/战斗任务及退出倒计时，在游戏创建角色界面选好外观、填写姓名。
+2. 切到“角色创建”，刷新窗口、选择目标，设置重试间隔（1–86400 秒，支持小数）。
+3. 可以先“仅识别游戏”或“从图片测试”查看文字及标注结果。这两项不点击。
+4. 开始后等待完整间隔才尝试红色“完成”；阵营人口不平衡时点击红色“确定”，重新等待完整间隔。
+5. F8 在本页开始/停止，任务运行时 F9 可随时停止。连续12秒未识别到红色“完成”可自动停止；这不代表已经确认创建成功。
+
+每周期提前最多3秒切换前台，最多3次，失败跳过该轮并继续下个周期。其他确认弹窗会停止；“确定”连续3次仍在也会停止。试运行仍会识别和切换前台，但不提交鼠标点击。
+
+## 运行环境和数据
+
+本机已安装私有环境 `.runtime`，含离线中文 OCR 模型。正常使用无需联网，不依赖桌面助手的 EXE 或源码。
+
+换机或重新克隆后，在有 Python 3.12 的 Windows 上运行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install-runtime.ps1 -BasePython C:\Python312\python.exe
+```
+
+首次安装需要联网；也可通过 `WOWAUTO_CHARACTER_PYTHON` 指定已经安装 `requirements.txt` 依赖的 Python。间隔、标题筛选和自动停止保存在本目录 `data/settings.json`，运行日志进入 wowAuto 的统一日志线程；截图和预览只保存在内存中。私有环境、个人配置、缓存不提交 Git。
+
+## 操作协议
+
+后台 Python 只做 OCR 和纯重试决策，以 UTF-8 JSON Lines 请求 `State / Capture / Activate / Click`。PC 主线程转交现有 Hub，所有 WGC 捕获、前台切换和点击在同一个专用操作线程中执行。点击前核对 PID、启动时间、客户端路径/版本、前台、客户区位置/大小、遮挡、坐标范围、5秒帧期限及取消状态。创建界面没有游戏插件白点，因此只给 `Character.*` 独立分支跳过白点检查；钓鱼和战斗检查不变。
+
+开始时拒绝尚在运行/刷新/退出的其他任务，创建期间禁用进程任务页并在命令入口再次拦截。停止使 Endpoint 版本失效、取消排队操作并通知 Python；关闭/重启等待后台退出，5秒后仅清理自己创建的后台进程。
+
+## 离线验证
+
+```powershell
+.\.runtime\Scripts\python.exe -m unittest discover -s . -p test_bridge.py -v
+.\.runtime\Scripts\python.exe .\verify-samples.py 'C:\Users\Ray\Desktop\魔兽角色创建助手\参考截图'
+```
+
+`test_bridge.py` 使用模拟时钟与画面，不激活窗口或点击。参考截图验证只读取本地图片。PowerShell 的 CharacterCreate.Worker/UiTests、Operator.Tests 和完整并行界面测试覆盖管道、界面、操作路由、互斥与取消，全部使用模拟游戏输入。

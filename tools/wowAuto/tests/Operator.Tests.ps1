@@ -3,6 +3,7 @@ $tool=Split-Path $PSScriptRoot -Parent
 Add-Type -AssemblyName System.Windows.Forms
 . (Join-Path $tool 'autoFight.Engine.ps1')
 Add-Type -Path (Join-Path $tool 'wowAuto.Threading.cs') -ReferencedAssemblies System.Core
+Add-Type -Path (Join-Path $tool 'wowAuto.CharacterCreate.cs')
 $tokens=$null;$errors=$null
 $ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $tool 'wowAuto.Operator.ps1'),[ref]$tokens,[ref]$errors)
 if($errors.Count){throw 'Operator source does not parse.'}
@@ -131,3 +132,25 @@ Assert-OperatorTest $failed 'Unconfirmed force-close left shutdown waiting forev
 $cancelled=New-OperatorTestRequest Process.Shutdown Process;$owner.Close();$beforeCloses=$script:adapter.Closes
 Assert-OperatorTest (-not (Invoke-OperatorRequest $cancelled).Executed -and $script:adapter.Closes -eq $beforeCloses) 'Cancelled shutdown operated on a game process.'
 Write-Output 'PASS: queued shutdown normal close, 30-second force-close boundary, rejected-close protection, nonblocking waits, exit confirmation, bounded kill confirmation, PID reuse and cancellation. Process primitives substituted.'
+
+# Creation screen has no addon login marker; route through the same operator and guards.
+[WowAuto.CharacterCreate.Native]::Cancelled.Reset()
+$owner=New-Object WowAuto.Threading.Endpoint;$owner.Key='11:1';$owner.Pid=11;$owner.StartTicks=1;$owner.Flavor='titan';$owner.Path='fixture'
+$Hub.Closing=$false;$script:adapter.Identity=$true;$script:adapter.Foreground=$true;$script:adapter.Login=$false;$Hub.Now=10000L
+$creation=New-OperatorTestRequest Character.Click Process @{Stamp=9999;X=50;Y=50;Width=800;Height=500}
+Assert-OperatorTest ((Invoke-OperatorRequest $creation).Executed) 'Creation screen incorrectly required the in-world login marker.'
+$creation.Json=@{Stamp=4999;X=50;Y=50;Width=800;Height=500}|ConvertTo-Json
+Assert-OperatorTest (-not (Invoke-OperatorRequest $creation).Executed) 'Expired OCR coordinates were clicked.'
+$creation.Json=@{Stamp=10001}|ConvertTo-Json
+Assert-OperatorTest (-not (Invoke-OperatorRequest $creation).Executed) 'Future frame timestamp was accepted.'
+$creation.Json=@{Stamp=10000}|ConvertTo-Json;$script:adapter.Foreground=$false
+Assert-OperatorTest (-not (Invoke-OperatorRequest $creation).Executed) 'Creation click bypassed foreground guard.'
+$script:adapter.Foreground=$true;[WowAuto.CharacterCreate.Native]::Cancelled.Set()
+Assert-OperatorTest (-not (Invoke-OperatorRequest $creation).Executed) 'Stopped creation operation executed.'
+[WowAuto.CharacterCreate.Native]::Cancelled.Reset();$owner.Send('Stop','{}')|Out-Null
+Assert-OperatorTest (-not (Invoke-OperatorRequest $creation).Executed) 'Old creation version survived cancellation.'
+Assert-OperatorTest ([WowAuto.CharacterCreate.Native]::Matches(@(10,20,800,500),10,20,800,500,799,499)) 'Valid client coordinates rejected.'
+Assert-OperatorTest (-not [WowAuto.CharacterCreate.Native]::Matches(@(11,20,800,500),10,20,800,500,1,1)) 'Moved client rectangle accepted.'
+Assert-OperatorTest (-not [WowAuto.CharacterCreate.Native]::Matches(@(10,20,800,500),10,20,800,500,800,500)) 'Out-of-bounds client coordinates accepted.'
+[WowAuto.CharacterCreate.Native]::Cancelled.Set()
+'PASS: creation requests share the operator, reject stale/future coordinates, background input, old sessions, cancellation and changed geometry; no native actions.'

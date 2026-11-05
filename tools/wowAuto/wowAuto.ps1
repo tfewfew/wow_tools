@@ -1985,6 +1985,7 @@ $shutdownTimer = New-Object System.Windows.Forms.Timer
 $shutdownTimer.Interval = 200
 $shutdownTimer.Add_Tick({ Invoke-WowAutoShutdownTick })
 $form.Add_FormClosing({
+    if($script:characterCreate){Stop-CharacterCreate}
     $shutdownTimer.Stop()
     if($script:useWorkers){$timer.Stop();$positionTimer.Stop();$scanTimer.Stop();Stop-AllRows;$script:parallelHub.Close();return}
     Remove-GameActions -IncludeProcess
@@ -2002,6 +2003,7 @@ $form.Add_FormClosing({
 . (Join-Path $PSScriptRoot 'wowAuto.Unified.ps1')
 . (Join-Path $PSScriptRoot 'wowAuto.Accounts.ps1')
 . (Join-Path $PSScriptRoot 'wowAuto.Rotation.ps1')
+. (Join-Path $PSScriptRoot 'wowAuto.CharacterCreate.ps1')
 # One process list and one timer coordinate input across both detector engines.
 if (-not $UiTest -or $script:useWorkers) {
     try {
@@ -2036,6 +2038,7 @@ try {
         }
     }
     $null = Refresh-ProcessRows
+    Initialize-CharacterCreatePage
     if($script:useWorkers){foreach($row in $script:rows.Values){$null=Ensure-ParallelWorker $row}}
     if (-not $PreviewPath -and -not $UiTest) { $timer.Start(); $positionTimer.Start(); $shutdownTimer.Start() }
     if ($PreviewPath -or $UiTest) {
@@ -2085,6 +2088,7 @@ try {
     else { [void]$form.ShowDialog() }
 }
 finally {
+    if($script:characterCreate){Close-CharacterCreate}
     if($script:useWorkers){Stop-ParallelRuntime}
     if ($script:autoFight) { Close-AutoFightTab }
     foreach ($entry in @($script:audioCaptures.Values)) { $entry.Capture.Dispose() }

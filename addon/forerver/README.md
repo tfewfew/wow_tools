@@ -1,5 +1,7 @@
 # forerver
 
+2.2.55 “内部画面设置”（/igc）新增“字体”标签，分别设置经验值、背包剩余、弹药剩余的字号（8–48）、字体路径和描边，应用后自动保存至wowDetectorDB.displayFonts，支持恢复默认。只调整对应原生FontString，不改共享字体、字号之外的其他显示行为；尚未加载的原生控件在加载后应用，客户端重设字体时维持已保存值。经验使用StatusTrackingBarManager经验条的StatusBar.Text，背包使用MainMenuBarBackpackButton.FreeSlots，弹药使用CharacterAmmoSlot.Count。DisplayFonts.Tests和无限服全插件Lua5.1模拟通过；更新后/reload，在右键小地图菜单的inner_graphic_config中打开字体页。
+
 2.2.54 卖鱼设置支持把背包物品拖放到列表空白处或已有条目上，也可拿起物品后左键点击列表添加。只读取GetCursorInfo的物品ID，与手动输入/预设共用校验去重，名称异步加载并自动保存；成功添加或重复项会ClearCursor放回物品，不移动或出售背包物品。空光标、法术、非法/受限ID和读取失败不添加、不清光标，设置隐藏时不接收。原首组立即发送、后续50ms及轮末500ms重扫/最多3轮规则保留。SellFish.Tests分别验证两服和旧背包API的拖放区域、空列表、点击添加、重复、异步名称、持久化和零出售；仅模拟测试，更新后/reload生效。
 
 2.2.53 修正卖鱼发送时序：每轮首组立即发送，之后每隔50毫秒尝试一组。上一版本50秒及首组等待规则已废止；轮末仍等待500ms重新扫描，可售为0提前结束，最多3轮。Lua5.1模拟覆盖即时首组、50ms边界、500ms后下一轮即时首组和3轮上限；同步后/reload生效。

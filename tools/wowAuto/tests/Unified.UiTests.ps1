@@ -1,6 +1,6 @@
 ﻿# Uses the combat native substitute installed by AutoFight.UiTests.ps1 and mock fishing adapters.
 Stop-AllRows
-foreach ($page in @($tabs.TabPages)) {if ($page -ne $tab) {$tabs.TabPages.Remove($page); $page.Dispose()}}
+foreach ($page in @($tabs.TabPages)) {if ($page -ne $tab -and $page -ne $script:characterCreate.Ui.Page) {$tabs.TabPages.Remove($page); $page.Dispose()}}
 $tabs.SelectedTab=$tab
 Initialize-AutoFightTab $tabs $form -Unified
 $fightConfigPath=Join-Path ([IO.Path]::GetTempPath()) ('wowAuto-unified-'+[Guid]::NewGuid()+'.json')
@@ -34,7 +34,7 @@ try {
     $null=Refresh-ProcessRows
     $combat=@($script:rows.Values | Where-Object {$_.Process.Id -eq 701})[0]
     $fishing=@($script:rows.Values | Where-Object {$_.Process.Id -eq 702})[0]
-    Assert-Ui ($tabs.TabPages.Count -eq 1 -and -not $combat.PSObject.Properties['ModeBox'] -and @($combat.Panel.Controls | Where-Object {$_ -is [System.Windows.Forms.ComboBox]}).Count -eq 0) 'Main UI still has two task tabs or a main-row selector.'
+    Assert-Ui ($tabs.TabPages.Count -eq 2 -and $tabs.TabPages[1].Text -eq '角色创建' -and -not $combat.PSObject.Properties['ModeBox'] -and @($combat.Panel.Controls | Where-Object {$_ -is [System.Windows.Forms.ComboBox]}).Count -eq 0) 'Main UI lost its separate creation page or regained a main-row mode selector.'
     Set-RowTaskMode $combat fight
     Assert-Ui ($combat.TaskMode -eq 'fight' -and $combat.FightRow -and -not $combat.Validated) 'Mode selector failed to attach combat engine.'
     Assert-Ui (-not $combat.FightRow.PSObject.Properties['MoveButtons'] -and

@@ -20,6 +20,7 @@ $rows=@($script:rows.Values | Sort-Object {$_.Process.Id});$a=$rows[0];$b=$rows[
 $script:equipRodBinding=ConvertFrom-KeyBindingText 'Ctrl+F3'
 $script:autoFight.Profiles['forerver:1'].BuffIntervalSeconds=0;$script:autoFight.Common.JumpIntervalSeconds=0
 $originalOperations=ConvertTo-TaskMap ($script:accountTasks.Config.Operations | ConvertTo-Json | ConvertFrom-Json)
+. (Join-Path $PSScriptRoot 'CharacterCreate.UiTests.ps1')
 Assert-Parallel ($rows.Count -eq 3 -and $script:parallelWorkers.Count -eq 3) 'Each process must have one detector runspace.'
 foreach($row in $rows) {
     Assert-Parallel ($row.AccountText -is [Windows.Forms.Label] -and $row.AccountText.Parent -eq $row.Panel -and

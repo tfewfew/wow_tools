@@ -40,6 +40,19 @@ function Invoke-OperatorAdapter([string]$Action,$Endpoint,$Data=$null,[int]$Dura
     switch($Action) {
         'Identity' {Assert-OperatorIdentity $Endpoint;return $true}
         'Foreground' {return [WowAuto.NativeInput]::IsTargetForeground($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
+        'Character.Capture' {
+            if(-not [WowAuto.NativeInput]::IsTargetForeground($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)){return @{Foreground=$false}}
+            $bounds=[WowAuto.CharacterCreate.Native]::Bounds($Endpoint.Pid)
+            try {
+                $bitmap=[WowAutoRotation.Native]::Capture($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,$bounds[2],$bounds[3])
+                try {$png=[WowAutoRotation.Native]::Png($bitmap)}finally{$bitmap.Dispose()}
+            }catch{if([WowAutoCapture.Native]::IsPending($_.Exception)){return @{Foreground=$true;Pending=$true}};throw}
+            if(-not [WowAuto.NativeInput]::IsTargetForeground($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)){return @{Foreground=$false}}
+            return @{Foreground=$true;Png=[Convert]::ToBase64String($png);Left=$bounds[0];Top=$bounds[1];Width=$bounds[2];Height=$bounds[3];Stamp=$Hub.Now}
+        }
+        'Character.Click' {
+            return [WowAuto.CharacterCreate.Native]::Click($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,$Data.Left,$Data.Top,$Data.Width,$Data.Height,$Data.X,$Data.Y)
+        }
         'Activate' {return [WowAuto.NativeInput]::ActivateForScan($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
         'Login' {return [WowAutoRotation.Native]::LoginPoint($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
         'Color' {return [WowAuto.NativeInput]::ReadCenterColor($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
@@ -100,6 +113,20 @@ function Invoke-OperatorRequest($Request) {
         return @{Executed=($Hub.ActiveTasks -eq 0);SentAt=$Hub.Now}
     }
     $null=Invoke-OperatorAdapter Identity $endpoint
+    if($Request.Kind -like 'Character.*') {
+        if($Hub.Closing -or -not $Request.Current -or [WowAuto.CharacterCreate.Native]::Cancelled.IsSet){return @{Executed=$false}}
+        switch($Request.Kind) {
+            'Character.State' {return @{Foreground=(Invoke-OperatorAdapter Foreground $endpoint)}}
+            'Character.Activate' {return @{Executed=(Invoke-OperatorAdapter Activate $endpoint)}}
+            'Character.Capture' {return Invoke-OperatorAdapter Character.Capture $endpoint}
+            'Character.Click' {
+                if($body.Stamp -gt $Hub.Now -or $body.Stamp -lt 0 -or $Hub.Now-$body.Stamp -gt 5000){return @{Executed=$false}}
+                if(-not (Invoke-OperatorAdapter Foreground $endpoint)){return @{Executed=$false}}
+                return @{Executed=(Invoke-OperatorAdapter Character.Click $endpoint $body)}
+            }
+            default {throw '未知角色创建操作。'}
+        }
+    }
     if ($Request.Kind -eq 'Capture.Restore') {
         $null=Invoke-OperatorAdapter Capture.Restore $endpoint
         return @{Executed=$true;SentAt=$Hub.Now}

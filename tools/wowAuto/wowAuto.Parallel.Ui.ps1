@@ -99,11 +99,13 @@ function Update-ParallelStatusDisplay($Row) {
     if($text -cne $Row.RenderedStatus){$Row.RenderedStatus=$text;$Row.Status.SetStatusText($text)}
 }
 function Start-Row($Row,[switch]$TaskOnly) {
+    if($script:characterCreate.Busy){return}
     if($Row.RuntimeRunning -or $script:editingSettings -or $script:scanning -or $script:shutdownState.Started){return}
     if(-not (Test-AccountDiscoveryAvailable $Row)){Set-RowStatusText $Row '请在设置中为本客户端的子战网启用至少一个角色。';return}
     $Row.ExcludedNames=@();Start-ParallelBatch @($Row) Start
 }
 function Start-RowDirect($Row) {
+    if($script:characterCreate.Busy){return}
     if($Row.RuntimeRunning -or -not $Row.Validated -or $script:editingSettings -or $script:scanning -or $script:shutdownState.Started){return}
     $Row.RuntimeRunning=$true;$Row.RuntimeDirect=$true
     $script:parallelHub.ActiveTasks=@($script:rows.Values | Where-Object RuntimeRunning).Count
@@ -118,15 +120,18 @@ function Stop-Row($Row,[string]$Reason='已停止，本进程的待执行操作�
     Set-RowStatusText $Row $Reason;Update-WowAutoRunInfo
 }
 function Stop-AllRows {
+    if($script:characterCreate){Stop-CharacterCreate}
     foreach($row in @($script:rows.Values)){Stop-Row $row}
     $script:parallelNextAt=0L;$script:scanning=$false;$script:parallelPending.Clear();Update-BatchControls
 }
 function Start-AllRows {
+    if($script:characterCreate.Busy){return}
     if($script:editingSettings -or $script:scanning -or $script:shutdownState.Started){return}
     $rows=@($script:rows.Values | Where-Object {$_.Start.Enabled -and -not $_.RuntimeRunning})
     foreach($row in $rows){$row.ExcludedNames=@()};Start-ParallelBatch $rows Start
 }
 function Begin-RefreshScan {
+    if($script:characterCreate.Busy){return}
     if($script:editingSettings -or $script:scanning -or $script:shutdownState.Started){return}
     Stop-AllRows;Update-AccountTaskCatalog
     $null=Refresh-ProcessRows

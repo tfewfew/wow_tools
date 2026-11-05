@@ -2,7 +2,7 @@
 ## Title: wow_tools (Forever)
 ## Notes-zhCN: 无限服工具合集：钓鱼检测、战斗检测、内部画面设置与商店一键卖鱼。
 ## Author: Ray
-## Version: 2.2.54
+## Version: 2.2.55
 ## X-WoWTools-Flavor: forerver
 ## SavedVariables: wowDetectorDB, fightDetectorDB, wowToolsRealmLevels
 ## SavedVariablesPerCharacter: wowToolsCharacterRecord
@@ -13,6 +13,7 @@ Compatibility.lua
 CharacterRecord.lua
 Loot.lua
 SellFish.lua
+DisplayFonts.lua
 wowDetector\Audio.lua
 wowDetector\wowDetector.lua
 fight_detector\Range.lua

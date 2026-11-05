@@ -151,6 +151,7 @@ local categories = {
         { name = "团队液体", cvars = raidLiquidCVars },
     } },
     { name = "界面", cvars = { frameratePosition = true } },
+    { name = "字体", cvars = {}, fonts = true },
 }
 local function SmallDescription(text)
     local font, size, flags = text:GetFont()
@@ -330,6 +331,7 @@ local function BuildControls(parent)
     list:SetSize(420, 1)
     scroll:SetScrollChild(list)
     pages[categoryIndex] = scroll
+    if category.fonts and WoWTools.displayFonts then WoWTools.displayFonts.BuildSettings(list) end
     local entries = {}
     local function Layout()
         local offset = 0
@@ -347,7 +349,7 @@ local function BuildControls(parent)
                 entry.widget:Hide()
             end
         end
-        list:SetHeight(math.max(1, offset))
+        list:SetHeight(category.fonts and 490 or math.max(1, offset))
     end
     layouts[categoryIndex] = Layout
     if category.subgroups then

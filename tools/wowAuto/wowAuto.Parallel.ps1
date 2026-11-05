@@ -50,6 +50,7 @@ function Send-ParallelCommand($Row,[string]$Kind,[string]$BatchId='',[bool]$Dire
     $null=$endpoint.Send($Kind,($payload | ConvertTo-Json -Depth 15 -Compress))
 }
 function Start-ParallelBatch($Rows,[string]$Kind='Rotate') {
+    if($script:characterCreate.Busy){return}
     if($script:shutdownState.Started){return}
     $participants=@($Rows | Where-Object {$_ -and -not $_.Exited -and $(if($Kind -eq 'Start'){Test-AccountDiscoveryAvailable $_}else{@(Get-AccountTaskRoles $_).Count})})
     if(-not $participants.Count){return}
