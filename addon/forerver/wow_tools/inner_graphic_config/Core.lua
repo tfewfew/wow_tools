@@ -349,7 +349,7 @@ local function BuildControls(parent)
                 entry.widget:Hide()
             end
         end
-        list:SetHeight(category.fonts and 490 or math.max(1, offset))
+        list:SetHeight(category.fonts and 520 or math.max(1, offset))
     end
     layouts[categoryIndex] = Layout
     if category.subgroups then

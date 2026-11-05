@@ -299,3 +299,8 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 ## 无限服正式目录（2026-11-06）
 
 - 无限服默认安装和PC游戏目录改为C:\Program Files (x86)\World of Warcraft\_forever_，已核对Wow.exe 1.60.1.70790及wowf产品标记。forerver源码归档拼写保持不变，接口16001。同步默认目标及rotation.config.json/缺省目录使用_forever_；PC发键、战斗、WGC捕获和换角身份校验同时接受_forever_及旧_cn_beta_，仍严格核对Wow.exe和1.60.版本，不接受零售。父目录选择优先正式_forever_，仅其可执行文件不存在时兼容旧beta；显式旧目录仍可选，不迁移或删除游戏SavedVariables。ClientProfiles/ClientIdentity/Accounts UI及捕获适配模拟验证，提交推送后仅部署forerver到新目录。
+
+## 无限服字体目标修正与输入精简（2026-11-06）
+
+- forerver 2.2.57覆盖旧字体控件定位与路径功能：经验值以用户实际有效脚本为准，遍历StatusTrackingBarManager.barContainers，取container.bars[StatusTrackingBarInfo.BarsEnum.Experience].OverlayFrame.Text；弹药剩余取_G[CharacterBag0Slot]到_G[CharacterBag3Slot]的Count；不要再使用manager.bars中的StatusBar.Text、MainMenuExpBarText或CharacterAmmoSlot.Count。背包剩余保留MainMenuBarBackpackButton.FreeSlots。
+- 用户明确不需要字体路径：每项只保留字号8–48输入及描边，GetFont读取并沿用目标当前字体文件；旧SV的path字段忽略，新保存仅size/flags。恢复默认用本次首次应用前的字体缓存。每次加载一次/延迟未加载项补一次、无钩子/定时器/轮询的约定保留。应用反馈显示文字数量，部分SetFont失败不能报告全成功。DisplayFonts.Tests按用户验证的真实结构模拟多经验条容器和四个背包槽位，验证不改旧错误目标、每项仅一个输入、原生字体沿用、旧path兼容、手动应用/恢复及重载一次。仅同步forerver到_forever_。

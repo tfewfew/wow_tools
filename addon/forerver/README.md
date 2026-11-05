@@ -1,5 +1,7 @@
 # forerver
 
+2.2.57 修正字体设置的目标：经验条使用用户验证的StatusTrackingBarManager.barContainers中各bars[StatusTrackingBarInfo.BarsEnum.Experience].OverlayFrame.Text；弹药剩余使用CharacterBag0Slot至CharacterBag3Slot.Count；背包剩余继续使用MainMenuBarBackpackButton.FreeSlots。移除字体路径功能，每项仅有一个标明8–48范围的字号输入框和描边选项；保留目标当前字体文件，旧保存路径字段忽略，下次保存仅写size/flags。手动保存即时应用所选项、恢复默认及账号持久化/每次加载一次规则保留；反馈显示应用的文字数量，部分失败明确提示。Lua5.1模拟按实际容器/四槽位结构验证，并拒绝误改旧经验/弹药控件。同步后/reload。
+
 2.2.56 字体设置持久化到账号SavedVariables，每次登录或/reload后的首次PLAYER_ENTERING_WORLD应用一次，随后注销该事件。移除SetFont钩子、脱战重设及延迟定时刷新；切地图、原生字体变化和其他插件加载不会重复应用已有字体。仅当保存项对应的原生控件尚未加载时临时等待ADDON_LOADED，找到后只补应用一次并注销；同一FontString别名去重。设置中手动应用仍即时生效，且只修改所选项目。Lua5.1模拟验证保存读回、每次加载一次、延迟弹药、无钩子/定时器和恢复默认。更新后/reload生效。
 
 2.2.55 “内部画面设置”（/igc）新增“字体”标签，分别设置经验值、背包剩余、弹药剩余的字号（8–48）、字体路径和描边，应用后自动保存至wowDetectorDB.displayFonts，支持恢复默认。只调整对应原生FontString，不改共享字体、字号之外的其他显示行为；尚未加载的原生控件在加载后应用，客户端重设字体时维持已保存值。经验使用StatusTrackingBarManager经验条的StatusBar.Text，背包使用MainMenuBarBackpackButton.FreeSlots，弹药使用CharacterAmmoSlot.Count。DisplayFonts.Tests和无限服全插件Lua5.1模拟通过；更新后/reload，在右键小地图菜单的inner_graphic_config中打开字体页。
