@@ -1,5 +1,7 @@
 # forerver
 
+2.2.58 字体页新增“时钟”，使用用户验证的TimeManagerClockTicker，支持8–48整数字号和描边，保留原字体文件；例如设置20后点击应用。沿用账号持久化、每次登录/reload应用一次和恢复默认，时钟控件延迟加载时只补应用一次。字体页滚动高度按设置数量计算，保证第四项及预览可见。DisplayFonts.Tests模拟时钟未加载/加载后一次应用、手动保存/恢复、重载读回及其他文字隔离；无限服全插件兼容模拟通过。同步后/reload生效。
+
 2.2.57 修正字体设置的目标：经验条使用用户验证的StatusTrackingBarManager.barContainers中各bars[StatusTrackingBarInfo.BarsEnum.Experience].OverlayFrame.Text；弹药剩余使用CharacterBag0Slot至CharacterBag3Slot.Count；背包剩余继续使用MainMenuBarBackpackButton.FreeSlots。移除字体路径功能，每项仅有一个标明8–48范围的字号输入框和描边选项；保留目标当前字体文件，旧保存路径字段忽略，下次保存仅写size/flags。手动保存即时应用所选项、恢复默认及账号持久化/每次加载一次规则保留；反馈显示应用的文字数量，部分失败明确提示。Lua5.1模拟按实际容器/四槽位结构验证，并拒绝误改旧经验/弹药控件。同步后/reload。
 
 2.2.56 字体设置持久化到账号SavedVariables，每次登录或/reload后的首次PLAYER_ENTERING_WORLD应用一次，随后注销该事件。移除SetFont钩子、脱战重设及延迟定时刷新；切地图、原生字体变化和其他插件加载不会重复应用已有字体。仅当保存项对应的原生控件尚未加载时临时等待ADDON_LOADED，找到后只补应用一次并注销；同一FontString别名去重。设置中手动应用仍即时生效，且只修改所选项目。Lua5.1模拟验证保存读回、每次加载一次、延迟弹药、无钩子/定时器和恢复默认。更新后/reload生效。

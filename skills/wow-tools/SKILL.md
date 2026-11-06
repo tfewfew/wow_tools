@@ -304,3 +304,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 - forerver 2.2.57覆盖旧字体控件定位与路径功能：经验值以用户实际有效脚本为准，遍历StatusTrackingBarManager.barContainers，取container.bars[StatusTrackingBarInfo.BarsEnum.Experience].OverlayFrame.Text；弹药剩余取_G[CharacterBag0Slot]到_G[CharacterBag3Slot]的Count；不要再使用manager.bars中的StatusBar.Text、MainMenuExpBarText或CharacterAmmoSlot.Count。背包剩余保留MainMenuBarBackpackButton.FreeSlots。
 - 用户明确不需要字体路径：每项只保留字号8–48输入及描边，GetFont读取并沿用目标当前字体文件；旧SV的path字段忽略，新保存仅size/flags。恢复默认用本次首次应用前的字体缓存。每次加载一次/延迟未加载项补一次、无钩子/定时器/轮询的约定保留。应用反馈显示文字数量，部分SetFont失败不能报告全成功。DisplayFonts.Tests按用户验证的真实结构模拟多经验条容器和四个背包槽位，验证不改旧错误目标、每项仅一个输入、原生字体沿用、旧path兼容、手动应用/恢复及重载一次。仅同步forerver到_forever_。
+
+## 无限服时钟字号（2026-11-07）
+
+- forerver 2.2.58字体页增加clock/“时钟”项，直接设置用户验证的TimeManagerClockTicker。沿用字号8–48/描边及原字体、wowDetectorDB.displayFonts账号持久化、每次加载应用一次/未加载原生控件补一次和恢复默认，无钩子/计时器/轮询。不得恢复字体路径输入。设置页高度和预览位置依据项目数动态计算，避免第四项不可见；DisplayFonts.Tests验证时钟延迟加载、20字号/字体保持、保存与恢复、重载一次及不重设其他项，仅同步forerver到_forever_。

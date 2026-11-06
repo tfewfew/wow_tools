@@ -32,6 +32,7 @@ WoWTools={};wowDetectorDB={unrelated=42,displayFonts={
     experience={path="",size=24,flags="OUTLINE"},
     bags={path="Fonts\\custom.ttf",size=20,flags="THICKOUTLINE"},
     ammo={path="",size=18,flags=""},
+    clock={size=20,flags="OUTLINE"},
 }};STANDARD_TEXT_FONT="Fonts\\native.ttf"
 local experience,experienceSecond,bag,ammo=Widget(),Widget(),Widget(),Widget()
 local bagCounts={ammo,Widget(),Widget(),Widget()}
@@ -48,15 +49,17 @@ StatusTrackingBarManager={
 MainMenuBarBackpackButton={FreeSlots=bag};CharacterAmmoSlot={Count=unrelated};CharacterAmmoSlotCount=unrelated
 MainMenuExpBarText=unrelated
 for i=0,3 do _G["CharacterBag"..i.."Slot"]=nil end
+TimeManagerClockTicker=nil
 local source=root.."/addon/forerver/wow_tools/DisplayFonts.lua"
 dofile(source)
 local module=WoWTools.displayFonts
 local startupFrame=frames[#frames]
 local parent=Widget();module.BuildSettings(parent)
-assert(#module.controls==3 and module.controls[1].size:GetText()=="24", "Settings page did not restore saved values")
+assert(#module.controls==4 and module.controls[1].size:GetText()=="24" and module.controls[4].key=="clock" and module.controls[4].size:GetText()=="20", "Settings page did not restore saved values or expose the clock")
+assert(module.settingsHeight>=56+3*122+118, "Scrollable settings height clips the fourth font row")
 local inputs=0
 for _,frame in ipairs(frames) do if frame.kind=="EditBox" then inputs=inputs+1 end end
-assert(inputs==3, "Each font setting must have only one size input")
+assert(inputs==4, "Each font setting must have only one size input")
 for _,control in ipairs(module.controls) do assert(control.path==nil and control.sizeLabel.text:find("字号",1,true)) end
 assert(experience.writes==0 and bag.writes==0, "Fonts changed before native startup layout")
 Event("ADDON_LOADED","another_addon")
@@ -80,6 +83,14 @@ assert(ammo.size==18 and ammo.writes==1, "Delayed bag-slot counter font was miss
 for _,count in ipairs(bagCounts) do assert(count.size==18 and count.writes==1) end
 assert(unrelated.writes==0, "An obsolete XP/ammo widget was styled instead of the verified targets")
 assert(experience.writes==2 and bag.writes==1)
+assert(startupFrame.events.ADDON_LOADED, "Missing clock was not retained for one-time late loading")
+local clock=Widget();clock.path="Fonts\\clock.ttf";clock.size=11;clock.flags="OUTLINE"
+TimeManagerClockTicker=clock
+Event("ADDON_LOADED","Blizzard_TimeManager")
+assert(clock.size==20 and clock.path=="Fonts\\clock.ttf" and clock.flags=="OUTLINE" and clock.writes==1, "Clock did not apply saved size once while preserving the native font")
+assert(experience.writes==2 and bag.writes==1 and ammo.writes==1, "Late clock loading reapplied another font")
+Event("PLAYER_ENTERING_WORLD");Event("ADDON_LOADED","unrelated")
+assert(clock.writes==1)
 assert(not next(startupFrame.events), "Initialization events remained active after all fonts were applied")
 -- A deliberate UI save applies its target immediately and persists independently.
 module.controls[1].size:SetText("16");module.controls[1].apply.scripts.OnClick()
@@ -93,6 +104,11 @@ assert(experience.size==16 and bag.size==20)
 module.controls[1].reset.scripts.OnClick()
 assert(experience.size==12 and experience.path=="Fonts\\native.ttf" and experience.flags=="")
 assert(wowDetectorDB.displayFonts.experience==nil and bag.writes==1)
+module.controls[4].size:SetText("22");module.controls[4].apply.scripts.OnClick()
+assert(clock.size==22 and wowDetectorDB.displayFonts.clock.size==22 and bag.writes==1 and ammo.writes==1)
+module.controls[4].reset.scripts.OnClick()
+assert(clock.size==11 and clock.flags=="OUTLINE" and clock.path=="Fonts\\clock.ttf" and wowDetectorDB.displayFonts.clock==nil)
+assert(module.Save("clock",20,"OUTLINE"))
 -- Recreate the addon with persisted account settings and new native startup fonts.
 WoWTools={};bag=Widget();ammo=Widget();bagCounts={ammo,Widget(),Widget(),Widget()}
 MainMenuBarBackpackButton={FreeSlots=bag}
@@ -102,14 +118,17 @@ StatusTrackingBarManager.barContainers={
     {bars={[4]={OverlayFrame={Text=experience}}}},
     {bars={[4]={OverlayFrame={Text=experienceSecond}}}},
 }
+clock=Widget();clock.path="Fonts\\clock.ttf";clock.size=11;clock.flags="OUTLINE";TimeManagerClockTicker=clock
 dofile(source)
 local reloadedFrame=frames[#frames]
 Event("PLAYER_ENTERING_WORLD")
 assert(bag.size==20 and ammo.size==18 and bag.writes==1 and ammo.writes==1 and experience.writes==0)
+assert(clock.size==20 and clock.writes==1 and clock.path=="Fonts\\clock.ttf" and clock.flags=="OUTLINE", "Clock size was not restored after addon reload")
 assert(not next(reloadedFrame.events) and not reloadedFrame.scripts.OnUpdate)
 Event("PLAYER_ENTERING_WORLD");Event("ADDON_LOADED","other");Event("PLAYER_REGEN_ENABLED")
 assert(bag.writes==1 and ammo.writes==1, "Saved font reapplied more than once in a load")
+assert(clock.writes==1, "Clock font was reapplied after initialization")
 bag.rejectFont=true
 local saved,message=WoWTools.displayFonts.Save("bags",22,"")
 assert(saved and message:find("应用失败",1,true) and bag.size==20, "Failed native font apply was reported as success")
-print("PASS: persistent account fonts, single startup apply, verified XP overlays and four bag counters, size-only UI/legacy font-path migration, targeted manual saves, validation/reset and no hooks/timers/repeated event applies.")
+print("PASS: persistent account fonts, single startup apply, clock persistence/late loading/reset, verified XP overlays and four bag counters, size-only UI/legacy font-path migration, targeted manual saves, validation/reset and no hooks/timers/repeated event applies.")

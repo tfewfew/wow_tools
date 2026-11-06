@@ -1,7 +1,8 @@
 -- Forever 16001: use the user's verified native text regions; never change shared fonts.
 local module = { controls = {} }
 WoWTools.displayFonts = module
-local specs = {{key="experience", label="经验值"}, {key="bags", label="背包剩余"}, {key="ammo", label="弹药剩余"}}
+local specs = {{key="experience", label="经验值"}, {key="bags", label="背包剩余"}, {key="ammo", label="弹药剩余"}, {key="clock", label="时钟"}}
+module.settingsHeight=154+#specs*122
 local originals, startupApplied = {}, {}
 local events, startup = nil, false
 local function Add(list, region)
@@ -22,11 +23,13 @@ local function Regions(key)
         end
     elseif key=="bags" then
         Add(list, MainMenuBarBackpackButton and MainMenuBarBackpackButton.FreeSlots)
-    else
+    elseif key=="ammo" then
         for index=0,3 do
             local button=_G["CharacterBag"..index.."Slot"]
             Add(list,button and button.Count)
         end
+    elseif key=="clock" then
+        Add(list,TimeManagerClockTicker)
     end
     return list
 end
@@ -109,7 +112,7 @@ function module.BuildSettings(parent)
     hint:SetText("只调整字号和描边，沿用游戏原来的字体。设置自动保存，每次登录或重载插件后应用一次。")
     local preview=parent:CreateFontString(nil,"ARTWORK","GameFontNormal")
     module.preview=preview
-    preview:SetPoint("TOPLEFT",8,-438);preview:SetWidth(398);preview:SetJustifyH("LEFT");preview:SetText("预览 12345")
+    preview:SetPoint("TOPLEFT",8,-72-#specs*122);preview:SetWidth(398);preview:SetJustifyH("LEFT");preview:SetText("预览 12345")
     local flags={"","OUTLINE","THICKOUTLINE"};local labels={"无描边","描边","粗描边"}
     for index,spec in ipairs(specs) do
         local row=CreateFrame("Frame",nil,parent);row:SetSize(410,118);row:SetPoint("TOPLEFT",8,-56-(index-1)*122)
@@ -136,7 +139,7 @@ function module.BuildSettings(parent)
         reset:SetScript("OnClick",function() module.Reset(spec.key);Load() end)
         row:SetScript("OnShow",Load);Load()
     end
-    parent:SetHeight(520)
+    parent:SetHeight(module.settingsHeight)
 end
 events=CreateFrame("Frame")
 -- Wait for native startup layout, then apply saved settings once for this addon load.
