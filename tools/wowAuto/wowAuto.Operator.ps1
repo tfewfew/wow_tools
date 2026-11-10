@@ -219,7 +219,14 @@ function Invoke-OperatorRequest($Request) {
     }
     if($Request.Domain -eq 'Tame') {
         $packet=Invoke-OperatorAdapter TamePacket $endpoint
-        if(-not (Test-OperatorTameTarget $packet $body.TargetId $body.RequireCombat)){return @{Executed=$false;SentAt=$Hub.Now}}
+        if($Request.Kind -eq 'Tame.Jump'){
+            if(-not $packet -or $body.ExpectedState -notin @('idle','matched') -or $packet.State -ne $body.ExpectedState -or
+                $packet.TargetId -ne $body.TargetId -or $packet.Combat -ne $body.ExpectedCombat -or
+                ($packet.State -eq 'idle' -and $packet.Combat)){return @{Executed=$false;SentAt=$Hub.Now}}
+            if($body.Stage -cne 'Jump' -or @($body.Keys).Count -ne 1 -or $body.KeyHoldMs -ne 0){throw '自动跳跃需要单个短按绑定。'}
+        }elseif(-not (Test-OperatorTameTarget $packet $body.TargetId $body.RequireCombat)){
+            return @{Executed=$false;SentAt=$Hub.Now}
+        }
         $keyHoldMs=0
         if($null -ne $body.KeyHoldMs){$keyHoldMs=Get-AutoFightInteger $body.KeyHoldMs 0 60000 '后退按住时长（ms）'}
         if($keyHoldMs -gt 0){

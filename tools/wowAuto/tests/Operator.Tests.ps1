@@ -273,3 +273,36 @@ try {
     $Hub.PSObject.Properties.Remove('Now');$Hub | Add-Member NoteProperty Now 0L
 }
 'PASS: configurable backward hold, exact release/acknowledgement timing, chord release and stop/refresh/close/pause/target/combat/unknown/focus/marker/error cancellation. Offline timing and mock input only.'
+
+$Hub.Now=1000L;$Hub.Closing=$false;$Hub.Paused=$false
+$script:adapter.HoldReadError=$false;$script:adapter.Login=$true;$script:adapter.Identity=$true;$script:adapter.Foreground=$true
+foreach($state in @('idle','matched')){
+    $combat=$state -eq 'matched'
+    $script:adapter.TamePacket=[pscustomobject]@{State=$state;TargetId=17;Combat=$combat}
+    $jump=New-OperatorTestRequest Tame.Jump Tame @{Keys=@('Space');Stage='Jump';TargetId=17;ExpectedState=$state;ExpectedCombat=$combat;KeyHoldMs=0}
+    $jump.ReadyAt=1;$before=$script:adapter.Pressed.Count
+    Assert-OperatorTest ((Invoke-OperatorRequest $jump).Executed -and $script:adapter.Pressed.Count -eq $before+1 -and $script:adapter.Pressed[-1] -ceq 'Space') ('Valid automatic jump rejected '+$state)
+}
+foreach($case in @('target','state','combat','unknown','marker','identity','session','idle-combat','stage','keys','hold')){
+    $script:adapter.Login=$true;$script:adapter.Identity=$true
+    $script:adapter.TamePacket=[pscustomobject]@{State='matched';TargetId=17;Combat=$true}
+    $body=@{Keys=@('Space');Stage='Jump';TargetId=17;ExpectedState='matched';ExpectedCombat=$true;KeyHoldMs=0}
+    switch($case){
+        'target'{$script:adapter.TamePacket.TargetId=18}
+        'state'{$script:adapter.TamePacket.State='idle'}
+        'combat'{$script:adapter.TamePacket.Combat=$false}
+        'unknown'{$script:adapter.TamePacket=$null}
+        'marker'{$script:adapter.Login=$false}
+        'identity'{$script:adapter.Identity=$false}
+        'idle-combat'{$body.ExpectedState='idle';$script:adapter.TamePacket.State='idle'}
+        'stage'{$body.Stage='Tame'}
+        'keys'{$body.Keys=@('Space','F3')}
+        'hold'{$body.KeyHoldMs=1000}
+    }
+    $jump=New-OperatorTestRequest Tame.Jump Tame $body;$jump.ReadyAt=1
+    if($case -eq 'session'){$jump.Version--}
+    $before=$script:adapter.Pressed.Count
+    try{$null=Invoke-OperatorRequest $jump}catch{}
+    Assert-OperatorTest ($script:adapter.Pressed.Count -eq $before) ('Unsafe automatic jump executed '+$case)
+}
+'PASS: automatic jump uses the common operator and rechecks target, expected state/combat, marker, identity, session and short-key constraints. Mock input only.'

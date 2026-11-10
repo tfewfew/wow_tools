@@ -146,7 +146,7 @@ function Start-DetectorTask {
         }
     } elseif($script:mode -eq 'tame') {
         $script:tameConfig=ConvertTo-AutoTameConfig $script:config.Tame -RequireKey
-        $script:tame=New-AutoTameSession
+        $script:tame=New-AutoTameSession $now $script:tameConfig
     } else {
         $observation=Get-DetectorObservationReady
         if(-not $observation.Packet){throw '战斗协议不可读，不能开始。'}
@@ -328,7 +328,8 @@ function Invoke-DetectorTaskCore {
         if($packet -and $packet.State -eq 'dead'){throw '角色死亡或处于灵魂状态，抓宠已停止。'}
         $action=Get-AutoTameAction $script:tame $packet $script:tameConfig $now
         if($action -and $now -ge $script:retryAt) {
-            $reply=Request-DetectorOperation Tame.Key Tame @{Keys=@($action.Key);TargetId=$action.TargetId;RequireCombat=$action.RequireCombat;Stage=$action.Stage;KeyHoldMs=$action.KeyHoldMs}
+            $kind=if($action.Stage -eq 'Jump'){'Tame.Jump'}else{'Tame.Key'}
+            $reply=Request-DetectorOperation $kind Tame @{Keys=@($action.Key);TargetId=$action.TargetId;RequireCombat=$action.RequireCombat;Stage=$action.Stage;KeyHoldMs=$action.KeyHoldMs;ExpectedState=$action.ExpectedState;ExpectedCombat=$action.ExpectedCombat}
             if($reply -and $reply.CombatObserved){$script:tame.SeenCombat=$true}
             if($reply -and $reply.Executed){Complete-AutoTameAction $script:tame $action $script:tameConfig $reply.SentAt}
             elseif($reply -and $reply.TameInterrupted){

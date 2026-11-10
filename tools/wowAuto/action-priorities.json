@@ -34,6 +34,7 @@
     "Fight.MoveRight": 70,
     "Fish.AudioTimeout": 70,
     "Fish.Jump": 80,
+    "Tame.Jump": 80,
     "Fight.Jump": 80,
     "Fish.FocusRetry": 85,
     "Scan.Restore": 85,

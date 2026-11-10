@@ -8,5 +8,7 @@
   "OpeningWaitMs": 1000,
   "BackwardWaitMs": 1000,
   "BackwardHoldMs": 0,
-  "TameWaitMs": 10000
+  "TameWaitMs": 10000,
+  "JumpKey": "Space",
+  "JumpIntervalSeconds": 0
 }

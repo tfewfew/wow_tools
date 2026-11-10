@@ -8,6 +8,8 @@
 
 `BackwardHoldMs` 为抓宠v1配置的可选扩展，范围0–60000ms，旧配置只读补0以保留短按。正值通过 `Tame.Key` 的 `Stage=Backward` 和 `KeyHoldMs` 快照传递，操作线程复用 `BeginHold/ReleaseHold`，持续按住期间保留前台并每100ms复核目标、战斗、前台及白点，取消检查沿用 `WaitCheckMs`。所有路径经finally松键，回执 `SentAt` 在松键后采样，之后才登记 `BackwardWaitMs`。后退期间首次观察到的战斗状态也返回检测线程。中途失效或读帧异常通过 `TameInterrupted` 结束当前目标流程，避免重复完整后退或提前进入捕捉。
 
+`JumpKey` 默认Space，`JumpIntervalSeconds` 为0–3600的整数，0关闭。两个字段缺失时只读补默认。跳跃截止保存在每进程 `AutoTameSession.NextJumpAt`，启动时登记首个完整间隔，更换目标保留截止，成功回执后按SentAt重计。`Tame.Jump` 优先级80，发送前复核白点、进程会话及预期目标标识、主状态和战斗位。空闲仅非战斗时可跳，匹配目标时只在阶段等待截止后插入，捕捉执行窗口和后退保持期间不提交跳跃。跳完登记1秒ActionReadyAt，下一次先推进普通阶段，防止短间隔连续跳跃使捕捉饥饿。停止或刷新取消旧请求，重启任务重新计时。
+
 抓宠 v1 保留中心32px主块、右侧偏移32px的12px副块。主块 RGB 为 `(211, 11+24*(state+combat*4), 4*(token%64))`，副块为 `(3+4*floor(token/64), 223, flavor)`。`state` 的0–3分别代表未匹配、匹配、未知和死亡或灵魂，`flavor` 为时光服71、无限服79。目标 GUID 改变及保存名单时递增12位 token，换成同名目标也使旧按键意图失效。解码每通道允许±1误差，拒绝跨客户端和其他检测器的颜色。名单采用完整名称匹配，同时要求目标存活、可攻击，受限或失败的原生读取只输出未知状态。
 
 - 每个 PID / 启动时间 / 路径 / 客户端身份对应一个长期运行的 MTA PowerShell runspace，代码为 `wowAuto.Detector.ps1`。钓鱼、战斗、死亡、鱼饵、登录、窗口位置和同步 Windows OCR 都在所属检测线程执行；线程之间不共享任务状态、截图、OCR 引擎或在途结果。

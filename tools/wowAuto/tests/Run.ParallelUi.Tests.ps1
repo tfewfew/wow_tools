@@ -5,7 +5,7 @@ $tool=Split-Path $PSScriptRoot -Parent
 $fixture=Join-Path ([IO.Path]::GetTempPath()) ('wowAuto-parallel-'+[guid]::NewGuid().ToString('N'))
 $null=[IO.Directory]::CreateDirectory($fixture)
 $savedEnvironment=@{};foreach($name in @('WOWAUTO_PARALLEL_TEST_MODE','WOWAUTO_PARALLEL_CONFIG_PATH','WOWAUTO_PARALLEL_OPERATOR_MOCK','WOWAUTO_PARALLEL_DETECTOR_MOCK','WOWAUTO_PARALLEL_FIXTURE_ROOT','WOWAUTO_PARALLEL_PREVIEW')){$savedEnvironment[$name]=[Environment]::GetEnvironmentVariable($name)}
-$sourceHashes=@{};foreach($name in @('config.ini','rotation.config.json','autoFight.config.json','account-tasks.config.json')){$sourceHashes[$name]=(Get-FileHash (Join-Path $tool $name)).Hash}
+$sourceHashes=@{};foreach($name in @('config.ini','rotation.config.json','autoFight.config.json','autoTame.config.json','account-tasks.config.json')){$sourceHashes[$name]=(Get-FileHash (Join-Path $tool $name)).Hash}
 try {
     Add-Type -TypeDefinition @'
 using System;
@@ -34,6 +34,8 @@ public static class ParallelFixture {
     public static readonly ConcurrentQueue<string> InputOrder=new ConcurrentQueue<string>();
     public static readonly ConcurrentQueue<string> TameActions=new ConcurrentQueue<string>();
     public static readonly ConcurrentQueue<string> TameHoldRequests=new ConcurrentQueue<string>();
+    public static readonly ConcurrentQueue<string> TameJumps=new ConcurrentQueue<string>();
+    public static readonly ConcurrentQueue<string> TameEvents=new ConcurrentQueue<string>();
     public static int TameInterruptPid,TameInterruptions;
     public static readonly ConcurrentDictionary<int,string> TameStates=new ConcurrentDictionary<int,string>();
     public static readonly ConcurrentDictionary<int,int> TameCombat=new ConcurrentDictionary<int,int>();
@@ -59,6 +61,14 @@ function Invoke-OperatorRequest($Request) {
     if(-not $Request.Current){return @{Executed=$false;SentAt=$Hub.Now}}
     [ParallelFixture]::Add([ParallelFixture]::Actions,$id)
     [ParallelFixture]::InputOrder.Enqueue($id.ToString()+':'+$Request.Kind)
+    if($Request.Kind -in @('Tame.Key','Tame.Jump')){
+        $body=$Request.Json | ConvertFrom-Json
+        [ParallelFixture]::TameEvents.Enqueue($id.ToString()+':'+$body.Stage+':'+$Hub.Now)
+    }
+    if($Request.Kind -eq 'Tame.Jump'){
+        $body=$Request.Json | ConvertFrom-Json
+        [ParallelFixture]::TameJumps.Enqueue($id.ToString()+':'+$body.Keys[0])
+    }
     if($Request.Kind -eq 'Tame.Key'){
         $body=$Request.Json | ConvertFrom-Json
         [ParallelFixture]::TameActions.Enqueue($id.ToString()+':'+$body.Keys[0])
