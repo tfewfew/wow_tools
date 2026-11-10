@@ -116,6 +116,7 @@ function Stop-Row($Row,[string]$Reason='已停止，本进程的待执行操作�
     $script:parallelPending.Remove($Row.Key)
     if($script:parallelHub.Batch){$script:parallelHub.Batch.Drop($Row.Key)}
     $Row.RuntimeRunning=$false;$Row.RuntimeScanning=$false;$Row.RuntimeExiting=$false;$Row.RuntimePhase='stopped';$Row.Metrics=$null;$Row.TargetRole='';$Row.CurrentRole='';$Row.CurrentIndex=-1
+    if($Row.TaskMode -eq 'tame'){$Row.TaskMode=$Row.DefaultTaskMode;$Row.Validated=$false}
     $script:parallelHub.ActiveTasks=@($script:rows.Values | Where-Object RuntimeRunning).Count
     Set-RowStatusText $Row $Reason;Update-WowAutoRunInfo
 }

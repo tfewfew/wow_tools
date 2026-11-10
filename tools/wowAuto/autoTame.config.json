@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "TrapKey": "",
+  "OpeningKey": "",
+  "BackwardKey": "",
+  "TameKey": "",
+  "TrapWaitMs": 1000,
+  "OpeningWaitMs": 1000,
+  "BackwardWaitMs": 1000,
+  "TameWaitMs": 10000
+}

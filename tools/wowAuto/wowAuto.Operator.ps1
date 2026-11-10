@@ -58,6 +58,7 @@ function Invoke-OperatorAdapter([string]$Action,$Endpoint,$Data=$null,[int]$Dura
         'Color' {return [WowAuto.NativeInput]::ReadCenterColor($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
         'Lure' {return [WowAuto.NativeInput]::ReadLureColor($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
         'Packet' {return [WowAutoFight.Native]::Observe((Get-OperatorClient $Endpoint))}
+        'TamePacket' {return [WowAutoFight.Native]::ReadTame((Get-OperatorClient $Endpoint))}
         'Press' {$binding=ConvertFrom-AutoFightBinding ([string]$Data);return [WowAutoFight.Native]::Press((Get-OperatorClient $Endpoint),$binding.Code,$binding.Ctrl,$binding.Shift,$binding.Alt,$DurationMs)}
         'Up' {return [WowAuto.NativeInput]::PressChord($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,38,$false,$false,$false,$DurationMs)}
         'Enable' {return [WowAuto.NativeInput]::SendDetectorCommand($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,$Data.Mode,$DurationMs)}
@@ -176,7 +177,11 @@ function Invoke-OperatorRequest($Request) {
     if($Request.Kind -in @('Scan.Enable','Rotation.Enable')) {
         return @{Executed=(Invoke-OperatorAdapter Enable $endpoint $body $timing.ChatKeyPressMs);SentAt=$Hub.Now}
     }
-    if($Request.Domain -eq 'Fight') {
+    if($Request.Domain -eq 'Tame') {
+        $packet=Invoke-OperatorAdapter TamePacket $endpoint
+        if(-not $packet -or $packet.State -ne 'matched' -or $packet.TargetId -ne $body.TargetId -or
+            ($body.RequireCombat -and -not $packet.Combat)){return @{Executed=$false;SentAt=$Hub.Now}}
+    } elseif($Request.Domain -eq 'Fight') {
         $observation=Invoke-OperatorAdapter Packet $endpoint;$packet=$observation.Packet
         if(-not $packet -or $packet.ClassId -ne $body.ClassId -or $packet.Busy){return @{Executed=$false;SentAt=$Hub.Now}}
         $allowed=switch($body.Action) {

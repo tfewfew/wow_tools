@@ -261,7 +261,7 @@ namespace WowAuto
             return true;
         }
 
-        // Send only the two addon start commands, never arbitrary chat text or macros.
+        // Send only the addon start commands, never arbitrary chat text or macros.
         public static bool SendDetectorCommand(int processId, long startTicks, string path, string mode)
         {return SendDetectorCommand(processId,startTicks,path,mode,50);}
         public static bool SendDetectorCommand(int processId, long startTicks, string path, string mode,int durationMs)
@@ -284,6 +284,7 @@ namespace WowAuto
         {
             if (mode=="fish") return "/wowdetector on";
             if (mode=="fight") return "/fightdetector on";
+            if (mode=="tame") return "/pettamer on";
             throw new ArgumentException("Unknown detector mode.");
         }
         public static string RotationCommand(string action,int token)
@@ -2004,6 +2005,7 @@ $form.Add_FormClosing({
 . (Join-Path $PSScriptRoot 'wowAuto.Accounts.ps1')
 . (Join-Path $PSScriptRoot 'wowAuto.Rotation.ps1')
 . (Join-Path $PSScriptRoot 'wowAuto.CharacterCreate.ps1')
+. (Join-Path $PSScriptRoot 'autoTame.ps1')
 # One process list and one timer coordinate input across both detector engines.
 if (-not $UiTest -or $script:useWorkers) {
     try {
@@ -2038,6 +2040,7 @@ try {
         }
     }
     $null = Refresh-ProcessRows
+    if($script:useWorkers){Initialize-AutoTamePage}
     Initialize-CharacterCreatePage
     if($script:useWorkers){foreach($row in $script:rows.Values){$null=Ensure-ParallelWorker $row}}
     if (-not $PreviewPath -and -not $UiTest) { $timer.Start(); $positionTimer.Start(); $shutdownTimer.Start() }

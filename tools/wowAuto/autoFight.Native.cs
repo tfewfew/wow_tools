@@ -22,6 +22,12 @@ namespace WowAutoFight
         public bool Combat, Busy;
         public int ClassId, EncounterId;
     }
+    public sealed class TamePacket
+    {
+        public string State;
+        public bool Combat;
+        public int TargetId;
+    }
     public static class Native
     {
         [StructLayout(LayoutKind.Sequential)] private struct Rect { public int Left, Top, Right, Bottom; }
@@ -195,6 +201,27 @@ namespace WowAutoFight
         {
             int slot=(int)Math.Round((value-start)/(double)step);
             return slot>=0 && slot<count && Math.Abs(value-(start+slot*step))<=1 ? slot : -1;
+        }
+        public static TamePacket DecodeTame(Color main, Color auxiliary, string flavor)
+        {
+            if (flavor!="titan" && flavor!="forerver") return null;
+            if (Math.Abs(main.R-211)>1 || Math.Abs(auxiliary.G-223)>1
+                || Math.Abs(auxiliary.B-(flavor=="titan" ? 71 : 79))>1) return null;
+            int state=Slot(main.G,11,24,8), low=Slot(main.B,0,4,64), high=Slot(auxiliary.R,3,4,64);
+            if (state<0 || low<0 || high<0) return null;
+            if (state==7) return null; // A death packet never claims combat.
+            return new TamePacket {State=new [] {"idle","matched","unknown","dead"}[state%4],
+                Combat=state>=4,TargetId=high*64+low};
+        }
+        public static TamePacket ReadTame(Client client)
+        {
+            if (FrameReader==null) throw new InvalidOperationException("Window capture source is unavailable.");
+            using (var frame=FrameReader(client.ProcessId,client.StartTicks,client.Path))
+            {
+                int[] center=SampleOffsets(frame.Width,frame.Height);
+                if (center==null) return null;
+                return DecodeTame(frame.GetPixel(center[0],center[1]),frame.GetPixel(center[0]+32,center[1]),client.Flavor);
+            }
         }
         private static bool ColorNear(uint actual,int red,int green,int blue)
         {

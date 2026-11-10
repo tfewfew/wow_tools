@@ -21,7 +21,7 @@ function Get-ParallelConfig($Row) {
         UseAudio=$script:audioDetectionEnabled;FeaturePath=(Join-Path $script:audioFeatureDirectory $recording.Feature);AudioThreshold=$script:audioThresholds[$Row.Client.Flavor];
         Keys=@{Cast=$script:keyBindings.Cast.Text;Reel=$script:keyBindings.Reel.Text;Item=$script:keyBindings.Item.Text;EquipRod=[string]$script:equipRodBinding.Text};
         Profiles=$script:autoFight.Profiles;ProfilesReady=$script:autoFight.ConfigReady;Common=$common;CommandIntervalMs=$operations.CommandIntervalMs;
-        Operations=$operations;Periods=$script:accountTasks.Config.Periods;Priorities=$script:gameActions.Priorities}
+        Tame=$script:autoTame.Config;Operations=$operations;Periods=$script:accountTasks.Config.Periods;Priorities=$script:gameActions.Priorities}
 }
 function Apply-ParallelTimings {
     $values=$script:accountTasks.Config.Operations
@@ -96,7 +96,12 @@ function Update-ParallelMessages {
             'metrics' {$row.Metrics=$data;$row.CycleCount=$data.Cycles;$row.BiteTimeoutCount=$data.BiteTimeouts;Update-RowName $row}
             'counters' {$row.CycleCount=$data.Cycles;$row.BiteTimeoutCount=$data.BiteTimeouts;Update-RowName $row}
             'exiting' {$row.RuntimeRunning=$false;$row.RuntimeExiting=$true;$row.RuntimePhase='exiting';Set-RowControls $row;Update-WowAutoRunInfo}
-            'stopped' {$row.RuntimeRunning=$false;$row.RuntimeScanning=$false;$row.RuntimeExiting=$false;$row.RuntimePhase='stopped';$row.TargetRole='';$row.CurrentRole='';$row.CurrentIndex=-1;if($data.Exited){$row.Exited=$true};Set-RowControls $row;Update-WowAutoRunInfo}
+            'stopped' {
+                $row.RuntimeRunning=$false;$row.RuntimeScanning=$false;$row.RuntimeExiting=$false;$row.RuntimePhase='stopped';$row.TargetRole='';$row.CurrentRole='';$row.CurrentIndex=-1
+                if($data.Exited){$row.Exited=$true}
+                if($row.TaskMode -eq 'tame'){$row.TaskMode=$row.DefaultTaskMode;$row.Validated=$false}
+                Set-RowControls $row;Update-WowAutoRunInfo
+            }
             'excluded' {$row.ExcludedNames+=,$data.Name;Update-WowAutoRunInfo}
             'rotate-needed' {$script:parallelPending[$row.Key]='Rotate'}
         }
@@ -141,6 +146,7 @@ function Update-ParallelMessages {
         }
     }
     foreach($row in $script:rows.Values){Update-RotationRow $row;Update-ParallelStatusDisplay $row}
+    Update-AutoTamePage
     Update-BatchControls
 }
 function Initialize-ParallelRuntime {

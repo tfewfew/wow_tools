@@ -4,10 +4,10 @@ UIDropDownMenu_Initialize(menu, function(_, level)
     local title = UIDropDownMenu_CreateInfo()
     title.text, title.isTitle, title.notCheckable = "wow_tools", true, true
     UIDropDownMenu_AddButton(title, level)
-    for _, name in ipairs({ "wowDetector", "fight_detector", "inner_graphic_config" }) do
+    for _, name in ipairs({ "wowDetector", "fight_detector", "inner_graphic_config", "pet_tamer" }) do
         local module = WoWTools.modules[name]
         local item = UIDropDownMenu_CreateInfo()
-        item.text = name
+        item.text = name == "pet_tamer" and "自动抓宠" or name
         item.checked = module.IsShown()
         item.func = function() CloseDropDownMenus(); module.Toggle() end
         UIDropDownMenu_AddButton(item, level)

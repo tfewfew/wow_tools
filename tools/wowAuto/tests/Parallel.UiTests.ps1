@@ -30,6 +30,7 @@ foreach($row in $rows) {
     Assert-Parallel ($row.Name.Text -notmatch '职业：') 'PID area still shows a class.'
     if($row.TaskMode -eq 'fish'){Assert-Parallel ($row.Name.Text -match '循环 0 · 无咬钩超时 0') 'Fishing row omits the initial no-bite timeout count.'}
 }
+. (Join-Path $PSScriptRoot 'AutoTame.UiTests.ps1')
 $dialog=New-UnifiedSettingsDialog
 try {
     $dialog.Show($form);$dialog.Tag.Tabs.SelectedTab=$dialog.Tag.Accounts;[Windows.Forms.Application]::DoEvents()

@@ -32,6 +32,10 @@ public static class ParallelFixture {
     public static int DiscoveryBlockPid,DiscoveryBlockedPid;
     public static readonly ManualResetEventSlim DiscoveryRelease=new ManualResetEventSlim(false);
     public static readonly ConcurrentQueue<string> InputOrder=new ConcurrentQueue<string>();
+    public static readonly ConcurrentQueue<string> TameActions=new ConcurrentQueue<string>();
+    public static readonly ConcurrentDictionary<int,string> TameStates=new ConcurrentDictionary<int,string>();
+    public static readonly ConcurrentDictionary<int,int> TameCombat=new ConcurrentDictionary<int,int>();
+    public static readonly ConcurrentDictionary<int,int> TameTargets=new ConcurrentDictionary<int,int>();
     public static int BlockPid,BlockedPid,Clicks,Logouts,EarlyClicks,EarlyOcr,MissingPid,UpCount,ExitRequests,KillRequests,FailFocusPid,Reels,Jumps,EarlyJumps,NoBitePid;
     public static int ShutdownRequests;
     public static bool AutoFish;
@@ -46,13 +50,14 @@ public static class ParallelFixture {
 function Invoke-OperatorRequest($Request) {
     $id=$Request.Owner.Pid;[ParallelFixture]::OpThread[$id]=[Threading.Thread]::CurrentThread.ManagedThreadId
     if($Request.Kind -like 'Fish.*' -and $Request.Kind -ne 'Fish.EquipRod' -and $id -eq [ParallelFixture]::FailFocusPid){[ParallelFixture]::FailFocusPid=0;throw '操作线程未能在前台保护时间内取得窗口。'}
-    if($Request.Kind -like 'Fish.*' -and $id -eq [ParallelFixture]::BlockPid) {
+    if(($Request.Kind -like 'Fish.*' -or $Request.Kind -like 'Tame.*') -and $id -eq [ParallelFixture]::BlockPid) {
         [ParallelFixture]::BlockedPid=$id
         while(-not [ParallelFixture]::Release.Wait(10)){if(-not $Request.Current -or $Hub.Closing){return @{Executed=$false;SentAt=$Hub.Now}}}
     }
     if(-not $Request.Current){return @{Executed=$false;SentAt=$Hub.Now}}
     [ParallelFixture]::Add([ParallelFixture]::Actions,$id)
     [ParallelFixture]::InputOrder.Enqueue($id.ToString()+':'+$Request.Kind)
+    if($Request.Kind -eq 'Tame.Key'){$body=$Request.Json | ConvertFrom-Json;[ParallelFixture]::TameActions.Enqueue($id.ToString()+':'+$body.Keys[0])}
     if($Request.Kind -in @('Rotation.EquipRod','Fish.EquipRod')){
         $body=$Request.Json | ConvertFrom-Json
         if($body.Mode -cne 'fish' -or $body.Key -cne 'Ctrl+F3'){throw 'Unexpected rod equip task/key.'}
@@ -85,6 +90,10 @@ function Invoke-OperatorRequest($Request) {
 function Get-DetectorObservation {
     [ParallelFixture]::Add([ParallelFixture]::Reads,$Endpoint.Pid)
     [ParallelFixture]::ReadThread[$Endpoint.Pid]=[Threading.Thread]::CurrentThread.ManagedThreadId
+    if($script:mode -eq 'tame') {
+        return [pscustomobject]@{Login=$true;Color='';Lure='unknown';Packet=[pscustomobject]@{
+            State=[ParallelFixture]::TameStates[$Endpoint.Pid];Combat=([ParallelFixture]::TameCombat[$Endpoint.Pid] -eq 1);TargetId=[ParallelFixture]::TameTargets[$Endpoint.Pid]}}
+    }
     $packet=New-Object WowAutoFight.Packet;$packet.Flavor=$Endpoint.Flavor;$packet.ClassId=1;$packet.Action='idle';$packet.Recovery='none'
     $color=if([ParallelFixture]::Colors.ContainsKey($Endpoint.Pid)){[ParallelFixture]::Colors[$Endpoint.Pid]}else{'red'}
     if([ParallelFixture]::UnknownReads[$Endpoint.Pid] -gt 0){[ParallelFixture]::UnknownReads[$Endpoint.Pid]--;$color='unknown';$packet=$null}

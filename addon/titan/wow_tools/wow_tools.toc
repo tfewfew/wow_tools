@@ -1,12 +1,13 @@
 ## Interface: 38002
 ## Title: wow_tools
-## Notes-zhCN: 工具合集：钓鱼检测、战斗检测、内部画面设置与商店一键卖鱼。
+## Notes-zhCN: 工具合集：钓鱼检测、战斗检测、自动抓宠、内部画面设置与商店一键卖鱼。
 ## Author: Ray
-## Version: 2.1.55
+## Version: 2.1.56
 ## SavedVariables: wowDetectorDB, fightDetectorDB, wowToolsRealmLevels
 ## SavedVariablesPerCharacter: wowToolsCharacterRecord
 
 Init.lua
+PetTamer.lua
 CharacterRecord.lua
 LoginPoint.lua
 Loot.lua

@@ -1,6 +1,6 @@
 ﻿# Production page/controller with a synthetic JSON worker; no OCR or game input.
 $creation=$script:characterCreate;$editor=$creation.Ui
-Assert-Parallel ($tabs.TabPages.Count -eq 2 -and $editor.Page.Text -eq '角色创建' -and $editor.AutoStop.Checked -and -not $editor.DryRun.Checked) 'Creation page or safe defaults are missing.'
+Assert-Parallel ($tabs.TabPages.Count -eq 3 -and $editor.Page.Text -eq '角色创建' -and $editor.AutoStop.Checked -and -not $editor.DryRun.Checked) ('Creation page or safe defaults are missing. Tabs='+$tabs.TabPages.Count+' Page='+$editor.Page.Text+' AutoStop='+$editor.AutoStop.Checked+' DryRun='+$editor.DryRun.Checked)
 $savedFactory=${function:New-CharacterCreateWorker};$savedFilter=$editor.Filter.Text
 $fixture=Join-Path ([IO.Path]::GetTempPath()) ('wowAuto-character-test-'+[guid]::NewGuid().ToString('N')+'.py')
 $stub=@'

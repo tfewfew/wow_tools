@@ -8,6 +8,7 @@
     "Process.Kill": 15,
     "Process.Shutdown": 15,
     "Fight.Combat": 20,
+    "Tame.Key": 25,
     "Fish.Reel": 30,
     "Fight.Recover": 10,
     "Fight.Buff": 40,

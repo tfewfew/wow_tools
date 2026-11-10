@@ -52,7 +52,7 @@ local function widget(name)
         "SetFrameStrata", "SetFrameLevel", "SetClampedToScreen", "SetMovable", "EnableMouse",
         "RegisterForDrag", "RegisterForClicks", "SetHighlightTexture", "SetTexture", "SetAllPoints",
         "ClearAllPoints", "SetFont", "SetWidth", "SetHeight", "SetJustifyH", "SetAutoFocus",
-        "SetMaxLetters", "SetNumeric", "ClearFocus", "SetScrollChild", "StartMoving", "StopMovingOrSizing",
+        "SetMaxLetters", "SetNumeric", "ClearFocus", "SetScrollChild", "StartMoving", "StopMovingOrSizing", "SetMultiLine", "SetFontObject",
     }
     for _, method in ipairs(harmless) do object[method] = function() end end
     widgets[#widgets + 1] = object
@@ -278,7 +278,7 @@ dead = false
 panel.scripts.OnEvent(panel, "PLAYER_ALIVE")
 assertColor(indicator, 0, 1, 1)
 SlashCmdList.WOWTOOLS()
-assert(#menuEntries == 3 and menuEntries[2].title == "fight_detector", "Modern module menu is missing")
+assert(#menuEntries == 4 and menuEntries[2].title == "fight_detector" and menuEntries[4].title == "自动抓宠", "Modern module menu is missing")
 menuEntries[3].onSelect()
 assert(names.InnerGraphicConfigWindow.shown and not wowDetectorDB.locked, "Menu toggled wrong module")
 menuEntries[1].onSelect()
@@ -286,6 +286,10 @@ assert(not panel.shown, "Monitor close did not hide")
 menuEntries[1].onSelect()
 assert(panel.shown and wowDetectorDB.locked, "Monitor open did not start/lock")
 assert(WoWTools.modules.wowDetector.IsEnabled(),"Forever active fishing not exposed to loot")
+menuEntries[4].onSelect()
+assert(WoWTools.modules.pet_tamer.IsEnabled() and not WoWTools.modules.wowDetector.IsEnabled(),"Taming menu did not exclude real fishing detector")
+SlashCmdList.WOWDETECTOR("on")
+assert(not WoWTools.modules.pet_tamer.IsEnabled() and not names.wowToolsPetTamerSignal.shown,"Fishing retained real taming pixels")
 SlashCmdList.WOWDETECTOR("off")
 assert(not WoWTools.modules.wowDetector.IsEnabled(),"Forever visible disabled panel enables loot")
 SlashCmdList.WOWDETECTOR("on")

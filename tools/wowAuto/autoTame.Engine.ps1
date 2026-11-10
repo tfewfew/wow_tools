@@ -1,0 +1,128 @@
+﻿# Pet taming configuration and transitions. All times use the host's monotonic clock.
+function New-AutoTameConfig {
+    return [pscustomobject]@{
+        Version=1
+        TrapKey=''
+        OpeningKey=''
+        BackwardKey=''
+        TameKey=''
+        TrapWaitMs=1000
+        OpeningWaitMs=1000
+        BackwardWaitMs=1000
+        TameWaitMs=10000
+    }
+}
+function ConvertTo-AutoTameConfig($Value,[switch]$RequireKey) {
+    if($Value.Version -ne 1){
+        throw '抓宠配置版本无效。'
+    }
+    $result=New-AutoTameConfig
+    foreach($field in @('TrapKey','OpeningKey','BackwardKey','TameKey')) {
+        $text=([string]$Value.$field).Trim()
+        $result.$field=if($text){(ConvertFrom-AutoFightBinding $text).Text}else{''}
+    }
+    if($RequireKey -and -not $result.TameKey){
+        throw '请配置必选的捕捉按键。'
+    }
+    foreach($field in @('TrapWaitMs','OpeningWaitMs','BackwardWaitMs','TameWaitMs')) {
+        $minimum=if($field -eq 'TameWaitMs'){100}else{0}
+        $result.$field=Get-AutoFightInteger $Value.$field $minimum 600000 '抓宠等待时间（ms）'
+    }
+    return $result
+}
+function Read-AutoTameConfig([string]$Path) {
+    if(-not [IO.File]::Exists($Path)){
+        return New-AutoTameConfig
+    }
+    return ConvertTo-AutoTameConfig ([IO.File]::ReadAllText($Path) | ConvertFrom-Json)
+}
+function Save-AutoTameConfig([string]$Path,$Value) {
+    $valid=ConvertTo-AutoTameConfig $Value -RequireKey
+    $temporary=$Path+'.'+[guid]::NewGuid().ToString('N')+'.tmp'
+    try {
+        [IO.File]::WriteAllText($temporary,($valid | ConvertTo-Json),(New-Object Text.UTF8Encoding($true)))
+        if([IO.File]::Exists($Path)){
+            [IO.File]::Replace($temporary,$Path,[Management.Automation.Language.NullString]::Value)
+        }else{
+            [IO.File]::Move($temporary,$Path)
+        }
+    } finally {
+        if([IO.File]::Exists($temporary)){
+            [IO.File]::Delete($temporary)
+        }
+    }
+    return $valid
+}
+function New-AutoTameSession {
+    return [pscustomobject]@{
+        TargetId=-1
+        FinishedTarget=-1
+        Active=$false
+        Stage=0
+        Due=0L
+        SeenCombat=$false
+        TameSent=$false
+        Status='等待名单中的当前目标。'
+    }
+}
+function Get-AutoTameAction($Session,$Packet,$Config,[long]$Now) {
+    if(-not $Packet -or $Packet.State -eq 'unknown'){
+        $Session.Status='抓宠色块暂不可读，暂停操作。'
+        return $null
+    }
+    if($Packet.State -ne 'matched') {
+        $Session.Active=$false
+        $Session.Status='等待名单中的当前目标。'
+        return $null
+    }
+    if($Session.FinishedTarget -eq $Packet.TargetId){
+        $Session.Status='本目标抓宠已结束，等待更换目标。'
+        return $null
+    }
+    if(-not $Session.Active -or $Session.TargetId -ne $Packet.TargetId) {
+        $Session.TargetId=$Packet.TargetId
+        $Session.Active=$true
+        $Session.Stage=0
+        $Session.Due=$Now
+        $Session.SeenCombat=$false
+        $Session.TameSent=$false
+    }
+    if($Packet.Combat){
+        $Session.SeenCombat=$true
+    }
+    # Allow the initial capture to establish combat before enforcing combat on repeats.
+    if(-not $Packet.Combat -and ($Session.SeenCombat -or ($Session.TameSent -and $Now -ge $Session.Due))) {
+        $Session.FinishedTarget=$Session.TargetId
+        $Session.Active=$false
+        $Session.Status='已脱离战斗，本目标抓宠结束。'
+        return $null
+    }
+    $stages=@('Trap','Opening','Backward','Tame')
+    while($Session.Stage -lt 3 -and -not $Config.($stages[$Session.Stage]+'Key')){
+        $Session.Stage++
+    }
+    $stage=$stages[$Session.Stage]
+    if($Now -lt $Session.Due){
+        $Session.Status='等待上一阶段结束。'
+        return $null
+    }
+    return [pscustomobject]@{
+        Stage=$stage
+        Key=$Config.($stage+'Key')
+        TargetId=$Session.TargetId
+        RequireCombat=($Session.SeenCombat -or $Session.TameSent)
+    }
+}
+function Complete-AutoTameAction($Session,$Action,$Config,[long]$SentAt) {
+    if(-not $Session.Active -or $Session.TargetId -ne $Action.TargetId){
+        return
+    }
+    $Session.Due=$SentAt+$Config.($Action.Stage+'WaitMs')
+    if($Action.Stage -eq 'Tame'){
+        $Session.TameSent=$true
+        $Session.Status='已发送捕捉，等待执行时长后重试。'
+    }else{
+        $Session.Stage++
+        $Session.Status='已发送'+@{Trap='陷阱';Opening='开怪';Backward='后退'}[$Action.Stage]+'，等待下一阶段。'
+    }
+}

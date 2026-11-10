@@ -22,6 +22,7 @@ function Invoke-OperatorAdapter([string]$Action,$Endpoint,$Data=$null,[int]$Dura
         'Color' {return $script:adapter.Color}
         'Lure' {return $script:adapter.Lure}
         'Packet' {return [pscustomobject]@{Packet=$script:adapter.Packet}}
+        'TamePacket' {return $script:adapter.TamePacket}
         'Press' {$script:adapter.Pressed+=,[string]$Data;return $true}
         'Click' {$script:adapter.Clicks+=,$Data;return $true}
         'Enable' {$script:adapter.Enabled++;return $true}
@@ -154,3 +155,26 @@ Assert-OperatorTest (-not [WowAuto.CharacterCreate.Native]::Matches(@(11,20,800,
 Assert-OperatorTest (-not [WowAuto.CharacterCreate.Native]::Matches(@(10,20,800,500),10,20,800,500,800,500)) 'Out-of-bounds client coordinates accepted.'
 [WowAuto.CharacterCreate.Native]::Cancelled.Set()
 'PASS: creation requests share the operator, reject stale/future coordinates, background input, old sessions, cancellation and changed geometry; no native actions.'
+
+$script:adapter.Login=$true;$script:adapter.Foreground=$true;$script:adapter.Identity=$true
+$script:adapter.TamePacket=[pscustomobject]@{State='matched';TargetId=17;Combat=$true}
+$script:adapter.Pressed=@();$script:lastClickKey=''
+$tame=New-OperatorTestRequest Tame.Key Tame @{Keys=@('F3');TargetId=17;RequireCombat=$true};$tame.ReadyAt=1
+Assert-OperatorTest ((Invoke-OperatorRequest $tame).Executed -and $script:adapter.Pressed.Count -eq 1) 'Valid capture did not use the operator.'
+foreach($case in @('target','idle','unknown','combat','marker','identity','session')) {
+    $script:adapter.TamePacket=[pscustomobject]@{State='matched';TargetId=17;Combat=$true}
+    $script:adapter.Login=$true;$script:adapter.Identity=$true
+    $tame=New-OperatorTestRequest Tame.Key Tame @{Keys=@('F3');TargetId=17;RequireCombat=$true};$tame.ReadyAt=1
+    switch($case) {
+        'target'{$script:adapter.TamePacket.TargetId=18}
+        'idle'{$script:adapter.TamePacket.State='idle'}
+        'unknown'{$script:adapter.TamePacket=$null}
+        'combat'{$script:adapter.TamePacket.Combat=$false}
+        'marker'{$script:adapter.Login=$false}
+        'identity'{$script:adapter.Identity=$false}
+        'session'{$tame.Version--}
+    }
+    try{$null=Invoke-OperatorRequest $tame}catch{}
+    Assert-OperatorTest ($script:adapter.Pressed.Count -eq 1) ('Stale capture executed '+$case)
+}
+'PASS: capture rechecks target token, exact match, combat, white marker, identity and session in the common operator. Mock input only.'

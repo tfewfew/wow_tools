@@ -2,6 +2,7 @@
 $ErrorActionPreference='Stop'
 . (Join-Path $ToolRoot 'wowAuto.Engine.ps1')
 . (Join-Path $ToolRoot 'autoFight.Engine.ps1')
+. (Join-Path $ToolRoot 'autoTame.Engine.ps1')
 . (Join-Path $ToolRoot 'wowAuto.Rotation.Match.ps1')
 . (Join-Path $ToolRoot 'wowAuto.AccountDiscovery.ps1')
 function Publish-Detector([string]$Kind,$Data) {$Hub.Publish($Endpoint,$script:version,$Kind,($Data | ConvertTo-Json -Depth 12 -Compress))}
@@ -36,6 +37,9 @@ function Get-DetectorObservation {
     if($Hub.Simulation){throw 'Simulation requires an explicit frame adapter.'}
     $login=[WowAutoRotation.Native]::LoginPoint($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)
     if(-not $login){return [pscustomobject]@{Login=$false;Color='unknown';Packet=$null;Lure='unknown'}}
+    if($script:mode -eq 'tame') {
+        return [pscustomobject]@{Login=$true;Color='';Packet=([WowAutoFight.Native]::ReadTame((Get-DetectorClient)));Lure='unknown'}
+    }
     if($script:mode -eq 'fight') {
         $observation=[WowAutoFight.Native]::Observe((Get-DetectorClient))
         if($observation.Pending){throw (New-Object WowAutoCapture.PendingException $observation.Error)}
@@ -110,7 +114,8 @@ function Invoke-DetectorScan {
     while(Test-DetectorCurrent) {
         $observation=Get-DetectorObservationReady
         $valid=($script:mode -eq 'fish' -and $observation.Color -in @('red','green')) -or
-            ($script:mode -eq 'fight' -and $observation.Packet -and $observation.Packet.Action -ne 'dead')
+            ($script:mode -eq 'fight' -and $observation.Packet -and $observation.Packet.Action -ne 'dead') -or
+            ($script:mode -eq 'tame' -and $observation.Packet -and $observation.Packet.State -in @('idle','matched'))
         if($valid -or $Hub.Now -ge $until){break};$null=Wait-Detector $script:config.Periods.CaptureRetryMs
     }
     if(-not (Test-DetectorCurrent)){return}
@@ -139,6 +144,9 @@ function Start-DetectorTask {
             $script:audio=New-Object WowAuto.Audio.ProcessCapture($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,$template,($script:config.AudioThreshold/100.0),$notification)
             $script:audioFeature=$script:config.FeaturePath;$script:audioSession=-1L
         }
+    } elseif($script:mode -eq 'tame') {
+        $script:tameConfig=ConvertTo-AutoTameConfig $script:config.Tame -RequireKey
+        $script:tame=New-AutoTameSession
     } else {
         $observation=Get-DetectorObservationReady
         if(-not $observation.Packet){throw '战斗协议不可读，不能开始。'}
@@ -149,7 +157,7 @@ function Start-DetectorTask {
     $script:running=$true;$script:round++
     if(-not $script:direct){$script:runLogins++}
     Publish-Detector taskstart @{Role=$script:roleName;Index=$script:index;Mode=$script:mode;UseItem=$script:useItem;Round=$script:round;Direct=$script:direct;SwitchCount=([Math]::Max(0,$script:runLogins-1));Cycles=(Get-WowAutoCycleCount $script:scheduler $Endpoint.Key);BiteTimeouts=(Get-WowAutoBiteTimeoutCount $script:scheduler $Endpoint.Key);ClassId=$(if($script:combat -and $script:mode -eq 'fight'){$script:combat.ClassId}else{0})}
-    Write-Detector ('已开始'+$(if($script:mode -eq 'fight'){'战斗'}else{'钓鱼'})+'；角色：'+$script:roleName+'；执行轮次 '+$script:round)
+    Write-Detector ('已开始'+@{fight='战斗';fish='钓鱼';tame='抓宠'}[$script:mode]+'；角色：'+$script:roleName+'；执行轮次 '+$script:round)
 }
 function Get-DetectorProfile([int]$ClassId) {
     if(-not $script:config.ProfilesReady){throw '战斗配置无效，请先在设置中修正。'}
@@ -312,6 +320,20 @@ function Invoke-DetectorTask {
 }
 function Invoke-DetectorTaskCore {
     $now=$Hub.Now
+    if($script:mode -eq 'tame') {
+        if($now -lt $script:nextColor){return}
+        $script:nextColor=$now+100
+        $observation=Get-DetectorObservation
+        $packet=if($observation.Login){$observation.Packet}else{$null}
+        if($packet -and $packet.State -eq 'dead'){throw '角色死亡或处于灵魂状态，抓宠已停止。'}
+        $action=Get-AutoTameAction $script:tame $packet $script:tameConfig $now
+        if($action -and $now -ge $script:retryAt) {
+            $reply=Request-DetectorOperation Tame.Key Tame @{Keys=@($action.Key);TargetId=$action.TargetId;RequireCombat=$action.RequireCombat}
+            if($reply -and $reply.Executed){Complete-AutoTameAction $script:tame $action $script:tameConfig $reply.SentAt}
+        }
+        Write-Detector $script:tame.Status
+        return
+    }
     if($script:fishColorRetryAt -gt $now){
         # Retry delays fishing actions only; terminal signals still receive their normal poll.
         if($now -ge $script:nextDeath){
@@ -457,6 +479,10 @@ try {
                 if($script:direct) {
                     $script:roleName='';$script:index=-1;$script:mode=$body.Mode;$script:useItem=[bool]$body.UseItem
                     if($script:mode -eq 'fish' -and -not (Invoke-DetectorEquipRod)){continue}
+                    if($script:mode -eq 'tame') {
+                        Invoke-DetectorScan
+                        if(-not (Test-DetectorCurrent)){continue}
+                    }
                     Start-DetectorTask
                 }
                 else {
@@ -484,7 +510,7 @@ try {
             if([WowAutoCapture.Native]::IsPending($_.Exception)){Repair-DetectorCapture;$null=Wait-Detector $script:config.Periods.CaptureRetryMs;continue}
             if($script:running -and $_.Exception.Message -match '前台保护时间') {
                 $script:retryAt=$Hub.Now+$script:config.FocusRetryMs
-                if($script:mode -eq 'fish'){Suspend-WowAutoFocus $script:scheduler $Endpoint.Key $Hub.Now '窗口操作暂时失败。'}else{$script:combat.Due=$script:retryAt}
+                if($script:mode -eq 'fish'){Suspend-WowAutoFocus $script:scheduler $Endpoint.Key $Hub.Now '窗口操作暂时失败。'}elseif($script:mode -eq 'fight'){$script:combat.Due=$script:retryAt}
                 Write-Detector ('窗口操作失败，继续后台检测，等待 '+$script:config.FocusRetryMs+'ms 后重试操作。');continue
             }
             $script:running=$false;Stop-DetectorAudio
