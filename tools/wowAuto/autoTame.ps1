@@ -11,6 +11,7 @@ function Save-AutoTamePage {
         $draft.($stage+'Key')=$ui.Keys[$stage].Text
         $draft.($stage+'WaitMs')=[int]($ui.Waits[$stage].Value*1000)
     }
+    $draft.BackwardHoldMs=[int]($ui.BackwardHold.Value*1000)
     $script:autoTame.Config=Save-AutoTameConfig $script:autoTame.ConfigPath $draft
     $script:autoTame.Error=''
     $ui.Feedback.Text='抓宠设置已保存，下次开始时生效。'
@@ -50,7 +51,7 @@ function Update-AutoTamePage {
 function Initialize-AutoTamePage {
     $page=New-Object Windows.Forms.TabPage
     $page.Text='自动抓宠';$page.BackColor=$script:uiColors.Background;$page.ForeColor=$script:uiColors.Text;$page.AutoScroll=$true
-    $page.AutoScrollMinSize=New-Object Drawing.Size(900,620)
+    $page.AutoScrollMinSize=New-Object Drawing.Size(900,668)
     $tabs.TabPages.Add($page)
     $ui=@{Page=$page;Keys=@{};Waits=@{};Rows=@();Signature=$null};$script:autoTame.Ui=$ui
     $title=New-Object Windows.Forms.Label;$title.Text='自动抓宠';$title.SetBounds(20,16,850,36);$title.Font=New-Object Drawing.Font($form.Font.FontFamily,18,[Drawing.FontStyle]::Bold)
@@ -70,14 +71,20 @@ function Initialize-AutoTamePage {
         $page.Controls.AddRange([Windows.Forms.Control[]]@($label,$box,$clear,$waitLabel,$wait));$ui.Keys[$stage]=$box;$ui.Waits[$stage]=$wait
         $y+=52
     }
-    $note=New-Object Windows.Forms.Label;$note.Text='可选按键留空则跳过该阶段及等待。每次短按并释放，之后开始计时。捕捉重复到目标丢失或脱战。';$note.SetBounds(20,326,860,48)
-    $save=New-Object WowAuto.DimButton;$save.Text='保存抓宠设置';$save.SetBounds(20,380,160,36);Set-UiButtonStyle $save
+    $holdLabel=New-Object Windows.Forms.Label
+    $holdLabel.Text='后退按住时长（秒，0 为短按）';$holdLabel.SetBounds(20,326,310,32)
+    $hold=New-Object Windows.Forms.NumericUpDown
+    $hold.DecimalPlaces=2;$hold.Increment=[decimal]0.1;$hold.Minimum=0;$hold.Maximum=60
+    $hold.Value=[decimal]$script:autoTame.Config.BackwardHoldMs/1000;$hold.SetBounds(335,326,110,32)
+    $ui.BackwardHold=$hold
+    $note=New-Object Windows.Forms.Label;$note.Text='可选按键留空则跳过该阶段。后退松键后，再计算“执行后等待”。捕捉重复到目标丢失或脱战。';$note.SetBounds(20,374,860,48)
+    $save=New-Object WowAuto.DimButton;$save.Text='保存抓宠设置';$save.SetBounds(20,428,160,36);Set-UiButtonStyle $save
     $save.Add_Click({try{Save-AutoTamePage}catch{$script:autoTame.Ui.Feedback.Text=$_.Exception.Message}})
-    $feedback=New-Object Windows.Forms.Label;$feedback.SetBounds(200,384,650,44);$feedback.Text=$script:autoTame.Error;$ui.Feedback=$feedback
-    $windows=New-Object Windows.Forms.ComboBox;$windows.DropDownStyle='DropDownList';$windows.SetBounds(20,450,540,34);$ui.Windows=$windows
-    $start=New-Object WowAuto.DimButton;$start.Text='开始抓宠';$start.SetBounds(580,448,120,36);Set-UiButtonStyle $start;$ui.Start=$start
-    $stop=New-Object WowAuto.DimButton;$stop.Text='停止抓宠';$stop.SetBounds(720,448,120,36);Set-UiButtonStyle $stop;$ui.Stop=$stop
-    $status=New-Object Windows.Forms.Label;$status.SetBounds(20,506,830,80);$ui.Status=$status
+    $feedback=New-Object Windows.Forms.Label;$feedback.SetBounds(200,432,650,44);$feedback.Text=$script:autoTame.Error;$ui.Feedback=$feedback
+    $windows=New-Object Windows.Forms.ComboBox;$windows.DropDownStyle='DropDownList';$windows.SetBounds(20,498,540,34);$ui.Windows=$windows
+    $start=New-Object WowAuto.DimButton;$start.Text='开始抓宠';$start.SetBounds(580,496,120,36);Set-UiButtonStyle $start;$ui.Start=$start
+    $stop=New-Object WowAuto.DimButton;$stop.Text='停止抓宠';$stop.SetBounds(720,496,120,36);Set-UiButtonStyle $stop;$ui.Stop=$stop
+    $status=New-Object Windows.Forms.Label;$status.SetBounds(20,554,830,80);$ui.Status=$status
     $start.Add_Click({
         try {
             Save-AutoTamePage
@@ -89,6 +96,6 @@ function Initialize-AutoTamePage {
     })
     $stop.Add_Click({$ui=$script:autoTame.Ui;if($ui.Windows.SelectedIndex -ge 0){$row=$ui.Rows[$ui.Windows.SelectedIndex];if($row.TaskMode -eq 'tame'){Stop-Row $row}};Update-AutoTamePage})
     $windows.Add_SelectedIndexChanged({Update-AutoTamePage})
-    $page.Controls.AddRange([Windows.Forms.Control[]]@($note,$save,$feedback,$windows,$start,$stop,$status))
+    $page.Controls.AddRange([Windows.Forms.Control[]]@($holdLabel,$hold,$note,$save,$feedback,$windows,$start,$stop,$status))
     Update-AutoTamePage
 }

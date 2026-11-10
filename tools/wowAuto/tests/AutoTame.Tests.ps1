@@ -7,6 +7,7 @@ Add-Type -Path (Join-Path $tool 'autoFight.Native.cs') -ReferencedAssemblies Sys
 function Assert-Tame($Condition,[string]$Text){if(-not $Condition){throw $Text}}
 $config=New-AutoTameConfig
 $config.TrapKey='F1';$config.OpeningKey='F2';$config.BackwardKey='S';$config.TameKey='F3'
+$config.BackwardHoldMs=250
 $config=ConvertTo-AutoTameConfig $config -RequireKey
 $packet=[pscustomobject]@{State='matched';Combat=$false;TargetId=1}
 $session=New-AutoTameSession
@@ -14,9 +15,11 @@ $now=0L
 foreach($stage in @('Trap','Opening','Backward','Tame')) {
     $action=Get-AutoTameAction $session $packet $config $now
     Assert-Tame ($action.Stage -ceq $stage) ('Incorrect phase '+$stage)
+    Assert-Tame ($action.KeyHoldMs -eq $(if($stage -eq 'Backward'){250}else{0})) 'Hold duration leaked into another phase.'
     # Queue delay must not count toward the configured post-send wait.
-    Complete-AutoTameAction $session $action $config ($now+200)
-    Assert-Tame ($session.Due -eq $now+200+$config.($stage+'WaitMs')) 'Wait did not start at acknowledgement.'
+    $releasedAt=$now+200+$action.KeyHoldMs
+    Complete-AutoTameAction $session $action $config $releasedAt
+    Assert-Tame ($session.Due -eq $releasedAt+$config.($stage+'WaitMs')) 'Wait did not start after key release acknowledgement.'
     if($stage -eq 'Opening'){$packet.Combat=$true}
     Assert-Tame ($null -eq (Get-AutoTameAction $session $packet $config ($session.Due-1))) 'Phase executed before its exact deadline.'
     $now=$session.Due
@@ -33,11 +36,11 @@ $packet.TargetId=3
 Assert-Tame ((Get-AutoTameAction $session $packet $config ($now+20002)).Stage -eq 'Trap') 'Same-name target identity change retained old stages.'
 $packet.State='idle'
 Assert-Tame ($null -eq (Get-AutoTameAction $session $packet $config $now) -and -not $session.Active) 'Lost or unmatched target did not cancel.'
-$only=New-AutoTameConfig;$only.TameKey='F4';$only=ConvertTo-AutoTameConfig $only -RequireKey
+$only=New-AutoTameConfig;$only.TameKey='F4';$only.BackwardHoldMs=500;$only=ConvertTo-AutoTameConfig $only -RequireKey
 $packet.State='matched';$packet.TargetId=4
 $session=New-AutoTameSession
 $action=Get-AutoTameAction $session $packet $only 0
-Assert-Tame ($action.Stage -eq 'Tame') 'Empty optional keys introduced stages or waits.'
+Assert-Tame ($action.Stage -eq 'Tame' -and $action.KeyHoldMs -eq 0) 'Empty optional keys introduced stages or holds.'
 Complete-AutoTameAction $session $action $only 0
 Assert-Tame ($null -eq (Get-AutoTameAction $session $packet $only 10000) -and -not $session.Active) 'An out-of-combat first capture retried endlessly.'
 $session=New-AutoTameSession;$packet.Combat=$true
@@ -50,12 +53,17 @@ Assert-Tame ($null -eq (Get-AutoTameAction $session $null $only 20000)) 'Unreada
 $path=Join-Path ([IO.Path]::GetTempPath()) ('wow-tame-test-'+[guid]::NewGuid()+'.json')
 try {
     Assert-Tame (-not (Read-AutoTameConfig $path).TameKey) 'Missing config invented a capture key.'
+    $legacy=$config | Select-Object * -ExcludeProperty BackwardHoldMs
+    [IO.File]::WriteAllText($path,($legacy | ConvertTo-Json))
+    $legacyContent=[IO.File]::ReadAllText($path)
+    Assert-Tame ((Read-AutoTameConfig $path).BackwardHoldMs -eq 0 -and [IO.File]::ReadAllText($path) -ceq $legacyContent) 'Legacy config did not retain short-press behavior without rewriting.'
     $null=Save-AutoTameConfig $path $config
-    Assert-Tame ((Read-AutoTameConfig $path).TameWaitMs -eq 10000) 'Config round trip failed.'
+    Assert-Tame ((Read-AutoTameConfig $path).TameWaitMs -eq 10000 -and (Read-AutoTameConfig $path).BackwardHoldMs -eq 250) 'Config round trip failed.'
     $before=[IO.File]::ReadAllText($path)
-    foreach($bad in @('empty','invalid','negative','zero-repeat')) {
+    foreach($bad in @('empty','invalid','negative','zero-repeat','negative-hold','long-hold','invalid-hold')) {
         $draft=$config | ConvertTo-Json | ConvertFrom-Json
         switch($bad){'empty'{$draft.TameKey=''}'invalid'{$draft.TrapKey='Ctrl+Ctrl+A'}'negative'{$draft.BackwardWaitMs=-1}'zero-repeat'{$draft.TameWaitMs=0}}
+        switch($bad){'negative-hold'{$draft.BackwardHoldMs=-1}'long-hold'{$draft.BackwardHoldMs=60001}'invalid-hold'{$draft.BackwardHoldMs='invalid'}}
         $failed=$false;try{$null=Save-AutoTameConfig $path $draft}catch{$failed=$true}
         Assert-Tame ($failed -and [IO.File]::ReadAllText($path) -ceq $before) ('Invalid config partially saved '+$bad)
     }

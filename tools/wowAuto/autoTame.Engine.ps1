@@ -9,6 +9,7 @@ function New-AutoTameConfig {
         TrapWaitMs=1000
         OpeningWaitMs=1000
         BackwardWaitMs=1000
+        BackwardHoldMs=0
         TameWaitMs=10000
     }
 }
@@ -27,6 +28,9 @@ function ConvertTo-AutoTameConfig($Value,[switch]$RequireKey) {
     foreach($field in @('TrapWaitMs','OpeningWaitMs','BackwardWaitMs','TameWaitMs')) {
         $minimum=if($field -eq 'TameWaitMs'){100}else{0}
         $result.$field=Get-AutoFightInteger $Value.$field $minimum 600000 '抓宠等待时间（ms）'
+    }
+    if($null -ne $Value.BackwardHoldMs){
+        $result.BackwardHoldMs=Get-AutoFightInteger $Value.BackwardHoldMs 0 60000 '后退按住时长（ms）'
     }
     return $result
 }
@@ -111,6 +115,7 @@ function Get-AutoTameAction($Session,$Packet,$Config,[long]$Now) {
         Key=$Config.($stage+'Key')
         TargetId=$Session.TargetId
         RequireCombat=($Session.SeenCombat -or $Session.TameSent)
+        KeyHoldMs=$(if($stage -eq 'Backward'){$Config.BackwardHoldMs}else{0})
     }
 }
 function Complete-AutoTameAction($Session,$Action,$Config,[long]$SentAt) {

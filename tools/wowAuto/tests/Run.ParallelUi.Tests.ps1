@@ -33,6 +33,8 @@ public static class ParallelFixture {
     public static readonly ManualResetEventSlim DiscoveryRelease=new ManualResetEventSlim(false);
     public static readonly ConcurrentQueue<string> InputOrder=new ConcurrentQueue<string>();
     public static readonly ConcurrentQueue<string> TameActions=new ConcurrentQueue<string>();
+    public static readonly ConcurrentQueue<string> TameHoldRequests=new ConcurrentQueue<string>();
+    public static int TameInterruptPid,TameInterruptions;
     public static readonly ConcurrentDictionary<int,string> TameStates=new ConcurrentDictionary<int,string>();
     public static readonly ConcurrentDictionary<int,int> TameCombat=new ConcurrentDictionary<int,int>();
     public static readonly ConcurrentDictionary<int,int> TameTargets=new ConcurrentDictionary<int,int>();
@@ -57,7 +59,15 @@ function Invoke-OperatorRequest($Request) {
     if(-not $Request.Current){return @{Executed=$false;SentAt=$Hub.Now}}
     [ParallelFixture]::Add([ParallelFixture]::Actions,$id)
     [ParallelFixture]::InputOrder.Enqueue($id.ToString()+':'+$Request.Kind)
-    if($Request.Kind -eq 'Tame.Key'){$body=$Request.Json | ConvertFrom-Json;[ParallelFixture]::TameActions.Enqueue($id.ToString()+':'+$body.Keys[0])}
+    if($Request.Kind -eq 'Tame.Key'){
+        $body=$Request.Json | ConvertFrom-Json
+        [ParallelFixture]::TameActions.Enqueue($id.ToString()+':'+$body.Keys[0])
+        [ParallelFixture]::TameHoldRequests.Enqueue($id.ToString()+':'+$body.Stage+':'+$body.KeyHoldMs)
+        if($id -eq [ParallelFixture]::TameInterruptPid -and $body.Stage -eq 'Backward'){
+            [ParallelFixture]::TameInterruptions++
+            return @{Executed=$false;SentAt=$Hub.Now;TameInterrupted=$true}
+        }
+    }
     if($Request.Kind -in @('Rotation.EquipRod','Fish.EquipRod')){
         $body=$Request.Json | ConvertFrom-Json
         if($body.Mode -cne 'fish' -or $body.Key -cne 'Ctrl+F3'){throw 'Unexpected rod equip task/key.'}

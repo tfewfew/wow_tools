@@ -22,8 +22,20 @@ function Invoke-OperatorAdapter([string]$Action,$Endpoint,$Data=$null,[int]$Dura
         'Color' {return $script:adapter.Color}
         'Lure' {return $script:adapter.Lure}
         'Packet' {return [pscustomobject]@{Packet=$script:adapter.Packet}}
-        'TamePacket' {return $script:adapter.TamePacket}
+        'TamePacket' {if($script:adapter.Held -and $script:adapter.HoldReadError){throw 'fixture capture pending'};return $script:adapter.TamePacket}
         'Press' {$script:adapter.Pressed+=,[string]$Data;return $true}
+        'BeginHold' {
+            $script:adapter.HoldBegins++
+            $script:adapter.Held=$true;$script:adapter.HeldKey=[string]$Data
+            if($script:adapter.BeginError){throw 'fixture begin failure'}
+            return $true
+        }
+        'ReleaseHold' {
+            $script:adapter.Held=$false;$script:adapter.HoldReleases++
+            $script:adapter.ReleasedAt=$Hub.Now
+            if(-not $script:realHoldClock){$Hub.Now+=7}
+            return $true
+        }
         'Click' {$script:adapter.Clicks+=,$Data;return $true}
         'Enable' {$script:adapter.Enabled++;return $true}
         'ProcessState' {return $script:adapter.ProcessState}
@@ -178,3 +190,86 @@ foreach($case in @('target','idle','unknown','combat','marker','identity','sessi
     Assert-OperatorTest ($script:adapter.Pressed.Count -eq 1) ('Stale capture executed '+$case)
 }
 'PASS: capture rechecks target token, exact match, combat, white marker, identity and session in the common operator. Mock input only.'
+
+$savedWaitOperator=${function:Wait-Operator}
+$Hub | Add-Member NoteProperty Paused $false
+function Wait-Operator($Request,[int]$Milliseconds) {
+    $Hub.Now+=$Milliseconds
+    if($Hub.Now -ge 1100){
+        switch($script:holdScenario){
+            'stop'{$null=$Request.Owner.Send('Stop','{}')}
+            'refresh'{$null=$Request.Owner.Send('Scan','{}')}
+            'close'{$Hub.Closing=$true}
+            'pause'{$Hub.Paused=$true}
+            'target'{$script:adapter.TamePacket.TargetId=18}
+            'lost'{$script:adapter.TamePacket.State='idle'}
+            'combat'{$script:adapter.TamePacket.Combat=$false}
+            'unknown'{$script:adapter.TamePacket=$null}
+            'focus'{$script:adapter.Foreground=$false}
+            'marker'{$script:adapter.Login=$false}
+            'read-error'{$script:adapter.HoldReadError=$true}
+            'combat-cycle'{$script:adapter.TamePacket.Combat=$Hub.Now -lt 1200}
+        }
+    }
+    return $Request.Current -and -not $Hub.Closing
+}
+try {
+    foreach($scenario in @('complete','stop','refresh','close','pause','target','lost','combat','unknown','focus','marker','read-error','combat-cycle','begin-error')) {
+        $owner=New-Object WowAuto.Threading.Endpoint;$owner.Key='11:1';$owner.Pid=11;$owner.Path='fixture';$owner.Flavor='titan'
+        $Hub.Now=1000L;$Hub.Closing=$false;$Hub.Paused=$false
+        $script:adapter.Login=$true;$script:adapter.Foreground=$true;$script:adapter.Identity=$true
+        $script:adapter.Held=$false;$script:adapter.HoldReadError=$false;$script:adapter.HoldBegins=0;$script:adapter.HoldReleases=0
+        $script:adapter.BeginError=$scenario -eq 'begin-error';$script:holdScenario=$scenario
+        $script:adapter.TamePacket=[pscustomobject]@{State='matched';TargetId=17;Combat=($scenario -ne 'combat-cycle')}
+        $hold=New-OperatorTestRequest Tame.Key Tame @{Keys=@('Ctrl+S');Stage='Backward';TargetId=17;RequireCombat=($scenario -ne 'combat-cycle');KeyHoldMs=350}
+        $hold.ReadyAt=1
+        $failed=$false
+        try{$result=Invoke-OperatorRequest $hold}catch{$failed=$true}
+        Assert-OperatorTest (-not $script:adapter.Held -and $script:adapter.HoldBegins -eq 1 -and $script:adapter.HoldReleases -eq 1 -and $script:adapter.HeldKey -eq 'Ctrl+S') ('Hold failed to release exactly once '+$scenario)
+        if($scenario -eq 'begin-error'){
+            Assert-OperatorTest $failed 'Begin failure was hidden.'
+        }elseif($scenario -eq 'complete'){
+            Assert-OperatorTest (-not $failed -and $result.Executed -and -not $result.TameInterrupted -and $script:adapter.ReleasedAt -eq 1350 -and $result.SentAt -eq 1357) 'Hold ended early or returned acknowledgement before release.'
+        }else{
+            Assert-OperatorTest (-not $failed -and -not $result.Executed -and $result.TameInterrupted -and $script:adapter.ReleasedAt -le 1200) ('Interrupted hold continued or was retried '+$scenario)
+            if($scenario -eq 'combat-cycle'){Assert-OperatorTest $result.CombatObserved 'Combat observed during the hold was lost.'}
+            if($scenario -eq 'read-error'){Assert-OperatorTest ($result.Error -match 'capture pending') 'Capture failure diagnostic was lost.'}
+        }
+    }
+}finally{${function:Wait-Operator}=$savedWaitOperator}
+
+$Hub.Closing=$false;$Hub.Paused=$false;$script:adapter.BeginError=$false
+foreach($invalid in @('stage','keys','negative','long','type')){
+    $body=@{Keys=@('S');Stage='Backward';TargetId=17;RequireCombat=$true;KeyHoldMs=350}
+    switch($invalid){
+        'stage'{$body.Stage='Tame'}
+        'keys'{$body.Keys=@('S','F3')}
+        'negative'{$body.KeyHoldMs=-1}
+        'long'{$body.KeyHoldMs=60001}
+        'type'{$body.KeyHoldMs='invalid'}
+    }
+    $hold=New-OperatorTestRequest Tame.Key Tame $body;$hold.ReadyAt=1
+    $before=$script:adapter.HoldBegins;$failed=$false
+    try{$null=Invoke-OperatorRequest $hold}catch{$failed=$true}
+    Assert-OperatorTest ($failed -and $script:adapter.HoldBegins -eq $before) ('Invalid hold reached native key-down '+$invalid)
+}
+
+# Exercise the production cancellation wait with a real clock and simulated key primitives.
+$script:realHoldClock=[Diagnostics.Stopwatch]::StartNew()
+$Hub.PSObject.Properties.Remove('Now')
+$Hub | Add-Member ScriptProperty Now {$script:realHoldClock.ElapsedMilliseconds}
+try {
+    $Hub.Closing=$false;$Hub.Paused=$false
+    $script:adapter.Foreground=$true;$script:adapter.Login=$true;$script:adapter.BeginError=$false
+    $script:adapter.HoldReadError=$false;$script:adapter.HoldBegins=0;$script:adapter.HoldReleases=0
+    $script:adapter.TamePacket=[pscustomobject]@{State='matched';TargetId=17;Combat=$true}
+    $timed=[pscustomobject]@{Owner=$owner;Timing=(New-Object WowAuto.Threading.QueueTimings)}
+    $timed | Add-Member ScriptProperty Current {$script:realHoldClock.ElapsedMilliseconds -lt 250}
+    $body=[pscustomobject]@{Keys=@('S');TargetId=17;RequireCombat=$true}
+    $result=Invoke-OperatorTameHold $timed $body 10000
+    Assert-OperatorTest ($result.TameInterrupted -and -not $result.Executed -and -not $script:adapter.Held -and $script:adapter.HoldReleases -eq 1 -and $script:realHoldClock.ElapsedMilliseconds -lt 1500) 'Production wait did not release a cancelled long hold promptly.'
+}finally{
+    $script:realHoldClock.Stop();$script:realHoldClock=$null
+    $Hub.PSObject.Properties.Remove('Now');$Hub | Add-Member NoteProperty Now 0L
+}
+'PASS: configurable backward hold, exact release/acknowledgement timing, chord release and stop/refresh/close/pause/target/combat/unknown/focus/marker/error cancellation. Offline timing and mock input only.'

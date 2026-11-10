@@ -328,8 +328,15 @@ function Invoke-DetectorTaskCore {
         if($packet -and $packet.State -eq 'dead'){throw '角色死亡或处于灵魂状态，抓宠已停止。'}
         $action=Get-AutoTameAction $script:tame $packet $script:tameConfig $now
         if($action -and $now -ge $script:retryAt) {
-            $reply=Request-DetectorOperation Tame.Key Tame @{Keys=@($action.Key);TargetId=$action.TargetId;RequireCombat=$action.RequireCombat}
+            $reply=Request-DetectorOperation Tame.Key Tame @{Keys=@($action.Key);TargetId=$action.TargetId;RequireCombat=$action.RequireCombat;Stage=$action.Stage;KeyHoldMs=$action.KeyHoldMs}
+            if($reply -and $reply.CombatObserved){$script:tame.SeenCombat=$true}
             if($reply -and $reply.Executed){Complete-AutoTameAction $script:tame $action $script:tameConfig $reply.SentAt}
+            elseif($reply -and $reply.TameInterrupted){
+                $script:tame.FinishedTarget=$action.TargetId
+                $script:tame.Active=$false
+                $script:tame.Status='后退已中断并松键，等待更换目标或重新开始。'
+                if($reply.Error){$script:tame.Status+=' '+$reply.Error}
+            }
         }
         Write-Detector $script:tame.Status
         return

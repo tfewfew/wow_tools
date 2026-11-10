@@ -60,6 +60,8 @@ function Invoke-OperatorAdapter([string]$Action,$Endpoint,$Data=$null,[int]$Dura
         'Packet' {return [WowAutoFight.Native]::Observe((Get-OperatorClient $Endpoint))}
         'TamePacket' {return [WowAutoFight.Native]::ReadTame((Get-OperatorClient $Endpoint))}
         'Press' {$binding=ConvertFrom-AutoFightBinding ([string]$Data);return [WowAutoFight.Native]::Press((Get-OperatorClient $Endpoint),$binding.Code,$binding.Ctrl,$binding.Shift,$binding.Alt,$DurationMs)}
+        'BeginHold' {$binding=ConvertFrom-AutoFightBinding ([string]$Data);return [WowAutoFight.Native]::BeginHold((Get-OperatorClient $Endpoint),$binding.Code,$binding.Ctrl,$binding.Shift,$binding.Alt)}
+        'ReleaseHold' {[WowAutoFight.Native]::ReleaseHold();return $true}
         'Up' {return [WowAuto.NativeInput]::PressChord($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,38,$false,$false,$false,$DurationMs)}
         'Enable' {return [WowAuto.NativeInput]::SendDetectorCommand($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,$Data.Mode,$DurationMs)}
         'Logout' {return [WowAuto.NativeInput]::SendRotationCommand($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,'logout',0,$DurationMs)}
@@ -81,6 +83,44 @@ function Invoke-OperatorAdapter([string]$Action,$Endpoint,$Data=$null,[int]$Dura
         }
         default {throw 'Unknown operator adapter action.'}
     }
+}
+function Test-OperatorTameTarget($Packet,[int]$TargetId,[bool]$RequireCombat) {
+    return [bool]($Packet -and $Packet.State -eq 'matched' -and $Packet.TargetId -eq $TargetId -and
+        (-not $RequireCombat -or $Packet.Combat))
+}
+function Invoke-OperatorTameHold($Request,$Body,[int]$Milliseconds) {
+    $endpoint=$Request.Owner
+    $started=$false
+    $completed=$false
+    $failure=''
+    $requireCombat=[bool]$Body.RequireCombat
+    try {
+        if($Request.Current -and -not $Hub.Closing -and -not $Hub.Paused){
+            $started=Invoke-OperatorAdapter BeginHold $endpoint ([string]$Body.Keys[0])
+        }
+        if($started){
+            $until=$Hub.Now+$Milliseconds
+            while($Request.Current -and -not $Hub.Closing -and -not $Hub.Paused){
+                if(-not (Invoke-OperatorAdapter Foreground $endpoint) -or -not (Invoke-OperatorAdapter Login $endpoint)){break}
+                $packet=Invoke-OperatorAdapter TamePacket $endpoint
+                if($packet -and $packet.Combat){$requireCombat=$true}
+                if(-not (Test-OperatorTameTarget $packet $Body.TargetId $requireCombat)){break}
+                if($Hub.Now -ge $until){
+                    $completed=$true
+                    break
+                }
+                $delay=[int][Math]::Min(100,$until-$Hub.Now)
+                if(-not (Wait-Operator $Request $delay)){break}
+            }
+        }
+    }catch{
+        if(-not $started){throw}
+        # A partially completed move must never be requeued as a fresh full-duration hold.
+        $failure=$_.Exception.Message
+    }finally{
+        $null=Invoke-OperatorAdapter ReleaseHold $endpoint
+    }
+    return @{Executed=$completed;SentAt=$Hub.Now;TameInterrupted=($started -and -not $completed);CombatObserved=$requireCombat;Error=$failure}
 }
 function Invoke-OperatorShutdown($Request) {
     if($Hub.Closing -or -not $Request.Current){return @{Executed=$false;SentAt=$Hub.Now}}
@@ -179,8 +219,13 @@ function Invoke-OperatorRequest($Request) {
     }
     if($Request.Domain -eq 'Tame') {
         $packet=Invoke-OperatorAdapter TamePacket $endpoint
-        if(-not $packet -or $packet.State -ne 'matched' -or $packet.TargetId -ne $body.TargetId -or
-            ($body.RequireCombat -and -not $packet.Combat)){return @{Executed=$false;SentAt=$Hub.Now}}
+        if(-not (Test-OperatorTameTarget $packet $body.TargetId $body.RequireCombat)){return @{Executed=$false;SentAt=$Hub.Now}}
+        $keyHoldMs=0
+        if($null -ne $body.KeyHoldMs){$keyHoldMs=Get-AutoFightInteger $body.KeyHoldMs 0 60000 '后退按住时长（ms）'}
+        if($keyHoldMs -gt 0){
+            if($body.Stage -cne 'Backward' -or @($body.Keys).Count -ne 1){throw '持续按键仅支持抓宠的单个后退键。'}
+            return Invoke-OperatorTameHold $Request $body $keyHoldMs
+        }
     } elseif($Request.Domain -eq 'Fight') {
         $observation=Invoke-OperatorAdapter Packet $endpoint;$packet=$observation.Packet
         if(-not $packet -or $packet.ClassId -ne $body.ClassId -or $packet.Busy){return @{Executed=$false;SentAt=$Hub.Now}}

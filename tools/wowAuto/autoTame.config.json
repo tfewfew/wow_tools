@@ -7,5 +7,6 @@
   "TrapWaitMs": 1000,
   "OpeningWaitMs": 1000,
   "BackwardWaitMs": 1000,
+  "BackwardHoldMs": 0,
   "TameWaitMs": 10000
 }
