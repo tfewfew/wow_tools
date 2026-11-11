@@ -155,9 +155,9 @@ local function Capture(button)
     record.fill:EnableMouse(false)
     record.mask = record.fill:CreateMaskTexture(nil,"BACKGROUND")
     record.nativeMask = button:CreateMaskTexture(nil,"BACKGROUND")
-    record.nativeMask:SetAllPoints(button)
-    record.nativeMask:SetTexture(mediaPath.."ButtonNativeBorderMask.tga","CLAMP","CLAMP")
-    record.nativeMask:SetTextureSliceMargins(5,5,5,5)
+    record.nativeMask:SetAllPoints(record.fill)
+    -- Clear the interior rectangle while keeping the original artwork outside it.
+    record.nativeMask:SetTexture(mediaPath.."ButtonNativeCutout.tga","CLAMPTOWHITE","CLAMPTOWHITE","NEAREST")
     record.border = button:CreateTexture(nil,"OVERLAY")
     record.border:SetTexture(mediaPath.."ButtonRoundBorder.tga")
     record.border:SetTextureSliceMargins(4,4,4,4)
@@ -210,6 +210,32 @@ local function Paint(record, value, preview)
     end
     record.active = true -- Restore partial mask or appearance changes after a failed apply.
     local native = value.border.style == "native"
+    -- Native artwork includes transparent padding inside the unchanged button hit rectangle.
+    local height = Read(button,"GetHeight") or 22
+    local padding,inset
+    if record.close and record.legacy then padding,inset=height*6/32,height*8/32
+    elseif record.legacy then padding,inset=height*2/22,height*4/22
+    elseif record.close then padding,inset=height/24,height/8
+    else padding,inset=height/16,height/8 end
+    record.fill:ClearAllPoints()
+    record.mask:ClearAllPoints()
+    if native then
+        local fillInset = inset+1
+        local xInset = math.min(fillInset,math.max(0,((Read(button,"GetWidth") or height)-1)/2))
+        local yInset = math.min(fillInset,math.max(0,(height-1)/2))
+        record.fill:SetPoint("TOPLEFT",button,"TOPLEFT",xInset,-yInset)
+        record.fill:SetPoint("BOTTOMRIGHT",button,"BOTTOMRIGHT",-xInset,yInset)
+        record.mask:SetAllPoints(record.fill)
+        record.mask:SetTexture(white,"CLAMPTOBLACKADDITIVE","CLAMPTOBLACKADDITIVE","NEAREST")
+        record.mask:ClearTextureSlice()
+    else
+        local fillInset = padding + (value.border.style == "thin" and 1 or 0)
+        record.fill:SetAllPoints(button)
+        record.mask:SetPoint("TOPLEFT",button,"TOPLEFT",fillInset,-fillInset)
+        record.mask:SetPoint("BOTTOMRIGHT",button,"BOTTOMRIGHT",-fillInset,fillInset)
+        record.mask:SetTexture(mediaPath.."ButtonRoundMask.tga","CLAMPTOBLACKADDITIVE","CLAMPTOBLACKADDITIVE")
+        record.mask:SetTextureSliceMargins(4,4,4,4)
+    end
     for _, state in ipairs(module.states) do Remember(record,Read(button,state.getter),native) end
     for _, key in ipairs({"Left","Middle","Center","Right"}) do Remember(record,button[key],native) end
     local slice = button.NineSlice
@@ -219,29 +245,6 @@ local function Paint(record, value, preview)
         end
     end
     for texture, alpha in pairs(record.alpha) do texture:SetAlpha(native and alpha or 0) end
-
-    -- Native artwork includes transparent padding inside the unchanged button hit rectangle.
-    local height = Read(button,"GetHeight") or 22
-    local padding,inset
-    if record.close and record.legacy then padding,inset=height*6/32,height*8/32
-    elseif record.legacy then padding,inset=height*2/22,height*4/22
-    elseif record.close then padding,inset=height/24,height/8
-    else padding,inset=height/16,height/8 end
-    record.nativeMask:SetScale(inset/4)
-    record.mask:ClearAllPoints()
-    if native then
-        record.mask:SetScale(inset/4)
-        record.mask:SetAllPoints(button)
-        record.mask:SetTexture(mediaPath.."ButtonNativeFillMask.tga","CLAMPTOBLACKADDITIVE","CLAMPTOBLACKADDITIVE")
-        record.mask:SetTextureSliceMargins(5,5,5,5)
-    else
-        local fillInset = padding + (value.border.style == "thin" and 1 or 0)
-        record.mask:SetScale(1)
-        record.mask:SetPoint("TOPLEFT",button,"TOPLEFT",fillInset,-fillInset)
-        record.mask:SetPoint("BOTTOMRIGHT",button,"BOTTOMRIGHT",-fillInset,fillInset)
-        record.mask:SetTexture(mediaPath.."ButtonRoundMask.tga","CLAMPTOBLACKADDITIVE","CLAMPTOBLACKADDITIVE")
-        record.mask:SetTextureSliceMargins(4,4,4,4)
-    end
     local path = module.ResolveMaterial(value.material)
     for _, state in ipairs(module.states) do
         local texture = record.textures[state.key]
@@ -270,7 +273,7 @@ local function Paint(record, value, preview)
     else record.border:Hide() end
     if record.glyph then
         local font = Read(record.glyph,"GetFont")
-        local size = math.max(8,math.min(20,(height-2*padding)*.55))
+        local size = math.max(8,math.min(20,(height-2*padding)*.7))
         if font then record.glyph:SetFont(font,size,"OUTLINE") end
         record.glyph:SetAlpha(enabled and 1 or .4)
         record.glyph:Show()

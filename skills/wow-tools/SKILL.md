@@ -5,6 +5,11 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 # wow_tools
 
+## 原版材质实际边界与叉号修正（2026-11-11）
+
+- forerver 2.2.64 / titan 2.1.61将原版模式材质子Button直接锚定在按钮内部，使用既有inset再加1px，22px旧式菜单为5px、32px旧式关闭为9px、24px现代关闭为4px。四状态纹理锚定材质子控件，原版模式材质遮罩为WHITE8X8并清除九宫格。
+- 原始纹理附加的ButtonNativeCutout.tga为32×32全透明RGBA，CLAMPTOWHITE / NEAREST采样，锚定材质子控件，矩形外显示原始边缘，内部交由材质绘制。旧ButtonNativeFillMask / ButtonNativeBorderMask从源码退役。叉号字号系数从可见高度.55提高到.7，边界8–20沿用。模拟检查原版四状态实际锚点、多尺寸、原生边缘孔位对齐、模式切换和两服叉号字号，配合客户端模拟与ClientProfiles后提交推送同步。
+
 ## 原版边框选项与按钮留白（2026-11-11）
 
 - forerver 2.2.63 / titan 2.1.60增加border={style="native"|"thin"|"none",color=RGBA}，默认原版，细边框有独立RGBA取色。旧配置缺border时只读补默认，下次手动修改保存；颜色取消、旧取色回调失效及账号级持久化沿用。按钮页高度600，复用MinimalTabTemplate及CreateRadioButtonGroup选择边框，原版和无边框时边框取色项禁用。

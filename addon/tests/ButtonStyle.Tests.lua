@@ -46,6 +46,7 @@ for _, flavor in ipairs({"titan", "forerver"}) do
         function object:IsObjectType(value) return self.kind==value end
         function object:IsForbidden() return self.forbidden==true end
         function object:SetSize(w,h) self.width,self.height=w,h end
+        function object:GetWidth() return self.width or 144 end
         function object:GetHeight() return self.height or 20 end
         function object:GetFrameLevel() return self.level or (self.parent and self.parent:GetFrameLevel()+1 or 0) end
         function object:SetFrameLevel(level) self.level=level end
@@ -72,8 +73,8 @@ for _, flavor in ipairs({"titan", "forerver"}) do
         function object:GetBlendMode() return self.blend or "BLEND" end
         function object:GetTexture() return self.path end
         function object:GetAtlas() return self.atlas end
-        function object:SetTexture(path,horizontal,vertical)
-            self.path=path;self.atlas=nil;self.wrap={horizontal,vertical}
+        function object:SetTexture(path,horizontal,vertical,filter)
+            self.path=path;self.atlas=nil;self.wrap={horizontal,vertical};self.filter=filter
         end
         function object:SetAtlas(atlas) self.atlas=atlas;self.path=9000 end
         function object:SetAlpha(alpha)
@@ -192,11 +193,10 @@ for _, flavor in ipairs({"titan", "forerver"}) do
         assert(data:byte(13)==32 and data:byte(14)==0 and data:byte(15)==32 and data:byte(16)==0,"Invalid mask dimensions")
         return function(x,y) return data:byte(18+(y*32+x)*4+4) end
     end
-    local inner,outer=ReadShape("ButtonNativeFillMask"),ReadShape("ButtonNativeBorderMask")
+    local cutout=ReadShape("ButtonNativeCutout")
     for y=0,31 do
-        for x=0,31 do assert(inner(x,y)+outer(x,y)==255,"Native border and fill leave a gap or overlap") end
+        for x=0,31 do assert(cutout(x,y)==0,"Native interior cutout contains opaque pixels") end
     end
-    assert(outer(0,0)==255 and outer(16,0)==255 and outer(16,16)==0,"Native mask clips original corners or fills the center")
     local rounded,thin=ReadShape("ButtonRoundMask"),ReadShape("ButtonRoundBorder")
     assert(rounded(0,0)<32 and rounded(16,16)==255 and thin(16,16)==0 and thin(16,0)==255)
     dofile(addon.."ButtonStyle.lua")
@@ -229,7 +229,7 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     end
     local function CheckSkin(button,mode)
         local fill=assert(Fill(button),"Missing material child")
-        assert(fill.shown and fill.allPoints==button and fill.level<button:GetFrameLevel(),"Material hides native text or changes bounds")
+        assert(fill.shown and fill.level<button:GetFrameLevel(),"Material hides native text")
         assert(not fill.scripts.OnClick and fill.mouseEnabled==false,"Material child intercepts native input")
         local mask=fill:GetNormalTexture().masks[1]
         local border=Border(button)
@@ -238,12 +238,16 @@ for _, flavor in ipairs({"titan", "forerver"}) do
             assert(#texture.masks==1 and texture.masks[1]==mask and not texture.sliceMargins,"A material state bypasses the mask")
         end
         if mode=="native" then
-            assert(not border.shown and mask.path:find("ButtonNativeFillMask",1,true),"Native border mode uses the flat border")
+            assert(not border.shown and mask.path=="Interface\\Buttons\\WHITE8X8" and not mask.sliceMargins,"Native material still depends on sliced mask geometry")
             local normal=button:GetNormalTexture() or button.Left
             assert(normal.alpha>0 and #(normal.masks or {})==1,"Original border artwork was hidden or lacked its inner cutout")
-            assert(normal.masks[1].path:find("ButtonNativeBorderMask",1,true),"Original artwork received the wrong mask")
-            assert(mask.allPoints==button and mask.scale==normal.masks[1].scale,"Native border and material no longer align")
+            local nativeMask=normal.masks[1]
+            assert(nativeMask.path:find("ButtonNativeCutout",1,true) and nativeMask.wrap[1]=="CLAMPTOWHITE" and nativeMask.wrap[2]=="CLAMPTOWHITE" and nativeMask.filter=="NEAREST","Original artwork received the wrong cutout sampler")
+            assert(mask.allPoints==fill and nativeMask.allPoints==fill,"Native border hole and material bounds no longer align")
+            assert(not fill.allPoints and fill.points.TOPLEFT[4]>0 and fill.points.BOTTOMRIGHT[4]==-fill.points.TOPLEFT[4],"Native material still spans the whole button")
+            assert(fill.points.TOPLEFT[5]<0 and fill.points.BOTTOMRIGHT[5]==-fill.points.TOPLEFT[5],"Native fill vertical padding is asymmetric")
         else
+            assert(fill.allPoints==button,"Switching border modes kept native material bounds")
             assert(border.shown==(mode=="thin"),"Wrong custom border visibility")
             local normal=button:GetNormalTexture() or button.Left
             assert(normal.alpha==0,"Native border leaked into a custom border mode")
@@ -309,6 +313,9 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     assert(style.Save(value))
     local fill=CheckSkin(menu,"native")
     CheckSkin(close,"native");CheckSkin(sliced,"native");CheckSkin(legacy,"native")
+    assert(fill.points.TOPLEFT[4]==5,"Legacy menu material did not shrink to a five-pixel inset")
+    local closeInset=flavor=="titan" and 9 or 4
+    assert(Fill(close).points.TOPLEFT[4]==closeInset,"Close-button material did not shrink inside its native face")
     assert(menu:GetNormalTexture()==original and close:GetNormalTexture()==closeOriginal and menu.width==144 and menu.height==22,"Styling replaced native bindings or resized the button")
     assert(fill:GetNormalTexture().path=="Interface\\Buttons\\WHITE8X8" and fill:GetNormalTexture().vertex[4]==.6)
     assert(original.alpha==1 and sliced.Left.alpha==.7 and not sliced:GetNormalTexture(),"Native edge textures were replaced")
@@ -328,7 +335,16 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     menu:SetButtonState("PUSHED");assert(fill.buttonState=="PUSHED");menu:SetButtonState("NORMAL")
     close:Disable();assert(not Fill(close).enabled and Glyph(close).alpha==.4)
     close:Enable();assert(Fill(close).enabled and Glyph(close).alpha==1)
-    assert(Glyph(close).font[2]<16,"Close glyph exceeds native visible face")
+    local visibleHeight=flavor=="titan" and 20 or 22
+    assert(math.abs(Glyph(close).font[2]-visibleHeight*.7)<.001,"Close glyph did not grow to the adjusted size")
+    for _,size in ipairs({{78,22},{240,28},{420,40}}) do
+        menu:SetSize(unpack(size));menu:Run("OnSizeChanged");CheckSkin(menu,"native")
+        assert(math.abs(fill.points.TOPLEFT[4]-(size[2]*4/22+1))<.001,"Native fill bounds did not follow the resized button")
+        assert(menu.width==size[1] and menu.height==size[2],"Appearance resized the native button")
+    end
+    menu:SetSize(4,6);menu:Run("OnSizeChanged");CheckSkin(menu,"native")
+    assert(fill.points.TOPLEFT[4]*2<menu.width and -fill.points.TOPLEFT[5]*2<menu.height,"Small native fill has inverted bounds")
+    menu:SetSize(144,22);menu:Run("OnSizeChanged")
     close:UpdateButton();sliced:UpdateButton()
     assert(close:GetNormalTexture()==closeOriginal and closeOriginal.sliceMargins[1]==8 and sliced.Left.alpha==.7,"Native state artwork or slice metadata was overwritten")
     local nativePushed=menu:CreateTexture();nativePushed:SetTexture("native-new-pushed")
