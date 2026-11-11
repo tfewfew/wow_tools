@@ -12,6 +12,10 @@ for _, flavor in ipairs({"titan", "forerver"}) do
             self.hooks[event][#self.hooks[event]+1]=fn
         end
         function object:Run(event, ...)
+            if event=="OnMouseDown" then self.buttonState="PUSHED" end
+            if event=="OnMouseUp" then self.buttonState="NORMAL" end
+            if event=="OnEnter" then self.mouseOver=true end
+            if event=="OnLeave" then self.mouseOver=false end
             if self.scripts[event] then self.scripts[event](self, ...) end
             for _,fn in ipairs(self.hooks[event] or {}) do fn(self, ...) end
         end
@@ -24,8 +28,16 @@ for _, flavor in ipairs({"titan", "forerver"}) do
         end
         function object:CreateMaskTexture() return widget("MaskTexture",nil,self) end
         function object:AddMaskTexture(mask)
+            if self.reject and combat then error("fixture protected mask") end
             self.masks=self.masks or {}
+            for _,existing in ipairs(self.masks) do if existing==mask then return end end
             self.masks[#self.masks+1]=mask
+        end
+        function object:RemoveMaskTexture(mask)
+            if self.reject and combat then error("fixture protected mask restoration") end
+            for index=#(self.masks or {}),1,-1 do
+                if self.masks[index]==mask then table.remove(self.masks,index) end
+            end
         end
         function object:SetTextureSliceMargins(...) self.sliceMargins={...} end
         function object:ClearTextureSlice() self.sliceMargins=nil end
@@ -35,7 +47,15 @@ for _, flavor in ipairs({"titan", "forerver"}) do
         function object:IsForbidden() return self.forbidden==true end
         function object:SetSize(w,h) self.width,self.height=w,h end
         function object:GetHeight() return self.height or 20 end
-        function object:GetFrameLevel() return self.parent and self.parent:GetFrameLevel()+1 or 0 end
+        function object:GetFrameLevel() return self.level or (self.parent and self.parent:GetFrameLevel()+1 or 0) end
+        function object:SetFrameLevel(level) self.level=level end
+        function object:SetScale(scale) self.scale=scale end
+        function object:ClearAllPoints() self.points={};self.allPoints=nil end
+        function object:GetButtonState() return self.buttonState or "NORMAL" end
+        function object:SetButtonState(state) self.buttonState=state end
+        function object:IsMouseOver() return self.mouseOver end
+        function object:LockHighlight() self.highlightLocked=true end
+        function object:UnlockHighlight() self.highlightLocked=false end
         function object:GetStringHeight() return 20 end
         function object:GetFont() return "mock-font",12,"" end
         function object:SetFont(path,size,flags) self.font={path,size,flags} end
@@ -56,7 +76,10 @@ for _, flavor in ipairs({"titan", "forerver"}) do
             self.path=path;self.atlas=nil;self.wrap={horizontal,vertical}
         end
         function object:SetAtlas(atlas) self.atlas=atlas;self.path=9000 end
-        function object:SetAlpha(alpha) self.alpha=alpha end
+        function object:SetAlpha(alpha)
+            if self.reject and combat then error("fixture protected alpha") end
+            self.alpha=alpha
+        end
         function object:GetAlpha() return self.alpha end
         function object:SetText(text)
             self.text=text
@@ -75,8 +98,8 @@ for _, flavor in ipairs({"titan", "forerver"}) do
             if changed then self:Run("OnHide") end
         end
         function object:IsShown() return self.shown end
-        function object:Disable() self.enabled=false;self:Run("OnDisable") end
-        function object:Enable() self.enabled=true;self:Run("OnEnable") end
+        function object:Disable() self.enabled=false;self.buttonState="DISABLED";self:Run("OnDisable") end
+        function object:Enable() self.enabled=true;self.buttonState="NORMAL";self:Run("OnEnable") end
         function object:SetEnabled(value) if value then self:Enable() else self:Disable() end end
         function object:IsEnabled() return self.enabled end
         for _,state in ipairs({"Normal","Pushed","Highlight","Disabled"}) do
@@ -111,7 +134,8 @@ for _, flavor in ipairs({"titan", "forerver"}) do
             end
         end
         if template and template:find("UIPanelCloseButton",1,true) then
-            frame:SetSize(32,32)
+            local size=flavor=="forerver" and 24 or 32
+            frame:SetSize(size,size)
             local atlases={Normal="RedButton-Exit",Pushed="RedButton-exit-pressed",
                 Highlight="RedButton-Highlight",Disabled="RedButton-Exit-Disabled"}
             for _,state in ipairs({"Normal","Pushed","Highlight","Disabled"}) do
@@ -156,44 +180,40 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     C_Timer={After=function(_,fn) timers[#timers+1]=fn end}
     UIParent=widget("Frame")
     WoWTools={};wowDetectorDB={untouched="keep"};UISpecialFrames={};LibStub=nil
+    function CreateRadioButtonGroup()
+        return {buttons={},AddButton=function(self,button) self.buttons[#self.buttons+1]=button end,
+            SelectAtIndex=function(self,index) self.selected=index end}
+    end
     local addon=root.."/addon/"..flavor.."/wow_tools/"
     local function ReadShape(name)
         local file=assert(io.open(addon.."Media/"..name..".tga","rb"))
         local data=file:read("*a");file:close()
-        assert(#data==4114 and data:byte(3)==2 and data:byte(17)==32 and data:byte(18)==40,"Invalid 32-bit top-origin TGA")
-        assert(data:byte(13)==32 and data:byte(14)==0 and data:byte(15)==32 and data:byte(16)==0,"Invalid shape dimensions")
+        assert(#data==4114 and data:byte(3)==2 and data:byte(17)==32 and data:byte(18)==40,"Invalid RGBA TGA")
+        assert(data:byte(13)==32 and data:byte(14)==0 and data:byte(15)==32 and data:byte(16)==0,"Invalid mask dimensions")
         return function(x,y) return data:byte(18+(y*32+x)*4+4) end
     end
-    local maskAlpha,borderAlpha=ReadShape("ButtonRoundMask"),ReadShape("ButtonRoundBorder")
-    assert(maskAlpha(0,0)<32 and maskAlpha(16,16)==255 and maskAlpha(16,0)==255,"Mask lacks transparent corners or an opaque interior")
-    assert(borderAlpha(0,0)==0 and borderAlpha(16,16)==0 and borderAlpha(16,0)==255,"Border lacks rounded corners, a hollow center or solid edges")
-    local function SliceCoordinate(position,extent)
-        if position<4 then return position end
-        if position>=extent-4 then return 32-(extent-position) end
-        return 4+(position-4)*24/(extent-8)
+    local inner,outer=ReadShape("ButtonNativeFillMask"),ReadShape("ButtonNativeBorderMask")
+    for y=0,31 do
+        for x=0,31 do assert(inner(x,y)+outer(x,y)==255,"Native border and fill leave a gap or overlap") end
     end
-    -- Sample the generated artwork with the same fixed margins used by the native nineslice API.
-    for _,width in ipairs({28,78,240,420}) do
-        for _,height in ipairs({16,28,40}) do
-            local function Sample(alpha,x,y,w,h)
-                return alpha(math.floor(SliceCoordinate(x,w)),math.floor(SliceCoordinate(y,h)))
-            end
-            assert(Sample(borderAlpha,.5,.5,width,height)==0,"Resizing squared the border corner")
-            assert(Sample(borderAlpha,width/2,.5,width,height)==255,"Resizing lost the thin top border")
-            assert(Sample(borderAlpha,width/2,height/2,width,height)==0,"Border fills and tints the material interior")
-            assert(Sample(maskAlpha,.5,.5,width-2,height-2)<32,"Resizing squared the fill mask corner")
-            assert(Sample(maskAlpha,(width-2)/2,(height-2)/2,width-2,height-2)==255,"Resizing clipped the material interior")
-        end
-    end
+    assert(outer(0,0)==255 and outer(16,0)==255 and outer(16,16)==0,"Native mask clips original corners or fills the center")
+    local rounded,thin=ReadShape("ButtonRoundMask"),ReadShape("ButtonRoundBorder")
+    assert(rounded(0,0)<32 and rounded(16,16)==255 and thin(16,16)==0 and thin(16,0)==255)
     dofile(addon.."ButtonStyle.lua")
     dofile(addon.."ButtonStyle.Settings.lua")
     local style=WoWTools.buttonStyle
-    local function event(name, addonName)
+    local function event(name,addonName)
         for _,frame in ipairs(frames) do if frame.events[name] then frame:Run("OnEvent",name,addonName) end end
     end
     local function flush()
         local pending=timers;timers={}
         for _,fn in ipairs(pending) do fn() end
+    end
+    local function Fill(button)
+        for index=#frames,1,-1 do
+            local frame=frames[index]
+            if frame.kind=="Button" and frame.parent==button and frame.mouseEnabled==false then return frame end
+        end
     end
     local function Glyph(button)
         for index=#widgets,1,-1 do
@@ -207,177 +227,173 @@ for _, flavor in ipairs({"titan", "forerver"}) do
             if type(texture.path)=="string" and texture.path:find("ButtonRoundBorder",1,true) then return texture end
         end
     end
-    local function CheckRounded(button)
-        local border=assert(Border(button),"Button has no custom border")
-        assert(border.shown and border.allPoints==button,"Border is hidden or detached from button bounds")
-        local mask=assert(button:GetNormalTexture().masks,"Button fill has no corner mask")[1]
-        assert(mask.path:find("ButtonRoundMask",1,true) and mask.wrap[1]=="CLAMPTOBLACKADDITIVE","Wrong mask asset or wrap mode")
-        for index=1,4 do assert(mask.sliceMargins[index]==4 and border.sliceMargins[index]==4,"Corner margins stretch with the material") end
-        assert(mask.points.TOPLEFT[4]==1 and mask.points.TOPLEFT[5]==-1 and mask.points.BOTTOMRIGHT[4]==-1 and mask.points.BOTTOMRIGHT[5]==1,"Fill overlaps the border")
+    local function CheckSkin(button,mode)
+        local fill=assert(Fill(button),"Missing material child")
+        assert(fill.shown and fill.allPoints==button and fill.level<button:GetFrameLevel(),"Material hides native text or changes bounds")
+        assert(not fill.scripts.OnClick and fill.mouseEnabled==false,"Material child intercepts native input")
+        local mask=fill:GetNormalTexture().masks[1]
+        local border=Border(button)
         for _,state in ipairs(style.states) do
-            local texture=button[state.getter](button)
-            assert(#texture.masks==1 and texture.masks[1]==mask and texture.allPoints==mask,"A button state bypasses rounded clipping")
-            assert(not texture.sliceMargins,"The chosen fill material was sliced with the outline")
+            local texture=fill[state.getter](fill)
+            assert(#texture.masks==1 and texture.masks[1]==mask and not texture.sliceMargins,"A material state bypasses the mask")
         end
-        return border
+        if mode=="native" then
+            assert(not border.shown and mask.path:find("ButtonNativeFillMask",1,true),"Native border mode uses the flat border")
+            local normal=button:GetNormalTexture() or button.Left
+            assert(normal.alpha>0 and #(normal.masks or {})==1,"Original border artwork was hidden or lacked its inner cutout")
+            assert(normal.masks[1].path:find("ButtonNativeBorderMask",1,true),"Original artwork received the wrong mask")
+            assert(mask.allPoints==button and mask.scale==normal.masks[1].scale,"Native border and material no longer align")
+        else
+            assert(border.shown==(mode=="thin"),"Wrong custom border visibility")
+            local normal=button:GetNormalTexture() or button.Left
+            assert(normal.alpha==0,"Native border leaked into a custom border mode")
+            assert(mask.points.TOPLEFT[4]>0 and mask.points.TOPLEFT[5]<0,"Fill expands into native transparent padding")
+            if mode=="thin" then
+                assert(border.points.TOPLEFT[4]>0 and border.points.BOTTOMRIGHT[4]<0,"Thin border enlarges native visual bounds")
+                assert(mask.points.TOPLEFT[4]==border.points.TOPLEFT[4]+1,"Material overlaps thin border")
+            end
+        end
+        return fill,mask,border
     end
     local menu=CreateFrame("Button","GameMenuButtonOptions",UIParent,"UIPanelButtonTemplate")
-    local original=menu:GetNormalTexture()
-    local originalHighlight=menu:GetHighlightTexture()
+    menu:SetSize(144,22)
+    local original,originalHighlight=menu:GetNormalTexture(),menu:GetHighlightTexture()
     local clicked=0
     menu:SetScript("OnClick",function() clicked=clicked+1 end)
     local click=menu.scripts.OnClick
     local map=CreateFrame("Frame","WorldMapFrame",UIParent)
-    local mapClose=CreateFrame("Button","WorldMapFrameCloseButton",map,"UIPanelCloseButton")
-    map.CloseButton=mapClose
-    local closeOriginal,closeHighlight=mapClose:GetNormalTexture(),mapClose:GetHighlightTexture()
-    local closeClick=mapClose.scripts.OnClick
-    mapClose.UpdateButton=function(self)
+    local close=CreateFrame("Button","WorldMapFrameCloseButton",map,"UIPanelCloseButton")
+    local closeOriginal,closeClick=close:GetNormalTexture(),close.scripts.OnClick
+    close.UpdateButton=function(self)
         self:GetNormalTexture():SetAtlas("RedButton-Exit")
         self:GetNormalTexture():SetTextureSliceMargins(8,8,8,8)
     end
-    local closeVariants={}
+    local sliced=CreateFrame("Button",nil,UIParent)
+    sliced.atlasName="128-RedButton"
+    for _,key in ipairs({"Left","Center","Right"}) do
+        sliced[key]=sliced:CreateTexture();sliced[key]:SetAtlas("128-RedButton-"..key)
+    end
+    sliced.Left:SetAlpha(.7)
+    sliced.UpdateButton=function(self) self.Left:SetAtlas("128-RedButton-Left-Pressed");self.Left:SetAlpha(1) end
+    local legacy=CreateFrame("Button",nil,UIParent)
+    for _,key in ipairs({"Left","Middle","Right"}) do legacy[key]=legacy:CreateTexture();legacy[key]:SetTexture(4200) end
+    local variants={}
     for _,path in ipairs({"Interface\\Buttons\\UI-Panel-MinimizeButton-Up","128-RedButton-Exit","common-button-close"}) do
         local button=CreateFrame("Button",nil,UIParent)
         local texture=button:CreateTexture()
         if path:find("Interface",1,true) then texture:SetTexture(path) else texture:SetAtlas(path) end
-        button:SetNormalTexture(texture)
-        closeVariants[#closeVariants+1]={button=button,original=texture}
-    end
-    local modern=CreateFrame("Button",nil,UIParent)
-    modern.atlasName="128-RedButton"
-    modern.Left=modern:CreateTexture();modern.Center=modern:CreateTexture();modern.Right=modern:CreateTexture()
-    modern.Left:SetAtlas("128-RedButton-Left")
-    modern.Left:SetAlpha(.7)
-    modern.UpdateButton=function(self)
-        self.Left:SetAtlas("128-RedButton-Left-Pressed")
-        self.Left:SetAlpha(1)
-    end
-    local legacySlices=CreateFrame("Button",nil,UIParent)
-    for _,key in ipairs({"Left","Middle","Right"}) do
-        legacySlices[key]=legacySlices:CreateTexture()
-        legacySlices[key]:SetTexture(4200)
+        button:SetNormalTexture(texture);variants[#variants+1]=button
     end
     local icon=CreateFrame("Button",nil,UIParent)
     icon:SetNormalTexture(icon:CreateTexture());icon:GetNormalTexture():SetTexture(7777)
-    local refreshIcon=CreateFrame("Button",nil,UIParent)
-    refreshIcon.buttonArtKit="128-RedButton-Refresh"
-    refreshIcon:SetNormalTexture(refreshIcon:CreateTexture());refreshIcon:GetNormalTexture():SetAtlas("128-RedButton-Refresh")
-    local refreshTexture=refreshIcon:GetNormalTexture()
+    local refresh=CreateFrame("Button",nil,UIParent)
+    refresh.buttonArtKit="128-RedButton-Refresh"
+    refresh:SetNormalTexture(refresh:CreateTexture());refresh:GetNormalTexture():SetAtlas("128-RedButton-Refresh")
     local forbidden=CreateFrame("Button",nil,UIParent,"UIPanelButtonTemplate");forbidden.forbidden=true
-    local blocked=forbidden:GetNormalTexture()
     local restricted=CreateFrame("Button",nil,UIParent)
     restricted:SetNormalTexture(restricted:CreateTexture());restricted:GetNormalTexture():SetTexture(secret)
+    local masked=CreateFrame("Button",nil,UIParent,"UIPanelButtonTemplate")
+    local foreignMask=masked:CreateMaskTexture()
+    masked:GetNormalTexture():AddMaskTexture(foreignMask)
+    local old=style.GetConfig();old.border=nil;wowDetectorDB.buttonStyle=old
     event("ADDON_LOADED","wow_tools")
-    assert(menu:GetNormalTexture()==original and original.alpha==1 and scans==0,"Default off modified native buttons")
-    assert(mapClose:GetNormalTexture()==closeOriginal and not Glyph(mapClose),"Default off modified close buttons")
-    local defaultParent=CreateFrame("Frame",nil,UIParent)
-    style.BuildSettings(defaultParent)
-    local defaultPreview=style.previews[style.editors[1].closePreview]
-    assert(defaultPreview.glyph and defaultPreview.glyph.shown,"First settings visit lost the file-ID close preview glyph")
-    assert(mapClose:GetNormalTexture()==closeOriginal,"Default settings preview styled the real map close button")
-    local value=style.GetConfig();value.enabled=true;value.colors.normal={.2,.4,.7,.6}
-    value.colors.highlight={.6,.2,.8,1}
-    assert(style.Save(value))
-    assert(menu:GetNormalTexture()~=original and original.alpha==0,"Legacy file-ID button not styled")
-    assert(menu:GetNormalTexture().path=="Interface\\Buttons\\WHITE8X8" and menu:GetNormalTexture().vertex[4]==.6)
-    local menuBorder=CheckRounded(menu)
-    local closeBorder=CheckRounded(mapClose)
-    CheckRounded(modern);CheckRounded(legacySlices)
-    assert(not original.masks and not closeOriginal.masks,"Custom clipping modified native artwork")
-    local closeGlyph=Glyph(mapClose)
-    assert(mapClose:GetNormalTexture()~=closeOriginal and closeOriginal.alpha==0,"Map close button not styled")
-    assert(closeGlyph and closeGlyph.shown and closeGlyph.text=="×" and closeGlyph.font[2]>10,"Styled close button lost its X")
-    assert(closeGlyph.parent:GetFrameLevel()>mapClose:GetFrameLevel(),"Opaque highlight could cover the close glyph")
-    assert(closeGlyph.textColor[1]==1 and closeGlyph.textColor[4]==1 and closeGlyph.parent.mouseEnabled==false,"Close glyph color or mouse handling is wrong")
-    for _,state in ipairs(style.states) do
-        local texture=mapClose[state.getter](mapClose)
-        assert(texture.path==menu[state.getter](menu).path,"Close state material differs from panel material")
-        for index=1,4 do assert(texture.vertex[index]==value.colors[state.key][index],"Close state RGBA was ignored") end
-    end
-    for _,variant in ipairs(closeVariants) do
-        assert(variant.button:GetNormalTexture()~=variant.original and variant.original.alpha==0,"Close texture family missed")
-        assert(Glyph(variant.button).shown,"Close texture variant lost its X")
-    end
-    mapClose:Disable()
-    assert(closeGlyph.alpha==.4 and closeGlyph.shown,"Disabled close glyph did not dim")
-    assert(closeBorder.shown and closeBorder.vertex[4]==.35,"Disabled border vanished or did not dim")
-    mapClose:Enable()
-    assert(closeGlyph.alpha==1,"Enabled close glyph stayed dim")
-    assert(closeBorder.vertex[4]==.8,"Enabled border stayed dim")
-    mapClose:UpdateButton()
-    assert(CheckRounded(mapClose)==closeBorder,"Native atlas refresh lost the rounded custom material")
-    mapClose:SetHighlightTexture(closeHighlight);mapClose:Run("OnEnter")
-    assert(mapClose:GetHighlightTexture()~=closeHighlight and closeHighlight.alpha==0,"Close hover did not restore custom style")
-    mapClose:Run("OnMouseDown");mapClose:Run("OnMouseUp")
-    mapClose:Run("OnClick")
-    assert(not map.shown and mapClose.scripts.OnClick==closeClick,"Styling replaced native map close behavior")
-    map:Show()
-    assert(modern.Left.alpha==0 and modern:GetNormalTexture(),"Three-slice button not styled")
-    assert(legacySlices.Left.alpha==0 and legacySlices:GetNormalTexture(),"Legacy sliced file-ID button not styled")
-    modern:UpdateButton()
-    assert(modern.Left.alpha==0,"Native state update restored original artwork")
-    assert(icon:GetNormalTexture().path==7777 and forbidden:GetNormalTexture()==blocked,"Unrelated/forbidden button styled")
-    assert(refreshIcon:GetNormalTexture()==refreshTexture and refreshTexture.alpha==1,"Icon glyph was replaced by panel styling")
-    menu:Run("OnClick")
-    assert(clicked==1 and menu.scripts.OnClick==click,"Styling replaced native click handling")
-    local late=CreateFrame("Button",nil,UIParent,"UIPanelButtonTemplate")
-    local lateOriginal=late:GetNormalTexture()
-    local lateClose=CreateFrame("Button",nil,UIParent,"UIPanelCloseButtonDefaultAnchors")
-    local lateCloseOriginal=lateClose:GetNormalTexture()
-    CreateFrame("Button",nil,UIParent,"UIPanelButtonTemplate")
-    local before=scans
-    assert(#timers==1,"Button creation did not batch discovery")
-    flush()
-    assert(scans==before+1 and late:GetNormalTexture()~=lateOriginal,"Anonymous late buttons were missed")
-    assert(lateClose:GetNormalTexture()~=lateCloseOriginal and Glyph(lateClose).shown,"Late anonymous close button was missed")
-    CheckRounded(late);CheckRounded(lateClose)
-    local latePanel=CreateFrame("Frame",nil,UIParent,"PortraitFrameTemplate")
-    local childOriginal=latePanel.CloseButton:GetNormalTexture()
-    flush()
-    assert(latePanel.CloseButton:GetNormalTexture()~=childOriginal,"Close child of a late XML frame template was missed")
-    latePanel.CloseButton:Run("OnClick")
-    assert(not latePanel.shown,"XML child lost native close behavior")
-    value=style.GetConfig();value.material="lsm:Smooth";assert(style.Save(value))
-    assert(menu:GetNormalTexture().path=="Interface\\Buttons\\WHITE8X8" and style.lastStatus:find("暂用纯色",1,true))
-    media={Smooth="mock-smooth",Zeta="mock-zeta",Alpha="mock-alpha"}
-    local library={HashTable=function() return media end, RegisterCallback=function(_,_,fn) callback=fn end}
-    LibStub={GetLibrary=function() return library end}
-    event("ADDON_LOADED","Plater")
-    assert(menu:GetNormalTexture().path=="mock-smooth" and callback,"Late shared media was not resolved")
-    media.Smooth="mock-new-smooth";callback("LibSharedMedia_Registered","statusbar","Smooth")
-    assert(menu:GetNormalTexture().path=="mock-new-smooth")
-    assert(mapClose:GetNormalTexture().path=="mock-new-smooth" and closeGlyph.shown,"Shared material did not update close buttons")
-    assert(CheckRounded(menu)==menuBorder and CheckRounded(mapClose)==closeBorder,"Changing material replaced the independent border")
-    local materials=style.GetMaterials()
-    assert(materials[3].label=="Alpha" and materials[4].label=="Smooth" and materials[5].label=="Zeta","Shared media list is not sorted")
-    local saved=wowDetectorDB.buttonStyle
-    value=style.GetConfig();value.colors.normal[1]=2
-    assert(not style.Save(value) and wowDetectorDB.buttonStyle==saved,"Invalid draft partly saved")
-    value=style.GetConfig();value.material="Interface\\arbitrary"
-    assert(not style.Save(value),"Unsupported material key accepted")
-
+    assert(style.GetConfig().border.style=="native" and wowDetectorDB.buttonStyle.border==nil,"Old settings were rewritten during migration")
+    assert(menu:GetNormalTexture()==original and original.alpha==1 and not original.masks and scans==0)
     local parent=CreateFrame("Frame",nil,UIParent)
     style.BuildSettings(parent)
-    local editor=style.editors[#style.editors]
-    assert(parent.height==style.settingsHeight and editor.disabled.enabled==false)
-    local previewRecord=style.previews[editor.closePreview]
-    assert(previewRecord.glyph.shown and previewRecord.glyph.text=="×","Close preview missing its X")
-    CheckRounded(editor.preview);CheckRounded(editor.disabled);CheckRounded(editor.closePreview)
-    editor.closePreview:Run("OnClick")
-    assert(parent.shown and not editor.closePreview.scripts.OnClick,"Close preview hid settings")
+    local editor=style.editors[1]
+    assert(parent.height==600 and editor.borderGroup.selected==1 and not editor.borderColor.enabled)
+    assert(Glyph(editor.closePreview).shown and not Fill(menu),"Default-off preview modified real buttons")
+    editor.closePreview:Run("OnClick");assert(parent.shown,"Close preview hides settings")
+    local value=style.GetConfig();value.enabled=true;value.colors.normal={.2,.4,.7,.6};value.colors.highlight={.6,.2,.8,1}
+    assert(style.Save(value))
+    local fill=CheckSkin(menu,"native")
+    CheckSkin(close,"native");CheckSkin(sliced,"native");CheckSkin(legacy,"native")
+    assert(menu:GetNormalTexture()==original and close:GetNormalTexture()==closeOriginal and menu.width==144 and menu.height==22,"Styling replaced native bindings or resized the button")
+    assert(fill:GetNormalTexture().path=="Interface\\Buttons\\WHITE8X8" and fill:GetNormalTexture().vertex[4]==.6)
+    assert(original.alpha==1 and sliced.Left.alpha==.7 and not sliced:GetNormalTexture(),"Native edge textures were replaced")
+    assert(masked:GetNormalTexture().masks[1]==foreignMask and #masked:GetNormalTexture().masks==2,"An existing mask was overwritten")
+    editor.preview:Run("OnEnter");assert(Fill(editor.preview).highlightLocked)
+    editor.preview:Run("OnMouseDown");assert(Fill(editor.preview).buttonState=="PUSHED")
+    editor.preview:Run("OnMouseUp");editor.preview:Run("OnLeave")
+    for _,button in ipairs(variants) do CheckSkin(button,"native");assert(Glyph(button).shown) end
+    for _,state in ipairs(style.states) do
+        local texture=Fill(close)[state.getter](Fill(close))
+        for index=1,4 do assert(texture.vertex[index]==value.colors[state.key][index],"Material RGBA changed") end
+    end
+    menu:Run("OnEnter");assert(fill.highlightLocked,"Hover material did not follow native button")
+    menu:Run("OnMouseDown");assert(fill.buttonState=="PUSHED")
+    menu:Run("OnMouseUp");menu:Run("OnLeave");assert(fill.buttonState=="NORMAL" and not fill.highlightLocked)
+    menu:LockHighlight();assert(fill.highlightLocked);menu:UnlockHighlight();assert(not fill.highlightLocked)
+    menu:SetButtonState("PUSHED");assert(fill.buttonState=="PUSHED");menu:SetButtonState("NORMAL")
+    close:Disable();assert(not Fill(close).enabled and Glyph(close).alpha==.4)
+    close:Enable();assert(Fill(close).enabled and Glyph(close).alpha==1)
+    assert(Glyph(close).font[2]<16,"Close glyph exceeds native visible face")
+    close:UpdateButton();sliced:UpdateButton()
+    assert(close:GetNormalTexture()==closeOriginal and closeOriginal.sliceMargins[1]==8 and sliced.Left.alpha==.7,"Native state artwork or slice metadata was overwritten")
+    local nativePushed=menu:CreateTexture();nativePushed:SetTexture("native-new-pushed")
+    menu:SetPushedTexture(nativePushed);style.Apply(false)
+    assert(menu:GetPushedTexture()==nativePushed and #nativePushed.masks==1,"A new native state texture was missed")
+    menu:Run("OnClick");close:Run("OnClick")
+    assert(clicked==1 and menu.scripts.OnClick==click and not map.shown and close.scripts.OnClick==closeClick)
+    map:Show()
+    assert(not Fill(icon) and not Fill(refresh) and not Fill(forbidden) and not Fill(restricted),"Unrelated or restricted icons were styled")
+    local late=CreateFrame("Button",nil,UIParent,"UIPanelButtonTemplate")
+    local lateClose=CreateFrame("Button",nil,UIParent,"UIPanelCloseButtonDefaultAnchors")
+    local before=scans;assert(#timers==1);flush()
+    assert(scans==before+1);CheckSkin(late,"native");CheckSkin(lateClose,"native")
+    local latePanel=CreateFrame("Frame",nil,UIParent,"PortraitFrameTemplate")
+    flush();CheckSkin(latePanel.CloseButton,"native")
+    value=style.GetConfig();value.material="lsm:Smooth";assert(style.Save(value))
+    assert(fill:GetNormalTexture().path=="Interface\\Buttons\\WHITE8X8" and style.lastStatus:find("暂用纯色",1,true))
+    media={Smooth="mock-smooth",Zeta="mock-zeta",Alpha="mock-alpha"}
+    local library={HashTable=function() return media end,RegisterCallback=function(_,_,fn) callback=fn end}
+    LibStub={GetLibrary=function() return library end}
+    event("ADDON_LOADED","Plater")
+    assert(fill:GetNormalTexture().path=="mock-smooth" and callback)
+    media.Smooth="mock-new-smooth";callback("LibSharedMedia_Registered","statusbar","Smooth")
+    assert(fill:GetNormalTexture().path=="mock-new-smooth");CheckSkin(close,"native")
+    local materials=style.GetMaterials();assert(materials[3].label=="Alpha" and materials[5].label=="Zeta")
+    local saved=wowDetectorDB.buttonStyle
+    value=style.GetConfig();value.colors.normal[1]=2;assert(not style.Save(value) and wowDetectorDB.buttonStyle==saved)
+    value=style.GetConfig();value.border.style="bad";assert(not style.Save(value))
+    value=style.GetConfig();value.border.color[4]=-1;assert(not style.Save(value))
+    value=style.GetConfig();value.material="Interface\\arbitrary";assert(not style.Save(value))
     editor.material:Run("OnClick")
     local popup=named.WoWToolsButtonMaterialMenu
-    assert(popup.shown and popup.rows[3].entry.label=="Alpha" and popup.rows[3].sample.path=="mock-alpha")
-    popup.search:SetText("Zeta")
-    assert(popup.rows[1].entry.label=="Zeta" and not popup.rows[2].shown)
-    popup.rows[1]:Run("OnClick")
-    assert(wowDetectorDB.buttonStyle.material=="lsm:Zeta" and not popup.shown)
+    assert(popup.shown and popup.rows[3].entry.label=="Alpha")
+    popup.search:SetText("Zeta");assert(popup.rows[1].entry.label=="Zeta" and not popup.rows[2].shown)
+    popup.rows[1]:Run("OnClick");assert(wowDetectorDB.buttonStyle.material=="lsm:Zeta" and not popup.shown)
+    editor.borderOptions.thin:Run("OnClick")
+    assert(style.GetConfig().border.style=="thin" and editor.borderGroup.selected==2 and editor.borderColor.enabled)
+    CheckSkin(menu,"thin");CheckSkin(close,"thin");CheckSkin(legacy,"thin")
+    if flavor=="titan" then
+        assert(Border(close).points.TOPLEFT[4]>Border(menu).points.TOPLEFT[4],"Legacy close-button transparent padding was lost")
+    end
+    local width,height=menu.width,menu.height
+    for _,size in ipairs({{78,22},{240,28},{420,40}}) do
+        menu:SetSize(unpack(size));menu:Run("OnSizeChanged");CheckSkin(menu,"thin")
+        assert(menu.width==size[1] and menu.height==size[2],"Appearance changed the native hit rectangle")
+    end
+    menu:SetSize(width,height);menu:Run("OnSizeChanged")
+    editor.borderOptions.none:Run("OnClick");CheckSkin(menu,"none");CheckSkin(close,"none")
+    assert(not editor.borderColor.enabled)
+    editor.borderOptions.native:Run("OnClick");CheckSkin(menu,"native");CheckSkin(close,"native")
+    assert(original.alpha==1 and menu:GetNormalTexture()==original)
 
     ColorPickerFrame=widget("Frame")
     function ColorPickerFrame:SetupColorPickerAndShow(info) self.info=info;self.rgb={info.r,info.g,info.b};self.opacity=info.opacity;self:Show() end
     function ColorPickerFrame:GetColorRGB() return unpack(self.rgb) end
     function ColorPickerFrame:GetColorAlpha() return self.opacity end
+    editor.borderOptions.thin:Run("OnClick")
+    editor.borderColor:Run("OnClick")
+    ColorPickerFrame.rgb={.9,.7,.2};ColorPickerFrame.opacity=.5;ColorPickerFrame.info.swatchFunc()
+    assert(style.GetConfig().border.color[1]==.9 and Border(menu).vertex[4]==.5,"Border RGBA did not apply or persist")
+    ColorPickerFrame:Hide();ColorPickerFrame.info.cancelFunc()
+    assert(style.GetConfig().border.color[1]==.65 and Border(menu).vertex[4]==.8,"Border picker cancel failed")
+    editor.borderColor:Run("OnClick")
+    ColorPickerFrame.rgb={.8,.6,.3};ColorPickerFrame.opacity=.7;ColorPickerFrame.info.opacityFunc();ColorPickerFrame:Hide()
+    close:Disable();assert(math.abs(Border(close).vertex[4]-.7*.4375)<.001);close:Enable()
     editor.swatches.normal:Run("OnClick")
     assert(ColorPickerFrame.info.opacity==.6,"Modern opacity was inverted")
     ColorPickerFrame.rgb={.7,.2,.3};ColorPickerFrame.opacity=.4;ColorPickerFrame.info.swatchFunc()
@@ -386,7 +402,7 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     assert(wowDetectorDB.buttonStyle.colors.normal[1]==.2 and wowDetectorDB.buttonStyle.colors.normal[4]==.6,"Cancel did not revert persisted RGBA")
     editor.swatches.normal:Run("OnClick")
     ColorPickerFrame.rgb={.3,.6,.8};ColorPickerFrame.opacity=.9;ColorPickerFrame.info.opacityFunc()
-    ColorPickerFrame:Hide() -- Accept, then open another swatch.
+    ColorPickerFrame:Hide()
     editor.swatches.pushed:Run("OnClick")
     assert(wowDetectorDB.buttonStyle.colors.normal[1]==.3,"Opening a new picker reverted an accepted color")
     ColorPickerFrame.rgb={.4,.5,.6};ColorPickerFrame.info.swatchFunc()
@@ -394,69 +410,52 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     assert(wowDetectorDB.buttonStyle.colors.pushed[1]==.4,"Switching swatches discarded a live saved color")
     local staleCancel=ColorPickerFrame.info.cancelFunc
     style.Reset();staleCancel()
-    assert(wowDetectorDB.buttonStyle==nil and wowDetectorDB.untouched=="keep","Reset was undone by a stale color callback")
-    assert(menu:GetNormalTexture()==original and original.alpha==1 and modern.Left.alpha==.7 and not modern:GetNormalTexture(),"Reset did not restore original bindings and alpha")
-    assert(originalHighlight:GetBlendMode()=="BLEND","Reset changed original highlight blending")
-    assert(not menuBorder.shown and not closeBorder.shown and not original.masks,"Reset left custom borders or masks on native artwork")
-    assert(mapClose:GetNormalTexture()==closeOriginal and closeOriginal.alpha==1 and not closeGlyph.shown,"Reset did not restore close artwork")
-    assert(mapClose:GetHighlightTexture()==closeHighlight and closeHighlight:GetBlendMode()=="BLEND","Reset changed close highlight binding or blend")
-    assert(lateClose:GetNormalTexture()==lateCloseOriginal and not Glyph(lateClose).shown,"Reset missed late close buttons")
-    assert(previewRecord.glyph.shown,"Reset removed the close preview glyph")
-    mapClose:Run("OnClick")
-    assert(not map.shown and mapClose.scripts.OnClick==closeClick,"Restoration replaced native close behavior")
-    map:Show()
-
+    assert(wowDetectorDB.buttonStyle==nil and wowDetectorDB.untouched=="keep")
+    assert(menu:GetNormalTexture()==original and original.alpha==1 and #(original.masks or {})==0 and not fill.shown and not Border(menu).shown,"Reset failed to restore native artwork")
+    assert(#masked:GetNormalTexture().masks==1 and masked:GetNormalTexture().masks[1]==foreignMask,"Reset removed another addon's mask")
+    assert(menu:GetPushedTexture()==nativePushed and #nativePushed.masks==0,"Reset replaced a new native texture binding")
+    assert(sliced.Left.alpha==.7 and not sliced:GetNormalTexture() and originalHighlight:GetBlendMode()=="BLEND")
+    assert(not Glyph(close).shown and Glyph(editor.closePreview).shown)
+    close:Run("OnClick");assert(not map.shown and close.scripts.OnClick==closeClick);map:Show()
     ColorPickerFrame.SetupColorPickerAndShow=nil
     function ColorPickerFrame:SetColorRGB(r,g,b) self.rgb={r,g,b} end
     OpacitySliderFrame={GetValue=function() return .8 end}
     editor.swatches.normal:Run("OnClick")
     ColorPickerFrame.rgb={.1,.2,.3};ColorPickerFrame.func()
     assert(math.abs(wowDetectorDB.buttonStyle.colors.normal[4]-.2)<.001,"Legacy transparency was not inverted")
-    ColorPickerFrame.cancelFunc()
-    ColorPickerFrame:Hide()
-    assert(wowDetectorDB.buttonStyle.colors.normal[4]==1,"Legacy cancel did not restore alpha")
+    ColorPickerFrame.cancelFunc();ColorPickerFrame:Hide()
+    assert(wowDetectorDB.buttonStyle.colors.normal[4]==1)
 
     local protected=CreateFrame("Button",nil,UIParent,"UIPanelButtonTemplate")
     local protectedOriginal=protected:GetNormalTexture()
-    local protectedClose=CreateFrame("Button",nil,UIParent,"UIPanelCloseButton")
-    local protectedCloseOriginal=protectedClose:GetNormalTexture()
-    protected.reject=true;protectedClose.reject=true;combat=true
+    protected:GetPushedTexture().reject=true;combat=true
     value=style.GetConfig();value.enabled=true
     local ok,message=style.Save(value)
-    assert(ok and message:find("待重试",1,true),"A partial texture failure reported full success")
+    assert(ok and message:find("待重试",1,true),"Partial native masking reported success")
+    combat=false;event("PLAYER_REGEN_ENABLED");CheckSkin(protected,"native")
+    combat=true;style.Reset();assert(style.lastStatus:find("待恢复",1,true),"Partial unmasking reported success")
     combat=false;event("PLAYER_REGEN_ENABLED")
-    assert(protected:GetNormalTexture()~=protectedOriginal,"Deferred button did not retry")
-    assert(protectedClose:GetNormalTexture()~=protectedCloseOriginal and Glyph(protectedClose).shown,"Deferred close did not retry with a visible X")
-    protected:SetPushedTexture(protected:CreateTexture())
-    protectedClose:SetPushedTexture(protectedClose:CreateTexture())
-    combat=true;style.Apply(false);style.Reset()
-    assert(style.lastStatus:find("待恢复",1,true),"Deferred restoration was reported as finished")
-    combat=false;event("PLAYER_REGEN_ENABLED")
-    assert(protected:GetNormalTexture()==protectedOriginal,"Deferred restoration did not finish")
-    assert(protectedClose:GetNormalTexture()==protectedCloseOriginal and not Glyph(protectedClose).shown,"Deferred close restoration did not finish")
-    assert(not Border(protectedClose).shown and not Border(protected).shown,"Deferred restoration left custom borders visible")
-    value=style.GetConfig();value.enabled=true;style.Save(value)
+    assert(protected:GetNormalTexture()==protectedOriginal and #(protectedOriginal.masks or {})==0 and not Fill(protected).shown)
+    value=style.GetConfig();value.enabled=true;value.border.style="thin";value.border.color={.2,.5,.8,.6};style.Save(value)
     local persisted=wowDetectorDB.buttonStyle
-    style.Reset()
-    assert(protected:GetNormalTexture()==protectedOriginal,"Partially styled button could not restore")
+    local replacementNative=protected:CreateTexture();replacementNative:SetTexture("native-new-pushed")
+    protected:SetPushedTexture(replacementNative)
+    style.Apply(false);style.Reset()
+    assert(protected:GetPushedTexture()==replacementNative,"Reset overwrote a native binding changed by the client")
     wowDetectorDB.buttonStyle=persisted
-    for _,frame in ipairs(frames) do frame.events={} end -- A reload disposes old event handlers.
-    dofile(addon.."ButtonStyle.lua")
-    dofile(addon.."ButtonStyle.Settings.lua")
+    for _,frame in ipairs(frames) do frame.events={} end
+    dofile(addon.."ButtonStyle.lua");dofile(addon.."ButtonStyle.Settings.lua")
     event("ADDON_LOADED","wow_tools")
-    assert(WoWTools.buttonStyle.GetConfig().enabled and menu:GetNormalTexture()~=original,"Reload did not apply saved appearance")
-    assert(mapClose:GetNormalTexture()~=closeOriginal and Glyph(mapClose).shown,"Reload did not style close buttons")
-    CheckRounded(menu);CheckRounded(mapClose)
-    for _,frame in ipairs(frames) do assert(not frame.scripts.OnUpdate,"Appearance added permanent polling") end
+    style=WoWTools.buttonStyle
+    assert(style.GetConfig().border.style=="thin" and style.GetConfig().border.color[4]==.6,"Reload lost border selection or color")
+    CheckSkin(menu,"thin");CheckSkin(close,"thin")
+    for _,frame in ipairs(frames) do assert(not frame.scripts.OnUpdate,"Appearance added polling") end
     WoWTools.modules={};SlashCmdList={}
-    function CreateRadioButtonGroup() return {AddButton=function() end,SelectAtIndex=function() end} end
     if flavor=="forerver" then dofile(addon.."DisplayFonts.lua") end
     dofile(addon.."inner_graphic_config/Core.lua")
     WoWTools.modules.inner_graphic_config.Show()
     local tabs=0
     for _,object in ipairs(widgets) do if object.kind=="FontString" and object.text=="按钮" then tabs=tabs+1 end end
-    local editors=WoWTools.buttonStyle.editors
-    assert(tabs==2 and #editors==2,"Button tab missing from standalone or addon settings")
-    assert(editors[1].preview.parent.height==WoWTools.buttonStyle.settingsHeight,"Core layout collapsed the button settings page")
-    print("PASS: "..flavor.." rounded masks and thin borders across states/sizes/materials, map/late close X, shared media, native clicks, previews, picker, persistence, restoration and protected retry. Mock UI and offline artwork sampling only.")
+    assert(tabs==2 and #style.editors==2 and style.editors[1].preview.parent.height==600,"Settings entry or scrolling height is wrong")
+    print("PASS: "..flavor.." native/thin/no borders, stored border RGBA, native artwork/bindings/clicks, padded visual bounds, states/size changes, late buttons, LSM, color pickers, migration/reload and partial masking/restoration. Mock UI only.")
 end

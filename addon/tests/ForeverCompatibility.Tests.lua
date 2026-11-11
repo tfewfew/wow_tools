@@ -29,6 +29,7 @@ local function widget(name)
     end
     function object:CreateMaskTexture() return widget() end
     function object:AddMaskTexture(mask) self.mask=mask end
+    function object:RemoveMaskTexture(mask) if self.mask==mask then self.mask=nil end end
     function object:SetTextureSliceMargins(...) self.sliceMargins={ ... } end
     function object:ClearTextureSlice() self.sliceMargins=nil end
     function object:CreateFontString() return widget() end
@@ -60,7 +61,7 @@ local function widget(name)
     function object:IsShown() return self.shown end
     function object:GetFrameLevel() return 1 end
     local harmless = {
-        "SetFrameStrata", "SetFrameLevel", "SetClampedToScreen", "SetMovable", "EnableMouse",
+        "SetFrameStrata", "SetFrameLevel", "SetScale", "SetButtonState", "LockHighlight", "UnlockHighlight", "SetClampedToScreen", "SetMovable", "EnableMouse",
         "RegisterForDrag", "RegisterForClicks", "SetHighlightTexture", "SetTexture", "SetAllPoints",
         "ClearAllPoints", "SetFont", "SetWidth", "SetHeight", "SetJustifyH", "SetAutoFocus",
         "SetMaxLetters", "SetNumeric", "ClearFocus", "SetScrollChild", "StartMoving", "StopMovingOrSizing", "SetMultiLine", "SetFontObject", "SetBlendMode", "SetTexCoord",

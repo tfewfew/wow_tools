@@ -6,15 +6,21 @@ local module = { editors = {}, states = {
     {key="disabled", label="禁用", getter="GetDisabledTexture", setter="SetDisabledTexture"},
 } }
 WoWTools.buttonStyle = module
+module.borderStyles = {
+    {key="native", label="原版"}, {key="thin", label="细边框"}, {key="none", label="无边框"},
+}
 local white = "Interface\\Buttons\\WHITE8X8"
 local mediaPath = "Interface\\AddOns\\wow_tools\\Media\\"
 local defaults = {
     enabled=false, material="builtin:flat",
     colors={normal={.16,.16,.16,1}, pushed={.08,.08,.08,1},
         highlight={1,1,1,.18}, disabled={.3,.3,.3,.5}},
+    border={style="native", color={.65,.65,.65,.8}},
 }
 local function Copy(value)
-    local result = {enabled=value.enabled, material=value.material, colors={}}
+    local border = value.border or defaults.border
+    local result = {enabled=value.enabled, material=value.material, colors={},
+        border={style=border.style, color={unpack(border.color)}}}
     for _, state in ipairs(module.states) do result.colors[state.key] = {unpack(value.colors[state.key])} end
     return result
 end
@@ -70,6 +76,14 @@ function module.ResolveMaterial(key)
     if type(path) == "string" and path ~= "" or type(path) == "number" then return path,name,false end
     return white,name,true
 end
+local function ValidColor(color)
+    if type(color) ~= "table" then return false end
+    for index=1,4 do
+        local channel = color[index]
+        if type(channel) ~= "number" or not (channel >= 0 and channel <= 1) then return false end
+    end
+    return true
+end
 local function Valid(value)
     if type(value) ~= "table" or type(value.enabled) ~= "boolean" or type(value.material) ~= "string"
         or type(value.colors) ~= "table" then return false end
@@ -77,14 +91,11 @@ local function Valid(value)
         and not value.material:match("^lsm:.+") then return false end
     if #value.material > 256 or value.material:find("[%c]") then return false end
     for _, state in ipairs(module.states) do
-        local color = value.colors[state.key]
-        if type(color) ~= "table" then return false end
-        for index=1,4 do
-            local channel = color[index]
-            if type(channel) ~= "number" or not (channel >= 0 and channel <= 1) then return false end
-        end
+        if not ValidColor(value.colors[state.key]) then return false end
     end
-    return true
+    local border = value.border
+    return border == nil or type(border) == "table" and ValidColor(border.color)
+        and (border.style == "native" or border.style == "thin" or border.style == "none")
 end
 local function Family(name)
     if (issecretvalue and issecretvalue(name)) or type(name) ~= "string" then return false end
@@ -135,45 +146,33 @@ local function Suitable(button)
     return false
 end
 local function Capture(button)
-    local record = {button=button, original={}, alpha={}, blend={}, textures={}, active=false}
-    record.mask = button:CreateMaskTexture(nil,"BACKGROUND")
-    record.mask:SetPoint("TOPLEFT",button,"TOPLEFT",1,-1)
-    record.mask:SetPoint("BOTTOMRIGHT",button,"BOTTOMRIGHT",-1,1)
-    record.mask:SetTexture(mediaPath.."ButtonRoundMask.tga","CLAMPTOBLACKADDITIVE","CLAMPTOBLACKADDITIVE")
-    -- Shader nineslice preserves the corner radius as the button changes width or height.
-    record.mask:SetTextureSliceMargins(4,4,4,4)
+    local record = {button=button, alpha={}, masked={}, textures={}, active=false}
+    record.close = IsClose(button)
+    record.legacy = not (Read(Read(button,"GetNormalTexture"),"GetAtlas") or Read(button.Left,"GetAtlas"))
+    record.fill = CreateFrame("Button",nil,button)
+    excluded[record.fill] = true
+    record.fill:SetAllPoints(button)
+    record.fill:EnableMouse(false)
+    record.mask = record.fill:CreateMaskTexture(nil,"BACKGROUND")
+    record.nativeMask = button:CreateMaskTexture(nil,"BACKGROUND")
+    record.nativeMask:SetAllPoints(button)
+    record.nativeMask:SetTexture(mediaPath.."ButtonNativeBorderMask.tga","CLAMP","CLAMP")
+    record.nativeMask:SetTextureSliceMargins(5,5,5,5)
     record.border = button:CreateTexture(nil,"OVERLAY")
-    record.border:SetAllPoints(button)
     record.border:SetTexture(mediaPath.."ButtonRoundBorder.tga")
     record.border:SetTextureSliceMargins(4,4,4,4)
     record.border:SetBlendMode("BLEND")
     record.border:Hide()
-    local function Remember(texture)
-        if texture and type(texture.SetAlpha) == "function" and record.alpha[texture] == nil then
-            record.alpha[texture] = Read(texture,"GetAlpha") or 1
-            record.blend[texture] = Read(texture,"GetBlendMode")
-        end
-    end
     for _, state in ipairs(module.states) do
-        local original = Read(button,state.getter)
-        record.original[state.key] = original or false
-        Remember(original)
-        local texture = button:CreateTexture(nil, state.key == "highlight" and "HIGHLIGHT" or "BACKGROUND")
-        texture:SetAllPoints(record.mask)
+        local texture = record.fill:CreateTexture(nil, state.key == "highlight" and "HIGHLIGHT" or "BACKGROUND")
+        texture:SetAllPoints(record.fill)
         texture:AddMaskTexture(record.mask)
+        record.fill[state.setter](record.fill,texture)
         texture:SetBlendMode("BLEND")
-        texture:Hide()
         record.textures[state.key] = texture
     end
-    for _, key in ipairs({"Left","Middle","Center","Right"}) do Remember(button[key]) end
-    local slice = button.NineSlice
-    if slice and type(slice.GetRegions) == "function" then
-        for _, region in ipairs({slice:GetRegions()}) do
-            if type(region.SetTexture) == "function" then Remember(region) end
-        end
-    end
-    if IsClose(button) then
-        -- A child frame keeps the X above even an opaque native highlight layer.
+    record.fill:Hide()
+    if record.close then
         local overlay = CreateFrame("Frame",nil,button)
         overlay:SetAllPoints(button)
         overlay:EnableMouse(false)
@@ -185,72 +184,138 @@ local function Capture(button)
     end
     return record
 end
+local function Remember(record, texture, native)
+    if not texture or type(texture.SetAlpha) ~= "function" then return end
+    if record.alpha[texture] == nil then record.alpha[texture] = Read(texture,"GetAlpha") or 1 end
+    if native and not record.masked[texture] then
+        texture:AddMaskTexture(record.nativeMask)
+        record.masked[texture] = true
+    end
+end
 local function Paint(record, value, preview)
     local button = record.button
     if Read(button,"IsForbidden") == true then return false end
     if not value.enabled and not preview then
         if not record.active then return true end
-        if record.glyph then record.glyph:Hide() end
+        record.fill:Hide()
         record.border:Hide()
-        for _, state in ipairs(module.states) do
-            button[state.setter](button, record.original[state.key] or nil)
-            record.textures[state.key]:Hide()
+        if record.glyph then record.glyph:Hide() end
+        for texture in pairs(record.masked) do
+            texture:RemoveMaskTexture(record.nativeMask)
+            record.masked[texture] = nil
         end
-        for texture, alpha in pairs(record.alpha) do
-            texture:SetAlpha(alpha)
-            if record.blend[texture] then texture:SetBlendMode(record.blend[texture]) end
-        end
+        for texture, alpha in pairs(record.alpha) do texture:SetAlpha(alpha) end
         record.active = false
         return true
     end
-    local path = module.ResolveMaterial(value.material)
-    record.active = true -- A failed partial apply must still be restorable.
-    if record.glyph then
-        local font = Read(record.glyph,"GetFont")
-        local size = math.max(10,math.min(20,(Read(button,"GetHeight") or 24)*.6))
-        if font then record.glyph:SetFont(font,size,"OUTLINE") end
-        record.glyph:SetAlpha(Read(button,"IsEnabled") == false and .4 or 1)
-        record.glyph:Show()
+    record.active = true -- Restore partial mask or appearance changes after a failed apply.
+    local native = value.border.style == "native"
+    for _, state in ipairs(module.states) do Remember(record,Read(button,state.getter),native) end
+    for _, key in ipairs({"Left","Middle","Center","Right"}) do Remember(record,button[key],native) end
+    local slice = button.NineSlice
+    if slice and type(slice.GetRegions) == "function" then
+        for _, region in ipairs({slice:GetRegions()}) do
+            if type(region.SetTexture) == "function" then Remember(record,region,native) end
+        end
     end
-    for texture in pairs(record.alpha) do texture:SetAlpha(0) end
+    for texture, alpha in pairs(record.alpha) do texture:SetAlpha(native and alpha or 0) end
+
+    -- Native artwork includes transparent padding inside the unchanged button hit rectangle.
+    local height = Read(button,"GetHeight") or 22
+    local padding,inset
+    if record.close and record.legacy then padding,inset=height*6/32,height*8/32
+    elseif record.legacy then padding,inset=height*2/22,height*4/22
+    elseif record.close then padding,inset=height/24,height/8
+    else padding,inset=height/16,height/8 end
+    record.nativeMask:SetScale(inset/4)
+    record.mask:ClearAllPoints()
+    if native then
+        record.mask:SetScale(inset/4)
+        record.mask:SetAllPoints(button)
+        record.mask:SetTexture(mediaPath.."ButtonNativeFillMask.tga","CLAMPTOBLACKADDITIVE","CLAMPTOBLACKADDITIVE")
+        record.mask:SetTextureSliceMargins(5,5,5,5)
+    else
+        local fillInset = padding + (value.border.style == "thin" and 1 or 0)
+        record.mask:SetScale(1)
+        record.mask:SetPoint("TOPLEFT",button,"TOPLEFT",fillInset,-fillInset)
+        record.mask:SetPoint("BOTTOMRIGHT",button,"BOTTOMRIGHT",-fillInset,fillInset)
+        record.mask:SetTexture(mediaPath.."ButtonRoundMask.tga","CLAMPTOBLACKADDITIVE","CLAMPTOBLACKADDITIVE")
+        record.mask:SetTextureSliceMargins(4,4,4,4)
+    end
+    local path = module.ResolveMaterial(value.material)
     for _, state in ipairs(module.states) do
         local texture = record.textures[state.key]
         texture:SetTexture(path)
         texture:ClearTextureSlice()
         texture:SetTexCoord(0,1,0,1)
         texture:SetVertexColor(unpack(value.colors[state.key]))
-        texture:Show()
-        if Read(button,state.getter) ~= texture then button[state.setter](button,texture) end
         texture:SetBlendMode("BLEND")
     end
-    local borderAlpha = Read(button,"IsEnabled") == false and .35 or .8
-    record.border:SetVertexColor(.65,.65,.65,borderAlpha)
-    record.border:Show()
+    -- The lower-level, mouse-disabled child lets Blizzard retain native border states and text.
+    record.fill:SetFrameLevel(math.max(0,(Read(button,"GetFrameLevel") or 1)-1))
+    local enabled = Read(button,"IsEnabled") ~= false
+    record.fill:SetEnabled(enabled)
+    record.fill:SetButtonState(Read(button,"GetButtonState") or "NORMAL",true)
+    if enabled and (record.hover or record.locked or Read(button,"IsMouseOver") == true) then
+        record.fill:LockHighlight()
+    else record.fill:UnlockHighlight() end
+    record.fill:Show()
+    if value.border.style == "thin" then
+        local color = value.border.color
+        record.border:ClearAllPoints()
+        record.border:SetPoint("TOPLEFT",button,"TOPLEFT",padding,-padding)
+        record.border:SetPoint("BOTTOMRIGHT",button,"BOTTOMRIGHT",-padding,padding)
+        record.border:SetVertexColor(color[1],color[2],color[3],color[4]*(enabled and 1 or .4375))
+        record.border:Show()
+    else record.border:Hide() end
+    if record.glyph then
+        local font = Read(record.glyph,"GetFont")
+        local size = math.max(8,math.min(20,(height-2*padding)*.55))
+        if font then record.glyph:SetFont(font,size,"OUTLINE") end
+        record.glyph:SetAlpha(enabled and 1 or .4)
+        record.glyph:Show()
+    end
     return true
 end
-local function Track(button)
-    if records[button] or not Suitable(button) then return end
-    local ok, record = pcall(Capture, button)
-    if not ok then return end
-    records[button] = record
+local function Watch(record, preview)
+    local button = record.button
     local function Update()
         if not initialized then return end
-        local ok,result = pcall(Paint,record,current)
+        local ok,result = pcall(Paint,record,current,preview)
         if not ok or not result then events:RegisterEvent("PLAYER_REGEN_ENABLED") end
     end
     if type(button.HookScript) == "function" then
-        for _, event in ipairs({"OnShow","OnEnable","OnDisable","OnMouseDown","OnMouseUp","OnEnter","OnLeave"}) do
+        for _, event in ipairs({"OnShow","OnSizeChanged","OnEnable","OnDisable","OnMouseDown","OnMouseUp"}) do
             button:HookScript(event,Update)
         end
+        button:HookScript("OnEnter",function() record.hover=true;Update() end)
+        button:HookScript("OnLeave",function() record.hover=false;Update() end)
     end
-    if hooksecurefunc and type(button.UpdateButton) == "function" then
-        pcall(hooksecurefunc,button,"UpdateButton",Update)
+    if hooksecurefunc then
+        for _, method in ipairs({"UpdateButton","SetButtonState","SetFrameLevel"}) do
+            if type(button[method]) == "function" then pcall(hooksecurefunc,button,method,Update) end
+        end
+        if type(button.LockHighlight) == "function" then
+            pcall(hooksecurefunc,button,"LockHighlight",function() record.locked=true;Update() end)
+            pcall(hooksecurefunc,button,"UnlockHighlight",function() record.locked=false;Update() end)
+        end
     end
+end
+local function Track(button)
+    if records[button] or not Suitable(button) then return end
+    local ok, record = pcall(Capture,button)
+    if not ok then return end
+    records[button] = record
+    Watch(record,false)
 end
 function module.ApplyPreview(button)
     excluded[button] = true
     local record = module.previews[button]
-    if not record then record=Capture(button); module.previews[button]=record end
+    if not record then
+        record=Capture(button)
+        module.previews[button]=record
+        Watch(record,true)
+    end
     return Paint(record,current,true)
 end
 module.previews = {}
@@ -278,7 +343,7 @@ function module.Apply(discover)
     return applied,failed
 end
 function module.Save(value)
-    if not Valid(value) then return false,"按钮材质或颜色无效。" end
+    if not Valid(value) then return false,"按钮材质、颜色或边框无效。" end
     local discover = value.enabled and not current.enabled
     current = Copy(value)
     if type(wowDetectorDB) ~= "table" then wowDetectorDB = {} end

@@ -5,6 +5,12 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 # wow_tools
 
+## 原版边框选项与按钮留白（2026-11-11）
+
+- forerver 2.2.63 / titan 2.1.60增加border={style="native"|"thin"|"none",color=RGBA}，默认原版，细边框有独立RGBA取色。旧配置缺border时只读补默认，下次手动修改保存；颜色取消、旧取色回调失效及账号级持久化沿用。按钮页高度600，复用MinimalTabTemplate及CreateRadioButtonGroup选择边框，原版和无边框时边框取色项禁用。
+- 原版模式将ButtonNativeBorderMask.tga附加到原始状态纹理/三段贴图/NineSlice区域，仅裁去内部，原生边缘颜色、透明外轮廓和状态由客户端绘制。互补ButtonNativeFillMask.tga位于不接收鼠标、低于原按钮层级的子Button，镜像按下/悬停/禁用/锁定状态。两张32×32 RGBA遮罩逐像素互补，九宫格边距5，按按钮高度缩放。恢复时移除本模块遮罩并还原缓存alpha，客户端新增的纹理绑定参与当前采样和恢复。
+- 留白基准按旧式文本按钮高度22的2px、旧式关闭按钮高度32的6px、现代关闭按钮高度24的1px及三段图集按钮高度的1/16计算，细边框和无边框向内绘制。原版内部遮罩按对应留白及边缘宽度收回，白叉字号按可见高度计算。ButtonStyle.Tests模拟三种边框/边框颜色、旧配置、原生绑定和状态、按钮尺寸与留白、图集更新、恢复重试及持久化；配合两服客户端模拟与ClientProfiles验证后提交推送同步。
+
 ## 按钮材质的圆角与细边框（2026-11-11）
 
 - forerver 2.2.62 / titan 2.1.59为按钮材质独立增加Media/ButtonRoundMask.tga和ButtonRoundBorder.tga，32×32、32位RGBA、左上原点，遮罩内圆角3px，边框外圆角4px/内缩1px。背景四状态统一内缩1px并共享遮罩，边框灰色、正常alpha .8/禁用.35。两服原生TextureBase.SetTextureSliceMargins(4,4,4,4)固定圆角与线宽，材质本身ClearTextureSlice后正常拉伸。沿用既有账号设置及关闭按钮白叉，恢复默认隐藏自定义边框并恢复原纹理绑定。

@@ -1,6 +1,6 @@
 -- Titan 38002 material list, RGBA swatches and live button preview.
 local module = WoWTools.buttonStyle
-module.settingsHeight = 510
+module.settingsHeight = 600
 local popup, pickerSession
 local pickerGeneration=0
 local hookedPickers=setmetatable({}, {__mode="k"})
@@ -16,6 +16,10 @@ local function Label(parent,text,x,y)
     label:SetText(text)
     return label
 end
+local function ColorTarget(value,key)
+    if key=="border" then return value.border,"color" end
+    return value.colors,key
+end
 function module.RefreshSettings()
     local value=module.GetConfig()
     local path,name,missing=module.ResolveMaterial(value.material)
@@ -26,6 +30,11 @@ function module.RefreshSettings()
         for _,state in ipairs(module.states) do
             editor.swatches[state.key].color:SetColorTexture(unpack(value.colors[state.key]))
         end
+        for index,style in ipairs(module.borderStyles) do
+            if style.key==value.border.style then editor.borderGroup:SelectAtIndex(index) end
+        end
+        editor.borderColor.color:SetColorTexture(unpack(value.border.color))
+        editor.borderColor:SetEnabled(value.border.style=="thin")
         module.ApplyPreview(editor.preview)
         module.ApplyPreview(editor.disabled)
         module.ApplyPreview(editor.closePreview)
@@ -47,7 +56,8 @@ local function OpenPicker(editor,key)
     local picker=ColorPickerFrame
     if not picker then editor.status:SetText("颜色选择器尚未加载。");return end
     picker:Hide()
-    local session={editor=editor,key=key,before=module.GetConfig().colors[key],generation=pickerGeneration}
+    local colors,field=ColorTarget(module.GetConfig(),key)
+    local session={editor=editor,key=key,before=colors[field],generation=pickerGeneration}
     pickerSession=session
     if not hookedPickers[picker] and type(picker.HookScript)=="function" then
         hookedPickers[picker]=true
@@ -62,7 +72,8 @@ local function OpenPicker(editor,key)
         elseif OpacitySliderFrame then alpha=1-OpacitySliderFrame:GetValue()
         else alpha=session.before[4] end
         local value=module.GetConfig()
-        value.colors[key]={r,g,b,alpha}
+        local colors,field=ColorTarget(value,key)
+        colors[field]={r,g,b,alpha}
         local ok,message=module.Save(value)
         if not ok then editor.status:SetText(message) end
     end
@@ -71,7 +82,8 @@ local function OpenPicker(editor,key)
         pickerGeneration=pickerGeneration+1
         pickerSession=nil
         local value=module.GetConfig()
-        value.colors[key]={unpack(session.before)}
+        local colors,field=ColorTarget(value,key)
+        colors[field]={unpack(session.before)}
         module.Save(value)
     end
     local color=session.before
@@ -88,6 +100,22 @@ local function OpenPicker(editor,key)
         picker:SetColorRGB(color[1],color[2],color[3])
         picker:Show()
     end
+end
+local function Swatch(parent,editor,key,y)
+    local swatch=Button(parent,"选择颜色",144,28)
+    swatch:SetPoint("TOPLEFT",82,y)
+    for tile=0,7 do
+        local texture=swatch:CreateTexture(nil,"BORDER")
+        local tone=tile%2==math.floor(tile/4)%2 and .25 or .75
+        texture:SetColorTexture(tone,tone,tone,1)
+        texture:SetPoint("TOPLEFT",6+(tile%4)*6,-6-math.floor(tile/4)*8)
+        texture:SetSize(6,8)
+    end
+    swatch.color=swatch:CreateTexture(nil,"OVERLAY")
+    swatch.color:SetPoint("TOPLEFT",6,-6)
+    swatch.color:SetSize(24,16)
+    swatch:SetScript("OnClick",function() OpenPicker(editor,key) end)
+    return swatch
 end
 local function BuildPopup()
     local frame=CreateFrame("Frame","WoWToolsButtonMaterialMenu",UIParent)
@@ -195,25 +223,33 @@ function module.BuildSettings(parent)
     for index,state in ipairs(module.states) do
         local rowY=-190-(index-1)*38
         Label(parent,state.label,8,rowY-6)
-        local swatch=Button(parent,"选择颜色",144,28)
-        swatch:SetPoint("TOPLEFT",82,rowY)
-        for tile=0,7 do
-            local texture=swatch:CreateTexture(nil,"BORDER")
-            local tone=tile%2==math.floor(tile/4)%2 and .25 or .75
-            texture:SetColorTexture(tone,tone,tone,1)
-            texture:SetPoint("TOPLEFT",6+(tile%4)*6,-6-math.floor(tile/4)*8)
-            texture:SetSize(6,8)
-        end
-        swatch.color=swatch:CreateTexture(nil,"OVERLAY")
-        swatch.color:SetPoint("TOPLEFT",6,-6)
-        swatch.color:SetSize(24,16)
-        swatch:SetScript("OnClick",function() OpenPicker(editor,state.key) end)
-        editor.swatches[state.key]=swatch
+        editor.swatches[state.key]=Swatch(parent,editor,state.key,rowY)
     end
-    Label(parent,"预览",8,-358)
+    Label(parent,"边框",8,-356)
+    editor.borderGroup=CreateRadioButtonGroup()
+    editor.borderOptions={}
+    for index,style in ipairs(module.borderStyles) do
+        local key=style.key
+        local tab=CreateFrame("Button",nil,parent,"MinimalTabTemplate")
+        module.Exclude(tab)
+        tab:SetSize(90,30)
+        tab:SetPoint("TOPLEFT",82+(index-1)*96,-346)
+        tab.Text:SetText(style.label)
+        editor.borderGroup:AddButton(tab)
+        tab:SetScript("OnClick",function()
+            module.CloseColorPicker()
+            local value=module.GetConfig()
+            value.border.style=key
+            module.Save(value)
+        end)
+        editor.borderOptions[style.key]=tab
+    end
+    Label(parent,"边框颜色",8,-396)
+    editor.borderColor=Swatch(parent,editor,"border",-390)
+    Label(parent,"预览",8,-446)
     editor.preview=Button(parent,"按钮预览",210,28)
     module.Exclude(editor.preview)
-    editor.preview:SetPoint("TOPLEFT",8,-382)
+    editor.preview:SetPoint("TOPLEFT",8,-470)
     editor.disabled=Button(parent,"禁用预览",140,28)
     module.Exclude(editor.disabled)
     editor.disabled:SetPoint("LEFT",editor.preview,"RIGHT",12,0)
@@ -224,9 +260,9 @@ function module.BuildSettings(parent)
     editor.closePreview:SetPoint("LEFT",editor.disabled,"RIGHT",8,0)
     editor.closePreview:SetScript("OnClick",nil)
     local reset=Button(parent,"恢复默认",112,26)
-    reset:SetPoint("TOPLEFT",8,-432)
+    reset:SetPoint("TOPLEFT",8,-520)
     reset:SetScript("OnClick",function() module.Reset() end)
-    editor.status=Label(parent,"",8,-472)
+    editor.status=Label(parent,"",8,-560)
     editor.status:SetWidth(398);editor.status:SetJustifyH("LEFT")
     editor.status:SetHeight(32)
     parent:SetScript("OnShow",module.RefreshSettings)
