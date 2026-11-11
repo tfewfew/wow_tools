@@ -22,8 +22,11 @@ local records, excluded = {}, setmetatable({}, {__mode="k"})
 local initialized, queued, hookedCreate, mediaLibrary = false, false, false, nil
 local events = CreateFrame("Frame")
 local reference = CreateFrame("Button", nil, UIParent, "UIPanelButtonTemplate")
+local closeReference = CreateFrame("Button", nil, UIParent, "UIPanelCloseButtonNoScripts")
 reference:Hide()
+closeReference:Hide()
 excluded[reference] = true
+excluded[closeReference] = true
 function module.Exclude(button) excluded[button] = true end
 function module.GetConfig() return Copy(current) end
 local function Read(object, method, ...)
@@ -89,20 +92,37 @@ local function Family(name)
         or name:find("common-button",1,true) or name:find("ui-panel-button",1,true)
 end
 local nativeFiles, nativeAtlases = {}, {}
+local closeFiles, closeAtlases = {}, {}
 local function Sources(button)
     return {Read(button,"GetNormalTexture") or false, button.Left or false, button.Middle or false,
         button.Center or false, button.Right or false}
 end
-local function ReadReference()
-    for _,texture in ipairs(Sources(reference)) do
+local function ReadReference(button, files, atlases)
+    for _,texture in ipairs(Sources(button)) do
         local atlas,path = Read(texture,"GetAtlas"),Read(texture,"GetTexture")
-        if type(atlas) == "string" then nativeAtlases[atlas]=true
-        elseif type(path) == "number" then nativeFiles[path]=true end
+        if type(atlas) == "string" then atlases[atlas]=true
+        elseif type(path) == "number" then files[path]=true end
     end
+end
+ReadReference(reference,nativeFiles,nativeAtlases)
+ReadReference(closeReference,closeFiles,closeAtlases)
+local function CloseFamily(name)
+    if (issecretvalue and issecretvalue(name)) or type(name) ~= "string" then return false end
+    name = name:lower()
+    return name:find("ui-panel-minimizebutton-",1,true)
+        or name:match("^%d*%-?redbutton%-exit") or name:match("^common%-button%-close")
+end
+local function IsClose(button)
+    local normal = Read(button,"GetNormalTexture")
+    local atlas,path = Read(normal,"GetAtlas"),Read(normal,"GetTexture")
+    return CloseFamily(button.atlasName) or CloseFamily(button.buttonArtKit)
+        or CloseFamily(atlas) or CloseFamily(path) or closeAtlases[atlas]
+        or type(path) == "number" and not atlas and closeFiles[path]
 end
 local function Suitable(button)
     if excluded[button] or Read(button,"IsForbidden") == true
         or Read(button,"IsObjectType","Button") ~= true then return false end
+    if IsClose(button) then return true end
     local sliced = button.Left and button.Right
     if sliced and (Family(button.atlasName) or Family(button.buttonArtKit)) then return true end
     for _,texture in ipairs(Sources(button)) do
@@ -138,6 +158,17 @@ local function Capture(button)
             if type(region.SetTexture) == "function" then Remember(region) end
         end
     end
+    if IsClose(button) then
+        -- A child frame keeps the X above even an opaque native highlight layer.
+        local overlay = CreateFrame("Frame",nil,button)
+        overlay:SetAllPoints(button)
+        overlay:EnableMouse(false)
+        record.glyph = overlay:CreateFontString(nil,"OVERLAY","GameFontHighlightLarge")
+        record.glyph:SetPoint("CENTER",button,"CENTER",0,0)
+        record.glyph:SetText("×")
+        record.glyph:SetTextColor(1,1,1,1)
+        record.glyph:Hide()
+    end
     return record
 end
 local function Paint(record, value, preview)
@@ -145,6 +176,7 @@ local function Paint(record, value, preview)
     if Read(button,"IsForbidden") == true then return false end
     if not value.enabled and not preview then
         if not record.active then return true end
+        if record.glyph then record.glyph:Hide() end
         for _, state in ipairs(module.states) do
             button[state.setter](button, record.original[state.key] or nil)
             record.textures[state.key]:Hide()
@@ -158,6 +190,13 @@ local function Paint(record, value, preview)
     end
     local path = module.ResolveMaterial(value.material)
     record.active = true -- A failed partial apply must still be restorable.
+    if record.glyph then
+        local font = Read(record.glyph,"GetFont")
+        local size = math.max(10,math.min(20,(Read(button,"GetHeight") or 24)*.6))
+        if font then record.glyph:SetFont(font,size,"OUTLINE") end
+        record.glyph:SetAlpha(Read(button,"IsEnabled") == false and .4 or 1)
+        record.glyph:Show()
+    end
     for texture in pairs(record.alpha) do texture:SetAlpha(0) end
     for _, state in ipairs(module.states) do
         local texture = record.textures[state.key]
@@ -199,7 +238,8 @@ module.previews = {}
 function module.Apply(discover)
     local applied, failed = 0, 0
     if current.enabled and discover and type(EnumerateFrames) == "function" then
-        ReadReference()
+        ReadReference(reference,nativeFiles,nativeAtlases)
+        ReadReference(closeReference,closeFiles,closeAtlases)
         local button = EnumerateFrames()
         while button do
             Track(button)
@@ -262,8 +302,9 @@ events:SetScript("OnEvent",function(_,event,name)
     if not initialized then return end
     if not hookedCreate and type(hooksecurefunc) == "function" then
         hookedCreate = true
-        hooksecurefunc("CreateFrame",function(kind,_,_,templates)
-            if type(kind) == "string" and kind:lower() == "button" and type(templates) == "string" then QueueScan() end
+        hooksecurefunc("CreateFrame",function(_,_,_,templates)
+            -- XML frame templates can create close buttons without a separate Lua CreateFrame call.
+            if type(templates) == "string" then QueueScan() end
         end)
     end
     WatchMedia()

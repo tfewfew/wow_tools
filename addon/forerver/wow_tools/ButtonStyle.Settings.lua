@@ -28,6 +28,7 @@ function module.RefreshSettings()
         end
         module.ApplyPreview(editor.preview)
         module.ApplyPreview(editor.disabled)
+        module.ApplyPreview(editor.closePreview)
         editor.status:SetText(module.lastStatus or "勾选启用后立即应用并保存。")
     end
 end
@@ -158,7 +159,7 @@ local function BuildPopup()
     return frame
 end
 function module.BuildSettings(parent)
-    local hint=Label(parent,"游戏菜单及同类按钮。启用后，选择材质或颜色立即应用并保存。",8,-8)
+    local hint=Label(parent,"游戏菜单及同类按钮，包含地图和窗口的关闭按钮。修改立即应用并保存。",8,-8)
     hint:SetWidth(398);hint:SetJustifyH("LEFT")
     local editor={swatches={}}
     module.editors[#module.editors+1]=editor
@@ -210,13 +211,18 @@ function module.BuildSettings(parent)
         editor.swatches[state.key]=swatch
     end
     Label(parent,"预览",8,-358)
-    editor.preview=Button(parent,"按钮预览",240,28)
+    editor.preview=Button(parent,"按钮预览",210,28)
     module.Exclude(editor.preview)
     editor.preview:SetPoint("TOPLEFT",8,-382)
     editor.disabled=Button(parent,"禁用预览",140,28)
     module.Exclude(editor.disabled)
     editor.disabled:SetPoint("LEFT",editor.preview,"RIGHT",12,0)
     editor.disabled:Disable()
+    editor.closePreview=CreateFrame("Button",nil,parent,"UIPanelCloseButton")
+    module.Exclude(editor.closePreview)
+    editor.closePreview:SetSize(28,28)
+    editor.closePreview:SetPoint("LEFT",editor.disabled,"RIGHT",8,0)
+    editor.closePreview:SetScript("OnClick",nil)
     local reset=Button(parent,"恢复默认",112,26)
     reset:SetPoint("TOPLEFT",8,-432)
     reset:SetScript("OnClick",function() module.Reset() end)

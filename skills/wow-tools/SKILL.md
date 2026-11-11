@@ -5,6 +5,11 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 # wow_tools
 
+## 地图与窗口关闭按钮外观（2026-11-11）
+
+- forerver 2.2.61 / titan 2.1.58补充关闭按钮匹配，读取本客户端UIPanelCloseButtonNoScripts的原生纹理ID/图集，兼容UI-Panel-MinimizeButton、RedButton-Exit及common-button-close系列。沿用wowDetectorDB.buttonStyle材质和四状态RGBA，自定义背景上叠加白色叉号，禁用变暗，原生点击继续沿用。关闭样式或恢复默认还原原纹理并隐藏叉号，设置页增加关闭预览。
+- CreateFrame安全后钩子在带模板控件创建后合并扫描，包含由XML窗口模板内部生成的关闭子按钮。无新增轮询。ButtonStyle.Tests按两服独立模拟地图关闭、旧文件ID/路径及现代图集、匿名和XML子控件晚加载、RGBA/共享材质、叉号/禁用、原点击、预览、持久化和部分失败后恢复。配合两服客户端模拟与ClientProfiles验证，通过提交推送后分别同步两服。
+
 ## 游戏菜单与同类按钮外观（2026-11-11）
 
 - 用户明确作用于游戏菜单及同类按钮，材质和颜色交互参考Plater。两服独立增加ButtonStyle.lua / ButtonStyle.Settings.lua，titan 2.1.57、forerver 2.2.60，`/igc`及系统插件设置的“按钮”tab均可配置。默认关闭，启用后材质选择及RGBA取色即时应用并保存到wowDetectorDB.buttonStyle，登录/reload自动读回。材质列表用LibSharedMedia-3.0的statusbar键名及纹理预览，提供搜索/滚轮，内置纯色及Blizzard。已保存共享材质缺失时保留选择并使用纯色，材质加载后自动恢复。
