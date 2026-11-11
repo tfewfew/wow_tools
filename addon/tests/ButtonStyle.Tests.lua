@@ -2,6 +2,7 @@ local root = TEST_ROOT or "."
 for _, flavor in ipairs({"titan", "forerver"}) do
     local frames, widgets, named, timers = {}, {}, {}, {}
     local combat, scans, callback, media = false, 0, nil, nil
+    local writes = {texture=0, anchors=0, font=0}
     local secret = setmetatable({}, {__tostring=function() error("restricted string") end})
     local function widget(kind, name, parent)
         local object = {kind=kind, name=name, parent=parent, scripts={}, hooks={}, events={},
@@ -48,10 +49,20 @@ for _, flavor in ipairs({"titan", "forerver"}) do
         function object:SetSize(w,h) self.width,self.height=w,h end
         function object:GetWidth() return self.width or 144 end
         function object:GetHeight() return self.height or 20 end
+        function object:GetChildren()
+            local children = {}
+            for _, frame in ipairs(frames) do
+                if frame.parent == self then children[#children+1] = frame end
+            end
+            return unpack(children)
+        end
         function object:GetFrameLevel() return self.level or (self.parent and self.parent:GetFrameLevel()+1 or 0) end
         function object:SetFrameLevel(level) self.level=level end
         function object:SetScale(scale) self.scale=scale end
-        function object:ClearAllPoints() self.points={};self.allPoints=nil end
+        function object:ClearAllPoints()
+            writes.anchors=writes.anchors+1
+            self.points={};self.allPoints=nil
+        end
         function object:GetButtonState() return self.buttonState or "NORMAL" end
         function object:SetButtonState(state) self.buttonState=state end
         function object:IsMouseOver() return self.mouseOver end
@@ -59,7 +70,10 @@ for _, flavor in ipairs({"titan", "forerver"}) do
         function object:UnlockHighlight() self.highlightLocked=false end
         function object:GetStringHeight() return 20 end
         function object:GetFont() return "mock-font",12,"" end
-        function object:SetFont(path,size,flags) self.font={path,size,flags} end
+        function object:SetFont(path,size,flags)
+            writes.font=writes.font+1
+            self.font={path,size,flags}
+        end
         function object:SetTextColor(...) self.textColor={...} end
         function object:SetHeight(h) self.height=h end
         function object:SetPoint(...)
@@ -74,6 +88,7 @@ for _, flavor in ipairs({"titan", "forerver"}) do
         function object:GetTexture() return self.path end
         function object:GetAtlas() return self.atlas end
         function object:SetTexture(path,horizontal,vertical,filter)
+            writes.texture=writes.texture+1
             self.path=path;self.atlas=nil;self.wrap={horizontal,vertical};self.filter=filter
         end
         function object:SetAtlas(atlas) self.atlas=atlas;self.path=9000 end
@@ -121,10 +136,11 @@ for _, flavor in ipairs({"titan", "forerver"}) do
             if not object[method] then object[method]=function() end end
         end
         widgets[#widgets+1]=object
-        if name then named[name]=object end
+        if name then named[name]=object;_G[name]=object end
         return object
     end
     function CreateFrame(kind,name,parent,template)
+        if type(parent)=="string" then parent=_G[parent] end
         local frame=widget(kind,name,parent)
         frames[#frames+1]=frame
         if template=="UIPanelButtonTemplate" then
@@ -357,9 +373,45 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     local late=CreateFrame("Button",nil,UIParent,"UIPanelButtonTemplate")
     local lateClose=CreateFrame("Button",nil,UIParent,"UIPanelCloseButtonDefaultAnchors")
     local before=scans;assert(#timers==1);flush()
-    assert(scans==before+1);CheckSkin(late,"native");CheckSkin(lateClose,"native")
+    assert(scans==before,"Parented controls triggered a global scan");CheckSkin(late,"native");CheckSkin(lateClose,"native")
     local latePanel=CreateFrame("Frame",nil,UIParent,"PortraitFrameTemplate")
     flush();CheckSkin(latePanel.CloseButton,"native")
+    local otherParent=CreateFrame("Frame","ButtonStyleOtherParent",UIParent)
+    local reparented=CreateFrame("Frame",nil,"ButtonStyleOtherParent","PortraitFrameTemplate")
+    reparented.parent=map
+    flush();CheckSkin(reparented.CloseButton,"native")
+    before=scans
+    local textureWrites,anchorWrites,fontWrites=writes.texture,writes.anchors,writes.font
+    for i=1,100 do
+        menu:Run("OnEnter");menu:Run("OnMouseDown");menu:Run("OnMouseUp");menu:Run("OnLeave")
+        close:Hide();close:Show();close:UpdateButton()
+    end
+    assert(writes.texture==textureWrites and writes.anchors==anchorWrites and writes.font==fontWrites,
+        "Repeated button events rewrote materials, geometry or fonts")
+    local pushed=style.GetConfig()
+    menu:SetButtonState("PUSHED");style.Save(pushed)
+    assert(fill.buttonState=="PUSHED","Saving appearance lost the current pressed state")
+    menu:SetButtonState("NORMAL")
+    local namedPanel=CreateFrame("Frame","ButtonStyleLatePanel",nil,"PortraitFrameTemplate")
+    flush();CheckSkin(namedPanel.CloseButton,"native")
+    local anonymousPanel=CreateFrame("Frame",nil,nil,"PortraitFrameTemplate")
+    flush();CheckSkin(anonymousPanel.CloseButton,"native")
+    assert(scans==before+1,"Anonymous top-level template fallback was lost")
+    local otherFill=Fill(close)
+    textureWrites,anchorWrites,fontWrites=writes.texture,writes.anchors,writes.font
+    local unrelated=CreateFrame("Frame",nil,UIParent,"BackdropTemplate")
+    flush()
+    assert(scans==before+1 and not Fill(unrelated) and Fill(close)==otherFill)
+    assert(writes.texture==textureWrites and writes.anchors==anchorWrites and writes.font==fontWrites,
+        "An unrelated popup repainted existing buttons or settings previews")
+    before=scans
+    event("PLAYER_ENTERING_WORLD");flush()
+    event("PLAYER_ENTERING_WORLD");flush()
+    assert(scans==before+1,"World entry discovery remained registered after loading")
+    textureWrites,anchorWrites,fontWrites=writes.texture,writes.anchors,writes.font
+    event("ADDON_LOADED","UnrelatedAddon");event("ADDON_LOADED","AnotherAddon");flush()
+    assert(scans==before+2 and writes.texture==textureWrites and writes.anchors==anchorWrites
+        and writes.font==fontWrites,"Addon loading repainted existing buttons or bypassed scan coalescing")
     value=style.GetConfig();value.material="lsm:Smooth";assert(style.Save(value))
     assert(fill:GetNormalTexture().path=="Interface\\Buttons\\WHITE8X8" and style.lastStatus:find("暂用纯色",1,true))
     media={Smooth="mock-smooth",Zeta="mock-zeta",Alpha="mock-alpha"}
@@ -461,7 +513,7 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     wowDetectorDB.buttonStyle=persisted
     for _,frame in ipairs(frames) do frame.events={} end
     dofile(addon.."ButtonStyle.lua");dofile(addon.."ButtonStyle.Settings.lua")
-    event("ADDON_LOADED","wow_tools")
+    event("ADDON_LOADED","wow_tools");flush()
     style=WoWTools.buttonStyle
     assert(style.GetConfig().border.style=="thin" and style.GetConfig().border.color[4]==.6,"Reload lost border selection or color")
     CheckSkin(menu,"thin");CheckSkin(close,"thin")
@@ -473,5 +525,5 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     local tabs=0
     for _,object in ipairs(widgets) do if object.kind=="FontString" and object.text=="按钮" then tabs=tabs+1 end end
     assert(tabs==2 and #style.editors==2 and style.editors[1].preview.parent.height==600,"Settings entry or scrolling height is wrong")
-    print("PASS: "..flavor.." native/thin/no borders, stored border RGBA, native artwork/bindings/clicks, padded visual bounds, states/size changes, late buttons, LSM, color pickers, migration/reload and partial masking/restoration. Mock UI only.")
+    print("PASS: "..flavor.." cached appearance/state updates, scoped/coalesced discovery, reparented/XML/anonymous late controls, native/thin/no borders, padded bounds, LSM, persistence and partial restoration. Mock UI only.")
 end

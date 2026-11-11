@@ -25,7 +25,10 @@ local function Copy(value)
     return result
 end
 local current = Copy(defaults)
+local materialPath = white
 local records, excluded = {}, setmetatable({}, {__mode="k"})
+local seen = setmetatable({}, {__mode="k"})
+local scanRoots, scanAll = {}, false
 local initialized, queued, hookedCreate, mediaLibrary = false, false, false, nil
 local events = CreateFrame("Frame")
 local reference = CreateFrame("Button", nil, UIParent, "UIPanelButtonTemplate")
@@ -192,6 +195,38 @@ local function Remember(record, texture, native)
         record.masked[texture] = true
     end
 end
+local function SyncState(record, value, preview)
+    if not record.active or not value.enabled and not preview then return true end
+    local button = record.button
+    if Read(button,"IsForbidden") == true then return false end
+    local level = math.max(0,(Read(button,"GetFrameLevel") or 1)-1)
+    if record.level ~= level then
+        record.fill:SetFrameLevel(level)
+        record.level = level
+    end
+    local enabled = Read(button,"IsEnabled") ~= false
+    if record.enabled ~= enabled or record.appearance ~= value then
+        record.fill:SetEnabled(enabled)
+        record.state, record.highlight = nil,nil
+        if value.border.style == "thin" then
+            local color = value.border.color
+            record.border:SetVertexColor(color[1],color[2],color[3],color[4]*(enabled and 1 or .4375))
+        end
+        if record.glyph then record.glyph:SetAlpha(enabled and 1 or .4) end
+        record.enabled = enabled
+    end
+    local state = Read(button,"GetButtonState") or "NORMAL"
+    if record.state ~= state then
+        record.fill:SetButtonState(state,true)
+        record.state = state
+    end
+    local highlight = enabled and (record.hover or record.locked or Read(button,"IsMouseOver") == true) or false
+    if record.highlight ~= highlight then
+        if highlight then record.fill:LockHighlight() else record.fill:UnlockHighlight() end
+        record.highlight = highlight
+    end
+    return true
+end
 local function Paint(record, value, preview)
     local button = record.button
     if Read(button,"IsForbidden") == true then return false end
@@ -206,36 +241,62 @@ local function Paint(record, value, preview)
         end
         for texture, alpha in pairs(record.alpha) do texture:SetAlpha(alpha) end
         record.active = false
+        record.appearance, record.enabled, record.state, record.highlight, record.level = nil,nil,nil,nil,nil
         return true
     end
     record.active = true -- Restore partial mask or appearance changes after a failed apply.
     local native = value.border.style == "native"
     -- Native artwork includes transparent padding inside the unchanged button hit rectangle.
     local height = Read(button,"GetHeight") or 22
-    local padding,inset
-    if record.close and record.legacy then padding,inset=height*6/32,height*8/32
-    elseif record.legacy then padding,inset=height*2/22,height*4/22
-    elseif record.close then padding,inset=height/24,height/8
-    else padding,inset=height/16,height/8 end
-    record.fill:ClearAllPoints()
-    record.mask:ClearAllPoints()
-    if native then
-        local fillInset = inset+1
-        local xInset = math.min(fillInset,math.max(0,((Read(button,"GetWidth") or height)-1)/2))
-        local yInset = math.min(fillInset,math.max(0,(height-1)/2))
-        record.fill:SetPoint("TOPLEFT",button,"TOPLEFT",xInset,-yInset)
-        record.fill:SetPoint("BOTTOMRIGHT",button,"BOTTOMRIGHT",-xInset,yInset)
-        record.mask:SetAllPoints(record.fill)
-        record.mask:SetTexture(white,"CLAMPTOBLACKADDITIVE","CLAMPTOBLACKADDITIVE","NEAREST")
-        record.mask:ClearTextureSlice()
-    else
-        local fillInset = padding + (value.border.style == "thin" and 1 or 0)
-        record.fill:SetAllPoints(button)
-        record.mask:SetPoint("TOPLEFT",button,"TOPLEFT",fillInset,-fillInset)
-        record.mask:SetPoint("BOTTOMRIGHT",button,"BOTTOMRIGHT",-fillInset,fillInset)
-        record.mask:SetTexture(mediaPath.."ButtonRoundMask.tga","CLAMPTOBLACKADDITIVE","CLAMPTOBLACKADDITIVE")
-        record.mask:SetTextureSliceMargins(4,4,4,4)
+    local width = Read(button,"GetWidth") or height
+    if record.appearance ~= value or record.material ~= materialPath or record.width ~= width or record.height ~= height then
+        local padding,inset
+        if record.close and record.legacy then padding,inset=height*6/32,height*8/32
+        elseif record.legacy then padding,inset=height*2/22,height*4/22
+        elseif record.close then padding,inset=height/24,height/8
+        else padding,inset=height/16,height/8 end
+        record.fill:ClearAllPoints()
+        record.mask:ClearAllPoints()
+        if native then
+            local fillInset = inset+1
+            local xInset = math.min(fillInset,math.max(0,(width-1)/2))
+            local yInset = math.min(fillInset,math.max(0,(height-1)/2))
+            record.fill:SetPoint("TOPLEFT",button,"TOPLEFT",xInset,-yInset)
+            record.fill:SetPoint("BOTTOMRIGHT",button,"BOTTOMRIGHT",-xInset,yInset)
+            record.mask:SetAllPoints(record.fill)
+            record.mask:SetTexture(white,"CLAMPTOBLACKADDITIVE","CLAMPTOBLACKADDITIVE","NEAREST")
+            record.mask:ClearTextureSlice()
+        else
+            local fillInset = padding + (value.border.style == "thin" and 1 or 0)
+            record.fill:SetAllPoints(button)
+            record.mask:SetPoint("TOPLEFT",button,"TOPLEFT",fillInset,-fillInset)
+            record.mask:SetPoint("BOTTOMRIGHT",button,"BOTTOMRIGHT",-fillInset,fillInset)
+            record.mask:SetTexture(mediaPath.."ButtonRoundMask.tga","CLAMPTOBLACKADDITIVE","CLAMPTOBLACKADDITIVE")
+            record.mask:SetTextureSliceMargins(4,4,4,4)
+        end
+        for _, state in ipairs(module.states) do
+            local texture = record.textures[state.key]
+            texture:SetTexture(materialPath)
+            texture:ClearTextureSlice()
+            texture:SetTexCoord(0,1,0,1)
+            texture:SetVertexColor(unpack(value.colors[state.key]))
+            texture:SetBlendMode("BLEND")
+        end
+        record.fill:Show()
+        if value.border.style == "thin" then
+            record.border:ClearAllPoints()
+            record.border:SetPoint("TOPLEFT",button,"TOPLEFT",padding,-padding)
+            record.border:SetPoint("BOTTOMRIGHT",button,"BOTTOMRIGHT",-padding,padding)
+            record.border:Show()
+        else record.border:Hide() end
+        if record.glyph then
+            local font = Read(record.glyph,"GetFont")
+            local size = math.max(8,math.min(20,(height-2*padding)*.7))
+            if font then record.glyph:SetFont(font,size,"OUTLINE") end
+            record.glyph:Show()
+        end
     end
+    -- Native clients may replace state textures when showing or updating a button.
     for _, state in ipairs(module.states) do Remember(record,Read(button,state.getter),native) end
     for _, key in ipairs({"Left","Middle","Center","Right"}) do Remember(record,button[key],native) end
     local slice = button.NineSlice
@@ -245,62 +306,41 @@ local function Paint(record, value, preview)
         end
     end
     for texture, alpha in pairs(record.alpha) do texture:SetAlpha(native and alpha or 0) end
-    local path = module.ResolveMaterial(value.material)
-    for _, state in ipairs(module.states) do
-        local texture = record.textures[state.key]
-        texture:SetTexture(path)
-        texture:ClearTextureSlice()
-        texture:SetTexCoord(0,1,0,1)
-        texture:SetVertexColor(unpack(value.colors[state.key]))
-        texture:SetBlendMode("BLEND")
-    end
-    -- The lower-level, mouse-disabled child lets Blizzard retain native border states and text.
-    record.fill:SetFrameLevel(math.max(0,(Read(button,"GetFrameLevel") or 1)-1))
-    local enabled = Read(button,"IsEnabled") ~= false
-    record.fill:SetEnabled(enabled)
-    record.fill:SetButtonState(Read(button,"GetButtonState") or "NORMAL",true)
-    if enabled and (record.hover or record.locked or Read(button,"IsMouseOver") == true) then
-        record.fill:LockHighlight()
-    else record.fill:UnlockHighlight() end
-    record.fill:Show()
-    if value.border.style == "thin" then
-        local color = value.border.color
-        record.border:ClearAllPoints()
-        record.border:SetPoint("TOPLEFT",button,"TOPLEFT",padding,-padding)
-        record.border:SetPoint("BOTTOMRIGHT",button,"BOTTOMRIGHT",-padding,padding)
-        record.border:SetVertexColor(color[1],color[2],color[3],color[4]*(enabled and 1 or .4375))
-        record.border:Show()
-    else record.border:Hide() end
-    if record.glyph then
-        local font = Read(record.glyph,"GetFont")
-        local size = math.max(8,math.min(20,(height-2*padding)*.7))
-        if font then record.glyph:SetFont(font,size,"OUTLINE") end
-        record.glyph:SetAlpha(enabled and 1 or .4)
-        record.glyph:Show()
-    end
+    if not SyncState(record,value,preview) then return false end
+    record.appearance, record.material, record.width, record.height = value,materialPath,width,height
     return true
 end
 local function Watch(record, preview)
     local button = record.button
-    local function Update()
+    local function Update(stateOnly)
         if not initialized then return end
-        local ok,result = pcall(Paint,record,current,preview)
-        if not ok or not result then events:RegisterEvent("PLAYER_REGEN_ENABLED") end
+        local action = stateOnly == true and SyncState or Paint
+        local ok,result = pcall(action,record,current,preview)
+        if not ok or not result then
+            record.appearance = nil
+            events:RegisterEvent("PLAYER_REGEN_ENABLED")
+        end
     end
     if type(button.HookScript) == "function" then
-        for _, event in ipairs({"OnShow","OnSizeChanged","OnEnable","OnDisable","OnMouseDown","OnMouseUp"}) do
-            button:HookScript(event,Update)
+        for _, event in ipairs({"OnShow","OnSizeChanged"}) do
+            button:HookScript(event,function() Update(false) end)
         end
-        button:HookScript("OnEnter",function() record.hover=true;Update() end)
-        button:HookScript("OnLeave",function() record.hover=false;Update() end)
+        for _, event in ipairs({"OnEnable","OnDisable","OnMouseDown","OnMouseUp"}) do
+            button:HookScript(event,function() Update(true) end)
+        end
+        button:HookScript("OnEnter",function() record.hover=true;Update(true) end)
+        button:HookScript("OnLeave",function() record.hover=false;Update(true) end)
     end
     if hooksecurefunc then
-        for _, method in ipairs({"UpdateButton","SetButtonState","SetFrameLevel"}) do
-            if type(button[method]) == "function" then pcall(hooksecurefunc,button,method,Update) end
+        if type(button.UpdateButton) == "function" then
+            pcall(hooksecurefunc,button,"UpdateButton",function() Update(false) end)
+        end
+        for _, method in ipairs({"SetButtonState","SetFrameLevel"}) do
+            if type(button[method]) == "function" then pcall(hooksecurefunc,button,method,function() Update(true) end) end
         end
         if type(button.LockHighlight) == "function" then
-            pcall(hooksecurefunc,button,"LockHighlight",function() record.locked=true;Update() end)
-            pcall(hooksecurefunc,button,"UnlockHighlight",function() record.locked=false;Update() end)
+            pcall(hooksecurefunc,button,"LockHighlight",function() record.locked=true;Update(true) end)
+            pcall(hooksecurefunc,button,"UnlockHighlight",function() record.locked=false;Update(true) end)
         end
     end
 end
@@ -310,6 +350,7 @@ local function Track(button)
     if not ok then return end
     records[button] = record
     Watch(record,false)
+    return record
 end
 function module.ApplyPreview(button)
     excluded[button] = true
@@ -322,17 +363,33 @@ function module.ApplyPreview(button)
     return Paint(record,current,true)
 end
 module.previews = {}
+local function DiscoverAll(found)
+    if type(EnumerateFrames) ~= "function" then return end
+    ReadReference(reference,nativeFiles,nativeAtlases)
+    ReadReference(closeReference,closeFiles,closeAtlases)
+    local frame = EnumerateFrames()
+    while frame do
+        seen[frame] = true
+        local record = Track(frame)
+        if record then found[#found+1] = record end
+        frame = EnumerateFrames(frame)
+    end
+end
+local function DiscoverTree(frame, found, force)
+    if not frame or seen[frame] and not force or Read(frame,"IsForbidden") == true then return end
+    seen[frame] = true
+    local record = Track(frame)
+    if record then found[#found+1] = record end
+    if type(frame.GetChildren) ~= "function" then return end
+    local ok, children = pcall(function() return {frame:GetChildren()} end)
+    if ok then
+        for _, child in ipairs(children) do DiscoverTree(child,found,false) end
+    end
+end
 function module.Apply(discover)
     local applied, failed = 0, 0
-    if current.enabled and discover and type(EnumerateFrames) == "function" then
-        ReadReference(reference,nativeFiles,nativeAtlases)
-        ReadReference(closeReference,closeFiles,closeAtlases)
-        local button = EnumerateFrames()
-        while button do
-            Track(button)
-            button = EnumerateFrames(button)
-        end
-    end
+    materialPath = module.ResolveMaterial(current.material)
+    if current.enabled and discover then DiscoverAll({}) end
     for _, record in pairs(records) do
         local ok, result = pcall(Paint,record,current)
         if ok and result then applied=applied+1 else failed=failed+1 end
@@ -360,12 +417,36 @@ function module.Reset()
     if type(wowDetectorDB) == "table" then wowDetectorDB.buttonStyle = nil end
     module.Apply(false)
 end
-local function QueueScan()
-    if queued or not initialized or not current.enabled then return end
+local function QueueScan(name, parent)
+    if not initialized or not current.enabled then return end
+    local root = type(name) == "string" and _G[name]
+    if type(parent) == "string" then parent = _G[parent] end
+    if root then scanRoots[root] = true
+    elseif parent and type(parent.GetChildren) == "function" then
+        -- Keep the new roots before callers can reparent their anonymous frames.
+        local ok, children = pcall(function() return {parent:GetChildren()} end)
+        if ok then
+            for _, child in ipairs(children) do
+                if not seen[child] then scanRoots[child] = true end
+            end
+        else scanAll = true end
+    else scanAll = true end
+    if queued then return end
     queued = true
     local function Run()
         queued = false
-        if current.enabled then module.Apply(true) end
+        local roots, all = scanRoots,scanAll
+        scanRoots,scanAll = {},false
+        if not current.enabled then return end
+        local found = {}
+        if all then DiscoverAll(found)
+        else
+            for frame in pairs(roots) do DiscoverTree(frame,found,true) end
+        end
+        for _, record in ipairs(found) do
+            local ok, result = pcall(Paint,record,current)
+            if not ok or not result then events:RegisterEvent("PLAYER_REGEN_ENABLED") end
+        end
     end
     if C_Timer and type(C_Timer.After) == "function" then C_Timer.After(0,Run) else Run() end
 end
@@ -389,12 +470,23 @@ events:SetScript("OnEvent",function(_,event,name)
     if not initialized then return end
     if not hookedCreate and type(hooksecurefunc) == "function" then
         hookedCreate = true
-        hooksecurefunc("CreateFrame",function(_,_,_,templates)
+        hooksecurefunc("CreateFrame",function(_,name,parent,templates)
             -- XML frame templates can create close buttons without a separate Lua CreateFrame call.
-            if type(templates) == "string" then QueueScan() end
+            if type(templates) == "string" then QueueScan(name,parent) end
         end)
     end
     WatchMedia()
-    if event == "PLAYER_REGEN_ENABLED" then events:UnregisterEvent(event) end
-    module.Apply(true)
+    if event == "ADDON_LOADED" and name == "wow_tools" then
+        module.Apply(true)
+        return
+    end
+    if event == "PLAYER_REGEN_ENABLED" then
+        events:UnregisterEvent(event)
+        module.Apply(false)
+        return
+    end
+    local path = module.ResolveMaterial(current.material)
+    if path ~= materialPath then module.Apply(false) end
+    if event == "PLAYER_ENTERING_WORLD" then events:UnregisterEvent(event) end
+    QueueScan()
 end)
