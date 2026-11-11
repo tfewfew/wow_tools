@@ -27,6 +27,10 @@ local function widget(name)
         self.textures[#self.textures + 1] = texture
         return texture
     end
+    function object:CreateMaskTexture() return widget() end
+    function object:AddMaskTexture(mask) self.mask=mask end
+    function object:SetTextureSliceMargins(...) self.sliceMargins={ ... } end
+    function object:ClearTextureSlice() self.sliceMargins=nil end
     function object:CreateFontString() return widget() end
     function object:GetEffectiveScale() return scale end
     function object:SetSize(w, h) self.width, self.height = w, h end

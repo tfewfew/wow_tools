@@ -5,6 +5,11 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 # wow_tools
 
+## 按钮材质的圆角与细边框（2026-11-11）
+
+- forerver 2.2.62 / titan 2.1.59为按钮材质独立增加Media/ButtonRoundMask.tga和ButtonRoundBorder.tga，32×32、32位RGBA、左上原点，遮罩内圆角3px，边框外圆角4px/内缩1px。背景四状态统一内缩1px并共享遮罩，边框灰色、正常alpha .8/禁用.35。两服原生TextureBase.SetTextureSliceMargins(4,4,4,4)固定圆角与线宽，材质本身ClearTextureSlice后正常拉伸。沿用既有账号设置及关闭按钮白叉，恢复默认隐藏自定义边框并恢复原纹理绑定。
+- 已对照无限服导出943764493e6b16d63ded3ab304150d1f05e58b57及经典服TextureBase接口确认九宫格API。ButtonStyle.Tests读取两服各自TGA，采样多种宽高的透明圆角、实心边和透明中心，并检查四状态遮罩、边界内缩、共享材质切换、原生图集刷新、预览、禁用、重载与恢复。配合客户端模拟和ClientProfiles，检查提交推送后同步两服。
+
 ## 地图与窗口关闭按钮外观（2026-11-11）
 
 - forerver 2.2.61 / titan 2.1.58补充关闭按钮匹配，读取本客户端UIPanelCloseButtonNoScripts的原生纹理ID/图集，兼容UI-Panel-MinimizeButton、RedButton-Exit及common-button-close系列。沿用wowDetectorDB.buttonStyle材质和四状态RGBA，自定义背景上叠加白色叉号，禁用变暗，原生点击继续沿用。关闭样式或恢复默认还原原纹理并隐藏叉号，设置页增加关闭预览。

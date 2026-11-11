@@ -7,6 +7,7 @@ local module = { editors = {}, states = {
 } }
 WoWTools.buttonStyle = module
 local white = "Interface\\Buttons\\WHITE8X8"
+local mediaPath = "Interface\\AddOns\\wow_tools\\Media\\"
 local defaults = {
     enabled=false, material="builtin:flat",
     colors={normal={.16,.16,.16,1}, pushed={.08,.08,.08,1},
@@ -135,6 +136,18 @@ local function Suitable(button)
 end
 local function Capture(button)
     local record = {button=button, original={}, alpha={}, blend={}, textures={}, active=false}
+    record.mask = button:CreateMaskTexture(nil,"BACKGROUND")
+    record.mask:SetPoint("TOPLEFT",button,"TOPLEFT",1,-1)
+    record.mask:SetPoint("BOTTOMRIGHT",button,"BOTTOMRIGHT",-1,1)
+    record.mask:SetTexture(mediaPath.."ButtonRoundMask.tga","CLAMPTOBLACKADDITIVE","CLAMPTOBLACKADDITIVE")
+    -- Shader nineslice preserves the corner radius as the button changes width or height.
+    record.mask:SetTextureSliceMargins(4,4,4,4)
+    record.border = button:CreateTexture(nil,"OVERLAY")
+    record.border:SetAllPoints(button)
+    record.border:SetTexture(mediaPath.."ButtonRoundBorder.tga")
+    record.border:SetTextureSliceMargins(4,4,4,4)
+    record.border:SetBlendMode("BLEND")
+    record.border:Hide()
     local function Remember(texture)
         if texture and type(texture.SetAlpha) == "function" and record.alpha[texture] == nil then
             record.alpha[texture] = Read(texture,"GetAlpha") or 1
@@ -146,7 +159,8 @@ local function Capture(button)
         record.original[state.key] = original or false
         Remember(original)
         local texture = button:CreateTexture(nil, state.key == "highlight" and "HIGHLIGHT" or "BACKGROUND")
-        texture:SetAllPoints(button)
+        texture:SetAllPoints(record.mask)
+        texture:AddMaskTexture(record.mask)
         texture:SetBlendMode("BLEND")
         texture:Hide()
         record.textures[state.key] = texture
@@ -177,6 +191,7 @@ local function Paint(record, value, preview)
     if not value.enabled and not preview then
         if not record.active then return true end
         if record.glyph then record.glyph:Hide() end
+        record.border:Hide()
         for _, state in ipairs(module.states) do
             button[state.setter](button, record.original[state.key] or nil)
             record.textures[state.key]:Hide()
@@ -201,12 +216,16 @@ local function Paint(record, value, preview)
     for _, state in ipairs(module.states) do
         local texture = record.textures[state.key]
         texture:SetTexture(path)
+        texture:ClearTextureSlice()
         texture:SetTexCoord(0,1,0,1)
         texture:SetVertexColor(unpack(value.colors[state.key]))
         texture:Show()
         if Read(button,state.getter) ~= texture then button[state.setter](button,texture) end
         texture:SetBlendMode("BLEND")
     end
+    local borderAlpha = Read(button,"IsEnabled") == false and .35 or .8
+    record.border:SetVertexColor(.65,.65,.65,borderAlpha)
+    record.border:Show()
     return true
 end
 local function Track(button)
