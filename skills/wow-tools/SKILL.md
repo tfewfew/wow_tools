@@ -5,6 +5,12 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 # wow_tools
 
+## 游戏菜单与同类按钮外观（2026-11-11）
+
+- 用户明确作用于游戏菜单及同类按钮，材质和颜色交互参考Plater。两服独立增加ButtonStyle.lua / ButtonStyle.Settings.lua，titan 2.1.57、forerver 2.2.60，`/igc`及系统插件设置的“按钮”tab均可配置。默认关闭，启用后材质选择及RGBA取色即时应用并保存到wowDetectorDB.buttonStyle，登录/reload自动读回。材质列表用LibSharedMedia-3.0的statusbar键名及纹理预览，提供搜索/滚轮，内置纯色及Blizzard。已保存共享材质缺失时保留选择并使用纯色，材质加载后自动恢复。
+- 匹配UIPanel按钮原生参照纹理ID、图集及文本按钮三段式结构。正常/按下/悬停/禁用使用独立RGBA，缓存原纹理绑定、透明度及混合模式供恢复默认。现代颜色选择器opacity直接使用alpha，旧接口使用1-opacity，取消还原该颜色的原值，切换色块接受实时保存的值，恢复默认使旧回调失效。仅修改外观绑定与纹理，原生点击与状态处理沿用原方法。
+- 首次加载、ADDON_LOADED及带模板Button创建后发现同类控件，创建事件用C_Timer.After(0)合并。已记录按钮在显示及状态变化后更新外观，受限读值排除，实际应用/恢复失败显示待重试并在PLAYER_REGEN_ENABLED补做。ButtonStyle.Tests对两服模拟旧式文件ID/三段式/匿名晚加载/图标隔离、共享库、RGBA、取色取消/接受、完整图形页入口、持久化、部分失败及恢复。配合ForeverCompatibility、LureDetection和ClientProfiles检查，成功提交推送后按两服各自目录同步。
+
 ## 自动抓宠（2026-11-10）
 
 - PC抓宠增加JumpKey（默认Space）和JumpIntervalSeconds（0关闭，1–3600整秒），旧v1只读补默认，不在读取时写文件。独立页保存、原子校验和运行快照沿用。AutoTameSession每进程从启动登记完整间隔，换目标不重置，成功跳跃回执SentAt重计，不追补多次。Tame.Jump优先级80，操作线程复核当前目标标识/预期主状态/战斗位和公共身份/白点/会话。空闲非战斗可跳，后退保持、阶段等待及配置的捕捉执行窗口内延后，跳完等待1秒后优先推进一次普通阶段，避免短间隔饿死捕捉。停止/刷新取消旧请求，重新开始重计。AutoTame/Operator/Parallel UI离线验证截止、默认/保存/旧配置、进程隔离、捕捉和后退延后、落地等待、配置快照及取消，禁止真实游戏输入验证。

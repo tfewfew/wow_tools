@@ -33,6 +33,13 @@ local function widget(name)
     function object:GetWidth() return self.width or 140 end
     function object:GetHeight() return self.height or 140 end
     function object:SetColorTexture(...) self.color = { ... } end
+    function object:SetVertexColor(...) self.vertex = { ... } end
+    function object:SetAlpha(value) self.alpha = value end
+    function object:GetAlpha() return self.alpha or 1 end
+    for _, state in ipairs({"Normal","Pushed","Highlight","Disabled"}) do
+        object["Get"..state.."Texture"] = function(self) return self[state.."Texture"] end
+        object["Set"..state.."Texture"] = function(self, texture) self[state.."Texture"] = texture end
+    end
     function object:SetPoint(...) self.point = { ... } end
     function object:GetPoint() return "LEFT", nil, "CENTER", -20, 0 end
     function object:SetText(value) self.text = value end
@@ -52,7 +59,7 @@ local function widget(name)
         "SetFrameStrata", "SetFrameLevel", "SetClampedToScreen", "SetMovable", "EnableMouse",
         "RegisterForDrag", "RegisterForClicks", "SetHighlightTexture", "SetTexture", "SetAllPoints",
         "ClearAllPoints", "SetFont", "SetWidth", "SetHeight", "SetJustifyH", "SetAutoFocus",
-        "SetMaxLetters", "SetNumeric", "ClearFocus", "SetScrollChild", "StartMoving", "StopMovingOrSizing", "SetMultiLine", "SetFontObject",
+        "SetMaxLetters", "SetNumeric", "ClearFocus", "SetScrollChild", "StartMoving", "StopMovingOrSizing", "SetMultiLine", "SetFontObject", "SetBlendMode", "SetTexCoord",
     }
     for _, method in ipairs(harmless) do object[method] = function() end end
     widgets[#widgets + 1] = object

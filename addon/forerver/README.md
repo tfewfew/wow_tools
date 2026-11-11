@@ -1,5 +1,7 @@
 # forerver
 
+2.2.60 在 `/igc` 的图形设置中增加“按钮”tab，作用于游戏菜单及同类 UIPanel / 三段式文本按钮。勾选“启用自定义按钮样式”后，选择材质或颜色立即应用并保存到账号级 `wowDetectorDB.buttonStyle`。材质下拉支持搜索、纹理预览和滚轮浏览，读取与 Plater 相同的 LibSharedMedia 状态条材质库，内置纯色和 Blizzard 材质。正常、按下、悬停、禁用分别设置颜色与透明度，颜色选择器取消会还原本次取色前的值。页面提供可交互预览和禁用预览，“恢复默认”清除配置并还原本次加载记录的外观。登录、重载及新按钮加载后自动应用，材质暂未加载时使用纯色并显示提示。ButtonStyle.Tests 和全插件兼容回归使用模拟控件验证，安装后 `/reload`。
+
 2.2.58 字体页新增“时钟”，使用用户验证的TimeManagerClockTicker，支持8–48整数字号和描边，保留原字体文件；例如设置20后点击应用。沿用账号持久化、每次登录/reload应用一次和恢复默认，时钟控件延迟加载时只补应用一次。字体页滚动高度按设置数量计算，保证第四项及预览可见。DisplayFonts.Tests模拟时钟未加载/加载后一次应用、手动保存/恢复、重载读回及其他文字隔离；无限服全插件兼容模拟通过。同步后/reload生效。
 
 2.2.57 修正字体设置的目标：经验条使用用户验证的StatusTrackingBarManager.barContainers中各bars[StatusTrackingBarInfo.BarsEnum.Experience].OverlayFrame.Text；弹药剩余使用CharacterBag0Slot至CharacterBag3Slot.Count；背包剩余继续使用MainMenuBarBackpackButton.FreeSlots。移除字体路径功能，每项仅有一个标明8–48范围的字号输入框和描边选项；保留目标当前字体文件，旧保存路径字段忽略，下次保存仅写size/flags。手动保存即时应用所选项、恢复默认及账号持久化/每次加载一次规则保留；反馈显示应用的文字数量，部分失败明确提示。Lua5.1模拟按实际容器/四槽位结构验证，并拒绝误改旧经验/弹药控件。同步后/reload。

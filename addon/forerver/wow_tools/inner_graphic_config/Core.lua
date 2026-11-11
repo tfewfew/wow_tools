@@ -152,6 +152,7 @@ local categories = {
     } },
     { name = "界面", cvars = { frameratePosition = true } },
     { name = "字体", cvars = {}, fonts = true },
+    { name = "按钮", cvars = {}, buttonStyle = true },
 }
 local function SmallDescription(text)
     local font, size, flags = text:GetFont()
@@ -332,6 +333,7 @@ local function BuildControls(parent)
     scroll:SetScrollChild(list)
     pages[categoryIndex] = scroll
     if category.fonts and WoWTools.displayFonts then WoWTools.displayFonts.BuildSettings(list) end
+    if category.buttonStyle and WoWTools.buttonStyle then WoWTools.buttonStyle.BuildSettings(list) end
     local entries = {}
     local function Layout()
         local offset = 0
@@ -349,7 +351,8 @@ local function BuildControls(parent)
                 entry.widget:Hide()
             end
         end
-        list:SetHeight(category.fonts and WoWTools.displayFonts.settingsHeight or math.max(1, offset))
+        list:SetHeight(category.fonts and WoWTools.displayFonts.settingsHeight
+            or category.buttonStyle and WoWTools.buttonStyle.settingsHeight or math.max(1, offset))
     end
     layouts[categoryIndex] = Layout
     if category.subgroups then
