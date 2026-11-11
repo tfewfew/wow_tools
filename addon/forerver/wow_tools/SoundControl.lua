@@ -6,8 +6,8 @@ local channels = {
     { label = "环境音", volume = "Sound_AmbienceVolume", enabled = "Sound_EnableAmbience" },
     { label = "对话", volume = "Sound_DialogVolume", enabled = "Sound_EnableDialog" },
 }
-local panel, initialized, refreshing, changingDevice
-local rows, deviceRows = {}, {}
+local panel, button, initialized, refreshing, changingDevice
+local rows = {}
 local Refresh, RefreshDevices
 
 local function Readable(value)
@@ -117,49 +117,24 @@ end
 
 RefreshDevices = function()
     if not panel or changingDevice then return end
-    local devices = OutputDevices()
-    local current = Read("Sound_OutputDriverIndex")
-    local canSelect = current ~= nil and type(Sound_GameSystem_RestartSoundSystem) == "function"
-    for index, device in ipairs(devices or {}) do
-        local row = deviceRows[index]
-        if not row then
-            row = CreateFrame("Button", nil, panel.deviceContent)
-            row:SetSize(410, 26)
-            row:SetPoint("TOPLEFT", 0, -(index - 1) * 26)
-            row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight")
-            row.mark = row:CreateTexture(nil, "ARTWORK")
-            row.mark:SetSize(18, 18)
-            row.mark:SetPoint("LEFT", 2, 0)
-            row.mark:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
-            row.label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-            row.label:SetPoint("LEFT", 26, 0)
-            row.label:SetWidth(380)
-            row.label:SetJustifyH("LEFT")
-            row:SetScript("OnClick", function(self) SelectDevice(self.index, self.deviceName) end)
-            row:SetScript("OnEnter", function(self)
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                GameTooltip:AddLine(self.deviceName, 1, 1, 1, true)
-                GameTooltip:Show()
-            end)
-            row:SetScript("OnLeave", function() GameTooltip:Hide() end)
-            deviceRows[index] = row
-        end
-        row.index, row.deviceName = device.index, device.name
-        row.label:SetText(device.name)
-        row.mark:SetShown(current == device.index)
-        row:SetEnabled(canSelect)
-        row:Show()
-    end
-    for index = #(devices or {}) + 1, #deviceRows do deviceRows[index]:Hide() end
-    panel.deviceContent:SetHeight(math.max(26, #(devices or {}) * 26))
-    panel.deviceEmpty:SetText(devices and "未找到声音输出设备。" or "客户端声音设备列表不可用。")
-    panel.deviceEmpty:SetShown(not devices or #devices == 0)
+    panel.deviceDropdown:GenerateMenu()
+end
+
+local function PositionPanel()
+    local x, y = button:GetCenter()
+    local centerX, centerY = UIParent:GetCenter()
+    local buttonScale, parentScale = button:GetEffectiveScale(), UIParent:GetEffectiveScale()
+    local right = x * buttonScale >= centerX * parentScale
+    local above = y * buttonScale >= centerY * parentScale
+    local point = (above and "TOP" or "BOTTOM") .. (right and "RIGHT" or "LEFT")
+    local relativePoint = (above and "BOTTOM" or "TOP") .. (right and "LEFT" or "RIGHT")
+    panel:ClearAllPoints()
+    panel:SetPoint(point, button, relativePoint, right and -4 or 4, above and -4 or 4)
 end
 
 local function CreatePanel()
     panel = CreateFrame("Frame", "wowToolsSoundControlPanel", UIParent, "BasicFrameTemplateWithInset")
-    panel:SetSize(480, 466)
-    panel:SetPoint("CENTER")
+    panel:SetSize(344, 240)
     panel:SetFrameStrata("DIALOG")
     panel:SetClampedToScreen(true)
     panel:SetMovable(true)
@@ -172,14 +147,14 @@ local function CreatePanel()
     UISpecialFrames[#UISpecialFrames + 1] = "wowToolsSoundControlPanel"
 
     for index, channel in ipairs(channels) do
-        local y = -58 - (index - 1) * 46
+        local y = -46 - (index - 1) * 26
         local row = {}
-        row.label = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-        row.label:SetPoint("LEFT", panel, "TOPLEFT", 20, y)
+        row.label = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        row.label:SetPoint("LEFT", panel, "TOPLEFT", 12, y)
         row.label:SetText(channel.label)
         row.slider = CreateFrame("Slider", nil, panel)
-        row.slider:SetSize(214, 20)
-        row.slider:SetPoint("LEFT", panel, "TOPLEFT", 108, y)
+        row.slider:SetSize(150, 16)
+        row.slider:SetPoint("LEFT", panel, "TOPLEFT", 68, y)
         row.slider:SetOrientation("HORIZONTAL")
         row.slider:SetMinMaxValues(0, 100)
         row.slider:SetValueStep(1)
@@ -190,14 +165,14 @@ local function CreatePanel()
         track:SetPoint("RIGHT")
         track:SetColorTexture(0.25, 0.28, 0.32, 1)
         row.slider:SetThumbTexture("Interface\\Buttons\\UI-SliderBar-Button-Horizontal")
-        row.slider:GetThumbTexture():SetSize(24, 24)
-        row.value = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-        row.value:SetPoint("LEFT", row.slider, "RIGHT", 10, 0)
-        row.value:SetWidth(44)
+        row.slider:GetThumbTexture():SetSize(20, 20)
+        row.value = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        row.value:SetPoint("LEFT", row.slider, "RIGHT", 6, 0)
+        row.value:SetWidth(40)
         row.value:SetJustifyH("RIGHT")
         row.toggle = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-        row.toggle:SetSize(66, 24)
-        row.toggle:SetPoint("LEFT", panel, "TOPLEFT", 388, y)
+        row.toggle:SetSize(58, 22)
+        row.toggle:SetPoint("LEFT", panel, "TOPLEFT", 274, y)
         row.slider:SetScript("OnValueChanged", function(_, value)
             if refreshing then return end
             value = Number(value)
@@ -223,22 +198,32 @@ local function CreatePanel()
         rows[index] = row
     end
 
-    local deviceTitle = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    deviceTitle:SetPoint("TOPLEFT", 20, -292)
-    deviceTitle:SetText("声音输出设备")
-    panel.deviceScroll = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
-    panel.deviceScroll:SetPoint("TOPLEFT", 20, -316)
-    panel.deviceScroll:SetSize(414, 104)
-    panel.deviceContent = CreateFrame("Frame", nil, panel.deviceScroll)
-    panel.deviceContent:SetSize(410, 26)
-    panel.deviceScroll:SetScrollChild(panel.deviceContent)
-    panel.deviceEmpty = panel.deviceContent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    panel.deviceEmpty:SetPoint("TOPLEFT", 0, -6)
+    local deviceTitle = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    deviceTitle:SetPoint("LEFT", panel, "TOPLEFT", 12, -192)
+    deviceTitle:SetText("输出设备")
+    panel.deviceDropdown = CreateFrame("DropdownButton", nil, panel, "WowStyle1DropdownTemplate")
+    panel.deviceDropdown:SetSize(256, 25)
+    panel.deviceDropdown:SetPoint("TOPLEFT", 76, -180)
+    panel.deviceDropdown:SetupMenu(function(dropdown, root)
+        -- The native dropdown also calls this on every open, refreshing hotplugged devices.
+        local devices = OutputDevices()
+        local current = Read("Sound_OutputDriverIndex")
+        local available = devices ~= nil and #devices > 0
+        dropdown:SetEnabled(available and current ~= nil and type(Sound_GameSystem_RestartSoundSystem) == "function")
+        dropdown:SetDefaultText(not devices and "设备列表不可用" or not available and "未找到输出设备" or "请选择输出设备")
+        root:SetScrollMode(200)
+        for _, device in ipairs(devices or {}) do
+            root:CreateRadio(device.name,
+                function(data) return Read("Sound_OutputDriverIndex") == data.index end,
+                function(data) SelectDevice(data.index, data.name) end, device)
+        end
+    end)
     panel.status = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    panel.status:SetPoint("BOTTOMLEFT", 20, 16)
-    panel.status:SetWidth(434)
+    panel.status:SetPoint("BOTTOMLEFT", 12, 10)
+    panel.status:SetWidth(320)
     panel.status:SetJustifyH("LEFT")
     panel:SetScript("OnShow", function(self)
+        PositionPanel()
         Status()
         Refresh()
         RefreshDevices()
@@ -248,6 +233,7 @@ local function CreatePanel()
     panel:SetScript("OnHide", function(self)
         self:UnregisterEvent("CVAR_UPDATE")
         self:UnregisterEvent("SOUND_DEVICE_UPDATE")
+        self.deviceDropdown:CloseMenu()
         GameTooltip:Hide()
     end)
     panel:SetScript("OnEvent", function(_, event, key)
@@ -267,7 +253,7 @@ local function Toggle()
     panel:SetShown(not panel:IsShown())
 end
 
-local button = CreateFrame("Button", "wowToolsSoundMinimapButton", Minimap)
+button = CreateFrame("Button", "wowToolsSoundMinimapButton", Minimap)
 button:SetSize(32, 32)
 button:SetFrameStrata("MEDIUM")
 button:SetFrameLevel(Minimap:GetFrameLevel() + 8)
@@ -293,6 +279,7 @@ local function PositionButton()
     button:ClearAllPoints()
     button:SetPoint("CENTER", Minimap, "CENTER",
         x * (Minimap:GetWidth() / 2 + 6), y * (Minimap:GetHeight() / 2 + 6))
+    if panel and panel:IsShown() then PositionPanel() end
 end
 
 button:SetScript("OnClick", Toggle)

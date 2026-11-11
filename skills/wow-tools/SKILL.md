@@ -7,6 +7,8 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 ## 无限服声音控制（2026-11-12）
 
+- forerver 2.2.67 按用户要求压缩为 344×240，音量行间距 26，滑条 150×16，保留五类独立百分比及开关。面板每次打开相对小地图喇叭按钮锚定，按按钮的有效缩放后屏幕方位向内侧展开，间隔 4 UI 单位，拖动按钮时同步更新，沿用屏幕边界限制。设备改为本客户端 DropdownButton / WowStyle1DropdownTemplate 原生单层单选下拉，当前设备显示为选中项，打开菜单及设备事件重新枚举，长列表使用菜单内部滚动。关闭面板同时关闭下拉菜单。SoundControl.Tests 覆盖紧凑尺寸、行距、四象限/不同缩放的邻近锚点、重新打开重定位、原生下拉单选/设备事件/热插拔和全部原切换失败保护，推送后仅同步 forerver。
+
 - 仅 forerver 2.2.66 新增 SoundControl.lua，小地图独立喇叭入口及 `/wowsound` 打开单层面板，五种音量分别为主音量、音效、音乐、环境音、对话，每行 0–100% 滑条、右侧百分比及启用/禁用按钮。开关只改本声道 enable CVar，保留音量，原生 CVar 由客户端持久保存，加载及打开界面只读。入口角度单独保存 `wowDetectorDB.soundControl.minimapAngle`。输出设备在同一面板的滚动列表中平铺，使用已安装 Soundstone 对应的 Sound_GameSystem 枚举/重启接口及 Sound_OutputDriverIndex，点击前按索引和原名称复核热插拔，写入读回及声音重启失败时尝试恢复原设备并反馈结果。面板显示期间订阅 CVAR_UPDATE / SOUND_DEVICE_UPDATE，关闭注销，无常驻 OnUpdate，拖动入口期间临时更新。SoundControl.Tests 使用 Lua 5.1 模拟五声道独立、数字位置、0/100%、禁用保留音量、设备列表与切换/失败恢复、受限值、事件、拖动及重载，配合全插件兼容和 ClientProfiles 检查，推送后仅同步 forerver。
 
 ## 按钮样式刷新开销（2026-11-12）

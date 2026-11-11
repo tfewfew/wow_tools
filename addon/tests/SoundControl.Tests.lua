@@ -51,7 +51,6 @@ local function widget(kind, name, parent)
     end
     function object:GetValue() return self.value end
     function object:SetMinMaxValues(minimum, maximum) self.minimum, self.maximum = minimum, maximum end
-    function object:SetScrollChild(child) self.scrollChild = child end
     function object:SetThumbTexture(path)
         self.thumb = widget("Texture")
         self.thumb:SetTexture(path)
@@ -60,8 +59,8 @@ local function widget(kind, name, parent)
     function object:CreateTexture() return widget("Texture", nil, self) end
     function object:CreateFontString() return widget("FontString", nil, self) end
     function object:GetFrameLevel() return 1 end
-    function object:GetCenter() return 100, 100 end
-    function object:GetEffectiveScale() return 1 end
+    function object:GetCenter() return self.centerX or 100, self.centerY or 100 end
+    function object:GetEffectiveScale() return self.scale or 1 end
     local harmless = {
         "SetFrameStrata", "SetFrameLevel", "SetClampedToScreen", "SetMovable", "EnableMouse",
         "RegisterForDrag", "RegisterForClicks", "SetHighlightTexture", "SetOrientation", "SetValueStep",
@@ -74,12 +73,35 @@ end
 function CreateFrame(kind, name, parent, template)
     local frame = widget(kind, name, parent)
     if template == "BasicFrameTemplateWithInset" then frame.TitleText = widget("FontString") end
+    if kind == "DropdownButton" then
+        assert(template == "WowStyle1DropdownTemplate", "Not using Forever's native dropdown")
+        function frame:SetDefaultText(text) self.defaultText = text end
+        function frame:GenerateMenu()
+            local description = { entries = {} }
+            function description:SetScrollMode(height) self.scrollHeight = height end
+            function description:CreateRadio(text, isSelected, onSelect, data)
+                self.entries[#self.entries + 1] = { text = text, isSelected = isSelected, onSelect = onSelect, data = data }
+            end
+            self.generator(self, description)
+            self.description = description
+            self.text = self.defaultText
+            for _, entry in ipairs(description.entries) do
+                if entry.isSelected(entry.data) then self.text = entry.text end
+            end
+        end
+        function frame:SetupMenu(generator) self.generator = generator; self:GenerateMenu() end
+        function frame:OpenMenu()
+            if self.enabled then self:GenerateMenu(); self.menuOpen = true end
+        end
+        function frame:CloseMenu() self.menuOpen = false end
+    end
     if name then names[name] = frame; _G[name] = frame end
     frames[#frames + 1] = frame
     if kind == "Slider" then sliders[#sliders + 1] = frame end
     return frame
 end
 UIParent, Minimap, GameTooltip = widget("Frame"), widget("Frame"), widget("Frame")
+UIParent.centerX, UIParent.centerY = 960, 540
 SlashCmdList, UISpecialFrames, wowDetectorDB = {}, {}, { unrelated = "keep" }
 function GetCursorPosition() return 180, 100 end
 function GetMinimapShape() return "ROUND" end
@@ -117,21 +139,24 @@ local function load()
 end
 load()
 local minimap = names.wowToolsSoundMinimapButton
+minimap.centerX, minimap.centerY = 1820, 940
 assert(not names.wowToolsSoundControlPanel and #writes == 0, "Loading wrote audio or eagerly created the panel")
 assert(wowDetectorDB.unrelated == "keep" and wowDetectorDB.soundControl.minimapAngle == 315)
 assert(minimap.children[1].texture == "Interface\\Common\\VoiceChat-Speaker", "Minimap icon is not a speaker")
 minimap.scripts.OnClick(minimap)
 local panel = names.wowToolsSoundControlPanel
 assert(panel.shown and #sliders == 5 and #writes == 0, "Click did not show all five channels without writes")
-assert(panel.width == 480 and panel.height == 466 and panel.TitleText.text == "声音控制")
+assert(panel.width == 344 and panel.height == 240 and panel.TitleText.text == "声音控制")
+assert(panel.point[1] == "TOPRIGHT" and panel.point[2] == minimap and panel.point[3] == "BOTTOMLEFT"
+    and panel.point[4] == -4 and panel.point[5] == -4, "Panel did not open beside the top-right icon")
 assert(panel.events.CVAR_UPDATE and panel.events.SOUND_DEVICE_UPDATE)
 assert(UISpecialFrames[1] == "wowToolsSoundControlPanel", "Escape does not close the panel")
 local toggles, labels, percentages = {}, {}, {}
 for _, child in ipairs(panel.children) do
     if child.kind == "Button" then toggles[#toggles + 1] = child end
     if child.kind == "FontString" and child.point and child.point[1] == "LEFT" then
-        if child.width == 44 then percentages[#percentages + 1] = child
-        else labels[#labels + 1] = child end
+        if child.width == 40 then percentages[#percentages + 1] = child
+        elseif child.point[5] >= -150 then labels[#labels + 1] = child end
     end
 end
 assert(#toggles == 5 and #labels == 5 and #percentages == 5)
@@ -139,6 +164,9 @@ local channelKeys = { "Master", "SFX", "Music", "Ambience", "Dialog" }
 local enableKeys = { "AllSound", "SFX", "Music", "Ambience", "Dialog" }
 for index, key in ipairs(channelKeys) do
     assert(sliders[index].minimum == 0 and sliders[index].maximum == 100)
+    assert(sliders[index].width == 150 and sliders[index].height == 16)
+    assert(sliders[index].point[5] == -46 - (index - 1) * 26, "Volume rows are not compact")
+    assert(toggles[index].width == 58 and toggles[index].height == 22)
     assert(percentages[index].point[2] == sliders[index] and percentages[index].point[3] == "RIGHT", "Number is not after its slider")
     local before = #writes
     sliders[index]:SetValue(11 + index)
@@ -184,53 +212,87 @@ failRead = nil
 panel.scripts.OnEvent(panel, "CVAR_UPDATE", "Sound_DialogVolume")
 assert(sliders[5].enabled and percentages[5].text == "63%")
 
--- All output devices live in this panel's scroll content, with no nested menu.
-local devices = {}
-for _, child in ipairs(panel.deviceContent.children) do
-    if child.kind == "Button" then devices[#devices + 1] = child end
-end
-assert(#devices == 6 and panel.deviceContent.height == 156 and panel.deviceScroll.height == 104)
-assert(devices[1].mark.shown and not devices[2].mark.shown)
+-- The native dropdown displays the current device and generates a flat radio list on open.
+local dropdown = panel.deviceDropdown
+assert(dropdown.parent == panel and dropdown.kind == "DropdownButton" and dropdown.width == 256)
+assert(dropdown.text == "系统默认" and not dropdown.menuOpen)
+dropdown:OpenMenu()
+local devices = dropdown.description.entries
+assert(#devices == 6 and dropdown.description.scrollHeight == 200)
+assert(devices[1].isSelected(devices[1].data) and not devices[2].isSelected(devices[2].data))
 before = #writes
-devices[1].scripts.OnClick(devices[1])
+devices[1].onSelect(devices[1].data)
 assert(#writes == before and restarts == 0, "Current device restarted sound")
-devices[3].scripts.OnClick(devices[3])
-assert(values.Sound_OutputDriverIndex == "2" and restarts == 1 and devices[3].mark.shown)
+devices[3].onSelect(devices[3].data)
+assert(values.Sound_OutputDriverIndex == "2" and restarts == 1 and dropdown.text == "耳机")
 restartFailures = 1
-devices[2].scripts.OnClick(devices[2])
+devices[2].onSelect(devices[2].data)
 assert(values.Sound_OutputDriverIndex == "2" and restarts == 3 and panel.status.text:find("已恢复"), "Restart failure did not restore original device")
 failWrite = "Sound_OutputDriverIndex"
-devices[2].scripts.OnClick(devices[2])
+devices[2].onSelect(devices[2].data)
 assert(values.Sound_OutputDriverIndex == "2" and panel.status.text:find("失败"))
 failWrite = nil
 restartFailures = 2
-devices[2].scripts.OnClick(devices[2])
+devices[2].onSelect(devices[2].data)
 assert(panel.status.text:find("请检查"), "Rollback failure was reported as restored")
 restartFailures = nil
 before = #writes
 deviceNames[2] = "新插入的设备"
-devices[2].scripts.OnClick(devices[2])
-assert(#writes == before and devices[2].deviceName == "新插入的设备", "Stale device index selected a different driver")
+devices[2].onSelect(devices[2].data)
+assert(#writes == before and dropdown.description.entries[2].text == "新插入的设备", "Stale device index selected a different driver")
+deviceNames[4] = "新显示器"
+dropdown:CloseMenu()
+dropdown:OpenMenu()
+assert(dropdown.description.entries[4].text == "新显示器", "Opening the dropdown reused an old device list")
+values.Sound_OutputDriverIndex = "3"
+panel.scripts.OnEvent(panel, "CVAR_UPDATE", "Sound_OutputDriverIndex")
+assert(dropdown.text == "新显示器", "External device selection did not update the dropdown")
 Sound_GameSystem_RestartSoundSystem = nil
 panel.scripts.OnEvent(panel, "SOUND_DEVICE_UPDATE")
-assert(not devices[2].enabled, "Device switching without restart API stayed enabled")
+assert(not dropdown.enabled, "Device switching without restart API stayed enabled")
 failDevices = true
 panel.scripts.OnEvent(panel, "SOUND_DEVICE_UPDATE")
-assert(panel.deviceEmpty.shown and not devices[1].shown)
+assert(not dropdown.enabled and dropdown.text == "设备列表不可用" and #dropdown.description.entries == 0)
 failDevices, deviceNames = nil, {}
 panel.scripts.OnEvent(panel, "SOUND_DEVICE_UPDATE")
-assert(panel.deviceEmpty.shown and panel.deviceEmpty.text:find("未找到"))
+assert(not dropdown.enabled and dropdown.text == "未找到输出设备")
 
 -- Hidden panels unsubscribe, reopening reflects external settings without writes.
 minimap.scripts.OnClick(minimap)
 assert(not panel.shown and not panel.events.CVAR_UPDATE and not panel.events.SOUND_DEVICE_UPDATE)
+assert(not dropdown.menuOpen, "Hiding the panel left its dropdown open")
 values.Sound_MusicVolume = "0.71"
 before = #writes
 SlashCmdList.WOWTOOLSSOUND()
 assert(panel.shown and percentages[3].text == "71%" and #writes == before)
+-- Reopening resets the anchor, choosing the inward corner in all four quadrants.
+for _, placement in ipairs({
+    { x = 100, y = 940, point = "TOPLEFT", relative = "BOTTOMRIGHT", dx = 4, dy = -4 },
+    { x = 100, y = 100, point = "BOTTOMLEFT", relative = "TOPRIGHT", dx = 4, dy = 4 },
+    { x = 1820, y = 100, point = "BOTTOMRIGHT", relative = "TOPLEFT", dx = -4, dy = 4 },
+    { x = 1820, y = 940, point = "TOPRIGHT", relative = "BOTTOMLEFT", dx = -4, dy = -4 },
+}) do
+    panel:Hide()
+    panel:SetPoint("CENTER")
+    minimap.centerX, minimap.centerY = placement.x, placement.y
+    SlashCmdList.WOWTOOLSSOUND()
+    assert(panel.point[1] == placement.point and panel.point[2] == minimap and panel.point[3] == placement.relative
+        and panel.point[4] == placement.dx and panel.point[5] == placement.dy, "Reopening did not place the panel beside the moved icon")
+end
+panel:Hide()
+minimap.scale, minimap.centerX, minimap.centerY = 2, 600, 300
+SlashCmdList.WOWTOOLSSOUND()
+assert(panel.point[1] == "TOPRIGHT", "Anchor ignored the icon's effective scale")
+panel:Hide()
+UIParent.scale = 2
+SlashCmdList.WOWTOOLSSOUND()
+assert(panel.point[1] == "BOTTOMLEFT", "Anchor ignored the parent effective scale")
+UIParent.scale, minimap.scale = 1, 1
+minimap.centerX, minimap.centerY = 1820, 940
 minimap.scripts.OnDragStart(minimap)
 minimap.scripts.OnUpdate()
 assert(wowDetectorDB.soundControl.minimapAngle == 0)
+assert(panel.point[2] == minimap and panel.point[1] == "TOPRIGHT", "Visible panel did not follow the dragged icon")
 minimap.scripts.OnDragStop(minimap)
 assert(not minimap.scripts.OnUpdate)
 GetMinimapShape = function() return "SQUARE" end
@@ -246,4 +308,4 @@ assert(wowDetectorDB == saved and wowDetectorDB.soundControl.minimapAngle == 0, 
 before = #writes
 SlashCmdList.WOWTOOLSSOUND()
 assert(#writes == before and sliders[3].value == 71, "Reload overwrote native sound settings")
-print("PASS: Forever sound control, five independent sliders/numbers/switches, inline scrollable devices, current/readback/hotplug/restart/rollback failures, restricted data, events, drag and reload.")
+print("PASS: compact Forever sound control, adjacent four-corner/scaled anchors and reopen/drag placement, five independent sliders/numbers/switches, native device dropdown/open refresh/current selection, hotplug/restart/rollback failures, restricted data, events and reload.")
