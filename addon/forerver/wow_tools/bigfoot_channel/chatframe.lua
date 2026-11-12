@@ -64,7 +64,7 @@ local getOptions = function()
                     type = "execute",
                     name = L["Show BFC keybinding"],
                     func = function()
-                        LibStub("AceConfigDialog-3.0"):Close("WoWToolsBigFootChannel")
+                        WoWTools.modules.bigfoot_channel.Hide()
                         BigFoot_LocateKeyBinding()
                     end,
                 },

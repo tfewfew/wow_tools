@@ -118,9 +118,23 @@ libraries["AceDB-3.0"] = { New = function(_, raw, defaults, profileName)
     return Database(raw, defaults, profileName == true and "Default" or profileName)
 end }
 libraries["AceDBOptions-3.0"] = { GetOptionsTable = function() return {type="group",name="配置",args={}} end }
-libraries["AceConfigRegistry-3.0"] = { RegisterOptionsTable = function(_, name, options) mock.options[name] = options end }
-local dialog = { OpenFrames = {} }
-function dialog:Open(name)
+local configCallbacks = {}
+libraries["AceConfigRegistry-3.0"] = {
+    RegisterOptionsTable = function(_, name, options) mock.options[name] = options end,
+    RegisterCallback = function(owner, event, method) configCallbacks[owner] = method end,
+    NotifyChange = function(_, app)
+        for owner, method in pairs(configCallbacks) do owner[method](owner, "ConfigTableChange", app) end
+    end,
+}
+local dialog = { OpenFrames = {}, BlizOptions = {} }
+function dialog:Open(name, container)
+    if container then
+        mock.customContainers = mock.customContainers or {}
+        mock.customContainers[name] = container
+        container:SetUserData("appName", name)
+        container.opens = (container.opens or 0) + 1
+        return
+    end
     self.OpenFrames[name] = {frame=CreateFrame("Frame")}
     self.OpenFrames[name].frame:Show()
 end
@@ -128,6 +142,20 @@ function dialog:Close(name) self.OpenFrames[name] = nil end
 function dialog:SelectGroup(name, tab) mock.selectedTab = tab end
 function dialog:SetDefaultSize() end
 libraries["AceConfigDialog-3.0"] = dialog
+libraries["AceGUI-3.0"] = { Create = function(_, kind)
+    assert(kind == "SimpleGroup")
+    local container = {frame=CreateFrame("Frame"),userdata={}}
+    function container:SetUserData(key, value) self.userdata[key] = value end
+    function container:GetUserData(key) return self.userdata[key] end
+    function container:GetUserDataTable() return self.userdata end
+    function container:SetAutoAdjustHeight(value) self.autoHeight = value end
+    function container:SetLayout(value) self.layout = value end
+    function container:SetWidth(value) self.frame:SetWidth(value) end
+    function container:SetHeight(value) self.frame:SetHeight(value) end
+    function container:ReleaseChildren() self.released = true end
+    function container:IsVisible() return self.frame:IsVisible() end
+    return container
+end }
 local function Addon(name)
     local addon = {name=name, modules={}, enabled=true, hooks={}}
     function addon:NewModule(moduleName) local module = Addon(moduleName); self.modules[moduleName] = module; return module end

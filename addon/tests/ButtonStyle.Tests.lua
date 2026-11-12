@@ -519,11 +519,21 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     CheckSkin(menu,"thin");CheckSkin(close,"thin")
     for _,frame in ipairs(frames) do assert(not frame.scripts.OnUpdate,"Appearance added polling") end
     WoWTools.modules={};SlashCmdList={}
-    if flavor=="forerver" then dofile(addon.."DisplayFonts.lua") end
+    if flavor=="forerver" then dofile(addon.."DisplayFonts.lua"); dofile(addon.."LuaGC.lua") end
     dofile(addon.."inner_graphic_config/Core.lua")
+    if flavor=="forerver" then
+        local host=CreateFrame("Frame",nil,UIParent)
+        host:Hide()
+        WoWTools.modules.inner_graphic_config.BuildSettings(host)
+        WoWTools.settings={Open=function(group)
+            assert(group=="inner_graphic_config", "Graphics shortcut lost its unified settings group")
+            host:Show()
+        end}
+    end
     WoWTools.modules.inner_graphic_config.Show()
     local tabs=0
     for _,object in ipairs(widgets) do if object.kind=="FontString" and object.text=="按钮" then tabs=tabs+1 end end
-    assert(tabs==2 and #style.editors==2 and style.editors[1].preview.parent.height==600,"Settings entry or scrolling height is wrong")
+    local expected=flavor=="forerver" and 1 or 2
+    assert(tabs==expected and #style.editors==expected and style.editors[1].preview.parent.height==600,"Settings entry or scrolling height is wrong")
     print("PASS: "..flavor.." cached appearance/state updates, scoped/coalesced discovery, reparented/XML/anonymous late controls, native/thin/no borders, padded bounds, LSM, persistence and partial restoration. Mock UI only.")
 end

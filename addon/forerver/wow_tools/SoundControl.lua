@@ -132,8 +132,9 @@ local function PositionPanel()
     panel:SetPoint(point, button, relativePoint, right and -4 or 4, above and -4 or 4)
 end
 
-local function CreatePanel()
-    panel = CreateFrame("Frame", "wowToolsSoundControlPanel", UIParent, "BasicFrameTemplateWithInset")
+local function CreatePanel(parent)
+    panel = CreateFrame("Frame", "wowToolsSoundControlPanel", parent or UIParent,
+        not parent and "BasicFrameTemplateWithInset" or nil)
     panel:SetSize(344, 240)
     panel:SetFrameStrata("DIALOG")
     panel:SetClampedToScreen(true)
@@ -142,9 +143,19 @@ local function CreatePanel()
     panel:RegisterForDrag("LeftButton")
     panel:SetScript("OnDragStart", panel.StartMoving)
     panel:SetScript("OnDragStop", panel.StopMovingOrSizing)
-    panel.TitleText:SetText("声音控制")
+    if parent then
+        panel:SetMovable(false)
+        panel:SetClampedToScreen(false)
+        panel:SetScript("OnDragStart", nil)
+        panel:SetScript("OnDragStop", nil)
+        local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+        title:SetPoint("TOPLEFT", 12, -12)
+        title:SetText("音量与输出设备")
+    else
+        panel.TitleText:SetText("声音控制")
+        UISpecialFrames[#UISpecialFrames + 1] = "wowToolsSoundControlPanel"
+    end
     panel:Hide()
-    UISpecialFrames[#UISpecialFrames + 1] = "wowToolsSoundControlPanel"
 
     for index, channel in ipairs(channels) do
         local y = -46 - (index - 1) * 26
@@ -223,7 +234,7 @@ local function CreatePanel()
     panel.status:SetWidth(320)
     panel.status:SetJustifyH("LEFT")
     panel:SetScript("OnShow", function(self)
-        PositionPanel()
+        if not parent then PositionPanel() end
         Status()
         Refresh()
         RefreshDevices()
@@ -248,6 +259,7 @@ local function CreatePanel()
 end
 
 local function Toggle()
+    if WoWTools.settings then WoWTools.settings.Toggle("sound_control"); return end
     if not initialized then return end
     if not panel then CreatePanel() end
     panel:SetShown(not panel:IsShown())
@@ -257,7 +269,7 @@ button = CreateFrame("Button", "wowToolsSoundMinimapButton", Minimap)
 button:SetSize(32, 32)
 button:SetFrameStrata("MEDIUM")
 button:SetFrameLevel(Minimap:GetFrameLevel() + 8)
-button:RegisterForClicks("LeftButtonUp")
+button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 button:RegisterForDrag("LeftButton")
 button:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
 local icon = button:CreateTexture(nil, "BACKGROUND")
@@ -279,7 +291,7 @@ local function PositionButton()
     button:ClearAllPoints()
     button:SetPoint("CENTER", Minimap, "CENTER",
         x * (Minimap:GetWidth() / 2 + 6), y * (Minimap:GetHeight() / 2 + 6))
-    if panel and panel:IsShown() then PositionPanel() end
+    if panel and panel:IsShown() and not WoWTools.settings then PositionPanel() end
 end
 
 button:SetScript("OnClick", Toggle)
@@ -299,7 +311,7 @@ button:SetScript("OnHide", function(self) self:SetScript("OnUpdate", nil) end)
 button:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_LEFT")
     GameTooltip:AddLine("声音控制")
-    GameTooltip:AddLine("左键：打开 / 关闭音量和输出设备面板", 1, 1, 1)
+    GameTooltip:AddLine("点击：打开 / 关闭声音设置", 1, 1, 1)
     GameTooltip:AddLine("拖动：调整小地图入口位置", 1, 1, 1)
     GameTooltip:Show()
 end)
@@ -320,7 +332,17 @@ end)
 
 WoWTools.modules.sound_control = {
     Toggle = Toggle,
-    IsShown = function() return panel and panel:IsShown() or false end,
+    IsShown = function()
+        if WoWTools.settings then return WoWTools.settings.IsGroupShown("sound_control") end
+        return panel and panel:IsShown() or false
+    end,
+    BuildSettings = function(parent)
+        if not panel then CreatePanel(parent) end
+        panel:ClearAllPoints()
+        panel:SetPoint("TOPLEFT", 8, -8)
+        panel:Show()
+        return panel
+    end,
 }
 SLASH_WOWTOOLSSOUND1 = "/wowsound"
 SlashCmdList.WOWTOOLSSOUND = Toggle

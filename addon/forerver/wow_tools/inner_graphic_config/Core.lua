@@ -488,66 +488,25 @@ local function BuildControls(parent)
     SelectTab(1)
     parent:SetScript("OnShow", function()
         for _, layout in ipairs(layouts) do layout() end
-        Refresh(true)
+        Refresh()
     end)
 end
-
-local window = CreateFrame("Frame", "InnerGraphicConfigWindow", UIParent, "BasicFrameTemplateWithInset")
-window:SetSize(500, 560)
-window:SetPoint("CENTER")
-window:SetFrameStrata("DIALOG")
-window:SetClampedToScreen(true)
-window:SetMovable(true)
-window:EnableMouse(true)
-window:RegisterForDrag("LeftButton")
-window:SetScript("OnDragStart", function(self) self:StartMoving() end)
-window:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
-window.TitleText:SetText("wow_tools - inner_graphic_config")
-window:Hide()
-local content = CreateFrame("Frame", nil, window)
-content:SetPoint("TOPLEFT", 0, -16)
-content:SetPoint("BOTTOMRIGHT")
-BuildControls(content)
-window:SetScript("OnShow", function() Refresh(true) end)
-UISpecialFrames[#UISpecialFrames + 1] = "InnerGraphicConfigWindow"
 
 SLASH_INNERGRAPHICCONFIG1 = "/igc"
 SLASH_INNERGRAPHICCONFIG2 = "/inner_graphic_config"
 SlashCmdList.INNERGRAPHICCONFIG = function()
-    if window:IsShown() then window:Hide() else window:Show() end
-end
-
-local panel = CreateFrame("Frame", nil, UIParent)
-panel.name = "wow_tools - inner_graphic_config"
-panel:Hide()
-BuildControls(panel)
-if Settings and Settings.RegisterCanvasLayoutCategory and Settings.RegisterAddOnCategory then
-    local category = Settings.RegisterCanvasLayoutCategory(panel, panel.name)
-    Settings.RegisterAddOnCategory(category)
-elseif InterfaceOptions_AddCategory then
-    InterfaceOptions_AddCategory(panel)
+    WoWTools.settings.Toggle("inner_graphic_config")
 end
 
 local events = CreateFrame("Frame")
 events:RegisterEvent("CVAR_UPDATE")
 events:RegisterEvent("PLAYER_ENTERING_WORLD")
 events:SetScript("OnEvent", function() Refresh() end)
--- Some classic CVars do not emit CVAR_UPDATE. Poll only while a UI is visible.
-local elapsedTime = 0
-events:SetScript("OnUpdate", function(_, elapsed)
-    if not window:IsShown() and not panel:IsShown() then
-        elapsedTime = 0
-        return
-    end
-    elapsedTime = elapsedTime + elapsed
-    if elapsedTime >= 0.5 then
-        elapsedTime = 0
-        Refresh()
-    end
-end)
 
 WoWTools.modules.inner_graphic_config = {
     Toggle = SlashCmdList.INNERGRAPHICCONFIG,
-    Show = function() window:Show() end,
-    IsShown = function() return window:IsShown() end,
+    Show = function() WoWTools.settings.Open("inner_graphic_config") end,
+    IsShown = function() return WoWTools.settings.IsGroupShown("inner_graphic_config") end,
+    BuildSettings = BuildControls,
+    RefreshSettings = Refresh,
 }

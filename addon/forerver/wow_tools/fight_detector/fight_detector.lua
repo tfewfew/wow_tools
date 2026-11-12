@@ -1,6 +1,7 @@
 -- Independent detector: observe selected targets; all targeting keys belong to the script/game.
 local FLAVOR = "forerver"
 local enabled, initialized, elapsed = false, false, 0
+local embedded = false
 local nameplates = {}
 local lootOpen = false
 local classID = nil
@@ -342,15 +343,36 @@ save:SetScript("OnClick",function()
     SafeRefresh()
 end)
 start:SetScript("OnClick",Start)
-close:SetScript("OnClick",function() Stop(); panel:Hide() end)
-panel:SetScript("OnHide",function() Stop() end)
+local function Close()
+    Stop()
+    if not embedded then panel:Hide() end
+end
+close:SetScript("OnClick",Close)
+panel:SetScript("OnHide",function() if not embedded then Stop() end end)
 signal:Hide()
 WoWTools.modules.fight_detector={
     IsEnabled=function() return enabled end,
-    IsShown=function() return panel:IsShown() end,
+    IsShown=function() return embedded and panel:IsVisible() or (not embedded and panel:IsShown()) end,
     Show=Start,
-    Hide=function() Stop(); panel:Hide() end,
-    Toggle=function() if panel:IsShown() then Stop(); panel:Hide() else Start() end end,
+    Hide=Close,
+    Toggle=function() if enabled or (not embedded and panel:IsShown()) then Close() else Start() end end,
+    BuildSettings=function(parent)
+        embedded = true
+        panel:SetParent(parent)
+        panel:ClearAllPoints()
+        panel:SetPoint("TOPLEFT", 8, -8)
+        panel:SetFrameStrata("DIALOG")
+        panel:SetFrameLevel(parent:GetFrameLevel() + 1)
+        panel:SetMovable(false)
+        panel:SetClampedToScreen(false)
+        panel:SetScript("OnDragStart", nil)
+        panel:SetScript("OnDragStop", nil)
+        background:Hide()
+        close:SetText("停止检测")
+        parent:SetScript("OnShow", function() panel:Show() end)
+        panel:Show()
+        return panel
+    end,
 }
 events=CreateFrame("Frame")
 events:RegisterEvent("ADDON_LOADED")
@@ -415,7 +437,7 @@ end
 SLASH_FIGHTDETECTOR1="/fightdetector"
 SlashCmdList.FIGHTDETECTOR=function(message)
     local command=(message or ""):lower():match("^%s*(.-)%s*$")
-    if command=="off" or command=="hide" then Stop(); panel:Hide()
+    if command=="off" or command=="hide" then Close()
     elseif command=="status" then Say((descriptions[state] or state).." · 检测="..(settings and settings.DetectionRangeYards or "?").."码 / encounter="..encounterSerial.." · class="..tostring(classID))
     else Start() end
 end

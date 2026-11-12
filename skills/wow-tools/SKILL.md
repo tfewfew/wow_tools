@@ -5,6 +5,13 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 # wow_tools
 
+## 永恒服统一设置界面（2026-11-13）
+
+- 仅 forerver 2.2.74 将小地图右键的七个模块收编为 Settings.lua 的一级标签，依次为钓鱼检测、战斗检测、画面设置、自动抓宠、声音控制、大脚聊天和 lsToast。一键卖鱼清单在钓鱼页，画面设置保留原分类及字体、按钮、Lua 子页。小地图右键与 `/wowtools` 直接打开统一设置，`/igc`、`/wowsound`、`/sellfish`、大脚和 lsToast 配置命令定位相应页。
+- 仅创建一套设置 canvas 和各模块控件，在独立窗口与系统插件设置的 wow_tools 分类间切换父级，共用当前标签、编辑草稿及保存/系统值。移除原画面与 lsToast 的独立系统分类。原图形 CVar、字体、按钮、Lua、声音、名单和配置档保存逻辑沿用；打开页面读取设置，业务检测由显式启动/停止控制。
+- 战斗和抓宠设置面板内嵌，设置页隐藏时保留运行中的检测、事件与独立双色协议，显式停止及检测互斥继续沿用。声音面板在隐藏时注销 UI 事件和关闭设备下拉。可见 canvas 每0.5秒刷新当前页状态，隐藏移除 UI OnUpdate；Lua 已保存的周期校准独立继续。
+- 大脚和 lsToast 使用真实 AceGUI SimpleGroup / AceConfigDialog 自定义容器嵌入，通过 BlizOptions 容器登记继续接收 Ace 的选项/配置档刷新，隐藏时变更标脏并于下次显示补刷。lsToast 战斗期间隐藏配置控件并显示状态，脱战恢复。ForeverCompatibility 覆盖完整 TOC、七页/唯一系统分类、右键与旧命令、同一 canvas 的窗口/系统宿主切换、草稿保留、内嵌 Ace 刷新与战斗、声音注销及检测不中断；BigFootLibraries 使用真实内嵌库验证自定义容器与 NotifyChange 刷新，配合全 Lua5.1、XML/内联脚本及 ClientProfiles 检查，提交推送后仅部署 forerver。
+
 ## 永恒服 Lua 回收配置（2026-11-13）
 
 - 仅 forerver 2.2.73 的 `/igc` 与系统插件设置增加 Lua 标签页，由 LuaGC.lua 提供 setpause / setstepmul 两项 1–10000 整数百分比及 0–1440 整数分钟校准周期。编辑值、已保存值、最新系统值分列，并记录最近读取时间。首次编辑默认 200/200、5 分钟，用户保存后立即应用并写入账号 wowDetectorDB.luaGC，首次进入世界恢复有效保存值。周期 0 关闭自动校准，手动刷新系统值与立即校准继续可用。

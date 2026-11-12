@@ -76,9 +76,10 @@ local function AddCursorItem()
     return true
 end
 
-local function CreateSettings()
+local function CreateSettings(parent)
     if settings then return end
-    settings = CreateFrame("Frame", "WoWToolsSellFishSettings", UIParent, "BasicFrameTemplateWithInset")
+    settings = CreateFrame("Frame", "WoWToolsSellFishSettings", parent or UIParent,
+        not parent and "BasicFrameTemplateWithInset" or nil)
     settings:SetSize(420, 410)
     settings:SetPoint("CENTER")
     settings:SetFrameStrata("DIALOG")
@@ -88,9 +89,19 @@ local function CreateSettings()
     settings:RegisterForDrag("LeftButton")
     settings:SetScript("OnDragStart", function(self) self:StartMoving() end)
     settings:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
-    settings.TitleText:SetText("wow_tools - 一键卖鱼设置")
+    if parent then
+        settings:SetMovable(false)
+        settings:SetClampedToScreen(false)
+        settings:SetScript("OnDragStart", nil)
+        settings:SetScript("OnDragStop", nil)
+        local title = settings:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+        title:SetPoint("TOPLEFT", 18, -10)
+        title:SetText("一键卖鱼清单")
+    else
+        settings.TitleText:SetText("wow_tools - 一键卖鱼设置")
+        UISpecialFrames[#UISpecialFrames + 1] = "WoWToolsSellFishSettings"
+    end
     settings:Hide()
-    UISpecialFrames[#UISpecialFrames + 1] = "WoWToolsSellFishSettings"
 
     local label = settings:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     label:SetPoint("TOPLEFT", 18, -40)
@@ -221,6 +232,7 @@ RefreshList = function()
 end
 
 local function ToggleSettings()
+    if WoWTools.settings then WoWTools.settings.Open("wowDetector"); return end
     if not items then return end
     CreateSettings()
     if settings:IsShown() then settings:Hide() else settings:Show() end
@@ -430,3 +442,12 @@ eventFrame:SetScript("OnEvent", function(_, event, id, success)
 end)
 SLASH_WOWTOOLSSELLFISH1 = "/sellfish"
 SlashCmdList.WOWTOOLSSELLFISH = ToggleSettings
+WoWTools.sellFish = {
+    BuildSettings = function(parent)
+        CreateSettings(parent)
+        settings:ClearAllPoints()
+        settings:SetPoint("TOPLEFT", 0, -160)
+        settings:Show()
+        return settings
+    end,
+}

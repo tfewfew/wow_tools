@@ -27,7 +27,8 @@ local function Frame(name)
         GetHighlightTexture = function() return Frame() end,
     }
     setmetatable(frame, {__index=function(_, method)
-        return methods[method] or function() end
+        if methods[method] then return methods[method] end
+        if method:match("^%u") then return function() end end
     end})
     frames[#frames+1] = frame
     if name then _G[name] = frame end
@@ -52,6 +53,7 @@ GetTime = function() return 0 end
 GetBuildInfo = function() return "1.60.1", "70790", "", 16001 end
 geterrorhandler = function() return function(message) errors[#errors+1] = message end end
 hooksecurefunc = function() end
+securecallfunction = function(callback, ...) return callback(...) end
 C_Timer = {After=function() end, NewTimer=function() return {Cancel=function() end} end}
 C_AddOns = {GetAddOnMetadata=function() return "wow_tools" end}
 WOW_PROJECT_MAINLINE, WOW_PROJECT_CLASSIC, WOW_PROJECT_ID = 1, 2, 1
@@ -110,6 +112,26 @@ assert(instance.initialized and instance.started, "Embedded Ace addon lifecycle 
 assert(instance.db.profile.mute and instance.db.profile.enablecopy and instance.db.profile.modules.CHATFRAME)
 assert(LibStub("AceConfigRegistry-3.0"):GetOptionsTable("WoWToolsEmbeddedAceTest", "dialog", "AceConfigDialog-3.0"))
 assert(LibStub("AceDBOptions-3.0"):GetOptionsTable(instance.db).type == "group")
+-- The unified settings page feeds custom containers through the real Ace refresh path.
+CloseSpecialWindows = function() return false end
+local dialog = LibStub("AceConfigDialog-3.0")
+local container = LibStub("AceGUI-3.0"):Create("SimpleGroup")
+container:SetAutoAdjustHeight(false)
+container:SetWidth(600)
+container:SetHeight(400)
+container.frame.IsVisible = function() return true end
+local releases = 0
+local releaseChildren = container.ReleaseChildren
+container.ReleaseChildren = function(self) releases = releases + 1; releaseChildren(self) end
+dialog.BlizOptions.WoWToolsEmbeddedAceTest = {wow_tools=container}
+dialog:Open("WoWToolsEmbeddedAceTest", container)
+assert(not dialog.OpenFrames.WoWToolsEmbeddedAceTest and container:GetUserData("iscustom"),
+    "Embedded configuration created a standalone Ace frame")
+LibStub("AceConfigRegistry-3.0"):NotifyChange("WoWToolsEmbeddedAceTest")
+dialog.frame.scripts.OnUpdate(dialog.frame)
+assert(releases == 2 and container:GetUserData("appName") == "WoWToolsEmbeddedAceTest",
+    "The registered custom container missed Ace's configuration refresh")
+assert(#errors == 0, table.concat(errors, "\n"))
 LoadLibraries()
 for _, name in ipairs(required) do assert(LibStub(name) == libraries[name], "Library upgrade replaced existing registry " .. name) end
 assert(#loaded == 74, "The complete library dependency tree was not loaded twice")

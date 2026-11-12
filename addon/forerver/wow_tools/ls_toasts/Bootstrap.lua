@@ -17,6 +17,7 @@ function module.GetSettings()
 end
 
 local function IsShown()
+    if WoWTools.settings then return WoWTools.settings.IsGroupShown("ls_toasts") end
     local window = LibStub("AceConfigDialog-3.0").OpenFrames.WoWToolsLsToasts
     return window and window.frame:IsShown() or false
 end
@@ -29,10 +30,12 @@ local function Show()
         DEFAULT_CHAT_FRAME:AddMessage("lsToast：请在脱战后打开设置。")
         return
     end
-    LibStub("AceConfigDialog-3.0"):Open("WoWToolsLsToasts")
+    if WoWTools.settings then WoWTools.settings.Open("ls_toasts")
+    else LibStub("AceConfigDialog-3.0"):Open("WoWToolsLsToasts") end
 end
 
 local function Hide()
+    if WoWTools.settings then WoWTools.settings.HideGroup("ls_toasts"); return end
     LibStub("AceConfigDialog-3.0"):Close("WoWToolsLsToasts")
 end
 

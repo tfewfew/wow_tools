@@ -1,17 +1,6 @@
 local initialized = false
-local moduleLabels = { pet_tamer = "自动抓宠", sound_control = "声音控制", ls_toasts = "lsToast" }
-local function OpenMenu(owner)
-    if not MenuUtil or not MenuUtil.CreateContextMenu then
-        DEFAULT_CHAT_FRAME:AddMessage("wow_tools：菜单接口暂不可用，可使用 /wowdetector on 或 /igc。")
-        return
-    end
-    MenuUtil.CreateContextMenu(owner, function(_, root)
-        root:CreateTitle("wow_tools（无限服）")
-        for _, name in ipairs({ "wowDetector", "fight_detector", "inner_graphic_config", "pet_tamer", "sound_control", "bigfoot_channel", "ls_toasts" }) do
-            local module = WoWTools.modules[name]
-            root:CreateCheckbox(moduleLabels[name] or name, module.IsShown, module.Toggle)
-        end
-    end)
+local function OpenSettings()
+    WoWTools.settings.Open()
 end
 local minimapButton = CreateFrame("Button", "wowToolsMinimapButton", Minimap)
 minimapButton:SetSize(32, 32)
@@ -46,7 +35,7 @@ end
 minimapButton:SetScript("OnClick", function(self, button)
     if not initialized then return end
     if button == "RightButton" then
-        OpenMenu(self)
+        OpenSettings()
     else
         WoWTools.modules.wowDetector.Toggle()
     end
@@ -68,7 +57,7 @@ minimapButton:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_LEFT")
     GameTooltip:AddLine("wow_tools")
     GameTooltip:AddLine("左键：打开并启动监测 / 关闭并隐藏", 1, 1, 1)
-    GameTooltip:AddLine("右键：打开子插件菜单", 1, 1, 1)
+    GameTooltip:AddLine("右键：打开统一设置", 1, 1, 1)
     GameTooltip:AddLine("右侧小色块：蓝色=鱼饵附魔有效，紫色=缺少附魔", 1, 1, 1)
     GameTooltip:AddLine("拖动：调整小地图入口位置", 1, 1, 1)
     GameTooltip:Show()
@@ -85,4 +74,4 @@ events:SetScript("OnEvent", function(_, _, name)
     PositionMinimapButton()
 end)
 SLASH_WOWTOOLS1 = "/wowtools"
-SlashCmdList.WOWTOOLS = function() OpenMenu(minimapButton) end
+SlashCmdList.WOWTOOLS = OpenSettings

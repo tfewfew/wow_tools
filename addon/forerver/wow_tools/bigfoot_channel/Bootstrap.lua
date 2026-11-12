@@ -33,6 +33,7 @@ function BigFoot_HideNewbieTooltip()
 end
 
 local function Show(tab)
+    if WoWTools.settings then WoWTools.settings.Open("bigfoot_channel", tab); return end
     if not channel.addon or not channel.addon.db then
         return
     end
@@ -44,11 +45,13 @@ local function Show(tab)
 end
 
 local function IsShown()
+    if WoWTools.settings then return WoWTools.settings.IsGroupShown("bigfoot_channel") end
     local frame = LibStub("AceConfigDialog-3.0").OpenFrames.WoWToolsBigFootChannel
     return frame and frame.frame:IsShown() or false
 end
 
 local function Hide()
+    if WoWTools.settings then WoWTools.settings.HideGroup("bigfoot_channel"); return end
     LibStub("AceConfigDialog-3.0"):Close("WoWToolsBigFootChannel")
 end
 

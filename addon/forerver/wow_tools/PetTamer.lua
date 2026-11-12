@@ -1,6 +1,7 @@
 -- Pet taming only observes the current target. Keyboard actions belong to wowAuto.
 local FLAVOR = "forerver"
 local enabled, initialized, elapsed = false, false, 0
+local embedded = false
 local names, targetGUID, serial = {}, nil, 0
 local events = CreateFrame("Frame")
 local activeEvents = {"PLAYER_TARGET_CHANGED", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED",
@@ -149,14 +150,35 @@ save:SetScript("OnClick", function()
     DEFAULT_CHAT_FRAME:AddMessage("wow_tools：已保存抓宠名单，共 "..#list.." 个名称。")
 end)
 start:SetScript("OnClick", Start)
-close:SetScript("OnClick", function() Stop(); panel:Hide() end)
-panel:SetScript("OnHide", Stop)
+local function Close()
+    Stop()
+    if not embedded then panel:Hide() end
+end
+close:SetScript("OnClick", Close)
+panel:SetScript("OnHide", function() if not embedded then Stop() end end)
 WoWTools.modules.pet_tamer = {
     IsEnabled=function() return enabled end,
-    IsShown=function() return panel:IsShown() end,
+    IsShown=function() return embedded and panel:IsVisible() or (not embedded and panel:IsShown()) end,
     Show=Start,
-    Hide=function() Stop(); panel:Hide() end,
-    Toggle=function() if panel:IsShown() then Stop(); panel:Hide() else Start() end end,
+    Hide=Close,
+    Toggle=function() if enabled or (not embedded and panel:IsShown()) then Close() else Start() end end,
+    BuildSettings=function(parent)
+        embedded = true
+        panel:SetParent(parent)
+        panel:ClearAllPoints()
+        panel:SetPoint("TOPLEFT", 8, -8)
+        panel:SetFrameStrata("DIALOG")
+        panel:SetFrameLevel(parent:GetFrameLevel() + 1)
+        panel:SetMovable(false)
+        panel:SetClampedToScreen(false)
+        panel:SetScript("OnDragStart", nil)
+        panel:SetScript("OnDragStop", nil)
+        background:Hide()
+        close:SetText("停止检测")
+        parent:SetScript("OnShow", function() panel:Show() end)
+        panel:Show()
+        return panel
+    end,
 }
 events:RegisterEvent("ADDON_LOADED")
 events:SetScript("OnEvent", function(_, event, addon)
@@ -173,5 +195,5 @@ end)
 SLASH_PETTAMER1 = "/pettamer"
 SlashCmdList.PETTAMER = function(message)
     local command = (message or ""):lower():match("^%s*(.-)%s*$")
-    if command == "off" or command == "hide" then Stop(); panel:Hide() else Start() end
+    if command == "off" or command == "hide" then Close() else Start() end
 end

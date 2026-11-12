@@ -393,3 +393,39 @@ WoWTools.modules.wowDetector = {
     IsShown = function() return panel:IsShown() end,
     GetLureState = GetLureState,
 }
+
+local module = WoWTools.modules.wowDetector
+function module.RefreshSettings()
+    if not module.settingsStatus then return end
+    module.settingsStatus:SetText("检测" .. (enabled and "已开启" or "已关闭")
+        .. " · 色块" .. (panel:IsShown() and "已显示" or "已隐藏")
+        .. " · 位置" .. (wowDetectorDB and wowDetectorDB.locked and "已锁定" or "可拖动"))
+end
+
+function module.BuildSettings(parent)
+    local title = parent:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", 18, -10)
+    title:SetText("钓鱼检测")
+    module.settingsStatus = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    module.settingsStatus:SetPoint("TOPLEFT", 18, -40)
+    local actions = {
+        {label="启动检测", command="on"}, {label="停止检测", command="off"},
+        {label="显示色块", command="show"}, {label="隐藏色块", command="hide"},
+        {label="色块居中", command="center"}, {label="锁定 / 解锁位置"},
+    }
+    for index, action in ipairs(actions) do
+        local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+        button:SetSize(122, 26)
+        button:SetPoint("TOPLEFT", 18 + ((index - 1) % 3) * 130, -66 - math.floor((index - 1) / 3) * 36)
+        button:SetText(action.label)
+        button:SetScript("OnClick", function()
+            local command = action.command or (wowDetectorDB.locked and "unlock" or "lock")
+            SlashCmdList.WOWDETECTOR(command)
+            module.RefreshSettings()
+        end)
+    end
+    parent:SetScript("OnShow", module.RefreshSettings)
+    local sellFish = WoWTools.sellFish.BuildSettings(parent)
+    module.RefreshSettings()
+    return sellFish
+end

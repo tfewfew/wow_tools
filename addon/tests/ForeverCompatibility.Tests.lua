@@ -26,14 +26,15 @@ local secret = setmetatable({}, {
     __tostring = function() error("Printed a restricted value") end,
 })
 function issecretvalue(value) return rawequal(value, secret) end
-local function widget(name)
-    local object = { scripts = {}, events = {}, textures = {}, shown = true, text = "", enabled = true }
+local VisibilityChanged
+local function widget(name, parent)
+    local object = { scripts = {}, events = {}, textures = {}, shown = true, text = "", enabled = true, mockParent = parent }
     function object:SetAttribute() end
     function object:SetScript(event, callback) self.scripts[event] = callback end
     function object:RegisterEvent(event) self.events[event] = true end
     function object:UnregisterEvent(event) self.events[event] = nil end
     function object:CreateTexture()
-        local texture = widget()
+        local texture = widget(nil, self)
         self.textures[#self.textures + 1] = texture
         return texture
     end
@@ -42,7 +43,18 @@ local function widget(name)
     function object:RemoveMaskTexture(mask) if self.mask==mask then self.mask=nil end end
     function object:SetTextureSliceMargins(...) self.sliceMargins={ ... } end
     function object:ClearTextureSlice() self.sliceMargins=nil end
-    function object:CreateFontString() return widget() end
+    function object:CreateFontString() return widget(nil, self) end
+    function object:GetParent() return self.mockParent end
+    function object:SetFrameStrata(value) self.strata = value end
+    function object:GetFrameStrata()
+        return self.strata or (self.mockParent and self.mockParent:GetFrameStrata()) or "MEDIUM"
+    end
+    function object:IsVisible() return self.shown and (not self.mockParent or self.mockParent:IsVisible()) end
+    function object:SetParent(parent)
+        local visible = self:IsVisible()
+        self.mockParent = parent
+        VisibilityChanged(self, visible)
+    end
     function object:GetEffectiveScale() return scale end
     function object:SetSize(w, h) self.width, self.height = w, h end
     function object:GetWidth() return self.width or 140 end
@@ -66,24 +78,53 @@ local function widget(name)
     function object:Disable() self.enabled = false end
     function object:GetChecked() return self.checked end
     function object:SetChecked(value) self.checked = value end
-    function object:Hide() self.shown = false end
-    function object:Show() self.shown = true end
+    function object:Hide() local visible=self:IsVisible(); self.shown=false; VisibilityChanged(self,visible) end
+    function object:Show() local visible=self:IsVisible(); self.shown=true; VisibilityChanged(self,visible) end
     function object:IsShown() return self.shown end
     function object:GetFrameLevel() return 1 end
+    function object:SetValue(value)
+        self.value = value
+        if self.scripts.OnValueChanged then self.scripts.OnValueChanged(self, value) end
+    end
+    function object:GetValue() return self.value end
+    function object:GetThumbTexture() self.thumb = self.thumb or widget(nil, self); return self.thumb end
+    function object:IsEnabled() return self.enabled end
+    function object:SetupMenu(generator) self.generator = generator end
+    function object:GenerateMenu()
+        self.generator(self, {SetScrollMode=function() end, CreateRadio=function() end})
+    end
+    function object:SetDefaultText(text) self.defaultText = text end
+    function object:CloseMenu() self.menuClosed = true end
     local harmless = {
-        "SetFrameStrata", "SetFrameLevel", "SetScale", "SetButtonState", "LockHighlight", "UnlockHighlight", "SetClampedToScreen", "SetMovable", "EnableMouse",
+        "SetFrameLevel", "SetScale", "SetButtonState", "LockHighlight", "UnlockHighlight", "SetClampedToScreen", "SetMovable", "EnableMouse",
         "RegisterForDrag", "RegisterForClicks", "SetHighlightTexture", "SetTexture", "SetAllPoints",
         "ClearAllPoints", "SetFont", "SetWidth", "SetHeight", "SetJustifyH", "SetAutoFocus",
         "SetMaxLetters", "SetNumeric", "ClearFocus", "SetScrollChild", "StartMoving", "StopMovingOrSizing", "SetMultiLine", "SetFontObject", "SetBlendMode", "SetTexCoord",
+        "SetOrientation", "SetMinMaxValues", "SetValueStep", "SetObeyStepOnDrag", "SetThumbTexture", "EnableMouseWheel", "SetTextColor",
     }
     for _, method in ipairs(harmless) do object[method] = function() end end
     widgets[#widgets + 1] = object
+    object.lastVisible = object:IsVisible()
     if name then names[name] = object end
     return object
 end
-function CreateFrame(_, name, _, template)
+VisibilityChanged = function()
+    local changes = {}
+    for _, object in ipairs(widgets) do
+        local visible = object:IsVisible()
+        if visible ~= object.lastVisible then
+            object.lastVisible = visible
+            changes[#changes + 1] = {object=object, event=visible and "OnShow" or "OnHide"}
+        end
+    end
+    for _, change in ipairs(changes) do
+        local callback = change.object.scripts[change.event]
+        if callback then callback(change.object) end
+    end
+end
+function CreateFrame(_, name, parent, template)
     assert(template ~= "UIDropDownMenuTemplate", "Forever still depends on legacy dropdown templates")
-    local object = widget(name)
+    local object = widget(name, parent)
     if template == "MinimalTabTemplate" then object.Text = widget() end
     if template == "BasicFrameTemplateWithInset" then object.TitleText = widget() end
     frames[#frames + 1] = object
@@ -97,7 +138,11 @@ function GameTooltip:SetOwner() end
 function GameTooltip:AddLine() end
 DEFAULT_CHAT_FRAME = { AddMessage = function(_, message) messages[#messages + 1] = message end }
 SlashCmdList, UISpecialFrames = {}, {}
-Settings = { RegisterCanvasLayoutCategory = function() return {} end, RegisterAddOnCategory = function() end }
+local registeredCategories = {}
+Settings = { RegisterCanvasLayoutCategory = function(frame, name)
+    registeredCategories[#registeredCategories + 1] = {frame=frame,name=name}
+    return {}
+end, RegisterAddOnCategory = function() end }
 C_CVar = { GetCVar = function(key) return key == "softTargetInteract" and interactCVar or nil end,
     SetCVar = function() cvarWrites = cvarWrites + 1 end }
 MenuUtil = { CreateContextMenu = function(owner, generator)
@@ -169,8 +214,8 @@ local function tick()
 end
 assert(not panel.shown and not wowDetectorDB.locked, "Monitor did not default off/hidden")
 assert(cvarWrites == 0, "Port changed graphics automatically")
-assert(gcCalls == 0 and WoWTools.luaGC and #WoWTools.luaGC.views == 2,
-    "Lua settings changed GC during addon loading or missed an IGC surface")
+assert(gcCalls == 0 and WoWTools.luaGC and #WoWTools.luaGC.views == 1,
+    "Lua settings changed GC during addon loading or duplicated the shared settings view")
 local luaTabs = 0
 for _, frame in ipairs(frames) do
     if frame.Text and frame.Text.text == "Lua" then
@@ -178,7 +223,7 @@ for _, frame in ipairs(frames) do
         frame.scripts.OnClick()
     end
 end
-assert(luaTabs == 2, "Standalone IGC and native settings must both expose the Lua tab")
+assert(luaTabs == 1, "The unified settings canvas must own exactly one Lua tab")
 local luaView = WoWTools.luaGC.views[1]
 luaView.refresh.scripts.OnClick()
 assert(gcValues.setpause == 350 and gcValues.setstepmul == 250 and luaView.system.pause.text == "350")
@@ -327,26 +372,43 @@ dead = false
 panel.scripts.OnEvent(panel, "PLAYER_ALIVE")
 assertColor(indicator, 0, 1, 1)
 SlashCmdList.WOWTOOLS()
-assert(#menuEntries == 7 and menuEntries[2].title == "fight_detector" and menuEntries[4].title == "自动抓宠"
-    and menuEntries[5].title == "声音控制" and menuEntries[6].title == "bigfoot_channel"
-    and menuEntries[7].title == "lsToast", "Modern module menu is missing")
-menuEntries[7].onSelect()
+local unified = WoWTools.settings
+assert(#unified.groups == 7 and unified.window:IsShown() and not WoWTools.modules.wowDetector.IsEnabled(),
+    "Opening unified settings started a detector or omitted an existing menu group")
+assert(#registeredCategories == 1 and registeredCategories[1].name == "wow_tools"
+    and registeredCategories[1].frame == unified.panel, "Duplicate or indirect addon settings categories remain")
+for _, group in ipairs(unified.groups) do assert(unified.tabs[group.key] and unified.pages[group.key]) end
+WoWTools.modules.ls_toasts.Toggle()
 assert(WoWTools.modules.ls_toasts.IsShown(), "Toast settings menu did not open")
-menuEntries[7].onSelect()
+assert(chatMock.customContainers.WoWToolsLsToasts and not LibStub("AceConfigDialog-3.0").OpenFrames.WoWToolsLsToasts,
+    "Toast settings escaped into a standalone Ace window")
+WoWTools.modules.ls_toasts.Toggle()
 assert(not WoWTools.modules.ls_toasts.IsShown(), "Toast settings menu did not close")
-menuEntries[6].onSelect()
+WoWTools.modules.bigfoot_channel.Toggle()
 assert(WoWTools.modules.bigfoot_channel.IsShown(), "Chat settings menu did not open")
-menuEntries[6].onSelect()
+SlashCmdList.WOWTOOLSBIGFOOTFILTER()
+assert(chatMock.selectedTab == "filters" and chatMock.customContainers.WoWToolsBigFootChannel,
+    "Chat filter shortcut failed to select the embedded group")
+WoWTools.modules.bigfoot_channel.Toggle()
 assert(not WoWTools.modules.bigfoot_channel.IsShown(), "Chat settings menu did not close")
-menuEntries[3].onSelect()
-assert(names.InnerGraphicConfigWindow.shown and not wowDetectorDB.locked, "Menu toggled wrong module")
-menuEntries[1].onSelect()
+WoWTools.modules.inner_graphic_config.Show()
+assert(unified.IsGroupShown("inner_graphic_config") and not wowDetectorDB.locked, "Graphics shortcut selected the wrong group")
+WoWTools.modules.wowDetector.Toggle()
 assert(not panel.shown, "Monitor close did not hide")
-menuEntries[1].onSelect()
+WoWTools.modules.wowDetector.Toggle()
 assert(panel.shown and wowDetectorDB.locked, "Monitor open did not start/lock")
 assert(WoWTools.modules.wowDetector.IsEnabled(),"Forever active fishing not exposed to loot")
-menuEntries[4].onSelect()
+unified.Open("pet_tamer")
+assert(WoWTools.modules.wowDetector.IsEnabled() and not WoWTools.modules.pet_tamer.IsEnabled(),
+    "Browsing the taming page changed the active detector")
+WoWTools.modules.pet_tamer.Toggle()
 assert(WoWTools.modules.pet_tamer.IsEnabled() and not WoWTools.modules.wowDetector.IsEnabled(),"Taming menu did not exclude real fishing detector")
+unified.Select("sound_control")
+unified.window:Hide()
+assert(WoWTools.modules.pet_tamer.IsEnabled() and names.wowToolsPetTamerSignal:IsShown(),
+    "Switching tabs or closing settings stopped the active taming detector")
+assert(not names.wowToolsSoundControlPanel.events.CVAR_UPDATE,
+    "Hidden embedded sound controls retained their UI subscriptions")
 SlashCmdList.WOWDETECTOR("on")
 assert(not WoWTools.modules.pet_tamer.IsEnabled() and not names.wowToolsPetTamerSignal.shown,"Fishing retained real taming pixels")
 SlashCmdList.WOWDETECTOR("off")
@@ -373,4 +435,62 @@ end
 assert(fpsApplied and FramerateFrame.point[1] == "BOTTOM" and FramerateFrame.point[5] == 180,
     "Mainline FPS frame could not be repositioned")
 assert(cvarWrites == 0, "Read-only actions changed graphics CVars")
-print("PASS: Forever full addon load; fishing channel plus interactable soft target, cast/other channel rejection, event/polling arrival and loss, restricted event/target diagnostics, missing/failed APIs and bag/off/death priority; temporary enchants, resize, native menu and Mainline FPS frame. All client APIs mocked.")
+-- Both normal settings entry points attach the same canvas and retain uncommitted edits.
+unified.Open("inner_graphic_config")
+luaView.inputs.pause:SetText("666")
+luaView.inputs.pause.scripts.OnTextChanged(luaView.inputs.pause, true)
+local sharedCanvas = unified.canvas
+unified.panel:SetFrameStrata("FULLSCREEN_DIALOG")
+unified.panel:Show()
+assert(not unified.window:IsShown() and sharedCanvas:GetParent() == unified.panel and sharedCanvas:IsShown(),
+    "The native addon category did not directly host the shared settings canvas")
+assert(#WoWTools.luaGC.views == 1 and luaView.inputs.pause:GetText() == "666"
+    and luaView.saved.pause.text == "400", "Moving settings into the native category lost or saved a draft")
+assert(names.wowToolsFightDetectorPanel:GetFrameStrata() == "FULLSCREEN_DIALOG"
+    and names.wowToolsSoundControlPanel:GetFrameStrata() == "FULLSCREEN_DIALOG",
+    "Embedded controls remained below the native settings host")
+names.wowToolsMinimapButton.scripts.OnClick(names.wowToolsMinimapButton, "RightButton")
+assert(not unified.window:IsShown() and sharedCanvas:GetParent() == unified.panel,
+    "A minimap click created a second settings surface while the native category was open")
+unified.panel:Hide()
+names.wowToolsMinimapButton.scripts.OnClick(names.wowToolsMinimapButton, "RightButton")
+assert(unified.window:IsShown() and sharedCanvas == unified.canvas and sharedCanvas:GetParent() ~= unified.panel)
+assert(names.wowToolsFightDetectorPanel:GetFrameStrata() == "DIALOG",
+    "Returning to the standalone host retained the old native settings layer")
+assert(luaView.inputs.pause:GetText() == "666" and #WoWTools.luaGC.views == 1)
+
+-- Embedded Ace groups retain their normal registry refresh and combat lifecycle.
+unified.Open("bigfoot_channel")
+local embeddedChat = unified.pages.bigfoot_channel.container
+local opens = embeddedChat.opens
+unified.Select("sound_control")
+LibStub("AceConfigRegistry-3.0"):NotifyChange("WoWToolsBigFootChannel")
+unified.Select("bigfoot_channel")
+assert(embeddedChat == unified.pages.bigfoot_channel.container and embeddedChat.opens == opens + 1,
+    "A hidden Ace page missed a configuration/profile refresh")
+unified.Open("ls_toasts")
+local toastPage = unified.pages.ls_toasts
+chatMock.toasts.combat = true
+for _, frame in ipairs(frames) do
+    if frame.events.PLAYER_REGEN_DISABLED then frame.scripts.OnEvent(frame, "PLAYER_REGEN_DISABLED") end
+end
+assert(not toastPage.container.frame:IsShown() and toastPage.message:IsShown(), "Combat left toast settings editable")
+chatMock.toasts.combat = false
+for _, frame in ipairs(frames) do
+    if frame.events.PLAYER_REGEN_ENABLED then frame.scripts.OnEvent(frame, "PLAYER_REGEN_ENABLED") end
+end
+assert(toastPage.container.frame:IsShown() and not toastPage.message:IsShown())
+WoWTools.modules.fight_detector.Show()
+assert(WoWTools.modules.fight_detector.IsEnabled())
+unified.Open("fight_detector")
+unified.panel:Show()
+unified.Select("inner_graphic_config")
+unified.panel:Hide()
+assert(WoWTools.modules.fight_detector.IsEnabled() and names.wowToolsFightDetectorPanel:IsShown()
+    and not names.wowToolsFightDetectorPanel:IsVisible(), "Host/tab changes stopped combat detection or hid its protocol source")
+WoWTools.modules.fight_detector.Hide()
+unified.window:Hide()
+assert(not unified.canvas.scripts.OnUpdate and not WoWTools.modules.wowDetector.IsEnabled(),
+    "Closed settings retained UI polling or started a detector")
+assert(cvarWrites == 0 and wowDetectorDB.luaGC.pause == 400, "Browsing settings applied an unsaved setting")
+print("PASS: Forever full TOC, seven unified settings tabs, one direct native category, minimap/IGC/chat/toast shortcuts, shared canvas/drafts, embedded Ace refresh/combat, sound teardown, detector isolation, fishing/loot/death protocols and FPS placement. All client APIs mocked.")
