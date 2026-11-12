@@ -5,11 +5,11 @@ return function(chatMock)
     local function Adapt(frame)
         if frame.lsToastMock then return frame end
         frame.lsToastMock = true
-        local createTexture, createFont = frame.CreateTexture, frame.CreateFontString
+        local createTexture, createFont, show = frame.CreateTexture, frame.CreateFontString, frame.Show
         function frame:CreateTexture(...) return Adapt(createTexture and createTexture(self, ...) or CreateFrame("Frame")) end
         function frame:CreateFontString(...) return Adapt(createFont and createFont(self, ...) or CreateFrame("Frame")) end
-        function frame:CreateAnimationGroup() return Adapt(CreateFrame("Frame")) end
-        function frame:CreateAnimation() return Adapt(CreateFrame("Frame")) end
+        function frame:CreateAnimationGroup() return Adapt(CreateFrame("Frame",nil,self)) end
+        function frame:CreateAnimation() return Adapt(CreateFrame("Frame",nil,self)) end
         function frame:SetID(value) self.mockID=value end
         function frame:SetShown(value) if value then self:Show() else self:Hide() end end
         function frame:GetID() return self.mockID or 1 end
@@ -18,10 +18,35 @@ return function(chatMock)
         function frame:GetRight() return 1920 end
         function frame:GetTop() return 1080 end
         function frame:GetFrameLevel() return self.frameLevel or 1 end
+        function frame:GetAlpha() return self.alpha or 1 end
+        function frame:SetAlpha(value) self.alpha=value end
+        function frame:SetFromAlpha(value) self.fromAlpha=value end
+        function frame:SetToAlpha(value) self.toAlpha=value end
+        function frame:SetChildKey(value) self.childKey=value end
+        function frame:SetSmoothing(value) self.smoothing=value end
+        function frame:GetSmoothProgress() return self.smoothProgress or 0 end
+        function frame:GetNumPoints() return self.point and 1 or 0 end
+        function frame:SetPoint(...)
+            self.point={...}
+            self.pointWrites=(self.pointWrites or 0)+1
+        end
+        function frame:GetPoint() return unpack(self.point or {}) end
+        function frame:ClearAllPoints()
+            self.point=nil
+            self.pointWrites=(self.pointWrites or 0)+1
+        end
+        function frame:Show()
+            self.showCalls=(self.showCalls or 0)+1
+            return show(self)
+        end
         function frame:SetFrameLevel(value) self.frameLevel=value end
         function frame:GetScale() return self.scale or 1 end
         function frame:SetScale(value) self.scale=value end
-        function frame:Play() self.playing=true end
+        function frame:Play()
+            self.playing=true
+            self.playCalls=(self.playCalls or 0)+1
+            if self.Anim1 then self.Anim1.smoothProgress=0 end
+        end
         function frame:Stop() self.playing=false end
         function frame:IsPlaying() return self.playing or false end
         function frame:GetDuration() return self.duration or 1 end
@@ -50,6 +75,7 @@ return function(chatMock)
     local originalCreate=CreateFrame
     CreateFrame=function(kind,name,parent,template) return Adapt(originalCreate(kind,name,parent,template)) end
     UIParent,GameTooltip=Adapt(UIParent),Adapt(GameTooltip)
+    ShoppingTooltip1,ShoppingTooltip2=CreateFrame("Frame"),CreateFrame("Frame")
     SettingsPanel=CreateFrame("Frame")
     AlertFrame=CreateFrame("Frame")
     HideUIPanel=Noop
@@ -146,6 +172,10 @@ return function(chatMock)
         for _,timer in ipairs(pending) do
             if timer.due<=mock.now then timer.callback() else mock.timers[#mock.timers+1]=timer end
         end
+    end
+    function mock.FinishAnimation(group)
+        group.playing=false
+        if group.scripts.OnFinished then group.scripts.OnFinished(group) end
     end
     return mock
 end

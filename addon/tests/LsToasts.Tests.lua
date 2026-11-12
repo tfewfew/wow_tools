@@ -61,7 +61,124 @@ local toast=E:GetToast("TEST")
 assert(toast.Border and toast.Icon and toast.AnimOut and toast._data)
 toast:Spawn(1,false)
 assert(#P:GetActiveToasts(1)==1)
-P:FlushQueue();assert(#P:GetActiveToasts(1)==0)
+assert(
+    toast.FadeIn and toast.FadeIn:IsPlaying() and not toast.AnimOut:IsPlaying(),
+    "Popup started its fade-out before fade-in completed"
+)
+assert(
+    toast.FadeIn.Anim1.duration == 0.15 and toast.FadeIn.Anim1.smoothing == "OUT",
+    "Popup has no eased fade-in"
+)
+assert(toast.AnimOut.Anim1.smoothing == "IN_OUT", "Fade-out has no easing")
+assert(toast.AnimIn.Anim1.childKey == "Glow", "Decorative animation still controls root opacity")
+toast.FadeIn.Anim1.smoothProgress = 0.4
+toast:RestartFadeOut()
+assert(
+    toast.FadeIn.playCalls == 1 and toast.FadeIn.Anim1.smoothProgress == 0.4,
+    "Receipt interrupted the active fade-in"
+)
+mock.FinishAnimation(toast.FadeIn)
+assert(toast:GetAlpha() == 1 and toast.AnimOut:IsPlaying())
+toast.AnimOut.Anim1.smoothProgress = 0.75
+toast:RestartFadeOut()
+assert(
+    math.abs(toast:GetAlpha() - 0.25) < 0.0001 and toast.FadeIn:IsPlaying() and not toast.AnimOut:IsPlaying(),
+    "Receipt during fade-out snapped instead of restoring current opacity"
+)
+toast.scripts.OnEnter(toast)
+mock.FinishAnimation(toast.FadeIn)
+assert(not toast.AnimOut:IsPlaying(), "Hovered toast resumed fading")
+toast.scripts.OnLeave(toast)
+assert(toast.AnimOut:IsPlaying())
+toast.AnimOut.Anim1.smoothProgress = 0.5
+toast.Slot1.scripts.OnEnter(toast.Slot1)
+assert(toast._data.hovered and toast.FadeIn:IsPlaying())
+toast.Slot1.scripts.OnLeave(toast.Slot1)
+assert(not toast.AnimOut:IsPlaying(), "Slot leave interrupted fade-in")
+mock.FinishAnimation(toast.FadeIn)
+assert(toast.AnimOut:IsPlaying())
+local second = E:GetToast("TEST")
+second:Spawn(1, false)
+local third = E:GetToast("TEST")
+third:Spawn(1, false)
+local firstWrites, secondWrites, thirdWrites = toast.pointWrites, second.pointWrites, third.pointWrites
+local firstShows, secondShows, thirdShows = toast.showCalls, second.showCalls, third.showCalls
+P:RefreshQueues()
+P:RefreshQueues()
+assert(
+    toast.pointWrites == firstWrites
+        and second.pointWrites == secondWrites
+        and third.pointWrites == thirdWrites,
+    "Unchanged queue rewrote toast positions"
+)
+assert(
+    toast.showCalls == firstShows and second.showCalls == secondShows and third.showCalls == thirdShows,
+    "Unchanged queue showed active toasts again"
+)
+second:Release()
+assert(
+    third.point[2] == toast and third.pointWrites > thirdWrites,
+    "Queue removal did not reflow following toasts"
+)
+local anchorConfig = C.db.profile.anchors[1]
+local direction, offset = anchorConfig.growth_direction, anchorConfig.growth_offset_x
+anchorConfig.growth_direction, anchorConfig.growth_offset_x = "RIGHT", 13
+P:RefreshQueues()
+assert(
+    third.point[1] == "LEFT"
+        and third.point[2] == toast
+        and third.point[3] == "RIGHT"
+        and third.point[4] == 13,
+    "Queue ignored changed growth settings"
+)
+third:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 1, 1)
+P:RefreshQueues()
+assert(third.point[2] == toast, "Queue did not correct an external reanchor")
+anchorConfig.growth_direction, anchorConfig.growth_offset_x = direction, offset
+P:FlushQueue()
+assert(#P:GetActiveToasts(1) == 0)
+assert(
+    toast:GetAlpha() == 1 and not toast.FadeIn:IsPlaying() and not toast.AnimOut:IsPlaying(),
+    "Released toast retained opacity animation"
+)
+local reused = E:GetToast("TEST")
+reused:Spawn(1, false)
+assert(
+    reused:GetAlpha() == 0 and reused.FadeIn.Anim1.fromAlpha == 0 and reused.FadeIn:IsPlaying(),
+    "Recycled toast did not restart from transparent"
+)
+mock.FinishAnimation(reused.FadeIn)
+mock.FinishAnimation(reused.AnimOut)
+assert(#P:GetActiveToasts(1) == 0, "Completed fade-out did not release its toast")
+
+-- Exercise receipt merges through the actual item and gold systems.
+mock.money = 10100
+mock.Fire("PLAYER_MONEY")
+local goldToast = E:FindToast(nil, "event", "PLAYER_MONEY")
+assert(goldToast and goldToast.FadeIn:IsPlaying())
+mock.FinishAnimation(goldToast.FadeIn)
+goldToast.AnimOut.Anim1.smoothProgress = 0.6
+mock.money = 10200
+mock.Fire("PLAYER_MONEY")
+assert(E:FindToast(nil, "event", "PLAYER_MONEY") == goldToast and goldToast._data.count == 200)
+assert(
+    math.abs(goldToast.FadeIn.Anim1.fromAlpha - 0.4) < 0.0001 and goldToast.FadeIn:IsPlaying(),
+    "Gold merge snapped the fading toast"
+)
+mock.Fire("CHAT_MSG_LOOT", "你获得了物品：item:100。")
+local itemToast = E:FindToast(nil, "item_id", 100)
+assert(itemToast and itemToast.FadeIn:IsPlaying())
+mock.FinishAnimation(itemToast.FadeIn)
+itemToast.AnimOut.Anim1.smoothProgress = 0.8
+mock.Fire("CHAT_MSG_LOOT", "你获得了物品：item:100。")
+assert(E:FindToast(nil, "item_id", 100) == itemToast and itemToast._data.count == 2)
+assert(
+    math.abs(itemToast.FadeIn.Anim1.fromAlpha - 0.2) < 0.0001 and itemToast.FadeIn:IsPlaying(),
+    "Item merge snapped the fading toast"
+)
+P:FlushQueue()
+mock.money = 10000
+mock.Fire("PLAYER_MONEY")
 
 -- Use lightweight toast surfaces to inspect business event quantities.
 local receipts={}
@@ -152,4 +269,4 @@ assert(#receipts==immediateCount+3,"Delayed-only event did not retain the fallba
 beforeQueries=mock.slotQueries
 mock.Fire("BAG_UPDATE",secret);mock.Fire("BAG_UPDATE",-1);mock.Fire("BAG_UPDATE",5);mock.Advance(0)
 assert(mock.slotQueries==beforeQueries,"Invalid bag event triggered a scan")
-print("PASS: Forever lsToast settings/lifecycle, real skins/queue, loot/gold, next-frame/coalesced complete bag snapshots, cross-bag moves, merchant suppression, restricted data, deduplication and cancellation. Offline APIs only.")
+print("PASS: Forever lsToast settings/lifecycle, real skins/queue/opacity animation, loot/gold, next-frame/coalesced complete bag snapshots, cross-bag moves, merchant suppression, restricted data, deduplication and cancellation. Offline APIs only.")

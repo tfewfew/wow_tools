@@ -34,23 +34,40 @@ function P:RefreshQueues()
         end
 
         for i = 1, #active do
-            active[i]:ClearAllPoints()
-
-            if i == 1 then
-                active[i]:SetPoint("TOPLEFT", P:GetAnchor(anchorID), "TOPLEFT", 0, 0)
-            else
+            local toast = active[i]
+            local point, relativeTo, relativePoint, x, y = "TOPLEFT", P:GetAnchor(anchorID), "TOPLEFT", 0, 0
+            if i > 1 then
                 if config.growth_direction == "DOWN" then
-                    active[i]:SetPoint("TOP", active[i - 1], "BOTTOM", 0, -config.growth_offset_y)
+                    point, relativeTo, relativePoint, y =
+                        "TOP", active[i - 1], "BOTTOM", -config.growth_offset_y
                 elseif config.growth_direction == "UP" then
-                    active[i]:SetPoint("BOTTOM", active[i - 1], "TOP", 0, config.growth_offset_y)
+                    point, relativeTo, relativePoint, y =
+                        "BOTTOM", active[i - 1], "TOP", config.growth_offset_y
                 elseif config.growth_direction == "LEFT" then
-                    active[i]:SetPoint("RIGHT", active[i - 1], "LEFT", -config.growth_offset_x, 0)
+                    point, relativeTo, relativePoint, x =
+                        "RIGHT", active[i - 1], "LEFT", -config.growth_offset_x
                 elseif config.growth_direction == "RIGHT" then
-                    active[i]:SetPoint("LEFT", active[i - 1], "RIGHT", config.growth_offset_x, 0)
+                    point, relativeTo, relativePoint, x =
+                        "LEFT", active[i - 1], "RIGHT", config.growth_offset_x
                 end
             end
 
-            active[i]:Show()
+            local oldPoint, oldRelativeTo, oldRelativePoint, oldX, oldY = toast:GetPoint()
+            if
+                toast:GetNumPoints() ~= 1
+                or oldPoint ~= point
+                or oldRelativeTo ~= relativeTo
+                or oldRelativePoint ~= relativePoint
+                or oldX ~= x
+                or oldY ~= y
+            then
+                toast:ClearAllPoints()
+                toast:SetPoint(point, relativeTo, relativePoint, x, y)
+            end
+
+            if not toast:IsShown() then
+                toast:Show()
+            end
         end
     end
 end

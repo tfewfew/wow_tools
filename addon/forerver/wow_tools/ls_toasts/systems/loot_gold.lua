@@ -69,8 +69,7 @@ local function Toast_SetUp(event, quantity)
         else
             toast.Text:SetAnimatedValue(toast._data.count)
 
-            toast.AnimOut:Stop()
-            toast.AnimOut:Play()
+            toast:RestartFadeOut()
         end
     end
 end

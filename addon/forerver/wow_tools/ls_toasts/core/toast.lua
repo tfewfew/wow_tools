@@ -199,10 +199,33 @@ local function text_SetAnimatedValue(self, value, skip)
     end
 end
 
+-- Renew the hold without snapping a fading toast back to full opacity.
+local function toast_RestartFadeOut(self)
+    if self.FadeIn:IsPlaying() then
+        return
+    end
+
+    local alpha = self:GetAlpha()
+    if self.AnimOut:IsPlaying() then
+        alpha = 1 - self.AnimOut.Anim1:GetSmoothProgress()
+    end
+
+    self.AnimOut:Stop()
+    self:SetAlpha(alpha)
+
+    if alpha < 1 then
+        self.FadeIn.Anim1:SetFromAlpha(alpha)
+        self.FadeIn:Play()
+    elseif not self._data.hovered then
+        self.AnimOut:Play()
+    end
+end
+
 -- Slots
 local function slot_OnEnter(self)
-    self:GetParent().AnimOut:Stop()
-    self:GetParent():SetAlpha(1)
+    local toast = self:GetParent()
+    toast._data.hovered = true
+    toast:RestartFadeOut()
 
     local quadrant = E:GetScreenQuadrant(self)
     local p, rP, x, y = "TOPLEFT", "BOTTOMRIGHT", -2, 2
@@ -221,7 +244,11 @@ local function slot_OnEnter(self)
 end
 
 local function slot_OnLeave(self)
-    self:GetParent().AnimOut:Play()
+    local toast = self:GetParent()
+    toast._data.hovered = nil
+    if not toast.FadeIn:IsPlaying() then
+        toast.AnimOut:Play()
+    end
     GameTooltip:Hide()
 end
 
@@ -248,8 +275,10 @@ local function toast_OnShow(self)
         end
     end
 
+    self:SetAlpha(0)
+    self.FadeIn.Anim1:SetFromAlpha(0)
     self.AnimIn:Play()
-    self.AnimOut:Play()
+    self.FadeIn:Play()
 end
 
 local function toast_OnClick(self, button)
@@ -275,8 +304,8 @@ local function toast_OnEnter(self)
     GameTooltip:ClearAllPoints()
     GameTooltip:SetPoint(p, self, rP, x, y)
 
-    self.AnimOut:Stop()
-    self:SetAlpha(1)
+    self._data.hovered = true
+    self:RestartFadeOut()
 
     E:RegisterEvent("MODIFIER_STATE_CHANGED", MODIFIER_STATE_CHANGED)
 end
@@ -286,7 +315,10 @@ local function toast_OnLeave(self)
     ShoppingTooltip1:Hide()
     ShoppingTooltip2:Hide()
 
-    self.AnimOut:Play()
+    self._data.hovered = nil
+    if not self.FadeIn:IsPlaying() then
+        self.AnimOut:Play()
+    end
 
     E:UnregisterEvent("MODIFIER_STATE_CHANGED", MODIFIER_STATE_CHANGED)
 end
@@ -298,6 +330,14 @@ local function toastAnimIn_OnFinished(self)
         toast.AnimArrows:Play()
 
         toast._data.show_arrows = false
+    end
+end
+
+local function toastFadeIn_OnFinished(self)
+    local toast = self:GetParent()
+    toast:SetAlpha(1)
+    if not toast._data.hovered then
+        toast.AnimOut:Play()
     end
 end
 
@@ -323,14 +363,15 @@ end
 
 local function toast_Release(self)
     self:ClearAllPoints()
-    self:SetAlpha(1)
     self:Hide()
     self:SetScript("OnClick", toast_OnClick)
     self:SetScript("OnEnter", toast_OnEnter)
 
     self.AnimArrows:Stop()
     self.AnimIn:Stop()
+    self.FadeIn:Stop()
     self.AnimOut:Stop()
+    self:SetAlpha(1)
     textsToAnimate[self.Text] = nil
     textsToAnimate[self.IconText1] = nil
     textsToAnimate[self.IconText2] = nil
@@ -679,17 +720,31 @@ local function constructToast()
     shine:SetAlpha(0)
     toast.Shine = shine
 
-    -- .AnimIn, .AnimOut
+    -- .FadeIn controls toast opacity independently of the glow and shine.
     do
         local ag = toast:CreateAnimationGroup()
-        ag:SetScript("OnFinished", toastAnimIn_OnFinished)
+        ag:SetScript("OnFinished", toastFadeIn_OnFinished)
         ag:SetToFinalAlpha(true)
-        toast.AnimIn = ag
+        toast.FadeIn = ag
 
         local anim = ag:CreateAnimation("Alpha")
         anim:SetOrder(1)
         anim:SetFromAlpha(0)
         anim:SetToAlpha(1)
+        anim:SetDuration(0.15)
+        anim:SetSmoothing("OUT")
+        ag.Anim1 = anim
+
+        ag = toast:CreateAnimationGroup()
+        ag:SetScript("OnFinished", toastAnimIn_OnFinished)
+        ag:SetToFinalAlpha(true)
+        toast.AnimIn = ag
+
+        anim = ag:CreateAnimation("Alpha")
+        anim:SetChildKey("Glow")
+        anim:SetOrder(1)
+        anim:SetFromAlpha(0)
+        anim:SetToAlpha(0)
         anim:SetDuration(0)
         ag.Anim1 = anim
 
@@ -741,6 +796,7 @@ local function constructToast()
         anim:SetFromAlpha(1)
         anim:SetToAlpha(0)
         anim:SetDuration(1.2)
+        anim:SetSmoothing("IN_OUT")
         ag.Anim1 = anim
     end
 
@@ -776,6 +832,7 @@ local function constructToast()
     toast.Release = toast_Release
     toast.Recycle = toast_Release -- Deprecated
     toast.Spawn = toast_Spawn
+    toast.RestartFadeOut = toast_RestartFadeOut
     toast.SetBackground = toast_SetBackground
 
     P:SetSkin(toast, C.db.profile.skin)

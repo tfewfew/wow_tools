@@ -167,8 +167,7 @@ local function Toast_SetUp(event, link, quantity)
             toast.IconText2.Blink:Stop()
             toast.IconText2.Blink:Play()
 
-            toast.AnimOut:Stop()
-            toast.AnimOut:Play()
+            toast:RestartFadeOut()
         end
     end
 end
