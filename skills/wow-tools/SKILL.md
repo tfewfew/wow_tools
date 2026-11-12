@@ -5,6 +5,12 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 # wow_tools
 
+## 无限服 lsToast 收编（2026-11-12）
+
+- 仅 forerver 2.2.70 将当前无限服 ls_Toasts 16001 的物品拾取、背包增量补报与金币收支提示收编至 `ls_toasts/`，保留 lightspark 作者信息、全部锚点/队列/三种皮肤、字体/音效、品质与物品过滤、测试/清队列和配置档界面。小地图右键 `lsToast` 与自动抓宠、声音控制及 bigfoot_channel 平级；保留 `/lstoasts`、`/lst` 和公开 `ls_Toasts` API。设置在战斗中关闭，脱战后可打开。
+- 运行时使用独立 WoWTools.lsToasts 和 Ace 设置名 WoWToolsLsToasts，监听 wow_tools 的 ADDON_LOADED；来源版本16001用于原配置迁移判断。账号数据存入 `wowDetectorDB.lsToasts.db`。复用现有内嵌 Ace3，LibSharedMedia、LS 物品预览和 SharedMedia 控件随本模块内嵌，素材与音效路径均指向 wow_tools，无独立 TOC 或外置库依赖。源客户端的 CHAT_MSG_LOOT / BAG_UPDATE 合并、1.5秒登录背包稳定期、0.1秒合并扫描、1秒跨来源去重与非拾取窗口抑制沿用。受限/失败背包读值使基线失效，恢复时重新建基线；受限金币暂停累计，自身带服务器名的拾取消息按短名匹配。
+- sync-local 在成功推送和哈希验证后，用复用的 Lua 字面量解析及原子合并逻辑迁入旧 ls_Toasts.lua 的 LS_TOASTS_GLOBAL_CONFIG，已有 lsToasts 组不覆盖，保留所有配置档与账号原设置，备份后将确切的 ls_Toasts 独立目录归档移出无限服 AddOns。LsToasts / LsToastsLibraries / ForeverCompatibility、两项迁移及 ClientProfiles 测试分别覆盖正常入口、真实内嵌库、皮肤/队列、设置与旧配置、受限读值、停用及计时取消，仅使用离线模拟。
+
 ## 无限服大脚运行库收编补全（2026-11-12）
 
 - forerver 2.2.69 将原“大脚聊天必要 Ace 库”`!!!Libs` 的完整聊天子集收编到 `bigfoot_channel/Libs/`，包含 LibStub、CallbackHandler 和 Ace3 事件、定时器、钩子、配置档、本地化、控制台、GUI、设置注册及界面依赖。保留上游源码头与 Ace3 许可，由 wow_tools 的 TOC 在 Init.lua 和聊天模块前加载，无独立库 TOC，并移除 `Dependencies: !!!Libs`。本条覆盖 2.2.68 沿用外置共享库的处理。

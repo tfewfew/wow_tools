@@ -1,0 +1,9 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+    <Include file="embeds\_embeds.xml"/>
+    <Script file="Bootstrap.lua"/>
+    <Include file="locales\_locales.xml"/>
+    <Include file="core\_core.xml"/>
+    <Include file="skins\_skins.xml"/>
+    <Include file="systems\_systems.xml"/>
+    <Script file="init.lua"/>
+</Ui>

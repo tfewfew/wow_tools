@@ -145,6 +145,8 @@ end
 for _, frame in ipairs(frames) do
     if frame.events.ADDON_LOADED then frame.scripts.OnEvent(frame, "ADDON_LOADED", "wow_tools") end
 end
+chatMock.toasts.loggedIn=true
+chatMock.toasts.Fire("PLAYER_LOGIN")
 local panel, compat = names.wowDetectorPanel, WoWTools.compat
 local indicator, lure = panel.textures[2], panel.textures[3]
 local function assertColor(texture, r, g, b)
@@ -293,8 +295,13 @@ dead = false
 panel.scripts.OnEvent(panel, "PLAYER_ALIVE")
 assertColor(indicator, 0, 1, 1)
 SlashCmdList.WOWTOOLS()
-assert(#menuEntries == 6 and menuEntries[2].title == "fight_detector" and menuEntries[4].title == "自动抓宠"
-    and menuEntries[5].title == "声音控制" and menuEntries[6].title == "bigfoot_channel", "Modern module menu is missing")
+assert(#menuEntries == 7 and menuEntries[2].title == "fight_detector" and menuEntries[4].title == "自动抓宠"
+    and menuEntries[5].title == "声音控制" and menuEntries[6].title == "bigfoot_channel"
+    and menuEntries[7].title == "lsToast", "Modern module menu is missing")
+menuEntries[7].onSelect()
+assert(WoWTools.modules.ls_toasts.IsShown(), "Toast settings menu did not open")
+menuEntries[7].onSelect()
+assert(not WoWTools.modules.ls_toasts.IsShown(), "Toast settings menu did not close")
 menuEntries[6].onSelect()
 assert(WoWTools.modules.bigfoot_channel.IsShown(), "Chat settings menu did not open")
 menuEntries[6].onSelect()

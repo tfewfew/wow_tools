@@ -1,5 +1,5 @@
 local initialized = false
-local moduleLabels = { pet_tamer = "自动抓宠", sound_control = "声音控制" }
+local moduleLabels = { pet_tamer = "自动抓宠", sound_control = "声音控制", ls_toasts = "lsToast" }
 local function OpenMenu(owner)
     if not MenuUtil or not MenuUtil.CreateContextMenu then
         DEFAULT_CHAT_FRAME:AddMessage("wow_tools：菜单接口暂不可用，可使用 /wowdetector on 或 /igc。")
@@ -7,7 +7,7 @@ local function OpenMenu(owner)
     end
     MenuUtil.CreateContextMenu(owner, function(_, root)
         root:CreateTitle("wow_tools（无限服）")
-        for _, name in ipairs({ "wowDetector", "fight_detector", "inner_graphic_config", "pet_tamer", "sound_control", "bigfoot_channel" }) do
+        for _, name in ipairs({ "wowDetector", "fight_detector", "inner_graphic_config", "pet_tamer", "sound_control", "bigfoot_channel", "ls_toasts" }) do
             local module = WoWTools.modules[name]
             root:CreateCheckbox(moduleLabels[name] or name, module.IsShown, module.Toggle)
         end

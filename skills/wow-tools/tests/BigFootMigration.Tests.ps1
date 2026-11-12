@@ -38,7 +38,7 @@ try {
     }
     $sync = [IO.File]::ReadAllText((Join-Path $PSScriptRoot '..\scripts\sync-local.ps1'))
     Assert-ChatMigration ($sync.IndexOf('Merge-WowBigFootSettings') -lt $sync.IndexOf('$legacyNames =')) 'Legacy addons retired before settings migration.'
-    Assert-ChatMigration ($sync.Contains("if (`$profile.Flavor -eq 'forerver') { `$legacyNames += @('BigFoot', 'BigFootChat', 'ChannelFilter', '!!!Libs') }")) 'BigFoot and Ace library retirement is not Forever-only.'
+    Assert-ChatMigration ($sync.Contains("if (`$profile.Flavor -eq 'forerver') { `$legacyNames += @('BigFoot', 'BigFootChat', 'ChannelFilter', '!!!Libs', 'ls_Toasts') }")) 'Retired standalone addons are not Forever-only.'
     Write-Output 'PASS: literal-only chat settings migration, profiles/lists/escapes, unrelated data, backup, repeat/no-target, malformed-data rejection and Forever-only retirement ordering.'
 } finally {
     $resolved = [IO.Path]::GetFullPath($temporary)

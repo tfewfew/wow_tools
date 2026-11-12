@@ -75,18 +75,15 @@ function Read-WowLuaValue($Cursor, [int]$Depth) {
     return [pscustomobject]@{Kind=$token.Kind; Start=$token.Start; End=$token.End; Fields=$null}
 }
 
-function Merge-WowBigFootSettings([string]$SavedPath, [string]$BackupPath) {
+function Merge-WowAddonSettingsGroup([string]$SavedPath, [string]$BackupPath, [string]$GroupKey, $LegacyMappings) {
     $target = Join-Path $SavedPath 'wow_tools.lua'
     $text = if (Test-Path -LiteralPath $target) { [IO.File]::ReadAllText($target) } else { '' }
     $tables = Read-WowLuaData $text
     $detector = $tables['wowDetectorDB']
     if ($detector -and $detector.Kind -ne 'table') { throw 'wowDetectorDB must be a literal table.' }
-    if ($detector -and $detector.Fields.ContainsKey('bigfootChannel')) { return $false }
+    if ($detector -and $detector.Fields.ContainsKey($GroupKey)) { return $false }
     $entries = @()
-    foreach ($legacy in @(
-        @{File='BigFootChat.lua'; Global='BFCDB'; Key='chat'},
-        @{File='ChannelFilter.lua'; Global='ChannelFilter_Config'; Key='filter'}
-    )) {
+    foreach ($legacy in $LegacyMappings) {
         $source = Join-Path $SavedPath $legacy.File
         if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { continue }
         $sourceText = [IO.File]::ReadAllText($source)
@@ -99,11 +96,11 @@ function Merge-WowBigFootSettings([string]$SavedPath, [string]$BackupPath) {
         $copy = Join-Path $BackupPath $legacy.File
         Copy-Item -LiteralPath $source -Destination $copy
         if ((Get-FileHash -LiteralPath $source).Hash -ne (Get-FileHash -LiteralPath $copy).Hash) {
-            throw 'Legacy chat settings backup verification failed.'
+            throw 'Legacy addon settings backup verification failed.'
         }
     }
     if (-not $entries.Count) { return $false }
-    $data = '["bigfootChannel"] = {' + "`n" + ($entries -join ",`n") + ",`n" + '["migrationVersion"] = 1,' + "`n}"
+    $data = '["' + $GroupKey + '"] = {' + "`n" + ($entries -join ",`n") + ",`n" + '["migrationVersion"] = 1,' + "`n}"
     if ($detector) {
         $separator = if ($detector.NeedsSeparator) { ',' } else { '' }
         $merged = $text.Insert($detector.End-1, $separator + "`n" + $data + ",`n")
@@ -114,16 +111,29 @@ function Merge-WowBigFootSettings([string]$SavedPath, [string]$BackupPath) {
     try {
         [IO.File]::WriteAllText($temporary, $merged, [Text.UTF8Encoding]::new($false))
         if (Test-Path -LiteralPath $target) {
-            if ([IO.File]::ReadAllText($target) -cne $text) { throw 'Settings changed during chat migration. Retry sync.' }
+            if ([IO.File]::ReadAllText($target) -cne $text) { throw 'Settings changed during addon migration. Retry sync.' }
             Copy-Item -LiteralPath $target -Destination (Join-Path $BackupPath 'wow_tools.lua')
             if ((Get-FileHash -LiteralPath $target).Hash -ne (Get-FileHash -LiteralPath (Join-Path $BackupPath 'wow_tools.lua')).Hash) {
                 throw 'Existing wow_tools settings backup verification failed.'
             }
             [IO.File]::Replace($temporary, $target, [Management.Automation.Language.NullString]::Value)
         } else { [IO.File]::Move($temporary, $target) }
-        if ([IO.File]::ReadAllText($target) -cne $merged) { throw 'Chat settings migration verification failed.' }
+        if ([IO.File]::ReadAllText($target) -cne $merged) { throw 'Addon settings migration verification failed.' }
     } finally {
         if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary }
     }
     return $true
+}
+
+function Merge-WowBigFootSettings([string]$SavedPath, [string]$BackupPath) {
+    return Merge-WowAddonSettingsGroup $SavedPath $BackupPath 'bigfootChannel' @(
+        @{File='BigFootChat.lua'; Global='BFCDB'; Key='chat'},
+        @{File='ChannelFilter.lua'; Global='ChannelFilter_Config'; Key='filter'}
+    )
+}
+
+function Merge-WowLsToastsSettings([string]$SavedPath, [string]$BackupPath) {
+    return Merge-WowAddonSettingsGroup $SavedPath $BackupPath 'lsToasts' @(
+        @{File='ls_Toasts.lua'; Global='LS_TOASTS_GLOBAL_CONFIG'; Key='db'}
+    )
 }

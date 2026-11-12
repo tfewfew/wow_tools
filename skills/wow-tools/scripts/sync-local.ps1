@@ -84,6 +84,10 @@ foreach ($profile in $profiles) {
                 if (Merge-WowBigFootSettings -SavedPath $savedPath -BackupPath $chatBackup) {
                     Write-Output "Migrated BigFoot chat settings for $($account.Name)."
                 }
+                $toastBackup = Join-Path $backup "forerver\SavedVariables\$($account.Name)\LsToastsMigration"
+                if (Merge-WowLsToastsSettings -SavedPath $savedPath -BackupPath $toastBackup) {
+                    Write-Output "Migrated ls_Toasts settings for $($account.Name)."
+                }
             }
         }
     }
@@ -95,7 +99,7 @@ foreach ($profile in $profiles) {
     if ((Split-Path $profileBackup -Parent) -ne $backup) { throw 'Client backup path check failed.' }
     New-Item -ItemType Directory -Path $profileBackup -Force | Out-Null
     $legacyNames = @('FishingState', 'wowDetector', 'Inner_graphic_config')
-    if ($profile.Flavor -eq 'forerver') { $legacyNames += @('BigFoot', 'BigFootChat', 'ChannelFilter', '!!!Libs') }
+    if ($profile.Flavor -eq 'forerver') { $legacyNames += @('BigFoot', 'BigFootChat', 'ChannelFilter', '!!!Libs', 'ls_Toasts') }
     foreach ($legacyName in $legacyNames) {
         $legacyAddon = [IO.Path]::GetFullPath((Join-Path $profile.AddOns $legacyName))
         $legacyBackup = [IO.Path]::GetFullPath((Join-Path $profileBackup $legacyName))

@@ -82,6 +82,7 @@ IsInRaid, IsInGroup = function() return false end, function() return false end
 if GameTooltip then GameTooltip.SetText = Noop end
 
 local libraries, locales, addons = {}, {}, {}
+mock.libraries = libraries
 LibStub = setmetatable({ GetLibrary = function(_, name, silent)
     if not silent then assert(libraries[name], name) end
     return libraries[name]
@@ -104,7 +105,9 @@ local function Database(raw, defaults, profileName)
     raw.profiles[profileName] = raw.profiles[profileName] or {}
     FillDefaults(raw.profiles[profileName], defaults.profile or {})
     local db = {profile=raw.profiles[profileName], raw=raw, callbacks={}}
-    db.RegisterCallback = function(owner, event, method) db.callbacks[event] = function() owner[method](owner) end end
+    db.RegisterCallback = function(owner, event, method)
+        db.callbacks[event] = type(method) == "function" and method or function() owner[method](owner) end
+    end
     function db:RegisterNamespace(name, namespaceDefaults)
         raw.namespaces = raw.namespaces or {}; raw.namespaces[name] = raw.namespaces[name] or {}
         return Database(raw.namespaces[name], namespaceDefaults, profileName)
@@ -112,12 +115,15 @@ local function Database(raw, defaults, profileName)
     return db
 end
 libraries["AceDB-3.0"] = { New = function(_, raw, defaults, profileName)
-    return Database(raw, defaults, profileName)
+    return Database(raw, defaults, profileName == true and "Default" or profileName)
 end }
 libraries["AceDBOptions-3.0"] = { GetOptionsTable = function() return {type="group",name="配置",args={}} end }
 libraries["AceConfigRegistry-3.0"] = { RegisterOptionsTable = function(_, name, options) mock.options[name] = options end }
 local dialog = { OpenFrames = {} }
-function dialog:Open(name) self.OpenFrames[name] = {frame=CreateFrame("Frame")} end
+function dialog:Open(name)
+    self.OpenFrames[name] = {frame=CreateFrame("Frame")}
+    self.OpenFrames[name].frame:Show()
+end
 function dialog:Close(name) self.OpenFrames[name] = nil end
 function dialog:SelectGroup(name, tab) mock.selectedTab = tab end
 function dialog:SetDefaultSize() end
@@ -174,6 +180,11 @@ end
 function mock.LoadAddonFile(path)
     -- Embedded libraries have their own real-library regression suite.
     if path:find("/bigfoot_channel/Libs/", 1, true) then return end
+    if path:find("/ls_toasts/", 1, true) then
+        if not mock.toasts then mock.toasts = dofile((TEST_ROOT or ".") .. "/addon/tests/LsToasts.Mock.lua")(mock) end
+        mock.toasts.LoadXML(path)
+        return
+    end
     if path:match("%.xml$") then mock.LoadXML(path) else dofile(path) end
 end
 return mock
