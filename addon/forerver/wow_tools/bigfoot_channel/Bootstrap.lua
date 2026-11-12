@@ -1,4 +1,4 @@
--- Extracted from the Forever chat-only BigFoot installation. Ace3 is supplied by !!!Libs.
+-- Extracted from the Forever chat-only BigFoot installation, including embedded Ace3.
 local channel = {}
 WoWTools.bigfootChannel = channel
 

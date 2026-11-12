@@ -48,7 +48,7 @@ wowDetectorDB={soundControl={minimapAngle=315}, bigfootChannel={chat={profiles={
 for line in io.lines(addon .. "wow_tools.toc") do
     if line:match("^bigfoot_channel") then
         local path=addon .. line:gsub("\\","/"):gsub("%s+$","")
-        if path:match("%.xml$") then mock.LoadXML(path) else dofile(path) end
+        mock.LoadAddonFile(path)
     end
 end
 for _,frame in ipairs(frames) do

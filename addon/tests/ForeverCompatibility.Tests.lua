@@ -138,8 +138,9 @@ function UnitName(unit) assert(unit == "softinteract"); return targetName end
 function UnitExists() error("Do not reject GameObjects with UnitExists") end
 local chatMock = dofile(root .. "/addon/tests/BigFootChannel.Mock.lua")
 for line in io.lines(addon .. "wow_tools.toc") do
-    if line:match("%.lua%s*$") then dofile(addon .. line:gsub("\\", "/"):gsub("%s+$", "")) end
-    if line:match("%.xml%s*$") then chatMock.LoadXML(addon .. line:gsub("\\", "/"):gsub("%s+$", "")) end
+    if line:match("%.lua%s*$") or line:match("%.xml%s*$") then
+        chatMock.LoadAddonFile(addon .. line:gsub("\\", "/"):gsub("%s+$", ""))
+    end
 end
 for _, frame in ipairs(frames) do
     if frame.events.ADDON_LOADED then frame.scripts.OnEvent(frame, "ADDON_LOADED", "wow_tools") end

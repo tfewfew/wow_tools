@@ -5,6 +5,11 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 # wow_tools
 
+## 无限服大脚运行库收编补全（2026-11-12）
+
+- forerver 2.2.69 将原“大脚聊天必要 Ace 库”`!!!Libs` 的完整聊天子集收编到 `bigfoot_channel/Libs/`，包含 LibStub、CallbackHandler 和 Ace3 事件、定时器、钩子、配置档、本地化、控制台、GUI、设置注册及界面依赖。保留上游源码头与 Ace3 许可，由 wow_tools 的 TOC 在 Init.lua 和聊天模块前加载，无独立库 TOC，并移除 `Dependencies: !!!Libs`。本条覆盖 2.2.68 沿用外置共享库的处理。
+- 成功提交推送并验证内嵌库部署哈希后，sync-local 仅对 forerver 将确切的 `!!!Libs` 目录与三个旧大脚插件一起归档移出游戏 AddOns。BigFootLibraries.Tests 用真实内嵌 LibStub/Ace3、模拟 WoW API 检查全部 XML 依赖、控件注册、插件生命周期、配置档、设置注册和重复加载复用；聊天界面与完整 TOC 模拟沿用各自的库适配器。原用户授权的运行中直接同步流程沿用。
+
 ## 无限服大脚聊天整合（2026-11-12）
 
 - 仅 forerver 2.2.68 将本机已移植的 BigFoot 1.60.1.1-chat-only.1、BigFootChat chat-only.2 和 ChannelFilter chat-only.1 收编至 `bigfoot_channel/`，由 wow_tools 唯一 TOC 加载，Ace3 沿用共享 `!!!Libs`。原作者 Terry 的聊天快捷栏、表情、频道短名、职业色、时间、密语回复、复制、Roll、属性通报与一句话攻略均在此目录维护。攻略改用 MenuUtil，频道快捷键归入 wow_tools 的 Bindings.xml，保留旧绑定名称。新增逻辑使用可组合消息过滤和安全后钩子，关闭快捷栏注销其频道事件。
@@ -114,7 +119,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - forerver游戏：`C:\Program Files (x86)\World of Warcraft\_forever_\Interface\AddOns\wow_tools`，客户端Wow.exe 1.60.1.70790，接口16001。
 - 桌面：通过 Windows Desktop 特殊文件夹解析，仅创建 `wowAuto.lnk`，直接指向源码 tools/wowAuto/wowAuto.bat，WorkingDirectory 设置为该源码目录；不复制运行文件到桌面。
 - 同步脚本将旧 `FishingState`、`wowDetector`、`Inner_graphic_config` 插件移到仓库忽略目录 `.local-backups`；快捷方式验证成功后，将桌面旧 wowAuto 三个运行文件及 wow-foreground-loop 两个入口移入该次备份的 Desktop 子目录。只处理确切文件名，不广泛清理桌面；移动前检查绝对路径，源码目录需保留完整运行文件。
-- 不提交本机备份、游戏配置、SavedVariables或外部依赖。tools/wowAuto/config.ini按用户要求纳入Git，属于工具共享配置，不受此条排除；保留用户在设置窗口保存的值，后续维护时检查其改动。备份按titan/forerver分子目录；SavedVariables迁移只在各自客户端内进行，不跨服复制。
+- 不提交本机备份、游戏配置、SavedVariables或未经用户要求收编的外部依赖。tools/wowAuto/config.ini按用户要求纳入Git，属于工具共享配置，不受此条排除；保留用户在设置窗口保存的值，后续维护时检查其改动。备份按titan/forerver分子目录；SavedVariables迁移只在各自客户端内进行，不跨服复制。
 
 ## 行为约定
 

@@ -95,7 +95,7 @@ foreach ($profile in $profiles) {
     if ((Split-Path $profileBackup -Parent) -ne $backup) { throw 'Client backup path check failed.' }
     New-Item -ItemType Directory -Path $profileBackup -Force | Out-Null
     $legacyNames = @('FishingState', 'wowDetector', 'Inner_graphic_config')
-    if ($profile.Flavor -eq 'forerver') { $legacyNames += @('BigFoot', 'BigFootChat', 'ChannelFilter') }
+    if ($profile.Flavor -eq 'forerver') { $legacyNames += @('BigFoot', 'BigFootChat', 'ChannelFilter', '!!!Libs') }
     foreach ($legacyName in $legacyNames) {
         $legacyAddon = [IO.Path]::GetFullPath((Join-Path $profile.AddOns $legacyName))
         $legacyBackup = [IO.Path]::GetFullPath((Join-Path $profileBackup $legacyName))

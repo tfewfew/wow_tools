@@ -171,4 +171,9 @@ function mock.LoadXML(path)
     BFChannelMuteButtonMute, ChannelFilterMuteButtonMute = CreateFrame("Frame"), CreateFrame("Frame")
     BFCIconFrameRaidersButton_OnLoad(BFCIconFrameRaidersButton)
 end
+function mock.LoadAddonFile(path)
+    -- Embedded libraries have their own real-library regression suite.
+    if path:find("/bigfoot_channel/Libs/", 1, true) then return end
+    if path:match("%.xml$") then mock.LoadXML(path) else dofile(path) end
+end
 return mock
