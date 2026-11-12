@@ -156,7 +156,7 @@ end)
 canvas:SetScript("OnHide", function(self) self:SetScript("OnUpdate", nil) end)
 
 local function Attach(host)
-    if canvas:GetParent() == host and canvas:IsShown() then return end
+    if canvas:GetParent() == host and canvas:IsVisible() then return end
     canvas:Hide()
     canvas:SetParent(host)
     canvas:ClearAllPoints()
@@ -178,7 +178,7 @@ local function Attach(host)
 end
 
 function settings.Open(key, subgroup)
-    if panel:IsShown() then
+    if panel:IsVisible() then
         window:Hide()
         Attach(panel)
     else
@@ -191,7 +191,7 @@ function settings.Open(key, subgroup)
 end
 
 function settings.IsGroupShown(key)
-    return canvas:IsShown() and selected == key
+    return canvas:IsVisible() and selected == key
 end
 
 function settings.HideGroup(key)

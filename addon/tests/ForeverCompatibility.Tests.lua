@@ -551,4 +551,21 @@ for _, size in ipairs({{880,620},{540,460}}) do
     assert(WoWTools.displayFonts.settingsHeight == 154 + math.ceil(4 / columns) * 122, "Font settings did not adapt their column count")
 end
 assert(gcCalls == originalGcCalls and cvarWrites == 0, "Resizing settings wrote live game parameters")
+-- Blizzard hides an ancestor of an addon category when closing SettingsPanel.
+local nativeSettingsHost = CreateFrame("Frame", nil, UIParent)
+unified.panel:SetParent(nativeSettingsHost)
+unified.panel:Show()
+nativeSettingsHost:Hide()
+assert(unified.panel:IsShown() and not unified.panel:IsVisible(), "Fixture did not retain the hidden category's shown flag")
+names.wowToolsMinimapButton.scripts.OnClick(names.wowToolsMinimapButton, "RightButton")
+assert(unified.window:IsVisible() and unified.canvas:IsVisible(),
+    "Main minimap right click attached settings to a hidden native settings ancestor")
+nativeSettingsHost:Show()
+assert(unified.canvas:GetParent() == unified.panel and unified.canvas:IsVisible() and not unified.window:IsShown(),
+    "Reopening native settings did not reclaim the shared canvas")
+nativeSettingsHost:Hide()
+assert(not unified.IsGroupShown("sound_control"), "A hidden native category was reported as an open settings group")
+speaker.scripts.OnClick(speaker, "RightButton")
+assert(unified.window:IsVisible() and unified.IsGroupShown("sound_control"),
+    "Speaker right click attached settings to a hidden native settings ancestor")
 print("PASS: Forever full TOC, seven unified settings tabs, one direct native category, minimap/IGC/chat/toast shortcuts, shared canvas/drafts, embedded Ace refresh/combat, sound teardown, detector isolation, fishing/loot/death protocols and FPS placement. All client APIs mocked.")
