@@ -136,8 +136,10 @@ function UnitIsInteractable(unit)
 end
 function UnitName(unit) assert(unit == "softinteract"); return targetName end
 function UnitExists() error("Do not reject GameObjects with UnitExists") end
+local chatMock = dofile(root .. "/addon/tests/BigFootChannel.Mock.lua")
 for line in io.lines(addon .. "wow_tools.toc") do
     if line:match("%.lua%s*$") then dofile(addon .. line:gsub("\\", "/"):gsub("%s+$", "")) end
+    if line:match("%.xml%s*$") then chatMock.LoadXML(addon .. line:gsub("\\", "/"):gsub("%s+$", "")) end
 end
 for _, frame in ipairs(frames) do
     if frame.events.ADDON_LOADED then frame.scripts.OnEvent(frame, "ADDON_LOADED", "wow_tools") end
@@ -290,7 +292,12 @@ dead = false
 panel.scripts.OnEvent(panel, "PLAYER_ALIVE")
 assertColor(indicator, 0, 1, 1)
 SlashCmdList.WOWTOOLS()
-assert(#menuEntries == 4 and menuEntries[2].title == "fight_detector" and menuEntries[4].title == "自动抓宠", "Modern module menu is missing")
+assert(#menuEntries == 6 and menuEntries[2].title == "fight_detector" and menuEntries[4].title == "自动抓宠"
+    and menuEntries[5].title == "声音控制" and menuEntries[6].title == "bigfoot_channel", "Modern module menu is missing")
+menuEntries[6].onSelect()
+assert(WoWTools.modules.bigfoot_channel.IsShown(), "Chat settings menu did not open")
+menuEntries[6].onSelect()
+assert(not WoWTools.modules.bigfoot_channel.IsShown(), "Chat settings menu did not close")
 menuEntries[3].onSelect()
 assert(names.InnerGraphicConfigWindow.shown and not wowDetectorDB.locked, "Menu toggled wrong module")
 menuEntries[1].onSelect()

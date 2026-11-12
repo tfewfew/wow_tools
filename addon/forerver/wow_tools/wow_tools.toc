@@ -1,13 +1,23 @@
 ## Interface: 16001
 ## Title: wow_tools (Forever)
-## Notes-zhCN: 无限服工具合集：钓鱼检测、战斗检测、自动抓宠、声音控制、内部画面设置与商店一键卖鱼。
+## Notes-zhCN: 无限服工具合集：钓鱼检测、战斗检测、自动抓宠、声音控制、大脚频道聊天增强、内部画面设置与商店一键卖鱼。
 ## Author: Ray
-## Version: 2.2.67
+## Version: 2.2.68
+## Dependencies: !!!Libs
 ## X-WoWTools-Flavor: forerver
 ## SavedVariables: wowDetectorDB, fightDetectorDB, wowToolsRealmLevels
 ## SavedVariablesPerCharacter: wowToolsCharacterRecord
 
 Init.lua
+bigfoot_channel\Bootstrap.lua
+bigfoot_channel\locale\locale.en.lua
+bigfoot_channel\locale\locale.cn.lua
+bigfoot_channel\locale\locale.tw.lua
+bigfoot_channel\Library\BigFootRaidersDate.lua
+bigfoot_channel\frame.xml
+bigfoot_channel\ChannelFilter.lua
+bigfoot_channel\WorldChannel.lua
+bigfoot_channel\Copy.lua
 PetTamer.lua
 LoginPoint.lua
 Compatibility.lua

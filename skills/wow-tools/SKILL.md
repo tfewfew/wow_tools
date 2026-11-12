@@ -5,6 +5,12 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 # wow_tools
 
+## 无限服大脚聊天整合（2026-11-12）
+
+- 仅 forerver 2.2.68 将本机已移植的 BigFoot 1.60.1.1-chat-only.1、BigFootChat chat-only.2 和 ChannelFilter chat-only.1 收编至 `bigfoot_channel/`，由 wow_tools 唯一 TOC 加载，Ace3 沿用共享 `!!!Libs`。原作者 Terry 的聊天快捷栏、表情、频道短名、职业色、时间、密语回复、复制、Roll、属性通报与一句话攻略均在此目录维护。攻略改用 MenuUtil，频道快捷键归入 wow_tools 的 Bindings.xml，保留旧绑定名称。新增逻辑使用可组合消息过滤和安全后钩子，关闭快捷栏注销其频道事件。
+- 小地图右键菜单中 `bigfoot_channel` 与自动抓宠、声音控制平级，打开六个设置页，包含聊天、快捷栏、表情、世界频道、聊天过滤、配置档。保留 `/bfchat`、`/bigfoot`、`/bffilter`、`/bfchannel` 和 `/guolv` 等命令，新增 `/bigfootchannel`。账号设置保存在 `wowDetectorDB.bigfootChannel.chat/filter/autoJoinWorld`，黑白名单、静音与原 Ace 配置档可持久化。世界频道沿用登录后3秒首次检查、每5秒重试、最多6次和拒绝反馈，关闭自动加入使旧定时请求失效。
+- sync-local 仅对 forerver 用 migrate-bigfoot.ps1 解析旧 BigFootChat.lua 的 BFCDB 和 ChannelFilter.lua 的 ChannelFilter_Config，备份后原子合并进本账号 wow_tools.lua，已有 bigfootChannel 不覆盖。只接受 Lua 字面量，不执行 SavedVariables。本次用户明确要求游戏运行期间直接迁移，按授权执行并保留完整旧配置备份。成功推送、文件哈希校验及设置迁移后，将确切的 BigFoot、BigFootChat、ChannelFilter 三个目录归档到 `.local-backups`，从游戏 AddOns 中移除。BigFootChannel/ForeverCompatibility Lua5.1、BigFootMigration 及 ClientProfiles 离线模拟覆盖完整 TOC/XML、设置、迁移、过滤、重试、复制、通报和攻略，不运行真实游戏输入。
+
 ## 无限服声音控制（2026-11-12）
 
 - forerver 2.2.67 按用户要求压缩为 344×240，音量行间距 26，滑条 150×16，保留五类独立百分比及开关。面板每次打开相对小地图喇叭按钮锚定，按按钮的有效缩放后屏幕方位向内侧展开，间隔 4 UI 单位，拖动按钮时同步更新，沿用屏幕边界限制。设备改为本客户端 DropdownButton / WowStyle1DropdownTemplate 原生单层单选下拉，当前设备显示为选中项，打开菜单及设备事件重新枚举，长列表使用菜单内部滚动。关闭面板同时关闭下拉菜单。SoundControl.Tests 覆盖紧凑尺寸、行距、四象限/不同缩放的邻近锚点、重新打开重定位、原生下拉单选/设备事件/热插拔和全部原切换失败保护，推送后仅同步 forerver。

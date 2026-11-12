@@ -19,6 +19,7 @@ $remoteCommit = ($remoteRef -split '\s+')[0]
 if ($remoteCommit -ne $headCommit) { throw 'Local HEAD is not the current remote branch commit; push before syncing.' }
 
 . (Join-Path $PSScriptRoot 'client-profiles.ps1')
+. (Join-Path $PSScriptRoot 'migrate-bigfoot.ps1')
 $profiles=@(Get-WowToolsDeploymentProfiles -RepoRoot $repo -Flavor $Flavor -GameRoot $GameRoot -TitanGameRoot $TitanGameRoot -ForerverGameRoot $ForerverGameRoot)
 # Validate all requested clients and sources before writing to either installation.
 foreach ($profile in $profiles) {
@@ -78,6 +79,12 @@ foreach ($profile in $profiles) {
             if ((Test-Path -LiteralPath $oldSettings) -and -not (Test-Path -LiteralPath $newSettings)) {
                 Copy-Verified $oldSettings $newSettings (Join-Path "$($profile.Flavor)\SavedVariables\$($account.Name)" 'wow_tools.lua')
             }
+            if ($profile.Flavor -eq 'forerver') {
+                $chatBackup = Join-Path $backup "forerver\SavedVariables\$($account.Name)\BigFootMigration"
+                if (Merge-WowBigFootSettings -SavedPath $savedPath -BackupPath $chatBackup) {
+                    Write-Output "Migrated BigFoot chat settings for $($account.Name)."
+                }
+            }
         }
     }
 }
@@ -87,7 +94,9 @@ foreach ($profile in $profiles) {
     $profileBackup=[IO.Path]::GetFullPath((Join-Path $backup $profile.Flavor))
     if ((Split-Path $profileBackup -Parent) -ne $backup) { throw 'Client backup path check failed.' }
     New-Item -ItemType Directory -Path $profileBackup -Force | Out-Null
-    foreach ($legacyName in @('FishingState', 'wowDetector', 'Inner_graphic_config')) {
+    $legacyNames = @('FishingState', 'wowDetector', 'Inner_graphic_config')
+    if ($profile.Flavor -eq 'forerver') { $legacyNames += @('BigFoot', 'BigFootChat', 'ChannelFilter') }
+    foreach ($legacyName in $legacyNames) {
         $legacyAddon = [IO.Path]::GetFullPath((Join-Path $profile.AddOns $legacyName))
         $legacyBackup = [IO.Path]::GetFullPath((Join-Path $profileBackup $legacyName))
         if ((Split-Path $legacyAddon -Parent) -ne $profile.AddOns -or
