@@ -153,6 +153,7 @@ local categories = {
     { name = "界面", cvars = { frameratePosition = true } },
     { name = "字体", cvars = {}, fonts = true },
     { name = "按钮", cvars = {}, buttonStyle = true },
+    { name = "Lua", cvars = {}, luaGC = true },
 }
 local function SmallDescription(text)
     local font, size, flags = text:GetFont()
@@ -172,6 +173,7 @@ local function GetFramerateRegion()
 end
 
 local function Refresh(force)
+    if force and WoWTools.luaGC then WoWTools.luaGC.Refresh() end
     for _, control in ipairs(controls) do
         if control.definition.action then
             local label = GetFramerateRegion()
@@ -334,6 +336,7 @@ local function BuildControls(parent)
     pages[categoryIndex] = scroll
     if category.fonts and WoWTools.displayFonts then WoWTools.displayFonts.BuildSettings(list) end
     if category.buttonStyle and WoWTools.buttonStyle then WoWTools.buttonStyle.BuildSettings(list) end
+    if category.luaGC and WoWTools.luaGC then WoWTools.luaGC.BuildSettings(list) end
     local entries = {}
     local function Layout()
         local offset = 0
@@ -352,6 +355,7 @@ local function BuildControls(parent)
             end
         end
         list:SetHeight(category.fonts and WoWTools.displayFonts.settingsHeight
+            or category.luaGC and WoWTools.luaGC.settingsHeight
             or category.buttonStyle and WoWTools.buttonStyle.settingsHeight or math.max(1, offset))
     end
     layouts[categoryIndex] = Layout

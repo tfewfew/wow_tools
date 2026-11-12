@@ -8,6 +8,16 @@ local apiFailure, cvarWrites, menuEntries = false, 0, {}
 local targetGUID, targetName, interactable, interactCVar = nil, "模拟鱼漂", false, "3"
 local guidFailure, interactFailure = false, false
 local messages = {}
+local gcValues, gcCalls = { setpause = 350, setstepmul = 250 }, 0
+function collectgarbage(option, value)
+    if option == "count" then return 1024 end
+    assert(gcValues[option] and type(value) == "number", "Unexpected GC operation")
+    gcCalls = gcCalls + 1
+    local previous = gcValues[option]
+    gcValues[option] = value
+    return previous
+end
+function date() return "12:00:00" end
 function InCombatLockdown() return false end
 function ClearOverrideBindings() end
 function SetOverrideBindingClick() end
@@ -159,6 +169,28 @@ local function tick()
 end
 assert(not panel.shown and not wowDetectorDB.locked, "Monitor did not default off/hidden")
 assert(cvarWrites == 0, "Port changed graphics automatically")
+assert(gcCalls == 0 and WoWTools.luaGC and #WoWTools.luaGC.views == 2,
+    "Lua settings changed GC during addon loading or missed an IGC surface")
+local luaTabs = 0
+for _, frame in ipairs(frames) do
+    if frame.Text and frame.Text.text == "Lua" then
+        luaTabs = luaTabs + 1
+        frame.scripts.OnClick()
+    end
+end
+assert(luaTabs == 2, "Standalone IGC and native settings must both expose the Lua tab")
+local luaView = WoWTools.luaGC.views[1]
+luaView.refresh.scripts.OnClick()
+assert(gcValues.setpause == 350 and gcValues.setstepmul == 250 and luaView.system.pause.text == "350")
+luaView.inputs.pause:SetText("400")
+luaView.inputs.stepmul:SetText("200")
+luaView.period:SetText("0")
+luaView.apply.scripts.OnClick()
+assert(gcValues.setpause == 400 and gcValues.setstepmul == 200 and wowDetectorDB.luaGC.pause == 400)
+gcValues.setpause = 150
+luaView.calibrate.scripts.OnClick()
+assert(gcValues.setpause == 400 and luaView.saved.pause.text == "400" and luaView.system.pause.text == "400",
+    "Full-TOC Lua settings entry points did not restore saved values")
 for _, control in ipairs(widgets) do
     if control.definition and control.definition.cvar then
         if control.definition.numeric then
