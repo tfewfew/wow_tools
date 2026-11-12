@@ -193,11 +193,13 @@ function module.BuildSettings(parent)
     end
     local view = { inputs = {}, saved = {}, system = {}, dirty = false }
     module.views[#module.views + 1] = view
-    Text("两个参数均采用百分比刻度，100 表示 1 倍。设置作用于整个 Lua 环境，保存后立即应用，登录或重载后恢复。", 8, -8, 398)
+    local hint = Text("两个参数均采用百分比刻度，100 表示 1 倍。设置作用于整个 Lua 环境，保存后立即应用，登录或重载后恢复。", 8, -8, 398)
     Text("参数", 8, -78, 140, "GameFontNormal")
-    Text("设置值 %", 154, -78, 76, "GameFontNormal")
-    Text("已保存 %", 238, -78, 76, "GameFontNormal")
-    Text("最新系统值 %", 320, -78, 94, "GameFontNormal")
+    local headings = {
+        Text("设置值 %", 154, -78, 76, "GameFontNormal"),
+        Text("已保存 %", 238, -78, 76, "GameFontNormal"),
+        Text("最新系统值 %", 320, -78, 94, "GameFontNormal"),
+    }
     local function Input(x, y)
         local input = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
         input:SetPoint("TOPLEFT", x, y)
@@ -209,18 +211,19 @@ function module.BuildSettings(parent)
         input:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
         return input
     end
+    local descriptions = {}
     for index, spec in ipairs(options) do
         local y = -112 - (index - 1) * 76
         Text(spec.label, 8, y, 140)
         view.inputs[spec.key] = Input(154, y + 5)
         view.saved[spec.key] = Text("未保存", 238, y, 76)
         view.system[spec.key] = Text("未知", 320, y, 94)
-        Text(spec.description, 8, y - 30, 398)
+        descriptions[#descriptions + 1] = Text(spec.description, 8, y - 30, 398)
     end
     Text("校准周期（分钟）", 8, -264, 140)
     view.period = Input(154, -259)
     view.savedPeriod = Text("未保存", 238, -264, 170)
-    Text("周期范围 0–1440 分钟，0 关闭自动校准。每次校准比对保存值，发现偏差后立即应用保存配置。", 8, -296, 398)
+    local periodHint = Text("周期范围 0–1440 分钟，0 关闭自动校准。每次校准比对保存值，发现偏差后立即应用保存配置。", 8, -296, 398)
     local function Button(text, x, width, callback)
         local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
         button:SetPoint("TOPLEFT", x, -344)
@@ -240,7 +243,40 @@ function module.BuildSettings(parent)
     view.calibrate = Button("立即校准", 268, 110, module.Calibrate)
     view.updated = Text("", 8, -386, 398)
     view.status = Text("", 8, -412, 398)
-    Text("系统参数读取使用接口返回的旧值，并立即还原该值。", 8, -466, 398)
+    local readHint = Text("系统参数读取使用接口返回的旧值，并立即还原该值。", 8, -466, 398)
+    local function Layout()
+        local width = math.max(420, parent:GetWidth())
+        local columns = {math.floor(width * 0.36), math.floor(width * 0.57), math.floor(width * 0.77)}
+        for index, heading in ipairs(headings) do
+            heading:ClearAllPoints()
+            heading:SetPoint("TOPLEFT", columns[index], -78)
+            heading:SetWidth(width * 0.21 - 8)
+        end
+        for index, spec in ipairs(options) do
+            local y = -112 - (index - 1) * 76
+            for column, label in ipairs({view.inputs[spec.key], view.saved[spec.key], view.system[spec.key]}) do
+                label:ClearAllPoints()
+                label:SetPoint("TOPLEFT", columns[column], y + (column == 1 and 5 or 0))
+                label:SetWidth(math.min(110, width * 0.21 - 8))
+            end
+        end
+        view.period:ClearAllPoints()
+        view.period:SetPoint("TOPLEFT", columns[1], -259)
+        view.period:SetWidth(math.min(110, width * 0.21 - 8))
+        view.savedPeriod:ClearAllPoints()
+        view.savedPeriod:SetPoint("TOPLEFT", columns[2], -264)
+        for _, label in ipairs({hint, periodHint, readHint, view.updated, view.status, descriptions[1], descriptions[2]}) do
+            label:SetWidth(width - 16)
+        end
+        local buttonWidth = math.floor((width - 32) / 3)
+        for index, button in ipairs({view.refresh, view.apply, view.calibrate}) do
+            button:ClearAllPoints()
+            button:SetPoint("TOPLEFT", 8 + (index - 1) * (buttonWidth + 8), -344)
+            button:SetWidth(buttonWidth)
+        end
+    end
+    parent:SetScript("OnSizeChanged", Layout)
+    Layout()
     parent:SetHeight(module.settingsHeight)
     parent:SetScript("OnShow", function()
         if not view.dirty then LoadDraft(view) end

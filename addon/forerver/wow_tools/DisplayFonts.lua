@@ -107,6 +107,7 @@ function module.Reset(key)
     UpdateLoadEvents()
 end
 function module.BuildSettings(parent)
+    local controls = {}
     local hint=parent:CreateFontString(nil,"ARTWORK","GameFontHighlightSmall")
     hint:SetPoint("TOPLEFT",8,-8);hint:SetWidth(398);hint:SetJustifyH("LEFT")
     hint:SetText("只调整字号和描边，沿用游戏原来的字体。设置自动保存，每次登录或重载插件后应用一次。")
@@ -123,9 +124,11 @@ function module.BuildSettings(parent)
         local apply=CreateFrame("Button",nil,row,"UIPanelButtonTemplate");apply:SetSize(80,24);apply:SetPoint("TOPLEFT",0,-56);apply:SetText("应用")
         local reset=CreateFrame("Button",nil,row,"UIPanelButtonTemplate");reset:SetSize(90,24);reset:SetPoint("LEFT",apply,"RIGHT",12,0);reset:SetText("恢复默认")
         local status=row:CreateFontString(nil,"ARTWORK","GameFontHighlightSmall");status:SetPoint("TOPLEFT",0,-88);status:SetWidth(398);status:SetJustifyH("LEFT")
-        local control={key=spec.key,size=size,sizeLabel=sizeLabel,outline=outline,status=status,apply=apply,reset=reset,flagIndex=1}
+        local control={key=spec.key,row=row,size=size,sizeLabel=sizeLabel,outline=outline,status=status,apply=apply,reset=reset,flagIndex=1}
         module.controls[#module.controls+1]=control
+        controls[#controls+1]=control
         local function Load()
+            if control.dirty then return end
             local config=Config();local value=config and config[spec.key];local regions=Regions(spec.key)
             local nativeSize,nativeFlags
             if regions[1] then local _,size,flags=regions[1]:GetFont();nativeSize=size;nativeFlags=flags end
@@ -134,12 +137,38 @@ function module.BuildSettings(parent)
             control.flagIndex=1;for i,f in ipairs(flags) do if selectedFlags==f then control.flagIndex=i end end
             outline:SetText(labels[control.flagIndex]);status:SetText(#regions>0 and "原生文字已找到。" or "对应原生文字尚未加载。")
         end
-        outline:SetScript("OnClick",function() control.flagIndex=control.flagIndex%3+1;outline:SetText(labels[control.flagIndex]) end)
-        apply:SetScript("OnClick",function() module.preview=preview;local _,message=module.Save(spec.key,size:GetText(),flags[control.flagIndex]);status:SetText(message);size:ClearFocus() end)
-        reset:SetScript("OnClick",function() module.Reset(spec.key);Load() end)
+        size:SetScript("OnTextChanged",function(_,userInput) if userInput then control.dirty=true end end)
+        outline:SetScript("OnClick",function() control.dirty=true;control.flagIndex=control.flagIndex%3+1;outline:SetText(labels[control.flagIndex]) end)
+        apply:SetScript("OnClick",function()
+            module.preview=preview
+            local saved,message=module.Save(spec.key,size:GetText(),flags[control.flagIndex])
+            if saved then control.dirty=false end
+            status:SetText(message)
+            size:ClearFocus()
+        end)
+        reset:SetScript("OnClick",function() module.Reset(spec.key);control.dirty=false;Load() end)
         row:SetScript("OnShow",Load);Load()
     end
-    parent:SetHeight(module.settingsHeight)
+    local function Layout()
+        local width = math.max(320, parent:GetWidth())
+        local columns = width >= 640 and 2 or 1
+        local rowWidth = math.floor((width - 16 - (columns - 1) * 12) / columns)
+        hint:SetWidth(width - 16)
+        for index, control in ipairs(controls) do
+            control.row:ClearAllPoints()
+            control.row:SetPoint("TOPLEFT", 8 + ((index - 1) % columns) * (rowWidth + 12), -56 - math.floor((index - 1) / columns) * 122)
+            control.row:SetWidth(rowWidth)
+            control.status:SetWidth(rowWidth - 12)
+        end
+        local rows = math.ceil(#specs / columns)
+        preview:ClearAllPoints()
+        preview:SetPoint("TOPLEFT", 8, -72 - rows * 122)
+        preview:SetWidth(width - 16)
+        module.settingsHeight = 154 + rows * 122
+        parent:SetHeight(module.settingsHeight)
+    end
+    parent:SetScript("OnSizeChanged", Layout)
+    Layout()
 end
 events=CreateFrame("Frame")
 -- Wait for native startup layout, then apply saved settings once for this addon load.

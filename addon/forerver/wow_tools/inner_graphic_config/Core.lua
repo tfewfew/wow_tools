@@ -316,8 +316,8 @@ local function BuildControls(parent)
         end
         Refresh()
     end
-    local tabStep = math.floor(456 / #categories)
-    local tabWidth = math.min(72, tabStep - 3)
+    local tabStep = math.floor(math.max(456, parent:GetWidth() - 40) / #categories)
+    local tabWidth = tabStep - 3
     for categoryIndex, category in ipairs(categories) do
     local tabIndex = categoryIndex
     local tab = CreateFrame("Button", nil, parent, "MinimalTabTemplate")
@@ -340,6 +340,8 @@ local function BuildControls(parent)
     local entries = {}
     local function Layout()
         local offset = 0
+        local width = math.max(320, parent:GetWidth() - 50)
+        list:SetWidth(width)
         for _, entry in ipairs(entries) do
             local subgroup = category.subgroups and category.subgroups[activeSubgroups[categoryIndex] or 1]
             local visible = not subgroup or subgroup.cvars[entry.key]
@@ -347,6 +349,15 @@ local function BuildControls(parent)
                 entry.widget:Show()
                 entry.widget:ClearAllPoints()
                 entry.widget:SetPoint("TOPLEFT", entry.x, -offset)
+                entry.help:SetWidth(width - 16)
+                if entry.widget.definition.numeric or entry.widget.definition.action then
+                    entry.widget:SetWidth(width - 16)
+                end
+                if entry.widget.definition.numeric then
+                    local inputWidth = math.min(220, math.floor(width * 0.36))
+                    entry.widget.input:SetWidth(inputWidth)
+                    entry.widget.status:SetWidth(math.max(90, width - inputWidth - 110))
+                end
                 local height = entry.topHeight + entry.help:GetStringHeight()
                 if entry.widget.definition.numeric or entry.widget.definition.action then entry.widget:SetHeight(height) end
                 offset = offset + height + 24
@@ -486,10 +497,29 @@ local function BuildControls(parent)
     end
     end
     SelectTab(1)
-    parent:SetScript("OnShow", function()
+    local function Resize()
+        local step = math.floor(math.max(456, parent:GetWidth() - 40) / #categories)
+        for index, tab in ipairs(tabs) do
+            tab:ClearAllPoints()
+            tab:SetPoint("TOPLEFT", 20 + (index - 1) * step, -70)
+            tab:SetWidth(step - 3)
+        end
+        for _, subTabs in pairs(subTabsByCategory) do
+            local subStep = math.floor(math.max(456, parent:GetWidth() - 40) / #subTabs)
+            for index, tab in ipairs(subTabs) do
+                tab:ClearAllPoints()
+                tab:SetPoint("TOPLEFT", 20 + (index - 1) * subStep, -108)
+                tab:SetWidth(subStep - 8)
+            end
+        end
         for _, layout in ipairs(layouts) do layout() end
+    end
+    parent:SetScript("OnSizeChanged", Resize)
+    parent:SetScript("OnShow", function()
+        Resize()
         Refresh()
     end)
+    Resize()
 end
 
 SLASH_INNERGRAPHICCONFIG1 = "/igc"

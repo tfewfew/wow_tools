@@ -22,14 +22,15 @@ function issecretvalue(value) return rawequal(value, secret) end
 local function widget(kind, name, parent)
     local object = { kind = kind, name = name, parent = parent, scripts = {}, events = {}, children = {}, shown = true, enabled = true }
     if parent then parent.children[#parent.children + 1] = object end
+    function object:SetAllPoints(target) self.fill = target or self.parent end
     function object:SetScript(event, callback) self.scripts[event] = callback end
     function object:RegisterEvent(event) self.events[event] = true end
     function object:UnregisterEvent(event) self.events[event] = nil end
     function object:SetSize(width, height) self.width, self.height = width, height end
     function object:SetWidth(width) self.width = width end
     function object:SetHeight(height) self.height = height end
-    function object:GetWidth() return self.width or 140 end
-    function object:GetHeight() return self.height or 140 end
+    function object:GetWidth() return self.fill and self.fill:GetWidth() or self.width or 140 end
+    function object:GetHeight() return self.fill and self.fill:GetHeight() or self.height or 140 end
     function object:SetPoint(...) self.point = {...} end
     function object:SetText(text) self.text = text end
     function object:SetTexture(texture) self.texture = texture end
@@ -308,4 +309,27 @@ assert(wowDetectorDB == saved and wowDetectorDB.soundControl.minimapAngle == 0, 
 before = #writes
 SlashCmdList.WOWTOOLSSOUND()
 assert(#writes == before and sliders[3].value == 71, "Reload overwrote native sound settings")
+local routed
+WoWTools.settings={Open=function(group) routed=group end}
+minimap=names.wowToolsSoundMinimapButton
+panel=names.wowToolsSoundControlPanel
+minimap.scripts.OnClick(minimap,"LeftButton")
+assert(not panel:IsShown() and not routed, "Left click was redirected into unified settings")
+minimap.scripts.OnClick(minimap,"LeftButton")
+minimap.scripts.OnClick(minimap,"RightButton")
+assert(panel:IsShown() and routed=="sound_control", "Right click did not open unified sound settings independently")
+local host=widget("Frame")
+host:SetSize(800,600)
+local embedded=WoWTools.modules.sound_control.BuildSettings(host)
+assert(embedded~=panel and panel.width==344 and panel.height==240)
+assert(embedded.rows[1].slider.width==530, "Embedded audio sliders did not use the available width")
+before=#writes
+embedded.rows[3].slider:SetValue(64)
+assert(#writes==before+1 and panel.rows[3].value.text=="64%" and embedded.rows[3].value.text=="64%",
+    "Independent and embedded audio views did not share live channel values")
+host:SetSize(500,480)
+embedded.scripts.OnSizeChanged()
+assert(embedded.rows[1].slider.width==230 and panel.width==344)
+embedded:Hide()
+assert(panel.events.CVAR_UPDATE and not embedded.events.CVAR_UPDATE, "Hiding one audio view disabled the other")
 print("PASS: compact Forever sound control, adjacent four-corner/scaled anchors and reopen/drag placement, five independent sliders/numbers/switches, native device dropdown/open refresh/current selection, hotplug/restart/rollback failures, restricted data, events and reload.")

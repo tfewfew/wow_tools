@@ -16,8 +16,14 @@ local function Widget()
     function w:CreateFontString() local x=Widget();widgets[#widgets+1]=x;return x end
     function w:SetText(text) self.text=text end
     function w:GetText() return self.text end
+    function w:GetWidth() return self.width or 420 end
+    function w:SetPoint(...) self.point={...} end
+    function w:ClearAllPoints() self.point=nil end
+    function w:SetWidth(width) self.width=width end
+    function w:SetHeight(height) self.height=height end
+    function w:SetSize(width,height) self.width,self.height=width,height end
     function w:IsShown() return self.shown end
-    for _,key in ipairs({"SetPoint","SetSize","SetWidth","SetJustifyH","SetAutoFocus","SetNumeric","SetMaxLetters","SetHeight","ClearFocus"}) do w[key]=function() end end
+    for _,key in ipairs({"SetJustifyH","SetAutoFocus","SetNumeric","SetMaxLetters","ClearFocus"}) do w[key]=function() end end
     return w
 end
 function CreateFrame(kind) local w=Widget();w.kind=kind;frames[#frames+1]=w;return w end
@@ -110,6 +116,19 @@ module.controls[4].reset.scripts.OnClick()
 assert(clock.size==11 and clock.flags=="OUTLINE" and clock.path=="Fonts\\clock.ttf" and wowDetectorDB.displayFonts.clock==nil)
 assert(module.Save("clock",20,"OUTLINE"))
 -- Recreate the addon with persisted account settings and new native startup fonts.
+local fontDraft=module.controls[1]
+fontDraft.size:SetText("27")
+fontDraft.size.scripts.OnTextChanged(fontDraft.size,true)
+local previousWrites=experience.writes
+parent:SetWidth(800)
+parent.scripts.OnSizeChanged()
+assert(module.settingsHeight==398 and module.controls[2].row.point[2]>module.controls[1].row.point[2],
+    "Wide font settings did not form two columns")
+parent:SetWidth(480)
+parent.scripts.OnSizeChanged()
+fontDraft.row.scripts.OnShow()
+assert(module.settingsHeight==642 and fontDraft.size:GetText()=="27" and experience.writes==previousWrites
+    and wowDetectorDB.displayFonts.experience==nil, "Font resizing or re-showing lost or applied an unsaved draft")
 WoWTools={};bag=Widget();ammo=Widget();bagCounts={ammo,Widget(),Widget(),Widget()}
 MainMenuBarBackpackButton={FreeSlots=bag}
 for i=0,3 do _G["CharacterBag"..i.."Slot"]={Count=bagCounts[i+1]} end

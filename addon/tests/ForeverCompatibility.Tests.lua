@@ -56,9 +56,13 @@ local function widget(name, parent)
         VisibilityChanged(self, visible)
     end
     function object:GetEffectiveScale() return scale end
+    function object:GetCenter() return 960, 540 end
     function object:SetSize(w, h) self.width, self.height = w, h end
-    function object:GetWidth() return self.width or 140 end
-    function object:GetHeight() return self.height or 140 end
+    function object:GetWidth() return self.fill and self.fill:GetWidth() or self.width or 140 end
+    function object:GetHeight() return self.fill and self.fill:GetHeight() or self.height or 140 end
+    function object:SetWidth(value) self.width = value end
+    function object:SetHeight(value) self.height = value end
+    function object:SetAllPoints(target) self.fill = target or self.mockParent end
     function object:SetColorTexture(...) self.color = { ... } end
     function object:SetVertexColor(...) self.vertex = { ... } end
     function object:SetAlpha(value) self.alpha = value end
@@ -97,8 +101,8 @@ local function widget(name, parent)
     function object:CloseMenu() self.menuClosed = true end
     local harmless = {
         "SetFrameLevel", "SetScale", "SetButtonState", "LockHighlight", "UnlockHighlight", "SetClampedToScreen", "SetMovable", "EnableMouse",
-        "RegisterForDrag", "RegisterForClicks", "SetHighlightTexture", "SetTexture", "SetAllPoints",
-        "ClearAllPoints", "SetFont", "SetWidth", "SetHeight", "SetJustifyH", "SetAutoFocus",
+        "RegisterForDrag", "RegisterForClicks", "SetHighlightTexture", "SetTexture",
+        "ClearAllPoints", "SetFont", "SetJustifyH", "SetAutoFocus",
         "SetMaxLetters", "SetNumeric", "ClearFocus", "SetScrollChild", "StartMoving", "StopMovingOrSizing", "SetMultiLine", "SetFontObject", "SetBlendMode", "SetTexCoord",
         "SetOrientation", "SetMinMaxValues", "SetValueStep", "SetObeyStepOnDrag", "SetThumbTexture", "EnableMouseWheel", "SetTextColor",
     }
@@ -216,10 +220,11 @@ assert(not panel.shown and not wowDetectorDB.locked, "Monitor did not default of
 assert(cvarWrites == 0, "Port changed graphics automatically")
 assert(gcCalls == 0 and WoWTools.luaGC and #WoWTools.luaGC.views == 1,
     "Lua settings changed GC during addon loading or duplicated the shared settings view")
-local luaTabs = 0
+local luaTabs, luaTab = 0, nil
 for _, frame in ipairs(frames) do
     if frame.Text and frame.Text.text == "Lua" then
         luaTabs = luaTabs + 1
+        luaTab = frame
         frame.scripts.OnClick()
     end
 end
@@ -407,7 +412,7 @@ unified.Select("sound_control")
 unified.window:Hide()
 assert(WoWTools.modules.pet_tamer.IsEnabled() and names.wowToolsPetTamerSignal:IsShown(),
     "Switching tabs or closing settings stopped the active taming detector")
-assert(not names.wowToolsSoundControlPanel.events.CVAR_UPDATE,
+assert(not names.wowToolsSoundSettingsPanel.events.CVAR_UPDATE,
     "Hidden embedded sound controls retained their UI subscriptions")
 SlashCmdList.WOWDETECTOR("on")
 assert(not WoWTools.modules.pet_tamer.IsEnabled() and not names.wowToolsPetTamerSignal.shown,"Fishing retained real taming pixels")
@@ -447,7 +452,7 @@ assert(not unified.window:IsShown() and sharedCanvas:GetParent() == unified.pane
 assert(#WoWTools.luaGC.views == 1 and luaView.inputs.pause:GetText() == "666"
     and luaView.saved.pause.text == "400", "Moving settings into the native category lost or saved a draft")
 assert(names.wowToolsFightDetectorPanel:GetFrameStrata() == "FULLSCREEN_DIALOG"
-    and names.wowToolsSoundControlPanel:GetFrameStrata() == "FULLSCREEN_DIALOG",
+    and names.wowToolsSoundSettingsPanel:GetFrameStrata() == "FULLSCREEN_DIALOG",
     "Embedded controls remained below the native settings host")
 names.wowToolsMinimapButton.scripts.OnClick(names.wowToolsMinimapButton, "RightButton")
 assert(not unified.window:IsShown() and sharedCanvas:GetParent() == unified.panel,
@@ -493,4 +498,57 @@ unified.window:Hide()
 assert(not unified.canvas.scripts.OnUpdate and not WoWTools.modules.wowDetector.IsEnabled(),
     "Closed settings retained UI polling or started a detector")
 assert(cvarWrites == 0 and wowDetectorDB.luaGC.pause == 400, "Browsing settings applied an unsaved setting")
+-- Speaker clicks keep a compact independent view and a separate embedded settings view.
+local speaker = names.wowToolsSoundMinimapButton
+speaker.scripts.OnClick(speaker, "LeftButton")
+local compactAudio = names.wowToolsSoundControlPanel
+assert(compactAudio:IsShown() and compactAudio:GetParent() == UIParent and not unified.window:IsShown(),
+    "Speaker left click opened the unified settings instead of the independent audio panel")
+speaker.scripts.OnClick(speaker, "RightButton")
+assert(unified.IsGroupShown("sound_control") and compactAudio:IsShown()
+    and unified.pages.sound_control.frame ~= compactAudio, "Speaker right click reused the compact audio frame")
+speaker.scripts.OnClick(speaker, "LeftButton")
+assert(not compactAudio:IsShown() and unified.IsGroupShown("sound_control"), "Closing compact audio also closed unified settings")
+
+local previousY
+for _, group in ipairs(unified.groups) do
+    local point = unified.tabs[group.key].point
+    assert(point[2] == 8 and (not previousY or point[3] < previousY), "Primary tabs are not stacked vertically")
+    previousY = point[3]
+end
+local function ResizePage(key, width, height)
+    local page = unified.pages[key]
+    page:SetSize(width, height)
+    if key == "wowDetector" then
+        page.frame:SetSize(width, height - 160)
+        names.WoWToolsSellFishScroll:SetSize(width - 56, height - 326)
+    elseif key == "pet_tamer" then
+        names.wowToolsPetTamerNames:GetParent():SetSize(width - 56, height - 176)
+    end
+    if page.content.scripts.OnSizeChanged then page.content.scripts.OnSizeChanged(page.content, width, height) end
+    if page.frame and page.frame.scripts.OnSizeChanged then page.frame.scripts.OnSizeChanged(page.frame, width, height) end
+end
+local fontsHost = WoWTools.displayFonts.controls[1].row:GetParent()
+local buttonHost = WoWTools.buttonStyle.editors[1].preview:GetParent()
+local luaHost = luaView.inputs.pause:GetParent()
+local originalGcCalls = gcCalls
+for _, size in ipairs({{880,620},{540,460}}) do
+    local width, height = unpack(size)
+    for _, key in ipairs({"wowDetector","fight_detector","pet_tamer","sound_control","inner_graphic_config"}) do
+        ResizePage(key, width, height)
+    end
+    for _, host in ipairs({fontsHost, buttonHost, luaHost}) do host.scripts.OnSizeChanged(host) end
+    assert(unified.pages.fight_detector.frame:GetWidth() == width
+        and unified.pages.pet_tamer.frame:GetWidth() == width, "A native settings page retained its fixed frame width")
+    assert(names.wowToolsPetTamerNames:GetWidth() == width - 60, "Taming input did not fill its resized viewport")
+    assert(names.wowToolsSoundSettingsPanel.rows[1].slider:GetWidth() == width - 270
+        and compactAudio:GetWidth() == 344, "Audio resize changed the compact frame or missed the embedded slider")
+    assert(luaView.inputs.pause.point[2] == math.floor((width - 50) * 0.36)
+        and luaView.inputs.pause:GetText() == "666", "Lua column layout lost a draft or retained a fixed width")
+    assert(WoWTools.buttonStyle.editors[1].material:GetWidth() == width - 150, "Button settings did not span the graphics page")
+    assert(luaTab.point[3] == -70, "Secondary graphics tabs lost their horizontal row")
+    local columns = width - 50 >= 640 and 2 or 1
+    assert(WoWTools.displayFonts.settingsHeight == 154 + math.ceil(4 / columns) * 122, "Font settings did not adapt their column count")
+end
+assert(gcCalls == originalGcCalls and cvarWrites == 0, "Resizing settings wrote live game parameters")
 print("PASS: Forever full TOC, seven unified settings tabs, one direct native category, minimap/IGC/chat/toast shortcuts, shared canvas/drafts, embedded Ace refresh/combat, sound teardown, detector isolation, fishing/loot/death protocols and FPS placement. All client APIs mocked.")

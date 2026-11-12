@@ -30,6 +30,8 @@ local function Harness(config)
         function frame:SetWidth(width) self.width = width end
         function frame:SetText(text) self.text = text end
         function frame:GetText() return self.text end
+        function frame:GetWidth() return self.width or 420 end
+        function frame:ClearAllPoints() self.point = nil end
         function frame:ClearFocus() self.focused = false end
         function frame:Show() self.shown = true end
         function frame:Hide() self.shown = false end

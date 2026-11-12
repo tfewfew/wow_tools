@@ -413,17 +413,31 @@ function module.BuildSettings(parent)
         {label="显示色块", command="show"}, {label="隐藏色块", command="hide"},
         {label="色块居中", command="center"}, {label="锁定 / 解锁位置"},
     }
+    local buttons = {}
     for index, action in ipairs(actions) do
         local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
         button:SetSize(122, 26)
         button:SetPoint("TOPLEFT", 18 + ((index - 1) % 3) * 130, -66 - math.floor((index - 1) / 3) * 36)
         button:SetText(action.label)
+        buttons[index] = button
         button:SetScript("OnClick", function()
             local command = action.command or (wowDetectorDB.locked and "unlock" or "lock")
             SlashCmdList.WOWDETECTOR(command)
             module.RefreshSettings()
         end)
     end
+    local function Layout()
+        local width = math.max(420, parent:GetWidth())
+        local buttonWidth = math.floor((width - 52) / 3)
+        module.settingsStatus:SetWidth(width - 36)
+        for index, button in ipairs(buttons) do
+            button:ClearAllPoints()
+            button:SetSize(buttonWidth, 26)
+            button:SetPoint("TOPLEFT", 18 + ((index - 1) % 3) * (buttonWidth + 8), -66 - math.floor((index - 1) / 3) * 36)
+        end
+    end
+    parent:SetScript("OnSizeChanged", Layout)
+    Layout()
     parent:SetScript("OnShow", module.RefreshSettings)
     local sellFish = WoWTools.sellFish.BuildSettings(parent)
     module.RefreshSettings()

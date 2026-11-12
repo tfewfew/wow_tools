@@ -22,6 +22,7 @@ end
 local eventFrame = CreateFrame("Frame")
 local items, selectedID, settings, input, status, scroll, content, deleteButton
 local rows, requested, failed = {}, {}, {}
+local listHeight, rowWidth = 240, 350
 local merchantOpen, merchantButton, sale = false, nil, nil
 local SALE_INTERVAL, RESCAN_DELAY, MAX_ROUNDS = 0.05, 0.5, 3
 local RefreshList
@@ -191,6 +192,26 @@ local function CreateSettings(parent)
         eventFrame:UnregisterEvent("GET_ITEM_INFO_RECEIVED")
         eventFrame:UnregisterEvent("ITEM_DATA_LOAD_RESULT")
     end)
+    if parent then
+        scroll:ClearAllPoints()
+        scroll:SetPoint("TOPLEFT", 18, -98)
+        scroll:SetPoint("BOTTOMRIGHT", -38, 68)
+        local function Layout()
+            local width = math.max(420, settings:GetWidth())
+            hint:SetWidth(width - 36)
+            status:SetWidth(width - 36)
+            rowWidth = math.max(300, scroll:GetWidth() - 4)
+            listHeight = math.max(60, scroll:GetHeight())
+            content:SetWidth(rowWidth)
+            for _, row in ipairs(rows) do
+                row:SetWidth(rowWidth)
+                row.label:SetWidth(rowWidth - 12)
+            end
+            RefreshList()
+        end
+        settings:SetScript("OnSizeChanged", Layout)
+        Layout()
+    end
 end
 
 RefreshList = function()
@@ -199,13 +220,13 @@ RefreshList = function()
         local row = rows[index]
         if not row then
             row = CreateFrame("Button", "WoWToolsSellFishRow" .. index, content)
-            row:SetSize(350, 26)
+            row:SetSize(rowWidth, 26)
             row:SetPoint("TOPLEFT", 0, -(index - 1) * 26)
             row.background = row:CreateTexture(nil, "BACKGROUND")
             row.background:SetAllPoints()
             row.label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
             row.label:SetPoint("LEFT", 6, 0)
-            row.label:SetWidth(338)
+            row.label:SetWidth(rowWidth - 12)
             row.label:SetJustifyH("LEFT")
             row:SetScript("OnReceiveDrag", AddCursorItem)
             row:SetScript("OnClick", function(self)
@@ -227,7 +248,7 @@ RefreshList = function()
         row:Show()
     end
     for index = #items + 1, #rows do rows[index]:Hide() end
-    content:SetHeight(math.max(240, #items * 26))
+    content:SetHeight(math.max(listHeight, #items * 26))
     if selectedID and FindID(selectedID) then deleteButton:Enable() else deleteButton:Disable() end
 end
 
@@ -447,6 +468,7 @@ WoWTools.sellFish = {
         CreateSettings(parent)
         settings:ClearAllPoints()
         settings:SetPoint("TOPLEFT", 0, -160)
+        settings:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", 0, 0)
         settings:Show()
         return settings
     end,

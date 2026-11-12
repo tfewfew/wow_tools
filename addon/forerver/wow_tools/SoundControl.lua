@@ -6,8 +6,8 @@ local channels = {
     { label = "环境音", volume = "Sound_AmbienceVolume", enabled = "Sound_EnableAmbience" },
     { label = "对话", volume = "Sound_DialogVolume", enabled = "Sound_EnableDialog" },
 }
-local panel, button, initialized, refreshing, changingDevice
-local rows = {}
+local panel, embeddedPanel, button, initialized, refreshing, changingDevice
+local views = {}
 local Refresh, RefreshDevices
 
 local function Readable(value)
@@ -38,7 +38,7 @@ local function Write(key, value)
 end
 
 local function Status(message)
-    panel.status:SetText(message or "")
+    for _, view in ipairs(views) do view.status:SetText(message or "") end
 end
 
 local function OutputDevices()
@@ -98,26 +98,29 @@ local function SelectDevice(index, expectedName)
 end
 
 Refresh = function()
-    if not panel then return end
     refreshing = true
     local masterEnabled = Read("Sound_EnableAllSound")
-    for index, channel in ipairs(channels) do
-        local row = rows[index]
-        local volume, enabled = Read(channel.volume), Read(channel.enabled)
-        local available = volume ~= nil and volume >= 0 and volume <= 1
-        row.slider:SetEnabled(available)
-        row.slider:SetValue(available and math.floor(volume * 100 + 0.5) or 0)
-        row.value:SetText(available and (math.floor(volume * 100 + 0.5) .. "%") or "—")
-        row.toggle:SetEnabled(enabled == 0 or enabled == 1)
-        row.toggle:SetText(enabled == 1 and "禁用" or enabled == 0 and "启用" or "不可用")
-        row.label:SetTextColor(1, 1, 1, enabled == 1 and masterEnabled == 1 and 1 or 0.5)
+    for _, view in ipairs(views) do
+        for index, channel in ipairs(channels) do
+            local row = view.rows[index]
+            local volume, enabled = Read(channel.volume), Read(channel.enabled)
+            local available = volume ~= nil and volume >= 0 and volume <= 1
+            row.slider:SetEnabled(available)
+            row.slider:SetValue(available and math.floor(volume * 100 + 0.5) or 0)
+            row.value:SetText(available and (math.floor(volume * 100 + 0.5) .. "%") or "—")
+            row.toggle:SetEnabled(enabled == 0 or enabled == 1)
+            row.toggle:SetText(enabled == 1 and "禁用" or enabled == 0 and "启用" or "不可用")
+            row.label:SetTextColor(1, 1, 1, enabled == 1 and masterEnabled == 1 and 1 or 0.5)
+        end
     end
     refreshing = false
 end
 
 RefreshDevices = function()
-    if not panel or changingDevice then return end
-    panel.deviceDropdown:GenerateMenu()
+    if changingDevice then return end
+    for _, view in ipairs(views) do
+        if view:IsShown() then view.deviceDropdown:GenerateMenu() end
+    end
 end
 
 local function PositionPanel()
@@ -133,7 +136,7 @@ local function PositionPanel()
 end
 
 local function CreatePanel(parent)
-    panel = CreateFrame("Frame", "wowToolsSoundControlPanel", parent or UIParent,
+    local panel = CreateFrame("Frame", parent and "wowToolsSoundSettingsPanel" or "wowToolsSoundControlPanel", parent or UIParent,
         not parent and "BasicFrameTemplateWithInset" or nil)
     panel:SetSize(344, 240)
     panel:SetFrameStrata("DIALOG")
@@ -156,6 +159,8 @@ local function CreatePanel(parent)
         UISpecialFrames[#UISpecialFrames + 1] = "wowToolsSoundControlPanel"
     end
     panel:Hide()
+    local rows = {}
+    panel.rows = rows
 
     for index, channel in ipairs(channels) do
         local y = -46 - (index - 1) * 26
@@ -256,12 +261,40 @@ local function CreatePanel(parent)
             elseif name:match("^sound_") then Refresh() end
         end
     end)
+    if parent then
+        panel:ClearAllPoints()
+        panel:SetAllPoints(parent)
+        local function Layout()
+            local width, height = math.max(360, panel:GetWidth()), math.max(420, panel:GetHeight())
+            local step = math.min(64, math.max(38, (height - 160) / 6))
+            for index, row in ipairs(rows) do
+                local y = -76 - (index - 1) * step
+                row.label:ClearAllPoints()
+                row.label:SetPoint("LEFT", panel, "TOPLEFT", 16, y)
+                row.slider:ClearAllPoints()
+                row.slider:SetPoint("LEFT", panel, "TOPLEFT", 100, y)
+                row.slider:SetWidth(width - 270)
+                row.toggle:ClearAllPoints()
+                row.toggle:SetPoint("RIGHT", panel, "TOPRIGHT", -16, y)
+                row.toggle:SetWidth(80)
+            end
+            deviceTitle:ClearAllPoints()
+            deviceTitle:SetPoint("LEFT", panel, "TOPLEFT", 16, -106 - 5 * step)
+            panel.deviceDropdown:ClearAllPoints()
+            panel.deviceDropdown:SetPoint("TOPLEFT", 100, -94 - 5 * step)
+            panel.deviceDropdown:SetWidth(width - 116)
+            panel.status:SetWidth(width - 32)
+        end
+        panel:SetScript("OnSizeChanged", Layout)
+        Layout()
+    end
+    views[#views + 1] = panel
+    return panel
 end
 
 local function Toggle()
-    if WoWTools.settings then WoWTools.settings.Toggle("sound_control"); return end
     if not initialized then return end
-    if not panel then CreatePanel() end
+    if not panel then panel = CreatePanel() end
     panel:SetShown(not panel:IsShown())
 end
 
@@ -291,10 +324,16 @@ local function PositionButton()
     button:ClearAllPoints()
     button:SetPoint("CENTER", Minimap, "CENTER",
         x * (Minimap:GetWidth() / 2 + 6), y * (Minimap:GetHeight() / 2 + 6))
-    if panel and panel:IsShown() and not WoWTools.settings then PositionPanel() end
+    if panel and panel:IsShown() then PositionPanel() end
 end
 
-button:SetScript("OnClick", Toggle)
+button:SetScript("OnClick", function(_, mouseButton)
+    if mouseButton == "RightButton" and WoWTools.settings then
+        WoWTools.settings.Open("sound_control")
+    else
+        Toggle()
+    end
+end)
 button:SetScript("OnDragStart", function(self)
     if not initialized then return end
     GameTooltip:Hide()
@@ -311,7 +350,8 @@ button:SetScript("OnHide", function(self) self:SetScript("OnUpdate", nil) end)
 button:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_LEFT")
     GameTooltip:AddLine("声音控制")
-    GameTooltip:AddLine("点击：打开 / 关闭声音设置", 1, 1, 1)
+    GameTooltip:AddLine("左键：打开 / 关闭独立声音面板", 1, 1, 1)
+    GameTooltip:AddLine("右键：打开统一设置的声音页", 1, 1, 1)
     GameTooltip:AddLine("拖动：调整小地图入口位置", 1, 1, 1)
     GameTooltip:Show()
 end)
@@ -333,15 +373,12 @@ end)
 WoWTools.modules.sound_control = {
     Toggle = Toggle,
     IsShown = function()
-        if WoWTools.settings then return WoWTools.settings.IsGroupShown("sound_control") end
         return panel and panel:IsShown() or false
     end,
     BuildSettings = function(parent)
-        if not panel then CreatePanel(parent) end
-        panel:ClearAllPoints()
-        panel:SetPoint("TOPLEFT", 8, -8)
-        panel:Show()
-        return panel
+        if not embeddedPanel then embeddedPanel = CreatePanel(parent) end
+        embeddedPanel:Show()
+        return embeddedPanel
     end,
 }
 SLASH_WOWTOOLSSOUND1 = "/wowsound"

@@ -84,16 +84,15 @@ function settings:OnConfigChanged(_, app)
 end
 LibStub("AceConfigRegistry-3.0").RegisterCallback(settings, "ConfigTableChange", "OnConfigChanged")
 
-local tabGroup = CreateRadioButtonGroup()
 local function Select(key, subgroup)
     local selectedPage = settings.pages[key]
     if not selectedPage then return end
     selected = key
     settings.selected = key
-    for index, group in ipairs(groups) do
+    for _, group in ipairs(groups) do
         local page = settings.pages[group.key]
+        settings.tabs[group.key]:SetButtonState(group.key == selected and "PUSHED" or "NORMAL", group.key == selected)
         if group.key == selected then
-            tabGroup:SelectAtIndex(index)
             page:Show()
         else
             page:Hide()
@@ -104,28 +103,25 @@ end
 settings.Select = Select
 
 local function LayoutTabs()
-    local width = math.max(420, canvas:GetWidth())
-    local step = math.floor((width - 24) / #groups)
     for index, group in ipairs(groups) do
         local tab = settings.tabs[group.key]
-        tab:SetSize(step - 4, 32)
+        tab:SetSize(132, 32)
         tab:ClearAllPoints()
-        tab:SetPoint("TOPLEFT", 12 + (index - 1) * step, -8)
+        tab:SetPoint("TOPLEFT", 8, -12 - (index - 1) * 40)
     end
 end
 
 for _, group in ipairs(groups) do
     local key = group.key
     local page = CreateFrame("Frame", nil, canvas)
-    page:SetPoint("TOPLEFT", 8, -54)
+    page:SetPoint("TOPLEFT", 156, -8)
     page:SetPoint("BOTTOMRIGHT", -8, 8)
     page.key, page.app = key, group.app
     page:Hide()
     settings.pages[key] = page
-    local tab = CreateFrame("Button", nil, canvas, "MinimalTabTemplate")
-    tab.Text:SetText(group.label)
+    local tab = CreateFrame("Button", nil, canvas, "UIPanelButtonTemplate")
+    tab:SetText(group.label)
     tab:SetScript("OnClick", function() Select(key) end)
-    tabGroup:AddButton(tab)
     settings.tabs[key] = tab
     if group.app then
         page.message = page:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
@@ -134,21 +130,8 @@ for _, group in ipairs(groups) do
         page.message:SetJustifyH("LEFT")
         page:SetScript("OnShow", function() RenderAce(page) end)
     else
-        local content
-        if key == "wowDetector" then
-            local scroll = CreateFrame("ScrollFrame", nil, page, "UIPanelScrollFrameTemplate")
-            scroll:SetPoint("TOP", 0, 0)
-            scroll:SetPoint("BOTTOM", 0, 6)
-            scroll:SetWidth(480)
-            content = CreateFrame("Frame", nil, scroll)
-            content:SetSize(440, 590)
-            scroll:SetScrollChild(content)
-        else
-            content = CreateFrame("Frame", nil, page)
-            content:SetPoint("TOP", 0, 0)
-            content:SetPoint("BOTTOM", 0, 0)
-            content:SetWidth(key == "inner_graphic_config" and 500 or 580)
-        end
+        local content = CreateFrame("Frame", nil, page)
+        content:SetAllPoints(page)
         page.content = content
         page.frame = WoWTools.modules[key].BuildSettings(content)
     end

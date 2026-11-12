@@ -270,6 +270,26 @@ function module.BuildSettings(parent)
         if popup and popup.editor==editor then popup:Hide() end
         if pickerSession and pickerSession.editor==editor then module.CloseColorPicker() end
     end)
+    local function Layout()
+        local width=math.max(420,parent:GetWidth())
+        hint:SetWidth(width-16)
+        editor.status:SetWidth(width-16)
+        editor.material:SetWidth(width-100)
+        editor.sample:SetWidth(width-100)
+        for _,swatch in pairs(editor.swatches) do swatch:SetWidth(width-100) end
+        editor.borderColor:SetWidth(width-100)
+        local tabWidth=math.floor((width-100)/3)
+        for index,style in ipairs(module.borderStyles) do
+            local tab=editor.borderOptions[style.key]
+            tab:ClearAllPoints()
+            tab:SetPoint("TOPLEFT",82+(index-1)*tabWidth,-346)
+            tab:SetWidth(tabWidth-6)
+        end
+        editor.preview:SetWidth(math.floor((width-56)*0.6))
+        editor.disabled:SetWidth(math.floor((width-56)*0.4)-12)
+    end
+    parent:SetScript("OnSizeChanged",Layout)
+    Layout()
     parent:SetHeight(module.settingsHeight)
     module.RefreshSettings()
 end
