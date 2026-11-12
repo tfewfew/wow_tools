@@ -27,8 +27,8 @@ local secret = setmetatable({}, {
 })
 function issecretvalue(value) return rawequal(value, secret) end
 local VisibilityChanged
-local function widget(name, parent)
-    local object = { scripts = {}, events = {}, textures = {}, shown = true, text = "", enabled = true, mockParent = parent }
+local function widget(name, parent, kind)
+    local object = { scripts = {}, events = {}, textures = {}, shown = true, text = "", enabled = true, mockParent = parent, kind = kind }
     function object:SetAttribute() end
     function object:SetScript(event, callback) self.scripts[event] = callback end
     function object:RegisterEvent(event) self.events[event] = true end
@@ -43,7 +43,7 @@ local function widget(name, parent)
     function object:RemoveMaskTexture(mask) if self.mask==mask then self.mask=nil end end
     function object:SetTextureSliceMargins(...) self.sliceMargins={ ... } end
     function object:ClearTextureSlice() self.sliceMargins=nil end
-    function object:CreateFontString() return widget(nil, self) end
+    function object:CreateFontString() return widget(nil, self, "FontString") end
     function object:GetParent() return self.mockParent end
     function object:SetFrameStrata(value) self.strata = value end
     function object:GetFrameStrata()
@@ -73,10 +73,22 @@ local function widget(name, parent)
     end
     function object:SetPoint(...) self.point = { ... } end
     function object:GetPoint() return "LEFT", nil, "CENTER", -20, 0 end
-    function object:SetText(value) self.text = value end
+    function object:SetText(value)
+        if self.text == value then return end
+        self.text = value
+        if self.kind == "EditBox" and self.scripts.OnTextChanged then self.scripts.OnTextChanged(self, false) end
+    end
     function object:GetText() return self.text end
     function object:GetFont() return "mock-font", 12, "" end
-    function object:GetStringHeight() return 36 end
+    if kind == "FontString" then
+        function object:GetStringHeight() return 36 end
+    elseif kind == "EditBox" then
+        function object:GetNumLines()
+            local _, newlines = self.text:gsub("\n", "")
+            return self.mockLineCount or newlines + 1
+        end
+        function object:GetSpacing() return self.spacing or 0 end
+    end
     function object:SetEnabled(value) self.enabled = value end
     function object:Enable() self.enabled = true end
     function object:Disable() self.enabled = false end
@@ -126,9 +138,9 @@ VisibilityChanged = function()
         if callback then callback(change.object) end
     end
 end
-function CreateFrame(_, name, parent, template)
+function CreateFrame(kind, name, parent, template)
     assert(template ~= "UIDropDownMenuTemplate", "Forever still depends on legacy dropdown templates")
-    local object = widget(name, parent)
+    local object = widget(name, parent, kind)
     if template == "MinimalTabTemplate" then object.Text = widget() end
     if template == "BasicFrameTemplateWithInset" then object.TitleText = widget() end
     frames[#frames + 1] = object
@@ -142,11 +154,12 @@ function GameTooltip:SetOwner() end
 function GameTooltip:AddLine() end
 DEFAULT_CHAT_FRAME = { AddMessage = function(_, message) messages[#messages + 1] = message end }
 SlashCmdList, UISpecialFrames = {}, {}
-local registeredCategories = {}
+local registeredCategories, addonCategories = {}, {}
 Settings = { RegisterCanvasLayoutCategory = function(frame, name)
-    registeredCategories[#registeredCategories + 1] = {frame=frame,name=name}
-    return {}
-end, RegisterAddOnCategory = function() end }
+    local category = {frame=frame,name=name}
+    registeredCategories[#registeredCategories + 1] = category
+    return category
+end, RegisterAddOnCategory = function(category) addonCategories[#addonCategories + 1] = category end }
 C_CVar = { GetCVar = function(key) return key == "softTargetInteract" and interactCVar or nil end,
     SetCVar = function() cvarWrites = cvarWrites + 1 end }
 MenuUtil = { CreateContextMenu = function(owner, generator)
@@ -380,7 +393,8 @@ SlashCmdList.WOWTOOLS()
 local unified = WoWTools.settings
 assert(#unified.groups == 7 and unified.window:IsShown() and not WoWTools.modules.wowDetector.IsEnabled(),
     "Opening unified settings started a detector or omitted an existing menu group")
-assert(#registeredCategories == 1 and registeredCategories[1].name == "wow_tools"
+assert(#registeredCategories == 1 and #addonCategories == 1 and addonCategories[1] == unified.category
+    and registeredCategories[1] == unified.category and registeredCategories[1].name == "wow_tools"
     and registeredCategories[1].frame == unified.panel, "Duplicate or indirect addon settings categories remain")
 for _, group in ipairs(unified.groups) do assert(unified.tabs[group.key] and unified.pages[group.key]) end
 WoWTools.modules.ls_toasts.Toggle()
@@ -532,6 +546,11 @@ local fontsHost = WoWTools.displayFonts.controls[1].row:GetParent()
 local buttonHost = WoWTools.buttonStyle.editors[1].preview:GetParent()
 local luaHost = luaView.inputs.pause:GetParent()
 local originalGcCalls = gcCalls
+local tamingInput = names.wowToolsPetTamerNames
+assert(tamingInput.GetStringHeight == nil, "Forever EditBox mock exposed a FontString-only method")
+tamingInput.spacing = 3
+tamingInput:SetText(string.rep("pet\n", 39) .. "pet")
+assert(tamingInput:GetHeight() == 617, "Embedded taming text missed line height, spacing or padding")
 for _, size in ipairs({{880,620},{540,460}}) do
     local width, height = unpack(size)
     for _, key in ipairs({"wowDetector","fight_detector","pet_tamer","sound_control","inner_graphic_config"}) do
@@ -541,6 +560,11 @@ for _, size in ipairs({{880,620},{540,460}}) do
     assert(unified.pages.fight_detector.frame:GetWidth() == width
         and unified.pages.pet_tamer.frame:GetWidth() == width, "A native settings page retained its fixed frame width")
     assert(names.wowToolsPetTamerNames:GetWidth() == width - 60, "Taming input did not fill its resized viewport")
+    assert(tamingInput:GetHeight() == 617, "Resizing truncated a long taming list")
+    tamingInput.mockLineCount = 50
+    ResizePage("pet_tamer", width, height)
+    assert(tamingInput:GetHeight() == 767, "Taming layout missed wrapped EditBox lines")
+    tamingInput.mockLineCount = nil
     assert(names.wowToolsSoundSettingsPanel.rows[1].slider:GetWidth() == width - 270
         and compactAudio:GetWidth() == 344, "Audio resize changed the compact frame or missed the embedded slider")
     assert(luaView.inputs.pause.point[2] == math.floor((width - 50) * 0.36)
@@ -550,6 +574,9 @@ for _, size in ipairs({{880,620},{540,460}}) do
     local columns = width - 50 >= 640 and 2 or 1
     assert(WoWTools.displayFonts.settingsHeight == 154 + math.ceil(4 / columns) * 122, "Font settings did not adapt their column count")
 end
+tamingInput:SetText("")
+assert(tamingInput:GetHeight() == 284, "Clearing the taming list did not restore the viewport height")
+assert(wowDetectorDB.petTamer == nil or #wowDetectorDB.petTamer.names == 0, "Editing or resizing saved the taming draft")
 assert(gcCalls == originalGcCalls and cvarWrites == 0, "Resizing settings wrote live game parameters")
 -- Blizzard hides an ancestor of an addon category when closing SettingsPanel.
 local nativeSettingsHost = CreateFrame("Frame", nil, UIParent)

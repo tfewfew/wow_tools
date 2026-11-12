@@ -5,6 +5,11 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 # wow_tools
 
+## 无限服设置初始化中断修复（2026-11-13）
+
+- forerver 2.2.77 根据客户端 !Pig 保存的 PetTamer.lua 第50、199行错误修复抓宠名单高度计算。无限服 EditBox 提供 GetNumLines、GetFont 和 GetSpacing，GetStringHeight 属于 FontString。统一设置构建抓宠页时的错误导致后续 Settings.Open 和 wow_tools 系统分类没有建立，主图标与喇叭图标右键随后报错。前次2.2.76的隐藏宿主修复继续沿用。
+- 文本变更与自适应布局共用按实际行数、字号、行距及20px留白计算高度的逻辑，保留182px最小高度和内嵌滚动区域下限。ForeverCompatibility 严格区分 EditBox / FontString 方法并模拟 OnTextChanged，先复现原初始化错误，再检查完整 TOC、真实分类登记调用、两个右键入口、长名单/换行/缩放/清空和草稿隔离。PetTamer 补充无限服独立面板的保存名单初始化、文本事件和行距回归。配合全部 Lua5.1 模拟、语法、XML/内联脚本及 ClientProfiles 检查，成功提交推送后仅部署 forerver，游戏内入口由用户 reload 后复测。
+
 ## 永恒服右键设置的隐藏宿主修复（2026-11-13）
 
 - forerver 2.2.76 修复进入系统插件设置、关闭其父窗口后，再右键小地图图标没有显示的问题。系统分类页的 IsShown 在父窗口隐藏时仍可能为真，Settings.Open 和挂接复用改以 IsVisible 判断实际宿主可见性，隐藏宿主下由独立窗口承接；分组显示状态同样按实际可见性返回。
