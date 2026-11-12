@@ -1,6 +1,6 @@
 -- Extend the existing offline UI and Ace adapters for the imported toast module.
 return function(chatMock)
-    local mock = {frames={}, timers={}, now=0, money=10000, bags={}, itemInfo={}, loggedIn=false, combat=false}
+    local mock = {frames={}, timers={}, now=0, money=10000, bags={}, itemInfo={}, slotQueries=0, loggedIn=false, combat=false}
     local function Noop() end
     local function Adapt(frame)
         if frame.lsToastMock then return frame end
@@ -74,6 +74,7 @@ return function(chatMock)
     local originalSlots=C_Container.GetContainerNumSlots
     local originalItemInfo=C_Container.GetContainerItemInfo
     C_Container.GetContainerNumSlots=function(bag)
+        mock.slotQueries=mock.slotQueries+1
         if mock.bags[bag] then return #mock.bags[bag] end
         return originalSlots and originalSlots(bag) or 0
     end

@@ -173,54 +173,43 @@ local function Toast_SetUp(event, link, quantity)
     end
 end
 
--- Bag deltas cover clients that omit CHAT_MSG_LOOT. Coalesce updates and
--- cache each bag so only changed bags need native slot queries.
+-- Coalesce bag events into one next-frame snapshot. Read all bags together
+-- so an internal move cannot combine a fresh destination with a cached source.
 local bagSnapshot = {}
-local bagContents = {}
-local dirtyBags = {}
 local scanScheduled, suppressBagToasts = false, false
 local activationVersion = 0
 local bagToastEnabled = false
 local recentToasts = {}
 
 local BAG_SETTLE_TIME = 1.5
-local BAG_SCAN_DELAY = 0.1
 local LOOT_MATCH_TIME = 1
 
-local function scanBags(changedBags)
+local function scanBags()
     local totals = {}
 
     for bag = 0, NUM_BAG_SLOTS do
-        if not changedBags or changedBags[bag] then
-            local contents = {}
-            local ok, numSlots = pcall(C_Container.GetContainerNumSlots, bag)
-            if not ok or not E:IsReadable(numSlots) or type(numSlots) ~= "number" or numSlots < 0 then
+        local ok, numSlots = pcall(C_Container.GetContainerNumSlots, bag)
+        if not ok or not E:IsReadable(numSlots) or type(numSlots) ~= "number" or numSlots < 0 then
+            return
+        end
+        for slot = 1, numSlots do
+            local readable, info = pcall(C_Container.GetContainerItemInfo, bag, slot)
+            if not readable or not E:IsReadable(info) then
                 return
             end
-            for slot = 1, numSlots do
-                local readable, info = pcall(C_Container.GetContainerItemInfo, bag, slot)
-                if not readable or not E:IsReadable(info) then
+            if info then
+                if
+                    type(info) ~= "table"
+                    or not E:IsReadable(info.itemID)
+                    or not E:IsReadable(info.stackCount)
+                    or type(info.itemID) ~= "number"
+                    or (info.stackCount ~= nil and type(info.stackCount) ~= "number")
+                then
                     return
                 end
-                if info then
-                    if
-                        type(info) ~= "table"
-                        or not E:IsReadable(info.itemID)
-                        or not E:IsReadable(info.stackCount)
-                        or type(info.itemID) ~= "number"
-                        or (info.stackCount ~= nil and type(info.stackCount) ~= "number")
-                    then
-                        return
-                    end
-                    local id = info.itemID
-                    contents[id] = (contents[id] or 0) + (info.stackCount or 1)
-                end
+                local id = info.itemID
+                totals[id] = (totals[id] or 0) + (info.stackCount or 1)
             end
-            bagContents[bag] = contents
-        end
-
-        for id, count in next, bagContents[bag] or {} do
-            totals[id] = (totals[id] or 0) + count
         end
     end
 
@@ -273,12 +262,10 @@ local function showLoot(source, link, quantity)
 end
 
 local function updateBags()
-    local changedBags = dirtyBags
-    dirtyBags = {}
     scanScheduled = false
     local suppressed = suppressBagToasts or isNonLootUIOpen()
     suppressBagToasts = false
-    local current = scanBags(bagSnapshot and changedBags or nil)
+    local current = scanBags()
     if not current then
         bagSnapshot = nil
         recentToasts = {}
@@ -312,30 +299,24 @@ local function updateBags()
     bagSnapshot = current
 end
 
-local function BAG_UPDATE(bag)
-    if E:IsReadable(bag) and type(bag) == "number" and bag >= 0 and bag <= NUM_BAG_SLOTS then
-        dirtyBags[bag] = true
-    end
-end
-
-local function BAG_UPDATE_DELAYED()
-    -- Some clients only send the delayed event. Keep a full-scan fallback.
-    if not next(dirtyBags) then
-        for bag = 0, NUM_BAG_SLOTS do
-            dirtyBags[bag] = true
-        end
-    end
+local function scheduleBagScan()
     suppressBagToasts = suppressBagToasts or isNonLootUIOpen()
     if scanScheduled then
         return
     end
     scanScheduled = true
     local version = activationVersion
-    C_Timer.After(BAG_SCAN_DELAY, function()
+    C_Timer.After(0, function()
         if version == activationVersion then
             updateBags()
         end
     end)
+end
+
+local function BAG_UPDATE(bag)
+    if E:IsReadable(bag) and type(bag) == "number" and bag >= 0 and bag <= NUM_BAG_SLOTS then
+        scheduleBagScan()
+    end
 end
 
 local function CHAT_MSG_LOOT(message, _, _, _, name, _, _, _, _, _, _, guid)
@@ -486,12 +467,12 @@ local function Enable()
         end
         activationVersion = activationVersion + 1
         local version = activationVersion
-        dirtyBags, recentToasts = {}, {}
+        recentToasts = {}
         scanScheduled, suppressBagToasts = false, false
         E:RegisterEvent("CHAT_MSG_LOOT", CHAT_MSG_LOOT)
         E:RegisterEvent("PLAYER_ENTERING_WORLD", delayedUpdatePatterns)
         E:RegisterEvent("BAG_UPDATE", BAG_UPDATE)
-        E:RegisterEvent("BAG_UPDATE_DELAYED", BAG_UPDATE_DELAYED)
+        E:RegisterEvent("BAG_UPDATE_DELAYED", scheduleBagScan)
 
         bagSnapshot = scanBags()
         -- Stay silent until bags have had time to settle, then flip on toasting.
@@ -510,12 +491,12 @@ end
 local function Disable()
     activationVersion = activationVersion + 1
     bagToastEnabled = false
-    bagSnapshot, bagContents, dirtyBags, recentToasts = {}, {}, {}, {}
+    bagSnapshot, recentToasts = {}, {}
     scanScheduled, suppressBagToasts = false, false
     E:UnregisterEvent("CHAT_MSG_LOOT", CHAT_MSG_LOOT)
     E:UnregisterEvent("PLAYER_ENTERING_WORLD", delayedUpdatePatterns)
     E:UnregisterEvent("BAG_UPDATE", BAG_UPDATE)
-    E:UnregisterEvent("BAG_UPDATE_DELAYED", BAG_UPDATE_DELAYED)
+    E:UnregisterEvent("BAG_UPDATE_DELAYED", scheduleBagScan)
     E:UnregisterEvent("GET_ITEM_INFO_RECEIVED", handleItemInfo)
     pendingItemIDs = {}
 end
