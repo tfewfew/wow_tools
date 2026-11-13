@@ -213,8 +213,11 @@ local function ArtworkRect(texture, rect, close, role, interior)
         -- UI-Panel-Button is an 80x22 artwork inside a 128x32 file.
         width,height = close and 32 or 128,32
         padding = close and (interior and 8 or 6) or (interior and 4 or 2)
+        -- The 80x22 panel fill ends at row 20, with a 4px top and 2px bottom inset.
+        local bottomPadding = padding
+        if interior and not close then bottomPadding = 2 end
         return Crop(rect,coordinates,padding/width,padding/height,
-            ((close and 32 or 80)-padding)/width,((close and 32 or 22)-padding)/height,margins,width,height)
+            ((close and 32 or 80)-padding)/width,((close and 32 or 22)-bottomPadding)/height,margins,width,height)
     end
     local info
     if C_Texture and type(C_Texture.GetAtlasInfo) == "function" then
