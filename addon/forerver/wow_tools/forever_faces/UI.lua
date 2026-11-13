@@ -1,9 +1,8 @@
 local ns = WoWTools.foreverFaces
 local L = ns.L
 
--- The settings window: one dark panel with a gold accent, built from plain
--- colour textures so it needs no Blizzard templates. /ff and the host's
--- third-party settings page open it.
+-- The original portrait controls share one card inside the host settings.
+-- The slash command, minimap and third-party entry all select this page.
 
 local WIDTH = 380
 local PAD = 18
@@ -239,25 +238,6 @@ local function TextButton(parent, label, onClick)
 	return b
 end
 
--- Close button: an X drawn from two rotated bars.
-local function CloseButton(parent)
-	local b = CreateFrame("Button", nil, parent)
-	b:SetSize(22, 22)
-	b.bars = {}
-	for i, angle in ipairs({ math.rad(45), math.rad(-45) }) do
-		local t = Tex(b, C.dim, "OVERLAY")
-		t:SetSize(14, 2)
-		t:SetPoint("CENTER")
-		t:SetRotation(angle)
-		b.bars[i] = t
-	end
-	local function Color(c) for _, t in ipairs(b.bars) do Paint(t, c) end end
-	b:SetScript("OnEnter", function() Color(C.text) end)
-	b:SetScript("OnLeave", function() Color(C.dim) end)
-	b:SetScript("OnClick", function() parent:Hide() end)
-	return b
-end
-
 -- Language menu --------------------------------------------------------------
 
 local function LanguageMenu(parent)
@@ -355,15 +335,10 @@ end
 
 -- Window -------------------------------------------------------------------
 
-local function SavePosition()
-	local point, _, relPoint, x, y = win:GetPoint(1)
-	ns.DB().win = { point, relPoint, x, y }
-end
-
 local ROWS = { "units", "party", "npc", "background", "classColor" }
 
 local function Refresh()
-	if not win or not win:IsShown() then return end
+	if not win or not win:IsVisible() then return end
 	local db = ns.DB()
 	local enabled = db.enabled
 
@@ -380,18 +355,10 @@ local function Refresh()
 end
 ns.RefreshUI = Refresh
 
-local function Build()
-	win = CreateFrame("Frame", "ForeverFacesWindow", UIParent)
+local function Build(parent)
+	win = CreateFrame("Frame", "ForeverFacesWindow", parent)
 	win:SetWidth(WIDTH)
-	win:SetFrameStrata("DIALOG")
-	win:SetToplevel(true)
-	win:SetClampedToScreen(true)
-	win:SetMovable(true)
-	win:EnableMouse(true)
 	win:Hide()
-	if not tContains(UISpecialFrames, "ForeverFacesWindow") then
-		tinsert(UISpecialFrames, "ForeverFacesWindow")
-	end
 
 	win.bg = Tex(win, C.bg)
 	win.bg:SetAllPoints()
@@ -401,18 +368,10 @@ local function Build()
 	top:SetPoint("TOPRIGHT")
 	top:SetHeight(2)
 
-	-- Header (drag handle)
 	local header = CreateFrame("Frame", nil, win)
 	header:SetPoint("TOPLEFT")
 	header:SetPoint("TOPRIGHT")
-	header:SetHeight(58)
-	header:EnableMouse(true)
-	header:RegisterForDrag("LeftButton")
-	header:SetScript("OnDragStart", function() win:StartMoving() end)
-	header:SetScript("OnDragStop", function()
-		win:StopMovingOrSizing()
-		SavePosition()
-	end)
+	header:SetHeight(78)
 
 	local title = Text(header, "GameFontNormalLarge", C.text)
 	title:SetPoint("TOPLEFT", PAD, -16)
@@ -422,22 +381,17 @@ local function Build()
 	local version = ns.sourceVersion
 	subtitle:SetText("v" .. version)
 
-	-- Above the header, which takes the mouse for dragging.
-	local close = CloseButton(win)
-	close:SetPoint("TOPRIGHT", -10, -12)
-	close:SetFrameLevel(header:GetFrameLevel() + 10)
-
 	local language = LanguageMenu(win)
-	language:SetPoint("TOPRIGHT", -40, -12)
+	language:SetPoint("TOPRIGHT", -PAD, -42)
 	language:SetFrameLevel(header:GetFrameLevel() + 10)
 
-	-- The addon's own on/off switch sits in the header; off dims the rest.
+	-- The original module switch dims its controls when disabled.
 	widgets.enabled = Switch(win, function(on) ns.SetEnabled(on) end)
 	widgets.enabled:SetPoint("RIGHT", language, "LEFT", -10, 0)
 	widgets.enabled:SetFrameLevel(header:GetFrameLevel() + 10)
 	Tooltip(widgets.enabled, L.ENABLED, L.ENABLED_HELP)
 
-	local y = -66
+	local y = -86
 
 	widgets.showOn = Text(win, "GameFontNormal", C.accent)
 	widgets.showOn:SetPoint("TOPLEFT", PAD, y)
@@ -491,13 +445,6 @@ local function Build()
 
 	win:SetHeight(-y)
 
-	local pos = ns.DB().win
-	if pos then
-		win:SetPoint(pos[1], UIParent, pos[2], pos[3], pos[4])
-	else
-		win:SetPoint("CENTER", 0, 60)
-	end
-
 	local fade = win:CreateAnimationGroup()
 	local alpha = fade:CreateAnimation("Alpha")
 	alpha:SetFromAlpha(0)
@@ -509,20 +456,68 @@ local function Build()
 	end)
 end
 
-function ns.ToggleWindow()
-	if not win then Build() end
-	if win:IsShown() then win:Hide() else win:Show() end
+local function LayoutCard()
+	local panel = ns.settingsPanel
+	if not panel or not win then return end
+	local width = math.max(1, panel.scroll:GetWidth())
+	local scale = math.max(0.1, math.min(1, (width - 32) / WIDTH))
+	win:SetScale(scale)
+	win:ClearAllPoints()
+	win:SetPoint("TOPLEFT", panel.content, "TOPLEFT", 16 / scale, -16 / scale)
+	win:SetFrameStrata(panel:GetFrameStrata())
+	win:SetFrameLevel(panel.content:GetFrameLevel() + 1)
+	panel.content:SetWidth(width)
+	panel.content:SetHeight(win:GetHeight() * scale + 32)
 end
 
--- After a language change: drop the old window and build it again in the
--- new language, at the same place and with the same visibility.
+function ns.RefreshSettings()
+	local panel = ns.settingsPanel
+	if not panel or not panel:IsVisible() then return end
+	local active = WoWTools.thirdParty.IsActive("forever_faces")
+	if not active or not ns.DB() then
+		panel.scroll:Hide()
+		panel.message:SetText(active and "模块正在初始化，请稍候。"
+			or "3D 头像已停用，可在“三方插件”中勾选并重载后启用。")
+		panel.message:Show()
+		return
+	end
+	panel.message:Hide()
+	panel.scroll:Show()
+	if not win then Build(panel.content) end
+	LayoutCard()
+	win:Show()
+	Refresh()
+end
+
+function ns.BuildSettings(parent)
+	if ns.settingsPanel then return ns.settingsPanel end
+	local panel = CreateFrame("Frame", nil, parent)
+	panel:SetAllPoints(parent)
+	ns.settingsPanel = panel
+	panel.message = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+	panel.message:SetPoint("TOPLEFT", 16, -16)
+	panel.message:SetPoint("RIGHT", -16, 0)
+	panel.message:SetJustifyH("LEFT")
+	panel.scroll = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
+	panel.scroll:SetPoint("TOPLEFT")
+	panel.scroll:SetPoint("BOTTOMRIGHT", -24, 0)
+	panel.content = CreateFrame("Frame", nil, panel.scroll)
+	panel.content:SetSize(WIDTH + 32, 1)
+	panel.scroll:SetScrollChild(panel.content)
+	panel:SetScript("OnShow", ns.RefreshSettings)
+	panel:SetScript("OnSizeChanged", LayoutCard)
+	return panel
+end
+
+ns.ToggleWindow = ns.Toggle
+
+-- Rebuild the same embedded card when the user changes its language.
 function ns.RebuildWindow()
 	if not win then return end
-	local shown = win:IsShown()
 	win:Hide()
 	win = nil
-	Build()
-	if shown then win:Show() end
+	widgets = {}
+	ns.RefreshSettings()
 end
 
 function ns.InitUI()
