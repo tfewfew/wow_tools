@@ -33,10 +33,13 @@ local initialized, queued, hookedCreate, mediaLibrary = false, false, false, nil
 local events = CreateFrame("Frame")
 local reference = CreateFrame("Button", nil, UIParent, "UIPanelButtonTemplate")
 local closeReference = CreateFrame("Button", nil, UIParent, "UIPanelCloseButtonNoScripts")
+local dialogReference = CreateFrame("Button", nil, UIParent, "StaticPopupButtonTemplate")
 reference:Hide()
 closeReference:Hide()
+dialogReference:Hide()
 excluded[reference] = true
 excluded[closeReference] = true
+excluded[dialogReference] = true
 function module.Exclude(button) excluded[button] = true end
 function module.GetConfig() return Copy(current) end
 local function Read(object, method, ...)
@@ -112,15 +115,23 @@ local function Sources(button)
     return {Read(button,"GetNormalTexture") or false, button.Left or false, button.Middle or false,
         button.Center or false, button.Right or false}
 end
-local function ReadReference(button, files, atlases)
-    for _,texture in ipairs(Sources(button)) do
+local function ReadReference(button, files, atlases, family)
+    local sources = Sources(button)
+    for _,state in ipairs(module.states) do sources[#sources+1] = Read(button,state.getter) or false end
+    for _,texture in ipairs(sources) do
         local atlas,path = Read(texture,"GetAtlas"),Read(texture,"GetTexture")
-        if type(atlas) == "string" then atlases[atlas]=true
-        elseif type(path) == "number" then files[path]=true end
+        if type(atlas) == "string" then atlases[atlas]=family or true
+        elseif type(path) == "number" then files[path]=family or true end
     end
 end
 ReadReference(reference,nativeFiles,nativeAtlases)
 ReadReference(closeReference,closeFiles,closeAtlases)
+ReadReference(dialogReference,nativeFiles,nativeAtlases,"dialog")
+local function IsDialog(texture)
+    local atlas,path = Read(texture,"GetAtlas"),Read(texture,"GetTexture")
+    return not atlas and (type(path) == "number" and nativeFiles[path] == "dialog"
+        or type(path) == "string" and path:lower():find("ui-dialogbox-button-",1,true))
+end
 local function CloseFamily(name)
     if (issecretvalue and issecretvalue(name)) or type(name) ~= "string" then return false end
     name = name:lower()
@@ -144,7 +155,7 @@ local function Suitable(button)
         local atlas,path = Read(texture,"GetAtlas"),Read(texture,"GetTexture")
         local panelFile = type(path) == "string" and path:lower():find("ui-panel-button",1,true)
         local nativeFile = type(path) == "number" and not atlas and nativeFiles[path]
-        if sliced and Family(atlas) or panelFile or nativeAtlases[atlas] or nativeFile then return true end
+        if sliced and Family(atlas) or panelFile or IsDialog(texture) or nativeAtlases[atlas] or nativeFile then return true end
     end
     return false
 end
@@ -210,14 +221,17 @@ local function ArtworkRect(texture, rect, close, role, interior)
     local margins = Numbers(texture,"GetTextureSliceMargins",4)
     local width,height,padding
     if not atlas then
-        -- UI-Panel-Button is an 80x22 artwork inside a 128x32 file.
+        -- Panel and dialog artwork occupy 80x22 and 128x23 inside 128x32 files.
+        local dialog = not close and IsDialog(texture)
         width,height = close and 32 or 128,32
+        local artworkWidth = close and 32 or dialog and 128 or 80
+        local artworkHeight = close and 32 or dialog and 23 or 22
         padding = close and (interior and 8 or 6) or (interior and 4 or 2)
-        -- The 80x22 panel fill ends at row 20, with a 4px top and 2px bottom inset.
+        -- Both fills end at row 20, with distinct bottom insets in their content areas.
         local bottomPadding = padding
-        if interior and not close then bottomPadding = 2 end
+        if interior and not close then bottomPadding = dialog and 3 or 2 end
         return Crop(rect,coordinates,padding/width,padding/height,
-            ((close and 32 or 80)-padding)/width,((close and 32 or 22)-bottomPadding)/height,margins,width,height)
+            (artworkWidth-padding)/width,(artworkHeight-bottomPadding)/height,margins,width,height)
     end
     local info
     if C_Texture and type(C_Texture.GetAtlasInfo) == "function" then
@@ -271,6 +285,7 @@ local function Geometry(record, native)
     local source = Read(button,"GetNormalTexture") or button.Left or activeTexture
     local atlas = Read(source,"GetAtlas")
     local baseline = record.close and (atlas and 22 or 20) or (atlas and 28 or 18)
+    if IsDialog(source) then baseline=21*19/23 end
     local outer,inner
     for texture in pairs(textures) do
         local rect = Rectangle(texture)
@@ -461,17 +476,25 @@ local function Watch(record, preview)
             events:RegisterEvent("PLAYER_REGEN_ENABLED")
         end
     end
+    local handlers = {
+        OnEnter=function() record.hover=true;Update(true) end,
+        OnLeave=function() record.hover=false;Update(true) end,
+        OnHide=function() record.hover=false;Update(true) end,
+    }
     if type(button.HookScript) == "function" then
-        for _, event in ipairs({"OnShow","OnSizeChanged"}) do
-            button:HookScript(event,function() Update(false) end)
+        for _, event in ipairs({"OnShow","OnSizeChanged","OnEnable","OnDisable","OnMouseDown","OnMouseUp"}) do
+            handlers[event] = function() Update(false) end
         end
-        for _, event in ipairs({"OnEnable","OnDisable","OnMouseDown","OnMouseUp"}) do
-            button:HookScript(event,function() Update(false) end)
-        end
-        button:HookScript("OnEnter",function() record.hover=true;Update(true) end)
-        button:HookScript("OnLeave",function() record.hover=false;Update(true) end)
+        for event,callback in pairs(handlers) do button:HookScript(event,callback) end
     end
     if hooksecurefunc then
+        if type(button.SetScript) == "function" and type(button.HookScript) == "function" then
+            -- Pooled menu buttons replace scripts on reuse, clearing their script hooks.
+            pcall(hooksecurefunc,button,"SetScript",function(_,event)
+                local callback = handlers[event]
+                if callback then button:HookScript(event,callback) end
+            end)
+        end
         for _,state in ipairs(module.states) do
             if type(button[state.setter]) == "function" then
                 pcall(hooksecurefunc,button,state.setter,function() Update(false) end)
@@ -512,6 +535,7 @@ local function DiscoverAll(found)
     if type(EnumerateFrames) ~= "function" then return end
     ReadReference(reference,nativeFiles,nativeAtlases)
     ReadReference(closeReference,closeFiles,closeAtlases)
+    ReadReference(dialogReference,nativeFiles,nativeAtlases,"dialog")
     local frame = EnumerateFrames()
     while frame do
         seen[frame] = true
