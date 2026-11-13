@@ -149,6 +149,10 @@ function BFChatAddOn:Refresh()
     end
 end
 function BFChatAddOn:OnInitialize()
+    if not WoWTools.thirdParty.IsActive("bigfoot_channel") then
+        self:SetEnabledState(false)
+        return
+    end
     self.db = LibStub("AceDB-3.0"):New(WoWTools.bigfootChannel.GetSettings().chat, defaults, "Default")
     self.db.RegisterCallback(self, "OnProfileChanged", "Refresh")
     self.db.RegisterCallback(self, "OnProfileCopied", "Refresh")

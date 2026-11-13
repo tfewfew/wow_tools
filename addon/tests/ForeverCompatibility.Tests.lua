@@ -269,6 +269,10 @@ for line in io.lines(addon .. "wow_tools.toc") do
         chatMock.LoadAddonFile(addon .. line:gsub("\\", "/"):gsub("%s+$", ""))
     end
 end
+-- SavedVariables become available after the TOC scripts and before ADDON_LOADED.
+if TEST_THIRD_PARTY_DISABLED then
+    wowDetectorDB = {thirdPartyAddons = {bigfoot_channel = false, ls_toasts = false, forever_faces = false}}
+end
 for _, frame in ipairs(frames) do
     if frame.events.ADDON_LOADED then frame.scripts.OnEvent(frame, "ADDON_LOADED", "wow_tools") end
 end
@@ -277,8 +281,29 @@ for _, name in ipairs({"wowDetector", "fight_detector", "pet_tamer"}) do
     assert(type(WoWTools.modules[name]) == "table", "Missing module export " .. name)
 end
 assert(WoWTools.settings and type(WoWTools.settings.Open) == "function", "Missing settings interface")
+assert(WoWTools.settings.pages.third_party and WoWTools.modules.third_party.BuildSettings,
+    "Missing third-party settings interface")
+assert(#WoWTools.thirdParty.entries == (flavor == "forerver" and 3 or 2), "Wrong client plugin list")
+if TEST_THIRD_PARTY_DISABLED then
+    assert(not WoWTools.lsToasts.C.db, "Disabled toast addon initialized its database")
+    assert(not WoWTools.bigfootChannel.addon.db, "Disabled chat addon initialized its database")
+else
+    assert(WoWTools.lsToasts.C.db and WoWTools.bigfootChannel.addon.db, "Enabled addons failed to initialize")
+end
+if flavor == "forerver" then
+    assert(WoWTools.foreverFaces ~= WoWTools.lsToasts, "Portrait and toast namespaces overlap")
+    assert(WoWTools.foreverFaces.DB() == wowDetectorDB.foreverFaces.db, "Portrait persistence binding failed")
+    if not TEST_THIRD_PARTY_DISABLED then
+        WoWTools.foreverFaces.InitLevelCircle()
+        WoWTools.foreverFaces.InitPortraits()
+        WoWTools.foreverFaces.InitUI()
+    end
+else
+    assert(not WoWTools.foreverFaces, "Forever portraits loaded on Titan")
+end
 assert(#registeredCategories == 1 and #addonCategories == 1, "Settings category interface failed")
 for _, name in ipairs({"WOWDETECTOR", "FIGHTDETECTOR", "WOWTOOLS"}) do
     assert(type(SlashCmdList[name]) == "function", "Missing slash-command interface " .. name)
 end
-print("PASS: " .. flavor .. " TOC initialization, module exports, native templates and typed UI/API compatibility.")
+print("PASS: " .. flavor .. " TOC initialization, third-party " .. (TEST_THIRD_PARTY_DISABLED and "disabled" or "enabled")
+    .. " module exports, native templates and typed UI/API compatibility.")

@@ -83,6 +83,11 @@ if GameTooltip then GameTooltip.SetText = Noop end
 
 local libraries, locales, addons = {}, {}, {}
 mock.libraries = libraries
+libraries["LibDataBroker-1.1"] = { NewDataObject = function(_, _, object) return object end }
+libraries["LibDBIcon-1.0"] = {
+    Register = Noop, Refresh = Noop, Show = Noop, Hide = Noop,
+    GetMinimapButton = function() return nil end,
+}
 LibStub = setmetatable({ GetLibrary = function(_, name, silent)
     if not silent then assert(libraries[name], name) end
     return libraries[name]
@@ -205,7 +210,7 @@ lifecycle:SetScript("OnEvent", function(self, _, name)
     for _, addon in pairs(addons) do
         addon:OnInitialize()
         for _, module in addon:IterateModules() do module:OnInitialize() end
-        addon:OnEnable()
+        if addon.enabled then addon:OnEnable() end
         for _, module in addon:IterateModules() do if module.enabled then module:OnEnable() end end
     end
     self:UnregisterEvent("ADDON_LOADED")
@@ -227,6 +232,7 @@ end
 function mock.LoadAddonFile(path)
     -- Embedded libraries have a separate dependency API check.
     if path:find("/bigfoot_channel/Libs/", 1, true) then return end
+    if path:find("/forever_faces/Libs/", 1, true) then return end
     if path:find("/ls_toasts/", 1, true) then
         if not mock.toasts then mock.toasts = dofile((TEST_ROOT or ".") .. "/addon/tests/LsToasts.Mock.lua")(mock) end
         mock.toasts.LoadXML(path)

@@ -1,8 +1,8 @@
 ## Interface: 16001
 ## Title: wow_tools (Forever)
-## Notes-zhCN: 无限服工具合集：钓鱼检测、战斗检测、自动抓宠、声音控制、大脚频道聊天增强、拾取与金币提示、内部画面设置与商店一键卖鱼。
+## Notes-zhCN: 无限服工具合集：钓鱼检测、战斗检测、自动抓宠、声音控制、大脚频道聊天增强、拾取与金币提示、3D头像、第三方插件管理、内部画面设置与商店一键卖鱼。
 ## Author: Ray
-## Version: 2.2.83
+## Version: 2.2.84
 ## X-WoWTools-Flavor: forerver
 ## SavedVariables: wowDetectorDB, fightDetectorDB, wowToolsRealmLevels
 ## SavedVariablesPerCharacter: wowToolsCharacterRecord
@@ -10,6 +10,7 @@
 bigfoot_channel\Libs\LibStub\LibStub.lua
 bigfoot_channel\Libs\embeds.xml
 Init.lua
+ThirdParty.lua
 bigfoot_channel\Bootstrap.lua
 bigfoot_channel\locale\locale.en.lua
 bigfoot_channel\locale\locale.cn.lua
@@ -32,6 +33,16 @@ ButtonStyle.Settings.lua
 SoundControl.lua
 LuaGC.lua
 ls_toasts\ls_toasts.xml
+forever_faces\Bootstrap.lua
+forever_faces\Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+forever_faces\Libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+forever_faces\Locales.lua
+forever_faces\Locales\ruRU.lua
+forever_faces\Core.lua
+forever_faces\Portraits.lua
+forever_faces\UI.lua
+forever_faces\Minimap.lua
+forever_faces\LevelCircle.lua
 wowDetector\Audio.lua
 wowDetector\wowDetector.lua
 fight_detector\Range.lua

@@ -277,9 +277,10 @@ events:SetScript("OnEvent", function(self, _, name)
     if name ~= "wow_tools" then
         return
     end
+    self:UnregisterEvent("ADDON_LOADED")
+    if not WoWTools.thirdParty.IsActive("bigfoot_channel") then return end
     ChannelFilterMuteButtonMute:SetShown(not not channel.GetFilterSettings().mute)
     for _, event in ipairs({ "CHAT_MSG_CHANNEL", "CHAT_MSG_YELL", "CHAT_MSG_TRADESKILLS" }) do
         ChatFrameUtil.AddMessageEventFilter(event, Filter)
     end
-    self:UnregisterEvent("ADDON_LOADED")
 end)

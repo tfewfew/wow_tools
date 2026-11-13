@@ -57,7 +57,11 @@ do
 	local registeredEvents = {}
 
 	local dispatcher = CreateFrame("Frame")
-	dispatcher:SetScript("OnEvent", function(_, event, ...)
+	dispatcher:SetScript("OnEvent", function(self, event, ...)
+        if not WoWTools.thirdParty.IsActive("ls_toasts") then
+            self:UnregisterAllEvents()
+            return
+        end
 		for func in next, registeredEvents[event] do
 			func(...)
 		end

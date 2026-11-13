@@ -101,6 +101,10 @@ local function attemptJoin()
 end
 
 local function start()
+    if not WoWTools.thirdParty.IsActive("bigfoot_channel") then
+        WoWTools.settings.Open("third_party")
+        return
+    end
     if locale ~= "zhCN" and locale ~= "zhTW" then
         return
     end
@@ -142,6 +146,10 @@ frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 frame:RegisterEvent("CHANNEL_UI_UPDATE")
 frame:RegisterEvent("CHAT_MSG_CHANNEL_NOTICE")
 frame:SetScript("OnEvent", function(self, event, ...)
+    if not WoWTools.thirdParty.IsActive("bigfoot_channel") then
+        self:UnregisterAllEvents()
+        return
+    end
     if event == "PLAYER_ENTERING_WORLD" then
         if not started then
             started = true

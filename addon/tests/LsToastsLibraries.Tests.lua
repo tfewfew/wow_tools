@@ -45,3 +45,12 @@ assert(gui.WidgetRegistry.LSM30_Sound,"Toast sound widget missing")
 assert(namespace.LibEditMode.AddFrame and namespace.LibEditMode.SettingType.ColorPicker,
     "Real edit-mode dependency did not initialize")
 print("PASS: " .. flavor .. " embedded SharedMedia, font/sound/item widgets and LibEditMode interfaces.")
+if flavor == "forerver" then
+    local directory = root .. "/addon/forerver/wow_tools/forever_faces/Libs/"
+    Minimap = CreateFrame("Frame")
+    dofile(directory .. "LibDataBroker-1.1/LibDataBroker-1.1.lua")
+    dofile(directory .. "LibDBIcon-1.0/LibDBIcon-1.0.lua")
+    assert(type(LibStub("LibDataBroker-1.1").NewDataObject) == "function")
+    assert(type(LibStub("LibDBIcon-1.0").Register) == "function")
+    print("PASS: Forever portrait broker and minimap dependency interfaces.")
+end

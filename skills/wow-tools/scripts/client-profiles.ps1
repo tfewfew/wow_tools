@@ -38,6 +38,6 @@ function Test-WowToolsClientVersion($Profile, [string]$Version) {
 function Get-WowToolsRetiredAddonNames {
     param([ValidateSet('titan','forerver')][string]$Flavor)
     $names = @('FishingState', 'wowDetector', 'Inner_graphic_config', 'BigFootChat', 'ChannelFilter', 'ls_Toasts')
-    if ($Flavor -eq 'forerver') { $names += @('BigFoot', '!!!Libs') }
+    if ($Flavor -eq 'forerver') { $names += @('BigFoot', '!!!Libs', 'ForeverFaces') }
     return $names
 }

@@ -13,6 +13,11 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 以下为实现与发布历史，其中的测试名称和通过数量保留为历史记录，当前本地测试采用上述范围。
 
+## 三方插件管理与无限服 3D 头像（2026-11-13）
+
+- titan 2.1.68 / forerver 2.2.84 在统一设置增加“三方插件”标签。大脚聊天、lsToast 和无限服专有的 3D 头像各自勾选开关，账号设置保存在 `wowDetectorDB.thirdPartyAddons`，缺项默认开启。本次加载的启用状态在初始化时固定，勾选只保存下次加载值，页面提示待启用/待停用，顶部 Reload 按钮在战斗外调用 ReloadUI。停用时跳过对应模块初始化和业务事件，原配置保留，设置按钮使用当前已加载状态。
+- Forever 3D Portraits 1.0.9 基线为 sorrow8/forever-faces 的 cbf2cd5b71f3e32b075af2001d7c726e41850240，源码及 MIT 许可收入 `addon/forerver/wow_tools/forever_faces`，使用独立 WoWTools.foreverFaces 命名空间、宿主加载事件和内嵌媒体路径。保留 `/ff`、原选项窗口及小地图入口，通过三方插件页进入设置，账号数据存入 `wowDetectorDB.foreverFaces.db`。复用宿主 LibStub / CallbackHandler，内嵌上游 LDB / DBIcon。仅无限服加载并归档旧 ForeverFaces 目录，同步复用字面量解析和原子合并迁移旧 ForeverFacesDB，两端独立记录上游映射与版本。
+
 ## 一级设置标签页与两行文字（2026-11-13）
 
 - titan 2.1.67 / forerver 2.2.83 的一级导航沿用左侧竖排布局，采用客户端原生 MinimalTabTemplate 与 CreateRadioButtonGroup。通过 HookScript 保留原生点击处理，点击与命令定位同步原生选中态和对应页面。标签按 UTF-8 字符数分成两行，偶数等长，奇数上行多一个字符，分别为“钓鱼 / 检测”等四字标签及“lsTo / ast”。使用模板原生37高度、45行距容纳两行文字。本条覆盖历史一级普通按钮样式。

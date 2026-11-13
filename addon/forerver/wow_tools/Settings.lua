@@ -9,6 +9,7 @@ local groups = {
     { key="sound_control", label="声音控制" },
     { key="bigfoot_channel", label="大脚聊天", app="WoWToolsBigFootChannel" },
     { key="ls_toasts", label="lsToast", app="ls_Toasts" },
+    { key="third_party", label="三方插件" },
 }
 settings.groups = groups
 local selected = "wowDetector"
@@ -49,6 +50,12 @@ canvas:Hide()
 settings.window, settings.panel, settings.canvas = window, panel, canvas
 
 local function RenderAce(page, subgroup)
+    if not WoWTools.thirdParty.IsActive(page.key) then
+        if page.container then page.container.frame:Hide() end
+        page.message:SetText("此插件已停用，可在“三方插件”中勾选并重载后启用。")
+        page.message:Show()
+        return
+    end
     local ready = page.key == "ls_toasts" and WoWTools.lsToasts.ready
         or page.key == "bigfoot_channel" and WoWTools.bigfootChannel.addon and WoWTools.bigfootChannel.addon.db
     local blocked = page.key == "ls_toasts" and InCombatLockdown()

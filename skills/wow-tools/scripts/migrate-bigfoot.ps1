@@ -132,6 +132,12 @@ function Merge-WowBigFootSettings([string]$SavedPath, [string]$BackupPath) {
     )
 }
 
+function Merge-WowForeverFacesSettings([string]$SavedPath, [string]$BackupPath) {
+    return Merge-WowAddonSettingsGroup $SavedPath $BackupPath 'foreverFaces' @(
+        @{File='ForeverFaces.lua'; Global='ForeverFacesDB'; Key='db'}
+    )
+}
+
 function Merge-WowLsToastsSettings([string]$SavedPath, [string]$BackupPath) {
     return Merge-WowAddonSettingsGroup $SavedPath $BackupPath 'lsToasts' @(
         @{File='ls_Toasts.lua'; Global='LS_TOASTS_GLOBAL_CONFIG'; Key='db'}

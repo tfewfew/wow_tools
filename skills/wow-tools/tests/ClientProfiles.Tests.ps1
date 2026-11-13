@@ -13,7 +13,7 @@ Assert-Profile (-not (Test-WowToolsClientVersion $forever '12.1.0.69933') -and -
 foreach ($profile in $profiles) {
     $toc=Join-Path $profile.Source 'wow_tools.toc'
     Assert-Profile (Select-String -LiteralPath $toc -Pattern "^## Interface:\s*$($profile.Interface)\s*$" -Quiet) 'Source interface does not match profile.'
-    foreach ($module in @('ExperienceText.lua','DisplayFonts.lua','SoundControl.lua','LuaGC.lua','Settings.lua',
+    foreach ($module in @('ExperienceText.lua','DisplayFonts.lua','SoundControl.lua','LuaGC.lua','Settings.lua','ThirdParty.lua',
         'bigfoot_channel\Bootstrap.lua','ls_toasts\ls_toasts.xml')) {
         Assert-Profile (Test-Path -LiteralPath (Join-Path $profile.Source $module) -PathType Leaf) "Missing $($profile.Flavor) capability $module."
         Assert-Profile (Select-String -LiteralPath $toc -Pattern ('^'+[regex]::Escape($module)+'\s*$') -Quiet) "Unloaded $($profile.Flavor) capability $module."
@@ -24,7 +24,7 @@ $foreverRetired = @(Get-WowToolsRetiredAddonNames -Flavor forerver)
 foreach ($name in @('BigFootChat','ChannelFilter','ls_Toasts')) {
     Assert-Profile ($titanRetired -contains $name -and $foreverRetired -contains $name) "Duplicate $name is not retired for both clients."
 }
-foreach ($name in @('BigFoot','!!!Libs')) {
+foreach ($name in @('BigFoot','!!!Libs','ForeverFaces')) {
     Assert-Profile ($titanRetired -notcontains $name -and $foreverRetired -contains $name) "Titan's shared dependency $name would be archived."
 }
 $single=@(Get-WowToolsDeploymentProfiles -RepoRoot $repo -Flavor forerver -GameRoot 'C:\test-games\infinite')

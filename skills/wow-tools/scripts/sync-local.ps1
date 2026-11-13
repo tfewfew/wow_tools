@@ -89,6 +89,12 @@ foreach ($profile in $profiles) {
             if (Merge-WowBigFootSettings -SavedPath $savedPath -BackupPath $chatBackup) {
                 Write-Output "Migrated $($profile.Flavor) BigFoot chat settings for $($account.Name)."
             }
+            if ($profile.Flavor -eq 'forerver') {
+                $portraitBackup = Join-Path $backup "forerver\SavedVariables\$($account.Name)\ForeverFacesMigration"
+                if (Merge-WowForeverFacesSettings -SavedPath $savedPath -BackupPath $portraitBackup) {
+                    Write-Output "Migrated ForeverFaces settings for $($account.Name)."
+                }
+            }
             $toastBackup = Join-Path $backup "$($profile.Flavor)\SavedVariables\$($account.Name)\LsToastsMigration"
             if (Merge-WowLsToastsSettings -SavedPath $savedPath -BackupPath $toastBackup) {
                 Write-Output "Migrated $($profile.Flavor) ls_Toasts settings for $($account.Name)."

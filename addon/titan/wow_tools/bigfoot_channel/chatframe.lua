@@ -161,6 +161,10 @@ local function createChatTab(label, chatType, texture, tooltip, index)
     return chatTab
 end
 function BFChatFrame:OnInitialize()
+    if not WoWTools.thirdParty.IsActive("bigfoot_channel") then
+        self:SetEnabledState(false)
+        return
+    end
     self.db = BFChat.db:RegisterNamespace(MODNAME, defaults)
     db = self.db.profile
     self:SetEnabledState(BFChat:GetModuleEnabled(MODNAME))
