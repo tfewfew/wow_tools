@@ -221,10 +221,15 @@ local function ArtworkRect(texture, rect, close, role, interior)
         local ok,value = pcall(C_Texture.GetAtlasInfo,atlas)
         if ok and type(value) == "table" then info=value end
     end
-    -- Atlas coordinates use the containing sheet. Convert them to this atlas first.
+    -- Native ThreeSliceButtonMixin uses atlas-local coordinates for cropping.
+    -- A complete sheet-coordinate rectangle is identified by its exact atlas bounds.
     if info and Finite(info.leftTexCoord) and Finite(info.rightTexCoord)
         and Finite(info.topTexCoord) and Finite(info.bottomTexCoord)
-        and info.rightTexCoord > info.leftTexCoord and info.bottomTexCoord > info.topTexCoord then
+        and info.rightTexCoord > info.leftTexCoord and info.bottomTexCoord > info.topTexCoord
+        and math.abs(math.min(coordinates[1],coordinates[5])-info.leftTexCoord) < .000001
+        and math.abs(math.max(coordinates[1],coordinates[5])-info.rightTexCoord) < .000001
+        and math.abs(math.min(coordinates[2],coordinates[4])-info.topTexCoord) < .000001
+        and math.abs(math.max(coordinates[2],coordinates[4])-info.bottomTexCoord) < .000001 then
         for index=1,8,2 do
             coordinates[index] = (coordinates[index]-info.leftTexCoord)/(info.rightTexCoord-info.leftTexCoord)
             coordinates[index+1] = (coordinates[index+1]-info.topTexCoord)/(info.bottomTexCoord-info.topTexCoord)

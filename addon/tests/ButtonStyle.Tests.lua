@@ -388,6 +388,13 @@ for _, flavor in ipairs({"titan", "forerver"}) do
         atlasClose[state.."Texture"]:SetAtlas("common-button-close-test")
         atlasClose[state.."Texture"]:SetTexCoord(.25,.5,.125,.375)
     end
+    local atlasLocal=CreateFrame("Button",nil,UIParent,"UIPanelCloseButtonNoScripts")
+    atlasLocal:SetSize(32,32)
+    SetArtwork(atlasLocal,{104,204,24,24})
+    for _,state in ipairs({"Normal","Pushed","Highlight","Disabled"}) do
+        atlasLocal[state.."Texture"]:SetAtlas("common-button-close-test")
+        atlasLocal[state.."Texture"]:SetTexCoord(0,1,0,1)
+    end
     local atlasSliced=CreateFrame("Button",nil,UIParent,"UIPanelButtonTemplate")
     atlasSliced:SetSize(300,32)
     for _,state in ipairs({"Normal","Pushed","Highlight","Disabled"}) do
@@ -446,6 +453,17 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     assert(atlasFill.points.TOPLEFT[4]==7 and atlasFill.points.TOPLEFT[5]==25
         and atlasFill.points.BOTTOMRIGHT[4]==25 and atlasFill.points.BOTTOMRIGHT[5]==7,
         "Atlas-sheet UV coordinates were treated as local image coordinates")
+    local localFill=CheckSkin(atlasLocal,"native")
+    for _,point in ipairs({"TOPLEFT","BOTTOMRIGHT"}) do
+        assert(localFill.points[point][4]==atlasFill.points[point][4]
+            and localFill.points[point][5]==atlasFill.points[point][5],"Native atlas-local coordinates were transformed as sheet coordinates")
+    end
+    atlasLocal:GetNormalTexture():SetTexCoord(0,.5,0,1)
+    atlasLocal:Run("OnShow")
+    assert(localFill.points.TOPLEFT[4]==10 and localFill.points.BOTTOMRIGHT[4]==28,
+        "Native atlas-local partial cropping was lost")
+    atlasLocal:GetNormalTexture():SetTexCoord(0,1,0,1)
+    atlasLocal:Run("OnShow")
     local slicedFill=CheckSkin(atlasSliced,"native")
     assert(slicedFill.points.TOPLEFT[4]==4 and slicedFill.points.BOTTOMRIGHT[4]==296,
         "Texture nine-slice margins were stretched across the button width")
