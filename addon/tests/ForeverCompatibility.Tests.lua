@@ -297,6 +297,23 @@ if flavor == "forerver" then
         WoWTools.foreverFaces.InitLevelCircle()
         WoWTools.foreverFaces.InitPortraits()
         WoWTools.foreverFaces.InitUI()
+        local unitPortraitHook = chatMock.hooks.UnitFramePortrait_Update
+        assert(type(unitPortraitHook) == "function", "Missing native unit-frame portrait hook")
+        local unitFrame = CreateFrame("Frame")
+        unitFrame:SetAttribute("unit", "target")
+        unitFrame.unit = "target"
+        unitFrame.portrait = {
+            GetObjectType = function() return "Texture" end,
+            GetParent = function() return unitFrame end,
+            GetSize = function() return 58, 58 end,
+            GetAlpha = function() return 1 end,
+            IsShown = function() return false end,
+        }
+        local originalGUID, boundUnit = UnitGUID
+        UnitGUID = function(unit) boundUnit = unit end
+        unitPortraitHook(unitFrame)
+        UnitGUID = originalGUID
+        assert(boundUnit == "target", "Native unit-frame portrait argument binding failed")
     end
 else
     assert(not WoWTools.foreverFaces, "Forever portraits loaded on Titan")

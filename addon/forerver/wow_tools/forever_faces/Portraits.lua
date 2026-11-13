@@ -580,6 +580,30 @@ local function OnPortrait(texture, unit)
 end
 ns.OnPortrait = OnPortrait
 
+-- UnitFramePortrait_Update can finish with a class atlas, including EasyFrames'
+-- post-hook. Bind the unit frame after that update as well as the texture call.
+local function OnUnitPortrait(frame)
+	if not frame or (frame.IsForbidden and frame:IsForbidden()) then return end
+	local unit = frame.unit
+	if Secret(unit) or type(unit) ~= "string" or not frame.portrait then return end
+	OnPortrait(frame.portrait, unit)
+end
+
+local refreshQueued = false
+local function QueueUnitPortraits()
+	if refreshQueued then return end
+	refreshQueued = true
+	C_Timer.After(0, function()
+		refreshQueued = false
+		OnUnitPortrait(PlayerFrame)
+		OnUnitPortrait(TargetFrame)
+		OnUnitPortrait(FocusFrame)
+		OnUnitPortrait(PetFrame)
+		OnUnitPortrait(TargetFrameToT)
+		OnUnitPortrait(FocusFrameToT)
+	end)
+end
+
 -- /ff debug: the real numbers of every portrait, so the look can be tuned to
 -- the game's frames instead of guessed.
 function ns.Debug()
@@ -617,6 +641,7 @@ end
 
 -- settings change the look; a part switched off and on again loads its models anew
 function ns.ApplyAll()
+	QueueUnitPortraits()
 	for texture, e in pairs(entries) do
 		e.w = nil -- laid out again
 		if texture:IsVisible() then
@@ -690,6 +715,8 @@ end
 
 function ns.InitPortraits()
 	hooksecurefunc("SetPortraitTexture", OnPortrait)
+	hooksecurefunc("UnitFramePortrait_Update", OnUnitPortrait)
+	QueueUnitPortraits()
 
 	-- The Edit Mode party background sits at level 1 of the party frames'
 	-- strata, where the models (one strata down) would be under it. It is a
@@ -711,6 +738,7 @@ function ns.InitPortraits()
 	watcher:RegisterEvent("UNIT_MODEL_CHANGED")
 	watcher:RegisterEvent("UNIT_PORTRAIT_UPDATE")
 	watcher:RegisterEvent("PLAYER_REGEN_ENABLED")
+	watcher:RegisterEvent("PLAYER_ENTERING_WORLD")
 	for _, event in ipairs({ "UNIT_HEALTH", "UNIT_FLAGS", "UNIT_CONNECTION", "UNIT_FACTION",
 		"PLAYER_TARGET_CHANGED", "PLAYER_FOCUS_CHANGED", "UNIT_TARGET", "UNIT_PET", "GROUP_ROSTER_UPDATE" }) do
 		watcher:RegisterEvent(event)
@@ -720,8 +748,12 @@ function ns.InitPortraits()
 			StateChanged(unit)
 		elseif event == "PLAYER_TARGET_CHANGED" then
 			Swapped("^target")
+			QueueUnitPortraits()
 		elseif event == "PLAYER_FOCUS_CHANGED" then
 			Swapped("^focus")
+			QueueUnitPortraits()
+		elseif event == "PLAYER_ENTERING_WORLD" then
+			QueueUnitPortraits()
 		elseif event == "UNIT_TARGET" then
 			if unit == "target" then Swapped("^targettarget$") end
 		elseif event == "UNIT_PET" then
