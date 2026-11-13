@@ -12,7 +12,7 @@ minimapButton:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Hig
 local minimapIcon = minimapButton:CreateTexture(nil, "BACKGROUND")
 minimapIcon:SetSize(20, 20)
 minimapIcon:SetPoint("CENTER")
-minimapIcon:SetTexture("Interface\\Icons\\Trade_Fishing")
+minimapIcon:SetTexture("Interface\\Icons\\Spell_Nature_Regeneration")
 local minimapBorder = minimapButton:CreateTexture(nil, "OVERLAY")
 minimapBorder:SetSize(54, 54)
 minimapBorder:SetPoint("TOPLEFT")
