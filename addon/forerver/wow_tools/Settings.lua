@@ -13,6 +13,16 @@ local groups = {
 settings.groups = groups
 local selected = "wowDetector"
 
+local function TabLabel(label)
+    local characters = {}
+    for character in label:gmatch("[\1-\127\194-\244][\128-\191]*") do
+        characters[#characters + 1] = character
+    end
+    local firstLineLength = math.ceil(#characters / 2)
+    return table.concat(characters, "", 1, firstLineLength) .. "\n"
+        .. table.concat(characters, "", firstLineLength + 1)
+end
+
 local window = CreateFrame("Frame", "WoWToolsSettingsWindow", UIParent, "BasicFrameTemplateWithInset")
 window:SetSize(980, 680)
 window:SetPoint("CENTER")
@@ -84,15 +94,16 @@ function settings:OnConfigChanged(_, app)
 end
 LibStub("AceConfigRegistry-3.0").RegisterCallback(settings, "ConfigTableChange", "OnConfigChanged")
 
+local tabGroup = CreateRadioButtonGroup()
 local function Select(key, subgroup)
     local selectedPage = settings.pages[key]
     if not selectedPage then return end
     selected = key
     settings.selected = key
-    for _, group in ipairs(groups) do
+    for index, group in ipairs(groups) do
         local page = settings.pages[group.key]
-        settings.tabs[group.key]:SetButtonState(group.key == selected and "PUSHED" or "NORMAL", group.key == selected)
         if group.key == selected then
+            tabGroup:SelectAtIndex(index)
             page:Show()
         else
             page:Hide()
@@ -105,9 +116,9 @@ settings.Select = Select
 local function LayoutTabs()
     for index, group in ipairs(groups) do
         local tab = settings.tabs[group.key]
-        tab:SetSize(132, 32)
+        tab:SetSize(132, 37)
         tab:ClearAllPoints()
-        tab:SetPoint("TOPLEFT", 8, -12 - (index - 1) * 40)
+        tab:SetPoint("TOPLEFT", 8, -12 - (index - 1) * 45)
     end
 end
 
@@ -119,9 +130,11 @@ for _, group in ipairs(groups) do
     page.key, page.app = key, group.app
     page:Hide()
     settings.pages[key] = page
-    local tab = CreateFrame("Button", nil, canvas, "UIPanelButtonTemplate")
-    tab:SetText(group.label)
-    tab:SetScript("OnClick", function() Select(key) end)
+    local tab = CreateFrame("Button", nil, canvas, "MinimalTabTemplate")
+    tab.Text:SetText(TabLabel(group.label))
+    tab.Text:SetJustifyH("CENTER")
+    tabGroup:AddButton(tab)
+    tab:HookScript("OnClick", function() Select(key) end)
     settings.tabs[key] = tab
     if group.app then
         page.message = page:CreateFontString(nil, "ARTWORK", "GameFontHighlight")

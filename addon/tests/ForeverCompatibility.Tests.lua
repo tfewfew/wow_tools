@@ -32,6 +32,13 @@ local function widget(name, parent, kind)
     local object = { scripts = {}, events = {}, textures = {}, shown = true, text = "", enabled = true, mockParent = parent, kind = kind }
     function object:SetAttribute() end
     function object:SetScript(event, callback) self.scripts[event] = callback end
+    function object:HookScript(event, callback)
+        local previous = self.scripts[event]
+        self.scripts[event] = function(...)
+            if previous then previous(...) end
+            callback(...)
+        end
+    end
     function object:RegisterEvent(event) self.events[event] = true end
     function object:UnregisterEvent(event) self.events[event] = nil end
     function object:CreateTexture()
@@ -142,13 +149,32 @@ end
 function CreateFrame(kind, name, parent, template)
     assert(template ~= "UIDropDownMenuTemplate", "Forever still depends on legacy dropdown templates")
     local object = widget(name, parent, kind)
-    if template == "MinimalTabTemplate" then object.Text = widget() end
+    object.template = template
+    if template == "MinimalTabTemplate" then
+        object.Text = widget(nil, object, "FontString")
+        function object:SetSelected(value) self.selected = value end
+        function object:IsSelected() return self.selected == true end
+        object:SetScript("OnClick", function(self) self.nativeClicks = (self.nativeClicks or 0) + 1 end)
+    end
     if template == "BasicFrameTemplateWithInset" then object.TitleText = widget() end
     frames[#frames + 1] = object
     return object
 end
 function CreateRadioButtonGroup()
-    return { AddButton = function() end, SelectAtIndex = function() end }
+    local group = { buttons = {} }
+    function group:AddButton(button)
+        self.buttons[#self.buttons + 1] = button
+        button.selectionGroup = self
+        local index = #self.buttons
+        button:HookScript("OnClick", function() self:SelectAtIndex(index) end)
+    end
+    function group:SelectAtIndex(index)
+        assert(self.buttons[index], "Radio selection is outside the registered tabs")
+        for buttonIndex, button in ipairs(self.buttons) do
+            button:SetSelected(buttonIndex == index)
+        end
+    end
+    return group
 end
 UIParent, Minimap, FramerateFrame, GameTooltip = widget(), widget(), widget(), widget()
 FramerateLabel = flavor=="titan" and widget() or nil
@@ -448,7 +474,34 @@ assert(#unified.groups == 7 and unified.window:IsShown() and not WoWTools.module
 assert(#registeredCategories == 1 and #addonCategories == 1 and addonCategories[1] == unified.category
     and registeredCategories[1] == unified.category and registeredCategories[1].name == "wow_tools"
     and registeredCategories[1].frame == unified.panel, "Duplicate or indirect addon settings categories remain")
-for _, group in ipairs(unified.groups) do assert(unified.tabs[group.key] and unified.pages[group.key]) end
+local expectedTabLabels = {
+    wowDetector = "钓鱼\n检测", fight_detector = "战斗\n检测", inner_graphic_config = "画面\n设置",
+    pet_tamer = "自动\n抓宠", sound_control = "声音\n控制", bigfoot_channel = "大脚\n聊天",
+    ls_toasts = "lsTo\nast",
+}
+local primaryTabGroup
+for _, group in ipairs(unified.groups) do
+    local tab = unified.tabs[group.key]
+    assert(tab and unified.pages[group.key] and tab.template == "MinimalTabTemplate",
+        "Primary settings navigation must use the native tab template")
+    assert(tab.Text:GetText() == expectedTabLabels[group.key],
+        "Tab labels must split evenly by UTF-8 characters, with the extra character on the first line")
+    primaryTabGroup = primaryTabGroup or tab.selectionGroup
+    assert(tab.selectionGroup == primaryTabGroup and #primaryTabGroup.buttons == #unified.groups,
+        "Primary tabs must share one native radio selection group")
+    tab.scripts.OnClick(tab)
+    assert(unified.selected == group.key and tab.nativeClicks == 1,
+        "Clicking a primary tab must retain its native handler and select the matching page")
+    tab.scripts.OnClick(tab)
+    assert(tab:IsSelected() and tab.nativeClicks == 2, "Clicking the active tab must keep it selected")
+    for _, other in ipairs(unified.groups) do
+        local active = other.key == group.key
+        assert(unified.tabs[other.key]:IsSelected() == active and unified.pages[other.key]:IsShown() == active,
+            "Tab selection and page visibility must change together")
+    end
+end
+unified.Select("wowDetector")
+assert(unified.tabs.wowDetector:IsSelected(), "Programmatic navigation did not select the native tab")
 WoWTools.modules.ls_toasts.Toggle()
 assert(WoWTools.modules.ls_toasts.IsShown(), "Toast settings menu did not open")
 assert(chatMock.customContainers.ls_Toasts and not LibStub("AceConfigDialog-3.0").OpenFrames.ls_Toasts,
@@ -516,6 +569,9 @@ unified.panel:SetFrameStrata("FULLSCREEN_DIALOG")
 unified.panel:Show()
 assert(not unified.window:IsShown() and sharedCanvas:GetParent() == unified.panel and sharedCanvas:IsShown(),
     "The native addon category did not directly host the shared settings canvas")
+assert(unified.tabs.inner_graphic_config:IsSelected()
+    and unified.tabs.inner_graphic_config.Text:GetText() == expectedTabLabels.inner_graphic_config,
+    "Changing settings hosts lost native tab selection or its two-line label")
 assert(#WoWTools.luaGC.views == 1 and luaView.inputs.pause:GetText() == "666"
     and luaView.saved.pause.text == "400", "Moving settings into the native category lost or saved a draft")
 assert(names.wowToolsFightDetectorPanel:GetFrameStrata() == "FULLSCREEN_DIALOG"
@@ -579,8 +635,11 @@ assert(not compactAudio:IsShown() and unified.IsGroupShown("sound_control"), "Cl
 
 local previousY
 for _, group in ipairs(unified.groups) do
-    local point = unified.tabs[group.key].point
+    local tab = unified.tabs[group.key]
+    local point = tab.point
     assert(point[2] == 8 and (not previousY or point[3] < previousY), "Primary tabs are not stacked vertically")
+    assert(tab:GetHeight() == 37 and (not previousY or previousY - point[3] > tab:GetHeight()),
+        "Two-line primary tabs must retain the native height and avoid overlapping")
     previousY = point[3]
 end
 local function ResizePage(key, width, height)

@@ -5,6 +5,11 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 # wow_tools
 
+## 一级设置标签页与两行文字（2026-11-13）
+
+- titan 2.1.67 / forerver 2.2.83 的一级导航沿用左侧竖排布局，采用客户端原生 MinimalTabTemplate 与 CreateRadioButtonGroup。通过 HookScript 保留原生点击处理，点击与命令定位同步原生选中态和对应页面。标签按 UTF-8 字符数分成两行，偶数等长，奇数上行多一个字符，分别为“钓鱼 / 检测”等四字标签及“lsTo / ast”。使用模板原生37高度、45行距容纳两行文字。本条覆盖历史一级普通按钮样式。
+- ForeverCompatibility / TitanCompatibility 验证原生模板及点击处理、单选组、逐页切换/重复点击、程序定位、两行字符与宿主切换，配合全部 Lua5.1 / XML 内联编译、27组模拟和 ClientProfiles 检查。双端独立递增版本并默认 all 同步，实际视觉在游戏 `/reload` 后复测。
+
 ## 临时 clone 与主干合并（2026-11-13）
 
 - 后续所有代码、配置、文档及维护约定修改均在独立临时文件夹 clone 仓库，创建临时分支后实施、验证、提交并推送。并发任务使用独立 clone 与分支，冲突在临时 clone 解决并重新验证。分支可通过 MR 自动合并，也可在正式目录合并已推送的分支并推送 main。
