@@ -148,10 +148,161 @@ local function Suitable(button)
     end
     return false
 end
+local function Finite(value)
+    return not (issecretvalue and issecretvalue(value)) and type(value) == "number"
+        and value == value and math.abs(value) < math.huge
+end
+local function Numbers(object, method, count)
+    if not object or type(object[method]) ~= "function" then return nil end
+    local result = {pcall(object[method],object)}
+    if not result[1] then return nil end
+    table.remove(result,1)
+    for index=1,count do
+        if not Finite(result[index]) then return nil end
+    end
+    return result
+end
+local function Rectangle(object)
+    local rect = Numbers(object,"GetRect",4)
+    local scale = Read(object,"GetEffectiveScale")
+    if not rect or rect[3] <= 0 or rect[4] <= 0 or not Finite(scale) or scale <= 0 then return nil end
+    return {left=rect[1]*scale, bottom=rect[2]*scale,
+        right=(rect[1]+rect[3])*scale, top=(rect[2]+rect[4])*scale, scale=scale}
+end
+local function Union(bounds, rect)
+    if not bounds then return rect end
+    bounds.left, bounds.bottom = math.min(bounds.left,rect.left),math.min(bounds.bottom,rect.bottom)
+    bounds.right, bounds.top = math.max(bounds.right,rect.right),math.max(bounds.top,rect.top)
+    return bounds
+end
+local function SlicePosition(fraction, extent, sourceExtent, leading, trailing, scale)
+    local factor = math.min(1,extent/math.max(.001,(leading+trailing)*scale))
+    local start,finish = leading*scale*factor,extent-trailing*scale*factor
+    local sourceStart,sourceFinish = leading/sourceExtent,1-trailing/sourceExtent
+    if fraction <= sourceStart then return fraction*sourceExtent*scale*factor end
+    if fraction >= sourceFinish then return extent-(1-fraction)*sourceExtent*scale*factor end
+    return start+(fraction-sourceStart)*(finish-start)/(sourceFinish-sourceStart)
+end
+local function Crop(rect, coordinates, left, top, right, bottom, margins, sourceWidth, sourceHeight)
+    local u0,v0,u1,v1 = coordinates[1],coordinates[2],coordinates[5],coordinates[4]
+    if u0 == u1 or v0 == v1 then return nil end
+    local x0,x1 = (left-u0)/(u1-u0),(right-u0)/(u1-u0)
+    local y0,y1 = (top-v0)/(v1-v0),(bottom-v0)/(v1-v0)
+    x0,x1 = math.max(0,math.min(x0,x1)),math.min(1,math.max(x0,x1))
+    y0,y1 = math.max(0,math.min(y0,y1)),math.min(1,math.max(y0,y1))
+    if x0 >= x1 or y0 >= y1 then return nil end
+    local width,height = rect.right-rect.left,rect.top-rect.bottom
+    local leftOffset,rightOffset,topOffset,bottomOffset = x0*width,x1*width,y0*height,y1*height
+    if margins then
+        local sampledWidth,sampledHeight = sourceWidth*math.abs(u1-u0),sourceHeight*math.abs(v1-v0)
+        leftOffset=SlicePosition(x0,width,sampledWidth,margins[1],margins[3],rect.scale)
+        rightOffset=SlicePosition(x1,width,sampledWidth,margins[1],margins[3],rect.scale)
+        topOffset=SlicePosition(y0,height,sampledHeight,margins[2],margins[4],rect.scale)
+        bottomOffset=SlicePosition(y1,height,sampledHeight,margins[2],margins[4],rect.scale)
+    end
+    return {left=rect.left+leftOffset, right=rect.left+rightOffset,
+        bottom=rect.top-bottomOffset, top=rect.top-topOffset}
+end
+local function ArtworkRect(texture, rect, close, role, interior)
+    local atlas = Read(texture,"GetAtlas")
+    local coordinates = Numbers(texture,"GetTexCoord",8)
+    if not coordinates then return false end
+    local margins = Numbers(texture,"GetTextureSliceMargins",4)
+    local width,height,padding
+    if not atlas then
+        -- UI-Panel-Button is an 80x22 artwork inside a 128x32 file.
+        width,height = close and 32 or 128,32
+        padding = close and (interior and 8 or 6) or (interior and 4 or 2)
+        return Crop(rect,coordinates,padding/width,padding/height,
+            ((close and 32 or 80)-padding)/width,((close and 32 or 22)-padding)/height,margins,width,height)
+    end
+    local info
+    if C_Texture and type(C_Texture.GetAtlasInfo) == "function" then
+        local ok,value = pcall(C_Texture.GetAtlasInfo,atlas)
+        if ok and type(value) == "table" then info=value end
+    end
+    -- Native ThreeSliceButtonMixin uses atlas-local coordinates for cropping.
+    -- A complete sheet-coordinate rectangle is identified by its exact atlas bounds.
+    if info and Finite(info.leftTexCoord) and Finite(info.rightTexCoord)
+        and Finite(info.topTexCoord) and Finite(info.bottomTexCoord)
+        and info.rightTexCoord > info.leftTexCoord and info.bottomTexCoord > info.topTexCoord
+        and math.abs(math.min(coordinates[1],coordinates[5])-info.leftTexCoord) < .000001
+        and math.abs(math.max(coordinates[1],coordinates[5])-info.rightTexCoord) < .000001
+        and math.abs(math.min(coordinates[2],coordinates[4])-info.topTexCoord) < .000001
+        and math.abs(math.max(coordinates[2],coordinates[4])-info.bottomTexCoord) < .000001 then
+        for index=1,8,2 do
+            coordinates[index] = (coordinates[index]-info.leftTexCoord)/(info.rightTexCoord-info.leftTexCoord)
+            coordinates[index+1] = (coordinates[index+1]-info.topTexCoord)/(info.bottomTexCoord-info.topTexCoord)
+        end
+    end
+    width,height = rect.right-rect.left,rect.top-rect.bottom
+    if info and Finite(info.width) and Finite(info.height)
+        and info.width > 0 and info.height > 0 then width,height=info.width,info.height end
+    padding = height*(close and (interior and 3/24 or 1/24) or (interior and 1/8 or 1/16))
+    local left = (role == "Right" or role == "Center" or role == "Middle") and 0 or padding/width
+    local right = (role == "Left" or role == "Center" or role == "Middle") and 1 or 1-padding/width
+    return Crop(rect,coordinates,left,padding/height,right,1-padding/height,margins,width,height)
+end
+local function Geometry(record, native)
+    local button = record.button
+    local buttonRect = Rectangle(button)
+    if not buttonRect then return nil end
+    local active = Read(button,"GetButtonState") == "PUSHED" and "GetPushedTexture" or "GetNormalTexture"
+    if Read(button,"IsEnabled") == false then active="GetDisabledTexture" end
+    local activeTexture = Read(button,active) or Read(button,"GetNormalTexture")
+    local textures, roles = {},{}
+    for _,state in ipairs(module.states) do
+        local texture = Read(button,state.getter)
+        if texture then textures[texture]=true end
+    end
+    for _,key in ipairs({"Left","Middle","Center","Right"}) do
+        local texture = button[key]
+        if texture then textures[texture],roles[texture]=true,key end
+    end
+    local slice = button.NineSlice
+    if slice and type(slice.GetRegions) == "function" then
+        for _,texture in ipairs({slice:GetRegions()}) do
+            if type(texture.SetTexture) == "function" then textures[texture],roles[texture]=true,"NineSlice" end
+        end
+    end
+    local source = Read(button,"GetNormalTexture") or button.Left or activeTexture
+    local atlas = Read(source,"GetAtlas")
+    local baseline = record.close and (atlas and 22 or 20) or (atlas and 28 or 18)
+    local outer,inner
+    for texture in pairs(textures) do
+        local rect = Rectangle(texture)
+        if not rect then return nil end
+        local close = record.close
+        local artwork = roles[texture] == "NineSlice" and rect or ArtworkRect(texture,rect,close,roles[texture],false)
+        if artwork == false then return nil end
+        if artwork then outer=Union(outer,artwork) end
+        if texture == activeTexture or roles[texture] then
+            local interior = roles[texture] == "NineSlice" and rect or ArtworkRect(texture,rect,close,roles[texture],true)
+            if interior == false then return nil end
+            if interior then inner=Union(inner,interior) end
+        end
+    end
+    if slice and slice.Center then inner=Rectangle(slice.Center) or inner end
+    local bounds = native and inner or outer
+    if not bounds then return nil end
+    local scale = buttonRect.scale
+    local pixel = 1/scale
+    if type(GetPhysicalScreenSize) == "function" then
+        local ok,_,height = pcall(GetPhysicalScreenSize)
+        if ok and Finite(height) and height > 0 then pixel=768/height/scale end
+    end
+    -- Snap the shared rectangle in screen space, then return button-local offsets.
+    local function Snap(value, origin) return math.floor(value/scale/pixel+.5)*pixel-origin/scale end
+    local left,right = Snap(bounds.left,buttonRect.left),Snap(bounds.right,buttonRect.left)
+    local bottom,top = Snap(bounds.bottom,buttonRect.bottom),Snap(bounds.top,buttonRect.bottom)
+    if right <= left or top <= bottom then return nil end
+    local thickness = math.max(pixel,math.floor((outer.top-outer.bottom)/scale/(baseline or 18)/pixel+.5)*pixel)
+    thickness = math.min(thickness,(right-left)/8,(top-bottom)/8)
+    return {left=left, right=right, bottom=bottom, top=top, thickness=thickness, pixel=pixel, textures=textures}
+end
 local function Capture(button)
     local record = {button=button, alpha={}, masked={}, textures={}, active=false}
     record.close = IsClose(button)
-    record.legacy = not (Read(Read(button,"GetNormalTexture"),"GetAtlas") or Read(button.Left,"GetAtlas"))
     record.fill = CreateFrame("Button",nil,button)
     excluded[record.fill] = true
     record.fill:SetAllPoints(button)
@@ -161,7 +312,8 @@ local function Capture(button)
     record.nativeMask:SetAllPoints(record.fill)
     -- Clear the interior rectangle while keeping the original artwork outside it.
     record.nativeMask:SetTexture(mediaPath.."ButtonNativeCutout.tga","CLAMPTOWHITE","CLAMPTOWHITE","NEAREST")
-    record.border = button:CreateTexture(nil,"OVERLAY")
+    record.border = record.fill:CreateTexture(nil,"OVERLAY")
+    record.border:SetAllPoints(record.fill)
     record.border:SetTexture(mediaPath.."ButtonRoundBorder.tga")
     record.border:SetTextureSliceMargins(4,4,4,4)
     record.border:SetBlendMode("BLEND")
@@ -246,31 +398,24 @@ local function Paint(record, value, preview)
     end
     record.active = true -- Restore partial mask or appearance changes after a failed apply.
     local native = value.border.style == "native"
-    -- Native artwork includes transparent padding inside the unchanged button hit rectangle.
-    local height = Read(button,"GetHeight") or 22
-    local width = Read(button,"GetWidth") or height
-    if record.appearance ~= value or record.material ~= materialPath or record.width ~= width or record.height ~= height then
-        local padding,inset
-        if record.close and record.legacy then padding,inset=height*6/32,height*8/32
-        elseif record.legacy then padding,inset=height*2/22,height*4/22
-        elseif record.close then padding,inset=height/24,height/8
-        else padding,inset=height/16,height/8 end
+    local geometry = Geometry(record,native)
+    if not geometry then return false end -- Layout and restricted coordinates are retried on the next show/update.
+    local previous = record.geometry or {}
+    local changed = previous.left ~= geometry.left or previous.right ~= geometry.right
+        or previous.bottom ~= geometry.bottom or previous.top ~= geometry.top
+        or previous.thickness ~= geometry.thickness or previous.pixel ~= geometry.pixel
+    if record.appearance ~= value or record.material ~= materialPath or changed then
+        local surfaceScale = native and 1 or geometry.thickness
+        record.fill:SetScale(surfaceScale)
         record.fill:ClearAllPoints()
         record.mask:ClearAllPoints()
+        record.fill:SetPoint("TOPLEFT",button,"BOTTOMLEFT",geometry.left/surfaceScale,geometry.top/surfaceScale)
+        record.fill:SetPoint("BOTTOMRIGHT",button,"BOTTOMLEFT",geometry.right/surfaceScale,geometry.bottom/surfaceScale)
+        record.mask:SetAllPoints(record.fill)
         if native then
-            local fillInset = inset+1
-            local xInset = math.min(fillInset,math.max(0,(width-1)/2))
-            local yInset = math.min(fillInset,math.max(0,(height-1)/2))
-            record.fill:SetPoint("TOPLEFT",button,"TOPLEFT",xInset,-yInset)
-            record.fill:SetPoint("BOTTOMRIGHT",button,"BOTTOMRIGHT",-xInset,yInset)
-            record.mask:SetAllPoints(record.fill)
             record.mask:SetTexture(white,"CLAMPTOBLACKADDITIVE","CLAMPTOBLACKADDITIVE","NEAREST")
             record.mask:ClearTextureSlice()
         else
-            local fillInset = padding + (value.border.style == "thin" and 1 or 0)
-            record.fill:SetAllPoints(button)
-            record.mask:SetPoint("TOPLEFT",button,"TOPLEFT",fillInset,-fillInset)
-            record.mask:SetPoint("BOTTOMRIGHT",button,"BOTTOMRIGHT",-fillInset,fillInset)
             record.mask:SetTexture(mediaPath.."ButtonRoundMask.tga","CLAMPTOBLACKADDITIVE","CLAMPTOBLACKADDITIVE")
             record.mask:SetTextureSliceMargins(4,4,4,4)
         end
@@ -284,30 +429,22 @@ local function Paint(record, value, preview)
         end
         record.fill:Show()
         if value.border.style == "thin" then
-            record.border:ClearAllPoints()
-            record.border:SetPoint("TOPLEFT",button,"TOPLEFT",padding,-padding)
-            record.border:SetPoint("BOTTOMRIGHT",button,"BOTTOMRIGHT",-padding,padding)
             record.border:Show()
         else record.border:Hide() end
         if record.glyph then
             local font = Read(record.glyph,"GetFont")
-            local size = math.max(8,math.min(20,(height-2*padding)*.7))
+            local size = math.max(8,math.min(20,(geometry.top-geometry.bottom)*.7))
             if font then record.glyph:SetFont(font,size,"OUTLINE") end
+            record.glyph:ClearAllPoints()
+            record.glyph:SetPoint("CENTER",record.fill,"CENTER",0,0)
             record.glyph:Show()
         end
     end
     -- Native clients may replace state textures when showing or updating a button.
-    for _, state in ipairs(module.states) do Remember(record,Read(button,state.getter),native) end
-    for _, key in ipairs({"Left","Middle","Center","Right"}) do Remember(record,button[key],native) end
-    local slice = button.NineSlice
-    if slice and type(slice.GetRegions) == "function" then
-        for _, region in ipairs({slice:GetRegions()}) do
-            if type(region.SetTexture) == "function" then Remember(record,region,native) end
-        end
-    end
+    for texture in pairs(geometry.textures) do Remember(record,texture,native) end
     for texture, alpha in pairs(record.alpha) do texture:SetAlpha(native and alpha or 0) end
     if not SyncState(record,value,preview) then return false end
-    record.appearance, record.material, record.width, record.height = value,materialPath,width,height
+    record.appearance, record.material, record.geometry = value,materialPath,geometry
     return true
 end
 local function Watch(record, preview)
@@ -326,17 +463,22 @@ local function Watch(record, preview)
             button:HookScript(event,function() Update(false) end)
         end
         for _, event in ipairs({"OnEnable","OnDisable","OnMouseDown","OnMouseUp"}) do
-            button:HookScript(event,function() Update(true) end)
+            button:HookScript(event,function() Update(false) end)
         end
         button:HookScript("OnEnter",function() record.hover=true;Update(true) end)
         button:HookScript("OnLeave",function() record.hover=false;Update(true) end)
     end
     if hooksecurefunc then
+        for _,state in ipairs(module.states) do
+            if type(button[state.setter]) == "function" then
+                pcall(hooksecurefunc,button,state.setter,function() Update(false) end)
+            end
+        end
         if type(button.UpdateButton) == "function" then
             pcall(hooksecurefunc,button,"UpdateButton",function() Update(false) end)
         end
-        for _, method in ipairs({"SetButtonState","SetFrameLevel"}) do
-            if type(button[method]) == "function" then pcall(hooksecurefunc,button,method,function() Update(true) end) end
+        for _, method in ipairs({"SetButtonState","SetScale","SetFrameLevel"}) do
+            if type(button[method]) == "function" then pcall(hooksecurefunc,button,method,function() Update(false) end) end
         end
         if type(button.LockHighlight) == "function" then
             pcall(hooksecurefunc,button,"LockHighlight",function() record.locked=true;Update(true) end)
@@ -461,6 +603,8 @@ local function WatchMedia()
 end
 events:RegisterEvent("ADDON_LOADED")
 events:RegisterEvent("PLAYER_ENTERING_WORLD")
+events:RegisterEvent("UI_SCALE_CHANGED")
+events:RegisterEvent("DISPLAY_SIZE_CHANGED")
 events:SetScript("OnEvent",function(_,event,name)
     if event == "ADDON_LOADED" and name == "wow_tools" then
         local saved = type(wowDetectorDB) == "table" and wowDetectorDB.buttonStyle
@@ -482,6 +626,10 @@ events:SetScript("OnEvent",function(_,event,name)
     end
     if event == "PLAYER_REGEN_ENABLED" then
         events:UnregisterEvent(event)
+        module.Apply(false)
+        return
+    end
+    if event == "UI_SCALE_CHANGED" or event == "DISPLAY_SIZE_CHANGED" then
         module.Apply(false)
         return
     end
