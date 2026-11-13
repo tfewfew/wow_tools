@@ -110,7 +110,7 @@ function module.BuildSettings(parent)
     local controls = {}
     local hint=parent:CreateFontString(nil,"ARTWORK","GameFontHighlightSmall")
     hint:SetPoint("TOPLEFT",8,-8);hint:SetWidth(398);hint:SetJustifyH("LEFT")
-    hint:SetText("只调整字号和描边，沿用游戏原来的字体。设置自动保存，每次登录或重载插件后应用一次。")
+    hint:SetText("字号和描边沿用游戏字体，每次登录或重载后应用一次。经验值可勾选显示剩余双倍经验，开关立即生效并保存。")
     local preview=parent:CreateFontString(nil,"ARTWORK","GameFontNormal")
     module.preview=preview
     preview:SetPoint("TOPLEFT",8,-72-#specs*122);preview:SetWidth(398);preview:SetJustifyH("LEFT");preview:SetText("预览 12345")
@@ -125,9 +125,28 @@ function module.BuildSettings(parent)
         local reset=CreateFrame("Button",nil,row,"UIPanelButtonTemplate");reset:SetSize(90,24);reset:SetPoint("LEFT",apply,"RIGHT",12,0);reset:SetText("恢复默认")
         local status=row:CreateFontString(nil,"ARTWORK","GameFontHighlightSmall");status:SetPoint("TOPLEFT",0,-88);status:SetWidth(398);status:SetJustifyH("LEFT")
         local control={key=spec.key,row=row,size=size,sizeLabel=sizeLabel,outline=outline,status=status,apply=apply,reset=reset,flagIndex=1}
+        if spec.key == "experience" then
+            local rested = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
+            rested:SetSize(26, 26)
+            rested:SetPoint("LEFT", size, "RIGHT", 8, 0)
+            local label = row:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+            label:SetPoint("LEFT", rested, "RIGHT", 0, 0)
+            label:SetText("显示剩余双倍经验")
+            outline:ClearAllPoints()
+            outline:SetPoint("TOPLEFT", 194, -56)
+            control.rested = rested
+            rested:SetScript("OnClick", function(self)
+                local _, message = WoWTools.experienceText.SetEnabled(self:GetChecked() == true)
+                for _, other in ipairs(module.controls) do
+                    if other.rested then other.rested:SetChecked(WoWTools.experienceText.IsEnabled()) end
+                end
+                status:SetText(message)
+            end)
+        end
         module.controls[#module.controls+1]=control
         controls[#controls+1]=control
         local function Load()
+            if control.rested then control.rested:SetChecked(WoWTools.experienceText.IsEnabled()) end
             if control.dirty then return end
             local config=Config();local value=config and config[spec.key];local regions=Regions(spec.key)
             local nativeSize,nativeFlags

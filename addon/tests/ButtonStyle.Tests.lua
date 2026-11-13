@@ -519,7 +519,11 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     CheckSkin(menu,"thin");CheckSkin(close,"thin")
     for _,frame in ipairs(frames) do assert(not frame.scripts.OnUpdate,"Appearance added polling") end
     WoWTools.modules={};SlashCmdList={}
-    if flavor=="forerver" then dofile(addon.."DisplayFonts.lua"); dofile(addon.."LuaGC.lua") end
+    if flavor=="forerver" then
+        dofile(addon.."ExperienceText.lua")
+        dofile(addon.."DisplayFonts.lua")
+        dofile(addon.."LuaGC.lua")
+    end
     dofile(addon.."inner_graphic_config/Core.lua")
     if flavor=="forerver" then
         local host=CreateFrame("Frame",nil,UIParent)

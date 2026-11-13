@@ -5,6 +5,11 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 # wow_tools
 
+## 无限服剩余双倍经验（2026-11-13）
+
+- 仅 forerver 2.2.78 增加 ExperienceText.lua，统一设置“画面设置 → 字体”的经验值字号后提供默认关闭的“显示剩余双倍经验”勾选框，立即生效并保存为账号 wowDetectorDB.displayFonts.showRestedXP。按用户要求，原文字后追加 `（12345）`，括号内仅无分隔符的十进制整数；GetXPExhaustion 返回 nil 时为 0，失败、受限或非法读值时保留原文字。
+- 使用无限服导出的 StatusTrackingBarManager.barContainers / Experience / OverlayFrame.Text，通过各经验条 SetBarText 安全后钩子保留原生前缀及可见性；经验、双倍、升级、休息、进入世界及插件加载事件刷新并补查晚加载条。关闭即时重建原文字并注销业务事件，已安装钩子只检查开关，无轮询或字体钩子。字体保存、恢复、草稿和每次加载一次逻辑沿用。ExperienceText、DisplayFonts 与 ForeverCompatibility 使用 Lua5.1 模拟覆盖纯数字、0/非法/受限、原生重写、别名/晚加载、多条/重载、字号后的开关及完整设置入口；推送后仅部署 forerver。
+
 ## 无限服设置初始化中断修复（2026-11-13）
 
 - forerver 2.2.77 根据客户端 !Pig 保存的 PetTamer.lua 第50、199行错误修复抓宠名单高度计算。无限服 EditBox 提供 GetNumLines、GetFont 和 GetSpacing，GetStringHeight 属于 FontString。统一设置构建抓宠页时的错误导致后续 Settings.Open 和 wow_tools 系统分类没有建立，主图标与喇叭图标右键随后报错。前次2.2.76的隐藏宿主修复继续沿用。

@@ -16,6 +16,8 @@ local function Widget()
     function w:CreateFontString() local x=Widget();widgets[#widgets+1]=x;return x end
     function w:SetText(text) self.text=text end
     function w:GetText() return self.text end
+    function w:SetChecked(value) self.checked=value end
+    function w:GetChecked() return self.checked end
     function w:GetWidth() return self.width or 420 end
     function w:SetPoint(...) self.point={...} end
     function w:ClearAllPoints() self.point=nil end
@@ -57,6 +59,7 @@ MainMenuExpBarText=unrelated
 for i=0,3 do _G["CharacterBag"..i.."Slot"]=nil end
 TimeManagerClockTicker=nil
 local source=root.."/addon/forerver/wow_tools/DisplayFonts.lua"
+dofile(root.."/addon/forerver/wow_tools/ExperienceText.lua")
 dofile(source)
 local module=WoWTools.displayFonts
 local startupFrame=frames[#frames]
@@ -68,6 +71,11 @@ for _,frame in ipairs(frames) do if frame.kind=="EditBox" then inputs=inputs+1 e
 assert(inputs==4, "Each font setting must have only one size input")
 for _,control in ipairs(module.controls) do assert(control.path==nil and control.sizeLabel.text:find("字号",1,true)) end
 assert(experience.writes==0 and bag.writes==0, "Fonts changed before native startup layout")
+local rested=module.controls[1].rested
+assert(rested and not rested:GetChecked() and module.controls[2].rested==nil,
+    "Rested XP checkbox must default off and belong only to the experience row")
+assert(rested.point[1]=="LEFT" and rested.point[2]==module.controls[1].size,
+    "Rested XP checkbox did not follow the experience size input")
 Event("ADDON_LOADED","another_addon")
 assert(experience.writes==0 and bag.writes==0)
 Event("PLAYER_ENTERING_WORLD")
@@ -115,6 +123,15 @@ assert(clock.size==22 and wowDetectorDB.displayFonts.clock.size==22 and bag.writ
 module.controls[4].reset.scripts.OnClick()
 assert(clock.size==11 and clock.flags=="OUTLINE" and clock.path=="Fonts\\clock.ttf" and wowDetectorDB.displayFonts.clock==nil)
 assert(module.Save("clock",20,"OUTLINE"))
+local fontWrites=experience.writes
+rested:SetChecked(true)
+rested.scripts.OnClick(rested)
+assert(wowDetectorDB.displayFonts.showRestedXP==true and experience.writes==fontWrites,
+    "Rested XP toggle failed to save immediately or reapplied a font")
+assert(module.Save("experience",19,""))
+module.Reset("experience")
+assert(wowDetectorDB.displayFonts.showRestedXP==true,
+    "A font save/reset erased the independent rested XP setting")
 -- Recreate the addon with persisted account settings and new native startup fonts.
 local fontDraft=module.controls[1]
 fontDraft.size:SetText("27")
@@ -129,6 +146,10 @@ parent.scripts.OnSizeChanged()
 fontDraft.row.scripts.OnShow()
 assert(module.settingsHeight==642 and fontDraft.size:GetText()=="27" and experience.writes==previousWrites
     and wowDetectorDB.displayFonts.experience==nil, "Font resizing or re-showing lost or applied an unsaved draft")
+rested:SetChecked(false)
+rested.scripts.OnClick(rested)
+assert(fontDraft.dirty and fontDraft.size:GetText()=="27" and not WoWTools.experienceText.IsEnabled(),
+    "Rested XP toggle lost an unsaved font draft")
 WoWTools={};bag=Widget();ammo=Widget();bagCounts={ammo,Widget(),Widget(),Widget()}
 MainMenuBarBackpackButton={FreeSlots=bag}
 for i=0,3 do _G["CharacterBag"..i.."Slot"]={Count=bagCounts[i+1]} end
@@ -138,8 +159,11 @@ StatusTrackingBarManager.barContainers={
     {bars={[4]={OverlayFrame={Text=experienceSecond}}}},
 }
 clock=Widget();clock.path="Fonts\\clock.ttf";clock.size=11;clock.flags="OUTLINE";TimeManagerClockTicker=clock
+dofile(root.."/addon/forerver/wow_tools/ExperienceText.lua")
 dofile(source)
 local reloadedFrame=frames[#frames]
+local reloadedParent=Widget();WoWTools.displayFonts.BuildSettings(reloadedParent)
+assert(not WoWTools.displayFonts.controls[1].rested:GetChecked(), "Disabled rested XP checkbox did not survive reload")
 Event("PLAYER_ENTERING_WORLD")
 assert(bag.size==20 and ammo.size==18 and bag.writes==1 and ammo.writes==1 and experience.writes==0)
 assert(clock.size==20 and clock.writes==1 and clock.path=="Fonts\\clock.ttf" and clock.flags=="OUTLINE", "Clock size was not restored after addon reload")

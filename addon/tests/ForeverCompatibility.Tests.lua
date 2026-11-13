@@ -209,6 +209,20 @@ end
 function UnitName(unit) assert(unit == "softinteract"); return targetName end
 function UnitExists() error("Do not reject GameObjects with UnitExists") end
 local chatMock = dofile(root .. "/addon/tests/BigFootChannel.Mock.lua")
+local originalHook = hooksecurefunc
+function hooksecurefunc(target, method, callback)
+    if type(target) == "table" and method == "SetBarText" then
+        local original = target[method]
+        target[method] = function(self, text) original(self, text); callback(self, text) end
+    else originalHook(target, method, callback) end
+end
+local xpText = widget(nil, nil, "FontString")
+local xpBar = {OverlayFrame = {Text = xpText}}
+function xpBar:SetBarText(text) self.OverlayFrame.Text:SetText(text) end
+function xpBar:UpdateCurrentText() self:SetBarText("100 / 1000") end
+StatusTrackingBarInfo = {BarsEnum = {Experience = 4}}
+StatusTrackingBarManager = {barContainers = {{bars = {[4] = xpBar}}}}
+function GetXPExhaustion() return 12345 end
 for line in io.lines(addon .. "wow_tools.toc") do
     if line:match("%.lua%s*$") or line:match("%.xml%s*$") then
         chatMock.LoadAddonFile(addon .. line:gsub("\\", "/"):gsub("%s+$", ""))
@@ -233,6 +247,16 @@ assert(not panel.shown and not wowDetectorDB.locked, "Monitor did not default of
 assert(cvarWrites == 0, "Port changed graphics automatically")
 assert(gcCalls == 0 and WoWTools.luaGC and #WoWTools.luaGC.views == 1,
     "Lua settings changed GC during addon loading or duplicated the shared settings view")
+local restedControl = WoWTools.displayFonts.controls[1].rested
+assert(restedControl and not restedControl:GetChecked(), "Unified font settings missed the default-off rested XP checkbox")
+restedControl:SetChecked(true)
+restedControl.scripts.OnClick(restedControl)
+assert(xpText:GetText() == "100 / 1000（12345）" and wowDetectorDB.displayFonts.showRestedXP,
+    "The full TOC/settings entry point failed to enable the digits-only rested XP suffix")
+restedControl:SetChecked(false)
+restedControl.scripts.OnClick(restedControl)
+assert(xpText:GetText() == "100 / 1000" and not wowDetectorDB.displayFonts.showRestedXP,
+    "The full TOC/settings checkbox failed to remove the suffix immediately")
 local luaTabs, luaTab = 0, nil
 for _, frame in ipairs(frames) do
     if frame.Text and frame.Text.text == "Lua" then
