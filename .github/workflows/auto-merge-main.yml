@@ -1,0 +1,37 @@
+name: Auto-merge PRs to main
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review, edited]
+
+permissions: {}
+
+jobs:
+  auto-merge:
+    if: >-
+      ${{ !github.event.pull_request.draft &&
+        github.event.pull_request.user.id == github.event.repository.owner.id &&
+        (github.event.action != 'edited' || github.event.changes.base.ref.from != null) }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    concurrency:
+      group: auto-merge-main-${{ github.event.pull_request.number }}
+    steps:
+      - name: Merge when ready
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          pr=$(gh pr view "$PR_NUMBER" --json state,baseRefName,isDraft,headRefOid,autoMergeRequest)
+          if jq -e --arg head "$PR_HEAD_SHA" '
+            select(.state == "OPEN" and .baseRefName == "main"
+              and .isDraft == false and .autoMergeRequest == null
+              and .headRefOid == $head)
+          ' <<< "$pr" >/dev/null; then
+            gh pr merge "$PR_NUMBER" --auto --merge --match-head-commit "$PR_HEAD_SHA"
+          fi
