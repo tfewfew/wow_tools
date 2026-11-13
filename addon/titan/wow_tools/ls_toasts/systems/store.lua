@@ -1,0 +1,281 @@
+local _, addon = ...
+local E, L, C = addon.E, addon.L, addon.C
+
+-- Lua
+local _G = getfenv(0)
+local select = _G.select
+
+-- Mine
+local function EntitlementToast_OnClick(self)
+	if IsModifiedClick("DRESSUP") then
+		if self._data.link then
+			DressUpLink(self._data.link)
+		elseif self._data.entitlement_type == Enum.WoWEntitlementType.Mount then
+			DressUpMount(self._data.entitlement_id)
+		elseif self._data.entitlement_type == Enum.WoWEntitlementType.Battlepet then
+			local speciesID, _, _, _, _, displayID, _, _, _, _, creatureID = C_PetJournal.GetPetInfoByPetID(self._data.entitlement_id)
+			DressUpBattlePet(creatureID, displayID, speciesID)
+		end
+	elseif self._data.entitlement_id then
+		if self._data.entitlement_type == Enum.WoWEntitlementType.Item then
+			local slot = SearchBagsForItem(self._data.entitlement_id)
+			if slot >= 0 then
+				OpenBag(slot)
+			end
+		elseif C.db.profile.types.store.left_click and not InCombatLockdown() then
+			if not CollectionsJournal then
+				CollectionsJournal_LoadUI()
+			end
+
+			if self._data.entitlement_type == Enum.WoWEntitlementType.Mount then
+				SetCollectionsJournalShown(true, COLLECTIONS_JOURNAL_TAB_INDEX_MOUNTS)
+				MountJournal_SelectByMountID(self._data.entitlement_id)
+			elseif self._data.entitlement_type == Enum.WoWEntitlementType.Battlepet then
+				SetCollectionsJournalShown(true, COLLECTIONS_JOURNAL_TAB_INDEX_PETS)
+				PetJournal_SelectPet(PetJournal, self._data.entitlement_id)
+			elseif self._data.entitlement_type == Enum.WoWEntitlementType.Toy then
+				ToyBox.autoPageToCollectedToyID = self._data.entitlement_id
+				SetCollectionsJournalShown(true, COLLECTIONS_JOURNAL_TAB_INDEX_TOYS)
+			elseif self._data.entitlement_type == Enum.WoWEntitlementType.Appearance or self._data.entitlement_type == Enum.WoWEntitlementType.AppearanceSet or self._data.entitlement_type == Enum.WoWEntitlementType.Illusion then
+				SetCollectionsJournalShown(true, COLLECTIONS_JOURNAL_TAB_INDEX_APPEARANCES)
+				WardrobeCollectionFrame_OpenTransmogLink(self._data.link)
+			end
+		end
+	end
+end
+
+local function EntitlementToast_OnEnter(self)
+	if self._data.tooltip_link and self._data.tooltip_link:find("item") then
+		addon.Tooltip:ShowHyperlink(self._data.tooltip_link)
+	end
+end
+
+local function EntitlementToast_SetUp(event, entitlementType, textureID, name, payloadID, payloadLink)
+	local toast, isNew, quality, _
+
+	if payloadLink then
+		local sanitizedLink, originalLink = E:SanitizeLink(payloadLink)
+		toast, isNew = E:GetToast(event, "link", sanitizedLink)
+		if not isNew then return end
+
+		_, _, quality = C_Item.GetItemInfo(originalLink)
+
+		toast._data.link = sanitizedLink
+		toast._data.tooltip_link = originalLink
+	else
+		toast = E:GetToast()
+	end
+
+	if entitlementType == Enum.WoWEntitlementType.Appearance then
+		toast._data.link = "transmogappearance:" .. payloadID
+	elseif entitlementType == Enum.WoWEntitlementType.AppearanceSet then
+		toast._data.link = "transmogset:" .. payloadID
+	elseif entitlementType == Enum.WoWEntitlementType.Illusion then
+		toast._data.link = "transmogillusion:" .. payloadID
+	end
+
+	quality = quality or 1
+	if quality >= C.db.profile.colors.threshold then
+		local color = ITEM_QUALITY_COLORS[quality]
+
+		if C.db.profile.colors.name then
+			name = color.hex .. name .. "|r"
+		end
+
+		if C.db.profile.colors.border then
+			toast.Border:SetVertexColor(color.r, color.g, color.b)
+		end
+
+		if C.db.profile.colors.icon_border then
+			toast.IconBorder:SetVertexColor(color.r, color.g, color.b)
+		end
+	end
+
+	toast:SetBackground("store")
+	toast.Title:SetText(event == "ENTITLEMENT_DELIVERED" and L["BLIZZARD_STORE_PURCHASE_DELIVERED"] or L["YOU_RECEIVED"])
+	toast.Text:SetText(name)
+	toast.Icon:SetTexture(textureID)
+	toast.IconBorder:Show()
+
+	toast._data.entitlement_id = payloadID
+	toast._data.entitlement_type = entitlementType
+	toast._data.event = event
+	toast._data.sound_file = C.db.profile.types.store.sfx and 39517 -- SOUNDKIT.UI_IG_STORE_PURCHASE_DELIVERED_TOAST_01
+	toast._data.vfx = C.db.profile.types.store.vfx
+
+	if C.db.profile.types.store.tooltip then
+		toast:HookScript("OnEnter", EntitlementToast_OnEnter)
+	end
+
+	toast:HookScript("OnClick", EntitlementToast_OnClick)
+	toast:Spawn(addon:GetAnchorIDForType("store"), C.db.profile.types.store.dnd)
+end
+
+local function getItemLink(itemID, textureID)
+	if itemID then
+		if select(5, C_Item.GetItemInfoInstant(itemID)) == textureID then
+			local _, link = C_Item.GetItemInfo(itemID)
+			if link then
+				return link, false
+			end
+
+			return nil, true
+		end
+	end
+
+	return nil, false
+end
+
+local function ENTITLEMENT_DELIVERED(entitlementType, textureID, name, payloadID)
+	if entitlementType == Enum.WoWEntitlementType.Invalid then
+		return
+	end
+
+	local link, tryAgain = getItemLink(payloadID, textureID)
+	if tryAgain then
+		return C_Timer.After(0.25, function() ENTITLEMENT_DELIVERED(entitlementType, textureID, name, payloadID) end)
+	end
+
+	EntitlementToast_SetUp("ENTITLEMENT_DELIVERED", entitlementType, textureID, name, payloadID, link)
+end
+
+local function RAF_ENTITLEMENT_DELIVERED(entitlementType, textureID, name, payloadID)
+	if entitlementType == Enum.WoWEntitlementType.Invalid then
+		return
+	end
+
+	local link, tryAgain = getItemLink(payloadID, textureID)
+	if tryAgain then
+		return C_Timer.After(0.25, function() RAF_ENTITLEMENT_DELIVERED(entitlementType, textureID, name, payloadID) end)
+	end
+
+	EntitlementToast_SetUp("RAF_ENTITLEMENT_DELIVERED", entitlementType, textureID, name, payloadID, link)
+end
+
+local function GuildToast_OnClick()
+	if C.db.profile.types.store.left_click and not InCombatLockdown() then
+		if not GuildFrame or not GuildFrame:IsShown() then
+			ToggleGuildFrame()
+		end
+
+		CommunitiesFrame:SetDisplayMode(COMMUNITIES_FRAME_DISPLAY_MODES.GUILD_INFO)
+	end
+end
+
+local function GuildToast_SetUp(event, guildName)
+	local toast = E:GetToast()
+
+	toast:SetBackground("store")
+	toast.Title:SetText(L["GUILD_RENAMED"])
+	toast.Text:SetText(guildName)
+	toast.Icon:SetAtlas("tokens-guildChangeName-regular")
+	toast.IconBorder:Show()
+
+	toast._data.event = event
+	toast._data.sound_file = C.db.profile.types.store.sfx and 39517 -- SOUNDKIT.UI_IG_STORE_PURCHASE_DELIVERED_TOAST_01
+	toast._data.vfx = C.db.profile.types.store.vfx
+
+	toast:HookScript("OnClick", GuildToast_OnClick)
+	toast:Spawn(addon:GetAnchorIDForType("store"), C.db.profile.types.store.dnd)
+end
+
+local function REQUESTED_GUILD_RENAME_RESULT(guildName, status)
+	if status == Enum.GuildErrorType.Success then
+		GuildToast_SetUp("REQUESTED_GUILD_RENAME_RESULT", guildName)
+	end
+end
+
+local function Enable()
+	if C.db.profile.types.store.enabled then
+		E:RegisterEvent("ENTITLEMENT_DELIVERED", ENTITLEMENT_DELIVERED)
+		E:RegisterEvent("RAF_ENTITLEMENT_DELIVERED", RAF_ENTITLEMENT_DELIVERED)
+		E:RegisterEvent("REQUESTED_GUILD_RENAME_RESULT", REQUESTED_GUILD_RENAME_RESULT)
+	end
+end
+
+local function Disable()
+	E:UnregisterEvent("ENTITLEMENT_DELIVERED", ENTITLEMENT_DELIVERED)
+	E:UnregisterEvent("RAF_ENTITLEMENT_DELIVERED", RAF_ENTITLEMENT_DELIVERED)
+	E:UnregisterEvent("REQUESTED_GUILD_RENAME_RESULT", REQUESTED_GUILD_RENAME_RESULT)
+end
+
+local function Test()
+	-- WoW Token
+	local name, link, _, _, _, _, _, _, _, icon = C_Item.GetItemInfo(122270)
+	if link then
+		EntitlementToast_SetUp("ENTITLEMENT_TEST", Enum.WoWEntitlementType.Item, icon, name, 122270, link)
+	end
+
+	-- Guild Rename Test
+	GuildToast_SetUp("GUILD_RENAME_TEST", "Guild Rename Test")
+end
+
+E:RegisterOptions("store", {
+	enabled = true,
+	dnd = false,
+	sfx = true,
+	vfx = true,
+	tooltip = true,
+	left_click = false,
+}, {
+	name = L["BLIZZARD_STORE"],
+	get = function(info)
+		return C.db.profile.types.store[info[#info]]
+	end,
+	set = function(info, value)
+		C.db.profile.types.store[info[#info]] = value
+	end,
+	args = {
+		enabled = {
+			order = 1,
+			type = "toggle",
+			name = L["ENABLE"],
+			set = function(_, value)
+				C.db.profile.types.store.enabled = value
+
+				if value then
+					Enable()
+				else
+					Disable()
+				end
+			end,
+		},
+		dnd = {
+			order = 2,
+			type = "toggle",
+			name = L["DND"],
+			desc = L["DND_DESC"],
+		},
+		sfx = {
+			order = 3,
+			type = "toggle",
+			name = L["SFX"],
+		},
+		vfx = {
+			order = 4,
+			type = "toggle",
+			name = L["VFX"],
+		},
+		tooltip = {
+			order = 5,
+			type = "toggle",
+			name = L["TOOLTIPS"],
+		},
+		left_click = {
+			order = 6,
+			type = "toggle",
+			name = L["HANDLE_LEFT_CLICK"],
+			desc = L["TAINT_WARNING"],
+			image = "Interface\\DialogFrame\\UI-Dialog-Icon-AlertNew",
+		},
+		test = {
+			type = "execute",
+			order = 99,
+			width = "full",
+			name = L["TEST"],
+			func = Test,
+		},
+	},
+})
+
+E:RegisterSystem("store", Enable, Disable, Test)

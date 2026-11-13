@@ -1,53 +1,41 @@
--- ls_Toasts by lightspark, imported from the installed Forever 16001 package.
-local module = { sourceVersion = "16001" }
-WoWTools.lsToasts = module
+local _, addon = ...
+addon = addon or {}
+addon.sourceVersion = "120105.05"
+addon.sourceCommit = "355774b11757b46ed3bb4c784ad7145f03e43871"
+WoWTools.lsToasts = addon
 
-function module.GetSettings()
-    if type(wowDetectorDB) ~= "table" then
-        wowDetectorDB = {}
-    end
-    if type(wowDetectorDB.lsToasts) ~= "table" then
-        wowDetectorDB.lsToasts = {}
-    end
+function addon.GetSettings()
+    wowDetectorDB = wowDetectorDB or {}
+    wowDetectorDB.lsToasts = wowDetectorDB.lsToasts or {}
     local settings = wowDetectorDB.lsToasts
-    if type(settings.db) ~= "table" then
-        settings.db = {}
+    settings.db = settings.db or {}
+    for _, profile in pairs(settings.db.profiles or {}) do
+        if profile.types and profile.types.loot_items then
+            profile.types.loot_item = profile.types.loot_item or profile.types.loot_items
+            profile.types.loot_items = nil
+        end
+        if profile.anchors then
+            profile.version = math.max(profile.version or 0, 1130202)
+        end
     end
     return settings
 end
 
 local function IsShown()
-    if WoWTools.settings then return WoWTools.settings.IsGroupShown("ls_toasts") end
-    local window = LibStub("AceConfigDialog-3.0").OpenFrames.WoWToolsLsToasts
-    return window and window.frame:IsShown() or false
+    return WoWTools.settings and WoWTools.settings.IsGroupShown("ls_toasts") or false
 end
 
 local function Show()
-    if not module.ready then
-        return
+    if addon.ready and not InCombatLockdown() then
+        WoWTools.settings.Open("ls_toasts")
     end
-    if InCombatLockdown() then
-        DEFAULT_CHAT_FRAME:AddMessage("lsToast：请在脱战后打开设置。")
-        return
-    end
-    if WoWTools.settings then WoWTools.settings.Open("ls_toasts")
-    else LibStub("AceConfigDialog-3.0"):Open("WoWToolsLsToasts") end
-end
-
-local function Hide()
-    if WoWTools.settings then WoWTools.settings.HideGroup("ls_toasts"); return end
-    LibStub("AceConfigDialog-3.0"):Close("WoWToolsLsToasts")
 end
 
 WoWTools.modules.ls_toasts = {
     Show = Show,
-    Hide = Hide,
+    Hide = function() WoWTools.settings.HideGroup("ls_toasts") end,
     IsShown = IsShown,
     Toggle = function()
-        if IsShown() then
-            Hide()
-        else
-            Show()
-        end
+        if IsShown() then WoWTools.settings.HideGroup("ls_toasts") else Show() end
     end,
 }

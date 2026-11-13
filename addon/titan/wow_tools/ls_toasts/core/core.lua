@@ -1,113 +1,217 @@
-local addonName, addonTable = "WoWToolsLsToasts", WoWTools.lsToasts
-local C, L = addonTable.C, addonTable.L
+local _, addon = ...
+local addonName = "ls_Toasts"
 
 -- Lua
 local _G = getfenv(0)
 local error = _G.error
 local geterrorhandler = _G.geterrorhandler
+local issecurevariable = _G.issecurevariable
 local next = _G.next
+local pairs = _G.pairs
 local s_format = _G.string.format
 local s_match = _G.string.match
 local s_split = _G.string.split
+local setmetatable = _G.setmetatable
 local t_concat = _G.table.concat
-local t_remove = _G.table.remove
+local t_insert = _G.table.insert
+local t_sort = _G.table.sort
 local tonumber = _G.tonumber
 local type = _G.type
 local xpcall = _G.xpcall
 
 -- Mine
-local E, P = {}, {}
-addonTable.E, addonTable.P = E, P
-
-function E:IsReadable(value)
-    return not issecretvalue or not issecretvalue(value)
-end
+local E, P, C, D, L = {}, {}, {}, {}, {}
+addon.E, addon.P, addon.C, addon.D, addon.L = E, P, C, D, L
 
 _G[addonName] = {
-    [1] = E,
-    [2] = C,
-    [3] = L,
+	[1] = E,
+	[2] = C,
+	[3] = L,
 }
-_G.ls_Toasts = _G[addonName]
 
 do
-    local oneTimeEvents = { ADDON_LOADED = false, PLAYER_LOGIN = false }
-    local registeredEvents = {}
+	local _, _, _, toc = GetBuildInfo()
+	addon.GAMEVERSION = {
+		[         "Vanilla"] = toc < 16000,
+		[         "Forever"] = toc >= 16000 and toc < 20000,
+		[  "BurningCrusade"] = toc >= 20000 and toc < 30000,
+		[           "Wrath"] = toc >= 30000 and toc < 40000,
+		[   "TitanReforged"] = toc >= 38000 and toc < 40000,
+		[       "Cataclysm"] = toc >= 40000 and toc < 50000,
+		[           "Mists"] = toc >= 50000 and toc < 60000,
+		[        "Warlords"] = toc >= 60000 and toc < 70000,
+		[          "Legion"] = toc >= 70000 and toc < 80000,
+		["BattleForAzeroth"] = toc >= 80000 and toc < 90000,
+		[     "Shadowlands"] = toc >= 90000 and toc < 100000,
+		[    "Dragonflight"] = toc >= 100000 and toc < 110000,
+		[       "WarWithin"] = toc >= 110000 and toc < 120000,
+		[        "Midnight"] = toc >= 120000 and toc < 130000,
+		[       "LastTitan"] = toc >= 130000 and toc < 140000,
+		-- keep retail as its own entry
+		[        "Standard"] = toc >= 120000,
+	}
+end
 
-    local dispatcher = CreateFrame("Frame")
-    dispatcher:SetScript("OnEvent", function(_, event, ...)
-        for func in next, registeredEvents[event] or {} do
-            func(...)
-        end
+do
+	local oneTimeEvents = {ADDON_LOADED = false, PLAYER_LOGIN = false}
+	local registeredEvents = {}
 
-        if oneTimeEvents[event] == false then
-            oneTimeEvents[event] = true
-        end
-    end)
+	local dispatcher = CreateFrame("Frame")
+	dispatcher:SetScript("OnEvent", function(_, event, ...)
+		for func in next, registeredEvents[event] do
+			func(...)
+		end
 
-    function E:RegisterEvent(event, func, unit1, unit2)
-        if oneTimeEvents[event] then
-            error(s_format("Failed to register for '%s' event, already fired!", event), 3)
-        end
+		if oneTimeEvents[event] == false then
+			oneTimeEvents[event] = true
+		end
+	end)
 
-        if not func or type(func) ~= "function" then
-            error(s_format("Failed to register for '%s' event, no handler!", event), 3)
-        end
+	function E:RegisterEvent(event, func, unit1, unit2)
+		if oneTimeEvents[event] then
+			error(s_format("Failed to register for '%s' event, already fired!", event), 3)
+		end
 
-        if not registeredEvents[event] then
-            registeredEvents[event] = {}
+		if not func or type(func) ~= "function" then
+			error(s_format("Failed to register for '%s' event, no handler!", event), 3)
+		end
 
-            if unit1 then
-                P:Call(dispatcher.RegisterUnitEvent, dispatcher, event, unit1, unit2)
-            else
-                P:Call(dispatcher.RegisterEvent, dispatcher, event)
-            end
-        end
+		if not registeredEvents[event] then
+			registeredEvents[event] = {}
 
-        registeredEvents[event][func] = true
-    end
+			if unit1 then
+				P:Call(dispatcher.RegisterUnitEvent, dispatcher, event, unit1, unit2)
+			else
+				P:Call(dispatcher.RegisterEvent, dispatcher, event)
+			end
+		end
 
-    function E:UnregisterEvent(event, func)
-        local funcs = registeredEvents[event]
+		registeredEvents[event][func] = true
+	end
 
-        if funcs and funcs[func] then
-            funcs[func] = nil
+	function E:UnregisterEvent(event, func)
+		local funcs = registeredEvents[event]
 
-            if not next(funcs) then
-                registeredEvents[event] = nil
+		if funcs and funcs[func] then
+			funcs[func] = nil
 
-                P:Call(dispatcher.UnregisterEvent, dispatcher, event)
-            end
-        end
-    end
+			if not next(funcs) then
+				registeredEvents[event] = nil
+
+				P:Call(dispatcher.UnregisterEvent, dispatcher, event)
+			end
+		end
+	end
 end
 
 function P:UpdateTable(src, dest)
-    if type(dest) ~= "table" then
-        dest = {}
-    end
+	if type(dest) ~= "table" then
+		dest = {}
+	end
 
-    for k, v in next, src do
-        if type(v) == "table" then
-            dest[k] = self:UpdateTable(v, dest[k])
-        else
-            if dest[k] == nil then
-                dest[k] = v
-            end
-        end
-    end
+	for k, v in next, src do
+		if type(v) == "table" then
+			dest[k] = self:UpdateTable(v, dest[k])
+		else
+			if dest[k] == nil then
+				dest[k] = v
+			end
+		end
+	end
 
-    return dest
+	return dest
+end
+
+function addon:UpdateTable(src, dest)
+	for k, v in next, src do
+		if type(v) == "table" then
+			self:UpdateTable(v, dest[k])
+		else
+			dest[k] = v
+		end
+	end
+end
+
+function addon:CopyTable(src, dest, ignore)
+	if type(dest) ~= "table" then
+		dest = {}
+	end
+
+	for k, v in next, src do
+		if not ignore or not ignore[k] then
+			if type(v) == "table" then
+				dest[k] = self:CopyTable(v, dest[k])
+			else
+				dest[k] = v
+			end
+		end
+	end
+
+	return dest
+end
+
+-- a copy of removeDefaults from AceDB-3.0
+function addon:DiffTable(dest, src, blocker)
+	setmetatable(dest, nil)
+
+	for k, v in pairs(src) do
+		if k == "*" or k == "**" then
+			if type(v) == "table" then
+				for key, value in pairs(dest) do
+					if type(value) == "table" then
+						if src[key] == nil and (not blocker or blocker[key] == nil) then
+							addon:DiffTable(value, v)
+
+							if next(value) == nil then
+								dest[key] = nil
+							end
+						elseif k == "**" then
+							addon:DiffTable(value, v, src[key])
+						end
+					end
+				end
+			elseif k == "*" then
+				for key, value in pairs(dest) do
+					if src[key] == nil and v == value then
+						dest[key] = nil
+					end
+				end
+			end
+		elseif type(v) == "table" and type(dest[k]) == "table" then
+			addon:DiffTable(dest[k], v, blocker and blocker[k])
+
+			if next(dest[k]) == nil then
+				dest[k] = nil
+			end
+		else
+			if dest[k] == src[k] and (not blocker or blocker[k] == nil) then
+				dest[k] = nil
+			end
+		end
+	end
+end
+
+function addon:PurgeKey(t, k)
+	t[k] = nil
+
+	local c = 42
+	repeat
+		if t[c] == nil then
+			t[c] = nil
+		end
+
+		c = c + 1
+	until issecurevariable(t, k)
 end
 
 do
-    local function errorHandler(err)
-        return geterrorhandler()(err)
-    end
+	local function errorHandler(err)
+		return geterrorhandler()(err)
+	end
 
-    function P:Call(func, ...)
-        return xpcall(func, errorHandler, ...)
-    end
+	function P:Call(func, ...)
+		return xpcall(func, errorHandler, ...)
+	end
 end
 
 -- Libs
@@ -117,116 +221,193 @@ P.CallbackHandler = LibStub("CallbackHandler-1.0"):New(E)
 -- HELPERS --
 -------------
 
-function E:SanitizeLink(link)
-    if not self:IsReadable(link) or type(link) ~= "string" or link == "[]" or link == "" then
-        return
-    end
+function E:GetScreenQuadrant(frame)
+	local x, y = frame:GetCenter()
 
-    local temp, name = s_match(link, "|H(.+)|h%[(.+)%]|h")
-    link = temp or link
+	if not (x and y) then
+		return "UNKNOWN"
+	end
 
-    local linkTable = { s_split(":", link) }
+	local screenWidth = UIParent:GetRight()
+	local screenHeight = UIParent:GetTop()
+	local screenLeft = screenWidth / 3
+	local screenRight = screenWidth * 2 / 3
 
-    if linkTable[1] ~= "item" then
-        return link, link, linkTable[1], tonumber(linkTable[2]), name
-    end
-
-    if linkTable[12] ~= "" then
-        linkTable[12] = ""
-
-        t_remove(linkTable, 15 + (tonumber(linkTable[14]) or 0))
-    end
-
-    return t_concat(linkTable, ":"), link, linkTable[1], tonumber(linkTable[2]), name
+	if y >= screenHeight * 2 / 3 then
+		if x <= screenLeft then
+			return "TOPLEFT"
+		elseif x >= screenRight then
+			return "TOPRIGHT"
+		else
+			return "TOP"
+		end
+	elseif y <= screenHeight / 3 then
+		if x <= screenLeft then
+			return "BOTTOMLEFT"
+		elseif x >= screenRight then
+			return "BOTTOMRIGHT"
+		else
+			return "BOTTOM"
+		end
+	else
+		if x <= screenLeft then
+			return "LEFT"
+		elseif x >= screenRight then
+			return "RIGHT"
+		else
+			return "CENTER"
+		end
+	end
 end
 
-function E:GetScreenQuadrant(frame)
-    local x, y = frame:GetCenter()
+-----------
+-- ITEMS --
+-----------
 
-    if not (x and y) then
-        return "UNKNOWN"
-    end
+do
+	local itemCache = {}
 
-    local screenWidth = UIParent:GetRight()
-    local screenHeight = UIParent:GetTop()
-    local screenLeft = screenWidth / 3
-    local screenRight = screenWidth * 2 / 3
+	if addon.GAMEVERSION.Standard then
+		local ILVL_LINE = Enum.TooltipDataLineType.ItemLevel
+		local ILVL_PATTERN = "(%d+)"
 
-    if y >= screenHeight * 2 / 3 then
-        if x <= screenLeft then
-            return "TOPLEFT"
-        elseif x >= screenRight then
-            return "TOPRIGHT"
-        else
-            return "TOP"
-        end
-    elseif y <= screenHeight / 3 then
-        if x <= screenLeft then
-            return "BOTTOMLEFT"
-        elseif x >= screenRight then
-            return "BOTTOMRIGHT"
-        else
-            return "BOTTOM"
-        end
-    else
-        if x <= screenLeft then
-            return "LEFT"
-        elseif x >= screenRight then
-            return "RIGHT"
-        else
-            return "CENTER"
-        end
-    end
+		function E:GetItemLevel(itemLink)
+			local _, _, _, _, _, _, _, _, itemEquipLoc = C_Item.GetItemInfo(itemLink)
+			if not itemEquipLoc or itemEquipLoc == "INVTYPE_NON_EQUIP_IGNORE" then
+				return 0
+			end
+
+			if itemCache[itemLink] then
+				return itemCache[itemLink]
+			end
+
+			local data = C_TooltipInfo.GetHyperlink(itemLink, nil, nil, true)
+			if not data then
+				return 0
+			end
+
+			local ilvl
+			for _, line in next, data.lines do
+				if line.type == ILVL_LINE then
+					ilvl = line.leftText:match(ILVL_PATTERN)
+					if ilvl then
+						ilvl = tonumber(ilvl:trim())
+					end
+
+					break
+				end
+			end
+
+			itemCache[itemLink] = ilvl
+
+			return ilvl or 0
+		end
+	elseif addon.GAMEVERSION.Forever then
+		function E:GetItemLevel(itemLink)
+			local _, _, _, _, _, _, _, _, itemEquipLoc = C_Item.GetItemInfo(itemLink)
+			if not itemEquipLoc or itemEquipLoc == "INVTYPE_NON_EQUIP_IGNORE" then
+				return 0
+			end
+
+			if itemCache[itemLink] then
+				return itemCache[itemLink]
+			end
+
+			local ilvl = C_Item.GetDetailedItemLevelInfo(itemLink)
+
+			itemCache[itemLink] = ilvl
+
+			return ilvl or 0
+		end
+	end
 end
 
 do
-    local slots = {
-        ["INVTYPE_HEAD"] = { INVSLOT_HEAD },
-        ["INVTYPE_NECK"] = { INVSLOT_NECK },
-        ["INVTYPE_SHOULDER"] = { INVSLOT_SHOULDER },
-        ["INVTYPE_CHEST"] = { INVSLOT_CHEST },
-        ["INVTYPE_ROBE"] = { INVSLOT_CHEST },
-        ["INVTYPE_WAIST"] = { INVSLOT_WAIST },
-        ["INVTYPE_LEGS"] = { INVSLOT_LEGS },
-        ["INVTYPE_FEET"] = { INVSLOT_FEET },
-        ["INVTYPE_WRIST"] = { INVSLOT_WRIST },
-        ["INVTYPE_HAND"] = { INVSLOT_HAND },
-        ["INVTYPE_FINGER"] = { INVSLOT_FINGER1, INVSLOT_FINGER2 },
-        ["INVTYPE_TRINKET"] = { INVSLOT_TRINKET1, INVSLOT_TRINKET2 },
-        ["INVTYPE_CLOAK"] = { INVSLOT_BACK },
-        ["INVTYPE_WEAPON"] = { INVSLOT_MAINHAND, INVSLOT_OFFHAND },
-        ["INVTYPE_2HWEAPON"] = { INVSLOT_MAINHAND },
-        ["INVTYPE_WEAPONMAINHAND"] = { INVSLOT_MAINHAND },
-        ["INVTYPE_HOLDABLE"] = { INVSLOT_OFFHAND },
-        ["INVTYPE_SHIELD"] = { INVSLOT_OFFHAND },
-        ["INVTYPE_WEAPONOFFHAND"] = { INVSLOT_OFFHAND },
-        ["INVTYPE_RANGED"] = { INVSLOT_RANGED },
-        ["INVTYPE_RANGEDRIGHT"] = { INVSLOT_RANGED },
-        ["INVTYPE_RELIC"] = { INVSLOT_RANGED },
-        ["INVTYPE_THROWN"] = { INVSLOT_RANGED },
-    }
+	local cache = {}
 
-    function E:GetItemLevel(itemLink)
-        local _, _, _, _, _, _, _, _, itemEquipLoc, _, _, itemClassID, itemSubClassID =
-            C_Item.GetItemInfo(itemLink)
+	function E:SanitizeLink(link)
+		if not link or link == "[]" or link == "" then
+			return
+		end
 
-        -- 3:11 is artefact relic
-        if (itemClassID == 3 and itemSubClassID == 11) or slots[itemEquipLoc] then
-            return C_Item.GetDetailedItemLevelInfo(itemLink) or 0
-        end
+		local temp, name = s_match(link, "|H(.+)|h%[(.+)%]|h")
+		link = temp or link
 
-        return 0
-    end
+		local info = cache[link]
+		if not info then
+			local linkTable = {s_split(":", link)}
+			if linkTable[1] ~= "item" then
+				return link, link, linkTable[1], tonumber(linkTable[2]), name
+			end
+
+			-- sort bonuses
+			local numBonusIDs = tonumber(linkTable[14])
+			if numBonusIDs then
+				local tmp = {}
+				for i = 15, 14 + numBonusIDs do
+					t_insert(tmp, tonumber(linkTable[i]))
+				end
+
+				t_sort(tmp)
+
+				for i = 1, #tmp do
+					linkTable[14 + i] = tmp[i]
+				end
+			else
+				numBonusIDs = 0
+			end
+
+			-- remove modifiers due to inconsistencies
+			local numModifiers = tonumber(linkTable[15 + numBonusIDs])
+			if numModifiers then
+				linkTable[15 + numBonusIDs] = ""
+
+				for i = 16 + numBonusIDs, 16 + numBonusIDs + numModifiers * 2 - 1 do
+					linkTable[i] = ""
+				end
+			end
+
+			cache[link] = {
+				table = linkTable,
+				string = t_concat(linkTable, ":"),
+				id = tonumber(linkTable[2]),
+			}
+
+			info = cache[link]
+		end
+
+		-- only item links get this far
+		return info.string, link, "item", info.id, name
+	end
 end
 
-function E:SearchBagsForItemID(itemID)
-    for i = 0, NUM_BAG_SLOTS do
-        for j = 1, C_Container.GetContainerNumSlots(i) do
-            if C_Container.GetContainerItemID(i, j) == itemID then
-                return i, j
-            end
-        end
-    end
+-------------
+-- COLOURS --
+-------------
 
-    return -1, -1
+do
+	local color_proto = {}
+
+	function color_proto:GetHex()
+		return self.hex
+	end
+
+	-- override ColorMixin:GetRGBA
+	function color_proto:GetRGBA(a)
+		return self.r, self.g, self.b, a or self.a
+	end
+
+	function addon:CreateColor(r, g, b, a)
+		if r > 1 or g > 1 or b > 1 then
+			r, g, b = r / 255, g / 255, b / 255
+		end
+
+		local color = Mixin({}, ColorMixin, color_proto)
+		color:SetRGBA(r, g, b, a)
+
+		-- do not override SetRGBA, so calculate hex separately
+		color.hex = color:GenerateHexColor()
+
+		return color
+	end
 end

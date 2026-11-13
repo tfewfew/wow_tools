@@ -96,8 +96,27 @@ libraries["AceLocale-3.0"] = {
 }
 local function FillDefaults(values, defaults)
     for key, value in pairs(defaults) do
-        if type(value) == "table" then values[key] = values[key] or {}; FillDefaults(values[key], value)
-        elseif values[key] == nil then values[key] = value end
+        if key ~= "*" and key ~= "**" then
+            if type(value) == "table" then values[key] = values[key] or {}; FillDefaults(values[key], value)
+            elseif values[key] == nil then values[key] = value end
+        end
+    end
+    local wildcard = defaults["**"] or defaults["*"]
+    if wildcard ~= nil then
+        if type(wildcard) == "table" then
+            for key, value in pairs(values) do
+                if type(value) == "table" and (defaults["**"] or defaults[key] == nil) then FillDefaults(value, wildcard) end
+            end
+        end
+        setmetatable(values, {__index=function(self, key)
+            if type(wildcard) == "table" then
+                local value = {}
+                FillDefaults(value, wildcard)
+                rawset(self, key, value)
+                return value
+            end
+            return wildcard
+        end})
     end
 end
 local function Database(raw, defaults, profileName)

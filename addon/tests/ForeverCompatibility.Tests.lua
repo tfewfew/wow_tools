@@ -451,7 +451,7 @@ assert(#registeredCategories == 1 and #addonCategories == 1 and addonCategories[
 for _, group in ipairs(unified.groups) do assert(unified.tabs[group.key] and unified.pages[group.key]) end
 WoWTools.modules.ls_toasts.Toggle()
 assert(WoWTools.modules.ls_toasts.IsShown(), "Toast settings menu did not open")
-assert(chatMock.customContainers.WoWToolsLsToasts and not LibStub("AceConfigDialog-3.0").OpenFrames.WoWToolsLsToasts,
+assert(chatMock.customContainers.ls_Toasts and not LibStub("AceConfigDialog-3.0").OpenFrames.ls_Toasts,
     "Toast settings escaped into a standalone Ace window")
 WoWTools.modules.ls_toasts.Toggle()
 assert(not WoWTools.modules.ls_toasts.IsShown(), "Toast settings menu did not close")
@@ -649,3 +649,4 @@ speaker.scripts.OnClick(speaker, "RightButton")
 assert(unified.window:IsVisible() and unified.IsGroupShown("sound_control"),
     "Speaker right click attached settings to a hidden native settings ancestor")
 print("PASS: "..flavor.." full TOC, seven unified settings tabs, one direct native category, minimap/IGC/chat/toast shortcuts, shared canvas/drafts, embedded Ace refresh/combat, sound teardown, detector isolation, fishing/loot/death protocols and FPS placement. All client APIs mocked.")
+return chatMock

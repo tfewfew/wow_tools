@@ -9,13 +9,30 @@ bit={band=function(left,right)
     end
     return result
 end}
+local namespace = {}
+Enum={EditModeSettingDisplayType={Checkbox=1,Slider=2,Dropdown=3,Divider=4}}
+EDIT_MODE_MODERN_SYSTEM_MAP,EDIT_MODE_CLASSIC_SYSTEM_MAP={},{}
+local function Copy(values)
+    local result={}
+    for key,value in pairs(values) do result[key]=type(value)=="table" and Copy(value) or value end
+    return result
+end
+CopyTable=Copy
+EventRegistry={RegisterCallback=function() end,RegisterFrameEventAndCallback=function() end}
+EditModeManagerFrame=CreateFrame("Frame")
+EditModeManagerFrame.HookScript=function() end
+EditModeSystemSettingsDialog=CreateFrame("Frame")
+EditModeSystemSettingsDialog.HookScript=function() end
+CreateUnsecuredObjectPool=function(create)
+    return {Acquire=function() return create(),true end,ReleaseAll=function() end}
+end
 local function LoadXML(path)
     local file=assert(io.open(path));local xml=file:read("*a");file:close()
     xml=xml:gsub("<!%-%-.-%-%->", "")
     local directory=path:match("^(.*[/\\])")
-    for tag,relative in xml:gmatch('<(%w+)%s+file="([^"]+)"') do
+    for tag,relative in xml:gmatch("<(%w+)%s+file=['\"]([^'\"]+)['\"]") do
         local child=directory..relative:gsub("\\","/")
-        if tag=="Include" then LoadXML(child) elseif tag=="Script" then dofile(child) end
+        if tag=="Include" then LoadXML(child) elseif tag=="Script" then assert(loadfile(child))("wow_tools",namespace) end
     end
 end
 LoadXML(root.."/addon/"..flavor.."/wow_tools/ls_toasts/embeds/_embeds.xml")
@@ -25,6 +42,8 @@ assert(media:Fetch("font",media:GetDefault("font")))
 assert(gui.WidgetRegistry.LSPreviewBoxItem,"Toast item-filter preview widget missing")
 assert(gui.WidgetRegistry.LSM30_Font,"Toast font widget missing")
 assert(gui.WidgetRegistry.LSM30_Sound,"Toast sound widget missing")
+assert(namespace.LibEditMode.hookVersion==19 and namespace.LibEditMode.AddFrame and namespace.LibEditMode.SettingType.ColorPicker,
+    "Real edit-mode dependency did not initialize")
 LoadXML(root.."/addon/"..flavor.."/wow_tools/ls_toasts/embeds/_embeds.xml")
 assert(LibStub("LibSharedMedia-3.0")==media,"Duplicate toast dependencies replaced shared media")
 print("PASS: real embedded lsToast SharedMedia/font/sound/item-preview dependencies load alongside the shared Ace3 registry and support repeated loads. Offline APIs only.")
