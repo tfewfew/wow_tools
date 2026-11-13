@@ -14,16 +14,6 @@ local groups = {
 settings.groups = groups
 local selected = "wowDetector"
 
-local function TabLabel(label)
-    local characters = {}
-    for character in label:gmatch("[\1-\127\194-\244][\128-\191]*") do
-        characters[#characters + 1] = character
-    end
-    local firstLineLength = math.ceil(#characters / 2)
-    return table.concat(characters, "", 1, firstLineLength) .. "\n"
-        .. table.concat(characters, "", firstLineLength + 1)
-end
-
 local window = CreateFrame("Frame", "WoWToolsSettingsWindow", UIParent, "BasicFrameTemplateWithInset")
 window:SetSize(980, 680)
 window:SetPoint("CENTER")
@@ -138,7 +128,8 @@ for _, group in ipairs(groups) do
     page:Hide()
     settings.pages[key] = page
     local tab = CreateFrame("Button", nil, canvas, "MinimalTabTemplate")
-    tab.Text:SetText(TabLabel(group.label))
+    tab.Text:SetText(group.label)
+    tab.Text:SetWordWrap(false)
     tab.Text:SetJustifyH("CENTER")
     tabGroup:AddButton(tab)
     tab:HookScript("OnClick", function() Select(key) end)

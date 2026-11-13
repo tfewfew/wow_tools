@@ -42,7 +42,7 @@ local function widget(name, parent, kind)
     function object:RegisterEvent(event) self.events[event] = true end
     function object:UnregisterEvent(event) self.events[event] = nil end
     function object:CreateTexture()
-        local texture = widget(nil, self)
+        local texture = widget(nil, self, "Texture")
         self.textures[#self.textures + 1] = texture
         return texture
     end
@@ -90,6 +90,11 @@ local function widget(name, parent, kind)
     function object:GetFont() return "mock-font", 12, "" end
     if kind == "FontString" then
         function object:GetStringHeight() return 36 end
+        function object:GetStringWidth() return #self.text * 8 end
+        function object:SetWordWrap(value) self.wordWrap = value end
+        function object:SetMaxLines(value) self.maxLines = value end
+    elseif kind == "Texture" then
+        function object:SetRotation(value) self.rotation = value end
     elseif kind == "EditBox" then
         function object:GetNumLines()
             local _, newlines = self.text:gsub("\n", "")
@@ -113,6 +118,7 @@ local function widget(name, parent, kind)
     function object:GetValue() return self.value end
     function object:GetThumbTexture() self.thumb = self.thumb or widget(nil, self); return self.thumb end
     function object:IsEnabled() return self.enabled end
+    function object:IsMouseOver() return false end
     function object:SetupMenu(generator) self.generator = generator end
     function object:GenerateMenu()
         self.generator(self, {SetScrollMode=function() end, CreateRadio=function() end})
@@ -281,6 +287,11 @@ for _, name in ipairs({"wowDetector", "fight_detector", "pet_tamer"}) do
     assert(type(WoWTools.modules[name]) == "table", "Missing module export " .. name)
 end
 assert(WoWTools.settings and type(WoWTools.settings.Open) == "function", "Missing settings interface")
+for _, group in ipairs(WoWTools.settings.groups) do
+    local tab = WoWTools.settings.tabs[group.key]
+    assert(tab.Text:GetText() == group.label and tab.Text.wordWrap == false,
+        "Primary tab label is not a single unwrapped line")
+end
 assert(WoWTools.settings.pages.third_party and WoWTools.modules.third_party.BuildSettings,
     "Missing third-party settings interface")
 assert(#WoWTools.thirdParty.entries == (flavor == "forerver" and 3 or 2), "Wrong client plugin list")
@@ -292,11 +303,24 @@ else
 end
 if flavor == "forerver" then
     assert(WoWTools.foreverFaces ~= WoWTools.lsToasts, "Portrait and toast namespaces overlap")
+    assert(WoWTools.settings.pages.forever_faces and WoWTools.modules.forever_faces == WoWTools.foreverFaces,
+        "Missing unified portrait settings page or module")
+    assert(WoWTools.settings.pages.forever_faces.frame == WoWTools.foreverFaces.settingsPanel,
+        "Portrait settings page did not use the embedded settings interface")
+    assert(WoWTools.foreverFaces.ToggleWindow == WoWTools.foreverFaces.Toggle,
+        "Portrait legacy settings entry did not use the unified interface")
     assert(WoWTools.foreverFaces.DB() == wowDetectorDB.foreverFaces.db, "Portrait persistence binding failed")
     if not TEST_THIRD_PARTY_DISABLED then
         WoWTools.foreverFaces.InitLevelCircle()
         WoWTools.foreverFaces.InitPortraits()
         WoWTools.foreverFaces.InitUI()
+        local portraitPanel = WoWTools.foreverFaces.settingsPanel
+        local isVisible = portraitPanel.IsVisible
+        portraitPanel.IsVisible = function() return true end
+        WoWTools.foreverFaces.RefreshSettings()
+        portraitPanel.IsVisible = isVisible
+        assert(ForeverFacesWindow:GetParent() == portraitPanel.content,
+            "Portrait controls did not initialize in the unified settings card")
         local unitPortraitHook = chatMock.hooks.UnitFramePortrait_Update
         assert(type(unitPortraitHook) == "function", "Missing native unit-frame portrait hook")
         local unitFrame = CreateFrame("Frame")
@@ -317,6 +341,7 @@ if flavor == "forerver" then
     end
 else
     assert(not WoWTools.foreverFaces, "Forever portraits loaded on Titan")
+    assert(not WoWTools.settings.pages.forever_faces, "Forever portrait settings registered on Titan")
 end
 assert(#registeredCategories == 1 and #addonCategories == 1, "Settings category interface failed")
 for _, name in ipairs({"WOWDETECTOR", "FIGHTDETECTOR", "WOWTOOLS"}) do
