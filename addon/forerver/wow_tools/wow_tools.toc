@@ -2,7 +2,7 @@
 ## Title: wow_tools (Forever)
 ## Notes-zhCN: 无限服工具合集：钓鱼检测、战斗检测、自动抓宠、声音控制、大脚频道聊天增强、拾取与金币提示、内部画面设置与商店一键卖鱼。
 ## Author: Ray
-## Version: 2.2.78
+## Version: 2.2.79
 ## X-WoWTools-Flavor: forerver
 ## SavedVariables: wowDetectorDB, fightDetectorDB, wowToolsRealmLevels
 ## SavedVariablesPerCharacter: wowToolsCharacterRecord

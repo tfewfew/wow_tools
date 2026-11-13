@@ -19,12 +19,12 @@ for _, flavor in ipairs({"titan", "forerver"}) do
         function object:SetText(text)
             if self.text == text then return end
             self.text = text
-            if flavor == "forerver" and kind == "EditBox" and self.scripts.OnTextChanged then
+            if kind == "EditBox" and self.scripts.OnTextChanged then
                 self.scripts.OnTextChanged(self, false)
             end
         end
         function object:GetText() return self.text end
-        if flavor == "titan" or kind == "FontString" then
+        if kind == "FontString" then
             function object:GetStringHeight() return 100 end
         end
         if kind == "EditBox" then
@@ -78,7 +78,7 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     for _,object in ipairs(widgets) do if object.text=="保存名单" then save=object end end
     assert(not module.IsEnabled() and not signal.shown and not eventFrame.scripts.OnUpdate)
     assert(input.text=="稀有野兽","Saved names were not normalized")
-    if flavor == "forerver" then
+    do
         assert(input.GetStringHeight == nil and input:GetHeight() == 182, "Forever EditBox API or minimum height mismatch")
         input.spacing = 3
         input:SetText(string.rep("宠物\n", 29) .. "宠物")

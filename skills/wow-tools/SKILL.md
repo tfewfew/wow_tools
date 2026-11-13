@@ -5,6 +5,12 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 # wow_tools
 
+## 默认双端功能同步（2026-11-13）
+
+- AGENTS.md 要求新增能力、设置项、界面调整及通用修复同批分别适配 titan / forerver，验证两端入口、TOC、保存与对应模拟测试，成功提交推送后默认以 all 部署。版本号独立维护，各自保留客户端 API、检测协议与账号配置。用户明确指定单端，或原生源码确认某服缺少能力时可保留差异，最终说明原因。以下历史“仅无限服”记录描述当时发布范围，后续维护采用本条默认双端约定。
+- titan 2.1.63 / forerver 2.2.79 补齐字体、纯数字括号双倍经验、五声道与输出设备、大脚聊天、lsToast、Lua 回收参数，以及七页统一设置与自适应布局。按本机 3.80.2.70522 的 classic_titan 导出 7014c309 核对经验条 / MenuUtil / 原生下拉 / 声音 / 聊天接口，背包字号使用 MainMenuBarBackpackButtonCount，弹药使用 CharacterBag0SlotCount 至 CharacterBag3SlotCount，经验使用各 barContainers 的 Experience.OverlayFrame.Text。保留时光服鱼竿附魔、职业、背包、帧率标签及色块实现，抓宠名单采用 EditBox 行数 / 字号 / 行距计算。双端关闭经验后缀时按最后一次原生文本恢复，覆盖时光服 maxBar=0 跳过原生重写的情况。
+- 时光服安装的 BigFoot 与 !!!Libs 被其他插件依赖，继续保留。同步在对应客户端账号目录迁移旧 BigFootChat、ChannelFilter 和 ls_Toasts 设置，验证部署后将这三个重复模块归档；无限服原有退役范围沿用。迁移使用 Lua 字面量解析、备份和原子合并，账号间及客户端间隔离。两端功能与完整设置入口均用离线模拟验证。
+
 ## 无限服剩余双倍经验（2026-11-13）
 
 - 仅 forerver 2.2.78 增加 ExperienceText.lua，统一设置“画面设置 → 字体”的经验值字号后提供默认关闭的“显示剩余双倍经验”勾选框，立即生效并保存为账号 wowDetectorDB.displayFonts.showRestedXP。按用户要求，原文字后追加 `（12345）`，括号内仅无分隔符的十进制整数；GetXPExhaustion 返回 nil 时为 0，失败、受限或非法读值时保留原文字。
@@ -158,7 +164,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 ## 修改与同步顺序
 
 1. 检查 Git 状态、当前分支及远端，保留无关改动。在仓库修改源码及必要说明。
-2. 检查PowerShell及Lua语法；修改内嵌C#时只编译，不运行主循环。验证受影响客户端：titan用addon/tests/LureDetection.Tests.lua，forerver用addon/tests/ForeverCompatibility.Tests.lua；两者Lua5.1模拟运行。同步配置用skills/wow-tools/tests/ClientProfiles.Tests.ps1验证。不要为测试发送真实按键或关闭游戏。
+2. 检查PowerShell及Lua语法；修改内嵌C#时只编译，不运行主循环。默认验证两端：titan用addon/tests/LureDetection.Tests.lua及TitanCompatibility.Tests.lua，forerver用addon/tests/ForeverCompatibility.Tests.lua；新增模块专项通过TEST_FLAVOR分别使用两份独立源码，均以Lua5.1模拟运行。同步配置和两端功能入口用skills/wow-tools/tests/ClientProfiles.Tests.ps1验证，旧配置迁移使用对应迁移测试。不要为测试发送真实按键或关闭游戏。
 3. 每次修改完成都必须创建 Git 提交并推送当前分支到 `origin`，包括代码、配置、文档和维护约定；不能只修改本地或只同步副本。用户已授权此流程，无需逐次索要许可。不强推。推送失败时保留本地提交并报告原因，不同步安装副本，修复后重试。
 4. 推送成功后运行 `skills/wow-tools/scripts/sync-local.ps1`，默认Flavor=all分别同步两服。也可显式-Flavor titan/forerver；GameRoot覆盖必须同时选择一服，all通过TitanGameRoot/ForerverGameRoot各自覆盖。client-profiles.ps1提供独立源码和目标映射，写入前核对所有所选客户端可执行文件的3.80./1.60.版本前缀及源码TOC接口号，拒绝混用同一目录或写入零售版。它核对干净工作区和远端分支提交，再同步插件并校验文件哈希，通过install-desktop-shortcut.ps1更新桌面源码快捷方式并归档旧运行副本。
 5. 报告提交、推送和同步结果，提醒用户停止旧脚本并重启桌面 `wowAuto` 快捷方式；插件变更需 `/reload`，改名首次安装可能需要完全重启游戏。

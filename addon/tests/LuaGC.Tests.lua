@@ -1,6 +1,7 @@
 -- Offline Lua 5.1 simulation. The collector and every client API are replaced.
+local flavor = TEST_FLAVOR or "forerver"
 local root = TEST_ROOT or "."
-local source = root .. "/addon/forerver/wow_tools/LuaGC.lua"
+local source = root .. "/addon/"..flavor.."/wow_tools/LuaGC.lua"
 local function Harness(config)
     local state = { pause = 350, stepmul = 250, now = 0, calls = {}, frames = {}, timers = {} }
     local secret = setmetatable({}, { __tostring = function() error("Printed a restricted value") end })
@@ -249,4 +250,4 @@ ok, message = state.module.Save(400, 200, 5)
 assert(ok and message:find("计时器启动失败", 1, true) and wowDetectorDB.luaGC.pause == 400)
 assert(state.module.Save(400, 200, 0), "Manual mode depended on a periodic timer")
 
-print("PASS: Forever Lua GC settings, separate drafts/saved/system values, read-and-restore, atomic apply/rollback, five-minute boundaries, hidden UI calibration, unchanged-value checks, timer replacement/disable/logout, reload, invalid/restricted/missing APIs and native failure feedback. All collector and game operations mocked.")
+print("PASS: "..flavor.." Lua GC settings, separate drafts/saved/system values, read-and-restore, atomic apply/rollback, five-minute boundaries, hidden UI calibration, unchanged-value checks, timer replacement/disable/logout, reload, invalid/restricted/missing APIs and native failure feedback. All collector and game operations mocked.")

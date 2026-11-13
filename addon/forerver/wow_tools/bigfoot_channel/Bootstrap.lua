@@ -19,17 +19,21 @@ function channel.GetSettings()
     return settings
 end
 
-function BigFoot_ShowNewbieTooltip(title, text)
-    GameTooltip:SetOwner(UIParent, "ANCHOR_CURSOR")
-    GameTooltip:SetText(title or "", 1, 0.82, 0)
-    if text then
-        GameTooltip:AddLine(text, 1, 1, 1, true)
+if type(BigFoot_ShowNewbieTooltip) ~= "function" then
+    function BigFoot_ShowNewbieTooltip(title, text)
+        GameTooltip:SetOwner(UIParent, "ANCHOR_CURSOR")
+        GameTooltip:SetText(title or "", 1, 0.82, 0)
+        if text then
+            GameTooltip:AddLine(text, 1, 1, 1, true)
+        end
+        GameTooltip:Show()
     end
-    GameTooltip:Show()
 end
 
-function BigFoot_HideNewbieTooltip()
-    GameTooltip:Hide()
+if type(BigFoot_HideNewbieTooltip) ~= "function" then
+    function BigFoot_HideNewbieTooltip()
+        GameTooltip:Hide()
+    end
 end
 
 local function Show(tab)

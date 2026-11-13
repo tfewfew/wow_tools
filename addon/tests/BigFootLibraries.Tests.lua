@@ -1,6 +1,7 @@
 -- Load the bundled Ace3 implementation without any standalone addon or mock LibStub.
+local flavor = TEST_FLAVOR or "forerver"
 local root = TEST_ROOT or "."
-local addon = root .. "/addon/forerver/wow_tools/"
+local addon = root .. "/addon/"..flavor.."/wow_tools/"
 local frames = {}
 local errors = {}
 local originalXpcall = xpcall
@@ -50,13 +51,17 @@ GetCurrentRegion = function() return 5 end
 strlenutf8 = string.len
 IsLoggedIn = function() return true end
 GetTime = function() return 0 end
-GetBuildInfo = function() return "1.60.1", "70790", "", 16001 end
+GetBuildInfo = function()
+    if flavor=="titan" then return "3.80.2", "70522", "", 38002 end
+    return "1.60.1", "70888", "", 16001
+end
 geterrorhandler = function() return function(message) errors[#errors+1] = message end end
 hooksecurefunc = function() end
 securecallfunction = function(callback, ...) return callback(...) end
 C_Timer = {After=function() end, NewTimer=function() return {Cancel=function() end} end}
 C_AddOns = {GetAddOnMetadata=function() return "wow_tools" end}
-WOW_PROJECT_MAINLINE, WOW_PROJECT_CLASSIC, WOW_PROJECT_ID = 1, 2, 1
+WOW_PROJECT_MAINLINE, WOW_PROJECT_CLASSIC, WOW_PROJECT_WRATH_CLASSIC = 1, 2, 11
+WOW_PROJECT_ID = flavor=="titan" and WOW_PROJECT_WRATH_CLASSIC or WOW_PROJECT_MAINLINE
 wipe = function(values) for key in pairs(values) do values[key] = nil end end
 table.wipe = wipe
 strtrim = function(value) return value:match("^%s*(.-)%s*$") end

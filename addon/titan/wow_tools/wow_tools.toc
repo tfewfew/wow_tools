@@ -1,22 +1,40 @@
 ## Interface: 38002
-## Title: wow_tools
-## Notes-zhCN: 工具合集：钓鱼检测、战斗检测、自动抓宠、内部画面设置与商店一键卖鱼。
+## Title: wow_tools (Titan)
+## Notes-zhCN: 时光服工具合集：钓鱼检测、战斗检测、自动抓宠、声音控制、大脚频道聊天增强、拾取与金币提示、内部画面设置与商店一键卖鱼。
 ## Author: Ray
-## Version: 2.1.62
+## Version: 2.1.63
+## X-WoWTools-Flavor: titan
 ## SavedVariables: wowDetectorDB, fightDetectorDB, wowToolsRealmLevels
 ## SavedVariablesPerCharacter: wowToolsCharacterRecord
 
+bigfoot_channel\Libs\LibStub\LibStub.lua
+bigfoot_channel\Libs\embeds.xml
 Init.lua
+bigfoot_channel\Bootstrap.lua
+bigfoot_channel\locale\locale.en.lua
+bigfoot_channel\locale\locale.cn.lua
+bigfoot_channel\locale\locale.tw.lua
+bigfoot_channel\Library\BigFootRaidersDate.lua
+bigfoot_channel\frame.xml
+bigfoot_channel\ChannelFilter.lua
+bigfoot_channel\WorldChannel.lua
+bigfoot_channel\Copy.lua
 PetTamer.lua
-CharacterRecord.lua
 LoginPoint.lua
+CharacterRecord.lua
 Loot.lua
 SellFish.lua
+ExperienceText.lua
+DisplayFonts.lua
 ButtonStyle.lua
 ButtonStyle.Settings.lua
+SoundControl.lua
+LuaGC.lua
+ls_toasts\ls_toasts.xml
 wowDetector\Audio.lua
 wowDetector\wowDetector.lua
 fight_detector\Range.lua
 fight_detector\fight_detector.lua
 inner_graphic_config\Core.lua
 Core.lua
+Settings.lua

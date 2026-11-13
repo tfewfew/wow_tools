@@ -109,8 +109,19 @@ local function FishingName()
     end
 end
 
+local function ReadChannelInfo()
+    if type(UnitChannelInfo) ~= "function" then return nil, nil, false end
+    local values = {pcall(UnitChannelInfo, "player")}
+    local name, spellID = values[2], values[9]
+    if not values[1] or (issecretvalue and (issecretvalue(name) or issecretvalue(spellID))) then
+        return nil, nil, false
+    end
+    return name, spellID, true
+end
+
 local function IsFishing()
-    local name, _, _, _, _, _, _, spellID = UnitChannelInfo("player")
+    local name, spellID, readable = ReadChannelInfo()
+    if not readable then return nil end
     -- The cast itself is not enough: wait until the fishing channel has begun.
     if not name then return false end
     local fishingName = FishingName()
@@ -152,13 +163,17 @@ end
 
 local function GetLureState()
     if PlayerFlag(UnitIsDead) then return "unknown" end
-    local link = GetInventoryItemLink("player", 16)
     local getInfo = C_Item and C_Item.GetItemInfoInstant or GetItemInfoInstant
-    if not link or not getInfo or not GetWeaponEnchantInfo then return "unknown" end
-    local _, _, _, _, _, classID, subclassID = getInfo(link)
+    if not GetInventoryItemLink or not getInfo or not GetWeaponEnchantInfo then return "unknown" end
+    local read, link = pcall(GetInventoryItemLink, "player", 16)
+    if not read or (issecretvalue and issecretvalue(link)) or not link then return "unknown" end
+    local info = {pcall(getInfo, link)}
+    local classID, subclassID = info[7], info[8]
+    if not info[1] or (issecretvalue and (issecretvalue(classID) or issecretvalue(subclassID))) then return "unknown" end
     -- Only a fishing pole's temporary enchant counts; permanent fishing-line enchants do not.
     if classID == nil or subclassID == nil or classID ~= 2 or subclassID ~= 20 then return "unknown" end
-    local hasEnchant, expiration = GetWeaponEnchantInfo()
+    local ok, hasEnchant, expiration = pcall(GetWeaponEnchantInfo)
+    if not ok or (issecretvalue and (issecretvalue(hasEnchant) or issecretvalue(expiration))) then return "unknown" end
     if not hasEnchant then return "missing" end
     if type(expiration) ~= "number" then return "unknown" end
     return expiration > 0 and "present" or "missing"
@@ -190,12 +205,16 @@ local function Refresh()
     local nextState
     if freeSlots == nil then nextState = "unknown"
     elseif freeSlots == 0 then nextState = "full"
-    elseif not IsFishing() then nextState = "idle"
     else
-        local interaction = GetInteractState()
-        if interaction == "present" then nextState = "fishing"
-        elseif interaction == "missing" then nextState = "waiting"
-        else nextState = "interaction_unknown" end
+        local fishing = IsFishing()
+        if fishing == nil then nextState = "unknown"
+        elseif not fishing then nextState = "idle"
+        else
+            local interaction = GetInteractState()
+            if interaction == "present" then nextState = "fishing"
+            elseif interaction == "missing" then nextState = "waiting"
+            else nextState = "interaction_unknown" end
+        end
     end
     if nextState ~= state then Paint(nextState) end
 end
@@ -382,7 +401,7 @@ SlashCmdList.WOWDETECTOR = function(message)
     elseif command == "status" then
         if not enabled then Say("监测=关闭；钓鱼状态读取未启动。") return end
         Refresh()
-        local name, _, _, _, _, _, _, id = UnitChannelInfo("player")
+        local name, id = ReadChannelInfo()
         Say("状态=" .. state .. "；普通背包空格=" .. tostring(freeSlots) .. "；鱼饵附魔=" .. GetLureState() .. "；引导=" .. tostring(name) .. "；技能ID=" .. tostring(id))
         local interaction, guid = GetInteractState()
         local targetName, interactCVar
@@ -393,7 +412,7 @@ SlashCmdList.WOWDETECTOR = function(message)
         local getCVar = C_CVar and C_CVar.GetCVar or GetCVar
         if getCVar then
             local ok, value = pcall(getCVar, "softTargetInteract")
-            if ok then interactCVar = value end
+            if ok and not (issecretvalue and issecretvalue(value)) then interactCVar = value end
         end
         Say("交互目标=" .. interaction .. "；名称=" .. tostring(targetName) .. "；GUID=" .. tostring(guid)
             .. "；softTargetInteract=" .. tostring(interactCVar))
@@ -420,3 +439,53 @@ WoWTools.modules.wowDetector = {
     IsShown = function() return panel:IsShown() end,
     GetLureState = GetLureState,
 }
+
+local module = WoWTools.modules.wowDetector
+function module.RefreshSettings()
+    if not module.settingsStatus then return end
+    module.settingsStatus:SetText("检测" .. (enabled and "已开启" or "已关闭")
+        .. " · 色块" .. (panel:IsShown() and "已显示" or "已隐藏")
+        .. " · 位置" .. (wowDetectorDB and wowDetectorDB.locked and "已锁定" or "可拖动"))
+end
+
+function module.BuildSettings(parent)
+    local title = parent:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", 18, -10)
+    title:SetText("钓鱼检测")
+    module.settingsStatus = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    module.settingsStatus:SetPoint("TOPLEFT", 18, -40)
+    local actions = {
+        {label="启动检测", command="on"}, {label="停止检测", command="off"},
+        {label="显示色块", command="show"}, {label="隐藏色块", command="hide"},
+        {label="色块居中", command="center"}, {label="锁定 / 解锁位置"},
+    }
+    local buttons = {}
+    for index, action in ipairs(actions) do
+        local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+        button:SetSize(122, 26)
+        button:SetPoint("TOPLEFT", 18 + ((index - 1) % 3) * 130, -66 - math.floor((index - 1) / 3) * 36)
+        button:SetText(action.label)
+        buttons[index] = button
+        button:SetScript("OnClick", function()
+            local command = action.command or (wowDetectorDB.locked and "unlock" or "lock")
+            SlashCmdList.WOWDETECTOR(command)
+            module.RefreshSettings()
+        end)
+    end
+    local function Layout()
+        local width = math.max(420, parent:GetWidth())
+        local buttonWidth = math.floor((width - 52) / 3)
+        module.settingsStatus:SetWidth(width - 36)
+        for index, button in ipairs(buttons) do
+            button:ClearAllPoints()
+            button:SetSize(buttonWidth, 26)
+            button:SetPoint("TOPLEFT", 18 + ((index - 1) % 3) * (buttonWidth + 8), -66 - math.floor((index - 1) / 3) * 36)
+        end
+    end
+    parent:SetScript("OnSizeChanged", Layout)
+    Layout()
+    parent:SetScript("OnShow", module.RefreshSettings)
+    local sellFish = WoWTools.sellFish.BuildSettings(parent)
+    module.RefreshSettings()
+    return sellFish
+end

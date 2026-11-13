@@ -519,13 +519,11 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     CheckSkin(menu,"thin");CheckSkin(close,"thin")
     for _,frame in ipairs(frames) do assert(not frame.scripts.OnUpdate,"Appearance added polling") end
     WoWTools.modules={};SlashCmdList={}
-    if flavor=="forerver" then
-        dofile(addon.."ExperienceText.lua")
-        dofile(addon.."DisplayFonts.lua")
-        dofile(addon.."LuaGC.lua")
-    end
+    dofile(addon.."ExperienceText.lua")
+    dofile(addon.."DisplayFonts.lua")
+    dofile(addon.."LuaGC.lua")
     dofile(addon.."inner_graphic_config/Core.lua")
-    if flavor=="forerver" then
+    do
         local host=CreateFrame("Frame",nil,UIParent)
         host:Hide()
         WoWTools.modules.inner_graphic_config.BuildSettings(host)
@@ -537,7 +535,7 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     WoWTools.modules.inner_graphic_config.Show()
     local tabs=0
     for _,object in ipairs(widgets) do if object.kind=="FontString" and object.text=="按钮" then tabs=tabs+1 end end
-    local expected=flavor=="forerver" and 1 or 2
+    local expected=1
     assert(tabs==expected and #style.editors==expected and style.editors[1].preview.parent.height==600,"Settings entry or scrolling height is wrong")
     print("PASS: "..flavor.." cached appearance/state updates, scoped/coalesced discovery, reparented/XML/anonymous late controls, native/thin/no borders, padded bounds, LSM, persistence and partial restoration. Mock UI only.")
 end

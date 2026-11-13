@@ -1,4 +1,5 @@
 -- Native experience text lifecycle only. No real game APIs, input or timers.
+local flavor = TEST_FLAVOR or "forerver"
 local root = TEST_ROOT or "."
 local frames, hookCount, reads = {}, 0, 0
 local amount, failed = 12345, false
@@ -45,6 +46,7 @@ local function Bar(nativeText)
     local bar = {OverlayFrame = {Text = text}, nativeText = nativeText, updates = 0}
     function bar:SetBarText(value) self.OverlayFrame.Text:SetText(value); return 42 end
     function bar:UpdateCurrentText()
+        if self.skipNativeUpdate then return end
         self.updates = self.updates + 1
         self:SetBarText(self.nativeText)
     end
@@ -60,7 +62,7 @@ StatusTrackingBarManager = {barContainers = {
 }}
 WoWTools = {}
 wowDetectorDB = {unrelated = 42, displayFonts = {experience = {size = 20, flags = "OUTLINE"}}}
-local source = root .. "/addon/forerver/wow_tools/ExperienceText.lua"
+local source = root .. "/addon/"..flavor.."/wow_tools/ExperienceText.lua"
 dofile(source)
 local module, eventFrame = WoWTools.experienceText, frames[#frames]
 Event("PLAYER_ENTERING_WORLD")
@@ -124,9 +126,11 @@ local late = Bar("后加载经验")
 StatusTrackingBarManager.barContainers.late = {bars = {[4] = late}}
 Event("ADDON_LOADED", "Blizzard_StatusTrackingBar")
 assert(Text(late) == "后加载经验（500）" and hookCount == 3, "Late native bars did not acquire the suffix")
+primary.skipNativeUpdate = true
 assert(module.SetEnabled(false))
 assert(Text(primary) == primary.nativeText and Text(secondary) == secondary.nativeText and Text(late) == late.nativeText,
     "Disabling did not immediately restore every native text")
+primary.skipNativeUpdate = false
 assert(not next(eventFrame.events) and not eventFrame.scripts.OnUpdate, "Disabled suffix left events or polling active")
 previousReads = reads
 primary:UpdateCurrentText()
@@ -162,4 +166,4 @@ StatusTrackingBarManager = {barContainers = {{bars = {[4] = primary}}}}
 Event("ADDON_LOADED", "Blizzard_StatusTrackingBar")
 assert(Text(primary) == "延迟经验（500）", "Saved option missed late-loaded native widgets")
 for _, frame in ipairs(frames) do assert(not frame.scripts.OnUpdate) end
-print("PASS: Forever rested XP digits-only suffix, native updates/events, aliases/late bars, on/off/account reload, zero/unknown/restricted reads, untouched visibility/fonts and no polling.")
+print("PASS: "..flavor.." rested XP digits-only suffix, native updates/events, aliases/late bars, on/off/account reload, zero/unknown/restricted reads, untouched visibility/fonts and no polling.")

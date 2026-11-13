@@ -1,6 +1,7 @@
 -- Full addon smoke test with Forever's namespaced APIs, modern menu and FPS frame.
+local flavor = TEST_FLAVOR or "forerver"
 local root = TEST_ROOT or "."
-local addon = root .. "/addon/forerver/wow_tools/"
+local addon = root .. "/addon/"..flavor.."/wow_tools/"
 local frames, names, widgets = {}, {}, {}
 local scale, width, height, dead, free = 0.7, 1920, 1080, false, 10
 local pole, enchants, channelName, channelID, castName, castID = true, {}, nil, nil, nil, nil
@@ -150,6 +151,7 @@ function CreateRadioButtonGroup()
     return { AddButton = function() end, SelectAtIndex = function() end }
 end
 UIParent, Minimap, FramerateFrame, GameTooltip = widget(), widget(), widget(), widget()
+FramerateLabel = flavor=="titan" and widget() or nil
 function GameTooltip:SetOwner() end
 function GameTooltip:AddLine() end
 DEFAULT_CHAT_FRAME = { AddMessage = function(_, message) messages[#messages + 1] = message end }
@@ -178,12 +180,25 @@ C_Item = {
     GetItemID = function(location) assert(location.slot == 16); return 1 end,
     GetItemInfoInstant = function() return 1, nil, nil, nil, nil, 2, pole and 20 or 7 end,
     GetWeaponEnchantInfo = function(slot)
+        assert(flavor~="titan", "Titan used Forever's namespaced enchant list")
         assert(slot == Enum.WeaponSlot.MainHand, "Wrong weapon-slot enumeration")
         if apiFailure then error("Unavailable enchant scan") end
         return enchants
     end,
 }
 C_Spell = { GetSpellName = function() return "Fishing" end }
+function GetInventoryItemLink(unit, slot)
+    assert(unit=="player" and slot==16)
+    return pole and "fishing-pole" or "sword"
+end
+function GetWeaponEnchantInfo()
+    assert(flavor=="titan", "Forever used Titan's legacy enchant tuple")
+    if apiFailure then error("Unavailable enchant scan") end
+    for _, enchant in ipairs(enchants) do
+        if enchant.enchantType==2 then return enchant.hasEnchant, enchant.timeLeft end
+    end
+    return false, nil
+end
 C_Container = {
     GetContainerNumSlots = function(bag) return bag == 0 and 16 or 0 end,
     GetContainerNumFreeSlots = function() return free, 0 end,
@@ -291,6 +306,7 @@ SlashCmdList.WOWDETECTOR("on")
 assertColor(indicator, 1, 0, 0)
 assertColor(lure, 1, 0, 1)
 enchants = { {hasEnchant=true, enchantType=1, timeLeft=600000}, {hasEnchant=true, enchantType=3, timeLeft=600000} }
+if compat then
 assert(compat.GetLureState() == "missing", "Permanent enchant/imbue counted as lure")
 enchants[#enchants + 1] = {hasEnchant=true, enchantType=2, timeLeft=600000}
 panel.scripts.OnEvent(panel, "WEAPON_ENCHANT_CHANGED")
@@ -306,6 +322,18 @@ enchants = {{hasEnchant=true}}
 assert(compat.GetLureState() == "unknown", "Malformed enchant treated as missing")
 pole = false
 assert(compat.GetLureState() == "unknown", "Non-pole accepted")
+else
+    enchants[#enchants + 1] = {hasEnchant=true, enchantType=2, timeLeft=600000}
+    panel.scripts.OnEvent(panel, "PLAYER_EQUIPMENT_CHANGED")
+    assertColor(lure, 0, 0, 1)
+    enchants[3].timeLeft = 0
+    panel.scripts.OnEvent(panel, "PLAYER_EQUIPMENT_CHANGED")
+    assertColor(lure, 1, 0, 1)
+    apiFailure = true
+    panel.scripts.OnEvent(panel, "PLAYER_EQUIPMENT_CHANGED")
+    assertColor(lure, 0.5, 0.5, 0.5)
+    apiFailure = false
+end
 pole, enchants = true, {}
 channelName, channelID = "Fishing", 7620
 panel.scripts.OnEvent(panel, "UNIT_SPELLCAST_CHANNEL_START", "player")
@@ -339,13 +367,13 @@ channelName, channelID = "Other channel", 123
 panel.scripts.OnEvent(panel, "UNIT_SPELLCAST_CHANNEL_START", "player")
 assertColor(indicator, 1, 0, 0)
 channelName, channelID, castName, castID = nil, nil, "Localized fishing", 7620
-assert(compat.GetFishingState() == false, "Cast counted as a ready fishing channel")
+if compat then assert(compat.GetFishingState() == false, "Cast counted as a ready fishing channel") end
 panel.scripts.OnEvent(panel, "UNIT_SPELLCAST_START", "player")
 assertColor(indicator, 1, 0, 0)
 castName, castID = "Other cast", 123
-assert(compat.GetFishingState() == false, "Non-fishing cast accepted")
+if compat then assert(compat.GetFishingState() == false, "Non-fishing cast accepted") end
 castName, castID, channelName, channelID = nil, nil, "Fishing", 7731
-assert(compat.GetFishingState() == true, "Localized name fallback rejected another fishing rank")
+if compat then assert(compat.GetFishingState() == true, "Localized name fallback rejected another fishing rank") end
 tick()
 assertColor(indicator, 0, 1, 0)
 local guidAPI, interactAPI = UnitGUID, UnitIsInteractable
@@ -388,7 +416,7 @@ assertColor(indicator, 1, 0, 0)
 castName, castID, channelName, channelID = nil, nil, secret, secret
 panel.scripts.OnEvent(panel, "UNIT_SPELLCAST_CHANNEL_START", "player")
 assertColor(indicator, 0.5, 0.5, 0.5)
-assert(compat.GetFishingState() == nil, "Restricted cast did not stay unknown")
+if compat then assert(compat.GetFishingState() == nil, "Restricted cast did not stay unknown") end
 SlashCmdList.WOWDETECTOR("status") -- must not print restricted values.
 channelName, channelID, free, targetGUID = "Fishing", 7620, 0, secret
 panel.scripts.OnEvent(panel, "BAG_UPDATE_DELAYED")
@@ -475,8 +503,9 @@ for _, control in ipairs(widgets) do
         break
     end
 end
-assert(fpsApplied and FramerateFrame.point[1] == "BOTTOM" and FramerateFrame.point[5] == 180,
-    "Mainline FPS frame could not be repositioned")
+local fpsRegion = flavor=="titan" and FramerateLabel or FramerateFrame
+assert(fpsApplied and fpsRegion.point[1] == "BOTTOM" and fpsRegion.point[5] == 180,
+    "The client's native FPS region could not be repositioned")
 assert(cvarWrites == 0, "Read-only actions changed graphics CVars")
 -- Both normal settings entry points attach the same canvas and retain uncommitted edits.
 unified.Open("inner_graphic_config")
@@ -619,4 +648,4 @@ assert(not unified.IsGroupShown("sound_control"), "A hidden native category was 
 speaker.scripts.OnClick(speaker, "RightButton")
 assert(unified.window:IsVisible() and unified.IsGroupShown("sound_control"),
     "Speaker right click attached settings to a hidden native settings ancestor")
-print("PASS: Forever full TOC, seven unified settings tabs, one direct native category, minimap/IGC/chat/toast shortcuts, shared canvas/drafts, embedded Ace refresh/combat, sound teardown, detector isolation, fishing/loot/death protocols and FPS placement. All client APIs mocked.")
+print("PASS: "..flavor.." full TOC, seven unified settings tabs, one direct native category, minimap/IGC/chat/toast shortcuts, shared canvas/drafts, embedded Ace refresh/combat, sound teardown, detector isolation, fishing/loot/death protocols and FPS placement. All client APIs mocked.")

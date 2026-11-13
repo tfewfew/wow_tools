@@ -27,10 +27,15 @@ local function RemainingXP()
 end
 
 local function AppendRemainingXP(bar, nativeText)
+    local record = bars[bar]
+    record.nativeText, record.decoratedText = nativeText, nil
     if not module.IsEnabled() or (issecretvalue and issecretvalue(nativeText)) then return end
     if type(nativeText) ~= "string" or nativeText == "" then return end
     local remaining = RemainingXP()
-    if remaining then bar.OverlayFrame.Text:SetText(nativeText .. "（" .. remaining .. "）") end
+    if remaining then
+        record.decoratedText = nativeText .. "（" .. remaining .. "）"
+        bar.OverlayFrame.Text:SetText(record.decoratedText)
+    end
 end
 
 local function Refresh()
@@ -42,13 +47,24 @@ local function Refresh()
             local text = bar and bar.OverlayFrame and bar.OverlayFrame.Text
             if text and type(text.SetText) == "function" and type(bar.SetBarText) == "function"
                 and type(bar.UpdateCurrentText) == "function" and not bars[bar] then
+                bars[bar] = {}
                 hooksecurefunc(bar, "SetBarText", AppendRemainingXP)
-                bars[bar] = true
             end
         end
     end
     -- Rebuild from native data both on refresh and when removing our suffix.
-    for bar in pairs(bars) do bar:UpdateCurrentText() end
+    for bar, record in pairs(bars) do
+        if not module.IsEnabled() and record.decoratedText then
+            local text = bar.OverlayFrame.Text
+            local current = text:GetText()
+            if not (issecretvalue and issecretvalue(current)) and current == record.decoratedText then
+                text:SetText(record.nativeText)
+            end
+            record.decoratedText = nil
+        end
+        -- Titan skips UpdateCurrentText at maxBar == 0, so remove our own text first.
+        bar:UpdateCurrentText()
+    end
 end
 
 local function UpdateEvents()

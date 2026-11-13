@@ -1,6 +1,7 @@
 -- Lua 5.1 simulated Forever client. No real sound settings or devices are changed.
+local flavor = TEST_FLAVOR or "forerver"
 local root = TEST_ROOT or "."
-local addon = root .. "/addon/forerver/wow_tools/"
+local addon = root .. "/addon/"..flavor.."/wow_tools/"
 local frames, names, sliders = {}, {}, {}
 local values = {
     Sound_MasterVolume = "0.37", Sound_EnableAllSound = "1",
@@ -332,4 +333,4 @@ embedded.scripts.OnSizeChanged()
 assert(embedded.rows[1].slider.width==230 and panel.width==344)
 embedded:Hide()
 assert(panel.events.CVAR_UPDATE and not embedded.events.CVAR_UPDATE, "Hiding one audio view disabled the other")
-print("PASS: compact Forever sound control, adjacent four-corner/scaled anchors and reopen/drag placement, five independent sliders/numbers/switches, native device dropdown/open refresh/current selection, hotplug/restart/rollback failures, restricted data, events and reload.")
+print("PASS: compact "..flavor.." sound control, adjacent four-corner/scaled anchors and reopen/drag placement, five independent sliders/numbers/switches, native device dropdown/open refresh/current selection, hotplug/restart/rollback failures, restricted data, events and reload.")

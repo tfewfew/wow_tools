@@ -152,7 +152,7 @@ function BFCIconFrameReportButton_OnClick(self, button)
             msg = msg .. StatReport_Strings_COMMA
             msg = msg .. StatReport_Strings_Covenant .. MyData.Covenant
         end
-        if MyData.LV then
+        if MyData.MST then
             msg = msg .. StatReport_Strings_COMMA
             msg = msg .. StatReport_Strings_MST .. MyData.MST
         end

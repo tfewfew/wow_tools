@@ -1,5 +1,6 @@
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '..\scripts\migrate-bigfoot.ps1')
+. (Join-Path $PSScriptRoot '..\scripts\client-profiles.ps1')
 function Assert-ChatMigration($Condition, [string]$Message) { if (-not $Condition) { throw $Message } }
 $temporary = Join-Path ([IO.Path]::GetTempPath()) ('wow-tools-chat-test-' + [guid]::NewGuid().ToString('N'))
 $saved = Join-Path $temporary 'SavedVariables'
@@ -38,8 +39,11 @@ try {
     }
     $sync = [IO.File]::ReadAllText((Join-Path $PSScriptRoot '..\scripts\sync-local.ps1'))
     Assert-ChatMigration ($sync.IndexOf('Merge-WowBigFootSettings') -lt $sync.IndexOf('$legacyNames =')) 'Legacy addons retired before settings migration.'
-    Assert-ChatMigration ($sync.Contains("if (`$profile.Flavor -eq 'forerver') { `$legacyNames += @('BigFoot', 'BigFootChat', 'ChannelFilter', '!!!Libs', 'ls_Toasts') }")) 'Retired standalone addons are not Forever-only.'
-    Write-Output 'PASS: literal-only chat settings migration, profiles/lists/escapes, unrelated data, backup, repeat/no-target, malformed-data rejection and Forever-only retirement ordering.'
+    Assert-ChatMigration ($sync.Contains('Get-WowToolsRetiredAddonNames -Flavor $profile.Flavor')) 'Sync bypasses the client-specific retirement plan.'
+    $titanRetired = @(Get-WowToolsRetiredAddonNames -Flavor titan)
+    Assert-ChatMigration ($titanRetired -contains 'BigFootChat' -and $titanRetired -contains 'ChannelFilter') 'Titan duplicate chat modules remain active.'
+    Assert-ChatMigration ($titanRetired -notcontains 'BigFoot' -and $titanRetired -notcontains '!!!Libs') 'Titan shared dependencies would be archived.'
+    Write-Output 'PASS: literal-only chat settings migration, profiles/lists/escapes, unrelated data, backup, repeat/no-target, malformed-data rejection and per-client retirement ordering.'
 } finally {
     $resolved = [IO.Path]::GetFullPath($temporary)
     if ((Split-Path $resolved -Parent) -ne [IO.Path]::GetTempPath().TrimEnd('\')) { throw 'Test cleanup path mismatch.' }

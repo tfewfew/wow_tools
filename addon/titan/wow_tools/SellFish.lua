@@ -35,6 +35,7 @@ end
 local eventFrame = CreateFrame("Frame")
 local items, selectedID, settings, input, status, scroll, content, deleteButton
 local rows, requested, failed = {}, {}, {}
+local listHeight, rowWidth = 240, 350
 local merchantOpen, merchantButton, sale = false, nil, nil
 local SALE_INTERVAL, RESCAN_DELAY, MAX_ROUNDS = 0.05, 0.5, 3
 local RefreshList
@@ -89,9 +90,10 @@ local function AddCursorItem()
     return true
 end
 
-local function CreateSettings()
+local function CreateSettings(parent)
     if settings then return end
-    settings = CreateFrame("Frame", "WoWToolsSellFishSettings", UIParent, "BasicFrameTemplateWithInset")
+    settings = CreateFrame("Frame", "WoWToolsSellFishSettings", parent or UIParent,
+        not parent and "BasicFrameTemplateWithInset" or nil)
     settings:SetSize(420, 410)
     settings:SetPoint("CENTER")
     settings:SetFrameStrata("DIALOG")
@@ -101,9 +103,19 @@ local function CreateSettings()
     settings:RegisterForDrag("LeftButton")
     settings:SetScript("OnDragStart", function(self) self:StartMoving() end)
     settings:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
-    settings.TitleText:SetText("wow_tools - 一键卖鱼设置")
+    if parent then
+        settings:SetMovable(false)
+        settings:SetClampedToScreen(false)
+        settings:SetScript("OnDragStart", nil)
+        settings:SetScript("OnDragStop", nil)
+        local title = settings:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+        title:SetPoint("TOPLEFT", 18, -10)
+        title:SetText("一键卖鱼清单")
+    else
+        settings.TitleText:SetText("wow_tools - 一键卖鱼设置")
+        UISpecialFrames[#UISpecialFrames + 1] = "WoWToolsSellFishSettings"
+    end
     settings:Hide()
-    UISpecialFrames[#UISpecialFrames + 1] = "WoWToolsSellFishSettings"
 
     local label = settings:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     label:SetPoint("TOPLEFT", 18, -40)
@@ -193,6 +205,26 @@ local function CreateSettings()
         eventFrame:UnregisterEvent("GET_ITEM_INFO_RECEIVED")
         eventFrame:UnregisterEvent("ITEM_DATA_LOAD_RESULT")
     end)
+    if parent then
+        scroll:ClearAllPoints()
+        scroll:SetPoint("TOPLEFT", 18, -98)
+        scroll:SetPoint("BOTTOMRIGHT", -38, 68)
+        local function Layout()
+            local width = math.max(420, settings:GetWidth())
+            hint:SetWidth(width - 36)
+            status:SetWidth(width - 36)
+            rowWidth = math.max(300, scroll:GetWidth() - 4)
+            listHeight = math.max(60, scroll:GetHeight())
+            content:SetWidth(rowWidth)
+            for _, row in ipairs(rows) do
+                row:SetWidth(rowWidth)
+                row.label:SetWidth(rowWidth - 12)
+            end
+            RefreshList()
+        end
+        settings:SetScript("OnSizeChanged", Layout)
+        Layout()
+    end
 end
 
 RefreshList = function()
@@ -201,13 +233,13 @@ RefreshList = function()
         local row = rows[index]
         if not row then
             row = CreateFrame("Button", "WoWToolsSellFishRow" .. index, content)
-            row:SetSize(350, 26)
+            row:SetSize(rowWidth, 26)
             row:SetPoint("TOPLEFT", 0, -(index - 1) * 26)
             row.background = row:CreateTexture(nil, "BACKGROUND")
             row.background:SetAllPoints()
             row.label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
             row.label:SetPoint("LEFT", 6, 0)
-            row.label:SetWidth(338)
+            row.label:SetWidth(rowWidth - 12)
             row.label:SetJustifyH("LEFT")
             row:SetScript("OnReceiveDrag", AddCursorItem)
             row:SetScript("OnClick", function(self)
@@ -229,11 +261,12 @@ RefreshList = function()
         row:Show()
     end
     for index = #items + 1, #rows do rows[index]:Hide() end
-    content:SetHeight(math.max(240, #items * 26))
+    content:SetHeight(math.max(listHeight, #items * 26))
     if selectedID and FindID(selectedID) then deleteButton:Enable() else deleteButton:Disable() end
 end
 
 local function ToggleSettings()
+    if WoWTools.settings then WoWTools.settings.Open("wowDetector"); return end
     if not items then return end
     CreateSettings()
     if settings:IsShown() then settings:Hide() else settings:Show() end
@@ -443,3 +476,13 @@ eventFrame:SetScript("OnEvent", function(_, event, id, success)
 end)
 SLASH_WOWTOOLSSELLFISH1 = "/sellfish"
 SlashCmdList.WOWTOOLSSELLFISH = ToggleSettings
+WoWTools.sellFish = {
+    BuildSettings = function(parent)
+        CreateSettings(parent)
+        settings:ClearAllPoints()
+        settings:SetPoint("TOPLEFT", 0, -160)
+        settings:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", 0, 0)
+        settings:Show()
+        return settings
+    end,
+}

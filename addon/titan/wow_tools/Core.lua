@@ -1,18 +1,7 @@
 local initialized = false
-local menu = CreateFrame("Frame", "wowToolsMenu", UIParent, "UIDropDownMenuTemplate")
-UIDropDownMenu_Initialize(menu, function(_, level)
-    local title = UIDropDownMenu_CreateInfo()
-    title.text, title.isTitle, title.notCheckable = "wow_tools", true, true
-    UIDropDownMenu_AddButton(title, level)
-    for _, name in ipairs({ "wowDetector", "fight_detector", "inner_graphic_config", "pet_tamer" }) do
-        local module = WoWTools.modules[name]
-        local item = UIDropDownMenu_CreateInfo()
-        item.text = name == "pet_tamer" and "自动抓宠" or name
-        item.checked = module.IsShown()
-        item.func = function() CloseDropDownMenus(); module.Toggle() end
-        UIDropDownMenu_AddButton(item, level)
-    end
-end, "MENU")
+local function OpenSettings()
+    WoWTools.settings.Open()
+end
 local minimapButton = CreateFrame("Button", "wowToolsMinimapButton", Minimap)
 minimapButton:SetSize(32, 32)
 minimapButton:SetFrameStrata("MEDIUM")
@@ -46,9 +35,8 @@ end
 minimapButton:SetScript("OnClick", function(self, button)
     if not initialized then return end
     if button == "RightButton" then
-        ToggleDropDownMenu(1, nil, menu, self, 0, 0)
+        OpenSettings()
     else
-        CloseDropDownMenus()
         WoWTools.modules.wowDetector.Toggle()
     end
 end)
@@ -69,7 +57,7 @@ minimapButton:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_LEFT")
     GameTooltip:AddLine("wow_tools")
     GameTooltip:AddLine("左键：打开并启动监测 / 关闭并隐藏", 1, 1, 1)
-    GameTooltip:AddLine("右键：打开子插件菜单", 1, 1, 1)
+    GameTooltip:AddLine("右键：打开统一设置", 1, 1, 1)
     GameTooltip:AddLine("右侧小色块：蓝色=鱼饵附魔有效，紫色=缺少附魔", 1, 1, 1)
     GameTooltip:AddLine("拖动：调整小地图入口位置", 1, 1, 1)
     GameTooltip:Show()
@@ -86,4 +74,4 @@ events:SetScript("OnEvent", function(_, _, name)
     PositionMinimapButton()
 end)
 SLASH_WOWTOOLS1 = "/wowtools"
-SlashCmdList.WOWTOOLS = function() ToggleDropDownMenu(1, nil, menu, minimapButton, 0, 0) end
+SlashCmdList.WOWTOOLS = OpenSettings

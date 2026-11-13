@@ -34,3 +34,10 @@ function Get-WowToolsDeploymentProfiles {
 function Test-WowToolsClientVersion($Profile, [string]$Version) {
     return $Version.StartsWith($Profile.VersionPrefix, [StringComparison]::Ordinal)
 }
+
+function Get-WowToolsRetiredAddonNames {
+    param([ValidateSet('titan','forerver')][string]$Flavor)
+    $names = @('FishingState', 'wowDetector', 'Inner_graphic_config', 'BigFootChat', 'ChannelFilter', 'ls_Toasts')
+    if ($Flavor -eq 'forerver') { $names += @('BigFoot', '!!!Libs') }
+    return $names
+}

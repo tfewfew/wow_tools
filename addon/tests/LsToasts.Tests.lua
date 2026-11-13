@@ -1,4 +1,5 @@
 local root=TEST_ROOT or "."
+local flavor = TEST_FLAVOR or "forerver"
 local function Widget()
     local frame={scripts={},events={},shown=false,text="",width=224,height=48}
     function frame:SetScript(event,callback) self.scripts[event]=callback end
@@ -33,7 +34,7 @@ local mock=dofile(root.."/addon/tests/LsToasts.Mock.lua")(chat)
 wowDetectorDB={soundControl={minimapAngle=315},lsToasts={db={profiles={Default={skin="beautycase",font={size=15}}}}}}
 mock.itemInfo[100]={name="测试物品",quality=3}
 mock.bags[0]={}
-mock.LoadXML(root.."/addon/forerver/wow_tools/ls_toasts/ls_toasts.xml")
+mock.LoadXML(root.."/addon/"..flavor.."/wow_tools/ls_toasts/ls_toasts.xml")
 assert(not WoWTools.modules.ls_toasts.IsShown())
 mock.Fire("ADDON_LOADED","another_addon")
 assert(not WoWTools.lsToasts.C.db,"Another addon initialized toast settings")
@@ -269,4 +270,4 @@ assert(#receipts==immediateCount+3,"Delayed-only event did not retain the fallba
 beforeQueries=mock.slotQueries
 mock.Fire("BAG_UPDATE",secret);mock.Fire("BAG_UPDATE",-1);mock.Fire("BAG_UPDATE",5);mock.Advance(0)
 assert(mock.slotQueries==beforeQueries,"Invalid bag event triggered a scan")
-print("PASS: Forever lsToast settings/lifecycle, real skins/queue/opacity animation, loot/gold, next-frame/coalesced complete bag snapshots, cross-bag moves, merchant suppression, restricted data, deduplication and cancellation. Offline APIs only.")
+print("PASS: "..flavor.." lsToast settings/lifecycle, real skins/queue/opacity animation, loot/gold, next-frame/coalesced complete bag snapshots, cross-bag moves, merchant suppression, restricted data, deduplication and cancellation. Offline APIs only.")

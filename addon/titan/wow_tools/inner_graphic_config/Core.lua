@@ -151,7 +151,9 @@ local categories = {
         { name = "团队液体", cvars = raidLiquidCVars },
     } },
     { name = "界面", cvars = { frameratePosition = true } },
+    { name = "字体", cvars = {}, fonts = true },
     { name = "按钮", cvars = {}, buttonStyle = true },
+    { name = "Lua", cvars = {}, luaGC = true },
 }
 local function SmallDescription(text)
     local font, size, flags = text:GetFont()
@@ -166,6 +168,7 @@ local function ReadValue(name)
 end
 
 local function Refresh(force)
+    if force and WoWTools.luaGC then WoWTools.luaGC.Refresh() end
     for _, control in ipairs(controls) do
         if control.definition.action then
             local label = FramerateLabel
@@ -307,8 +310,8 @@ local function BuildControls(parent)
         end
         Refresh()
     end
-    local tabStep = math.floor(456 / #categories)
-    local tabWidth = math.min(72, tabStep - 3)
+    local tabStep = math.floor(math.max(456, parent:GetWidth() - 40) / #categories)
+    local tabWidth = tabStep - 3
     for categoryIndex, category in ipairs(categories) do
     local tabIndex = categoryIndex
     local tab = CreateFrame("Button", nil, parent, "MinimalTabTemplate")
@@ -325,10 +328,14 @@ local function BuildControls(parent)
     list:SetSize(420, 1)
     scroll:SetScrollChild(list)
     pages[categoryIndex] = scroll
+    if category.fonts and WoWTools.displayFonts then WoWTools.displayFonts.BuildSettings(list) end
     if category.buttonStyle and WoWTools.buttonStyle then WoWTools.buttonStyle.BuildSettings(list) end
+    if category.luaGC and WoWTools.luaGC then WoWTools.luaGC.BuildSettings(list) end
     local entries = {}
     local function Layout()
         local offset = 0
+        local width = math.max(320, parent:GetWidth() - 50)
+        list:SetWidth(width)
         for _, entry in ipairs(entries) do
             local subgroup = category.subgroups and category.subgroups[activeSubgroups[categoryIndex] or 1]
             local visible = not subgroup or subgroup.cvars[entry.key]
@@ -336,6 +343,15 @@ local function BuildControls(parent)
                 entry.widget:Show()
                 entry.widget:ClearAllPoints()
                 entry.widget:SetPoint("TOPLEFT", entry.x, -offset)
+                entry.help:SetWidth(width - 16)
+                if entry.widget.definition.numeric or entry.widget.definition.action then
+                    entry.widget:SetWidth(width - 16)
+                end
+                if entry.widget.definition.numeric then
+                    local inputWidth = math.min(220, math.floor(width * 0.36))
+                    entry.widget.input:SetWidth(inputWidth)
+                    entry.widget.status:SetWidth(math.max(90, width - inputWidth - 110))
+                end
                 local height = entry.topHeight + entry.help:GetStringHeight()
                 if entry.widget.definition.numeric or entry.widget.definition.action then entry.widget:SetHeight(height) end
                 offset = offset + height + 24
@@ -343,7 +359,9 @@ local function BuildControls(parent)
                 entry.widget:Hide()
             end
         end
-        list:SetHeight(category.buttonStyle and WoWTools.buttonStyle.settingsHeight or math.max(1, offset))
+        list:SetHeight(category.fonts and WoWTools.displayFonts.settingsHeight
+            or category.luaGC and WoWTools.luaGC.settingsHeight
+            or category.buttonStyle and WoWTools.buttonStyle.settingsHeight or math.max(1, offset))
     end
     layouts[categoryIndex] = Layout
     if category.subgroups then
@@ -473,68 +491,46 @@ local function BuildControls(parent)
     end
     end
     SelectTab(1)
-    parent:SetScript("OnShow", function()
+    local function Resize()
+        local step = math.floor(math.max(456, parent:GetWidth() - 40) / #categories)
+        for index, tab in ipairs(tabs) do
+            tab:ClearAllPoints()
+            tab:SetPoint("TOPLEFT", 20 + (index - 1) * step, -70)
+            tab:SetWidth(step - 3)
+        end
+        for _, subTabs in pairs(subTabsByCategory) do
+            local subStep = math.floor(math.max(456, parent:GetWidth() - 40) / #subTabs)
+            for index, tab in ipairs(subTabs) do
+                tab:ClearAllPoints()
+                tab:SetPoint("TOPLEFT", 20 + (index - 1) * subStep, -108)
+                tab:SetWidth(subStep - 8)
+            end
+        end
         for _, layout in ipairs(layouts) do layout() end
-        Refresh(true)
+    end
+    parent:SetScript("OnSizeChanged", Resize)
+    parent:SetScript("OnShow", function()
+        Resize()
+        Refresh()
     end)
+    Resize()
 end
-
-local window = CreateFrame("Frame", "InnerGraphicConfigWindow", UIParent, "BasicFrameTemplateWithInset")
-window:SetSize(500, 560)
-window:SetPoint("CENTER")
-window:SetFrameStrata("DIALOG")
-window:SetClampedToScreen(true)
-window:SetMovable(true)
-window:EnableMouse(true)
-window:RegisterForDrag("LeftButton")
-window:SetScript("OnDragStart", function(self) self:StartMoving() end)
-window:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
-window.TitleText:SetText("wow_tools - inner_graphic_config")
-window:Hide()
-local content = CreateFrame("Frame", nil, window)
-content:SetPoint("TOPLEFT", 0, -16)
-content:SetPoint("BOTTOMRIGHT")
-BuildControls(content)
-window:SetScript("OnShow", function() Refresh(true) end)
-UISpecialFrames[#UISpecialFrames + 1] = "InnerGraphicConfigWindow"
 
 SLASH_INNERGRAPHICCONFIG1 = "/igc"
 SLASH_INNERGRAPHICCONFIG2 = "/inner_graphic_config"
 SlashCmdList.INNERGRAPHICCONFIG = function()
-    if window:IsShown() then window:Hide() else window:Show() end
-end
-
-local panel = CreateFrame("Frame", nil, UIParent)
-panel.name = "wow_tools - inner_graphic_config"
-panel:Hide()
-BuildControls(panel)
-if Settings and Settings.RegisterCanvasLayoutCategory and Settings.RegisterAddOnCategory then
-    local category = Settings.RegisterCanvasLayoutCategory(panel, panel.name)
-    Settings.RegisterAddOnCategory(category)
-elseif InterfaceOptions_AddCategory then
-    InterfaceOptions_AddCategory(panel)
+    WoWTools.settings.Toggle("inner_graphic_config")
 end
 
 local events = CreateFrame("Frame")
 events:RegisterEvent("CVAR_UPDATE")
 events:RegisterEvent("PLAYER_ENTERING_WORLD")
 events:SetScript("OnEvent", function() Refresh() end)
--- Some classic CVars do not emit CVAR_UPDATE. Poll only while a UI is visible.
-local elapsedTime = 0
-events:SetScript("OnUpdate", function(_, elapsed)
-    if not window:IsShown() and not panel:IsShown() then
-        elapsedTime = 0
-        return
-    end
-    elapsedTime = elapsedTime + elapsed
-    if elapsedTime >= 0.5 then
-        elapsedTime = 0
-        Refresh()
-    end
-end)
 
 WoWTools.modules.inner_graphic_config = {
     Toggle = SlashCmdList.INNERGRAPHICCONFIG,
-    Show = function() window:Show() end,
-    IsShown = function() return window:IsShown() end,
+    Show = function() WoWTools.settings.Open("inner_graphic_config") end,
+    IsShown = function() return WoWTools.settings.IsGroupShown("inner_graphic_config") end,
+    BuildSettings = BuildControls,
+    RefreshSettings = Refresh,
 }

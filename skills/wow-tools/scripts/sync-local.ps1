@@ -79,15 +79,13 @@ foreach ($profile in $profiles) {
             if ((Test-Path -LiteralPath $oldSettings) -and -not (Test-Path -LiteralPath $newSettings)) {
                 Copy-Verified $oldSettings $newSettings (Join-Path "$($profile.Flavor)\SavedVariables\$($account.Name)" 'wow_tools.lua')
             }
-            if ($profile.Flavor -eq 'forerver') {
-                $chatBackup = Join-Path $backup "forerver\SavedVariables\$($account.Name)\BigFootMigration"
-                if (Merge-WowBigFootSettings -SavedPath $savedPath -BackupPath $chatBackup) {
-                    Write-Output "Migrated BigFoot chat settings for $($account.Name)."
-                }
-                $toastBackup = Join-Path $backup "forerver\SavedVariables\$($account.Name)\LsToastsMigration"
-                if (Merge-WowLsToastsSettings -SavedPath $savedPath -BackupPath $toastBackup) {
-                    Write-Output "Migrated ls_Toasts settings for $($account.Name)."
-                }
+            $chatBackup = Join-Path $backup "$($profile.Flavor)\SavedVariables\$($account.Name)\BigFootMigration"
+            if (Merge-WowBigFootSettings -SavedPath $savedPath -BackupPath $chatBackup) {
+                Write-Output "Migrated $($profile.Flavor) BigFoot chat settings for $($account.Name)."
+            }
+            $toastBackup = Join-Path $backup "$($profile.Flavor)\SavedVariables\$($account.Name)\LsToastsMigration"
+            if (Merge-WowLsToastsSettings -SavedPath $savedPath -BackupPath $toastBackup) {
+                Write-Output "Migrated $($profile.Flavor) ls_Toasts settings for $($account.Name)."
             }
         }
     }
@@ -98,8 +96,7 @@ foreach ($profile in $profiles) {
     $profileBackup=[IO.Path]::GetFullPath((Join-Path $backup $profile.Flavor))
     if ((Split-Path $profileBackup -Parent) -ne $backup) { throw 'Client backup path check failed.' }
     New-Item -ItemType Directory -Path $profileBackup -Force | Out-Null
-    $legacyNames = @('FishingState', 'wowDetector', 'Inner_graphic_config')
-    if ($profile.Flavor -eq 'forerver') { $legacyNames += @('BigFoot', 'BigFootChat', 'ChannelFilter', '!!!Libs', 'ls_Toasts') }
+    $legacyNames = @(Get-WowToolsRetiredAddonNames -Flavor $profile.Flavor)
     foreach ($legacyName in $legacyNames) {
         $legacyAddon = [IO.Path]::GetFullPath((Join-Path $profile.AddOns $legacyName))
         $legacyBackup = [IO.Path]::GetFullPath((Join-Path $profileBackup $legacyName))

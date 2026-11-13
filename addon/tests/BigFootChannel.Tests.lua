@@ -1,5 +1,6 @@
 local root = TEST_ROOT or "."
-local addon = root .. "/addon/forerver/wow_tools/"
+local flavor = TEST_FLAVOR or "forerver"
+local addon = root .. "/addon/"..flavor.."/wow_tools/"
 local frames, messages = {}, {}
 local function Widget(name)
     local object = {scripts={}, events={}, shown=true, text="", width=500, height=300}
@@ -39,6 +40,9 @@ SlashCmdList,UISpecialFrames={},{}
 WoWTools={modules={}}
 Settings={OpenToCategory=function(category) assert(category=="keybindings") end}
 local mock=dofile(root .. "/addon/tests/BigFootChannel.Mock.lua")
+local legacyTooltip = function() end
+local legacyHideTooltip = function() end
+BigFoot_ShowNewbieTooltip, BigFoot_HideNewbieTooltip = legacyTooltip, legacyHideTooltip
 local secret=setmetatable({}, {__tostring=function() error("Printed restricted chat") end})
 issecretvalue=function(value) return rawequal(value,secret) end
 local originalTextChanges=0
@@ -55,6 +59,8 @@ for _,frame in ipairs(frames) do
     if frame.events.ADDON_LOADED then frame.scripts.OnEvent(frame,"ADDON_LOADED","wow_tools") end
 end
 local channel=WoWTools.bigfootChannel
+assert(BigFoot_ShowNewbieTooltip==legacyTooltip and BigFoot_HideNewbieTooltip==legacyHideTooltip,
+    "Embedded chat replaced the installed BigFoot core's shared tooltip helpers")
 local chat=channel.addon
 local options=mock.options.WoWToolsBigFootChannel()
 C_CVar={GetCVar=function() return mock.timestamp or "none" end,
@@ -175,6 +181,15 @@ MAX_SPELL_SCHOOLS=7
 CR_CRIT_SPELL,CR_CRIT_RANGED,CR_CRIT_MELEE,CR_MASTERY=1,2,3,4
 C_SpecializationInfo={GetSpecialization=function() return 1 end,
     GetSpecializationInfo=function() return 1,"测试专精",nil,nil,"DAMAGER" end}
+if flavor=="titan" then
+    C_SpecializationInfo=nil
+    function GetActiveTalentGroup() return 2 end
+    function GetNumTalentTabs() return 3 end
+    function GetTalentTabInfo(index, inspect, pet, group)
+        assert(not inspect and not pet and group==2)
+        return index,"测试专精"..index,nil,nil,index==2 and 51 or 5
+    end
+end
 DAMAGER="伤害"
 UnitLevel=function() return 70 end
 UnitClass=function() return "战士","WARRIOR" end
@@ -182,7 +197,8 @@ GetAverageItemLevel=function() return 123,120 end
 GetMasteryEffect,GetSpellCritChance,GetRangedCritChance,GetCritChance,GetHaste=function() return 10 end,
     function() return 10 end,function() return 10 end,function() return 10 end,function() return 10 end
 GetCombatRating,GetCombatRatingBonus=function() return 10 end,function() return 10 end
+if flavor=="titan" then GetMasteryEffect=nil end
 ChatFrame1EditBox:SetText("")
 BFCIconFrameReportButton_OnClick(BFCIconFrameReportButton,"LeftButton")
 assert(ChatFrame1EditBox:GetText():find("测试专精",1,true),"Personal stat report failed")
-print("PASS: Forever chat/XML/Ace lifecycle, six settings tabs, account profiles, native text hooks, emotes/copy/shortcuts, blacklist/whitelist/mute/restrictions, bounded join retries/cancellation and menu APIs. Offline mocks only.")
+print("PASS: "..flavor.." chat/XML/Ace lifecycle, six settings tabs, account profiles, native text hooks, emotes/copy/shortcuts, blacklist/whitelist/mute/restrictions, bounded join retries/cancellation and menu APIs. Offline mocks only.")

@@ -1,4 +1,5 @@
 -- Native font edits only: no game APIs or input are performed.
+local flavor = TEST_FLAVOR or "forerver"
 local root=TEST_ROOT or "."
 local widgets, frames={}, {}
 local function Widget()
@@ -55,11 +56,13 @@ StatusTrackingBarManager={
     bars={{isExpBar=true,StatusBar={Text=unrelated}}},
 }
 MainMenuBarBackpackButton={FreeSlots=bag};CharacterAmmoSlot={Count=unrelated};CharacterAmmoSlotCount=unrelated
+MainMenuBarBackpackButtonCount=flavor=="titan" and bag or unrelated
+if flavor=="titan" then MainMenuBarBackpackButton.FreeSlots=unrelated end
 MainMenuExpBarText=unrelated
-for i=0,3 do _G["CharacterBag"..i.."Slot"]=nil end
+for i=0,3 do _G["CharacterBag"..i.."Slot"]=nil;_G["CharacterBag"..i.."SlotCount"]=nil end
 TimeManagerClockTicker=nil
-local source=root.."/addon/forerver/wow_tools/DisplayFonts.lua"
-dofile(root.."/addon/forerver/wow_tools/ExperienceText.lua")
+local source=root.."/addon/"..flavor.."/wow_tools/DisplayFonts.lua"
+dofile(root.."/addon/"..flavor.."/wow_tools/ExperienceText.lua")
 dofile(source)
 local module=WoWTools.displayFonts
 local startupFrame=frames[#frames]
@@ -92,6 +95,12 @@ Event("ADDON_LOADED","another_addon")
 assert(experience.size==9 and experience.writes==2, "A native font update was persistently overridden")
 -- Only the missing ammo control is set once when its native addon finally loads.
 for i=0,3 do _G["CharacterBag"..i.."Slot"]={Count=bagCounts[i+1]} end
+if flavor=="titan" then
+    for i=0,3 do
+        _G["CharacterBag"..i.."SlotCount"]=bagCounts[i+1]
+        _G["CharacterBag"..i.."Slot"].Count=unrelated
+    end
+end
 Event("ADDON_LOADED","Blizzard_UIPanels_Game")
 assert(ammo.size==18 and ammo.writes==1, "Delayed bag-slot counter font was missed")
 for _,count in ipairs(bagCounts) do assert(count.size==18 and count.writes==1) end
@@ -152,14 +161,22 @@ assert(fontDraft.dirty and fontDraft.size:GetText()=="27" and not WoWTools.exper
     "Rested XP toggle lost an unsaved font draft")
 WoWTools={};bag=Widget();ammo=Widget();bagCounts={ammo,Widget(),Widget(),Widget()}
 MainMenuBarBackpackButton={FreeSlots=bag}
+MainMenuBarBackpackButtonCount=flavor=="titan" and bag or unrelated
+if flavor=="titan" then MainMenuBarBackpackButton.FreeSlots=unrelated end
 for i=0,3 do _G["CharacterBag"..i.."Slot"]={Count=bagCounts[i+1]} end
+if flavor=="titan" then
+    for i=0,3 do
+        _G["CharacterBag"..i.."SlotCount"]=bagCounts[i+1]
+        _G["CharacterBag"..i.."Slot"].Count=unrelated
+    end
+end
 experience=Widget();experienceSecond=Widget()
 StatusTrackingBarManager.barContainers={
     {bars={[4]={OverlayFrame={Text=experience}}}},
     {bars={[4]={OverlayFrame={Text=experienceSecond}}}},
 }
 clock=Widget();clock.path="Fonts\\clock.ttf";clock.size=11;clock.flags="OUTLINE";TimeManagerClockTicker=clock
-dofile(root.."/addon/forerver/wow_tools/ExperienceText.lua")
+dofile(root.."/addon/"..flavor.."/wow_tools/ExperienceText.lua")
 dofile(source)
 local reloadedFrame=frames[#frames]
 local reloadedParent=Widget();WoWTools.displayFonts.BuildSettings(reloadedParent)
@@ -174,4 +191,4 @@ assert(clock.writes==1, "Clock font was reapplied after initialization")
 bag.rejectFont=true
 local saved,message=WoWTools.displayFonts.Save("bags",22,"")
 assert(saved and message:find("应用失败",1,true) and bag.size==20, "Failed native font apply was reported as success")
-print("PASS: persistent account fonts, single startup apply, clock persistence/late loading/reset, verified XP overlays and four bag counters, size-only UI/legacy font-path migration, targeted manual saves, validation/reset and no hooks/timers/repeated event applies.")
+print("PASS: "..flavor.." persistent account fonts, single startup apply, clock persistence/late loading/reset, client-specific backpack/XP/four bag counters, size-only UI/legacy font-path migration, targeted manual saves, validation/reset and no hooks/timers/repeated font applies.")

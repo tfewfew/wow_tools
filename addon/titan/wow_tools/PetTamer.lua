@@ -1,6 +1,7 @@
 -- Pet taming only observes the current target. Keyboard actions belong to wowAuto.
 local FLAVOR = "titan"
 local enabled, initialized, elapsed = false, false, 0
+local embedded = false
 local names, targetGUID, serial = {}, nil, 0
 local events = CreateFrame("Frame")
 local activeEvents = {"PLAYER_TARGET_CHANGED", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED",
@@ -46,7 +47,13 @@ input:SetFontObject("ChatFontNormal")
 input:SetSize(400, 182)
 input:SetAutoFocus(false)
 input:SetMaxLetters(4000)
-input:SetScript("OnTextChanged", function(self) self:SetHeight(math.max(182, self:GetStringHeight()+20)) end)
+local function UpdateInputHeight()
+    local _, fontHeight = input:GetFont()
+    local lines = math.max(1, input:GetNumLines())
+    local textHeight = lines * fontHeight + (lines - 1) * input:GetSpacing()
+    input:SetHeight(math.max(182, embedded and scroll:GetHeight() or 182, textHeight + 20))
+end
+input:SetScript("OnTextChanged", UpdateInputHeight)
 input:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
 scroll:SetScrollChild(input)
 local status = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -149,14 +156,58 @@ save:SetScript("OnClick", function()
     DEFAULT_CHAT_FRAME:AddMessage("wow_tools：已保存抓宠名单，共 "..#list.." 个名称。")
 end)
 start:SetScript("OnClick", Start)
-close:SetScript("OnClick", function() Stop(); panel:Hide() end)
-panel:SetScript("OnHide", Stop)
+local function Close()
+    Stop()
+    if not embedded then panel:Hide() end
+end
+close:SetScript("OnClick", Close)
+panel:SetScript("OnHide", function() if not embedded then Stop() end end)
 WoWTools.modules.pet_tamer = {
     IsEnabled=function() return enabled end,
-    IsShown=function() return panel:IsShown() end,
+    IsShown=function() return embedded and panel:IsVisible() or (not embedded and panel:IsShown()) end,
     Show=Start,
-    Hide=function() Stop(); panel:Hide() end,
-    Toggle=function() if panel:IsShown() then Stop(); panel:Hide() else Start() end end,
+    Hide=Close,
+    Toggle=function() if enabled or (not embedded and panel:IsShown()) then Close() else Start() end end,
+    BuildSettings=function(parent)
+        embedded = true
+        panel:SetParent(parent)
+        panel:ClearAllPoints()
+        panel:SetAllPoints(parent)
+        panel:SetFrameStrata("DIALOG")
+        panel:SetFrameLevel(parent:GetFrameLevel() + 1)
+        panel:SetMovable(false)
+        panel:SetClampedToScreen(false)
+        panel:SetScript("OnDragStart", nil)
+        panel:SetScript("OnDragStop", nil)
+        background:Hide()
+        close:SetText("停止检测")
+        hint:SetJustifyH("LEFT")
+        scroll:ClearAllPoints()
+        scroll:SetPoint("TOPLEFT", 16, -72)
+        scroll:SetPoint("BOTTOMRIGHT", -40, 104)
+        status:ClearAllPoints()
+        status:SetPoint("BOTTOMLEFT", 16, 56)
+        status:SetJustifyH("LEFT")
+        save:ClearAllPoints()
+        save:SetPoint("BOTTOMLEFT", 16, 16)
+        start:ClearAllPoints()
+        start:SetPoint("BOTTOMLEFT", 154, 16)
+        close:ClearAllPoints()
+        close:SetPoint("BOTTOMRIGHT", -16, 16)
+        for _, button in ipairs({save, start, close}) do button:SetWidth(122) end
+        local function Layout()
+            local width = math.max(420, panel:GetWidth())
+            hint:SetWidth(width - 32)
+            status:SetWidth(width - 32)
+            input:SetWidth(math.max(320, scroll:GetWidth() - 4))
+            UpdateInputHeight()
+        end
+        panel:SetScript("OnSizeChanged", Layout)
+        Layout()
+        parent:SetScript("OnShow", function() panel:Show() end)
+        panel:Show()
+        return panel
+    end,
 }
 events:RegisterEvent("ADDON_LOADED")
 events:SetScript("OnEvent", function(_, event, addon)
@@ -173,5 +224,5 @@ end)
 SLASH_PETTAMER1 = "/pettamer"
 SlashCmdList.PETTAMER = function(message)
     local command = (message or ""):lower():match("^%s*(.-)%s*$")
-    if command == "off" or command == "hide" then Stop(); panel:Hide() else Start() end
+    if command == "off" or command == "hide" then Close() else Start() end
 end

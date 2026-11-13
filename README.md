@@ -1,6 +1,6 @@
 # wow_tools
 
-泰坦时光服、无限服的钓鱼状态指示与画面设置插件，以及 wowAuto 前台按键工具。
+泰坦时光服、无限服的 wow_tools 插件合集，以及 wowAuto 前台按键工具。
 
 - [addon/titan/](addon/titan/README.md)：泰坦时光服插件，接口38002，独立源码在 `addon/titan/wow_tools/`。
 - [addon/forerver/](addon/forerver/README.md)：无限服插件，接口16001，独立源码在 `addon/forerver/wow_tools/`。目录名按约定保留为 `forerver`。
@@ -8,6 +8,8 @@
 - `skills/wow-tools/SKILL.md`：维护说明及发布顺序。
 
 ## 使用
+
+当前版本为时光服 2.1.63、无限服 2.2.79。两端包含钓鱼检测、战斗检测、自动抓宠、一键卖鱼、画面与字体设置、剩余双倍经验、按钮样式、声音设备、大脚聊天、lsToast 和 Lua 回收参数。右键小地图图标或输入 `/wowtools` 打开七页统一设置，字体页的经验值字号后可开启纯数字括号显示 `（12345）`。新增能力与通用修复默认同批适配、验证并部署两端，各客户端独立保存配置。时光服本次新增运行库和按键绑定，升级后完全退出并重开游戏。
 
 角色资料采集已修复（时光服2.1.41 / 无限服2.2.40）：启动过检测的角色在背包、技能或等级变化时缓存本次登录的有效数据，正常下线时保存，退出清空阶段不会覆盖缓存；不增加定时轮询。两服分别使用实际技能列表，避免可用但返回空结果的旧接口把已学技能记成“未学习”。更新后需在角色上 `/reload`，正常下线，再在脚本点击“刷新进程”；现有磁盘快照不会凭空补全。
 
@@ -23,9 +25,9 @@
 
 无限服按本机1.60.1.70338移植：使用新版原生菜单、C_Item附魔列表和FramerateFrame；只将鱼竿的有效Temporary附魔作为鱼饵，排除永久附魔和Imbue。施法数据不可读时显示灰色，不猜测钓鱼状态。无限服版本说明和接口依据见其目录README。wowAuto支持两服进程，按客户端目录和构建版本识别，工具说明见tools/wowAuto/README.md。
 
-小地图旁的钓鱼图标是 wow_tools 统一入口，右键打开菜单，可分别打开/关闭 wowDetector 和 inner_graphic_config 界面；左键点击打开面板并自动启动监测，再次点击关闭监测并隐藏面板，拖动可调整并保存入口位置。wowDetector 每次登录或重载默认隐藏且检测关闭，不恢复上次显示状态。也可用 `/wowdetector show`、`hide` 控制面板。面板“关闭”按钮停止监测并隐藏面板；仅 show/hide 命令保持单独控制显隐；隐藏时色块一并隐藏，外部工具无法读取插件色块。`/wowdetector on` 会先显示面板再启动检测。
+小地图旁的钓鱼图标是 wow_tools 统一入口，右键打开七页统一设置；左键点击打开面板并自动启动监测，再次点击关闭监测并隐藏面板，拖动可调整并保存入口位置。wowDetector 每次登录或重载默认隐藏且检测关闭，不恢复上次显示状态。也可用 `/wowdetector show`、`hide` 控制面板。面板“关闭”按钮停止监测并隐藏面板；仅 show/hide 命令保持单独控制显隐；隐藏时色块一并隐藏，外部工具无法读取插件色块。`/wowdetector on` 会先显示面板再启动检测。
 
-inner_graphic_config 从原本机 1.7.0 版本收编，保留原有全部画面参数设置和 `/igc`、`/inner_graphic_config` 命令。仅点击应用或勾选时修改游戏设置。`/wowtools` 也可打开子插件菜单。
+inner_graphic_config 从原本机 1.7.0 版本收编，保留原有全部画面参数设置和 `/igc`、`/inner_graphic_config` 命令。仅点击应用或勾选时修改游戏设置。`/wowtools` 打开统一设置，`/igc` 与 `/inner_graphic_config` 定位画面页。
 
 插件安装后，点击“启动”或输入 `/wowdetector on`，自动将色块居中并锁定位置；点击“关闭”或输入 `/wowdetector off`，停止检测并解除锁定。面板按钮关闭后会隐藏；使用 `/wowdetector off` 仅停止检测，可保留面板拖动。`/wowdetector unlock`、`lock` 控制关闭状态下的拖动，`center` 居中，`status` 查询状态。旧命令 `/fishstate` 仍可使用。
 
