@@ -1,63 +1,68 @@
--- Contributors: Gotxiko@GitHub, Shacoulrophobia@Curse
-
-local addonTable = WoWTools.lsToasts
-local L = addonTable.L
+local _, addon = ...
+local L = addon.L
 
 -- Lua
 local _G = getfenv(0)
 
-if GetLocale() ~= "esES" and GetLocale() ~= "esMX" then
-    return
-end
+if GetLocale() ~= "esES" then return end
 
-L["ANCHOR_FRAME_#"] = "Marco de anclaje #%d"
 L["ANCHOR_FRAMES"] = "Marcos de anclaje"
-L["ANCHOR_RESET_DESC"] = "|cffffffffShift-Click|r para reiniciar la posición."
+L["ANCHOR_RESET_DESC"] = "|cffffffffShift click|r para reiniciar la posición."
 L["BORDER"] = "Borde"
 L["CHANGELOG"] = "Registro de cambios"
 L["CHANGELOG_FULL"] = "Completo"
-L["COLORS"] = "Colores"
 L["COORDS"] = "Coordenadas"
 L["COPPER_THRESHOLD"] = "Límite de Cobre"
 L["COPPER_THRESHOLD_DESC"] = "Cantidad mínima de Cobre con la que mostrar un Toast."
+L["CURRENCY_THRESHOLD_DESC"] = "Introduce |cffffd200-1|r para ignorar la moneda, |cffffd2000|r para desactivar el filtro, o |cffffd200cualquier número por encima de 0|r para establecer el umbral por debajo del cual no se crearán toasts."
 L["DEFAULT_VALUE"] = "Valor por defecto: |cffffd200%s|r"
 L["DND"] = "DND"
-L["DND_TOOLTIP"] =
-    "Toasts en modo DND no se mostrarán en combate, pero se pondrán a la cola del sistema. Una vez salgas de combate, aparecerán."
+L["DND_DESC"] = "Toasts en modo DND no se mostrarán en combate, pero se pondrán a la cola del sistema. Una vez salgas de combate, aparecerán."
 L["DOWNLOADS"] = "Descargas"
+L["EXPORT"] = "Exportar"
 L["FADE_OUT_DELAY"] = "Retraso de desvanecimiento"
-L["FILTERS"] = "Filtros"
 L["FLUSH_QUEUE"] = "Limpiar cola"
 L["FONTS"] = "Fuentes"
 L["GROWTH_DIR"] = "Dirección de aparición"
-L["GROWTH_DIR_DOWN"] = "Abajo"
-L["GROWTH_DIR_LEFT"] = "Izquierda"
-L["GROWTH_DIR_RIGHT"] = "Derecha"
-L["GROWTH_DIR_UP"] = "Arriba"
+L["HANDLE_LEFT_CLICK"] = "Utilizar clic izquierdo"
 L["ICON_BORDER"] = "Borde de icono"
-L["INFORMATION"] = "Información"
-L["NAME"] = "Nombre"
-L["OPEN_CONFIG"] = "Abrir Config"
+L["ITEM_FILTERS_DESC"] = "Estos objetos ignoran el umbral de calidad del botín."
+L["NEW_CURRENCY_FILTER_DESC"] = "Introduce el ID de una moneda"
+L["OFFSET_X"] = "xOffset"
+L["OFFSET_Y"] = "yOffset"
 L["RARITY_THRESHOLD"] = "Límite de rareza"
 L["SCALE"] = "Escala"
-L["SHOW_ILVL"] = "Mostrar nivel de objeto"
-L["SHOW_ILVL_DESC"] = "Muestra el nivel de objeto junto al nombre del objeto."
-L["SIZE"] = "Tamaño"
 L["SKIN"] = "Apariencia"
 L["STRATA"] = "Altura"
-L["SUPPORT"] = "Soporte"
+L["TAINT_WARNING"] = "Activar esta opción puede causar errores al abrir o cerrar ciertos paneles de la UI en combate."
 L["TEST"] = "Test"
 L["TEST_ALL"] = "Test todo"
+L["THRESHOLD"] = "Umbral"
 L["TOAST_NUM"] = "Número de toasts"
 L["TOAST_TYPES"] = "Tipos de Toasts"
 L["TOGGLE_ANCHORS"] = "Alternar anclajes"
+L["TOOLTIPS"] = "Herramientas"
 L["TRACK_LOSS"] = "Mostrar pérdidas"
 L["TRACK_LOSS_DESC"] = "Esta opción ignora el margen de cobre establecido."
+L["TRANSMOG_ADDED"] = "Appariencia añadida"
+L["TRANSMOG_REMOVED"] = "Apariencia eliminada"
+L["TYPE_ACHIEVEMENT"] = "Logro"
+L["TYPE_ARCHAEOLOGY"] = "Arquelogía"
+L["TYPE_CLASS_HALL"] = "Sede de clase"
+L["TYPE_COLLECTION"] = "Colección"
+L["TYPE_COLLECTION_DESC"] = "Toasts para nuevas monturas, mascotas y juguetes."
+L["TYPE_COVENANT"] = "Curia"
+L["TYPE_DUNGEON"] = "Mazmorra"
+L["TYPE_GARRISON"] = "Ciudadela"
+L["TYPE_LOOT_COMMON"] = "Botín (Común)"
+L["TYPE_LOOT_COMMON_DESC"] = "Toasts activados por eventos de chat, ej. verdes, azules, algunos épicos, cualquier cosa que no sea recogida por toasts de botines especiales."
+L["TYPE_LOOT_CURRENCY"] = "Botín (Moneda)"
 L["TYPE_LOOT_GOLD"] = "Botín (Oro)"
-L["X_OFFSET"] = "xOffset"
-L["Y_OFFSET"] = "yOffset"
+L["TYPE_LOOT_SPECIAL"] = "Botín (Especial)"
+L["TYPE_LOOT_SPECIAL_DESC"] = "Toasts activados por eventos de botín especial, ej. tiradas ganadas, caídas de legendarios, botín personal, etc."
+L["TYPE_RUNECARVING"] = "Talla de runas"
+L["TYPE_TRANSMOG"] = "Transmogrificación"
+L["TYPE_WAR_EFFORT"] = "Esfuerzo de guerra"
+L["TYPE_WORLD_QUEST"] = "Misión de mundo"
 L["YOU_LOST"] = "Has perdido"
 L["YOU_RECEIVED"] = "Has recibido"
-
--- Classic Era
-L["TYPE_LOOT_ITEMS"] = "Botín (Objetos)"

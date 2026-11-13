@@ -20,6 +20,7 @@ if ($remoteCommit -ne $headCommit) { throw 'Local HEAD is not the current remote
 
 . (Join-Path $PSScriptRoot 'client-profiles.ps1')
 . (Join-Path $PSScriptRoot 'migrate-bigfoot.ps1')
+. (Join-Path $PSScriptRoot 'sync-lstoasts.ps1')
 $profiles=@(Get-WowToolsDeploymentProfiles -RepoRoot $repo -Flavor $Flavor -GameRoot $GameRoot -TitanGameRoot $TitanGameRoot -ForerverGameRoot $ForerverGameRoot)
 # Validate all requested clients and sources before writing to either installation.
 foreach ($profile in $profiles) {
@@ -55,6 +56,11 @@ foreach ($profile in $profiles) {
         $relative=$file.FullName.Substring($profile.Source.Length + 1)
         Copy-Verified $file.FullName (Join-Path $profile.Target $relative) (Join-Path "$($profile.Flavor)\wow_tools" $relative)
     }
+    $retiredToasts = Remove-WowToolsRetiredToastFiles `
+        -Source (Join-Path $profile.Source 'ls_toasts') `
+        -Target (Join-Path $profile.Target 'ls_toasts') `
+        -BackupPath (Join-Path $backup "$($profile.Flavor)\retired-ls_toasts")
+    if ($retiredToasts) { Write-Output "Archived $retiredToasts obsolete ls_Toasts files for $($profile.Flavor)." }
     # Retire the exact former login-marker module after the new TOC is verified.
     $retiredRotation=Join-Path $profile.Target 'Rotation.lua'
     if (-not (Test-Path -LiteralPath (Join-Path $profile.Source 'Rotation.lua')) -and (Test-Path -LiteralPath $retiredRotation -PathType Leaf)) {

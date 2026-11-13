@@ -1,0 +1,148 @@
+local _, addon = ...
+local E, L, C = addon.E, addon.L, addon.C
+
+-- Lua
+local _G = getfenv(0)
+
+-- Mine
+local function Toast_OnClick(self)
+	if self._data.runecarving_id and not InCombatLockdown() then
+		if not EncounterJournal then
+			EncounterJournal_LoadUI()
+		end
+
+		if EncounterJournal then
+			EncounterJournal_OpenToPowerID(self._data.runecarving_id)
+		end
+	end
+end
+
+local function Toast_OnEnter(self)
+	if self._data.runecarving_id then
+		addon.Tooltip:ShowRuneforgePower(self._data.runecarving_id)
+	end
+end
+
+local function Toast_SetUp(event, powerID)
+	local info = C_LegendaryCrafting.GetRuneforgePowerInfo(powerID)
+	if info and info.name ~= "" then
+		local toast = E:GetToast()
+		local name = info.name
+		local color = ITEM_QUALITY_COLORS[5]
+
+		if C.db.profile.colors.name then
+			name = color.hex .. name .. "|r"
+		end
+
+		if C.db.profile.colors.border then
+			toast.Border:SetVertexColor(color.r, color.g, color.b)
+		end
+
+		if C.db.profile.colors.icon_border then
+			toast.IconBorder:SetVertexColor(color.r, color.g, color.b)
+		end
+
+		toast.Title:SetText(L["YOU_RECEIVED"])
+		toast.Text:SetText(name)
+		toast.Icon:SetTexture(info.iconFileID)
+		toast.IconBorder:Show()
+
+		toast._data.event = event
+		toast._data.runecarving_id = powerID
+		toast._data.sound_file = C.db.profile.types.runecarving.sfx and 166314 -- SOUNDKIT.UI_RUNECARVING_OPEN_MAIN_WINDOW
+		toast._data.vfx = C.db.profile.types.runecarving.vfx
+
+		if C.db.profile.types.runecarving.tooltip then
+			toast:HookScript("OnEnter", Toast_OnEnter)
+		end
+
+		toast:HookScript("OnClick", Toast_OnClick)
+		toast:Spawn(addon:GetAnchorIDForType("runecarving"), C.db.profile.types.runecarving.dnd)
+	end
+end
+
+local function NEW_RUNEFORGE_POWER_ADDED(powerID)
+	Toast_SetUp("NEW_RUNEFORGE_POWER_ADDED", powerID)
+end
+
+local function Enable()
+	if C.db.profile.types.runecarving.enabled then
+		E:RegisterEvent("NEW_RUNEFORGE_POWER_ADDED", NEW_RUNEFORGE_POWER_ADDED)
+		-- I'm still not sure if this one is useful, the only info that's missing at the initial
+		-- GetRuneforgePowerInfo call is the description, but in my case it's only useful for the
+		-- OnEnter handler, but it'll be updated by then, so eh?
+		-- E:RegisterEvent("RUNEFORGE_POWER_INFO_UPDATED", RUNEFORGE_POWER_INFO_UPDATED)
+	end
+end
+
+local function Disable()
+	E:UnregisterEvent("NEW_RUNEFORGE_POWER_ADDED", NEW_RUNEFORGE_POWER_ADDED)
+	-- E:UnregisterEvent("RUNEFORGE_POWER_INFO_UPDATED", RUNEFORGE_POWER_INFO_UPDATED)
+end
+
+local function Test()
+	-- Slick Ice
+	Toast_SetUp("RUNECARVING_TEST", 2)
+end
+
+E:RegisterOptions("runecarving", {
+	enabled = true,
+	dnd = false,
+	sfx = true,
+	vfx = true,
+	tooltip = true,
+}, {
+	name = L["TYPE_RUNECARVING"],
+	get = function(info)
+		return C.db.profile.types.runecarving[info[#info]]
+	end,
+	set = function(info, value)
+		C.db.profile.types.runecarving[info[#info]] = value
+	end,
+	args = {
+		enabled = {
+			order = 1,
+			type = "toggle",
+			name = L["ENABLE"],
+			set = function(_, value)
+				C.db.profile.types.runecarving.enabled = value
+
+				if value then
+					Enable()
+				else
+					Disable()
+				end
+			end,
+		},
+		dnd = {
+			order = 2,
+			type = "toggle",
+			name = L["DND"],
+			desc = L["DND_DESC"],
+		},
+		sfx = {
+			order = 3,
+			type = "toggle",
+			name = L["SFX"],
+		},
+		vfx = {
+			order = 5,
+			type = "toggle",
+			name = L["VFX"],
+		},
+		tooltip = {
+			order = 6,
+			type = "toggle",
+			name = L["TOOLTIPS"],
+		},
+		test = {
+			type = "execute",
+			order = 99,
+			width = "full",
+			name = L["TEST"],
+			func = Test,
+		},
+	},
+})
+
+E:RegisterSystem("runecarving", Enable, Disable, Test)

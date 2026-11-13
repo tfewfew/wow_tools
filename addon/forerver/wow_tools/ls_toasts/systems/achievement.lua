@@ -1,0 +1,191 @@
+local _, addon = ...
+local E, L, C = addon.E, addon.L, addon.C
+
+-- Lua
+local _G = getfenv(0)
+
+-- Mine
+local function Toast_OnClick(self)
+	if self._data.ach_id and not InCombatLockdown() then
+		if Narci and NarciAchievementOptions and NarciAchievementOptions.UseAsDefault then
+			if Narci_AchievementFrame then
+				Narci_AchievementFrame:LocateAchievement(self._data.ach_id)
+			else
+				Narci.LoadAchievementPanel(self._data.ach_id)
+			end
+		else
+			if not AchievementFrame then
+				AchievementFrame_LoadUI()
+			end
+
+			if AchievementFrame then
+				ShowUIPanel(AchievementFrame)
+				AchievementFrame_SelectAchievement(self._data.ach_id)
+			end
+		end
+	end
+end
+
+local function Toast_OnEnter(self)
+	if self._data.ach_id then
+		addon.Tooltip:ShowAchievement(self._data.ach_id)
+	end
+end
+
+local function Toast_SetUp(event, achievementID, alreadyEarned, criteriaDescription)
+	local _, name, points, _, _, _, _, _, _, icon, _, isGuildAchievement = GetAchievementInfo(achievementID)
+	local toast = E:GetToast()
+
+	if criteriaDescription then
+		toast.Title:SetText(L["ACHIEVEMENT_PROGRESSED"])
+		toast.Text:SetText(criteriaDescription)
+
+		toast.IconText1:SetText("")
+	else
+		toast.Title:SetText(isGuildAchievement and L["GUILD_ACHIEVEMENT_UNLOCKED"] or L["ACHIEVEMENT_UNLOCKED"])
+		toast.Text:SetText(name)
+
+		if not toast:ShouldHideLeaves() then
+			toast:ShowLeaves()
+		end
+
+		if alreadyEarned then
+			toast.IconText1:SetText("")
+		else
+			if C.db.profile.colors.border then
+				toast.Border:SetVertexColor(1, 0.675, 0.125) -- ACHIEVEMENT_GOLD_BORDER_COLOR
+				toast:SetLeavesVertexColor(1, 0.675, 0.125)
+			end
+
+			if C.db.profile.colors.icon_border then
+				toast.IconBorder:SetVertexColor(1, 0.675, 0.125)
+			end
+
+			toast.IconText1:SetText(points == 0 and "" or points)
+		end
+	end
+
+	toast.Icon:SetTexture(icon)
+	toast.IconBorder:Show()
+
+	toast._data.event = event
+	toast._data.ach_id = achievementID
+	toast._data.vfx = C.db.profile.types.achievement.vfx
+
+	if C.db.profile.types.achievement.tooltip then
+		toast:HookScript("OnEnter", Toast_OnEnter)
+	end
+
+	toast:HookScript("OnClick", Toast_OnClick)
+	toast:Spawn(addon:GetAnchorIDForType("achievement"), C.db.profile.types.achievement.dnd)
+end
+
+local function ACHIEVEMENT_EARNED(achievementID, alreadyEarned)
+	if alreadyEarned and not C.db.profile.types.achievement.earned then
+		return
+	end
+
+	Toast_SetUp("ACHIEVEMENT_EARNED", achievementID, alreadyEarned)
+end
+
+local function CRITERIA_EARNED(achievementID, criteriaDescription, achievementAlreadyEarned)
+	if achievementAlreadyEarned and not C.db.profile.types.achievement.earned then
+		return
+	end
+
+	Toast_SetUp("CRITERIA_EARNED", achievementID, achievementAlreadyEarned, criteriaDescription)
+end
+
+local function Enable()
+	if C.db.profile.types.achievement.enabled then
+		E:RegisterEvent("ACHIEVEMENT_EARNED", ACHIEVEMENT_EARNED)
+		E:RegisterEvent("CRITERIA_EARNED", CRITERIA_EARNED)
+	end
+end
+
+local function Disable()
+	E:UnregisterEvent("ACHIEVEMENT_EARNED", ACHIEVEMENT_EARNED)
+	E:UnregisterEvent("CRITERIA_EARNED", CRITERIA_EARNED)
+end
+
+local function Test()
+	if addon.GAMEVERSION.Standard then
+		-- new, Shave and a Haircut
+		Toast_SetUp("ACHIEVEMENT_TEST", 545, false)
+
+		-- earned, Reach Level 10
+		Toast_SetUp("ACHIEVEMENT_TEST", 6, true)
+
+		-- guild, Everyone Needs a Logo
+		Toast_SetUp("ACHIEVEMENT_TEST", 5362)
+	elseif addon.GAMEVERSION.Forever then
+		-- new, Artisan Alchemist
+		Toast_SetUp("ACHIEVEMENT_TEST", 62014, false)
+
+		-- earned, Conqueror of the Deeps
+		Toast_SetUp("ACHIEVEMENT_TEST", 62035, true)
+	end
+
+end
+
+E:RegisterOptions("achievement", {
+	enabled = true,
+	dnd = false,
+	vfx = true,
+	tooltip = true,
+	earned = false,
+}, {
+	name = L["TYPE_ACHIEVEMENT"],
+	get = function(info)
+		return C.db.profile.types.achievement[info[#info]]
+	end,
+	set = function(info, value)
+		C.db.profile.types.achievement[info[#info]] = value
+	end,
+	args = {
+		enabled = {
+			order = 1,
+			type = "toggle",
+			name = L["ENABLE"],
+			set = function(_, value)
+				C.db.profile.types.achievement.enabled = value
+
+				if value then
+					Enable()
+				else
+					Disable()
+				end
+			end,
+		},
+		dnd = {
+			order = 2,
+			type = "toggle",
+			name = L["DND"],
+			desc = L["DND_DESC"],
+		},
+		vfx = {
+			order = 3,
+			type = "toggle",
+			name = L["VFX"],
+		},
+		tooltip = {
+			order = 4,
+			type = "toggle",
+			name = L["TOOLTIPS"],
+		},
+		earned = {
+			order = 5,
+			type = "toggle",
+			name = L["EARNED"],
+		},
+		test = {
+			type = "execute",
+			order = 99,
+			width = "full",
+			name = L["TEST"],
+			func = Test,
+		},
+	},
+})
+
+E:RegisterSystem("achievement", Enable, Disable, Test)

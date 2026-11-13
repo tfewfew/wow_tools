@@ -1,10 +1,11 @@
-local addonTable = WoWTools.lsToasts
-local E = addonTable.E
+local _, addon = ...
+local E = addon.E
 
 -- Lua
 local _G = getfenv(0)
 
 -- Mine
 E.CHANGELOG = [[
-- Added "Profession Materials" filter to item toasts. It should catch most mats, if it doesn't, use the ID filter.
+- Added WoW Forever support.
+- Updated Traditional Chinese translation. Translated by BNS333@Curse.
 ]]

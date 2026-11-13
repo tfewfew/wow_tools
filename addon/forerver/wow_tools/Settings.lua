@@ -8,7 +8,7 @@ local groups = {
     { key="pet_tamer", label="自动抓宠" },
     { key="sound_control", label="声音控制" },
     { key="bigfoot_channel", label="大脚聊天", app="WoWToolsBigFootChannel" },
-    { key="ls_toasts", label="lsToast", app="WoWToolsLsToasts" },
+    { key="ls_toasts", label="lsToast", app="ls_Toasts" },
 }
 settings.groups = groups
 local selected = "wowDetector"

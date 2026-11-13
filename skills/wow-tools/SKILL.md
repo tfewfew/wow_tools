@@ -5,6 +5,12 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 # wow_tools
 
+## ls_Toasts 上游升级与映射（2026-11-13）
+
+- titan 2.1.65 / forerver 2.2.81 采用 ls-/ls_Toasts 的 120105.05，完整上游提交为 355774b11757b46ed3bb4c784ad7145f03e43871。用户要求覆盖既有本地实现，物品、金币、货币、成就、收藏、配方、商城、幻化、四组皮肤、原生完整/简化动画、编辑模式布局与导入导出采用新版源码。历史背包补报、跨来源去重和独立淡入淡出调整由本次上游实现替换。
+- Bootstrap / Integration 提供 wow_tools 加载、媒体路径、统一设置入口及 wowDetectorDB.lsToasts.db 接入，旧 loot_items 设置转为 loot_item，旧锚点交给上游 Modernize 转换。时光服保留 TitanReforged 身份并使用本端 C_Item.GetDetailedItemLevelInfo。新增 namespaced LibEditMode 19 运行库，原库源码提交为 adfa353adce0aacba122b28809abd9110c4c9b96，复用现有 Ace3 / SharedMedia，保留上游版权声明。两端独立加载与专项模拟，部署核对两端客户端身份与文件哈希，并备份后移除已从源码退役的 ls_toasts 文件。LsToastsSync 临时目录回归覆盖重复同步、源码隔离和备份失败保护。成功提交推送后默认 all 同步。
+- 第三方插件的映射分别放在 addon/titan/THIRD_PARTY.md 和 addon/forerver/THIRD_PARTY.md，每项只记录插件、原始仓库、当前引入版本和实际采用的上游完整 commit ID。当前记录 ls_Toasts，大脚相关模块作为例外。以后新导入第三方插件按同样格式增加记录，升级或替换源码时同批更新受影响客户端的表。本地修改保留原上游基线，改动通过本仓库 Git 历史追踪。
+
 ## 默认双端功能同步（2026-11-13）
 
 - AGENTS.md 要求新增能力、设置项、界面调整及通用修复同批分别适配 titan / forerver，验证两端入口、TOC、保存与对应模拟测试，成功提交推送后默认以 all 部署。版本号独立维护，各自保留客户端 API、检测协议与账号配置。用户明确指定单端，或原生源码确认某服缺少能力时可保留差异，最终说明原因。以下历史“仅无限服”记录描述当时发布范围，后续维护采用本条默认双端约定。
