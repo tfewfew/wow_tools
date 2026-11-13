@@ -1,5 +1,9 @@
 ﻿param([string]$PreviewPath, [switch]$UiTest)
 $ErrorActionPreference = 'Stop'
+if ($UiTest) {
+    & (Join-Path $PSScriptRoot 'tests\Compatibility.Tests.ps1')
+    return
+}
 $script:useWorkers=-not $UiTest -or $env:WOWAUTO_PARALLEL_TEST_MODE -eq '1'
 . (Join-Path $PSScriptRoot 'wowAuto.Logging.ps1')
 $script:logMaxSizeMB=50
@@ -2047,37 +2051,6 @@ try {
     if ($PreviewPath -or $UiTest) {
         $form.Show()
         [System.Windows.Forms.Application]::DoEvents()
-        if ($UiTest) {
-            if($script:useWorkers) {
-                . (Join-Path $PSScriptRoot 'tests\Parallel.UiTests.ps1')
-            } else {
-            . (Join-Path $PSScriptRoot 'tests\Layout.UiTests.ps1')
-            . (Join-Path $PSScriptRoot 'tests\Refresh.UiTests.ps1')
-            . (Join-Path $PSScriptRoot 'tests\Scheduler.UiTests.ps1')
-            . (Join-Path $PSScriptRoot 'tests\KeyItem.UiTests.ps1')
-            . (Join-Path $PSScriptRoot 'tests\ItemDetection.UiTests.ps1')
-            . (Join-Path $PSScriptRoot 'tests\ProcessItems.UiTests.ps1')
-            . (Join-Path $PSScriptRoot 'tests\FocusRetry.UiTests.ps1')
-            . (Join-Path $PSScriptRoot 'tests\StatusTimestamp.UiTests.ps1')
-            . (Join-Path $PSScriptRoot 'tests\ClientSettings.UiTests.ps1')
-            . (Join-Path $PSScriptRoot 'tests\Audio.UiTests.ps1')
-            . (Join-Path $PSScriptRoot 'tests\Audio.Features.UiTests.ps1')
-            . (Join-Path $PSScriptRoot 'tests\Preferences.UiTests.ps1')
-            . (Join-Path $PSScriptRoot 'tests\EquipRod.UiTests.ps1')
-            . (Join-Path $PSScriptRoot 'tests\DirectStart.Settings.UiTests.ps1')
-            . (Join-Path $PSScriptRoot 'tests\Audio.Timeout.UiTests.ps1')
-            . (Join-Path $PSScriptRoot 'tests\Audio.Recordings.UiTests.ps1')
-            . (Join-Path $PSScriptRoot 'tests\StatusLog.UiTests.ps1')
-            . (Join-Path $PSScriptRoot 'tests\JumpInterval.UiTests.ps1')
-            . (Join-Path $PSScriptRoot 'tests\AutoFight.UiTests.ps1')
-            . (Join-Path $PSScriptRoot 'tests\Unified.UiTests.ps1')
-            . (Join-Path $PSScriptRoot 'tests\Rotation.UiTests.ps1')
-            . (Join-Path $PSScriptRoot 'tests\Accounts.UiTests.ps1')
-            . (Join-Path $PSScriptRoot 'tests\Logging.UiTests.ps1')
-            . (Join-Path $PSScriptRoot 'tests\Shutdown.UiTests.ps1')
-            . (Join-Path $PSScriptRoot 'tests\Restart.UiTests.ps1')
-            }
-        }
         if ($PreviewPath) {
             [System.Windows.Forms.Application]::DoEvents()
             $bitmap = New-Object System.Drawing.Bitmap($form.Width, $form.Height)

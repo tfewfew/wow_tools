@@ -225,7 +225,7 @@ function mock.LoadXML(path)
     BFCIconFrameRaidersButton_OnLoad(BFCIconFrameRaidersButton)
 end
 function mock.LoadAddonFile(path)
-    -- Embedded libraries have their own real-library regression suite.
+    -- Embedded libraries have a separate dependency API check.
     if path:find("/bigfoot_channel/Libs/", 1, true) then return end
     if path:find("/ls_toasts/", 1, true) then
         if not mock.toasts then mock.toasts = dofile((TEST_ROOT or ".") .. "/addon/tests/LsToasts.Mock.lua")(mock) end

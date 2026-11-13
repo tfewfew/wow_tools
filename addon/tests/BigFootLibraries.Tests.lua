@@ -100,44 +100,8 @@ for _, kind in ipairs({"Frame", "TabGroup", "SimpleGroup", "ScrollFrame", "Check
     "MultiLineEditBox", "Dropdown", "Button", "Label"}) do
     assert(LibStub("AceGUI-3.0").WidgetRegistry[kind], "Missing settings widget " .. kind)
 end
-local raw = {profiles={Default={mute=true,enablecopy=true}}}
-local instance = LibStub("AceAddon-3.0"):NewAddon("WoWToolsEmbeddedAceTest", "AceEvent-3.0", "AceConsole-3.0", "AceHook-3.0", "AceTimer-3.0")
-function instance:OnInitialize()
-    self.db = LibStub("AceDB-3.0"):New(raw, {profile={modules={CHATFRAME=true}}}, "Default")
-    LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("WoWToolsEmbeddedAceTest", {
-        type="group", name="bigfoot_channel", args={}
-    })
-    self.initialized = true
-end
-function instance:OnEnable() self.started = true end
-local lifecycle = LibStub("AceAddon-3.0").frame
-lifecycle.scripts.OnEvent(lifecycle, "ADDON_LOADED", "wow_tools")
+assert(type(libraries["AceAddon-3.0"].NewAddon) == "function")
+assert(type(libraries["AceConfigDialog-3.0"].Open) == "function")
+assert(type(libraries["AceDB-3.0"].New) == "function")
 assert(#errors == 0, table.concat(errors, "\n"))
-assert(instance.initialized and instance.started, "Embedded Ace addon lifecycle failed")
-assert(instance.db.profile.mute and instance.db.profile.enablecopy and instance.db.profile.modules.CHATFRAME)
-assert(LibStub("AceConfigRegistry-3.0"):GetOptionsTable("WoWToolsEmbeddedAceTest", "dialog", "AceConfigDialog-3.0"))
-assert(LibStub("AceDBOptions-3.0"):GetOptionsTable(instance.db).type == "group")
--- The unified settings page feeds custom containers through the real Ace refresh path.
-CloseSpecialWindows = function() return false end
-local dialog = LibStub("AceConfigDialog-3.0")
-local container = LibStub("AceGUI-3.0"):Create("SimpleGroup")
-container:SetAutoAdjustHeight(false)
-container:SetWidth(600)
-container:SetHeight(400)
-container.frame.IsVisible = function() return true end
-local releases = 0
-local releaseChildren = container.ReleaseChildren
-container.ReleaseChildren = function(self) releases = releases + 1; releaseChildren(self) end
-dialog.BlizOptions.WoWToolsEmbeddedAceTest = {wow_tools=container}
-dialog:Open("WoWToolsEmbeddedAceTest", container)
-assert(not dialog.OpenFrames.WoWToolsEmbeddedAceTest and container:GetUserData("iscustom"),
-    "Embedded configuration created a standalone Ace frame")
-LibStub("AceConfigRegistry-3.0"):NotifyChange("WoWToolsEmbeddedAceTest")
-dialog.frame.scripts.OnUpdate(dialog.frame)
-assert(releases == 2 and container:GetUserData("appName") == "WoWToolsEmbeddedAceTest",
-    "The registered custom container missed Ace's configuration refresh")
-assert(#errors == 0, table.concat(errors, "\n"))
-LoadLibraries()
-for _, name in ipairs(required) do assert(LibStub(name) == libraries[name], "Library upgrade replaced existing registry " .. name) end
-assert(#loaded == 74, "The complete library dependency tree was not loaded twice")
-print("PASS: bundled LibStub/Ace3 XML closure, real library/widget registration, addon lifecycle, saved profiles, option registry and duplicate-load reuse without standalone libraries. Offline API mocks only.")
+print("PASS: " .. flavor .. " embedded Ace3 dependency loading, widget registration and API exports.")

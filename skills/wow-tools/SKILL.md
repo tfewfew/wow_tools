@@ -5,6 +5,14 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 # wow_tools
 
+## 本地测试范围
+
+本地测试仅包含语法、语义和接口兼容性检查。语义检查覆盖编译、类型与名称绑定、调用签名、依赖文件和加载顺序。两服分别检查各自的 TOC、原生 API 和运行库接口。功能流程、状态机时序、界面交互、OCR 识别效果、音频命中效果及配置迁移流程由用户验证。
+
+统一入口为 `skills/wow-tools/scripts/test-local.ps1`。它执行 PowerShell 解析、生产 C# 编译及 PowerShell/C# 调用契约、Python AST、Lua 5.1 编译、XML 与内联脚本解析、两服初始化和接口契约，以及客户端部署映射检查。`wowAuto.ps1 -UiTest` 调用 PC 端语法、编译与接口检查。后续测试用例按此范围维护。
+
+以下为实现与发布历史，其中的测试名称和通过数量保留为历史记录，当前本地测试采用上述范围。
+
 ## 一级设置标签页与两行文字（2026-11-13）
 
 - titan 2.1.67 / forerver 2.2.83 的一级导航沿用左侧竖排布局，采用客户端原生 MinimalTabTemplate 与 CreateRadioButtonGroup。通过 HookScript 保留原生点击处理，点击与命令定位同步原生选中态和对应页面。标签按 UTF-8 字符数分成两行，偶数等长，奇数上行多一个字符，分别为“钓鱼 / 检测”等四字标签及“lsTo / ast”。使用模板原生37高度、45行距容纳两行文字。本条覆盖历史一级普通按钮样式。
@@ -157,7 +165,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - 主线程发起换角批次，各线程负责自身登出、OCR和登录。保留全批登出→并行识别全部位置→依次点击→全部点击后并行确认登录→全批验证后恢复输入的屏障；退出、失败或停止者解除屏障。前台稳定、重试/超时和点击保护改用Operations参数快照，默认200ms、换角500ms/5秒、普通100ms/800ms、点击后1秒；客户区每轴5%原始基准尺寸复核保留。
 - account-tasks.config.json v1以客户端:子战网保存有序角色任务Name/Realm/Mode/Enabled/UseItem，保留历史PID:StartTicks的Bindings格式供兼容，生产忽略该字段；不再提供进程三槽位。设置的子战网页用“时光服 / 永恒服”两个子tab分别显示本服账号和角色，下拉只显示账号名；主行只读文本显示OCR识别的账号。新记录默认停用；旧Plans仅无冲突时按账号迁移，任务冲突或跨客户端归属不明停用待核对，读取不改文件。同时启用的角色名须唯一；目录/角色仍只读安全插件记录。
 - “检测与操作”主tab下有“检测周期 / 操作队列”两个并列子tab，10项检测周期作为两服所有进程的全局设置，25–60000ms、步进25。子战网任务与周期分别保留草稿、分别原子保存，各自合并最新已保存配置，不保存另一页草稿或回退另一页的已保存值；取消/写入失败不应用。FishMs100、FightMs1000、MenuMs300、LoginMs300、BaitMs300、DeathMs1000、AudioMs50、PositionMs1000、CaptureRetryMs100、OcrMs1000；迁移保留旧OCR周期。动作保持/冷却/退出超时不当成检测周期。死亡/包满排除仅本进程本次运行，不改账号配置；耗尽才退出该进程，直接开始只停止本行。
-- 操作线程启动绑定Hub.OperatorThreadId，取队列与原生操作入口核对线程身份，主线程只提交请求和收通知。主线程/检测线程/操作线程经Hub.Log只提交不可变日志消息，启动时创建的同一个LogWriter线程独占两文件的覆盖、追加、info原子替换和大小裁剪；队列4096条，满时明确报告、不阻塞业务线程。ThreadId是来源线程，WriterThreadId是实际写入线程，PID与事件产生时间保留；正常UI刷新不Flush，异步文件错误通知UI。info新进程项用Roles而非Slots，并有CurrentRole/CurrentTask/CurrentPhase/ExecutionRound。主验证Run.ParallelUi.Tests、Operator.Tests、Threading.Tests、LogWriter.Tests、AccountTasks.Tests；另跑旧-UiTest和离线Rotation.Ocr回归，禁止真实游戏输入/退出/重启。关闭先取消并结束检测/操作线程，再释放音频/WGC/界面，最后排空并退出日志线程；最多等5秒，未退出则不启动替代脚本，不能恢复主线程同步写日志。
+- 操作线程启动绑定Hub.OperatorThreadId，取队列与原生操作入口核对线程身份，主线程只提交请求和收通知。主线程/检测线程/操作线程经Hub.Log只提交不可变日志消息，启动时创建的同一个LogWriter线程独占两文件的覆盖、追加、info原子替换和大小裁剪；队列4096条，满时明确报告、不阻塞业务线程。ThreadId是来源线程，WriterThreadId是实际写入线程，PID与事件产生时间保留；正常UI刷新不Flush，异步文件错误通知UI。info新进程项用Roles而非Slots，并有CurrentRole/CurrentTask/CurrentPhase/ExecutionRound。当前本地检查采用统一 test-local.ps1 入口，功能流程由用户验证。关闭先取消并结束检测/操作线程，再释放音频/WGC/界面，最后排空并退出日志线程；最多等5秒，未退出则不启动替代脚本，不能恢复主线程同步写日志。
 
 - 操作队列22项时间统一由wowAuto.Timing.ps1定义标签/默认/范围/交叉校验，account-tasks.config.json v1可选Operations保存。缺少该字段时只读迁移INI的焦点重试/收竿等待和战斗配置的公共间隔/交互等待，其他使用默认；原页对应输入隐藏。角色/检测/操作三页分别原子保存，各自合并最新配置；关闭设置后应用。Hub和检测线程各持时间快照，每个请求复制所属检测线程的快照，已提交请求/已登记截止不重算。Native保留旧签名，通过新增重载传入实际按键时长与点击范围；不得重新硬编码生产路径的22项时间。空闲/回执事件可即时唤醒；道具后等待0–4000ms保留5秒确认期限。Operator/Threading/AccountTasks/Parallel UI测试覆盖自定义值生效、迁移、独立保存/回滚、旧草稿隔离和请求快照，全部禁止真实输入。
 
@@ -186,7 +194,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 ## 修改与同步顺序
 
 1. 检查正式目录 Git 状态及远端，核对并保护无关改动。在独立临时文件夹 clone 远端仓库并创建临时分支，全部源码及必要说明在该 clone 修改。
-2. 检查PowerShell及Lua语法；修改内嵌C#时只编译，不运行主循环。默认验证两端：titan用addon/tests/LureDetection.Tests.lua及TitanCompatibility.Tests.lua，forerver用addon/tests/ForeverCompatibility.Tests.lua；新增模块专项通过TEST_FLAVOR分别使用两份独立源码，均以Lua5.1模拟运行。同步配置和两端功能入口用skills/wow-tools/tests/ClientProfiles.Tests.ps1验证，旧配置迁移使用对应迁移测试。不要为测试发送真实按键或关闭游戏。
+2. 运行 `scripts/test-local.ps1`，按本地测试范围检查语法、语义和接口兼容性。Lua 采用 5.1，titan 与 forerver 各自使用独立源码核对 TOC、原生 API 和内嵌库接口。功能流程由用户验证。
 3. 在临时分支创建 Git 提交并推送 origin。通过 MR 自动合并 main，或在正式目录合并已推送的分支并推送 main。代码、配置、文档和维护约定均遵循此流程。用户已授权此流程，无需逐次索要许可。不强推。失败保留 clone 和提交，修复后重试。
 4. MR 合并后在正式目录执行 git pull --ff-only。本地主干合并后核对 main 已成功推送。确认正式目录与远端 main 一致后，从正式目录运行 `skills/wow-tools/scripts/sync-local.ps1`，默认Flavor=all分别同步两服。也可显式-Flavor titan/forerver；GameRoot覆盖必须同时选择一服，all通过TitanGameRoot/ForerverGameRoot各自覆盖。client-profiles.ps1提供独立源码和目标映射，写入前核对所有所选客户端可执行文件的3.80./1.60.版本前缀及源码TOC接口号，拒绝混用同一目录或写入零售版。同步脚本核对干净工作区和远端分支提交，同步插件并校验文件哈希，通过install-desktop-shortcut.ps1更新桌面源码快捷方式并归档旧运行副本。
 5. 报告提交、推送和同步结果，提醒用户停止旧脚本并重启桌面 `wowAuto` 快捷方式；插件变更需 `/reload`，改名首次安装可能需要完全重启游戏。

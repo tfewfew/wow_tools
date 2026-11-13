@@ -1,6 +1,6 @@
 # 按进程检测与子战网轮转
 
-生产入口 `wowAuto.ps1` 使用并行运行模块；原 `-UiTest` 保留旧适配器兼容回归，新架构使用 `tests/Run.ParallelUi.Tests.ps1`。不要把旧三槽位界面或单 OCR 调度重新接入生产入口。
+生产入口 `wowAuto.ps1` 使用并行运行模块。`-UiTest` 调用 PC 端语法、编译与接口兼容性检查。功能流程验证由用户负责。
 
 ## 线程与消息
 
@@ -110,12 +110,4 @@
 
 `info.log` 的进程项使用 `Roles`，含 Role / Realm / Task / Enabled / UseItem / Excluded；另有 CurrentRole、CurrentRoleIndex（已启用列表中的零起始序号）、CurrentTask、CurrentPhase、ExecutionRound。SubAccount保存本次OCR确认的账号，SubAccountSource为ocr或unknown；未识别时账号为空、角色队列为空，不借用旧绑定。切换或停止清空当前角色，直接开始不猜角色名；执行轮次按本次工具启动累计，角色切换次数按本次手动开始单独计算。旧 `Slots` 仅用于解析历史日志。
 
-验证不运行真实游戏输入、退出或重启：
-
-- `tests/Run.ParallelUi.Tests.ps1`：生产界面和真实独立 runspace，替代画面、OCR 与操作，验证并行、回执暂停、屏障、取消、四角色轮转、死亡耗尽、30 次漏名重试、客户端子标签隔离、角色与周期独立保存及回滚和日志。
-- `tests/Operator.Tests.ps1`：执行生产操作逻辑，只替代原生调用，验证身份 / 白点 / 色块复核、目标与开怪事务、200ms 稳定、1 秒点击保护、500ms 前台重试 / 5 秒上限。
-- `tests/Threading.Tests.ps1`：真实线程测试读色错误隔离、操作优先级、取消、退出屏障及并发日志大小 / JSON 完整性。
-- `tests/LogWriter.Tests.ps1`：验证专用写入线程、队列顺序、退出排空、重启覆盖、info 更新、异步文件错误及恢复、缩小总大小限制；只写临时文件。
-- `tests/Audio.Notifications.Tests.ps1`：模拟原生线程通知、只唤醒所属Endpoint、匹配时间登记收竿和重复/停止/关闭隔离，不创建音频采集或游戏输入。本次按用户要求由用户实测，未运行该用例或其他模拟测试。
-- `tests/AccountTasks.Tests.ps1`：临时插件记录测试旧配置只读迁移、两服隔离、新角色停用和配置校验。
-- 另运行 `wowAuto.ps1 -UiTest` 兼容套件及 `tests/Rotation.Ocr.Tests.ps1` 离线截图回归，不能将模拟或离线识别描述为游戏实测。
+本地检查采用仓库根目录 `skills/wow-tools/scripts/test-local.ps1`，覆盖语法、语义及接口兼容性。并行调度、回执、屏障、取消、角色轮转、OCR、音频和日志等功能流程由用户验证。

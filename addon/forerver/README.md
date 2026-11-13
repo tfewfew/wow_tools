@@ -1,5 +1,7 @@
 # forerver
 
+本地检查范围为语法、语义和本客户端接口兼容性，统一运行仓库根目录的 `skills/wow-tools/scripts/test-local.ps1`。功能流程由用户在游戏中验证。以下版本说明中的模拟用例名称与通过记录为历史记录。
+
 2.2.83 统一设置的一级导航采用原生标签页与单选组，沿用左侧竖排布局。标签按 UTF-8 字符数分为两行，偶数上下等长，奇数上行多一个字符，例如“钓鱼 / 检测”和“lsTo / ast”。点击与命令定位共用标签选中状态，标准 37 高度及行距容纳两行文字。更新后 `/reload`。
 
 2.2.82 按钮材质依据原生纹理矩形、有效缩放、TexCoord、Atlas 信息及模板留白计算覆盖范围，支持不对称偏移、外扩、三段式与九宫格。原版模式填充当前状态内缘，细边框厚度按可见纹理高度与模板基准的比例缩放，并对齐物理像素。材质与边框共用圆角外轮廓，材质铺到边框下方。布局未完成或坐标受限时等待显示或更新后重试。两服均经 Lua 5.1 模拟验证，更新后 `/reload` 复测实际画面。
@@ -98,7 +100,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\skills\wow-tools\scrip
 
 首次安装请重启无限服客户端，在插件列表启用wow_tools，然后点击小地图钓鱼图标或输入 `/wowdetector on`。用 `/wowdetector status` 查看检测结果，`/igc` 打开画面设置。两服的SavedVariables各自保存，不复制时光服账号设置到无限服。
 
-`addon/tests/ForeverCompatibility.Tests.lua` 已覆盖全部TOC模块的模拟加载、钓鱼引导与交互目标组合、目标出现/消失/不可交互、事件/轮询、受限事件参数及诊断、新版附魔API、永久附魔排除、受限/失败数据、背包/死亡、窗口调整、菜单和帧率位置。尚未以真实角色验证新增交互检测的运行效果；测试不发送按键或操作游戏。wowAuto已支持无限服Wow.exe，按_cn_beta_目录及1.60.构建识别；与时光服进程共用队列，等待范围按版本统一配置，使用说明见tools/wowAuto/README.md。
+当前客户端的初始化与 API 契约由精简后的接口兼容性用例验证。
 
 主要接口依据：[ItemDocumentation](https://github.com/Gethe/wow-ui-source/blob/943764493e6b16d63ded3ab304150d1f05e58b57/Interface/AddOns/Blizzard_APIDocumentationGenerated/ItemDocumentation.lua)、[UnitDocumentation](https://github.com/Gethe/wow-ui-source/blob/943764493e6b16d63ded3ab304150d1f05e58b57/Interface/AddOns/Blizzard_APIDocumentationGenerated/UnitDocumentation.lua)、[原生菜单指南](https://github.com/Gethe/wow-ui-source/blob/943764493e6b16d63ded3ab304150d1f05e58b57/Interface/AddOns/Blizzard_Menu/11_0_0_MenuImplementationGuide.lua)、[FramerateFrame](https://github.com/Gethe/wow-ui-source/blob/943764493e6b16d63ded3ab304150d1f05e58b57/Interface/AddOns/Blizzard_FramerateFrame/Mainline/FramerateFrame.xml)。
 

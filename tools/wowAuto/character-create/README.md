@@ -30,11 +30,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install-runtime.ps1 -BaseP
 
 开始时拒绝尚在运行/刷新/退出的其他任务，创建期间禁用进程任务页并在命令入口再次拦截。停止使 Endpoint 版本失效、取消排队操作并通知 Python；关闭/重启等待后台退出，5秒后仅清理自己创建的后台进程。
 
-## 离线验证
+## 本地检查
 
-```powershell
-.\.runtime\Scripts\python.exe -m unittest discover -s . -p test_bridge.py -v
-.\.runtime\Scripts\python.exe .\verify-samples.py 'C:\Users\Ray\Desktop\魔兽角色创建助手\参考截图'
-```
-
-`test_bridge.py` 使用模拟时钟与画面，不激活窗口或点击。参考截图验证只读取本地图片。PowerShell 的 CharacterCreate.Worker/UiTests、Operator.Tests 和完整并行界面测试覆盖管道、界面、操作路由、互斥与取消，全部使用模拟游戏输入。
+通过仓库根目录 `skills/wow-tools/scripts/test-local.ps1` 检查 Python AST、生产 C# 编译和 PC 接口契约。角色创建、识别效果、重试与取消等功能流程由用户验证。
