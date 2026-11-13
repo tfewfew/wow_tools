@@ -3,6 +3,8 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     local frames, widgets, named, timers = {}, {}, {}, {}
     local combat, scans, callback, media = false, 0, nil, nil
     local writes = {texture=0, anchors=0, font=0}
+    local physicalHeight = 768
+    function GetPhysicalScreenSize() return 1024,physicalHeight end
     local secret = setmetatable({}, {__tostring=function() error("restricted string") end})
     local function widget(kind, name, parent)
         local object = {kind=kind, name=name, parent=parent, scripts={}, hooks={}, events={},
@@ -41,6 +43,7 @@ for _, flavor in ipairs({"titan", "forerver"}) do
             end
         end
         function object:SetTextureSliceMargins(...) self.sliceMargins={...} end
+        function object:GetTextureSliceMargins() return unpack(self.sliceMargins or {}) end
         function object:ClearTextureSlice() self.sliceMargins=nil end
         function object:SetAllPoints(target) self.allPoints=target end
         function object:CreateFontString() return widget("FontString",nil,self) end
@@ -49,6 +52,24 @@ for _, flavor in ipairs({"titan", "forerver"}) do
         function object:SetSize(w,h) self.width,self.height=w,h end
         function object:GetWidth() return self.width or 144 end
         function object:GetHeight() return self.height or 20 end
+        function object:GetEffectiveScale() return (self.scale or 1)*(self.parent and self.parent:GetEffectiveScale() or 1) end
+        function object:GetRect()
+            if self.pendingRect then return nil end
+            if self.rect then return unpack(self.rect) end
+            local scale=self:GetEffectiveScale()
+            if self.kind=="Texture" or self.kind=="MaskTexture" then
+                local x,y,w,h=self.parent:GetRect()
+                if not x then return nil end
+                local ratio=self.parent:GetEffectiveScale()/scale
+                return x*ratio,y*ratio,w*ratio,h*ratio
+            end
+            return 100,200,self:GetWidth(),self:GetHeight()
+        end
+        function object:GetTexCoord()
+            local coord=self.texcoord or {0,1,0,1}
+            return coord[1],coord[3],coord[1],coord[4],coord[2],coord[3],coord[2],coord[4]
+        end
+        function object:SetTexCoord(...) self.texcoord={...} end
         function object:GetChildren()
             local children = {}
             for _, frame in ipairs(frames) do
@@ -147,6 +168,7 @@ for _, flavor in ipairs({"titan", "forerver"}) do
             for _,state in ipairs({"Normal","Pushed","Highlight","Disabled"}) do
                 local texture=frame:CreateTexture()
                 texture:SetTexture(state=="Normal" and 4200 or "native-"..state)
+                texture:SetTexCoord(0,.625,0,.6875)
                 frame[state.."Texture"]=texture
             end
         end
@@ -215,6 +237,27 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     end
     local rounded,thin=ReadShape("ButtonRoundMask"),ReadShape("ButtonRoundBorder")
     assert(rounded(0,0)<32 and rounded(16,16)==255 and thin(16,16)==0 and thin(16,0)==255)
+    for y=0,31 do
+        for x=0,31 do
+            assert(rounded(x,y)+2>=thin(x,y),"Material mask leaves an uncovered border edge")
+            if x>=4 and x<28 or y>=4 and y<28 then
+                assert(rounded(x,y)==255,"Material contains a gap at the border's inner edge")
+            end
+        end
+    end
+    local function SliceCoordinate(position,extent)
+        if position<4 then return position end
+        if position>=extent-4 then return 32-extent+position end
+        return 4+(position-4)*24/(extent-8)
+    end
+    for _,size in ipairs({{78,18},{240,28},{420,40},{20,20}}) do
+        for y=4,size[2]-5 do
+            for x=4,size[1]-5 do
+                assert(rounded(math.floor(SliceCoordinate(x+.5,size[1])),math.floor(SliceCoordinate(y+.5,size[2])))==255,
+                    "Nine-slice stretching creates a material/border seam")
+            end
+        end
+    end
     dofile(addon.."ButtonStyle.lua")
     dofile(addon.."ButtonStyle.Settings.lua")
     local style=WoWTools.buttonStyle
@@ -238,8 +281,9 @@ for _, flavor in ipairs({"titan", "forerver"}) do
         end
     end
     local function Border(button)
-        for index=#button.textures,1,-1 do
-            local texture=button.textures[index]
+        local fill=Fill(button)
+        for index=#fill.textures,1,-1 do
+            local texture=fill.textures[index]
             if type(texture.path)=="string" and texture.path:find("ButtonRoundBorder",1,true) then return texture end
         end
     end
@@ -260,17 +304,16 @@ for _, flavor in ipairs({"titan", "forerver"}) do
             local nativeMask=normal.masks[1]
             assert(nativeMask.path:find("ButtonNativeCutout",1,true) and nativeMask.wrap[1]=="CLAMPTOWHITE" and nativeMask.wrap[2]=="CLAMPTOWHITE" and nativeMask.filter=="NEAREST","Original artwork received the wrong cutout sampler")
             assert(mask.allPoints==fill and nativeMask.allPoints==fill,"Native border hole and material bounds no longer align")
-            assert(not fill.allPoints and fill.points.TOPLEFT[4]>0 and fill.points.BOTTOMRIGHT[4]==-fill.points.TOPLEFT[4],"Native material still spans the whole button")
-            assert(fill.points.TOPLEFT[5]<0 and fill.points.BOTTOMRIGHT[5]==-fill.points.TOPLEFT[5],"Native fill vertical padding is asymmetric")
+            assert(not fill.allPoints and fill.points.TOPLEFT[4]<fill.points.BOTTOMRIGHT[4],"Native material has inverted horizontal bounds")
+            assert(fill.points.TOPLEFT[5]>fill.points.BOTTOMRIGHT[5],"Native material has inverted vertical bounds")
         else
-            assert(fill.allPoints==button,"Switching border modes kept native material bounds")
+            assert(mask.allPoints==fill and border.allPoints==fill,"Material and border do not share the outer rectangle")
             assert(border.shown==(mode=="thin"),"Wrong custom border visibility")
             local normal=button:GetNormalTexture() or button.Left
             assert(normal.alpha==0,"Native border leaked into a custom border mode")
-            assert(mask.points.TOPLEFT[4]>0 and mask.points.TOPLEFT[5]<0,"Fill expands into native transparent padding")
+            assert(fill.points.TOPLEFT[4]<fill.points.BOTTOMRIGHT[4] and fill.scale>0,"Invalid custom surface geometry")
             if mode=="thin" then
-                assert(border.points.TOPLEFT[4]>0 and border.points.BOTTOMRIGHT[4]<0,"Thin border enlarges native visual bounds")
-                assert(mask.points.TOPLEFT[4]==border.points.TOPLEFT[4]+1,"Material overlaps thin border")
+                assert(border.parent==fill and mask.parent==fill,"Border and material use different scale spaces")
             end
         end
         return fill,mask,border
@@ -297,6 +340,9 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     sliced.UpdateButton=function(self) self.Left:SetAtlas("128-RedButton-Left-Pressed");self.Left:SetAlpha(1) end
     local legacy=CreateFrame("Button",nil,UIParent)
     for _,key in ipairs({"Left","Middle","Right"}) do legacy[key]=legacy:CreateTexture();legacy[key]:SetTexture(4200) end
+    legacy.Left:SetTexCoord(0,.09375,0,.6875);legacy.Left.rect={100,200,12,20}
+    legacy.Middle:SetTexCoord(.09375,.53125,0,.6875);legacy.Middle.rect={112,200,120,20}
+    legacy.Right:SetTexCoord(.53125,.625,0,.6875);legacy.Right.rect={232,200,12,20}
     local variants={}
     for _,path in ipairs({"Interface\\Buttons\\UI-Panel-MinimizeButton-Up","128-RedButton-Exit","common-button-close"}) do
         local button=CreateFrame("Button",nil,UIParent)
@@ -315,6 +361,55 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     local masked=CreateFrame("Button",nil,UIParent,"UIPanelButtonTemplate")
     local foreignMask=masked:CreateMaskTexture()
     masked:GetNormalTexture():AddMaskTexture(foreignMask)
+    local function SetArtwork(button,rect)
+        for _,state in ipairs({"Normal","Pushed","Highlight","Disabled"}) do
+            button[state.."Texture"].rect=rect
+        end
+    end
+    local asymmetric=CreateFrame("Button",nil,UIParent,"UIPanelButtonTemplate")
+    asymmetric:SetSize(144,30)
+    SetArtwork(asymmetric,{104,207,132,22})
+    local scaled=CreateFrame("Button",nil,UIParent,"UIPanelButtonTemplate")
+    scaled:SetSize(144,30)
+    for _,state in ipairs({"Normal","Pushed","Highlight","Disabled"}) do
+        scaled[state.."Texture"]:SetScale(2)
+    end
+    SetArtwork(scaled,{52,103.5,66,11})
+    local overflow=CreateFrame("Button",nil,UIParent,"UIPanelButtonTemplate")
+    SetArtwork(overflow,{90,192,164,36})
+    local deferred=CreateFrame("Button",nil,UIParent,"UIPanelButtonTemplate")
+    deferred.pendingRect=true
+    local unreadable=CreateFrame("Button",nil,UIParent,"UIPanelButtonTemplate")
+    SetArtwork(unreadable,{secret,200,144,22})
+    local atlasClose=CreateFrame("Button",nil,UIParent,"UIPanelCloseButtonNoScripts")
+    atlasClose:SetSize(32,32)
+    SetArtwork(atlasClose,{104,204,24,24})
+    for _,state in ipairs({"Normal","Pushed","Highlight","Disabled"}) do
+        atlasClose[state.."Texture"]:SetAtlas("common-button-close-test")
+        atlasClose[state.."Texture"]:SetTexCoord(.25,.5,.125,.375)
+    end
+    local atlasSliced=CreateFrame("Button",nil,UIParent,"UIPanelButtonTemplate")
+    atlasSliced:SetSize(300,32)
+    for _,state in ipairs({"Normal","Pushed","Highlight","Disabled"}) do
+        atlasSliced[state.."Texture"]:SetAtlas("common-button-close-sliced-test")
+        atlasSliced[state.."Texture"]:SetTexCoord(0,1,0,1)
+        atlasSliced[state.."Texture"]:SetTextureSliceMargins(8,8,8,8)
+    end
+    C_Texture={GetAtlasInfo=function(name)
+        if name=="common-button-close-test" then
+            return {width=24,height=24,leftTexCoord=.25,rightTexCoord=.5,topTexCoord=.125,bottomTexCoord=.375}
+        elseif name=="common-button-close-sliced-test" then
+            return {width=32,height=32,leftTexCoord=0,rightTexCoord=1,topTexCoord=0,bottomTexCoord=1}
+        end
+    end}
+    local nine=CreateFrame("Button",nil,UIParent,"UIPanelButtonTemplate")
+    nine.NineSlice=widget("Frame",nil,nine)
+    local edges={}
+    for _,rect in ipairs({{98,198,148,4},{98,218,148,4},{98,202,4,16},{242,202,4,16},{102,202,140,16}}) do
+        local texture=nine.NineSlice:CreateTexture();texture.rect=rect;edges[#edges+1]=texture
+    end
+    nine.NineSlice.Center=edges[5]
+    function nine.NineSlice:GetRegions() return unpack(edges) end
     local old=style.GetConfig();old.border=nil;wowDetectorDB.buttonStyle=old
     event("ADDON_LOADED","wow_tools")
     assert(style.GetConfig().border.style=="native" and wowDetectorDB.buttonStyle.border==nil,"Old settings were rewritten during migration")
@@ -329,9 +424,31 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     assert(style.Save(value))
     local fill=CheckSkin(menu,"native")
     CheckSkin(close,"native");CheckSkin(sliced,"native");CheckSkin(legacy,"native")
-    assert(fill.points.TOPLEFT[4]==5,"Legacy menu material did not shrink to a five-pixel inset")
-    local closeInset=flavor=="titan" and 9 or 4
+    assert(fill.points.TOPLEFT[4]==7,"Legacy menu material did not follow its cropped texture geometry")
+    local closeInset=flavor=="titan" and 8 or 3
     assert(Fill(close).points.TOPLEFT[4]==closeInset,"Close-button material did not shrink inside its native face")
+    local af=CheckSkin(asymmetric,"native")
+    assert(af.points.TOPLEFT[4]==11 and af.points.TOPLEFT[5]==25
+        and af.points.BOTTOMRIGHT[4]==129 and af.points.BOTTOMRIGHT[5]==11,
+        "Texture position/size differences were replaced with symmetric button insets")
+    local sf=CheckSkin(scaled,"native")
+    for _,point in ipairs({"TOPLEFT","BOTTOMRIGHT"}) do
+        assert(sf.points[point][4]==af.points[point][4] and sf.points[point][5]==af.points[point][5],
+            "Texture coordinates were compared across different effective scales")
+    end
+    local nf=CheckSkin(nine,"native")
+    assert(nf.points.TOPLEFT[4]==2 and nf.points.TOPLEFT[5]==18
+        and nf.points.BOTTOMRIGHT[4]==142 and nf.points.BOTTOMRIGHT[5]==2,"NineSlice center did not define the native interior")
+    assert(not Fill(deferred).shown and deferred:GetNormalTexture().alpha==1,"Unresolved layout hid native artwork")
+    assert(not Fill(unreadable).shown and unreadable:GetNormalTexture().alpha==1,"Restricted coordinates changed native appearance")
+    deferred.pendingRect=false;deferred:Run("OnShow");CheckSkin(deferred,"native")
+    local atlasFill=CheckSkin(atlasClose,"native")
+    assert(atlasFill.points.TOPLEFT[4]==7 and atlasFill.points.TOPLEFT[5]==25
+        and atlasFill.points.BOTTOMRIGHT[4]==25 and atlasFill.points.BOTTOMRIGHT[5]==7,
+        "Atlas-sheet UV coordinates were treated as local image coordinates")
+    local slicedFill=CheckSkin(atlasSliced,"native")
+    assert(slicedFill.points.TOPLEFT[4]==4 and slicedFill.points.BOTTOMRIGHT[4]==296,
+        "Texture nine-slice margins were stretched across the button width")
     assert(menu:GetNormalTexture()==original and close:GetNormalTexture()==closeOriginal and menu.width==144 and menu.height==22,"Styling replaced native bindings or resized the button")
     assert(fill:GetNormalTexture().path=="Interface\\Buttons\\WHITE8X8" and fill:GetNormalTexture().vertex[4]==.6)
     assert(original.alpha==1 and sliced.Left.alpha==.7 and not sliced:GetNormalTexture(),"Native edge textures were replaced")
@@ -351,19 +468,20 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     menu:SetButtonState("PUSHED");assert(fill.buttonState=="PUSHED");menu:SetButtonState("NORMAL")
     close:Disable();assert(not Fill(close).enabled and Glyph(close).alpha==.4)
     close:Enable();assert(Fill(close).enabled and Glyph(close).alpha==1)
-    local visibleHeight=flavor=="titan" and 20 or 22
+    local visibleHeight=flavor=="titan" and 16 or 18
     assert(math.abs(Glyph(close).font[2]-visibleHeight*.7)<.001,"Close glyph did not grow to the adjusted size")
     for _,size in ipairs({{78,22},{240,28},{420,40}}) do
         menu:SetSize(unpack(size));menu:Run("OnSizeChanged");CheckSkin(menu,"native")
-        assert(math.abs(fill.points.TOPLEFT[4]-(size[2]*4/22+1))<.001,"Native fill bounds did not follow the resized button")
+        assert(fill.points.TOPLEFT[4]==math.floor(size[1]*4/80+.5),"Native fill bounds did not follow the texture's horizontal stretch")
         assert(menu.width==size[1] and menu.height==size[2],"Appearance resized the native button")
     end
     menu:SetSize(4,6);menu:Run("OnSizeChanged");CheckSkin(menu,"native")
-    assert(fill.points.TOPLEFT[4]*2<menu.width and -fill.points.TOPLEFT[5]*2<menu.height,"Small native fill has inverted bounds")
+    assert(fill.points.TOPLEFT[4]<fill.points.BOTTOMRIGHT[4] and fill.points.TOPLEFT[5]>fill.points.BOTTOMRIGHT[5],"Small native fill has inverted bounds")
     menu:SetSize(144,22);menu:Run("OnSizeChanged")
     close:UpdateButton();sliced:UpdateButton()
     assert(close:GetNormalTexture()==closeOriginal and closeOriginal.sliceMargins[1]==8 and sliced.Left.alpha==.7,"Native state artwork or slice metadata was overwritten")
     local nativePushed=menu:CreateTexture();nativePushed:SetTexture("native-new-pushed")
+    nativePushed:SetTexCoord(0,.625,0,.6875)
     menu:SetPushedTexture(nativePushed);style.Apply(false)
     assert(menu:GetPushedTexture()==nativePushed and #nativePushed.masks==1,"A new native state texture was missed")
     menu:Run("OnClick");close:Run("OnClick")
@@ -435,9 +553,34 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     editor.borderOptions.thin:Run("OnClick")
     assert(style.GetConfig().border.style=="thin" and editor.borderGroup.selected==2 and editor.borderColor.enabled)
     CheckSkin(menu,"thin");CheckSkin(close,"thin");CheckSkin(legacy,"thin")
-    if flavor=="titan" then
-        assert(Border(close).points.TOPLEFT[4]>Border(menu).points.TOPLEFT[4],"Legacy close-button transparent padding was lost")
+    local of=CheckSkin(overflow,"thin")
+    assert(of.points.TOPLEFT[4]*of.scale<0 and of.points.BOTTOMRIGHT[4]*of.scale>overflow:GetWidth(),
+        "Texture artwork extending outside the hit rectangle was clipped")
+    CheckSkin(asymmetric,"thin");CheckSkin(scaled,"thin");CheckSkin(nine,"thin")
+    assert(Fill(nine).points.TOPLEFT[4]*Fill(nine).scale==-2,"NineSlice outer union did not include its edges")
+    local oldThickness=fill.scale
+    menu:SetSize(288,44);menu:Run("OnSizeChanged")
+    assert(fill.scale==2*oldThickness,"Border thickness did not follow the rendered artwork height")
+    menu:SetSize(500,44);menu:Run("OnSizeChanged")
+    assert(fill.scale==2*oldThickness,"Horizontal texture stretching changed border thickness")
+    menu:SetSize(144,22);menu:Run("OnSizeChanged")
+    physicalHeight=1080;menu:SetScale(.7)
+    local pixel=768/1080/.7
+    assert(math.abs(fill.scale/pixel-math.floor(fill.scale/pixel+.5))<.00001,"Border thickness was not aligned to physical pixels")
+    for _,point in ipairs({"TOPLEFT","BOTTOMRIGHT"}) do
+        for index=4,5 do
+            local origin=index==4 and 100 or 200
+            local screen=(origin+fill.points[point][index]*fill.scale)/pixel
+            assert(math.abs(screen-math.floor(screen+.5))<.00001,"Shared outer edge was not snapped in screen space")
+        end
     end
+    physicalHeight=768;menu:SetScale(1)
+    local beforeWidth=fill.points.BOTTOMRIGHT[4]*fill.scale-fill.points.TOPLEFT[4]*fill.scale
+    nativePushed.rect={96,198,152,26}
+    menu:Run("OnShow")
+    local afterWidth=fill.points.BOTTOMRIGHT[4]*fill.scale-fill.points.TOPLEFT[4]*fill.scale
+    assert(afterWidth>beforeWidth,"Native state texture geometry changes did not refresh the shared surface")
+    nativePushed.rect=nil;menu:Run("OnShow")
     local width,height=menu.width,menu.height
     for _,size in ipairs({{78,22},{240,28},{420,40}}) do
         menu:SetSize(unpack(size));menu:Run("OnSizeChanged");CheckSkin(menu,"thin")
@@ -537,5 +680,5 @@ for _, flavor in ipairs({"titan", "forerver"}) do
     for _,object in ipairs(widgets) do if object.kind=="FontString" and object.text=="按钮" then tabs=tabs+1 end end
     local expected=1
     assert(tabs==expected and #style.editors==expected and style.editors[1].preview.parent.height==600,"Settings entry or scrolling height is wrong")
-    print("PASS: "..flavor.." cached appearance/state updates, scoped/coalesced discovery, reparented/XML/anonymous late controls, native/thin/no borders, padded bounds, LSM, persistence and partial restoration. Mock UI only.")
+    print("PASS: "..flavor.." measured texture/UV/atlas bounds, asymmetric offsets, mixed scales, overflow/NineSlice, pixel-aligned proportional borders, continuous rounded masks, deferred/restricted layout, cached updates, discovery, LSM, persistence and restoration. Mock UI only.")
 end

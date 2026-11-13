@@ -5,6 +5,17 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 # wow_tools
 
+## 临时 clone 与 MR 自动合并（2026-11-13）
+
+- 后续所有代码、配置、文档及维护约定修改均在独立临时文件夹 git clone 远端仓库，创建本次临时分支后实施和验证。并发任务使用独立 clone 与分支，合并冲突在临时 clone 解决并重新验证。提交推送后创建指向 main 的 MR（GitHub PR），为该 MR 启用自动合并并持续跟进到已合并。
+- 仓库开启 Allow auto-merge，主干中的 auto-merge 工作流在 MR 打开、重新打开、更新和结束草稿状态时，为正式 MR 请求自动合并。合并沿用仓库现有条件。确认 main 包含此次修改后，在正式目录 C:\code\wow_tools 执行 git pull --ff-only，核对代码与提交，再按客户端同步两服和桌面。正式目录本地改动按来源核对并保护，推送或合并失败保留 clone 和提交并修复重试。
+
+## 按钮纹理几何与连续边框（2026-11-13）
+
+- titan 2.1.64 / forerver 2.2.80 用 GetRect / GetEffectiveScale 将原生四状态纹理、三段式与 NineSlice 分片转换到同一坐标系，分别计算四边偏移。旧 UI-Panel-Button 的 128×32 文件及 80×22 内容区、旧关闭按钮和 Atlas 家族使用模板留白及内缘基准，结合 TexCoord 与 Atlas sheet UV 校正采样区域。GetTextureSliceMargins 按固定边角与伸展中心映射，原版模式使用当前状态内缘，NineSlice.Center 可提供内矩形，自定义模式取原生状态与分片的可见外矩形并集。
+- 细边框以同类模板基准可见高度下 1 UI 单位为基准，按实测可见纹理高度缩放并量化到物理像素，窄小尺寸限制圆角缩放以保持有效矩形。材质子 Button 的缩放同时作用于圆角遮罩及上层边框，两者共用完整外矩形，材质连续覆盖边框下方。ButtonRoundMask 与边框使用相同 4px 外圆角，边界在屏幕空间对齐后转回按钮局部坐标，叉号随实际填充区域定位。
+- 无有效布局或受限读值时等待重试，由显示、尺寸、原生纹理/状态及屏幕缩放事件复核。未变化时零材质、锚点、字体重写，原生点击及账号设置沿用。ButtonStyle.Tests 分别模拟两服非对称、跨缩放、外扩、三段式/九宫格、sheet UV、物理像素、厚度同比与横向伸展、连续遮罩、未布局/受限、纹理替换及恢复。全部 Lua 5.1 / XML 内联编译、27组模拟及 ClientProfiles 验证后经 MR 合并、正式目录 pull 和双端部署，实际视觉由 reload 后复测。
+
 ## 默认双端功能同步（2026-11-13）
 
 - AGENTS.md 要求新增能力、设置项、界面调整及通用修复同批分别适配 titan / forerver，验证两端入口、TOC、保存与对应模拟测试，成功提交推送后默认以 all 部署。版本号独立维护，各自保留客户端 API、检测协议与账号配置。用户明确指定单端，或原生源码确认某服缺少能力时可保留差异，最终说明原因。以下历史“仅无限服”记录描述当时发布范围，后续维护采用本条默认双端约定。
@@ -163,10 +174,10 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 ## 修改与同步顺序
 
-1. 检查 Git 状态、当前分支及远端，保留无关改动。在仓库修改源码及必要说明。
+1. 检查正式目录 Git 状态及远端，核对并保护无关改动。在独立临时文件夹 clone 远端仓库并创建临时分支，全部源码及必要说明在该 clone 修改。
 2. 检查PowerShell及Lua语法；修改内嵌C#时只编译，不运行主循环。默认验证两端：titan用addon/tests/LureDetection.Tests.lua及TitanCompatibility.Tests.lua，forerver用addon/tests/ForeverCompatibility.Tests.lua；新增模块专项通过TEST_FLAVOR分别使用两份独立源码，均以Lua5.1模拟运行。同步配置和两端功能入口用skills/wow-tools/tests/ClientProfiles.Tests.ps1验证，旧配置迁移使用对应迁移测试。不要为测试发送真实按键或关闭游戏。
-3. 每次修改完成都必须创建 Git 提交并推送当前分支到 `origin`，包括代码、配置、文档和维护约定；不能只修改本地或只同步副本。用户已授权此流程，无需逐次索要许可。不强推。推送失败时保留本地提交并报告原因，不同步安装副本，修复后重试。
-4. 推送成功后运行 `skills/wow-tools/scripts/sync-local.ps1`，默认Flavor=all分别同步两服。也可显式-Flavor titan/forerver；GameRoot覆盖必须同时选择一服，all通过TitanGameRoot/ForerverGameRoot各自覆盖。client-profiles.ps1提供独立源码和目标映射，写入前核对所有所选客户端可执行文件的3.80./1.60.版本前缀及源码TOC接口号，拒绝混用同一目录或写入零售版。它核对干净工作区和远端分支提交，再同步插件并校验文件哈希，通过install-desktop-shortcut.ps1更新桌面源码快捷方式并归档旧运行副本。
+3. 在临时分支创建 Git 提交并推送 `origin`，创建指向 main 的 MR 并启用自动合并，持续跟进到合并完成。代码、配置、文档和维护约定均遵循此流程。用户已授权此流程，无需逐次索要许可。不强推。推送或合并失败时保留 clone 和提交并报告原因，修复后重试。
+4. 确认远端 main 包含本次修改后，在正式目录执行 git pull --ff-only 并核对更新，再从正式目录运行 `skills/wow-tools/scripts/sync-local.ps1`，默认Flavor=all分别同步两服。也可显式-Flavor titan/forerver；GameRoot覆盖必须同时选择一服，all通过TitanGameRoot/ForerverGameRoot各自覆盖。client-profiles.ps1提供独立源码和目标映射，写入前核对所有所选客户端可执行文件的3.80./1.60.版本前缀及源码TOC接口号，拒绝混用同一目录或写入零售版。同步脚本核对干净工作区和远端分支提交，同步插件并校验文件哈希，通过install-desktop-shortcut.ps1更新桌面源码快捷方式并归档旧运行副本。
 5. 报告提交、推送和同步结果，提醒用户停止旧脚本并重启桌面 `wowAuto` 快捷方式；插件变更需 `/reload`，改名首次安装可能需要完全重启游戏。
 
 ## 安装目标
