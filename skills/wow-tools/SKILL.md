@@ -8,7 +8,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 ## 临时 clone 与主干合并（2026-11-13）
 
 - 后续所有代码、配置、文档及维护约定修改均在独立临时文件夹 clone 仓库，创建临时分支后实施、验证、提交并推送。并发任务使用独立 clone 与分支，冲突在临时 clone 解决并重新验证。分支可通过 MR 自动合并，也可在正式目录合并已推送的分支并推送 main。
-- 仓库现有 auto-merge-main 工作流为仓库所有者创建并指向 main 的正式 MR 请求自动合并，沿用现有合并条件。MR 合并后在正式目录 C:\code\wow_tools 执行 git pull --ff-only；本地主干合并后复核并推送 main。确认正式目录与远端 main 一致后，再按客户端同步两服和桌面。正式目录本地改动按来源核对并保护，失败保留 clone 和提交并修复重试。
+- 仓库现有 auto-merge-main 工作流为仓库所有者创建并指向 main 的正式 MR 请求自动合并，沿用现有合并条件。MR 合并后在正式目录 C:\code\wow_tools 执行 git pull --ff-only。本地主干合并后复核并推送 main。确认正式目录与远端 main 一致后，再按客户端同步两服和桌面。正式目录本地改动按来源核对并保护，失败保留 clone 和提交并修复重试。
 
 ## 按钮纹理几何与连续边框（2026-11-13）
 
@@ -183,7 +183,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 1. 检查正式目录 Git 状态及远端，核对并保护无关改动。在独立临时文件夹 clone 远端仓库并创建临时分支，全部源码及必要说明在该 clone 修改。
 2. 检查PowerShell及Lua语法；修改内嵌C#时只编译，不运行主循环。默认验证两端：titan用addon/tests/LureDetection.Tests.lua及TitanCompatibility.Tests.lua，forerver用addon/tests/ForeverCompatibility.Tests.lua；新增模块专项通过TEST_FLAVOR分别使用两份独立源码，均以Lua5.1模拟运行。同步配置和两端功能入口用skills/wow-tools/tests/ClientProfiles.Tests.ps1验证，旧配置迁移使用对应迁移测试。不要为测试发送真实按键或关闭游戏。
 3. 在临时分支创建 Git 提交并推送 origin。通过 MR 自动合并 main，或在正式目录合并已推送的分支并推送 main。代码、配置、文档和维护约定均遵循此流程。用户已授权此流程，无需逐次索要许可。不强推。失败保留 clone 和提交，修复后重试。
-4. MR 合并后在正式目录执行 git pull --ff-only；本地主干合并后核对 main 已成功推送。确认正式目录与远端 main 一致后，从正式目录运行 `skills/wow-tools/scripts/sync-local.ps1`，默认Flavor=all分别同步两服。也可显式-Flavor titan/forerver；GameRoot覆盖必须同时选择一服，all通过TitanGameRoot/ForerverGameRoot各自覆盖。client-profiles.ps1提供独立源码和目标映射，写入前核对所有所选客户端可执行文件的3.80./1.60.版本前缀及源码TOC接口号，拒绝混用同一目录或写入零售版。同步脚本核对干净工作区和远端分支提交，同步插件并校验文件哈希，通过install-desktop-shortcut.ps1更新桌面源码快捷方式并归档旧运行副本。
+4. MR 合并后在正式目录执行 git pull --ff-only。本地主干合并后核对 main 已成功推送。确认正式目录与远端 main 一致后，从正式目录运行 `skills/wow-tools/scripts/sync-local.ps1`，默认Flavor=all分别同步两服。也可显式-Flavor titan/forerver；GameRoot覆盖必须同时选择一服，all通过TitanGameRoot/ForerverGameRoot各自覆盖。client-profiles.ps1提供独立源码和目标映射，写入前核对所有所选客户端可执行文件的3.80./1.60.版本前缀及源码TOC接口号，拒绝混用同一目录或写入零售版。同步脚本核对干净工作区和远端分支提交，同步插件并校验文件哈希，通过install-desktop-shortcut.ps1更新桌面源码快捷方式并归档旧运行副本。
 5. 报告提交、推送和同步结果，提醒用户停止旧脚本并重启桌面 `wowAuto` 快捷方式；插件变更需 `/reload`，改名首次安装可能需要完全重启游戏。
 
 ## 安装目标
