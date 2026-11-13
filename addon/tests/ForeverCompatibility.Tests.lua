@@ -156,6 +156,10 @@ function CreateFrame(kind, name, parent, template)
     assert(template ~= "UIDropDownMenuTemplate", "Forever still depends on legacy dropdown templates")
     local object = widget(name, parent, kind)
     object.template = template
+    if template == "MaximizeMinimizeButtonFrameTemplate" then
+        object.MaximizeButton = widget(nil, object, "Button")
+        object.MinimizeButton = widget(nil, object, "Button")
+    end
     if template == "MinimalTabTemplate" then
         object.Text = widget(nil, object, "FontString")
         function object:SetSelected(value) self.selected = value end

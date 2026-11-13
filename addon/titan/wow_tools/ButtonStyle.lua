@@ -34,12 +34,16 @@ local events = CreateFrame("Frame")
 local reference = CreateFrame("Button", nil, UIParent, "UIPanelButtonTemplate")
 local closeReference = CreateFrame("Button", nil, UIParent, "UIPanelCloseButtonNoScripts")
 local dialogReference = CreateFrame("Button", nil, UIParent, "StaticPopupButtonTemplate")
+local windowReference = CreateFrame("Frame", nil, UIParent, "MaximizeMinimizeButtonFrameTemplate")
 reference:Hide()
 closeReference:Hide()
 dialogReference:Hide()
+windowReference:Hide()
 excluded[reference] = true
 excluded[closeReference] = true
 excluded[dialogReference] = true
+excluded[windowReference.MaximizeButton] = true
+excluded[windowReference.MinimizeButton] = true
 function module.Exclude(button) excluded[button] = true end
 function module.GetConfig() return Copy(current) end
 local function Read(object, method, ...)
@@ -111,6 +115,7 @@ local function Family(name)
 end
 local nativeFiles, nativeAtlases = {}, {}
 local closeFiles, closeAtlases = {}, {}
+local windowFiles, windowAtlases = {}, {}
 local function Sources(button)
     return {Read(button,"GetNormalTexture") or false, button.Left or false, button.Middle or false,
         button.Center or false, button.Right or false}
@@ -127,6 +132,8 @@ end
 ReadReference(reference,nativeFiles,nativeAtlases)
 ReadReference(closeReference,closeFiles,closeAtlases)
 ReadReference(dialogReference,nativeFiles,nativeAtlases,"dialog")
+ReadReference(windowReference.MaximizeButton,windowFiles,windowAtlases,"↗")
+ReadReference(windowReference.MinimizeButton,windowFiles,windowAtlases,"↙")
 local function IsDialog(texture)
     local atlas,path = Read(texture,"GetAtlas"),Read(texture,"GetTexture")
     return not atlas and (type(path) == "number" and nativeFiles[path] == "dialog"
@@ -145,10 +152,23 @@ local function IsClose(button)
         or CloseFamily(atlas) or CloseFamily(path) or closeAtlases[atlas]
         or type(path) == "number" and not atlas and closeFiles[path]
 end
+local function WindowFamily(name)
+    if (issecretvalue and issecretvalue(name)) or type(name) ~= "string" then return nil end
+    name = name:lower()
+    if name:match("^%d*%-?redbutton%-expand") or name:find("ui-panel-biggerbutton-",1,true) then return "↗" end
+    if name:match("^%d*%-?redbutton%-condense") or name:find("ui-panel-smallerbutton-",1,true) then return "↙" end
+end
+local function WindowGlyph(button)
+    local normal = Read(button,"GetNormalTexture")
+    local atlas,path = Read(normal,"GetAtlas"),Read(normal,"GetTexture")
+    local glyph = windowAtlases[atlas]
+    if type(path) == "number" and not atlas then glyph=windowFiles[path] end
+    return glyph or WindowFamily(atlas) or WindowFamily(path)
+end
 local function Suitable(button)
     if excluded[button] or Read(button,"IsForbidden") == true
         or Read(button,"IsObjectType","Button") ~= true then return false end
-    if IsClose(button) then return true end
+    if IsClose(button) or WindowGlyph(button) then return true end
     local sliced = button.Left and button.Right
     if sliced and (Family(button.atlasName) or Family(button.buttonArtKit)) then return true end
     for _,texture in ipairs(Sources(button)) do
@@ -214,7 +234,7 @@ local function Crop(rect, coordinates, left, top, right, bottom, margins, source
     return {left=rect.left+leftOffset, right=rect.left+rightOffset,
         bottom=rect.top-bottomOffset, top=rect.top-topOffset}
 end
-local function ArtworkRect(texture, rect, close, role, interior)
+local function ArtworkRect(texture, rect, square, role, interior)
     local atlas = Read(texture,"GetAtlas")
     local coordinates = Numbers(texture,"GetTexCoord",8)
     if not coordinates then return false end
@@ -222,14 +242,14 @@ local function ArtworkRect(texture, rect, close, role, interior)
     local width,height,padding
     if not atlas then
         -- Panel and dialog artwork occupy 80x22 and 128x23 inside 128x32 files.
-        local dialog = not close and IsDialog(texture)
-        width,height = close and 32 or 128,32
-        local artworkWidth = close and 32 or dialog and 128 or 80
-        local artworkHeight = close and 32 or dialog and 23 or 22
-        padding = close and (interior and 8 or 6) or (interior and 4 or 2)
+        local dialog = not square and IsDialog(texture)
+        width,height = square and 32 or 128,32
+        local artworkWidth = square and 32 or dialog and 128 or 80
+        local artworkHeight = square and 32 or dialog and 23 or 22
+        padding = square and (interior and 8 or 6) or (interior and 4 or 2)
         -- Both fills end at row 20, with distinct bottom insets in their content areas.
         local bottomPadding = padding
-        if interior and not close then bottomPadding = dialog and 3 or 2 end
+        if interior and not square then bottomPadding = dialog and 3 or 2 end
         return Crop(rect,coordinates,padding/width,padding/height,
             (artworkWidth-padding)/width,(artworkHeight-bottomPadding)/height,margins,width,height)
     end
@@ -255,7 +275,7 @@ local function ArtworkRect(texture, rect, close, role, interior)
     width,height = rect.right-rect.left,rect.top-rect.bottom
     if info and Finite(info.width) and Finite(info.height)
         and info.width > 0 and info.height > 0 then width,height=info.width,info.height end
-    padding = height*(close and (interior and 3/24 or 1/24) or (interior and 1/8 or 1/16))
+    padding = height*(square and (interior and 3/24 or 1/24) or (interior and 1/8 or 1/16))
     local left = (role == "Right" or role == "Center" or role == "Middle") and 0 or padding/width
     local right = (role == "Left" or role == "Center" or role == "Middle") and 1 or 1-padding/width
     return Crop(rect,coordinates,left,padding/height,right,1-padding/height,margins,width,height)
@@ -284,18 +304,18 @@ local function Geometry(record, native)
     end
     local source = Read(button,"GetNormalTexture") or button.Left or activeTexture
     local atlas = Read(source,"GetAtlas")
-    local baseline = record.close and (atlas and 22 or 20) or (atlas and 28 or 18)
+    local square = record.symbol ~= nil
+    local baseline = square and (atlas and 22 or 20) or (atlas and 28 or 18)
     if IsDialog(source) then baseline=21*19/23 end
     local outer,inner
     for texture in pairs(textures) do
         local rect = Rectangle(texture)
         if not rect then return nil end
-        local close = record.close
-        local artwork = roles[texture] == "NineSlice" and rect or ArtworkRect(texture,rect,close,roles[texture],false)
+        local artwork = roles[texture] == "NineSlice" and rect or ArtworkRect(texture,rect,square,roles[texture],false)
         if artwork == false then return nil end
         if artwork then outer=Union(outer,artwork) end
         if texture == activeTexture or roles[texture] then
-            local interior = roles[texture] == "NineSlice" and rect or ArtworkRect(texture,rect,close,roles[texture],true)
+            local interior = roles[texture] == "NineSlice" and rect or ArtworkRect(texture,rect,square,roles[texture],true)
             if interior == false then return nil end
             if interior then inner=Union(inner,interior) end
         end
@@ -320,7 +340,7 @@ local function Geometry(record, native)
 end
 local function Capture(button)
     local record = {button=button, alpha={}, masked={}, textures={}, active=false}
-    record.close = IsClose(button)
+    record.symbol = IsClose(button) and "×" or WindowGlyph(button)
     record.fill = CreateFrame("Button",nil,button)
     excluded[record.fill] = true
     record.fill:SetAllPoints(button)
@@ -345,13 +365,13 @@ local function Capture(button)
         record.textures[state.key] = texture
     end
     record.fill:Hide()
-    if record.close then
+    if record.symbol then
         local overlay = CreateFrame("Frame",nil,button)
         overlay:SetAllPoints(button)
         overlay:EnableMouse(false)
         record.glyph = overlay:CreateFontString(nil,"OVERLAY","GameFontHighlightLarge")
         record.glyph:SetPoint("CENTER",button,"CENTER",0,0)
-        record.glyph:SetText("×")
+        record.glyph:SetText(record.symbol)
         record.glyph:SetTextColor(1,1,1,1)
         record.glyph:Hide()
     end
@@ -536,6 +556,8 @@ local function DiscoverAll(found)
     ReadReference(reference,nativeFiles,nativeAtlases)
     ReadReference(closeReference,closeFiles,closeAtlases)
     ReadReference(dialogReference,nativeFiles,nativeAtlases,"dialog")
+    ReadReference(windowReference.MaximizeButton,windowFiles,windowAtlases,"↗")
+    ReadReference(windowReference.MinimizeButton,windowFiles,windowAtlases,"↙")
     local frame = EnumerateFrames()
     while frame do
         seen[frame] = true

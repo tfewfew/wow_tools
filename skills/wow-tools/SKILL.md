@@ -13,6 +13,11 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 以下为实现与发布历史，其中的测试名称和通过数量保留为历史记录，当前本地测试采用上述范围。
 
+## 世界地图全屏与还原按钮（2026-11-13）
+
+- titan 2.1.74 / forerver 2.2.91 补齐世界地图右上角全屏及还原按钮。读取各自 MaximizeMinimizeButtonFrameTemplate 的 MaximizeButton / MinimizeButton 原生参照，时光服使用 32×32 的 UI-Panel-BiggerButton / SmallerButton 文件，无限服使用 24×24 的 RedButton-Expand / Condense 图集。按方形图标按钮的留白、UV、实测矩形和缩放计算内外区域，继续共用四状态材质、连续圆角边框、悬停与原生恢复逻辑，上层绘制白色 ↗ / ↙ 操作标识。
+- 本地接口检查补充原生模板的两个子按钮字段，两端分别通过 TOC 初始化、语法、语义及接口兼容性检查。地图全屏和还原的实际显示与交互由用户在游戏中验证。
+
 ## 确认弹窗按钮与 ESC 菜单悬停（2026-11-13）
 
 - titan 2.1.73 / forerver 2.2.90 通过本客户端 StaticPopupButtonTemplate 的四状态文件 ID 及 UI-DialogBox-Button 路径识别放弃任务等弹窗按钮。128×32 文件内的 128×23 内容区采用左、上、右 4px 与下 3px 的填充边距，外框采用四边 2px，按实测矩形、UV 与有效缩放换算。细边框的基准可见高度为原生 21 高按钮采样 23 行中 19 行外框，材质与边框共用连续外矩形。

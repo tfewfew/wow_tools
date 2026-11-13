@@ -1,5 +1,7 @@
 # forerver
 
+2.2.91 补齐世界地图全屏与还原按钮的材质、四状态颜色和边框。读取本客户端 MaximizeMinimizeButtonFrameTemplate 的原生图集，支持 RedButton-Expand / Condense。按方形图标按钮的纹理尺寸、UV 与缩放计算覆盖区域，上层显示白色 ↗ / ↙ 操作标识。安装后 `/reload` 复测。
+
 2.2.90 补齐放弃任务等确认弹窗的确定、取消按钮材质，按 UI-DialogBox-Button 的 128×23 内容区和原生裁切计算覆盖范围。ESC 菜单复用按钮并重设脚本后重新挂接悬停处理，隐藏时清除悬停记录。安装后 `/reload` 复测。
 
 2.2.89 小地图主入口采用用户提供的猫咪举牌图片，以 TGA 贴图加载并按原图比例显示。安装后 `/reload`。
