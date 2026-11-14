@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "client": "forerver",
+  "plugins": {
+    "DungeonsForever": [
+      {
+        "id": "background-scans",
+        "description": "区域提示读取书籍缓存，软刷新最少2秒，主地图巡检1秒，独立地图1/2秒，提示框0.5秒与皮肤探测2秒，手柄守护10秒。",
+        "variants": [
+          "background-scans/2.1.95/manifest.json"
+        ],
+        "skipFromVersion": null,
+        "fixedEvidence": []
+      }
+    ],
+    "DungeonsForeverExplore": [
+      {
+        "id": "background-scans",
+        "description": "切断事件与渲染的书籍扫描链，初始化后每5秒检查40本书，零数量结束计数，地图1秒、路线0.5秒、暗月120秒、悬停0.25秒及区域按钮1秒。",
+        "requires": [
+          {
+            "plugin": "DungeonsForever",
+            "patch": "background-scans"
+          }
+        ],
+        "variants": [
+          "background-scans/2.0.3/manifest.json"
+        ],
+        "skipFromVersion": null,
+        "fixedEvidence": []
+      }
+    ],
+    "DungeonsForeverProf": [
+      {
+        "id": "background-scans",
+        "description": "专业跟随HUD每5秒更新，专业页悬停同步0.25秒。",
+        "variants": [
+          "background-scans/2.0.3/manifest.json"
+        ],
+        "skipFromVersion": null,
+        "fixedEvidence": []
+      }
+    ],
+    "DungeonsForeverSpell": [
+      {
+        "id": "background-scans",
+        "description": "法术书状态检查1秒，技能等级入口战斗0.5秒、脱战2秒，进入战斗事件即时更新安全显示。",
+        "variants": [
+          "background-scans/2.3.12/manifest.json"
+        ],
+        "skipFromVersion": null,
+        "fixedEvidence": []
+      }
+    ]
+  }
+}

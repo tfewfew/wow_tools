@@ -4,7 +4,7 @@ $tool = Join-Path $repo 'tools\wowAuto'
 $asts = @()
 $inlineSources = @()
 $temporaryFiles = @()
-$files = @(Get-ChildItem -LiteralPath (Join-Path $repo 'tools'), (Join-Path $repo 'skills') -Filter '*.ps1' -Recurse -File |
+$files = @(Get-ChildItem -LiteralPath (Join-Path $repo 'tools'), (Join-Path $repo 'skills'), (Join-Path $repo 'addon_fix') -Filter '*.ps1' -Recurse -File |
     Where-Object { $_.FullName -notmatch '[\\/]\.runtime[\\/]' })
 
 try {
