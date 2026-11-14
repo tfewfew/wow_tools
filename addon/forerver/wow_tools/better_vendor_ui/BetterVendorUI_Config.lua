@@ -13,7 +13,7 @@ function ns.InitializeConfig()
 
         local text = target:CreateFontString(nil, 'OVERLAY', 'GameFontNormal')
         text:SetPoint('CENTER')
-        text:SetText('Drop Item Here to\n' .. title)
+        text:SetText("拖入物品加入\n" .. title)
         target.text = text
 
         target:SetScript('OnReceiveDrag', function(self)
@@ -176,7 +176,7 @@ function ns.InitializeConfig()
                 btn.nameText:SetText(entry.link)
             else
                 btn.icon:SetTexture('Interface\\Icons\\INV_Misc_QuestionMark')
-                btn.nameText:SetText('Loading ' .. entry.id .. '...')
+                btn.nameText:SetText("正在加载 " .. entry.id .. '...')
                 ns.RequestItem(entry.id)  -- the list redraws itself when it arrives
             end
             btn:Show()
@@ -245,11 +245,11 @@ function ns.InitializeConfig()
                 title = configFrame:CreateFontString(nil, 'OVERLAY', 'GameFontNormal')
                 title:SetPoint('TOP', configFrame, 'TOP', 0, -9)
             end
-            title:SetText('Better Vendor UI Lists')
+            title:SetText("商人增强售卖名单")
             configFrame.title = title
 
-            configFrame.whitelistDrop = CreateDropTarget(configFrame, 'BetterVendorUIWhitelistDrop', 'ALWAYS SELL', 15, -40, true)
-            configFrame.blacklistDrop = CreateDropTarget(configFrame, 'BetterVendorUIBlacklistDrop', 'NEVER SELL', 245, -40, false)
+            configFrame.whitelistDrop = CreateDropTarget(configFrame, 'BetterVendorUIWhitelistDrop', "必卖名单", 15, -40, true)
+            configFrame.blacklistDrop = CreateDropTarget(configFrame, 'BetterVendorUIBlacklistDrop', "禁卖名单", 245, -40, false)
 
             configFrame.whitelistContainer = CreateListContainer(configFrame, 'BetterVendorUIWhitelistContainer', 15, -110)
             configFrame.blacklistContainer = CreateListContainer(configFrame, 'BetterVendorUIBlacklistContainer', 245, -110)

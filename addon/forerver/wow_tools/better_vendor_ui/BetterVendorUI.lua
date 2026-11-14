@@ -303,13 +303,12 @@ function ns.Initialize()
         end)
     end
 
-    -- "[BetterVendorUI] " for chat messages: in EllesmereUI's accent color while it skins us
-    -- (read each time, so live recolors apply), green otherwise
+    -- 聊天消息前缀跟随 EllesmereUI 的强调色，默认采用绿色。
     function ns.ChatPrefix()
         local r, g, b = 0, 1, 0
         if skinFacade then r, g, b = skinFacade.GetAccentColor() end
         local function Byte(v) return math.floor(v * 255 + 0.5) end
-        return string.format("|cff%02x%02x%02x[BetterVendorUI]|r ", Byte(r), Byte(g), Byte(b))
+        return string.format("|cff%02x%02x%02x[商人增强]|r ", Byte(r), Byte(g), Byte(b))
     end
 
     -- EllesmereUIBags paints junk badges when it draws; redraw after our lists change
@@ -356,14 +355,14 @@ function ns.Initialize()
         frame:UnregisterEvent("UI_ERROR_MESSAGE")
         if run.ticker then run.ticker:Cancel() end
         if stopReason then
-            print(ns.ChatPrefix() .. "Selling stopped: " .. stopReason)
+            print(ns.ChatPrefix() .. "出售已停止，原因是" .. stopReason)
         elseif run.total > 0 then
             if ns.Get("printSummary") then
-                local what = run.whitelistOnly and "always-sell" or "junk"
-                print(ns.ChatPrefix() .. string.format("Sold %d %s items for %s", run.sold, what, GetCoinTextureStringSafe(run.total)))
+                local what = run.whitelistOnly and "必卖" or "垃圾"
+                print(ns.ChatPrefix() .. string.format("已出售 %d 件%s物品，获得 %s。", run.sold, what, GetCoinTextureStringSafe(run.total)))
             end
         elseif not run.whitelistOnly and ns.Get("printNoJunk") then
-            print(ns.ChatPrefix() .. "No junk items found to sell.")
+            print(ns.ChatPrefix() .. "没有可出售的垃圾物品。")
         end
     end
 
@@ -511,11 +510,11 @@ function ns.Initialize()
             -- Next to the search box: the bottom area is shared with the buyback item name,
             -- repair buttons and the sell junk button, so nothing there is reliably free.
             configBtn = CreateHeaderButton("BetterVendorUIConfigBtn", "Interface\\Icons\\INV_Misc_Note_02",
-                "Sell Junk Lists", function() ns.ToggleConfig() end)
+                "售卖名单", function() ns.ToggleConfig() end)
         end
 
         optionsBtn = CreateHeaderButton("BetterVendorUIOptionsBtn", "Interface\\Icons\\INV_Misc_Gear_01",
-            "Better Vendor UI Options", function() ns.OpenSettings() end)
+            "商人增强设置", function() ns.OpenSettings() end)
         filterBtn = ns.CreateFilterButton and ns.CreateFilterButton()
         SkinMerchantHeader()
     end
@@ -1381,7 +1380,7 @@ function ns.Initialize()
         elseif cmd == 'debug' and arg == 'bottom' then
             -- Everything below the item grid: the boxes, borders and backgrounds of the bottom
             -- bar, with positions relative to the merchant window's bottom-left corner
-            if not MerchantFrame:IsShown() then return print("|cff00ff00[BVU]|r Open a vendor first.") end
+            if not MerchantFrame:IsShown() then return print("|cff00ff00[商人增强]|r 请先打开商人窗口。") end
             local fl, fb = MerchantFrame:GetLeft(), MerchantFrame:GetBottom()
             local gridBottom = slots[MERCHANT_ITEMS_PER_PAGE]:GetBottom()
             local ours = {}
@@ -1395,7 +1394,7 @@ function ns.Initialize()
                 local name = (r.GetDebugName and r:GetDebugName()) or r:GetName() or "?"
                 local p, rel, rp, x, y = r:GetPoint(1)
                 local relName = rel and ((rel.GetDebugName and rel:GetDebugName()) or rel:GetName()) or "-"
-                print(string.format("%s %s x%.0f-%.0f y%.0f-%.0f | %d pts: %s %s %s %.0f,%.0f",
+                print(string.format("%s %s x%.0f-%.0f y%.0f-%.0f | %d 个锚点 %s %s %s %.0f,%.0f",
                     name, r:GetObjectType(), left - fl, right - fl, bottom - fb, top - fb,
                     r:GetNumPoints(), tostring(p), relName, tostring(rp), x or 0, y or 0))
             end
@@ -1404,24 +1403,24 @@ function ns.Initialize()
                 Report(child)
                 for _, r in ipairs({ child:GetRegions() }) do Report(r) end
             end
-            print(string.format("|cff00ff00[BVU]|r %d elements below y%.0f (width %.0f, base %.0f)",
+            print(string.format("|cff00ff00[商人增强]|r %d 个元素位于 y%.0f 以下（宽度 %.0f，基础宽度 %.0f）",
                 seen, gridBottom - fb, MerchantFrame:GetWidth(), baseWidth))
             return
         elseif cmd == 'debug' then
             -- Where the bottom bar buttons are, for tracking down layout problems
             local function Num(v) return v and string.format("%.0f", v) or "nil" end
-            print(string.format("|cff00ff00[BVU]|r MerchantFrame left %s bottom %s width %s (base %s)",
+            print(string.format("|cff00ff00[商人增强]|r 商人窗口左侧 %s，底部 %s，宽度 %s（基础宽度 %s）",
                 Num(MerchantFrame:GetLeft()), Num(MerchantFrame:GetBottom()), Num(MerchantFrame:GetWidth()), Num(baseWidth)))
             for _, name in ipairs({ "MerchantSellAllJunkButton", "MerchantBuyBackItem", "MerchantRepairAllButton" }) do
                 local b = _G[name]
                 if b then
-                    print(string.format("%s: shown %s | at %s,%s | alpha %.1f level %d | %d anchor(s):",
+                    print(string.format("%s 显示状态 %s | 位置 %s,%s | 不透明度 %.1f 层级 %d | %d 个锚点",
                         name, tostring(b:IsShown()), Num(b:GetLeft()), Num(b:GetBottom()),
                         b:GetAlpha(), b:GetFrameLevel(), b:GetNumPoints()))
                     for n = 1, b:GetNumPoints() do
                         local p, r, rp, x, y = b:GetPoint(n)
-                        print(string.format("   %s to %s %s %s,%s", tostring(p),
-                            r and (r:GetName() or "unnamed") or "nil", tostring(rp), Num(x), Num(y)))
+                        print(string.format("   %s 对齐 %s %s %s,%s", tostring(p),
+                            r and (r:GetName() or "未命名") or "nil", tostring(rp), Num(x), Num(y)))
                     end
                 end
             end
@@ -1431,15 +1430,15 @@ function ns.Initialize()
             if not id then return end
             DB.whitelist[id] = not DB.whitelist[id] or nil
             if DB.whitelist[id] then DB.blacklist[id] = nil end
-            print(ns.ChatPrefix() .. 'Always sell toggled for itemID: ' .. id .. ' -> ' .. tostring(DB.whitelist[id] or false))
+            print(ns.ChatPrefix() .. "已切换物品的必卖状态，物品 ID 为 " .. id .. ' -> ' .. (DB.whitelist[id] and "已开启" or "已关闭"))
         elseif cmd == 'bl' and arg then
             local id = ParseItemID(arg)
             if not id then return end
             DB.blacklist[id] = not DB.blacklist[id] or nil
             if DB.blacklist[id] then DB.whitelist[id] = nil end
-            print(ns.ChatPrefix() .. 'Never sell toggled for itemID: ' .. id .. ' -> ' .. tostring(DB.blacklist[id] or false))
+            print(ns.ChatPrefix() .. "已切换物品的禁卖状态，物品 ID 为 " .. id .. ' -> ' .. (DB.blacklist[id] and "已开启" or "已关闭"))
         else
-            print(ns.ChatPrefix() .. 'Usage: /bvu (settings) | /bvu lists | /bvu wl [item link/id] | /bvu bl [item link/id]')
+            print(ns.ChatPrefix() .. "用法 /bvu（设置）| /bvu lists（售卖名单）| /bvu wl [物品链接或ID]（切换必卖）| /bvu bl [物品链接或ID]（切换禁卖）")
             return
         end
         ns.UpdateConfigLists()

@@ -152,11 +152,11 @@ function ns.InitializeFilters()
     end
 
     local function ClassName(classID)
-        return GetItemClassInfoSafe(classID) or ("Class " .. classID)
+        return GetItemClassInfoSafe(classID) or ("类别 " .. classID)
     end
 
     local function SubclassName(classID, subclassID)
-        return GetItemSubClassInfoSafe(classID, subclassID) or ("Type " .. subclassID)
+        return GetItemSubClassInfoSafe(classID, subclassID) or ("类型 " .. subclassID)
     end
 
     local function SortedKeys(t, nameOf)
@@ -328,7 +328,7 @@ function ns.InitializeFilters()
 
         local function Toggle(t, key) t[key] = (not t[key]) or nil end
 
-        Header(CATEGORY or "Category")
+        Header(CATEGORY or "类别")
         for _, c in ipairs(SortedKeys(classes, ClassName)) do
             local subList = SortedKeys(subs[c], function(s) return SubclassName(c, s) end)
             local canExpand = #subList > 1 or (subList[1] and f.subclasses[c .. ":" .. subList[1]])
@@ -356,26 +356,26 @@ function ns.InitializeFilters()
         end
 
         if ns.Get("showSlotFilters") and next(slotCounts) then
-            Header("Equip slot")
+            Header("装备部位")
             for _, loc in ipairs(SortedKeys(slotCounts, SlotName)) do
                 Row(0, SlotName(loc), slotCounts[loc], f.slots[loc], function() Toggle(f.slots, loc) end)
             end
         end
 
-        Header(QUALITY or "Quality")
+        Header(QUALITY or "品质")
         for q = 0, 7 do
             if qualities[q] then
                 Row(0, QualityName(q), qualities[q], f.qualities[q], function() Toggle(f.qualities, q) end)
             end
         end
         if hasUnknownQuality then
-            Row(0, "|cff808080Loading...|r", nil, false, function() end).check:Hide()
+            Row(0, "|cff808080正在加载…|r", nil, false, function() end).check:Hide()
         end
 
-        Header("Show only")
-        Row(0, "Usable by me", nil, f.usableOnly, function() f.usableOnly = not f.usableOnly end)
-        Row(0, "Affordable", nil, f.affordableOnly, function() f.affordableOnly = not f.affordableOnly end)
-        Row(0, "In stock", nil, f.hideSoldOut, function() f.hideSoldOut = not f.hideSoldOut end)
+        Header("显示条件")
+        Row(0, "当前角色可用", nil, f.usableOnly, function() f.usableOnly = not f.usableOnly end)
+        Row(0, "买得起", nil, f.affordableOnly, function() f.affordableOnly = not f.affordableOnly end)
+        Row(0, "有库存", nil, f.hideSoldOut, function() f.hideSoldOut = not f.hideSoldOut end)
 
         content:SetHeight(-y + 4)
         -- Panel fits its content, up to the merchant window's height (then it scrolls)
@@ -407,13 +407,13 @@ function ns.InitializeFilters()
 
         local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
         title:SetPoint("TOPLEFT", 12, -12)
-        title:SetText(FILTERS or "Filters")
+        title:SetText(FILTERS or "筛选")
         panel.title = title
 
         local reset = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
         reset:SetSize(70, 20)
         reset:SetPoint("TOPRIGHT", -10, -10)
-        reset:SetText(RESET or "Reset")
+        reset:SetText(RESET or "重置")
         reset:SetScript("OnClick", function() ns.ResetFilters() end)
         panel.reset = reset
 
@@ -468,7 +468,7 @@ function ns.InitializeFilters()
 
     function ns.CreateFilterButton()
         filterBtn = ns.CreateHeaderButton("BetterVendorUIFilterBtn", "Interface\\Icons\\INV_Misc_Spyglass_02",
-            FILTERS or "Filters", function()
+            FILTERS or "筛选", function()
                 if not panel then CreatePanel() end
                 panel:SetShown(not panel:IsShown())
             end)
@@ -478,11 +478,11 @@ function ns.InitializeFilters()
         filterBtn.glow:SetAllPoints()
         filterBtn:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:SetText(FILTERS or "Filters")
+            GameTooltip:SetText(FILTERS or "筛选")
             if ns.FiltersActive() then
-                GameTooltip:AddLine("Filters are active. Click to change them.", 0, 1, 0)
+                GameTooltip:AddLine("筛选已启用，点击可修改筛选条件。", 0, 1, 0)
             else
-                GameTooltip:AddLine("Show only some of this vendor's items.", 1, 1, 1, true)
+                GameTooltip:AddLine("设置此商人的商品筛选条件。", 1, 1, 1, true)
             end
             GameTooltip:Show()
         end)

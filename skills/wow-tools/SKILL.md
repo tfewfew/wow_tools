@@ -13,6 +13,11 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 以下为实现与发布历史，其中的测试名称和通过数量保留为历史记录，当前本地测试采用上述范围。
 
+## 商人增强汉化（2026-11-14）
+
+- titan 2.1.79 / forerver 2.2.96 将商人增强的设置标题、控件、说明、确认框、售卖名单、筛选项、悬浮提示和聊天反馈统一为简体中文，名单分别标为“必卖名单”和“禁卖名单”。格式参数、颜色标记和换行经过逐项核对。
+- 两服分别通过 Lua 5.1 编译、TOC 初始化、设置页构建及接口兼容性检查，游戏中的文字显示和布局由用户验证。
+
 ## Better Vendor UI 收编（2026-11-14）
 
 - titan 2.1.78 / forerver 2.2.95 收编 Vaniron 的 Better Vendor UI 1.3.1，官方 CurseForge 文件 ID 为 9436965。上游未公布 Git 仓库或 commit，双端 `better_vendor_ui/SOURCE.json` 记录原发布包 SHA256、原文件哈希、作者与 All Rights Reserved 许可来源，第三方映射如实登记官方发布地址。

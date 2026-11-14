@@ -5,7 +5,7 @@ function ns.BuildOptions(parent)
     -- Settings page under ESC > Options > AddOns. Built as a canvas page (our own widgets)
     -- so it works with both the modern Settings API and the old InterfaceOptions API.
 
-    local TITLE = "Better Vendor UI"
+    local TITLE = "商人增强"
     local widgets = {}
 
     StaticPopupDialogs["BETTERVENDORUI_CONFIRM"] = {
@@ -132,7 +132,7 @@ function ns.BuildOptions(parent)
             ns.Set(key, choices[index].value)
             ns.RefreshOptions()
         end)
-        SetTooltip(btn, label, (tooltip and tooltip .. "|n|n" or "") .. "Left-click: next, right-click: previous.")
+        SetTooltip(btn, label, (tooltip and tooltip .. "|n|n" or "") .. "左键切换下一项，右键切换上一项。")
         Advance(30)
 
         local w = {}
@@ -232,150 +232,150 @@ function ns.BuildOptions(parent)
     Advance(30)
 
     -- Merchant window
-    Header("Merchant window")
-    local columnsSlider = Slider("Columns", "gridColumns", 2, 6, 1, "%d",
-        "How many items are shown side by side. The game's default is 2.|n|nNot used while EllesmereUI shows the merchant as a list.")
-    Slider("Rows", "gridRows", 5, 10, 1, "%d",
-        "How many rows of items are shown. The game's default is 5.")
+    Header("商人窗口")
+    local columnsSlider = Slider("列数", "gridColumns", 2, 6, 1, "%d",
+        "每行显示的商品数量，游戏默认 2 列。|n|nEllesmereUI 使用商人列表视图时，此选项暂不可用。")
+    Slider("行数", "gridRows", 5, 10, 1, "%d",
+        "每页显示的商品行数，游戏默认 5 行。")
     Buttons(
-        { text = "Game default (2 x 5)", onClick = function()
+        { text = "游戏默认（2×5）", onClick = function()
             ns.Set("gridColumns", 2)
             ns.Set("gridRows", 5)
             ns.RefreshOptions()
         end },
-        { text = "Better Vendor UI default (4 x 5)", onClick = function()
+        { text = "插件默认（4×5）", onClick = function()
             ns.Set("gridColumns", 4)
             ns.Set("gridRows", 5)
             ns.RefreshOptions()
         end }
     )
-    local buybackFullWidth = Checkbox("Buyback tab uses the full width", "buybackFullWidth",
-        "Lays out the 12 buyback slots in the same columns as the merchant grid (for example 4 x 3). When unchecked, buyback uses the game's 2 columns.")
-    local showSearch = Checkbox("Show search box", "showSearch",
-        "Adds a search box to the merchant window that filters items by name.")
-    local searchMode = Cycle("Non-matching items:", "searchMode", {
-        { value = "dim", text = "Dim" },
-        { value = "hide", text = "Hide" },
-    }, "What happens to items that don't match the search.", 20)
-    local dimAlpha = Slider("Dim strength", "dimAlpha", 0, 0.6, 0.05, "%.2f",
-        "How visible dimmed items stay. 0 is invisible, 0.6 is barely dimmed.", 20)
-    local clearSearch = Checkbox("Clear search when opening a vendor", "clearSearchOnShow", nil, 20)
+    local buybackFullWidth = Checkbox("回购页使用完整窗口宽度", "buybackFullWidth",
+        "将 12 个回购栏位按商人窗口的列数排列，例如 4 列 3 行。取消勾选后，回购页采用游戏默认的 2 列布局。")
+    local showSearch = Checkbox("显示搜索框", "showSearch",
+        "在商人窗口显示搜索框，按物品名称筛选商品。")
+    local searchMode = Cycle("未匹配的商品", "searchMode", {
+        { value = "dim", text = "淡化" },
+        { value = "hide", text = "隐藏" },
+    }, "选择搜索未匹配商品的显示方式。", 20)
+    local dimAlpha = Slider("淡化后不透明度", "dimAlpha", 0, 0.6, 0.05, "%.2f",
+        "设置淡化后商品的不透明度。0 为完全透明，0.6 为轻度淡化。", 20)
+    local clearSearch = Checkbox("打开商人时清空搜索", "clearSearchOnShow", nil, 20)
     Checkbox("已学配方标记", "knownRecipes", "图标去色并显示绿色勾，标识本角色已经学会的配方。")
-    local qualityBorders = Checkbox("Quality borders on vendor items", "qualityBorders",
-        "Colors the border of vendor items by their quality.")
+    local qualityBorders = Checkbox("按物品品质显示边框颜色", "qualityBorders",
+        "根据商品的物品品质设置边框颜色。")
     local qualityChoices = {}
     for q = 1, 4 do
         local _, _, _, hex = ns.GetItemQualityColorSafe(q)
         local name = _G["ITEM_QUALITY" .. q .. "_DESC"] or tostring(q)
         table.insert(qualityChoices, { value = q, text = hex and ("|c" .. hex .. name .. "|r") or name })
     end
-    local minQuality = Cycle("Minimum quality:", "minBorderQuality", qualityChoices,
-        "Only items of this quality or better get a colored border.", 20)
-    Checkbox("Show lists button on the merchant window", "showListsButton",
-        "The small note button next to the search box that opens the Always sell / Never sell lists. The lists can also be opened with /bvu lists or from this page.")
-    Checkbox("Show options button on the merchant window", "showOptionsButton",
-        "The small gear button next to the search box that opens this page. It can also be opened with /bvu.")
+    local minQuality = Cycle("最低品质", "minBorderQuality", qualityChoices,
+        "达到此品质及以上的商品显示品质边框。", 20)
+    Checkbox("显示售卖名单按钮", "showListsButton",
+        "在搜索框旁显示便笺按钮，点击打开必卖名单和禁卖名单。也可通过 /bvu lists 或本页打开。")
+    Checkbox("显示设置按钮", "showOptionsButton",
+        "在搜索框旁显示齿轮按钮，点击打开本设置页。也可使用 /bvu 打开。")
 
     -- Filters
-    Header("Filters")
-    Checkbox("Show filter button on the merchant window", "showFilterButton",
-        "The spyglass button next to the search box. It opens a panel to show only some of the vendor's items, by category, quality or whether you can use or afford them.")
-    Checkbox("Reset filters when opening a vendor", "resetFiltersOnShow",
-        "Starts every vendor with no filters, so a filter set at one vendor doesn't hide items at the next.")
-    Checkbox("\"Usable by me\" on by default", "usableOnlyDefault",
-        "Whenever filters are reset, \"Usable by me\" is switched on. Usability is checked for the character you're playing, so each character only sees items it can use.")
-    Checkbox("Show equip slot filters", "showSlotFilters",
-        "Adds an Equip slot section (Head, Chest, Feet...) to the filter panel.")
+    Header("筛选")
+    Checkbox("显示筛选按钮", "showFilterButton",
+        "在搜索框旁显示望远镜按钮，按类别、品质、当前角色是否可用及是否买得起筛选商品。")
+    Checkbox("打开商人时重置筛选", "resetFiltersOnShow",
+        "每次打开商人时清空筛选条件，避免沿用上一位商人的筛选结果。")
+    Checkbox("默认启用“当前角色可用”", "usableOnlyDefault",
+        "重置筛选时自动勾选“当前角色可用”，根据当前角色的可用状态显示商品。")
+    Checkbox("显示装备部位筛选", "showSlotFilters",
+        "在筛选面板中增加头部、胸部、脚部等装备部位选项。")
     Buttons(
-        { text = "Reset filters", onClick = function() ns.ResetFilters() end,
-          tooltip = "Clears all filters (then applies the \"Usable by me\" default)." }
+        { text = "重置筛选", onClick = function() ns.ResetFilters() end,
+          tooltip = "清空筛选条件，并应用“当前角色可用”的默认设置。" }
     )
 
     -- Selling junk
-    Header("Selling junk")
-    Checkbox("Use Better Vendor UI rules for the Sell Junk button", "overrideSellButton",
-        "When checked, the Sell Junk button uses your Always sell and Never sell lists and the options below. When unchecked, it does what the game normally does.")
-    Checkbox("Keep the Sell Junk button always clickable", "keepSellButtonEnabled",
-        "The game disables the button when it thinks you have no junk. Keep it enabled so items on your Always sell list can still be sold.")
-    Checkbox("Sell items on the Always sell list", "sellAlwaysList",
-        "Items on the Always sell list are sold along with junk, whatever their quality.")
-    local autoSell = Checkbox("Sell junk automatically when opening a vendor", "autoSell",
-        "Sells junk as soon as you open a vendor. Hold Shift while opening the vendor to skip it.|n|nThis is turned off while Leatrix Plus or EllesmereUI is selling junk automatically.")
-    Checkbox("Keep unbound grey weapons and armor", "keepGreyGear",
-        "Grey weapons and armor that aren't soulbound are not sold, for example so you can put them on the auction house. Items on the Always sell list are still sold.")
-    Checkbox("Sell at most 12 items at a time", "limit12",
-        "The buyback tab only holds the last 12 items you sold. With this on, every sold item can still be bought back. Click Sell Junk again to sell the rest.")
-    Checkbox("Print a summary in chat", "printSummary")
-    Checkbox("Print \"No junk items found\"", "printNoJunk")
+    Header("出售垃圾")
+    Checkbox("出售垃圾按钮采用商人增强规则", "overrideSellButton",
+        "勾选后，出售垃圾按钮使用必卖名单、禁卖名单及下方设置。取消勾选后，按钮采用游戏原有规则。")
+    Checkbox("出售垃圾按钮始终可点击", "keepSellButtonEnabled",
+        "游戏判定背包中没有垃圾时会禁用按钮。启用后，仍可点击按钮出售必卖名单中的物品。")
+    Checkbox("出售必卖名单中的物品", "sellAlwaysList",
+        "出售垃圾时一并出售必卖名单中的所有物品，包含各类品质。")
+    local autoSell = Checkbox("打开商人时自动出售垃圾", "autoSell",
+        "打开商人时自动出售垃圾，打开时按住 Shift 可跳过。|n|nLeatrix Plus 或 EllesmereUI 正在自动出售垃圾时，此功能自动停用。")
+    Checkbox("保留未绑定的灰色武器和护甲", "keepGreyGear",
+        "保留尚未灵魂绑定的灰色武器和护甲，方便在拍卖行出售。必卖名单中的物品仍会出售。")
+    Checkbox("每次最多出售 12 件物品", "limit12",
+        "回购页保存最近出售的 12 件物品。启用后，每次出售的物品均可回购，再次点击出售垃圾按钮可继续出售。")
+    Checkbox("在聊天栏显示出售汇总", "printSummary")
+    Checkbox("显示“没有可出售的垃圾物品”", "printNoJunk")
 
     -- Leatrix Plus
     Header("Leatrix Plus")
     Note(function()
         local state = ns.LeatrixState()
         if state == "on" then
-            return "|cff00ff00Leatrix Plus detected, \"Sell junk automatically\" is on.|r"
+            return "|cff00ff00已检测到 Leatrix Plus，自动出售垃圾已开启。|r"
         elseif state == "off" then
-            return "|cffffd100Leatrix Plus detected, \"Sell junk automatically\" is off. These options have no effect.|r"
+            return "|cffffd100已检测到 Leatrix Plus，自动出售垃圾已关闭，相关选项暂不可用。|r"
         end
-        return "|cff808080Leatrix Plus is not loaded. These options have no effect.|r"
+        return "|cff808080Leatrix Plus 尚未加载，相关选项暂不可用。|r"
     end)
-    local leaSync = Checkbox("Copy grey Never sell items into Leatrix's exclusions", "leatrixSyncNeverSell",
-        "Leatrix won't sell grey items on your Never sell list. Unchecking this removes every entry Better Vendor UI added to Leatrix's list. Entries you typed in Leatrix yourself are never touched.")
-    local leaSell = Checkbox("Sell Always sell items when Leatrix auto-sells", "leatrixSellAlwaysList",
-        "Leatrix only sells grey items. With this on, Better Vendor UI sells the items on your Always sell list when you open a vendor. Hold Shift to skip.")
+    local leaSync = Checkbox("将禁卖名单中的灰色物品同步到 Leatrix 排除名单", "leatrixSyncNeverSell",
+        "将禁卖名单中的灰色物品加入 Leatrix 排除名单，防止自动出售。取消勾选会移除由商人增强添加的记录，你在 Leatrix 中手动输入的记录继续保留。")
+    local leaSell = Checkbox("Leatrix 自动售卖时一并出售必卖物品", "leatrixSellAlwaysList",
+        "Leatrix 自动售卖的范围为灰色物品。启用后，商人增强会在打开商人时额外出售必卖名单中的物品，按住 Shift 可跳过。")
 
     -- EllesmereUI
     Header("EllesmereUI")
     Note(function()
         local loaded, autoSell, marker = ns.EllesmereInfo()
         if not loaded then
-            return "|cff808080EllesmereUI is not loaded. These options have no effect.|r"
+            return "|cff808080EllesmereUI 尚未加载，相关选项暂不可用。|r"
         elseif marker then
-            return "|cff00ff00EllesmereUI detected with the Junk Marker on: its junk selling follows your lists.|r"
+            return "|cff00ff00EllesmereUI 垃圾标记已开启，垃圾售卖将遵循售卖名单。|r"
         elseif autoSell then
-            return "|cffff8000EllesmereUI's Auto Sell Junk sells every grey item and can't skip Never sell items. Turn on the Junk Marker (coin icon) in EllesmereUI Bags to protect them.|r"
+            return "|cffff8000EllesmereUI 会卖出所有灰色物品，开启背包硬币标记可保护禁卖物品。|r"
         end
-        return "|cffffd100EllesmereUI detected, \"Auto Sell Junk\" is off and the Junk Marker is off. These options have no effect.|r"
+        return "|cffffd100EllesmereUI 自动售卖和垃圾标记均已关闭，相关选项暂不可用。|r"
     end)
-    local ellNever = Checkbox("EllesmereUI never sells Never sell items", "ellesmereNeverSell",
-        "Items on your Never sell list don't count as junk in EllesmereUI: its Auto Sell Junk and its Sell Junk button skip them, and they don't get the junk badge.|n|nNeeds the Junk Marker (coin icon) in EllesmereUI Bags.")
-    local ellAlways = Checkbox("EllesmereUI sells Always sell items too", "ellesmereAlwaysSell",
-        "Items on your Always sell list are sold with EllesmereUI's junk. With the Junk Marker on, EllesmereUI treats them as junk (they also show in its Junk category). Without it, Better Vendor UI sells them when you open a vendor. Hold Shift to skip.")
+    local ellNever = Checkbox("EllesmereUI 遵循禁卖名单", "ellesmereNeverSell",
+        "EllesmereUI 会将禁卖名单中的物品排除出垃圾范围，自动售卖和出售垃圾按钮均会跳过这些物品，同时移除其垃圾标记。|n|n需要开启 EllesmereUI 背包中的垃圾标记（硬币图标）。")
+    local ellAlways = Checkbox("EllesmereUI 一并出售必卖物品", "ellesmereAlwaysSell",
+        "必卖名单中的物品会随 EllesmereUI 的垃圾一并出售。开启垃圾标记后，这些物品会归入其垃圾分类。垃圾标记关闭时，由商人增强在打开商人时出售，按住 Shift 可跳过。")
 
     -- Lists and window
-    Header("Lists and window")
+    Header("售卖名单与窗口")
     Note(function()
         local DB = ns.DB or {}
-        return string.format("Always sell: %d items     Never sell: %d items", CountKeys(DB.whitelist), CountKeys(DB.blacklist))
+        return string.format("必卖名单 %d 件     禁卖名单 %d 件", CountKeys(DB.whitelist), CountKeys(DB.blacklist))
     end)
     Buttons(
-        { text = "Open lists window", onClick = function() ns.ToggleConfig() end },
-        { text = "Reset window position", onClick = function() ns.ResetConfigPosition() end,
-          tooltip = "Moves the lists window back next to the merchant window." }
+        { text = "打开售卖名单", onClick = function() ns.ToggleConfig() end },
+        { text = "重置窗口位置", onClick = function() ns.ResetConfigPosition() end,
+          tooltip = "将售卖名单窗口移回商人窗口旁。" }
     )
     Buttons(
-        { text = "Clear Always sell", onClick = function()
-            Confirm("Remove all items from the Always sell list?", function()
+        { text = "清空必卖名单", onClick = function()
+            Confirm("确定清空必卖名单中的所有物品吗？", function()
                 wipe(ns.DB.whitelist)
                 ns.UpdateConfigLists()
             end)
         end },
-        { text = "Clear Never sell", onClick = function()
-            Confirm("Remove all items from the Never sell list?", function()
+        { text = "清空禁卖名单", onClick = function()
+            Confirm("确定清空禁卖名单中的所有物品吗？", function()
                 wipe(ns.DB.blacklist)
                 ns.UpdateConfigLists()
             end)
         end }
     )
     Buttons(
-        { text = "Reset all settings", onClick = function()
-            Confirm("Reset all Better Vendor UI settings to their defaults?|n|nYour Always sell and Never sell lists are kept.", function()
+        { text = "重置全部设置", onClick = function()
+            Confirm("确定将商人增强的全部设置恢复为默认值吗？|n|n必卖名单和禁卖名单继续保留。", function()
                 ns.ResetSettings()
                 ns.RefreshOptions()
             end)
         end }
     )
-    Note(function() return "|cff808080Slash commands: /bvu (this page), /bvu lists, /bvu wl <item>, /bvu bl <item>|r" end)
+    Note(function() return "|cff808080命令 /bvu（设置）、/bvu lists（售卖名单）、/bvu wl <物品>（切换必卖）、/bvu bl <物品>（切换禁卖）|r" end)
 
     content:SetHeight(-y + 16)
 

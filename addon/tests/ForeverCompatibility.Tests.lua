@@ -314,6 +314,7 @@ else
     assert(vendor.Get("knownRecipes") == true, "Known recipe marks lack their default")
     WoWTools.settings.Open("better_vendor_ui")
     assert(vendor.optionsPanel and vendor.optionsPanel:GetParent() == vendor.settingsPanel, "Vendor options were not embedded")
+    assert(vendor.optionsPanel.name == "商人增强", "Vendor settings title is not localized")
     WoWTools.settings.Open("wowDetector")
 end
 
