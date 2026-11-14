@@ -95,6 +95,10 @@ foreach ($profile in $profiles) {
                     Write-Output "Migrated ForeverFaces settings for $($account.Name)."
                 }
             }
+            $vendorBackup = Join-Path $backup "$($profile.Flavor)\SavedVariables\$($account.Name)\BetterVendorUIMigration"
+            if (Merge-WowBetterVendorUISettings -SavedPath $savedPath -BackupPath $vendorBackup) {
+                Write-Output "Migrated $($profile.Flavor) Better Vendor UI settings for $($account.Name)."
+            }
             $toastBackup = Join-Path $backup "$($profile.Flavor)\SavedVariables\$($account.Name)\LsToastsMigration"
             if (Merge-WowLsToastsSettings -SavedPath $savedPath -BackupPath $toastBackup) {
                 Write-Output "Migrated $($profile.Flavor) ls_Toasts settings for $($account.Name)."

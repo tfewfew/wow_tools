@@ -87,6 +87,11 @@ local function widget(name, parent, kind)
         if self.kind == "EditBox" and self.scripts.OnTextChanged then self.scripts.OnTextChanged(self, false) end
     end
     function object:GetText() return self.text end
+    function object:GetFontString()
+        self.buttonText = self.buttonText or widget(nil, self, "FontString")
+        return self.buttonText
+    end
+    function object:SetFormattedText(format, ...) self:SetText(string.format(format, ...)) end
     function object:GetFont() return "mock-font", 12, "" end
     if kind == "FontString" then
         function object:GetStringHeight() return 36 end
@@ -126,7 +131,7 @@ local function widget(name, parent, kind)
     function object:SetDefaultText(text) self.defaultText = text end
     function object:CloseMenu() self.menuClosed = true end
     local harmless = {
-        "SetFrameLevel", "SetScale", "SetButtonState", "LockHighlight", "UnlockHighlight", "SetClampedToScreen", "SetMovable", "EnableMouse",
+        "SetBackdrop", "SetHitRectInsets", "SetFrameLevel", "SetScale", "SetButtonState", "LockHighlight", "UnlockHighlight", "SetClampedToScreen", "SetMovable", "EnableMouse",
         "RegisterForDrag", "RegisterForClicks", "SetHighlightTexture", "SetTexture",
         "ClearAllPoints", "SetFont", "SetJustifyH", "SetAutoFocus",
         "SetMaxLetters", "SetNumeric", "ClearFocus", "SetScrollChild", "StartMoving", "StopMovingOrSizing", "SetMultiLine", "SetFontObject", "SetBlendMode", "SetTexCoord",
@@ -191,7 +196,9 @@ FramerateLabel = flavor=="titan" and widget() or nil
 function GameTooltip:SetOwner() end
 function GameTooltip:AddLine() end
 DEFAULT_CHAT_FRAME = { AddMessage = function(_, message) messages[#messages + 1] = message end }
-SlashCmdList, UISpecialFrames = {}, {}
+SlashCmdList, UISpecialFrames, StaticPopupDialogs = {}, {}, {}
+YES, NO = "Yes", "No"
+BackdropTemplateMixin = {}
 local registeredCategories, addonCategories = {}, {}
 Settings = { RegisterCanvasLayoutCategory = function(frame, name)
     local category = {frame=frame,name=name}
@@ -281,7 +288,7 @@ for line in io.lines(addon .. "wow_tools.toc") do
 end
 -- SavedVariables become available after the TOC scripts and before ADDON_LOADED.
 if TEST_THIRD_PARTY_DISABLED then
-    wowDetectorDB = {thirdPartyAddons = {bigfoot_channel = false, ls_toasts = false, forever_faces = false}}
+    wowDetectorDB = {thirdPartyAddons = {bigfoot_channel = false, ls_toasts = false, forever_faces = false, better_vendor_ui = false}}
 end
 for _, frame in ipairs(frames) do
     if frame.events.ADDON_LOADED then frame.scripts.OnEvent(frame, "ADDON_LOADED", "wow_tools") end
@@ -294,6 +301,22 @@ assert(WoWTools.settings and type(WoWTools.settings.Open) == "function", "Missin
 assert(WoWTools.settings.pages.button_style.frame == WoWTools.buttonStyle.panel
     and WoWTools.modules.button_style == WoWTools.buttonStyle, "Button skin page module binding failed")
 assert(#WoWTools.buttonStyle.editors == 1, "Button skin editor is registered more than once")
+
+local vendor = WoWTools.betterVendorUI
+assert(vendor and vendor == WoWTools.modules.better_vendor_ui, "Embedded vendor module export failed")
+assert(WoWTools.settings.pages.better_vendor_ui.frame == vendor.settingsPanel, "Vendor settings page binding failed")
+assert(vendor.sourceVersion == "1.3.1" and vendor.sourceFileID == 9436965, "Vendor upstream identity mismatch")
+if TEST_THIRD_PARTY_DISABLED then
+    assert(not vendor.ready and not vendor.DB, "Disabled vendor registered its runtime")
+else
+    assert(vendor.ready and vendor.DB == wowDetectorDB.betterVendorUI.db, "Vendor account persistence binding failed")
+    assert(type(vendor.ToggleConfig) == "function" and type(vendor.PassesFilters) == "function", "Vendor source load order failed")
+    assert(vendor.Get("knownRecipes") == true, "Known recipe marks lack their default")
+    WoWTools.settings.Open("better_vendor_ui")
+    assert(vendor.optionsPanel and vendor.optionsPanel:GetParent() == vendor.settingsPanel, "Vendor options were not embedded")
+    WoWTools.settings.Open("wowDetector")
+end
+
 for _, group in ipairs(WoWTools.settings.groups) do
     local tab = WoWTools.settings.tabs[group.key]
     assert(tab.Text:GetText() == group.label and tab.Text.wordWrap == false,
@@ -301,7 +324,7 @@ for _, group in ipairs(WoWTools.settings.groups) do
 end
 assert(WoWTools.settings.pages.third_party and WoWTools.modules.third_party.BuildSettings,
     "Missing third-party settings interface")
-assert(#WoWTools.thirdParty.entries == (flavor == "forerver" and 3 or 2), "Wrong client plugin list")
+assert(#WoWTools.thirdParty.entries == (flavor == "forerver" and 4 or 3), "Wrong client plugin list")
 if TEST_THIRD_PARTY_DISABLED then
     assert(not WoWTools.lsToasts.C.db, "Disabled toast addon initialized its database")
     assert(not WoWTools.bigfootChannel.addon.db, "Disabled chat addon initialized its database")

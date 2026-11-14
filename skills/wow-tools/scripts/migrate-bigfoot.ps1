@@ -143,3 +143,9 @@ function Merge-WowLsToastsSettings([string]$SavedPath, [string]$BackupPath) {
         @{File='ls_Toasts.lua'; Global='LS_TOASTS_GLOBAL_CONFIG'; Key='db'}
     )
 }
+
+function Merge-WowBetterVendorUISettings([string]$SavedPath, [string]$BackupPath) {
+    return Merge-WowAddonSettingsGroup $SavedPath $BackupPath 'betterVendorUI' @(
+        @{File='BetterVendorUI.lua'; Global='BetterVendorUIDB'; Key='db'}
+    )
+}

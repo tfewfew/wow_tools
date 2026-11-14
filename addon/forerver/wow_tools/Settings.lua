@@ -11,6 +11,7 @@ local groups = {
     { key="bigfoot_channel", label="大脚聊天", app="WoWToolsBigFootChannel" },
     { key="ls_toasts", label="lsToast", app="ls_Toasts" },
     { key="forever_faces", label="3D头像" },
+    { key="better_vendor_ui", label="商人增强" },
     { key="third_party", label="三方插件" },
 }
 settings.groups = groups

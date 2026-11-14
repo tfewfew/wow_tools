@@ -1,8 +1,8 @@
 ## Interface: 38002
 ## Title: wow_tools (Titan)
-## Notes-zhCN: 时光服工具合集：钓鱼检测、战斗检测、自动抓宠、声音控制、大脚频道聊天增强、拾取与金币提示、内部画面设置与商店一键卖鱼。
+## Notes-zhCN: 时光服工具合集：钓鱼检测、战斗检测、自动抓宠、声音控制、大脚频道聊天增强、拾取与金币提示、商人增强、内部画面设置与商店一键卖鱼。
 ## Author: Ray
-## Version: 2.1.77
+## Version: 2.1.78
 ## X-WoWTools-Flavor: titan
 ## SavedVariables: wowDetectorDB, fightDetectorDB, wowToolsRealmLevels
 ## SavedVariablesPerCharacter: wowToolsCharacterRecord
@@ -11,6 +11,11 @@ bigfoot_channel\Libs\LibStub\LibStub.lua
 bigfoot_channel\Libs\embeds.xml
 Init.lua
 ThirdParty.lua
+better_vendor_ui\Bootstrap.lua
+better_vendor_ui\BetterVendorUI.lua
+better_vendor_ui\BetterVendorUI_Filters.lua
+better_vendor_ui\BetterVendorUI_Config.lua
+better_vendor_ui\BetterVendorUI_Options.lua
 bigfoot_channel\Bootstrap.lua
 bigfoot_channel\locale\locale.en.lua
 bigfoot_channel\locale\locale.cn.lua

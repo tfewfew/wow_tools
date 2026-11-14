@@ -14,14 +14,14 @@ foreach ($profile in $profiles) {
     $toc=Join-Path $profile.Source 'wow_tools.toc'
     Assert-Profile (Select-String -LiteralPath $toc -Pattern "^## Interface:\s*$($profile.Interface)\s*$" -Quiet) 'Source interface does not match profile.'
     foreach ($module in @('ExperienceText.lua','DisplayFonts.lua','SoundControl.lua','LuaGC.lua','Settings.lua','ThirdParty.lua',
-        'bigfoot_channel\Bootstrap.lua','ls_toasts\ls_toasts.xml')) {
+        'bigfoot_channel\Bootstrap.lua','ls_toasts\ls_toasts.xml','better_vendor_ui\Bootstrap.lua','better_vendor_ui\BetterVendorUI.lua')) {
         Assert-Profile (Test-Path -LiteralPath (Join-Path $profile.Source $module) -PathType Leaf) "Missing $($profile.Flavor) capability $module."
         Assert-Profile (Select-String -LiteralPath $toc -Pattern ('^'+[regex]::Escape($module)+'\s*$') -Quiet) "Unloaded $($profile.Flavor) capability $module."
     }
 }
 $titanRetired = @(Get-WowToolsRetiredAddonNames -Flavor titan)
 $foreverRetired = @(Get-WowToolsRetiredAddonNames -Flavor forerver)
-foreach ($name in @('BigFootChat','ChannelFilter','ls_Toasts')) {
+foreach ($name in @('BigFootChat','ChannelFilter','ls_Toasts','BetterVendorUI')) {
     Assert-Profile ($titanRetired -contains $name -and $foreverRetired -contains $name) "Duplicate $name is not retired for both clients."
 }
 foreach ($name in @('BigFoot','!!!Libs','ForeverFaces')) {

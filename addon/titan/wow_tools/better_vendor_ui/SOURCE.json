@@ -1,0 +1,19 @@
+{
+  "name": "Better Vendor UI",
+  "author": "Vaniron",
+  "version": "1.3.1",
+  "release": "https://www.curseforge.com/wow/addons/better-vendor-ui/files/9436965",
+  "packageSHA256": "62f2299e80ceadb4f920718ab3395af5b13833417d902ca13b6565f5375132b7",
+  "license": "All Rights Reserved",
+  "upstreamCommit": null,
+  "files": {
+    "BetterVendorUI.lua": "c9109f26410cdca6ca65a22e85aed0febc6ce8e36ed0d36dde106fd64394ea0f",
+    "BetterVendorUI.toc": "d87004039acd6374ed2e8a52e4265b06dadc41967ad43e1f9d8043ccbeaa4aee",
+    "BetterVendorUI_Config.lua": "ac8fd4cb285bdcbe3449c96c9b96ea75f2ab2dc9b7f9513c6f13a00a623626cb",
+    "BetterVendorUI_Filters.lua": "8b723da5f7dbd51c5b9f72cab291dd1ba13541a6119cda4e6d515f2a0b2473dc",
+    "BetterVendorUI_Options.lua": "77cd2a9be1b2f8aa2a33bb78b06aa8cbef32f13c614c56ab9f032bf4f031b640",
+    "CHANGELOG.md": "45ba6b369741da4d7ac0eaf1109f1d0323b37e1a2a0e8bda936650b64f6539bc",
+    "icon.tga": "9377aa6ac14e50a21bb72eaf0139f9f20ab744fa05fd262884666020c9720265"
+  },
+  "licenseURL": "https://www.curseforge.com/wow/addons/better-vendor-ui/license"
+}

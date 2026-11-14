@@ -13,6 +13,13 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 以下为实现与发布历史，其中的测试名称和通过数量保留为历史记录，当前本地测试采用上述范围。
 
+## Better Vendor UI 收编（2026-11-14）
+
+- titan 2.1.78 / forerver 2.2.95 收编 Vaniron 的 Better Vendor UI 1.3.1，官方 CurseForge 文件 ID 为 9436965。上游未公布 Git 仓库或 commit，双端 `better_vendor_ui/SOURCE.json` 记录原发布包 SHA256、原文件哈希、作者与 All Rights Reserved 许可来源，第三方映射如实登记官方发布地址。
+- 模块登记为 better_vendor_ui，设置入口为“商人增强”，接入“三方插件”的账号开关和加载时生效逻辑。商人网格、搜索、筛选、售卖名单、原命令 `/bvu` 与原接口适配保留在独立命名空间，设置页复用统一 canvas。账号设置保存为 wowDetectorDB.betterVendorUI.db。
+- 已学配方标记采用 !Pig 的图标去色和 136814 绿色勾，商人格内缩四边 4px，跟随 Vendor 的完整与品质重绘刷新。学习和物品数据事件合并刷新，关闭商人时注销学习事件并清理标记。
+- 同步沿用 Lua 字面量解析和原子合并，分别迁移两服旧 BetterVendorUIDB，备份后归档独立 BetterVendorUI 目录。原 addon_fix 中的 Vendor 补丁保留归档并撤下活动映射，后续在收编源码维护。两服分别检查 TOC 初始化、模块启停、持久化绑定、设置构建及接口兼容性，游戏显示和迁移流程由用户验证。
+
 ## 按钮皮肤独立设置与更新开销（2026-11-14）
 
 - titan 2.1.77 / forerver 2.2.94 将按钮设置从 IGC 子分类移到统一设置的“按钮皮肤”一级标签，模块登记为 button_style，设置在独立滚动页内构建一次，通过 wowDetectorDB.buttonStyle 保存材质、四状态颜色和边框。
