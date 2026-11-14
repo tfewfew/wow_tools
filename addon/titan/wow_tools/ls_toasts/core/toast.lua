@@ -26,12 +26,20 @@ local ARROWS_CFG = {
 
 -- Animated Text
 local textsToAnimate = {}
+local textAnimationTicker
+
+local function stopTextAnimationTicker()
+	if textAnimationTicker and not next(textsToAnimate) then
+		textAnimationTicker:Cancel()
+		textAnimationTicker = nil
+	end
+end
 
 local function lerp(v1, v2, perc)
 	return v1 + (v2 - v1) * perc
 end
 
-C_Timer.NewTicker(0.05, function()
+local function updateAnimatedTexts()
 	for text, targetValue in next, textsToAnimate do
 		local newValue
 
@@ -47,18 +55,25 @@ C_Timer.NewTicker(0.05, function()
 			textsToAnimate[text] = nil
 		end
 
-		text._value = newValue
+		if text._value ~= newValue then
+			text._value = newValue
 
-		if text.PostSetAnimatedValue then
-			text:PostSetAnimatedValue(newValue)
-		else
-			text:SetText(newValue)
+			if text.PostSetAnimatedValue then
+				text:PostSetAnimatedValue(newValue)
+			else
+				text:SetText(newValue)
+			end
 		end
 	end
-end)
+
+	stopTextAnimationTicker()
+end
 
 local function text_SetAnimatedValue(self, value, skip)
 	if skip then
+		textsToAnimate[self] = nil
+		stopTextAnimationTicker()
+
 		self._value = value
 		self._elapsed = 0
 
@@ -71,7 +86,16 @@ local function text_SetAnimatedValue(self, value, skip)
 		self._value = self._value or 1
 		self._elapsed = 0
 
-		textsToAnimate[self] = value
+		if self._value == value then
+			textsToAnimate[self] = nil
+			stopTextAnimationTicker()
+		else
+			textsToAnimate[self] = value
+
+			if not textAnimationTicker then
+				textAnimationTicker = C_Timer.NewTicker(0.05, updateAnimatedTexts)
+			end
+		end
 	end
 end
 
@@ -184,6 +208,12 @@ local function toast_Spawn(self, anchorID, isDND)
 end
 
 local function toast_Release(self)
+	textsToAnimate[self.IconText1] = nil
+	textsToAnimate[self.IconText2] = nil
+	textsToAnimate[self.IconText3] = nil
+	textsToAnimate[self.Text] = nil
+	stopTextAnimationTicker()
+
 	self:SetParent(UIParent)
 	self:ClearAllPoints()
 	self:SetAlpha(1)
@@ -688,7 +718,7 @@ function E:GetToast(toastEvent, dataType, dataValue)
 	local isNew
 
 	if not toast then
-		toast = t_remove(freeToasts, 1)
+		toast = t_remove(freeToasts)
 		if not toast then
 			toast = constructToast()
 		end

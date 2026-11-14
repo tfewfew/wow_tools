@@ -17,8 +17,11 @@ local fullscreenParent = UIParent
 function P:RefreshQueues()
 	if not fullscreenParent:IsShown() then return end
 
+	local inCombat = InCombatLockdown()
+
 	for anchorID, queued in next, queuedToasts do
-		if not addon.Anchor:Get(anchorID) then return end
+		local anchor = addon.Anchor:Get(anchorID)
+		if not anchor then return end
 
 		local config = addon:GetAnchorConfigByID(anchorID)
 		local active = activeToasts[anchorID]
@@ -29,32 +32,58 @@ function P:RefreshQueues()
 					break
 				end
 
-				if not InCombatLockdown() or not queued[1]._data.dnd then
+				if not inCombat or not queued[1]._data.dnd then
 					t_insert(active, t_remove(queued, 1))
+				else
+					break
 				end
 			end
 		end
 
 		for i = 1, #active do
-			active[i]:SetParent(fullscreenParent)
-			active[i]:SetFrameStrata(C.db.profile.strata)
-			active[i]:ClearAllPoints()
+			local toast = active[i]
+			-- Release clears the layout cache together with the rest of the toast data.
+			local data = toast._data
+			local relative = i == 1 and anchor or active[i - 1]
+			local direction = i == 1 and "ANCHOR" or config.growth_direction
+			local offsetX = config.growth_offset_x
+			local offsetY = config.growth_offset_y
 
-			if i == 1 then
-				active[i]:SetPoint("TOPLEFT", addon.Anchor:Get(anchorID), "TOPLEFT", 0, 0)
-			else
-				if config.growth_direction == "DOWN" then
-					active[i]:SetPoint("TOP", active[i - 1], "BOTTOM", 0, -config.growth_offset_y)
-				elseif config.growth_direction == "UP" then
-					active[i]:SetPoint("BOTTOM", active[i - 1], "TOP", 0, config.growth_offset_y)
-				elseif config.growth_direction == "LEFT" then
-					active[i]:SetPoint("RIGHT", active[i - 1], "LEFT", -config.growth_offset_x, 0)
-				elseif config.growth_direction == "RIGHT" then
-					active[i]:SetPoint("LEFT", active[i - 1], "RIGHT", config.growth_offset_x, 0)
-				end
+			if data.queue_parent ~= fullscreenParent then
+				toast:SetParent(fullscreenParent)
+				data.queue_parent = fullscreenParent
 			end
 
-			active[i]:Show()
+			if data.queue_strata ~= C.db.profile.strata then
+				toast:SetFrameStrata(C.db.profile.strata)
+				data.queue_strata = C.db.profile.strata
+			end
+
+			if data.queue_relative ~= relative or data.queue_direction ~= direction
+			or data.queue_offset_x ~= offsetX or data.queue_offset_y ~= offsetY then
+				toast:ClearAllPoints()
+
+				if direction == "ANCHOR" then
+					toast:SetPoint("TOPLEFT", relative, "TOPLEFT", 0, 0)
+				elseif direction == "DOWN" then
+					toast:SetPoint("TOP", relative, "BOTTOM", 0, -offsetY)
+				elseif direction == "UP" then
+					toast:SetPoint("BOTTOM", relative, "TOP", 0, offsetY)
+				elseif direction == "LEFT" then
+					toast:SetPoint("RIGHT", relative, "LEFT", -offsetX, 0)
+				elseif direction == "RIGHT" then
+					toast:SetPoint("LEFT", relative, "RIGHT", offsetX, 0)
+				end
+
+				data.queue_relative = relative
+				data.queue_direction = direction
+				data.queue_offset_x = offsetX
+				data.queue_offset_y = offsetY
+			end
+
+			if not toast:IsShown() then
+				toast:Show()
+			end
 		end
 	end
 end
@@ -80,8 +109,13 @@ local function sortFunc(a, b)
 end
 
 function P:Queue(toast, anchorID)
-	t_insert(queuedToasts[anchorID], toast)
-	t_sort(queuedToasts[anchorID], sortFunc)
+	local queued = queuedToasts[anchorID]
+	local previous = queued[#queued]
+	t_insert(queued, toast)
+
+	if previous and sortFunc(toast, previous) then
+		t_sort(queued, sortFunc)
+	end
 
 	self:RefreshQueues()
 end
