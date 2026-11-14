@@ -13,6 +13,11 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 以下为实现与发布历史，其中的测试名称和通过数量保留为历史记录，当前本地测试采用上述范围。
 
+## 制造按钮与零宽中段（2026-11-14）
+
+- titan 2.1.75 / forerver 2.2.92 修正三段式窄按钮的几何读取。无限服专业页的制造按钮采用 SharedButtonSmallTemplate，ThreeSliceButtonMixin.UpdateScale 会在左右段总宽超过按钮宽时压缩两端，中间 Center 随两端锚点拼合而变成零宽。原实现把空中段判为布局失败，跳过整个按钮的材质。仅对 Center / Middle 允许非正宽度并跳过其面积合并，按实际可见的左右段及原生状态纹理计算内外矩形。无效主按钮、边段、高度、缩放和受限读值继续等待布局更新。
+- 两端分别执行统一入口的语法、语义和接口兼容性检查。制造、全部制造、配方切换、尺寸变化及三种边框的游戏显示由用户验证。
+
 ## 世界地图全屏与还原按钮（2026-11-13）
 
 - titan 2.1.74 / forerver 2.2.91 补齐世界地图右上角全屏及还原按钮。读取各自 MaximizeMinimizeButtonFrameTemplate 的 MaximizeButton / MinimizeButton 原生参照，时光服使用 32×32 的 UI-Panel-BiggerButton / SmallerButton 文件，无限服使用 24×24 的 RedButton-Expand / Condense 图集。按方形图标按钮的留白、UV、实测矩形和缩放计算内外区域，继续共用四状态材质、连续圆角边框、悬停与原生恢复逻辑，上层绘制白色 ↗ / ↙ 操作标识。

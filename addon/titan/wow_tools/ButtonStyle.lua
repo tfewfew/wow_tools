@@ -193,10 +193,11 @@ local function Numbers(object, method, count)
     end
     return result
 end
-local function Rectangle(object)
+local function Rectangle(object, allowCollapsed)
     local rect = Numbers(object,"GetRect",4)
     local scale = Read(object,"GetEffectiveScale")
-    if not rect or rect[3] <= 0 or rect[4] <= 0 or not Finite(scale) or scale <= 0 then return nil end
+    if not rect or rect[3] <= 0 and not allowCollapsed or rect[4] <= 0
+        or not Finite(scale) or scale <= 0 then return nil end
     return {left=rect[1]*scale, bottom=rect[2]*scale,
         right=(rect[1]+rect[3])*scale, top=(rect[2]+rect[4])*scale, scale=scale}
 end
@@ -309,15 +310,19 @@ local function Geometry(record, native)
     if IsDialog(source) then baseline=21*19/23 end
     local outer,inner
     for texture in pairs(textures) do
-        local rect = Rectangle(texture)
+        local stretch = roles[texture] == "Center" or roles[texture] == "Middle"
+        local rect = Rectangle(texture,stretch)
         if not rect then return nil end
-        local artwork = roles[texture] == "NineSlice" and rect or ArtworkRect(texture,rect,square,roles[texture],false)
-        if artwork == false then return nil end
-        if artwork then outer=Union(outer,artwork) end
-        if texture == activeTexture or roles[texture] then
-            local interior = roles[texture] == "NineSlice" and rect or ArtworkRect(texture,rect,square,roles[texture],true)
-            if interior == false then return nil end
-            if interior then inner=Union(inner,interior) end
+        -- Native three-slice buttons collapse their center when both end caps fill the width.
+        if rect.right > rect.left then
+            local artwork = roles[texture] == "NineSlice" and rect or ArtworkRect(texture,rect,square,roles[texture],false)
+            if artwork == false then return nil end
+            if artwork then outer=Union(outer,artwork) end
+            if texture == activeTexture or roles[texture] then
+                local interior = roles[texture] == "NineSlice" and rect or ArtworkRect(texture,rect,square,roles[texture],true)
+                if interior == false then return nil end
+                if interior then inner=Union(inner,interior) end
+            end
         end
     end
     if slice and slice.Center then inner=Rectangle(slice.Center) or inner end
