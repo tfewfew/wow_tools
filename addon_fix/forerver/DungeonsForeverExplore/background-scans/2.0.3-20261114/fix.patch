@@ -214,7 +214,7 @@
  
  local function IsFound(id)
      local m = FoundOf(id)
-@@ -3652,7 +3690,6 @@
+@@ -3647,7 +3685,6 @@
      EG.found = Found()
      EG.seed = EG.LegacyFound()
      EG.view = View()
@@ -222,7 +222,7 @@
      EG.PickFilter()
  
      local sub = CurSub()
-@@ -4298,7 +4335,7 @@
+@@ -4293,7 +4330,7 @@
      local hlAcc = 0
      child:SetScript("OnUpdate", function(_, el)
          hlAcc = hlAcc + el
@@ -231,7 +231,7 @@
          hlAcc = 0
          EG.SyncHover()
      end)
-@@ -5791,7 +5828,7 @@
+@@ -5786,7 +5823,7 @@
              bt.__lastOn = ns.ExploreAreaOn and ns.ExploreAreaOn() or false
              bt:SetScript("OnUpdate", function(self, dt)
                  self.__t = (self.__t or 0) + dt
@@ -240,7 +240,7 @@
                  self.__t = 0
                  local on = ns.ExploreAreaOn and ns.ExploreAreaOn() or false
                  if on ~= self.__lastOn then
-@@ -6182,11 +6219,7 @@
+@@ -6177,11 +6214,7 @@
              pcall(ev.RegisterEvent, ev, "BAG_UPDATE_DELAYED")
              pcall(ev.RegisterEvent, ev, "QUEST_LOG_UPDATE")
              ev:SetScript("OnEvent", function()

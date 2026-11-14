@@ -4,7 +4,7 @@
   "id": "background-scans",
   "version": "2.0.3",
   "patch": "fix.patch",
-  "patchSha256": "4985b1621ef32fb6b26aec97e3e73880047cfff3d52a5b3ce4ef9824f854b6c1",
+  "patchSha256": "1a360758cd0be118d5a503372cc0a136863bf5a6da7b2bc30afc3e8265e737bb",
   "files": [
     {
       "path": "DungeonsForeverProf/Core/ProfFollow.lua",

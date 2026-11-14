@@ -1,6 +1,6 @@
 --- a/DungeonsForever/Core/Core.lua
 +++ b/DungeonsForever/Core/Core.lua
-@@ -546,7 +546,7 @@
+@@ -562,7 +562,7 @@
          if event == "PLAYER_LOGIN" then self:UnregisterEvent("PLAYER_LOGIN") end
          if event == "PLAYER_ENTERING_WORLD" then self:UnregisterEvent("PLAYER_ENTERING_WORLD") end
          if C_Timer and C_Timer.After then C_Timer.After(0, Try) end

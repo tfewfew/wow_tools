@@ -4,7 +4,7 @@
   "id": "background-scans",
   "version": "2.0.3",
   "patch": "fix.patch",
-  "patchSha256": "69d24dbcffac4609381245e3dab6f7a4a6e395e69c238181fe4a79703770ad1c",
+  "patchSha256": "ac0dbe755c71ed84d7841239fbfb426c010c53d1614ab519c44422c20cf35ad1",
   "files": [
     {
       "path": "DungeonsForeverExplore/Core/ExploreDarkmoon.lua",

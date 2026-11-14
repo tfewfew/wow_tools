@@ -11,7 +11,7 @@
      end
 --- a/DungeonsForeverProf/Core/ProfessionUI.lua
 +++ b/DungeonsForeverProf/Core/ProfessionUI.lua
-@@ -5272,7 +5272,7 @@
+@@ -5479,7 +5479,7 @@
      local hlAcc = 0
      child:SetScript("OnUpdate", function(_, el)
          hlAcc = hlAcc + el

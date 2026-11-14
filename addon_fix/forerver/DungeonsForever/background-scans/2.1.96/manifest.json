@@ -4,7 +4,7 @@
   "id": "background-scans",
   "version": "2.1.96",
   "patch": "fix.patch",
-  "patchSha256": "2563821b5739ef75eb1bc84e90d2ca6b23440d361fd590a75b7afb3a2cc74146",
+  "patchSha256": "256992002537ac22f800e50326f38942bc9259f31d88be6b84d0f785b433e7a8",
   "files": [
     {
       "path": "DungeonsForever/Core/Core.lua",
