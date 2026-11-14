@@ -1,0 +1,31 @@
+--- a/!Pig/FramePlus/MerchantFrame.lua
++++ b/!Pig/FramePlus/MerchantFrame.lua
+@@ -11,8 +11,7 @@
+ 	local PIGCheckbutton=Create.PIGCheckbutton
+ 	local PIGGetItemUse=Fun.PIGGetItemUse
+ 
+-	if PIGA["FramePlus"]["Merchant"] then
+-	if MerchantItem13 then return end
++	if PIGA["FramePlus"]["Merchant"] and not MerchantItem13 then
+ 	MerchantFrame:Hide()
+ 	MERCHANT_ITEMS_PER_PAGE=20
+ 	local www = MerchantFrame:GetWidth()
+@@ -238,6 +237,9 @@
+ 	end)
+ 	end
+ 
++	if FramePlusfun.MerchantExtrasInitialized then return end
++	FramePlusfun.MerchantExtrasInitialized = true
++
+ 	--已学
+ 	if PIGA["FramePlus"]["IsKnown"] then
+ 	local _GetTooltipIsKnown=Fun._GetTooltipIsKnown
+@@ -270,7 +272,7 @@
+ 	end
+ 	hooksecurefunc("MerchantFrame_UpdateMerchantInfo", function()
+ 		C_Timer.After(0.001,function()
+-			for i=1,20 do
++			for i=1,MERCHANT_ITEMS_PER_PAGE do
+ 				local ItemButton = _G['MerchantItem'..i..'ItemButton']
+ 				if ItemButton and ItemButton.link then
+ 					PIG_IsKnown(ItemButton,ItemButton.link)

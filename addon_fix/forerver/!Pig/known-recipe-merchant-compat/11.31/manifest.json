@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "plugin": "!Pig",
+  "id": "known-recipe-merchant-compat",
+  "version": "11.31",
+  "patch": "fix.patch",
+  "patchSha256": "816cb05eaeb9a37cdcfc1ef8415cc84b07f48e57c9a87b984b0bc1cefee83d43",
+  "files": [
+    {
+      "path": "!Pig/FramePlus/MerchantFrame.lua",
+      "originalSha256": "90e1cc9b71be029aa7b1dbfe820d2f2340f9f3cf005203b8fce10be9e9af5d51",
+      "patchedSha256": "c2ed7d1eeb37ce0f2523fec94b6ee8f310519f200eacc644f59e09f3bb34a971"
+    }
+  ],
+  "loadOrder": [
+    "Shared/Shared.xml",
+    "FramePlus/load.xml",
+    "!Pig.lua"
+  ]
+}

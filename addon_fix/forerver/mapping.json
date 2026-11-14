@@ -62,6 +62,17 @@
         "skipFromVersion": null,
         "fixedEvidence": []
       }
+    ],
+    "!Pig": [
+      {
+        "id": "known-recipe-merchant-compat",
+        "description": "兼容 Better Vendor UI 等商人扩展，已存在第13格时继续初始化已学配方和拍卖行标记，辅助功能仅初始化一次，染色覆盖当前每页全部商品格。",
+        "variants": [
+          "known-recipe-merchant-compat/11.31/manifest.json"
+        ],
+        "skipFromVersion": null,
+        "fixedEvidence": []
+      }
     ]
   }
 }
