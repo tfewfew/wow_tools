@@ -172,7 +172,13 @@ function CreateFrame(kind, name, parent, template)
         function object:IsSelected() return self.selected == true end
         object:SetScript("OnClick", function(self) self.nativeClicks = (self.nativeClicks or 0) + 1 end)
     end
-    if template == "BasicFrameTemplateWithInset" then object.TitleText = widget() end
+    if template == "BasicFrameTemplateWithInset" then
+        object.TitleText = widget(nil, object, "FontString")
+        object.Bg = widget(nil, object, "Texture")
+        object.InsetBg = widget(nil, object, "Texture")
+        object.TitleBg = widget(nil, object, "Texture")
+        object.TopTileStreaks = widget(nil, object, "Texture")
+    end
     frames[#frames + 1] = object
     return object
 end
@@ -307,6 +313,14 @@ for _, name in ipairs({"wowDetector", "fight_detector", "pet_tamer", "button_sty
     assert(type(WoWTools.modules[name]) == "table", "Missing module export " .. name)
 end
 assert(WoWTools.settings and type(WoWTools.settings.Open) == "function", "Missing settings interface")
+local settingsWindow, settingsCanvas = WoWTools.settings.window, WoWTools.settings.canvas
+for _, texture in ipairs({settingsWindow.Bg, settingsWindow.InsetBg, settingsWindow.TitleBg, settingsCanvas.background}) do
+    assert(texture.color and texture.color[1] == 32 / 255 and texture.color[2] == 32 / 255
+        and texture.color[3] == 32 / 255 and texture.color[4] == 1, "Settings background must use opaque solid dark gray")
+end
+assert(not settingsWindow.TopTileStreaks:IsShown(), "Settings background retains native streak artwork")
+assert(settingsCanvas.background:GetParent() == settingsCanvas and settingsCanvas.background.fill == settingsCanvas,
+    "Solid settings background does not cover the shared canvas")
 assert(WoWTools.settings.pages.button_style.frame == WoWTools.buttonStyle.panel
     and WoWTools.modules.button_style == WoWTools.buttonStyle, "Button skin page module binding failed")
 assert(#WoWTools.buttonStyle.editors == 1, "Button skin editor is registered more than once")

@@ -13,6 +13,11 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 以下为实现与发布历史，其中的测试名称和通过数量保留为历史记录，当前本地测试采用上述范围。
 
+## 统一设置纯色背景（2026-11-14）
+
+- titan 2.1.81 / forerver 2.2.98 的 Settings.lua 将原生窗口 Bg、InsetBg 和 TitleBg 改为不透明深灰色 #202020，隐藏 TopTileStreaks。共享 canvas 增加同色背景纹理，在独立窗口与系统插件设置间切换时跟随宿主覆盖全部内容区域。
+- 两服分别核对本客户端 BasicFrameTemplateWithInset 的原生纹理字段，并通过统一语法、语义和接口兼容性检查。背景颜色与共享画布的绑定纳入既有兼容性检查，实际显示由用户在游戏内验证。
+
 ## 重采样设置页（2026-11-14）
 
 - titan 2.1.80 / forerver 2.2.97 在“画面设置 → 重采样”集中提供 ResampleQuality 的 0～3 算法、ResampleAlwaysSharpen 的 0/1 开关、ResampleSharpness 的 0～2 小数及 -1 禁用值，以及 RenderScale 渲染比例。每项提供作用、取值和生效条件，RenderScale 的上下限分别读取本客户端 GetMinRenderScale / GetMaxRenderScale。

@@ -1,6 +1,7 @@
 -- One settings canvas is shared by the minimap window and Blizzard's addon category.
 local settings = { pages = {}, tabs = {} }
 WoWTools.settings = settings
+local backgroundShade = 32 / 255
 local groups = {
     { key="wowDetector", label="钓鱼检测" },
     { key="fight_detector", label="战斗检测" },
@@ -28,6 +29,10 @@ window:RegisterForDrag("LeftButton")
 window:SetScript("OnDragStart", window.StartMoving)
 window:SetScript("OnDragStop", window.StopMovingOrSizing)
 window.TitleText:SetText("wow_tools")
+window.Bg:SetColorTexture(backgroundShade, backgroundShade, backgroundShade, 1)
+window.InsetBg:SetColorTexture(backgroundShade, backgroundShade, backgroundShade, 1)
+window.TitleBg:SetColorTexture(backgroundShade, backgroundShade, backgroundShade, 1)
+window.TopTileStreaks:Hide()
 window:Hide()
 UISpecialFrames[#UISpecialFrames + 1] = "WoWToolsSettingsWindow"
 local windowContent = CreateFrame("Frame", nil, window)
@@ -39,6 +44,9 @@ panel.name = "wow_tools"
 panel:Hide()
 local canvas = CreateFrame("Frame", "WoWToolsSettingsCanvas", windowContent)
 canvas:SetAllPoints(windowContent)
+canvas.background = canvas:CreateTexture(nil, "BACKGROUND")
+canvas.background:SetAllPoints(canvas)
+canvas.background:SetColorTexture(backgroundShade, backgroundShade, backgroundShade, 1)
 canvas:Hide()
 settings.window, settings.panel, settings.canvas = window, panel, canvas
 
