@@ -13,6 +13,12 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 以下为实现与发布历史，其中的测试名称和通过数量保留为历史记录，当前本地测试采用上述范围。
 
+## 贴图质量与缓存分配（2026-11-14）
+
+- titan 2.1.82 / forerver 2.2.99 在画面设置新增“贴图质量”和“缓存与分配”两个 tab，分别提供 6 项与 7 项 CVar。贴图页包含总档位、过滤、worldBaseMip、terrainMipLevel、componentTextureLevel 及 useHighResTextures。资源页包含 componentTexCacheSize、componentTexLoadLimit、componentCompress、GxAllowCachelessShaderMode、ThreadPoolPerThreadAllocator、FrameBufferCacheForceNoHeaps 及 worldPreloadHighResTextures。
+- 两服分别按原生 GraphicsOverrides / Graphics 源码核对贴图总档位与过滤枚举，时光服总档位 0～1，无限服 0～2。各项提供作用和取值，缓存与分配页注明资料默认值，Mip、缓存容量和加载数量的完整范围由客户端限制，沿用手动应用、读回反馈和 CVar 持久化。读取失败的选项沿用禁用逻辑。
+- 横向画面分类按实测文字宽度和可用空间换行，子分类与滚动内容随分类行数下移。两服分别执行统一语法、语义和接口兼容性检查，核对页面、字段、控件类型及各服枚举绑定，实际界面及画面效果由用户在游戏内验证。
+
 ## 统一设置纯色背景（2026-11-14）
 
 - titan 2.1.81 / forerver 2.2.98 的 Settings.lua 将原生窗口 Bg、InsetBg 和 TitleBg 改为不透明深灰色 #202020，隐藏 TopTileStreaks。共享 canvas 增加同色背景纹理，在独立窗口与系统插件设置间切换时跟随宿主覆盖全部内容区域。

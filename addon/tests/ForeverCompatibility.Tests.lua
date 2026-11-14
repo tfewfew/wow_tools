@@ -214,10 +214,19 @@ Settings = { RegisterCanvasLayoutCategory = function(frame, name)
 end, RegisterAddOnCategory = function(category) addonCategories[#addonCategories + 1] = category end }
 function GetMinRenderScale() return 0.5 end
 function GetMaxRenderScale() return 2 end
-local graphicCVars = {ResampleQuality = "3", ResampleAlwaysSharpen = "0", ResampleSharpness = "0.2", RenderScale = "1"}
+local resampleCVars = {ResampleQuality = "3", ResampleAlwaysSharpen = "0", ResampleSharpness = "0.2", RenderScale = "1"}
+local textureCVars = {
+    graphicsTextureResolution = flavor == "titan" and "1" or "2", textureFilteringMode = "5",
+    worldBaseMip = "0", terrainMipLevel = "0", componentTextureLevel = "0", useHighResTextures = "1",
+}
+local allocationCVars = {
+    componentTexCacheSize = "32", componentTexLoadLimit = "16", componentCompress = "1",
+    GxAllowCachelessShaderMode = "0", ThreadPoolPerThreadAllocator = "1",
+    FrameBufferCacheForceNoHeaps = "0", worldPreloadHighResTextures = "1",
+}
 C_CVar = { GetCVar = function(key)
     assert(type(key) == "string", "CVar getter requires a name")
-    return key == "softTargetInteract" and interactCVar or graphicCVars[key]
+    return key == "softTargetInteract" and interactCVar or resampleCVars[key] or textureCVars[key] or allocationCVars[key]
 end, SetCVar = function(key, value)
     assert(type(key) == "string" and type(value) == "string", "CVar setter requires name and value strings")
     cvarWrites = cvarWrites + 1
@@ -325,33 +334,51 @@ assert(WoWTools.settings.pages.button_style.frame == WoWTools.buttonStyle.panel
     and WoWTools.modules.button_style == WoWTools.buttonStyle, "Button skin page module binding failed")
 assert(#WoWTools.buttonStyle.editors == 1, "Button skin editor is registered more than once")
 
-local resampleControls, resampleParent, resampleTab = {}, nil, nil
+local graphicControls, graphicTabs = {}, {}
+local graphicContent = WoWTools.settings.pages.inner_graphic_config.content
 for _, frame in ipairs(frames) do
     local definition = frame.definition
-    if definition and graphicCVars[definition.cvar] then
-        assert(not resampleControls[definition.cvar], "Resample control was registered twice")
-        assert(type(definition.description) == "string" and #definition.description > 0, "Missing resample value descriptions")
-        resampleParent = resampleParent or frame:GetParent()
-        assert(frame:GetParent() == resampleParent, "Resample controls use different settings pages")
-        resampleControls[definition.cvar] = frame
+    if definition and definition.cvar then
+        assert(not graphicControls[definition.cvar], "Graphics control was registered twice " .. definition.cvar)
+        graphicControls[definition.cvar] = frame
+    end
+    if frame.template == "MinimalTabTemplate" and frame:GetParent() == graphicContent then
+        graphicTabs[frame.Text:GetText()] = frame
+    end
+end
+for tabName, values in pairs({["重采样"] = resampleCVars, ["贴图质量"] = textureCVars, ["缓存与分配"] = allocationCVars}) do
+    local tab = assert(graphicTabs[tabName], "Missing graphics settings tab " .. tabName)
+    assert(tab.Text.wordWrap == false and tab:GetWidth() >= tab.Text:GetStringWidth(),
+        "Graphics navigation does not fit its single-line label " .. tabName)
+    local pageParent
+    for key, value in pairs(values) do
+        local control = assert(graphicControls[key], "Missing graphics control " .. key)
+        local definition = control.definition
+        assert(type(definition.description) == "string" and #definition.description > 0, "Missing graphics value descriptions")
+        pageParent = pageParent or control:GetParent()
+        assert(control:GetParent() == pageParent, "Graphics controls use different category pages")
         if definition.numeric then
-            assert(frame.input.numeric == not definition.decimal, "Decimal CVar input uses integer-only mode")
-            assert(tonumber(frame.input:GetText()) == tonumber(graphicCVars[definition.cvar]), "CVar input binding failed")
+            assert(control.input.numeric == not definition.decimal, "Numeric CVar input mode does not match its type")
+            assert(tonumber(control.input:GetText()) == tonumber(value), "CVar input binding failed")
+        else
+            assert(control:GetChecked() == (value ~= "0"), "Boolean CVar binding failed")
         end
     end
-    if frame.template == "MinimalTabTemplate" and frame.Text:GetText() == "重采样" then resampleTab = frame end
 end
-for key in pairs(graphicCVars) do assert(resampleControls[key], "Missing resample control " .. key) end
-assert(resampleTab and resampleTab:GetParent() == WoWTools.settings.pages.inner_graphic_config.content,
-    "Missing resample tab in graphics settings")
-assert(resampleControls.ResampleQuality.definition.maximum == 3 and resampleControls.ResampleQuality.definition.meanings[0],
+assert(graphicControls.graphicsTextureResolution.definition.maximum == (flavor == "titan" and 1 or 2),
+    "Texture resolution enum uses the other client's range")
+assert(graphicControls.textureFilteringMode.definition.maximum == 5
+    and graphicControls.textureFilteringMode.definition.meanings[5], "Texture filtering enum contract failed")
+assert(graphicControls.ThreadPoolPerThreadAllocator.definition.maximum == 2
+    and graphicControls.ThreadPoolPerThreadAllocator.definition.meanings[0], "Thread allocator enum contract failed")
+assert(graphicControls.ResampleQuality.definition.maximum == 3 and graphicControls.ResampleQuality.definition.meanings[0],
     "Resample quality enum contract failed")
-assert(resampleControls.ResampleAlwaysSharpen.definition.meanings[0] and resampleControls.ResampleAlwaysSharpen.definition.meanings[1],
+assert(graphicControls.ResampleAlwaysSharpen.definition.meanings[0] and graphicControls.ResampleAlwaysSharpen.definition.meanings[1],
     "Sharpening boolean contract failed")
-assert(resampleControls.ResampleSharpness.definition.disabledValue == -1 and resampleControls.ResampleSharpness.definition.maximum == 2,
+assert(graphicControls.ResampleSharpness.definition.disabledValue == -1 and graphicControls.ResampleSharpness.definition.maximum == 2,
     "Resample sharpness range contract failed")
-assert(resampleControls.RenderScale.definition.minimum == GetMinRenderScale()
-    and resampleControls.RenderScale.definition.maximum == GetMaxRenderScale(), "Render scale native bounds binding failed")
+assert(graphicControls.RenderScale.definition.minimum == GetMinRenderScale()
+    and graphicControls.RenderScale.definition.maximum == GetMaxRenderScale(), "Render scale native bounds binding failed")
 
 local vendor = WoWTools.betterVendorUI
 assert(vendor and vendor == WoWTools.modules.better_vendor_ui, "Embedded vendor module export failed")

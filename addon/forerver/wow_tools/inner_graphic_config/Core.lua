@@ -32,6 +32,35 @@ local definitions = {
     { cvar = "RenderScale", label = "渲染比例（RenderScale）", numeric = true, decimal = true,
       minimum = minimumRenderScale, maximum = maximumRenderScale,
       description = "控制 3D 场景内部渲染分辨率相对输出分辨率的比例。\n取值范围为 " .. tostring(minimumRenderScale) .. "～" .. tostring(maximumRenderScale) .. "，使用客户端原生上下限。1 为 100%，0.75 为 75%，1.5 为 150%。\n低于 1 时减少渲染像素并通过重采样放大，高于 1 时先以更高分辨率渲染再缩小，GPU 开销随像素数增加。" },
+    { cvar = "graphicsTextureResolution", label = "贴图总档位（graphicsTextureResolution）", numeric = true, maximum = 2,
+      meanings = { [0] = "低", [1] = "较低", [2] = "高" },
+      description = "控制普通图形设置的贴图质量总档位，由客户端联动相应贴图细节参数。\n本客户端取值为 0 低，1 较低，2 高。更高档位保留更多贴图细节，并增加资源需求。\n逐项微调下方 Mip 参数时，先应用总档位，再调整独立参数。" },
+    { cvar = "textureFilteringMode", label = "贴图过滤（textureFilteringMode）", numeric = true, maximum = 5,
+      meanings = { [0] = "双线性", [1] = "三线性", [2] = "2× 各向异性", [3] = "4× 各向异性", [4] = "8× 各向异性", [5] = "16× 各向异性" },
+      description = "控制贴图采样时的过滤方式，影响斜视地面、远处道路和材质边缘的清晰度。\n接受 0～5 的整数。0 双线性，1 三线性，2 为 2×、3 为 4×、4 为 8×、5 为 16× 各向异性过滤。\n各向异性级别越高，斜视贴图越清晰，贴图采样开销也会增加。" },
+    { cvar = "worldBaseMip", label = "世界贴图 Mip（worldBaseMip）", numeric = true,
+      description = "控制世界贴图使用的基础 Mip 级别。\n填写客户端接受的非负整数，0 保留完整分辨率，增大后使用较低分辨率的贴图级别。\n降低分辨率可减少贴图资源需求，也会降低世界材质清晰度。具体级别上限由客户端限制，应用后读取实际值。" },
+    { cvar = "terrainMipLevel", label = "地形混合贴图 Mip（terrainMipLevel）", numeric = true,
+      description = "控制地形材质混合贴图的 Mip 级别，影响地表材质过渡细节。\n填写客户端接受的非负整数，0 使用基础级别，增大会使用较低分辨率的混合贴图。\n具体级别上限由客户端限制，应用后读取实际值。" },
+    { cvar = "componentTextureLevel", label = "角色组合贴图细节（componentTextureLevel）", numeric = true,
+      description = "控制角色组合贴图的细节级别，影响角色外观材质清晰度。\n填写客户端接受的非负整数，0 为完整细节，增大后降低贴图细节级别。\n具体级别上限由客户端限制，应用后读取实际值。" },
+    { cvar = "useHighResTextures", label = "高分辨率贴图（useHighResTextures）",
+      description = "控制是否优先使用可用的高分辨率贴图资源。\n取值为 0 或 1，勾选设为 1，取消勾选设为 0。需要对应高分辨率资源已安装且当前客户端支持。\n高分辨率资源可改善材质清晰度，并增加贴图存储、加载和显存需求。" },
+    { cvar = "componentTexCacheSize", label = "角色组合贴图缓存（componentTexCacheSize）", numeric = true,
+      description = "设置角色组合贴图缓存容量，单位为 MB。\n填写客户端接受的非负整数，资料默认值为 32 MB。增大缓存可保留更多角色组合贴图，并增加资源驻留量。\n公开资料未列出完整容量范围，应用后读取客户端实际值。" },
+    { cvar = "componentTexLoadLimit", label = "每帧角色贴图加载上限（componentTexLoadLimit）", numeric = true,
+      description = "控制每帧角色组合贴图的加载数量上限。\n填写客户端接受的非负整数，资料默认值为 16。提高上限允许单帧处理更多加载工作，降低上限会把工作分散到更多帧。\n公开资料未列出完整范围，应用后读取客户端实际值。" },
+    { cvar = "componentCompress", label = "角色组合贴图压缩（componentCompress）",
+      description = "控制角色组合贴图是否使用压缩。\n取值为 0 或 1，0 关闭，1 开启，资料默认值为 1。勾选开启，取消勾选关闭。\n压缩可降低贴图存储和传输需求，实际资源变化由客户端的压缩实现决定。" },
+    { cvar = "GxAllowCachelessShaderMode", label = "着色器节省内存模式（GxAllowCachelessShaderMode）",
+      description = "在图形后端支持时，允许按需从磁盘加载着色器以减少 CPU 内存驻留。\n取值为 0 或 1，0 使用常规缓存，1 允许节省内存模式，资料默认值为 0。\n开启后，首次遇到相应物体时可能需要更长加载时间，并增加按需磁盘读取。" },
+    { cvar = "ThreadPoolPerThreadAllocator", label = "每线程内存分配器（ThreadPoolPerThreadAllocator）", numeric = true, maximum = 2,
+      meanings = { [0] = "禁用", [1] = "允许", [2] = "强制" },
+      description = "控制线程池工作线程使用独立内存分配器的方式。\n接受 0～2 的整数。0 禁用，1 允许，2 强制，资料默认值为 1。\n强制模式会增加内存用量，分配效率和额外占用随客户端与负载变化。" },
+    { cvar = "FrameBufferCacheForceNoHeaps", label = "禁用 GPU 纹理堆（FrameBufferCacheForceNoHeaps）",
+      description = "控制帧缓冲缓存是否禁用纹理堆分配。\n取值为 0 或 1，0 允许使用纹理堆，1 禁用纹理堆并强制使用后备分配路径，资料默认值为 0。\n勾选设为 1，取消勾选设为 0。此项改变图形资源的分配路径。" },
+    { cvar = "worldPreloadHighResTextures", label = "高分辨率贴图预加载（worldPreloadHighResTextures）",
+      description = "控制预加载时是否要求流式加载非关键半径内的高分辨率贴图就绪。\n取值为 0 或 1，0 关闭此要求，1 开启此要求，资料默认值为 1。\n开启会增加预加载阶段的资源准备要求，影响等待时间与贴图驻留。" },
     { cvar = "volumeFogDisableLightScattering", label = "体积雾光照散射（volumeFogDisableLightScattering）", inverted = true,
       description = "控制点光源在体积雾中的散射效果。开启后，灯光穿过雾气时会形成可见的光晕和光束；关闭可减少相关渲染开销。" },
     { cvar = "volumeFogUse16BitTexture", label = "16 位体积雾纹理（volumeFogUse16BitTexture）",
@@ -154,6 +183,23 @@ local categories = {
         ResampleAlwaysSharpen = true,
         ResampleSharpness = true,
         RenderScale = true,
+    } },
+    { name = "贴图质量", cvars = {
+        graphicsTextureResolution = true,
+        textureFilteringMode = true,
+        worldBaseMip = true,
+        terrainMipLevel = true,
+        componentTextureLevel = true,
+        useHighResTextures = true,
+    } },
+    { name = "缓存与分配", cvars = {
+        componentTexCacheSize = true,
+        componentTexLoadLimit = true,
+        componentCompress = true,
+        GxAllowCachelessShaderMode = true,
+        ThreadPoolPerThreadAllocator = true,
+        FrameBufferCacheForceNoHeaps = true,
+        worldPreloadHighResTextures = true,
     } },
     { name = "体积雾", cvars = {
         volumeFogDisableLightScattering = true,
@@ -347,14 +393,12 @@ local function BuildControls(parent)
         end
         Refresh()
     end
-    local tabStep = math.floor(math.max(456, parent:GetWidth() - 40) / #categories)
-    local tabWidth = tabStep - 3
     for categoryIndex, category in ipairs(categories) do
     local tabIndex = categoryIndex
     local tab = CreateFrame("Button", nil, parent, "MinimalTabTemplate")
-    tab:SetSize(tabWidth, 33)
-    tab:SetPoint("TOPLEFT", 20 + (categoryIndex - 1) * tabStep, -70)
+    tab:SetSize(90, 33)
     tab.Text:SetText(category.name)
+    tab.Text:SetWordWrap(false)
     tabGroup:AddButton(tab)
     tab:SetScript("OnClick", function() SelectTab(tabIndex) end)
     tabs[categoryIndex] = tab
@@ -528,17 +572,28 @@ local function BuildControls(parent)
     end
     SelectTab(1)
     local function Resize()
-        local step = math.floor(math.max(456, parent:GetWidth() - 40) / #categories)
+        local width = math.max(320, parent:GetWidth() - 40)
+        local minimumTabWidth = 1
+        for _, tab in ipairs(tabs) do
+            minimumTabWidth = math.max(minimumTabWidth, tab.Text:GetStringWidth() + 24)
+        end
+        local columns = math.max(1, math.min(#tabs, math.floor(width / minimumTabWidth)))
+        local step = math.floor(width / columns)
+        local rows = math.ceil(#tabs / columns)
         for index, tab in ipairs(tabs) do
             tab:ClearAllPoints()
-            tab:SetPoint("TOPLEFT", 20 + (index - 1) * step, -70)
-            tab:SetWidth(step - 3)
+            tab:SetPoint("TOPLEFT", 20 + ((index - 1) % columns) * step, -70 - math.floor((index - 1) / columns) * 38)
+            tab:SetSize(step - 3, 33)
+        end
+        local contentTop = -112 - (rows - 1) * 38
+        for index, page in ipairs(pages) do
+            page:SetPoint("TOPLEFT", 16, categories[index].subgroups and contentTop - 38 or contentTop)
         end
         for _, subTabs in pairs(subTabsByCategory) do
-            local subStep = math.floor(math.max(456, parent:GetWidth() - 40) / #subTabs)
+            local subStep = math.floor(width / #subTabs)
             for index, tab in ipairs(subTabs) do
                 tab:ClearAllPoints()
-                tab:SetPoint("TOPLEFT", 20 + (index - 1) * subStep, -108)
+                tab:SetPoint("TOPLEFT", 20 + (index - 1) * subStep, contentTop + 4)
                 tab:SetWidth(subStep - 8)
             end
         end
