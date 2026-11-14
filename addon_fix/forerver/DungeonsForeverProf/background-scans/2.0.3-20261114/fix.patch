@@ -1,0 +1,22 @@
+--- a/DungeonsForeverProf/Core/ProfFollow.lua
++++ b/DungeonsForeverProf/Core/ProfFollow.lua
+@@ -2238,7 +2238,7 @@
+     end
+ 
+     if C_Timer.NewTicker then
+-        C_Timer.NewTicker(1, function()
++        C_Timer.NewTicker(5, function()
+             if f and f:IsShown() and PF.Sync() then PF.Paint() end
+         end)
+     end
+--- a/DungeonsForeverProf/Core/ProfessionUI.lua
++++ b/DungeonsForeverProf/Core/ProfessionUI.lua
+@@ -5479,7 +5479,7 @@
+     local hlAcc = 0
+     child:SetScript("OnUpdate", function(_, el)
+         hlAcc = hlAcc + el
+-        if hlAcc < 0.1 then return end
++        if hlAcc < 0.25 then return end
+         hlAcc = 0
+         PD.SyncHover()
+     end)

@@ -21,3 +21,9 @@
 | 探索区域按钮状态检查 | 0.25 秒 | 1 秒 |
 
 - 四个插件分别维护独立补丁与版本基线，统一修复入口为工程根目录 `addon_fix/repair.ps1`，语义核对及版本停止规则见 `skills/addon-fix/SKILL.md`。
+
+## 2.1.96 更新适配（2026-11-14）
+
+- 本次安装包的主插件版本为 2.1.96，Explore / Prof 仍声明 2.0.3，但 ExploreUI.lua / ProfessionUI.lua 的源码哈希已改变。主插件增加 `background-scans/2.1.96`，Explore / Prof 分别增加 `background-scans/2.0.3-20261114` 变体，各清单记录本次安装源码和修复结果的 SHA256，旧基线继续归档。
+- 核对当前 Core.lua 的手柄守护入口仍为 2 秒，ZoneHint.lua 的背包及任务事件仍清空书籍缓存并立即收集，区域收集仍调用 ScanAuto，地图和提示框仍采用原扫描周期。ExploreUI.lua 的 ScanAuto 仍逐本检查任务和物品，渲染及背包事件仍触发扫描，零数量仍进入逐格后备查询。沿 ExploreMap.lua 的事件、地图显示及刷新入口核对后，继续应用原有共享缓存和扫描周期修复。
+- 核对 ProfessionUI.lua 的悬停同步仍为 0.1 秒、ProfFollow.lua 的 HUD 更新仍为 1 秒，继续调整为 0.25 秒和 5 秒。Spell 2.3.12 的两个文件与既有原始基线一致，继续使用原补丁。本次五项映射均有待应用或已应用的本仓库修复依据。
