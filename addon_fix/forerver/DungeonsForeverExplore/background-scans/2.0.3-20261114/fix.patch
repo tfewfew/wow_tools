@@ -1,0 +1,255 @@
+--- a/DungeonsForeverExplore/Core/ExploreDarkmoon.lua
++++ b/DungeonsForeverExplore/Core/ExploreDarkmoon.lua
+@@ -1960,7 +1960,7 @@
+         EG.dmCalWatch = w
+     end
+     if not EG.dmCalTicker then
+-        EG.dmCalTicker = C_Timer.NewTicker(60, function()
++        EG.dmCalTicker = C_Timer.NewTicker(120, function()
+             if EG.dmCalRefresh and EG.dmFrame and EG.dmFrame:IsShown() then
+                 pcall(EG.dmCalRefresh)
+             end
+--- a/DungeonsForeverExplore/Core/ExploreMap.lua
++++ b/DungeonsForeverExplore/Core/ExploreMap.lua
+@@ -10,8 +10,8 @@
+ 
+ local SET_ORDER = { 1, 35, 45, 60 }
+ local CONTINENT_PENALTY = 20000
+-local UPDATE_TICK = 0.1
+-local MINI_TICK = 0.1
++local UPDATE_TICK = 0.5
++local MINI_TICK = 1
+ local MINI_POOL_MAX = 12
+ local MINI_EDGE = 2.2
+ 
+@@ -716,15 +716,10 @@
+     [209846] = { 47.4, 33.6 },
+ }
+ 
+-local function refreshAuto()
+-    if not (EG and EG.ScanAuto) then return end
+-    pcall(EG.ScanAuto)
+-end
+-
+ local function miniSignature()
+     local c = cfg()
+     return table.concat({
+-        tostring(countDone()), tostring(c.showUnver == true),
++        tostring(countDone()), tostring(EG._autoRevision or 0), tostring(c.showUnver == true),
+         tostring(routeOn), tostring(c.showPins == true),
+         tostring(c.showMiniPins ~= false),
+     }, "|")
+@@ -778,7 +773,6 @@
+ end
+ 
+ local function miniRefresh()
+-    if not EG._auto then refreshAuto() end
+     local c = cfg()
+     if not (c.showPins == true and c.showMiniPins ~= false) then
+         releaseMiniPins()
+@@ -903,7 +897,6 @@
+ end
+ 
+ function ns.ExploreMapRefresh()
+-    if not EG._auto then refreshAuto() end
+     if ns.MapWorldModule and ns.MapWorldModule.Active and ns.MapWorldModule.Active() then
+         releasePins()
+         releaseGraves()
+@@ -1794,12 +1787,8 @@
+     f:SetScript("OnLeave", scheduleHide)
+     hover:SetScript("OnLeave", scheduleHide)
+ 
+-    local elapsed = 0
+-    f:SetScript("OnUpdate", function(_, e)
+-        elapsed = elapsed + e
+-        if elapsed < UPDATE_TICK then return end
+-        elapsed = 0
+-        updateTracker()
++    C_Timer.NewTicker(UPDATE_TICK, function()
++        if f:IsShown() then updateTracker() end
+     end)
+     relayoutTracker(f)
+     return f
+@@ -1895,23 +1884,6 @@
+ 
+ local function Init()
+     if not WorldMapFrame then return end
+-    ns.EvtPool = ns.EvtPool or {}
+-    local autoEv = ns.EvtPool.exploreAuto
+-    if not autoEv then
+-        autoEv = CreateFrame("Frame")
+-        ns.EvtPool.exploreAuto = autoEv
+-    end
+-    if autoEv.RegisterEvent then
+-        pcall(autoEv.RegisterEvent, autoEv, "BAG_UPDATE_DELAYED")
+-        pcall(autoEv.RegisterEvent, autoEv, "QUEST_LOG_UPDATE")
+-        pcall(autoEv.RegisterEvent, autoEv, "PLAYER_ENTERING_WORLD")
+-        autoEv:SetScript("OnEvent", function()
+-            refreshAuto()
+-            if WorldMapFrame.IsShown and WorldMapFrame:IsShown() then
+-                ns.ExploreMapRefresh()
+-            end
+-        end)
+-    end
+     if hooksecurefunc then
+         pcall(hooksecurefunc, WorldMapFrame, "OnMapChanged", function()
+             ns.ExploreMapRefresh()
+@@ -1929,17 +1901,8 @@
+             miniPool[#miniPool + 1] = p
+         end
+     end
+-    local tickAcc, miniAcc = 0, 0
+-    local ticker = CreateFrame("Frame")
+-    ticker:SetScript("OnUpdate", function(_, e)
+-        miniAcc = miniAcc + e
+-        if miniAcc >= MINI_TICK then
+-            miniAcc = 0
+-            miniRefresh()
+-        end
+-        tickAcc = tickAcc + e
+-        if tickAcc < 0.2 then return end
+-        tickAcc = 0
++    C_Timer.NewTicker(MINI_TICK, function()
++        miniRefresh()
+         meLineMove()
+         if WorldMapFrame.IsShown and WorldMapFrame:IsShown() then
+             local sig = mapSignature()
+@@ -1951,7 +1914,6 @@
+     end)
+     if WorldMapFrame.HookScript then
+         pcall(WorldMapFrame.HookScript, WorldMapFrame, "OnShow", function()
+-            refreshAuto()
+             ns.ExploreMapRefresh()
+             if cfg().autoRoute and not routeOn and not manualOff then
+                 ns.ExploreMapToggle(true)
+--- a/DungeonsForeverExplore/Core/ExploreUI.lua
++++ b/DungeonsForeverExplore/Core/ExploreUI.lua
+@@ -479,14 +479,19 @@
+ local QUESTS = ns.ExploreBookQuests or {}
+ 
+ function EG.CountInBags(id)
++    local counted = false
+     if type(GetItemCount) == "function" then
+         local ok, c = pcall(GetItemCount, id)
+-        if ok and type(c) == "number" and c > 0 then return c end
++        if ok and type(c) == "number" and c >= 0 then
++            if c > 0 then return c end
++            counted = true
++        end
+     end
+     if type(C_Item) == "table" and type(C_Item.GetItemCount) == "function" then
+         local ok, c = pcall(C_Item.GetItemCount, id, true, false, true)
+-        if ok and type(c) == "number" and c > 0 then return c end
+-    end
++        if ok and type(c) == "number" and c >= 0 then return c end
++    end
++    if counted then return 0 end
+     local numSlots, itemLink
+     if type(C_Container) == "table" then
+         numSlots = C_Container.GetContainerNumSlots
+@@ -496,7 +501,8 @@
+     itemLink = itemLink or GetContainerItemLink
+     if type(numSlots) ~= "function" or type(itemLink) ~= "function" then return 0 end
+     local last = (type(NUM_BAG_SLOTS) == "number" and NUM_BAG_SLOTS) or 4
+-    local bags = { 0, last, -1 }
++    local bags = { -1 }
++    for b = 0, last do bags[#bags + 1] = b end
+     for b = last + 1, last + 7 do bags[#bags + 1] = b end
+     local n = 0
+     for i = 1, #bags do
+@@ -515,7 +521,16 @@
+     return n
+ end
+ 
++-- All consumers share the latest snapshot. Only the ticker below scans books.
++EG._auto = EG._auto or {}
++local autoReady = false
++
+ function EG.ScanAuto()
++    return EG._auto
++end
++
++local function ScanBooks()
++    local previous = EG._auto
+     local t = {}
+     if C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted then
+         for _, rec in ipairs(B) do
+@@ -528,12 +543,35 @@
+     end
+     if GetItemCount or C_Item or C_Container or GetContainerItemLink then
+         for _, rec in ipairs(B) do
+-            local ok, n = pcall(EG.CountInBags, rec[1])
+-            if ok and (n or 0) > 0 and t[rec[1]] ~= "quest" then t[rec[1]] = "bag" end
+-        end
++            if t[rec[1]] ~= "quest" then
++                local ok, n = pcall(EG.CountInBags, rec[1])
++                if ok and (n or 0) > 0 then t[rec[1]] = "bag" end
++            end
++        end
++    end
++    local changed = not autoReady
++    for _, rec in ipairs(B) do
++        if previous[rec[1]] ~= t[rec[1]] then changed = true end
+     end
+     EG._auto = t
+-end
++    autoReady = true
++    if changed then EG._autoRevision = (EG._autoRevision or 0) + 1 end
++    return changed
++end
++
++local function RefreshBooks()
++    local changed = ScanBooks()
++    local render = changed or EG._inventoryDirty
++    EG._inventoryDirty = nil
++    if render and EG.built and ns.PageVisible(EG.page) then EG.RequestRender() end
++    if changed then
++        if ns.ExploreMapRefresh then ns.ExploreMapRefresh() end
++        if ns.ZoneHint and ns.ZoneHint.ScheduleSoft then ns.ZoneHint.ScheduleSoft(2) end
++    end
++end
++
++C_Timer.After(0, RefreshBooks)
++EG._autoTicker = C_Timer.NewTicker(5, RefreshBooks)
+ 
+ local function IsFound(id)
+     local m = FoundOf(id)
+@@ -3652,7 +3690,6 @@
+     EG.found = Found()
+     EG.seed = EG.LegacyFound()
+     EG.view = View()
+-    EG.ScanAuto()
+     EG.PickFilter()
+ 
+     local sub = CurSub()
+@@ -4298,7 +4335,7 @@
+     local hlAcc = 0
+     child:SetScript("OnUpdate", function(_, el)
+         hlAcc = hlAcc + el
+-        if hlAcc < 0.1 then return end
++        if hlAcc < 0.25 then return end
+         hlAcc = 0
+         EG.SyncHover()
+     end)
+@@ -5791,7 +5828,7 @@
+             bt.__lastOn = ns.ExploreAreaOn and ns.ExploreAreaOn() or false
+             bt:SetScript("OnUpdate", function(self, dt)
+                 self.__t = (self.__t or 0) + dt
+-                if self.__t < 0.25 then return end
++                if self.__t < 1 then return end
+                 self.__t = 0
+                 local on = ns.ExploreAreaOn and ns.ExploreAreaOn() or false
+                 if on ~= self.__lastOn then
+@@ -6182,11 +6219,7 @@
+             pcall(ev.RegisterEvent, ev, "BAG_UPDATE_DELAYED")
+             pcall(ev.RegisterEvent, ev, "QUEST_LOG_UPDATE")
+             ev:SetScript("OnEvent", function()
+-                C_Timer.After(0, function()
+-                    if not EG.built or not ns.PageVisible(EG.page) then return end
+-                    EG.ScanAuto()
+-                    EG.RequestRender()
+-                end)
++                EG._inventoryDirty = true
+             end)
+         end
+     end

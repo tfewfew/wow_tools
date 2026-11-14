@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "plugin": "DungeonsForeverExplore",
+  "id": "background-scans",
+  "version": "2.0.3",
+  "patch": "fix.patch",
+  "patchSha256": "69d24dbcffac4609381245e3dab6f7a4a6e395e69c238181fe4a79703770ad1c",
+  "files": [
+    {
+      "path": "DungeonsForeverExplore/Core/ExploreDarkmoon.lua",
+      "originalSha256": "dbd7e5088efe95d873d3695356749c6edb85edcfa87afcf5ab1f0280cf2fdcb5",
+      "patchedSha256": "3da71fc504c92c3099a410d5a6b6619835e284e7856f9a9cd9b22e145439685b"
+    },
+    {
+      "path": "DungeonsForeverExplore/Core/ExploreMap.lua",
+      "originalSha256": "f67e65c478125c4112393080d2528010bb4f01ba0ce041350b6c0222f803d46d",
+      "patchedSha256": "2f7df5644038129b51a71baec9f3d7846dfabb8e376cd54834fc4c0ef5590aba"
+    },
+    {
+      "path": "DungeonsForeverExplore/Core/ExploreUI.lua",
+      "originalSha256": "82f6665286ab9d6c50373d1c0cdc1dfa1810638aa0efe418630da165e7a74933",
+      "patchedSha256": "878839631e9af148fd8e743be8422dd60c3b1947c922e25a3377106ebe433822"
+    }
+  ],
+  "loadOrder": [
+    "Core/ExploreUI.lua",
+    "Core/ExploreMap.lua"
+  ]
+}
