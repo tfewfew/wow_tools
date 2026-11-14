@@ -287,10 +287,13 @@ for _, frame in ipairs(frames) do
     if frame.events.ADDON_LOADED then frame.scripts.OnEvent(frame, "ADDON_LOADED", "wow_tools") end
 end
 assert(WoWTools and type(WoWTools.modules) == "table", "Addon namespace failed to initialize")
-for _, name in ipairs({"wowDetector", "fight_detector", "pet_tamer"}) do
+for _, name in ipairs({"wowDetector", "fight_detector", "pet_tamer", "button_style"}) do
     assert(type(WoWTools.modules[name]) == "table", "Missing module export " .. name)
 end
 assert(WoWTools.settings and type(WoWTools.settings.Open) == "function", "Missing settings interface")
+assert(WoWTools.settings.pages.button_style.frame == WoWTools.buttonStyle.panel
+    and WoWTools.modules.button_style == WoWTools.buttonStyle, "Button skin page module binding failed")
+assert(#WoWTools.buttonStyle.editors == 1, "Button skin editor is registered more than once")
 for _, group in ipairs(WoWTools.settings.groups) do
     local tab = WoWTools.settings.tabs[group.key]
     assert(tab.Text:GetText() == group.label and tab.Text.wordWrap == false,

@@ -1,11 +1,12 @@
 -- Titan 38002 button materials, colors and native appearance restoration.
-local module = { editors = {}, states = {
+local module = { editors = {}, configVersion = 0, states = {
     {key="normal", label="正常", getter="GetNormalTexture", setter="SetNormalTexture"},
     {key="pushed", label="按下", getter="GetPushedTexture", setter="SetPushedTexture"},
     {key="highlight", label="悬停", getter="GetHighlightTexture", setter="SetHighlightTexture"},
     {key="disabled", label="禁用", getter="GetDisabledTexture", setter="SetDisabledTexture"},
 } }
 WoWTools.buttonStyle = module
+WoWTools.modules.button_style = module
 module.borderStyles = {
     {key="native", label="原版"}, {key="thin", label="细边框"}, {key="none", label="无边框"},
 }
@@ -29,6 +30,10 @@ local materialPath = white
 local records, excluded = {}, setmetatable({}, {__mode="k"})
 local seen = setmetatable({}, {__mode="k"})
 local scanRoots, scanAll = {}, false
+local knownFrameCount, scanCost = 0, 0
+local pendingRecords, retryRecords = {}, {}
+local flushQueued, applyRequested, discoverRequested = false, false, false
+local ScheduleFlush
 local initialized, queued, hookedCreate, mediaLibrary = false, false, false, nil
 local events = CreateFrame("Frame")
 local reference = CreateFrame("Button", nil, UIParent, "UIPanelButtonTemplate")
@@ -183,6 +188,15 @@ local function Finite(value)
     return not (issecretvalue and issecretvalue(value)) and type(value) == "number"
         and value == value and math.abs(value) < math.huge
 end
+local atlasCache, screenPixel = {}, 1
+local function RefreshMetrics()
+    screenPixel = 1
+    if type(GetPhysicalScreenSize) == "function" then
+        local ok,_,height = pcall(GetPhysicalScreenSize)
+        if ok and Finite(height) and height > 0 then screenPixel=768/height end
+    end
+end
+RefreshMetrics()
 local function Numbers(object, method, count)
     if not object or type(object[method]) ~= "function" then return nil end
     local result = {pcall(object[method],object)}
@@ -235,29 +249,18 @@ local function Crop(rect, coordinates, left, top, right, bottom, margins, source
     return {left=rect.left+leftOffset, right=rect.left+rightOffset,
         bottom=rect.top-bottomOffset, top=rect.top-topOffset}
 end
-local function ArtworkRect(texture, rect, square, role, interior)
+local function ArtworkData(texture)
     local atlas = Read(texture,"GetAtlas")
     local coordinates = Numbers(texture,"GetTexCoord",8)
-    if not coordinates then return false end
+    if not coordinates then return nil end
     local margins = Numbers(texture,"GetTextureSliceMargins",4)
-    local width,height,padding
-    if not atlas then
-        -- Panel and dialog artwork occupy 80x22 and 128x23 inside 128x32 files.
-        local dialog = not square and IsDialog(texture)
-        width,height = square and 32 or 128,32
-        local artworkWidth = square and 32 or dialog and 128 or 80
-        local artworkHeight = square and 32 or dialog and 23 or 22
-        padding = square and (interior and 8 or 6) or (interior and 4 or 2)
-        -- Both fills end at row 20, with distinct bottom insets in their content areas.
-        local bottomPadding = padding
-        if interior and not square then bottomPadding = dialog and 3 or 2 end
-        return Crop(rect,coordinates,padding/width,padding/height,
-            (artworkWidth-padding)/width,(artworkHeight-bottomPadding)/height,margins,width,height)
-    end
-    local info
-    if C_Texture and type(C_Texture.GetAtlasInfo) == "function" then
+    local info = atlas and atlasCache[atlas]
+    if atlas and not info and C_Texture and type(C_Texture.GetAtlasInfo) == "function" then
         local ok,value = pcall(C_Texture.GetAtlasInfo,atlas)
-        if ok and type(value) == "table" then info=value end
+        if ok and type(value) == "table" then
+            info = value
+            atlasCache[atlas] = value
+        end
     end
     -- Native ThreeSliceButtonMixin uses atlas-local coordinates for cropping.
     -- A complete sheet-coordinate rectangle is identified by its exact atlas bounds.
@@ -273,6 +276,23 @@ local function ArtworkRect(texture, rect, square, role, interior)
             coordinates[index+1] = (coordinates[index+1]-info.topTexCoord)/(info.bottomTexCoord-info.topTexCoord)
         end
     end
+    return {atlas=atlas, coordinates=coordinates, margins=margins, info=info, dialog=not atlas and IsDialog(texture)}
+end
+local function ArtworkRect(data, rect, square, role, interior)
+    local coordinates,margins,info = data.coordinates,data.margins,data.info
+    local width,height,padding
+    if not data.atlas then
+        -- Panel and dialog artwork occupy 80x22 and 128x23 inside 128x32 files.
+        local dialog = not square and data.dialog
+        width,height = square and 32 or 128,32
+        local artworkWidth = square and 32 or dialog and 128 or 80
+        local artworkHeight = square and 32 or dialog and 23 or 22
+        padding = square and (interior and 8 or 6) or (interior and 4 or 2)
+        local bottomPadding = padding
+        if interior and not square then bottomPadding = dialog and 3 or 2 end
+        return Crop(rect,coordinates,padding/width,padding/height,
+            (artworkWidth-padding)/width,(artworkHeight-bottomPadding)/height,margins,width,height)
+    end
     width,height = rect.right-rect.left,rect.top-rect.bottom
     if info and Finite(info.width) and Finite(info.height)
         and info.width > 0 and info.height > 0 then width,height=info.width,info.height end
@@ -281,10 +301,8 @@ local function ArtworkRect(texture, rect, square, role, interior)
     local right = (role == "Left" or role == "Center" or role == "Middle") and 1 or 1-padding/width
     return Crop(rect,coordinates,left,padding/height,right,1-padding/height,margins,width,height)
 end
-local function Geometry(record, native)
+local function Geometry(record, native, buttonRect)
     local button = record.button
-    local buttonRect = Rectangle(button)
-    if not buttonRect then return nil end
     local active = Read(button,"GetButtonState") == "PUSHED" and "GetPushedTexture" or "GetNormalTexture"
     if Read(button,"IsEnabled") == false then active="GetDisabledTexture" end
     local activeTexture = Read(button,active) or Read(button,"GetNormalTexture")
@@ -315,12 +333,13 @@ local function Geometry(record, native)
         if not rect then return nil end
         -- Native three-slice buttons collapse their center when both end caps fill the width.
         if rect.right > rect.left then
-            local artwork = roles[texture] == "NineSlice" and rect or ArtworkRect(texture,rect,square,roles[texture],false)
-            if artwork == false then return nil end
+            local nineSlice = roles[texture] == "NineSlice"
+            local data = not nineSlice and ArtworkData(texture)
+            if not nineSlice and not data then return nil end
+            local artwork = nineSlice and rect or ArtworkRect(data,rect,square,roles[texture],false)
             if artwork then outer=Union(outer,artwork) end
             if texture == activeTexture or roles[texture] then
-                local interior = roles[texture] == "NineSlice" and rect or ArtworkRect(texture,rect,square,roles[texture],true)
-                if interior == false then return nil end
+                local interior = nineSlice and rect or ArtworkRect(data,rect,square,roles[texture],true)
                 if interior then inner=Union(inner,interior) end
             end
         end
@@ -329,11 +348,7 @@ local function Geometry(record, native)
     local bounds = native and inner or outer
     if not bounds then return nil end
     local scale = buttonRect.scale
-    local pixel = 1/scale
-    if type(GetPhysicalScreenSize) == "function" then
-        local ok,_,height = pcall(GetPhysicalScreenSize)
-        if ok and Finite(height) and height > 0 then pixel=768/height/scale end
-    end
+    local pixel = screenPixel/scale
     -- Snap the shared rectangle in screen space, then return button-local offsets.
     local function Snap(value, origin) return math.floor(value/scale/pixel+.5)*pixel-origin/scale end
     local left,right = Snap(bounds.left,buttonRect.left),Snap(bounds.right,buttonRect.left)
@@ -341,10 +356,12 @@ local function Geometry(record, native)
     if right <= left or top <= bottom then return nil end
     local thickness = math.max(pixel,math.floor((outer.top-outer.bottom)/scale/(baseline or 18)/pixel+.5)*pixel)
     thickness = math.min(thickness,(right-left)/8,(top-bottom)/8)
-    return {left=left, right=right, bottom=bottom, top=top, thickness=thickness, pixel=pixel, textures=textures}
+    return {left=left, right=right, bottom=bottom, top=top, thickness=thickness,
+        pixel=pixel, textures=textures, buttonRect=buttonRect, native=native}
 end
 local function Capture(button)
-    local record = {button=button, alpha={}, masked={}, textures={}, active=false}
+    local record = {button=button, alpha={}, appliedAlpha={}, masked={}, textures={},
+        colors={}, active=false, layoutDirty=true}
     record.symbol = IsClose(button) and "×" or WindowGlyph(button)
     record.fill = CreateFrame("Button",nil,button)
     excluded[record.fill] = true
@@ -375,7 +392,7 @@ local function Capture(button)
         overlay:SetAllPoints(button)
         overlay:EnableMouse(false)
         record.glyph = overlay:CreateFontString(nil,"OVERLAY","GameFontHighlightLarge")
-        record.glyph:SetPoint("CENTER",button,"CENTER",0,0)
+        record.glyph:SetPoint("CENTER",record.fill,"CENTER",0,0)
         record.glyph:SetText(record.symbol)
         record.glyph:SetTextColor(1,1,1,1)
         record.glyph:Hide()
@@ -390,6 +407,10 @@ local function Remember(record, texture, native)
         record.masked[texture] = true
     end
 end
+local function SameColor(first, second)
+    return first and second and first[1] == second[1] and first[2] == second[2]
+        and first[3] == second[3] and first[4] == second[4]
+end
 local function SyncState(record, value, preview)
     if not record.active or not value.enabled and not preview then return true end
     local button = record.button
@@ -400,15 +421,16 @@ local function SyncState(record, value, preview)
         record.level = level
     end
     local enabled = Read(button,"IsEnabled") ~= false
-    if record.enabled ~= enabled or record.appearance ~= value then
+    if record.enabled ~= enabled then
         record.fill:SetEnabled(enabled)
         record.state, record.highlight = nil,nil
-        if value.border.style == "thin" then
-            local color = value.border.color
-            record.border:SetVertexColor(color[1],color[2],color[3],color[4]*(enabled and 1 or .4375))
-        end
         if record.glyph then record.glyph:SetAlpha(enabled and 1 or .4) end
         record.enabled = enabled
+    end
+    if value.border.style == "thin" and (record.borderEnabled ~= enabled or not SameColor(record.borderColor,value.border.color)) then
+        local color = value.border.color
+        record.border:SetVertexColor(color[1],color[2],color[3],color[4]*(enabled and 1 or .4375))
+        record.borderColor,record.borderEnabled = color,enabled
     end
     local state = Read(button,"GetButtonState") or "NORMAL"
     if record.state ~= state then
@@ -435,19 +457,32 @@ local function Paint(record, value, preview)
             record.masked[texture] = nil
         end
         for texture, alpha in pairs(record.alpha) do texture:SetAlpha(alpha) end
+        record.appliedAlpha = {}
         record.active = false
-        record.appearance, record.enabled, record.state, record.highlight, record.level = nil,nil,nil,nil,nil
+        record.fillShown,record.borderStyle = false,nil
+        record.enabled,record.state,record.highlight,record.level = nil,nil,nil,nil
+        record.layoutDirty = true
         return true
     end
-    record.active = true -- Restore partial mask or appearance changes after a failed apply.
     local native = value.border.style == "native"
-    local geometry = Geometry(record,native)
-    if not geometry then return false end -- Layout and restricted coordinates are retried on the next show/update.
+    local path = preview and module.ResolveMaterial(value.material) or materialPath
+    local buttonRect = Rectangle(button)
+    if not buttonRect then return false end
     local previous = record.geometry or {}
+    local previousRect = previous.buttonRect or {}
+    local geometry = record.geometry
+    if record.layoutDirty or not geometry or previous.native ~= native
+        or previousRect.left ~= buttonRect.left or previousRect.right ~= buttonRect.right
+        or previousRect.bottom ~= buttonRect.bottom or previousRect.top ~= buttonRect.top
+        or previousRect.scale ~= buttonRect.scale then
+        geometry = Geometry(record,native,buttonRect)
+    end
+    if not geometry then return false end
+    record.active = true -- Restore partial mask or appearance changes after a failed apply.
     local changed = previous.left ~= geometry.left or previous.right ~= geometry.right
         or previous.bottom ~= geometry.bottom or previous.top ~= geometry.top
-        or previous.thickness ~= geometry.thickness or previous.pixel ~= geometry.pixel
-    if record.appearance ~= value or record.material ~= materialPath or changed then
+        or previous.thickness ~= geometry.thickness or previous.pixel ~= geometry.pixel or previous.native ~= native
+    if changed then
         local surfaceScale = native and 1 or geometry.thickness
         record.fill:SetScale(surfaceScale)
         record.fill:ClearAllPoints()
@@ -462,49 +497,117 @@ local function Paint(record, value, preview)
             record.mask:SetTexture(mediaPath.."ButtonRoundMask.tga","CLAMPTOBLACKADDITIVE","CLAMPTOBLACKADDITIVE")
             record.mask:SetTextureSliceMargins(4,4,4,4)
         end
-        for _, state in ipairs(module.states) do
-            local texture = record.textures[state.key]
-            texture:SetTexture(materialPath)
+        if record.glyph then
+            local size = math.max(8,math.min(20,(geometry.top-geometry.bottom)*.7))
+            if record.glyphSize ~= size then
+                local font = Read(record.glyph,"GetFont")
+                if font then
+                    record.glyph:SetFont(font,size,"OUTLINE")
+                    record.glyphSize = size
+                end
+            end
+        end
+    end
+    for _, state in ipairs(module.states) do
+        local texture = record.textures[state.key]
+        if record.material ~= path then
+            texture:SetTexture(path)
             texture:ClearTextureSlice()
             texture:SetTexCoord(0,1,0,1)
-            texture:SetVertexColor(unpack(value.colors[state.key]))
-            texture:SetBlendMode("BLEND")
         end
+        if not SameColor(record.colors[state.key],value.colors[state.key]) then
+            texture:SetVertexColor(unpack(value.colors[state.key]))
+            record.colors[state.key] = value.colors[state.key]
+        end
+    end
+    if not record.fillShown then
         record.fill:Show()
+        if record.glyph then record.glyph:Show() end
+        record.fillShown = true
+    end
+    if record.borderStyle ~= value.border.style then
         if value.border.style == "thin" then
             record.border:Show()
         else record.border:Hide() end
-        if record.glyph then
-            local font = Read(record.glyph,"GetFont")
-            local size = math.max(8,math.min(20,(geometry.top-geometry.bottom)*.7))
-            if font then record.glyph:SetFont(font,size,"OUTLINE") end
-            record.glyph:ClearAllPoints()
-            record.glyph:SetPoint("CENTER",record.fill,"CENTER",0,0)
-            record.glyph:Show()
-        end
+        record.borderStyle = value.border.style
     end
     -- Native clients may replace state textures when showing or updating a button.
-    for texture in pairs(geometry.textures) do Remember(record,texture,native) end
-    for texture, alpha in pairs(record.alpha) do texture:SetAlpha(native and alpha or 0) end
+    for texture in pairs(geometry.textures) do
+        Remember(record,texture,native)
+        local alpha = native and record.alpha[texture] or 0
+        if record.appliedAlpha[texture] ~= alpha or record.refreshNative and Read(texture,"GetAlpha") ~= alpha then
+            texture:SetAlpha(alpha)
+            record.appliedAlpha[texture] = alpha
+        end
+    end
     if not SyncState(record,value,preview) then return false end
-    record.appearance, record.material, record.geometry = value,materialPath,geometry
+    record.material,record.geometry = path,geometry
+    record.layoutDirty,record.refreshNative,record.deferred = false,false,false
     return true
+end
+local function Retry(record)
+    record.layoutDirty,record.refreshNative = true,true
+    retryRecords[record] = true
+    events:RegisterEvent("PLAYER_REGEN_ENABLED")
+end
+local function TryPaint(record)
+    pendingRecords[record] = nil
+    if Read(record.button,"IsVisible") == false then
+        record.deferred = true
+        retryRecords[record] = nil
+        return true
+    end
+    local ok,result = pcall(Paint,record,current,record.preview)
+    if ok and result then
+        retryRecords[record] = nil
+        record.deferred = false
+        return true
+    end
+    Retry(record)
+    return false
+end
+local function QueueRecord(record)
+    if not initialized or not current.enabled and not record.preview and not record.active then return end
+    record.layoutDirty,record.refreshNative = true,true
+    pendingRecords[record] = true
+    ScheduleFlush()
+end
+ScheduleFlush = function()
+    if flushQueued then return end
+    flushQueued = true
+    local function Run()
+        flushQueued = false
+        if applyRequested then
+            local discover = discoverRequested
+            applyRequested,discoverRequested = false,false
+            module.Apply(discover)
+        end
+        local work = pendingRecords
+        pendingRecords = {}
+        for record in pairs(work) do TryPaint(record) end
+        if not next(retryRecords) then events:UnregisterEvent("PLAYER_REGEN_ENABLED") end
+    end
+    if C_Timer and type(C_Timer.After) == "function" then C_Timer.After(0,Run) else Run() end
 end
 local function Watch(record, preview)
     local button = record.button
+    record.preview = preview
     local function Update(stateOnly)
         if not initialized then return end
-        local action = stateOnly == true and SyncState or Paint
-        local ok,result = pcall(action,record,current,preview)
+        local ok,result = pcall(SyncState,record,current,preview)
         if not ok or not result then
-            record.appearance = nil
-            events:RegisterEvent("PLAYER_REGEN_ENABLED")
+            Retry(record)
         end
+        if not stateOnly then QueueRecord(record) end
     end
     local handlers = {
         OnEnter=function() record.hover=true;Update(true) end,
         OnLeave=function() record.hover=false;Update(true) end,
-        OnHide=function() record.hover=false;Update(true) end,
+        OnHide=function()
+            record.hover,record.layoutDirty = false,true
+            pendingRecords[record],retryRecords[record] = nil,nil
+            Update(true)
+        end,
     }
     if type(button.HookScript) == "function" then
         for _, event in ipairs({"OnShow","OnSizeChanged","OnEnable","OnDisable","OnMouseDown","OnMouseUp"}) do
@@ -528,8 +631,11 @@ local function Watch(record, preview)
         if type(button.UpdateButton) == "function" then
             pcall(hooksecurefunc,button,"UpdateButton",function() Update(false) end)
         end
-        for _, method in ipairs({"SetButtonState","SetScale","SetFrameLevel"}) do
+        for _, method in ipairs({"SetButtonState","SetScale"}) do
             if type(button[method]) == "function" then pcall(hooksecurefunc,button,method,function() Update(false) end) end
+        end
+        if type(button.SetFrameLevel) == "function" then
+            pcall(hooksecurefunc,button,"SetFrameLevel",function() Update(true) end)
         end
         if type(button.LockHighlight) == "function" then
             pcall(hooksecurefunc,button,"LockHighlight",function() record.locked=true;Update(true) end)
@@ -553,7 +659,7 @@ function module.ApplyPreview(button)
         module.previews[button]=record
         Watch(record,true)
     end
-    return Paint(record,current,true)
+    return TryPaint(record)
 end
 module.previews = {}
 local function DiscoverAll(found)
@@ -563,13 +669,15 @@ local function DiscoverAll(found)
     ReadReference(dialogReference,nativeFiles,nativeAtlases,"dialog")
     ReadReference(windowReference.MaximizeButton,windowFiles,windowAtlases,"↗")
     ReadReference(windowReference.MinimizeButton,windowFiles,windowAtlases,"↙")
-    local frame = EnumerateFrames()
+    local frame,count = EnumerateFrames(),0
     while frame do
+        count = count+1
         seen[frame] = true
         local record = Track(frame)
         if record then found[#found+1] = record end
         frame = EnumerateFrames(frame)
     end
+    knownFrameCount = count
 end
 local function DiscoverTree(frame, found, force)
     if not frame or seen[frame] and not force or Read(frame,"IsForbidden") == true then return end
@@ -583,49 +691,75 @@ local function DiscoverTree(frame, found, force)
     end
 end
 function module.Apply(discover)
-    local applied, failed = 0, 0
-    materialPath = module.ResolveMaterial(current.material)
+    local applied, failed, deferred = 0, 0, 0
+    local path,_,missing = module.ResolveMaterial(current.material)
+    materialPath = path
     if current.enabled and discover then DiscoverAll({}) end
     for _, record in pairs(records) do
-        local ok, result = pcall(Paint,record,current)
-        if ok and result then applied=applied+1 else failed=failed+1 end
+        local result = TryPaint(record)
+        if not result then failed=failed+1
+        elseif record.deferred then deferred=deferred+1
+        else applied=applied+1 end
     end
-    if failed > 0 then events:RegisterEvent("PLAYER_REGEN_ENABLED") end
+    if not next(retryRecords) then events:UnregisterEvent("PLAYER_REGEN_ENABLED") end
     module.lastStatus = current.enabled and ("已保存，已应用 "..applied.." 个按钮"..(failed>0 and ("，"..failed.." 个待重试") or "。"))
         or ("自定义按钮样式已关闭"..(failed>0 and ("，"..failed.." 个按钮待恢复。") or "。"))
-    local _, _, missing = module.ResolveMaterial(current.material)
+    if deferred > 0 then module.lastStatus=module.lastStatus.." "..deferred.." 个隐藏按钮将在显示时更新。" end
     if missing then module.lastStatus=module.lastStatus.." 材质尚未加载，暂用纯色。" end
     if module.RefreshSettings then module.RefreshSettings() end
     return applied,failed
 end
+local function RequestApply(discover)
+    applyRequested = true
+    discoverRequested = discoverRequested or discover
+    module.lastStatus = "已保存，正在更新按钮。"
+    ScheduleFlush()
+    return module.lastStatus
+end
 function module.Save(value)
     if not Valid(value) then return false,"按钮材质、颜色或边框无效。" end
+    local desired = Copy(value)
+    local same = desired.enabled == current.enabled and desired.material == current.material
+        and desired.border.style == current.border.style and SameColor(desired.border.color,current.border.color)
+    for _,state in ipairs(module.states) do
+        same = same and SameColor(desired.colors[state.key],current.colors[state.key])
+    end
+    if same then return true,module.lastStatus end
     local discover = value.enabled and not current.enabled
-    current = Copy(value)
+    current = desired
+    module.configVersion = module.configVersion+1
     if type(wowDetectorDB) ~= "table" then wowDetectorDB = {} end
     wowDetectorDB.buttonStyle = Copy(current)
-    module.Apply(discover)
-    return true,module.lastStatus
+    return true,RequestApply(discover)
 end
 function module.Reset()
     if module.CloseColorPicker then module.CloseColorPicker() end
     current = Copy(defaults)
+    module.configVersion = module.configVersion+1
     if type(wowDetectorDB) == "table" then wowDetectorDB.buttonStyle = nil end
-    module.Apply(false)
+    RequestApply(false)
 end
 local function QueueScan(name, parent)
     if not initialized or not current.enabled then return end
+    if scanAll and queued then return end
     local root = type(name) == "string" and _G[name]
     if type(parent) == "string" then parent = _G[parent] end
     if root then scanRoots[root] = true
     elseif parent and type(parent.GetChildren) == "function" then
-        -- Keep the new roots before callers can reparent their anonymous frames.
-        local ok, children = pcall(function() return {parent:GetChildren()} end)
-        if ok then
-            for _, child in ipairs(children) do
-                if not seen[child] then scanRoots[child] = true end
-            end
-        else scanAll = true end
+        local count = Read(parent,"GetNumChildren")
+        if Finite(count) then scanCost=scanCost+count end
+        if knownFrameCount > 0 and scanCost > knownFrameCount then
+            -- Bound repeated sibling snapshots by one complete discovery pass.
+            scanAll = true
+        else
+            -- Pin anonymous roots before immediate reparenting by their callers.
+            local ok, children = pcall(function() return {parent:GetChildren()} end)
+            if ok then
+                for _, child in ipairs(children) do
+                    if not seen[child] then scanRoots[child] = true end
+                end
+            else scanAll = true end
+        end
     else scanAll = true end
     if queued then return end
     queued = true
@@ -633,6 +767,7 @@ local function QueueScan(name, parent)
         queued = false
         local roots, all = scanRoots,scanAll
         scanRoots,scanAll = {},false
+        scanCost = 0
         if not current.enabled then return end
         local found = {}
         if all then DiscoverAll(found)
@@ -640,8 +775,8 @@ local function QueueScan(name, parent)
             for frame in pairs(roots) do DiscoverTree(frame,found,true) end
         end
         for _, record in ipairs(found) do
-            local ok, result = pcall(Paint,record,current)
-            if not ok or not result then events:RegisterEvent("PLAYER_REGEN_ENABLED") end
+            record.refreshNative = true
+            TryPaint(record)
         end
     end
     if C_Timer and type(C_Timer.After) == "function" then C_Timer.After(0,Run) else Run() end
@@ -663,6 +798,7 @@ events:SetScript("OnEvent",function(_,event,name)
     if event == "ADDON_LOADED" and name == "wow_tools" then
         local saved = type(wowDetectorDB) == "table" and wowDetectorDB.buttonStyle
         current = Valid(saved) and Copy(saved) or Copy(defaults)
+        module.configVersion = module.configVersion+1
         initialized = true
     end
     if not initialized then return end
@@ -680,10 +816,20 @@ events:SetScript("OnEvent",function(_,event,name)
     end
     if event == "PLAYER_REGEN_ENABLED" then
         events:UnregisterEvent(event)
-        module.Apply(false)
+        local work = retryRecords
+        retryRecords = {}
+        for record in pairs(work) do TryPaint(record) end
+        if next(work) then
+            module.lastStatus = next(retryRecords) and "部分按钮仍待重试。"
+                or current.enabled and "待重试按钮已更新。" or "按钮原生外观已恢复。"
+            if module.RefreshSettings then module.RefreshSettings() end
+        end
         return
     end
     if event == "UI_SCALE_CHANGED" or event == "DISPLAY_SIZE_CHANGED" then
+        RefreshMetrics()
+        for _,record in pairs(records) do record.layoutDirty=true end
+        for _,record in pairs(module.previews) do QueueRecord(record) end
         module.Apply(false)
         return
     end

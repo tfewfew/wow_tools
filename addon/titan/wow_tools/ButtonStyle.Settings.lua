@@ -24,21 +24,30 @@ function module.RefreshSettings()
     local value=module.GetConfig()
     local path,name,missing=module.ResolveMaterial(value.material)
     for _,editor in ipairs(module.editors) do
-        editor.enabled:SetChecked(value.enabled)
-        editor.material:SetText(name..(missing and "（未加载）" or "").."  ▾")
-        editor.sample:SetTexture(path)
-        for _,state in ipairs(module.states) do
-            editor.swatches[state.key].color:SetColorTexture(unpack(value.colors[state.key]))
+        if editor.parent:IsVisible() then
+            if editor.configVersion~=module.configVersion or editor.path~=path or editor.missing~=missing then
+                editor.enabled:SetChecked(value.enabled)
+                editor.material:SetText(name..(missing and "（未加载）" or "").."  ▾")
+                editor.sample:SetTexture(path)
+                for _,state in ipairs(module.states) do
+                    editor.swatches[state.key].color:SetColorTexture(unpack(value.colors[state.key]))
+                end
+                for index,style in ipairs(module.borderStyles) do
+                    if style.key==value.border.style then editor.borderGroup:SelectAtIndex(index) end
+                end
+                editor.borderColor.color:SetColorTexture(unpack(value.border.color))
+                editor.borderColor:SetEnabled(value.border.style=="thin")
+                module.ApplyPreview(editor.preview)
+                module.ApplyPreview(editor.disabled)
+                module.ApplyPreview(editor.closePreview)
+                editor.configVersion,editor.path,editor.missing=module.configVersion,path,missing
+            end
+            local status=module.lastStatus or "勾选启用后立即应用并保存。"
+            if editor.statusText~=status then
+                editor.status:SetText(status)
+                editor.statusText=status
+            end
         end
-        for index,style in ipairs(module.borderStyles) do
-            if style.key==value.border.style then editor.borderGroup:SelectAtIndex(index) end
-        end
-        editor.borderColor.color:SetColorTexture(unpack(value.border.color))
-        editor.borderColor:SetEnabled(value.border.style=="thin")
-        module.ApplyPreview(editor.preview)
-        module.ApplyPreview(editor.disabled)
-        module.ApplyPreview(editor.closePreview)
-        editor.status:SetText(module.lastStatus or "勾选启用后立即应用并保存。")
     end
 end
 function module.CloseColorPicker()
@@ -186,10 +195,10 @@ local function BuildPopup()
     UISpecialFrames[#UISpecialFrames+1]="WoWToolsButtonMaterialMenu"
     return frame
 end
-function module.BuildSettings(parent)
+local function BuildEditor(parent)
     local hint=Label(parent,"游戏菜单及同类按钮，包含地图和窗口的关闭按钮。修改立即应用并保存。",8,-8)
     hint:SetWidth(398);hint:SetJustifyH("LEFT")
-    local editor={swatches={}}
+    local editor={swatches={},parent=parent}
     module.editors[#module.editors+1]=editor
     local enabled=CreateFrame("CheckButton",nil,parent,"UICheckButtonTemplate")
     module.Exclude(enabled)
@@ -292,4 +301,23 @@ function module.BuildSettings(parent)
     Layout()
     parent:SetHeight(module.settingsHeight)
     module.RefreshSettings()
+end
+function module.BuildSettings(parent)
+    if module.panel then return module.panel end
+    local panel=CreateFrame("Frame",nil,parent)
+    panel:SetAllPoints(parent)
+    module.panel=panel
+    local scroll=CreateFrame("ScrollFrame",nil,panel,"UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT",8,-8)
+    scroll:SetPoint("BOTTOMRIGHT",-28,8)
+    local content=CreateFrame("Frame",nil,scroll)
+    content:SetSize(420,module.settingsHeight)
+    scroll:SetScrollChild(content)
+    local function Layout()
+        content:SetWidth(math.max(420,panel:GetWidth()-36))
+    end
+    panel:SetScript("OnSizeChanged",Layout)
+    Layout()
+    BuildEditor(content)
+    return panel
 end

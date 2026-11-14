@@ -5,6 +5,7 @@ local groups = {
     { key="wowDetector", label="钓鱼检测" },
     { key="fight_detector", label="战斗检测" },
     { key="inner_graphic_config", label="画面设置" },
+    { key="button_style", label="按钮皮肤" },
     { key="pet_tamer", label="自动抓宠" },
     { key="sound_control", label="声音控制" },
     { key="bigfoot_channel", label="大脚聊天", app="WoWToolsBigFootChannel" },

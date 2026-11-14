@@ -152,7 +152,6 @@ local categories = {
     } },
     { name = "界面", cvars = { frameratePosition = true } },
     { name = "字体", cvars = {}, fonts = true },
-    { name = "按钮", cvars = {}, buttonStyle = true },
     { name = "Lua", cvars = {}, luaGC = true },
 }
 local function SmallDescription(text)
@@ -329,7 +328,6 @@ local function BuildControls(parent)
     scroll:SetScrollChild(list)
     pages[categoryIndex] = scroll
     if category.fonts and WoWTools.displayFonts then WoWTools.displayFonts.BuildSettings(list) end
-    if category.buttonStyle and WoWTools.buttonStyle then WoWTools.buttonStyle.BuildSettings(list) end
     if category.luaGC and WoWTools.luaGC then WoWTools.luaGC.BuildSettings(list) end
     local entries = {}
     local function Layout()
@@ -361,7 +359,7 @@ local function BuildControls(parent)
         end
         list:SetHeight(category.fonts and WoWTools.displayFonts.settingsHeight
             or category.luaGC and WoWTools.luaGC.settingsHeight
-            or category.buttonStyle and WoWTools.buttonStyle.settingsHeight or math.max(1, offset))
+            or math.max(1, offset))
     end
     layouts[categoryIndex] = Layout
     if category.subgroups then
