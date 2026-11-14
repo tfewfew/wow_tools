@@ -1,0 +1,24 @@
+--- a/Accountant_Classic/Core/Core.lua
++++ b/Accountant_Classic/Core/Core.lua
+@@ -2001,13 +2001,6 @@
+ 	end
+ end
+ 
+----Post-hook of CursorHasItem (repair cursor).
+-function addon:CursorHasItem()
+-	if InRepairMode() then
+-		AC_LOGTYPE = "REPAIRS";
+-	end
+-end
+-
+ -- Bank: buying bank bag slots / bank tabs, and moving gold in or out of the Warband bank.
+ -- Guild bank gold keeps its own GUILD log type.
+ ---Post-hook for C_Bank.DepositMoney / C_Bank.WithdrawMoney.
+@@ -2248,7 +2241,6 @@
+ 	copyOptions()
+ 
+ 	self:SecureHook("RepairAllItems")
+-	self:SecureHook("CursorHasItem")
+ 	hookBankFunctions()
+ 	
+ 	loadData()

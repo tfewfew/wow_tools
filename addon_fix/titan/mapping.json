@@ -1,5 +1,17 @@
 {
   "schemaVersion": 1,
   "client": "titan",
-  "plugins": {}
+  "plugins": {
+    "Accountant_Classic": [
+      {
+        "id": "cursor-repair-hook",
+        "description": "移除 CursorHasItem 全局修理状态钩子及对应回调，减少光标物品查询附带的修理检查。",
+        "variants": [
+          "cursor-repair-hook/2.12.32/manifest.json"
+        ],
+        "skipFromVersion": null,
+        "fixedEvidence": []
+      }
+    ]
+  }
 }

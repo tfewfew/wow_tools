@@ -1,0 +1,23 @@
+--- a/Accountant_Classic/Core/Core.lua
++++ b/Accountant_Classic/Core/Core.lua
+@@ -1703,12 +1703,6 @@
+ 	end
+ end
+ 
+-function addon:CursorHasItem()
+-	if InRepairMode() then
+-		AC_LOGTYPE = "REPAIRS";
+-	end
+-end
+-
+ function addon:BackpackTokenFrame_Update()
+ 	if (WoWClassicEra or WoWClassicTBC or WoWWOTLKC) then
+ 		-- do nothing
+@@ -1938,7 +1932,6 @@
+ 	copyOptions()
+ 
+ 	self:SecureHook("RepairAllItems")
+-	self:SecureHook("CursorHasItem")
+ 
+ 	local f = _G["AccountantClassicFrame"]
+ 	if f and not f:IsEventRegistered("PLAYER_MONEY") then

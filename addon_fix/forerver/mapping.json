@@ -51,6 +51,17 @@
         "skipFromVersion": null,
         "fixedEvidence": []
       }
+    ],
+    "Accountant_Classic": [
+      {
+        "id": "cursor-repair-hook",
+        "description": "移除 CursorHasItem 全局修理状态钩子及对应回调，减少光标物品查询附带的修理检查。",
+        "variants": [
+          "cursor-repair-hook/2.30.03/manifest.json"
+        ],
+        "skipFromVersion": null,
+        "fixedEvidence": []
+      }
     ]
   }
 }
