@@ -2,6 +2,8 @@
 
 import argparse
 import ast
+import hashlib
+import json
 from pathlib import Path
 import sys
 import xml.etree.ElementTree as ET
@@ -10,6 +12,7 @@ import xml.etree.ElementTree as ET
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--lua-module-root', type=Path)
+    parser.add_argument('--dungeons-forever-addons-root', type=Path)
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[3]
     if args.lua_module_root:
@@ -28,6 +31,29 @@ def main():
         local chunk, message = loadstring(source, name)
         assert(chunk, message)
     end''')
+    if args.dungeons_forever_addons_root:
+        addon_root = args.dungeons_forever_addons_root.resolve()
+        patch_root = repo / 'skills/wow-tools/patches/dungeons-forever-2.1.95'
+        manifest = json.loads((patch_root / 'manifest.json').read_text(encoding='utf-8'))
+        assert hashlib.sha256((patch_root / 'performance.patch').read_bytes()).hexdigest() == manifest['patchSha256']
+        for name, version in manifest['versions'].items():
+            toc = (addon_root / name / (name + '.toc')).read_text(encoding='utf-8-sig')
+            metadata = dict(line[3:].split(':', 1) for line in toc.splitlines() if line.startswith('## ') and ':' in line)
+            assert metadata['Version'].strip() == version, f'{name} patch baseline version mismatch'
+            assert '16001' in metadata['Interface'].replace(' ', '').split(','), f'{name} Forever interface missing'
+            for line in toc.splitlines():
+                relative = line.split(' [', 1)[0].strip()
+                if relative and not relative.startswith('#'):
+                    assert (addon_root / name / relative.replace('\\', '/')).is_file(), f'Missing patch dependency {name}/{relative}'
+        explore_toc = (addon_root / 'DungeonsForeverExplore/DungeonsForeverExplore.toc').read_text(encoding='utf-8-sig')
+        assert explore_toc.index('Core\\ExploreUI.lua') < explore_toc.index('Core\\ExploreMap.lua'), 'Book snapshot must load before map consumers'
+        for entry in manifest['files']:
+            path = (addon_root / entry['path']).resolve()
+            assert path.is_relative_to(addon_root), f'Invalid patch path {path}'
+            source = path.read_bytes()
+            assert hashlib.sha256(source).hexdigest() == entry['patchedSha256'], f'Patched hash mismatch {path}'
+            compiler(source.decode('utf-8-sig'), '@' + str(path))
+        print(f"PASS: DungeonsForever patched Lua syntax, TOC dependencies and Forever interfaces ({len(manifest['files'])} files).")
     lua_count = xml_count = inline_count = 0
     for flavor, interface in [('titan', '38002'), ('forerver', '16001')]:
         addon = repo / 'addon' / flavor / 'wow_tools'

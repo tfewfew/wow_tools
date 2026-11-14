@@ -1,0 +1,72 @@
+{
+  "client": "forerver",
+  "versions": {
+    "DungeonsForever": "2.1.95",
+    "DungeonsForeverExplore": "2.0.3",
+    "DungeonsForeverProf": "2.0.3",
+    "DungeonsForeverSpell": "2.3.12"
+  },
+  "patchSha256": "c5d69ccc7aff803ba75cedd4aea8b3b93098de2a9e5de5f33b4f8a5840320e15",
+  "files": [
+    {
+      "path": "DungeonsForever/Core/Core.lua",
+      "originalSha256": "b6ce80a349607cc6854e211e951d5f7998ea017a0db4d242f30e108045f9ced7",
+      "patchedSha256": "32db209ee2afb2d590050a18590df5fe3974df94b0101accf9bdb6981ae56a7c"
+    },
+    {
+      "path": "DungeonsForever/Core/Hui.lua",
+      "originalSha256": "fe5612c14fc6f70fea069bc53e44ef0e6054f83495208c7bdbd3c51d868a1855",
+      "patchedSha256": "d07dba8f965e08f7a7307b7604e4a246c3f03b5a9c71e3260da9d5e8329f164e"
+    },
+    {
+      "path": "DungeonsForever/Core/MapOnWorld.lua",
+      "originalSha256": "562f9cb526ae9c8c8f7b254c57a7a05a8b4d11542a9f1d5faaa87aa624f431a3",
+      "patchedSha256": "9884d544be5137923101493cc14df783bca3372faee6b826e3c99fee21b54a8e"
+    },
+    {
+      "path": "DungeonsForever/Core/MapWindow.lua",
+      "originalSha256": "b6e9a4402aabfc59f90737825cde5764cf4ea151cac4dd4882b003a9102a0a9d",
+      "patchedSha256": "7d6bc78f1acebc7c5d2ac3fcb6e24c32a2f0a94d4e849fafe9d08a93e8b6eb8a"
+    },
+    {
+      "path": "DungeonsForever/Core/ZoneHint.lua",
+      "originalSha256": "a9682abcea9e327581572acaf5e651b2b2380ae2663f108b74705b78f9715df6",
+      "patchedSha256": "9c5269bd566f403853969148379aaa4b864e9944f79c1768391c46553603e303"
+    },
+    {
+      "path": "DungeonsForeverExplore/Core/ExploreDarkmoon.lua",
+      "originalSha256": "dbd7e5088efe95d873d3695356749c6edb85edcfa87afcf5ab1f0280cf2fdcb5",
+      "patchedSha256": "3da71fc504c92c3099a410d5a6b6619835e284e7856f9a9cd9b22e145439685b"
+    },
+    {
+      "path": "DungeonsForeverExplore/Core/ExploreMap.lua",
+      "originalSha256": "f67e65c478125c4112393080d2528010bb4f01ba0ce041350b6c0222f803d46d",
+      "patchedSha256": "2f7df5644038129b51a71baec9f3d7846dfabb8e376cd54834fc4c0ef5590aba"
+    },
+    {
+      "path": "DungeonsForeverExplore/Core/ExploreUI.lua",
+      "originalSha256": "452bbde0acb6005cf6dce71c051fde90c95b682a0151af93c927e99729021999",
+      "patchedSha256": "a0e73036aab25934c5669c1a95fabbaa8b6d67e58c13de1c11bf2af7f558ce90"
+    },
+    {
+      "path": "DungeonsForeverProf/Core/ProfFollow.lua",
+      "originalSha256": "46465c9d07c906e8f38c08328a5ba89890c1eaf3024a8e87b4f42d59824ff591",
+      "patchedSha256": "4e985f2f650433e80425dc7b0a0595cecc9b1fd4427f24f6769a1f26db9b0bf7"
+    },
+    {
+      "path": "DungeonsForeverProf/Core/ProfessionUI.lua",
+      "originalSha256": "51bb04c90b853f99bc6ec805b5985acc78450cfa9774e4d6994aa7ffaee97fca",
+      "patchedSha256": "0ab201dc7a137f453cd478113c510eb29582d74a938d46347d107804ff66cc1f"
+    },
+    {
+      "path": "DungeonsForeverSpell/Core/NativeSpellBook.lua",
+      "originalSha256": "6fdb9f7d964a3e60cb551a512ecdb124a2e4f9aaaf67de723f8d7a54e90a3004",
+      "patchedSha256": "c76caf52e3850e5f2f7389259ace2711232847c2c191f4d2de436eef6c5795fd"
+    },
+    {
+      "path": "DungeonsForeverSpell/Core/SpellRankUI.lua",
+      "originalSha256": "2f9c75ce59c2ca42e44738d8d630539ba02acd5212be5ea9a26ff2d119554df8",
+      "patchedSha256": "ddb34cf9ba629c1d0dcc8ce8e5dc384e1a8d920671228d1d1d79348a7f484b40"
+    }
+  ]
+}
