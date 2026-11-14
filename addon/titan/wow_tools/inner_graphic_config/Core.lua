@@ -1,4 +1,5 @@
 local ADDON = ...
+local minimumRenderScale, maximumRenderScale = GetMinRenderScale(), GetMaxRenderScale()
 local definitions = {
     {
         cvar = "ffxGlow",
@@ -18,6 +19,19 @@ local definitions = {
     { cvar = "cmaa2ExtraSharpness", label = "CMAA2 额外锐利处理", numeric = true, maximum = 1,
       meanings = { [0] = "关闭", [1] = "开启" },
       description = "0 关闭：使用常规 CMAA2 平滑策略，优先消除锯齿。\n1 开启：更保守地识别、混合边缘，保留文字、细线和轮廓的清晰度；部分锯齿可能保留得更多。\n这是 CMAA2 内部的细节保留开关，不是额外叠加的全屏锐化滤镜。作用依据 Intel CMAA2 参考源码。" },
+    { cvar = "ResampleQuality", label = "重采样算法（ResampleQuality）", numeric = true, maximum = 3,
+      meanings = { [0] = "点采样", [1] = "双线性", [2] = "双三次", [3] = "FidelityFX Super Resolution" },
+      description = "控制内部渲染画面缩放到输出分辨率时使用的算法，在渲染比例偏离 100% 时生效。\n取值为 0～3 的整数。0 点采样，1 双线性，2 双三次，3 FidelityFX Super Resolution（FSR 1.0）。\n点采样保留硬像素边缘，双线性平滑相邻像素，双三次保留更多细节，FSR 用于空间重建与锐化。" },
+    { cvar = "ResampleAlwaysSharpen", label = "始终锐化（ResampleAlwaysSharpen）",
+      meanings = { [0] = "按正常条件启用", [1] = "始终启用" },
+      description = "控制是否始终执行锐化处理。取值为 0 或 1。\n0 按正常条件启用锐化，FSR 缩放仍可执行锐化。1 始终启用锐化，在 100% 渲染比例下也可生效。\n勾选设为 1，取消勾选设为 0。锐化强度由下方 ResampleSharpness 控制。" },
+    { cvar = "ResampleSharpness", label = "锐化强度（ResampleSharpness）", numeric = true, decimal = true,
+      maximum = 2, disabledValue = -1,
+      meanings = { [-1] = "禁用锐化", [0] = "最强", [2] = "最弱" },
+      description = "控制 FSR 锐化处理的强度，也用于始终锐化。\n接受 0～2 的小数，数值越小锐化越强。0 最强，2 最弱，-1 禁用锐化。默认值为 0.2。\n在锐化处理启用时生效，较强锐化会突出轮廓与纹理细节。" },
+    { cvar = "RenderScale", label = "渲染比例（RenderScale）", numeric = true, decimal = true,
+      minimum = minimumRenderScale, maximum = maximumRenderScale,
+      description = "控制 3D 场景内部渲染分辨率相对输出分辨率的比例。\n取值范围为 " .. tostring(minimumRenderScale) .. "～" .. tostring(maximumRenderScale) .. "，使用客户端原生上下限。1 为 100%，0.75 为 75%，1.5 为 150%。\n低于 1 时减少渲染像素并通过重采样放大，高于 1 时先以更高分辨率渲染再缩小，GPU 开销随像素数增加。" },
     { cvar = "volumeFogDisableLightScattering", label = "体积雾光照散射（volumeFogDisableLightScattering）", inverted = true,
       description = "控制点光源在体积雾中的散射效果。开启后，灯光穿过雾气时会形成可见的光晕和光束；关闭可减少相关渲染开销。" },
     { cvar = "volumeFogUse16BitTexture", label = "16 位体积雾纹理（volumeFogUse16BitTexture）",
@@ -135,6 +149,12 @@ local categories = {
     { name = "泛光", cvars = { ffxGlow = true } },
     { name = "粒子", cvars = { particleDensity = true, particleMTDensity = true } },
     { name = "CMAA", cvars = { ffxAntiAliasingMode = true, cmaa2Quality = true, cmaa2ExtraSharpness = true } },
+    { name = "重采样", cvars = {
+        ResampleQuality = true,
+        ResampleAlwaysSharpen = true,
+        ResampleSharpness = true,
+        RenderScale = true,
+    } },
     { name = "体积雾", cvars = {
         volumeFogDisableLightScattering = true,
         volumeFogUse16BitTexture = true,
@@ -244,18 +264,29 @@ end
 
 local function Apply(control)
     local desired
+    local tolerance = control.definition.decimal and 0.000001 or 0
     if control.definition.numeric then
         local raw = control.input:GetText():match("^%s*(.-)%s*$")
         local number = tonumber(raw)
         local valid = control.definition.decimal
-            and (raw:match("^%d+%.?%d*$") or raw:match("^%d*%.%d+$"))
-            or raw:match("^%d+$")
-        if not valid or not number or number == math.huge then
-            control.status:SetText(control.definition.decimal and "请输入非负数值。" or "请输入非负整数。")
+            and (raw:match("^-?%d+%.?%d*$") or raw:match("^-?%d*%.%d+$"))
+            or raw:match("^-?%d+$")
+        if not valid or not number or math.abs(number) == math.huge then
+            control.status:SetText(control.definition.decimal and "请输入有效数值。" or "请输入整数。")
             return
         end
-        if control.definition.maximum and number > control.definition.maximum then
-            control.status:SetText("请输入 0 到 " .. control.definition.maximum .. " 之间的整数。")
+        local minimum = control.definition.minimum or 0
+        if number ~= control.definition.disabledValue and
+            (number < math.max(0, minimum - tolerance) or control.definition.maximum and number > control.definition.maximum + tolerance) then
+            local kind = control.definition.decimal and "数值。" or "整数。"
+            local message = "请输入非负" .. kind
+            if control.definition.maximum then
+                message = "请输入 " .. minimum .. " 到 " .. control.definition.maximum .. " 之间的" .. kind
+            end
+            if control.definition.disabledValue then
+                message = message .. " 输入 " .. control.definition.disabledValue .. " 可禁用。"
+            end
+            control.status:SetText(message)
             return
         end
         desired = tostring(number)
@@ -272,7 +303,8 @@ local function Apply(control)
     local setter = C_CVar and C_CVar.SetCVar or SetCVar
     local ok = setter and pcall(setter, control.definition.cvar, desired)
     Refresh()
-    if not ok or ReadValue(control.definition.cvar) ~= tonumber(desired) then
+    local current = ReadValue(control.definition.cvar)
+    if not ok or current == nil or math.abs(current - tonumber(desired)) > tolerance then
         print("|cffffcc00Inner_graphic_config：|r设置未生效，已重新读取游戏当前值。")
     end
 end
@@ -443,7 +475,7 @@ local function BuildControls(parent)
             row.input:SetSize(140, 24)
             row.input:SetPoint("TOPLEFT", 6, -20)
             row.input:SetAutoFocus(false)
-            row.input:SetNumeric(true)
+            row.input:SetNumeric(not definition.decimal)
             row.input:SetMaxLetters(10)
             row.input:SetScript("OnTextChanged", function(_, userInput)
                 if userInput then row.dirty = true end

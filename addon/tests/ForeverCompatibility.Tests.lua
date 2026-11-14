@@ -111,6 +111,7 @@ local function widget(name, parent, kind)
     function object:Enable() self.enabled = true end
     function object:Disable() self.enabled = false end
     function object:GetChecked() return self.checked end
+    function object:SetNumeric(value) self.numeric = value end
     function object:SetChecked(value) self.checked = value end
     function object:Hide() local visible=self:IsVisible(); self.shown=false; VisibilityChanged(self,visible) end
     function object:Show() local visible=self:IsVisible(); self.shown=true; VisibilityChanged(self,visible) end
@@ -134,7 +135,7 @@ local function widget(name, parent, kind)
         "SetBackdrop", "SetHitRectInsets", "SetFrameLevel", "SetScale", "SetButtonState", "LockHighlight", "UnlockHighlight", "SetClampedToScreen", "SetMovable", "EnableMouse",
         "RegisterForDrag", "RegisterForClicks", "SetHighlightTexture", "SetTexture",
         "ClearAllPoints", "SetFont", "SetJustifyH", "SetAutoFocus",
-        "SetMaxLetters", "SetNumeric", "ClearFocus", "SetScrollChild", "StartMoving", "StopMovingOrSizing", "SetMultiLine", "SetFontObject", "SetBlendMode", "SetTexCoord",
+        "SetMaxLetters", "ClearFocus", "SetScrollChild", "StartMoving", "StopMovingOrSizing", "SetMultiLine", "SetFontObject", "SetBlendMode", "SetTexCoord",
         "SetOrientation", "SetMinMaxValues", "SetValueStep", "SetObeyStepOnDrag", "SetThumbTexture", "EnableMouseWheel", "SetTextColor",
     }
     for _, method in ipairs(harmless) do object[method] = function() end end
@@ -205,8 +206,16 @@ Settings = { RegisterCanvasLayoutCategory = function(frame, name)
     registeredCategories[#registeredCategories + 1] = category
     return category
 end, RegisterAddOnCategory = function(category) addonCategories[#addonCategories + 1] = category end }
-C_CVar = { GetCVar = function(key) return key == "softTargetInteract" and interactCVar or nil end,
-    SetCVar = function() cvarWrites = cvarWrites + 1 end }
+function GetMinRenderScale() return 0.5 end
+function GetMaxRenderScale() return 2 end
+local graphicCVars = {ResampleQuality = "3", ResampleAlwaysSharpen = "0", ResampleSharpness = "0.2", RenderScale = "1"}
+C_CVar = { GetCVar = function(key)
+    assert(type(key) == "string", "CVar getter requires a name")
+    return key == "softTargetInteract" and interactCVar or graphicCVars[key]
+end, SetCVar = function(key, value)
+    assert(type(key) == "string" and type(value) == "string", "CVar setter requires name and value strings")
+    cvarWrites = cvarWrites + 1
+end }
 MenuUtil = { CreateContextMenu = function(owner, generator)
     menuEntries = {}
     local description = {
@@ -301,6 +310,34 @@ assert(WoWTools.settings and type(WoWTools.settings.Open) == "function", "Missin
 assert(WoWTools.settings.pages.button_style.frame == WoWTools.buttonStyle.panel
     and WoWTools.modules.button_style == WoWTools.buttonStyle, "Button skin page module binding failed")
 assert(#WoWTools.buttonStyle.editors == 1, "Button skin editor is registered more than once")
+
+local resampleControls, resampleParent, resampleTab = {}, nil, nil
+for _, frame in ipairs(frames) do
+    local definition = frame.definition
+    if definition and graphicCVars[definition.cvar] then
+        assert(not resampleControls[definition.cvar], "Resample control was registered twice")
+        assert(type(definition.description) == "string" and #definition.description > 0, "Missing resample value descriptions")
+        resampleParent = resampleParent or frame:GetParent()
+        assert(frame:GetParent() == resampleParent, "Resample controls use different settings pages")
+        resampleControls[definition.cvar] = frame
+        if definition.numeric then
+            assert(frame.input.numeric == not definition.decimal, "Decimal CVar input uses integer-only mode")
+            assert(tonumber(frame.input:GetText()) == tonumber(graphicCVars[definition.cvar]), "CVar input binding failed")
+        end
+    end
+    if frame.template == "MinimalTabTemplate" and frame.Text:GetText() == "重采样" then resampleTab = frame end
+end
+for key in pairs(graphicCVars) do assert(resampleControls[key], "Missing resample control " .. key) end
+assert(resampleTab and resampleTab:GetParent() == WoWTools.settings.pages.inner_graphic_config.content,
+    "Missing resample tab in graphics settings")
+assert(resampleControls.ResampleQuality.definition.maximum == 3 and resampleControls.ResampleQuality.definition.meanings[0],
+    "Resample quality enum contract failed")
+assert(resampleControls.ResampleAlwaysSharpen.definition.meanings[0] and resampleControls.ResampleAlwaysSharpen.definition.meanings[1],
+    "Sharpening boolean contract failed")
+assert(resampleControls.ResampleSharpness.definition.disabledValue == -1 and resampleControls.ResampleSharpness.definition.maximum == 2,
+    "Resample sharpness range contract failed")
+assert(resampleControls.RenderScale.definition.minimum == GetMinRenderScale()
+    and resampleControls.RenderScale.definition.maximum == GetMaxRenderScale(), "Render scale native bounds binding failed")
 
 local vendor = WoWTools.betterVendorUI
 assert(vendor and vendor == WoWTools.modules.better_vendor_ui, "Embedded vendor module export failed")
