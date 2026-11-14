@@ -1,0 +1,136 @@
+--- a/BetterVendorUI/BetterVendorUI.lua
++++ b/BetterVendorUI/BetterVendorUI.lua
+@@ -1408,3 +1408,133 @@
+     end
+     ns.UpdateConfigLists()
+ end
++
++---------------------------------------------------------------------------
++-- Learned recipe markers
++---------------------------------------------------------------------------
++
++local knownRecipeCache, recipeDataRequests = {}, {}
++local recipeTooltip
++
++local function RequestRecipeData(link)
++    local itemID = tonumber(link:match("item:(%d+)"))
++    if itemID and recipeDataRequests[itemID] == nil then
++        recipeDataRequests[itemID] = true
++        ns.RequestItem(itemID)
++    end
++end
++
++local function IsKnownRecipe(link)
++    if knownRecipeCache[link] ~= nil then return knownRecipeCache[link] end
++    local name, _, _, _, _, _, _, _, _, _, _, classID = GetItemInfoSafe(link)
++    if not name or not classID then
++        RequestRecipeData(link)
++        return
++    end
++    if classID ~= 9 then
++        knownRecipeCache[link] = false
++        return false
++    end
++
++    recipeTooltip = recipeTooltip or CreateFrame("GameTooltip", "BetterVendorUIRecipeTooltip", UIParent, "GameTooltipTemplate")
++    recipeTooltip:SetOwner(UIParent, "ANCHOR_NONE")
++    recipeTooltip:ClearLines()
++    recipeTooltip:SetHyperlink(link)
++    local numLines = recipeTooltip:NumLines()
++    local complete, known = numLines > 1, false
++    for i = 1, numLines do
++        local line = _G["BetterVendorUIRecipeTooltipTextLeft" .. i]
++        local text = line and line:GetText()
++        if text == RETRIEVING_ITEM_INFO then complete = false end
++        if text and text:find(ITEM_SPELL_KNOWN, 1, true) then known = true end
++    end
++    recipeTooltip:Hide()
++    if complete then
++        knownRecipeCache[link] = known
++    else
++        RequestRecipeData(link)
++    end
++    return known
++end
++
++local function UpdateKnownRecipeMarkers()
++    local buying = MerchantFrame:IsShown() and MerchantFrame.selectedTab == 1 and not listMode
++    for i, itemButton in pairs(itemButtons) do
++        local icon = itemButton.icon or itemButton.Icon or _G[itemButton:GetName() .. "IconTexture"]
++        local known = buying and i <= MERCHANT_ITEMS_PER_PAGE and itemButton:IsShown()
++            and itemButton.link and icon and IsKnownRecipe(itemButton.link)
++        local marker = itemButton.betterVendorUIKnownRecipe
++        if known then
++            if not marker then
++                marker = {
++                    gray = itemButton:CreateTexture(nil, "OVERLAY", nil, 1),
++                    check = itemButton:CreateTexture(nil, "OVERLAY", nil, 2),
++                }
++                marker.gray:SetAllPoints(icon)
++                marker.gray:SetDesaturated(true)
++                marker.check:SetTexture(136814)
++                marker.check:SetSize(14, 14)
++                marker.check:SetPoint("TOPRIGHT", icon, "TOPRIGHT", 2, 2)
++                itemButton.betterVendorUIKnownRecipe = marker
++            end
++            -- Copy the icon after the vendor has finished drawing this slot.
++            marker.gray:SetTexture(icon:GetTexture())
++            marker.gray:SetTexCoord(icon:GetTexCoord())
++            marker.gray:SetVertexColor(icon:GetVertexColor())
++            marker.gray:SetAlpha(icon:GetAlpha())
++        end
++        if marker then
++            marker.gray:SetShown(known == true)
++            marker.check:SetShown(known == true)
++        end
++    end
++end
++
++local recipeRefreshPending = false
++local function ScheduleRecipeRefresh()
++    if recipeRefreshPending then return end
++    recipeRefreshPending = true
++    C_Timer.After(0, function()
++        recipeRefreshPending = false
++        if MerchantFrame:IsShown() and MerchantFrame.selectedTab == 1 then
++            MerchantFrame_Update()
++        end
++    end)
++end
++
++-- These hooks run after the vendor's own filtering and item remapping.
++hooksecurefunc("MerchantFrame_UpdateMerchantInfo", UpdateKnownRecipeMarkers)
++if MerchantFrame_UpdateBuybackInfo then
++    hooksecurefunc("MerchantFrame_UpdateBuybackInfo", UpdateKnownRecipeMarkers)
++end
++frame:HookScript("OnEvent", function(self, event, itemID)
++    if event == "MERCHANT_SHOW" then
++        wipe(knownRecipeCache)
++        wipe(recipeDataRequests)
++        self:RegisterEvent("NEW_RECIPE_LEARNED")
++        self:RegisterEvent("SKILL_LINES_CHANGED")
++        self:RegisterEvent("SPELLS_CHANGED")
++        ScheduleRecipeRefresh()
++    elseif event == "MERCHANT_CLOSED" then
++        self:UnregisterEvent("NEW_RECIPE_LEARNED")
++        self:UnregisterEvent("SKILL_LINES_CHANGED")
++        self:UnregisterEvent("SPELLS_CHANGED")
++        wipe(knownRecipeCache)
++        wipe(recipeDataRequests)
++        for _, itemButton in pairs(itemButtons) do
++            local marker = itemButton.betterVendorUIKnownRecipe
++            if marker then
++                marker.gray:Hide()
++                marker.check:Hide()
++            end
++        end
++    elseif event == "GET_ITEM_INFO_RECEIVED" then
++        if recipeDataRequests[itemID] then
++            recipeDataRequests[itemID] = false
++            ScheduleRecipeRefresh()
++        end
++    elseif event == "NEW_RECIPE_LEARNED" or event == "SKILL_LINES_CHANGED" or event == "SPELLS_CHANGED" then
++        wipe(knownRecipeCache)
++        ScheduleRecipeRefresh()
++    end
++end)
