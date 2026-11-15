@@ -97,8 +97,10 @@
     "Questie": [
       {
         "id": "zone-proximity-sort",
-        "description": "按区域远近以组内最近的已追踪可见任务地点排序区域，再按距离排列组内任务；已完成任务使用交任务地点，反向模式同步反转区域，坐标未知的区域置后。",
+        "description": "按区域远近以组内最近的已追踪可见任务地点排序区域，再按距离排列组内任务。排序前刷新任务计时状态，覆盖首次布局与计时过期，已完成任务使用交任务地点，反向模式同步反转区域，坐标未知的区域置后。",
         "variants": [
+          "zone-proximity-sort/12.9.0-timer-state/manifest.json",
+          "zone-proximity-sort/12.9.0-timer-state-upgrade/manifest.json",
           "zone-proximity-sort/12.9.0/manifest.json"
         ],
         "skipFromVersion": null,
