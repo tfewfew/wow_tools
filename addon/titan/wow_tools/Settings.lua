@@ -18,6 +18,7 @@ local groups = {
     { key="bigfoot_channel", label="大脚聊天", category="third_party", app="WoWToolsBigFootChannel" },
     { key="ls_toasts", label="lsToast", category="third_party", app="ls_Toasts" },
     { key="better_vendor_ui", label="商人增强", category="third_party" },
+    { key="pet_xp_bar", label="宠物经验", category="third_party" },
     { key="third_party", label="插件管理", category="third_party" },
 }
 settings.groups, settings.categories, settings.categoryTabs = groups, categories, {}

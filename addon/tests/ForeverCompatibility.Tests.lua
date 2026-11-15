@@ -98,8 +98,20 @@ local function widget(name, parent, kind)
         function object:GetStringWidth() return #self.text * 8 end
         function object:SetWordWrap(value) self.wordWrap = value end
         function object:SetMaxLines(value) self.maxLines = value end
+        function object:SetDrawLayer() end
+        function object:SetShadowColor() end
+        function object:SetShadowOffset() end
     elseif kind == "Texture" then
+        function object:SetHorizTile() end
+        function object:SetVertTile() end
         function object:SetRotation(value) self.rotation = value end
+    elseif kind == "StatusBar" then
+        function object:SetStatusBarTexture(texture)
+            self.statusTexture = widget(nil, self, "Texture")
+            self.statusTexture:SetTexture(texture)
+        end
+        function object:GetStatusBarTexture() return self.statusTexture end
+        function object:SetStatusBarColor(...) self.statusColor = {...} end
     elseif kind == "EditBox" then
         function object:GetNumLines()
             local _, newlines = self.text:gsub("\n", "")
@@ -166,6 +178,7 @@ function CreateFrame(kind, name, parent, template)
         object.MaximizeButton = widget(nil, object, "Button")
         object.MinimizeButton = widget(nil, object, "Button")
     end
+    if template == "UICheckButtonTemplate" then object.Text = widget(nil, object, "FontString") end
     if template == "MinimalTabTemplate" then
         object.Text = widget(nil, object, "FontString")
         function object:SetSelected(value) self.selected = value end
@@ -290,6 +303,18 @@ function UnitIsInteractable(unit)
 end
 function UnitName(unit) assert(unit == "softinteract"); return targetName end
 function UnitExists() error("Do not reject GameObjects with UnitExists") end
+-- Native pet contracts are present in both client sources.
+function HasPetUI() return false, false end
+function GetPetExperience() return 0, 1000 end
+function UnitLevel(unit)
+    assert(unit == "player" or unit == "pet", "Unexpected pet-level unit")
+    return unit == "player" and 60 or 59
+end
+if flavor == "titan" then
+    function GetMaxLevelForLatestExpansion() return 80 end
+else
+    function GetMaxPlayerLevel() return 60 end
+end
 local chatMock = dofile(root .. "/addon/tests/BigFootChannel.Mock.lua")
 local originalHook = hooksecurefunc
 function hooksecurefunc(target, method, callback)
@@ -312,7 +337,7 @@ for line in io.lines(addon .. "wow_tools.toc") do
 end
 -- SavedVariables become available after the TOC scripts and before ADDON_LOADED.
 if TEST_THIRD_PARTY_DISABLED then
-    wowDetectorDB = {thirdPartyAddons = {bigfoot_channel = false, ls_toasts = false, forever_faces = false, better_vendor_ui = false}}
+    wowDetectorDB = {thirdPartyAddons = {bigfoot_channel = false, ls_toasts = false, forever_faces = false, better_vendor_ui = false, pet_xp_bar = false}}
 end
 for _, frame in ipairs(frames) do
     if frame.events.ADDON_LOADED then frame.scripts.OnEvent(frame, "ADDON_LOADED", "wow_tools") end
@@ -389,6 +414,23 @@ assert(graphicControls.ResampleSharpness.definition.disabledValue == -1 and grap
 assert(graphicControls.RenderScale.definition.minimum == GetMinRenderScale()
     and graphicControls.RenderScale.definition.maximum == GetMaxRenderScale(), "Render scale native bounds binding failed")
 
+local petXP = WoWTools.petXPBar
+assert(petXP == WoWTools.modules.pet_xp_bar, "Pet XP module export failed")
+assert(WoWTools.settings.pages.pet_xp_bar.frame == petXP.settingsPanel, "Pet XP settings page binding failed")
+assert(petXP.sourceVersion == "1.3.1" and petXP.sourceCommit == "0c5da2aef6b2b56e307a77e37151fe4675be6c82",
+    "Pet XP upstream identity mismatch")
+assert(petXP.Compat.isForever == (flavor == "forerver"), "Pet XP client identity mismatch")
+assert(petXP.Compat.GetLevelCap() == (flavor == "titan" and 80 or 60), "Pet XP level-cap API binding failed")
+if TEST_THIRD_PARTY_DISABLED then
+    assert(not petXP.ready and not petXP.frame and not petXP.db, "Disabled Pet XP initialized its runtime")
+else
+    assert(petXP.ready and petXP.db == wowDetectorDB.petXPBar.db, "Pet XP account persistence binding failed")
+    WoWTools.settings.Open("pet_xp_bar")
+    assert(petXP.optionsPanel and petXP.optionsPanel.name == "宠物经验", "Pet XP options builder contract failed")
+    assert(type(petXP.Refresh) == "function" and type(petXP.HandleCommand) == "function", "Pet XP runtime load order failed")
+    WoWTools.settings.Open("wowDetector")
+end
+
 local vendor = WoWTools.betterVendorUI
 assert(vendor and vendor == WoWTools.modules.better_vendor_ui, "Embedded vendor module export failed")
 assert(WoWTools.settings.pages.better_vendor_ui.frame == vendor.settingsPanel, "Vendor settings page binding failed")
@@ -408,7 +450,7 @@ end
 local expectedCategories = {
     wowDetector="game_assist", fight_detector="game_assist", pet_tamer="game_assist",
     button_style="game_settings", inner_graphic_config="game_settings", ui_addons="game_settings", sound_control="game_settings",
-    bigfoot_channel="third_party", ls_toasts="third_party", forever_faces="third_party", better_vendor_ui="third_party", third_party="third_party",
+    bigfoot_channel="third_party", ls_toasts="third_party", forever_faces="third_party", better_vendor_ui="third_party", pet_xp_bar="third_party", third_party="third_party",
 }
 assert(#WoWTools.settings.categories == 3, "Wrong primary settings category count")
 local categoryWidth = math.max(1, settingsCanvas:GetWidth() - 16) / #WoWTools.settings.categories
@@ -450,7 +492,7 @@ end
 assert(WoWTools.settings.tabs.third_party.Text:GetText() == "插件管理", "Plugin manager label binding failed")
 assert(WoWTools.settings.pages.third_party and WoWTools.modules.third_party.BuildSettings,
     "Missing third-party settings interface")
-assert(#WoWTools.thirdParty.entries == (flavor == "forerver" and 4 or 3), "Wrong client plugin list")
+assert(#WoWTools.thirdParty.entries == (flavor == "forerver" and 5 or 4), "Wrong client plugin list")
 if TEST_THIRD_PARTY_DISABLED then
     assert(not WoWTools.lsToasts.C.db, "Disabled toast addon initialized its database")
     assert(not WoWTools.bigfootChannel.addon.db, "Disabled chat addon initialized its database")

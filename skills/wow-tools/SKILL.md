@@ -13,6 +13,12 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 以下为实现与发布历史，其中的测试名称和通过数量保留为历史记录，当前本地测试采用上述范围。
 
+## 宠物经验条收编（2026-11-15）
+
+- titan 2.1.85 / forerver 2.2.102 收编 PetXPBarPlus 1.3.1，上游 DustinChecketts/PetXPBarPlus 的完整基线为 0c5da2aef6b2b56e307a77e37151fe4675be6c82，保留 MIT 许可。两服独立加载 pet_xp_bar，统一设置“三方插件 → 宠物经验”提供中文设置，插件管理开关在下次加载生效。保留现有安装版的百分比、当前/所需经验及隐藏文字选项、等级、颜色、拖动和锁定，以及原 `/pxp` 命令。
+- 模块使用独立 WoWTools.petXPBar 命名空间，账号设置保存为 wowDetectorDB.petXPBar.db。停用时跳过运行框体、业务事件与计时器初始化。时光服按 classic_titan 7014c309 的 PetFrame、Wrath PetPaperDollFrame 与 UNIT_PET_EXPERIENCE 事件核对，使用本服 GetMaxLevelForLatestExpansion。无限服保留原生 GetPetExperience 和等级上限接口。经验与等级事件重新计算可见性。
+- 用户明确要求游戏运行时直接部署，并确认使用默认配置，本次无需导入旧 PetXPBarPlusDB。同步校验后归档原独立 PetXPBarPlus 目录。两服分别通过统一语法、语义和接口兼容性检查，实际显示与交互由用户验证。
+
 ## 贴图质量与缓存分配（2026-11-14）
 
 - titan 2.1.82 / forerver 2.2.99 在画面设置新增“贴图质量”和“缓存与分配”两个 tab，分别提供 6 项与 7 项 CVar。贴图页包含总档位、过滤、worldBaseMip、terrainMipLevel、componentTextureLevel 及 useHighResTextures。资源页包含 componentTexCacheSize、componentTexLoadLimit、componentCompress、GxAllowCachelessShaderMode、ThreadPoolPerThreadAllocator、FrameBufferCacheForceNoHeaps 及 worldPreloadHighResTextures。

@@ -19,6 +19,7 @@ local groups = {
     { key="ls_toasts", label="lsToast", category="third_party", app="ls_Toasts" },
     { key="forever_faces", label="3D头像", category="third_party" },
     { key="better_vendor_ui", label="商人增强", category="third_party" },
+    { key="pet_xp_bar", label="宠物经验", category="third_party" },
     { key="third_party", label="插件管理", category="third_party" },
 }
 settings.groups, settings.categories, settings.categoryTabs = groups, categories, {}
