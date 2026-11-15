@@ -411,6 +411,15 @@ local expectedCategories = {
     bigfoot_channel="third_party", ls_toasts="third_party", forever_faces="third_party", better_vendor_ui="third_party", third_party="third_party",
 }
 assert(#WoWTools.settings.categories == 3, "Wrong primary settings category count")
+local categoryWidth = math.max(1, settingsCanvas:GetWidth() - 16) / #WoWTools.settings.categories
+local divider = assert(settingsCanvas.categoryDivider, "Missing primary navigation divider")
+assert(divider:GetParent() == settingsCanvas and divider.kind == "Texture" and divider:GetHeight() == 1,
+    "Primary divider texture binding failed")
+assert(divider.point[1] == "TOPRIGHT" and divider.point[2] == settingsCanvas
+    and divider.point[3] == "TOPRIGHT" and divider.point[4] == -8 and divider.point[5] == -49,
+    "Primary divider must stretch across the canvas below the tabs")
+assert(divider.color[1] == 0.4 and divider.color[2] == 0.4 and divider.color[3] == 0.4 and divider.color[4] == 1,
+    "Primary divider color binding failed")
 for index, label in ipairs({"游戏辅助", "游戏设置", "三方插件"}) do
     local category = WoWTools.settings.categories[index]
     local tab = WoWTools.settings.categoryTabs[category.key]
@@ -419,8 +428,10 @@ for index, label in ipairs({"游戏辅助", "游戏设置", "三方插件"}) do
     assert(tab.template == "MinimalTabTemplate" and tab.selectionGroup,
         "Primary navigation lacks the native tab/radio interface")
     assert(tab:GetParent() == settingsCanvas and tab.point[1] == "TOPLEFT"
-        and tab.point[2] == 8 + (index - 1) * 140 and tab.point[3] == -8,
+        and tab.point[2] == 8 + (index - 1) * categoryWidth and tab.point[3] == -8,
         "Primary category anchor must use the top horizontal row")
+    assert(tab:GetWidth() == categoryWidth and tab:GetHeight() == 37,
+        "Primary tabs must divide the canvas width equally")
 end
 local secondaryRow = 0
 for _, group in ipairs(WoWTools.settings.groups) do

@@ -63,6 +63,11 @@ canvas:SetAllPoints(windowContent)
 canvas.background = canvas:CreateTexture(nil, "BACKGROUND")
 canvas.background:SetAllPoints(canvas)
 canvas.background:SetColorTexture(backgroundShade, backgroundShade, backgroundShade, 1)
+canvas.categoryDivider = canvas:CreateTexture(nil, "ARTWORK")
+canvas.categoryDivider:SetPoint("TOPLEFT", canvas, "TOPLEFT", 8, -49)
+canvas.categoryDivider:SetPoint("TOPRIGHT", canvas, "TOPRIGHT", -8, -49)
+canvas.categoryDivider:SetHeight(1)
+canvas.categoryDivider:SetColorTexture(0.4, 0.4, 0.4, 1)
 canvas:Hide()
 settings.window, settings.panel, settings.canvas = window, panel, canvas
 
@@ -121,11 +126,12 @@ LibStub("AceConfigRegistry-3.0").RegisterCallback(settings, "ConfigTableChange",
 local tabGroup = CreateRadioButtonGroup()
 local categoryTabGroup = CreateRadioButtonGroup()
 local function LayoutTabs()
+    local categoryWidth = math.max(1, canvas:GetWidth() - 16) / #categories
     for index, category in ipairs(categories) do
         local tab = settings.categoryTabs[category.key]
-        tab:SetSize(132, 37)
+        tab:SetSize(categoryWidth, 37)
         tab:ClearAllPoints()
-        tab:SetPoint("TOPLEFT", 8 + (index - 1) * 140, -8)
+        tab:SetPoint("TOPLEFT", 8 + (index - 1) * categoryWidth, -8)
     end
     local row = 0
     for _, group in ipairs(groups) do
