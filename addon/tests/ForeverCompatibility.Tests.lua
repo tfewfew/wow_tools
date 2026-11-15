@@ -414,6 +414,17 @@ assert(graphicControls.ResampleSharpness.definition.disabledValue == -1 and grap
 assert(graphicControls.RenderScale.definition.minimum == GetMinRenderScale()
     and graphicControls.RenderScale.definition.maximum == GetMaxRenderScale(), "Render scale native bounds binding failed")
 
+assert(WoWTools.luaGC and type(WoWTools.luaGC.Save) == "function", "Missing Lua GC settings interface")
+assert(#WoWTools.luaGC.views > 0, "Missing Lua GC settings controls")
+for _, view in ipairs(WoWTools.luaGC.views) do
+    assert(view.period:GetText() == "60", "Lua GC period must default to 60 seconds")
+end
+local secondsLabel
+for _, object in ipairs(widgets) do
+    if object.kind == "FontString" and object:GetText() == "校准周期（秒）" then secondsLabel = object end
+end
+assert(secondsLabel, "Lua GC period unit must be seconds")
+
 local petXP = WoWTools.petXPBar
 assert(petXP == WoWTools.modules.pet_xp_bar, "Pet XP module export failed")
 assert(WoWTools.settings.pages.pet_xp_bar.frame == petXP.settingsPanel, "Pet XP settings page binding failed")

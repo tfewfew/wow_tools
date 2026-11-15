@@ -19,12 +19,23 @@ end
 local function Valid(config)
     return type(config) == "table" and Integer(config.pause) and config.pause >= 1 and config.pause <= 10000
         and Integer(config.stepmul) and config.stepmul >= 1 and config.stepmul <= 10000
-        and Integer(config.calibrationMinutes) and config.calibrationMinutes >= 0 and config.calibrationMinutes <= 1440
+        and Integer(config.calibrationSeconds) and config.calibrationSeconds >= 0 and config.calibrationSeconds <= 86400
 end
 
 local function Config()
     local config = type(wowDetectorDB) == "table" and wowDetectorDB.luaGC
-    if Valid(config) then return config end
+    if type(config) ~= "table" then return end
+    local seconds = config.calibrationSeconds
+    if seconds == nil then
+        seconds = 60
+        if config.calibrationMinutes ~= nil then
+            local minutes = config.calibrationMinutes
+            if not Integer(minutes) or minutes < 0 or minutes > 1440 then return end
+            seconds = minutes * 60
+        end
+    end
+    local normalized = { pause = config.pause, stepmul = config.stepmul, calibrationSeconds = seconds }
+    if Valid(normalized) then return normalized end
 end
 
 local function UpdateViews()
@@ -35,7 +46,7 @@ local function UpdateViews()
             local value = module.latest and module.latest[spec.key]
             view.system[spec.key]:SetText(value ~= nil and tostring(value) or "未知")
         end
-        view.savedPeriod:SetText(config and (config.calibrationMinutes .. " 分钟") or "未保存")
+        view.savedPeriod:SetText(config and (config.calibrationSeconds .. " 秒") or "未保存")
         view.updated:SetText(module.readAt and ("最近读取 " .. module.readAt) or "尚未读取系统值")
         view.status:SetText(status)
     end
@@ -128,10 +139,10 @@ end
 local function StartTimer()
     StopTimer()
     local config = Config()
-    if not config or config.calibrationMinutes == 0 then return true end
+    if not config or config.calibrationSeconds == 0 then return true end
     if not C_Timer or type(C_Timer.NewTicker) ~= "function" then return false end
     local version = timerVersion
-    local ok, created = pcall(C_Timer.NewTicker, config.calibrationMinutes * 60, function()
+    local ok, created = pcall(C_Timer.NewTicker, config.calibrationSeconds, function()
         if version == timerVersion then module.Calibrate() end
     end)
     if not ok or not created or type(created.Cancel) ~= "function" then return false end
@@ -145,10 +156,10 @@ local function Parse(value)
     if Integer(value) then return value end
 end
 
-function module.Save(pause, stepmul, calibrationMinutes)
-    local desired = { pause = Parse(pause), stepmul = Parse(stepmul), calibrationMinutes = Parse(calibrationMinutes) }
+function module.Save(pause, stepmul, calibrationSeconds)
+    local desired = { pause = Parse(pause), stepmul = Parse(stepmul), calibrationSeconds = Parse(calibrationSeconds) }
     if not Valid(desired) then
-        status = "两个百分比须为 1–10000 整数，校准周期须为 0–1440 整数分钟。"
+        status = "两个百分比须为 1–10000 整数，校准周期须为 0–86400 整数秒。"
         UpdateViews()
         return false, status
     end
@@ -167,8 +178,8 @@ function module.Save(pause, stepmul, calibrationMinutes)
     end
     wowDetectorDB.luaGC = desired
     local timerStarted = StartTimer()
-    status = desired.calibrationMinutes == 0 and "已保存并应用，周期校准已关闭。"
-        or ("已保存并应用，每 " .. desired.calibrationMinutes .. " 分钟校准一次。")
+    status = desired.calibrationSeconds == 0 and "已保存并应用，周期校准已关闭。"
+        or ("已保存并应用，每 " .. desired.calibrationSeconds .. " 秒校准一次。")
     if not timerStarted then status = "已保存并应用，周期计时器启动失败，请重新保存。" end
     UpdateViews()
     return true, status
@@ -178,7 +189,7 @@ local function LoadDraft(view)
     local config = Config()
     view.inputs.pause:SetText(tostring(config and config.pause or 200))
     view.inputs.stepmul:SetText(tostring(config and config.stepmul or 200))
-    view.period:SetText(tostring(config and config.calibrationMinutes or 5))
+    view.period:SetText(tostring(config and config.calibrationSeconds or 60))
     view.dirty = false
 end
 
@@ -220,10 +231,10 @@ function module.BuildSettings(parent)
         view.system[spec.key] = Text("未知", 320, y, 94)
         descriptions[#descriptions + 1] = Text(spec.description, 8, y - 30, 398)
     end
-    Text("校准周期（分钟）", 8, -264, 140)
+    Text("校准周期（秒）", 8, -264, 140)
     view.period = Input(154, -259)
     view.savedPeriod = Text("未保存", 238, -264, 170)
-    local periodHint = Text("周期范围 0–1440 分钟，0 关闭自动校准。每次校准比对保存值，发现偏差后立即应用保存配置。", 8, -296, 398)
+    local periodHint = Text("周期范围 0–86400 秒，默认 60 秒，0 关闭自动校准。每次校准比对保存值，发现偏差后立即应用保存配置。", 8, -296, 398)
     local function Button(text, x, width, callback)
         local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
         button:SetPoint("TOPLEFT", x, -344)
