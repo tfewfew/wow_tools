@@ -318,7 +318,7 @@ for _, frame in ipairs(frames) do
     if frame.events.ADDON_LOADED then frame.scripts.OnEvent(frame, "ADDON_LOADED", "wow_tools") end
 end
 assert(WoWTools and type(WoWTools.modules) == "table", "Addon namespace failed to initialize")
-for _, name in ipairs({"wowDetector", "fight_detector", "pet_tamer", "button_style"}) do
+for _, name in ipairs({"wowDetector", "fight_detector", "pet_tamer", "button_style", "ui_addons"}) do
     assert(type(WoWTools.modules[name]) == "table", "Missing module export " .. name)
 end
 assert(WoWTools.settings and type(WoWTools.settings.Open) == "function", "Missing settings interface")
@@ -334,8 +334,9 @@ assert(WoWTools.settings.pages.button_style.frame == WoWTools.buttonStyle.panel
     and WoWTools.modules.button_style == WoWTools.buttonStyle, "Button skin page module binding failed")
 assert(#WoWTools.buttonStyle.editors == 1, "Button skin editor is registered more than once")
 
-local graphicControls, graphicTabs = {}, {}
+local graphicControls, graphicTabs, uiTabs = {}, {}, {}
 local graphicContent = WoWTools.settings.pages.inner_graphic_config.content
+local uiContent = WoWTools.settings.pages.ui_addons.content
 for _, frame in ipairs(frames) do
     local definition = frame.definition
     if definition and definition.cvar then
@@ -344,10 +345,16 @@ for _, frame in ipairs(frames) do
     end
     if frame.template == "MinimalTabTemplate" and frame:GetParent() == graphicContent then
         graphicTabs[frame.Text:GetText()] = frame
+    elseif frame.template == "MinimalTabTemplate" and frame:GetParent() == uiContent then
+        uiTabs[frame.Text:GetText()] = frame
     end
 end
+for _, name in ipairs({"缓存与分配", "界面", "字体", "Lua"}) do
+    assert(uiTabs[name] and not graphicTabs[name], "UI category is bound to the wrong settings page " .. name)
+end
 for tabName, values in pairs({["重采样"] = resampleCVars, ["贴图质量"] = textureCVars, ["缓存与分配"] = allocationCVars}) do
-    local tab = assert(graphicTabs[tabName], "Missing graphics settings tab " .. tabName)
+    local tabs = tabName == "缓存与分配" and uiTabs or graphicTabs
+    local tab = assert(tabs[tabName], "Missing settings tab " .. tabName)
     assert(tab.Text.wordWrap == false and tab:GetWidth() >= tab.Text:GetStringWidth(),
         "Graphics navigation does not fit its single-line label " .. tabName)
     local pageParent
@@ -357,6 +364,8 @@ for tabName, values in pairs({["重采样"] = resampleCVars, ["贴图质量"] = 
         assert(type(definition.description) == "string" and #definition.description > 0, "Missing graphics value descriptions")
         pageParent = pageParent or control:GetParent()
         assert(control:GetParent() == pageParent, "Graphics controls use different category pages")
+        local content = tabName == "缓存与分配" and uiContent or graphicContent
+        assert(pageParent:GetParent():GetParent() == content, "CVar control has the wrong settings host")
         if definition.numeric then
             assert(control.input.numeric == not definition.decimal, "Numeric CVar input mode does not match its type")
             assert(tonumber(control.input:GetText()) == tonumber(value), "CVar input binding failed")
@@ -396,11 +405,38 @@ else
     WoWTools.settings.Open("wowDetector")
 end
 
+local expectedCategories = {
+    wowDetector="game_assist", fight_detector="game_assist", pet_tamer="game_assist",
+    button_style="game_settings", inner_graphic_config="game_settings", ui_addons="game_settings", sound_control="game_settings",
+    bigfoot_channel="third_party", ls_toasts="third_party", forever_faces="third_party", better_vendor_ui="third_party", third_party="third_party",
+}
+assert(#WoWTools.settings.categories == 3, "Wrong primary settings category count")
+for index, label in ipairs({"游戏辅助", "游戏设置", "三方插件"}) do
+    local category = WoWTools.settings.categories[index]
+    local tab = WoWTools.settings.categoryTabs[category.key]
+    assert(category.label == label and tab.Text:GetText() == label and tab.Text.wordWrap == false,
+        "Primary category label binding failed")
+    assert(tab.template == "MinimalTabTemplate" and tab.selectionGroup,
+        "Primary navigation lacks the native tab/radio interface")
+    assert(tab:GetParent() == settingsCanvas and tab.point[1] == "TOPLEFT"
+        and tab.point[2] == 8 + (index - 1) * 140 and tab.point[3] == -8,
+        "Primary category anchor must use the top horizontal row")
+end
+local secondaryRow = 0
 for _, group in ipairs(WoWTools.settings.groups) do
+    assert(group.category == expectedCategories[group.key], "Settings page has the wrong primary category " .. group.key)
     local tab = WoWTools.settings.tabs[group.key]
     assert(tab.Text:GetText() == group.label and tab.Text.wordWrap == false,
-        "Primary tab label is not a single unwrapped line")
+        "Secondary tab label is not a single unwrapped line")
+    local activeCategory = group.category == WoWTools.settings.selectedCategory
+    assert(tab:IsShown() == activeCategory, "Secondary navigation has the wrong category binding")
+    if activeCategory then
+        assert(tab.point[1] == "TOPLEFT" and tab.point[2] == 8 and tab.point[3] == -57 - secondaryRow * 45,
+            "Secondary tab anchor must use the left column")
+        secondaryRow = secondaryRow + 1
+    end
 end
+assert(WoWTools.settings.tabs.third_party.Text:GetText() == "插件管理", "Plugin manager label binding failed")
 assert(WoWTools.settings.pages.third_party and WoWTools.modules.third_party.BuildSettings,
     "Missing third-party settings interface")
 assert(#WoWTools.thirdParty.entries == (flavor == "forerver" and 4 or 3), "Wrong client plugin list")

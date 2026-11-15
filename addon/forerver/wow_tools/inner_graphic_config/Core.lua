@@ -192,15 +192,6 @@ local categories = {
         componentTextureLevel = true,
         useHighResTextures = true,
     } },
-    { name = "缓存与分配", cvars = {
-        componentTexCacheSize = true,
-        componentTexLoadLimit = true,
-        componentCompress = true,
-        GxAllowCachelessShaderMode = true,
-        ThreadPoolPerThreadAllocator = true,
-        FrameBufferCacheForceNoHeaps = true,
-        worldPreloadHighResTextures = true,
-    } },
     { name = "体积雾", cvars = {
         volumeFogDisableLightScattering = true,
         volumeFogUse16BitTexture = true,
@@ -215,6 +206,17 @@ local categories = {
     { name = "液体", cvars = allLiquidCVars, subgroups = {
         { name = "普通液体", cvars = liquidCVars },
         { name = "团队液体", cvars = raidLiquidCVars },
+    } },
+}
+local uiCategories = {
+    { name = "缓存与分配", cvars = {
+        componentTexCacheSize = true,
+        componentTexLoadLimit = true,
+        componentCompress = true,
+        GxAllowCachelessShaderMode = true,
+        ThreadPoolPerThreadAllocator = true,
+        FrameBufferCacheForceNoHeaps = true,
+        worldPreloadHighResTextures = true,
     } },
     { name = "界面", cvars = { frameratePosition = true } },
     { name = "字体", cvars = {}, fonts = true },
@@ -361,10 +363,10 @@ local function Apply(control)
     end
 end
 
-local function BuildControls(parent)
+local function BuildControls(parent, categories, titleText)
     local title = parent:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 20, -24)
-    title:SetText("内部画面设置")
+    title:SetText(titleText)
     local subtitle = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -12)
     subtitle:SetText("直接读取并修改游戏当前设置。")
@@ -622,6 +624,11 @@ WoWTools.modules.inner_graphic_config = {
     Toggle = SlashCmdList.INNERGRAPHICCONFIG,
     Show = function() WoWTools.settings.Open("inner_graphic_config") end,
     IsShown = function() return WoWTools.settings.IsGroupShown("inner_graphic_config") end,
-    BuildSettings = BuildControls,
+    BuildSettings = function(parent) BuildControls(parent, categories, "内部画面设置") end,
+    RefreshSettings = Refresh,
+}
+
+WoWTools.modules.ui_addons = {
+    BuildSettings = function(parent) BuildControls(parent, uiCategories, "UI插件") end,
     RefreshSettings = Refresh,
 }
