@@ -330,6 +330,8 @@ function xpBar:UpdateCurrentText() self:SetBarText("100 / 1000") end
 StatusTrackingBarInfo = {BarsEnum = {Experience = 4}}
 StatusTrackingBarManager = {barContainers = {{bars = {[4] = xpBar}}}}
 function GetXPExhaustion() return 12345 end
+function UnitXP(unit) assert(unit == "player"); return 100 end
+function UnitXPMax(unit) assert(unit == "player"); return 1000 end
 for line in io.lines(addon .. "wow_tools.toc") do
     if line:match("%.lua%s*$") or line:match("%.xml%s*$") then
         chatMock.LoadAddonFile(addon .. line:gsub("\\", "/"):gsub("%s+$", ""))
@@ -347,6 +349,16 @@ for _, name in ipairs({"wowDetector", "fight_detector", "pet_tamer", "button_sty
     assert(type(WoWTools.modules[name]) == "table", "Missing module export " .. name)
 end
 assert(WoWTools.settings and type(WoWTools.settings.Open) == "function", "Missing settings interface")
+local experienceText = assert(WoWTools.experienceText, "Missing experience text module")
+assert(type(experienceText.SetPercentEnabled) == "function"
+    and type(experienceText.IsPercentEnabled) == "function", "Missing XP percentage interfaces")
+assert(not experienceText.IsPercentEnabled(), "XP percentage must default to disabled")
+assert(experienceText.SetEnabled(true) and experienceText.SetPercentEnabled(true), "XP text setters failed")
+assert(wowDetectorDB.displayFonts.showRestedXP and wowDetectorDB.displayFonts.showXPPercent
+    and xpText:GetText() == "100 / 1000（12345-10.0%）", "XP text API or persistence binding failed")
+local experienceControl = assert(WoWTools.displayFonts.controls[1], "Missing experience font controls")
+assert(experienceControl.key == "experience" and experienceControl.percent.kind == "CheckButton"
+    and experienceControl.rested.kind == "CheckButton", "XP text options require independent checkboxes")
 local settingsWindow, settingsCanvas = WoWTools.settings.window, WoWTools.settings.canvas
 for _, texture in ipairs({settingsWindow.Bg, settingsWindow.InsetBg, settingsWindow.TitleBg, settingsCanvas.background}) do
     assert(texture.color and texture.color[1] == 32 / 255 and texture.color[2] == 32 / 255

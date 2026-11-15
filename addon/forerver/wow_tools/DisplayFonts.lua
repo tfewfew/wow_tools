@@ -110,7 +110,7 @@ function module.BuildSettings(parent)
     local controls = {}
     local hint=parent:CreateFontString(nil,"ARTWORK","GameFontHighlightSmall")
     hint:SetPoint("TOPLEFT",8,-8);hint:SetWidth(398);hint:SetJustifyH("LEFT")
-    hint:SetText("字号和描边沿用游戏字体，每次登录或重载后应用一次。经验值可勾选显示剩余双倍经验，开关立即生效并保存。")
+    hint:SetText("字号和描边沿用游戏字体，每次登录或重载后应用一次。经验百分比和剩余双倍经验可分别勾选，立即生效并保存。")
     local preview=parent:CreateFontString(nil,"ARTWORK","GameFontNormal")
     module.preview=preview
     preview:SetPoint("TOPLEFT",8,-72-#specs*122);preview:SetWidth(398);preview:SetJustifyH("LEFT");preview:SetText("预览 12345")
@@ -126,14 +126,26 @@ function module.BuildSettings(parent)
         local status=row:CreateFontString(nil,"ARTWORK","GameFontHighlightSmall");status:SetPoint("TOPLEFT",0,-88);status:SetWidth(398);status:SetJustifyH("LEFT")
         local control={key=spec.key,row=row,size=size,sizeLabel=sizeLabel,outline=outline,status=status,apply=apply,reset=reset,flagIndex=1}
         if spec.key == "experience" then
+            local percent = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
+            percent:SetSize(26, 26)
+            percent:SetPoint("TOPLEFT", 56, 5)
+            local percentLabel = row:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+            percentLabel:SetPoint("LEFT", percent, "RIGHT", 0, 0)
+            percentLabel:SetText("显示百分比")
+            control.percent = percent
+            percent:SetScript("OnClick", function(self)
+                local _, message = WoWTools.experienceText.SetPercentEnabled(self:GetChecked() == true)
+                for _, other in ipairs(module.controls) do
+                    if other.percent then other.percent:SetChecked(WoWTools.experienceText.IsPercentEnabled()) end
+                end
+                status:SetText(message)
+            end)
             local rested = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
             rested:SetSize(26, 26)
-            rested:SetPoint("LEFT", size, "RIGHT", 8, 0)
+            rested:SetPoint("TOPLEFT", 164, 5)
             local label = row:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
             label:SetPoint("LEFT", rested, "RIGHT", 0, 0)
             label:SetText("显示剩余双倍经验")
-            outline:ClearAllPoints()
-            outline:SetPoint("TOPLEFT", 194, -56)
             control.rested = rested
             rested:SetScript("OnClick", function(self)
                 local _, message = WoWTools.experienceText.SetEnabled(self:GetChecked() == true)
@@ -147,6 +159,7 @@ function module.BuildSettings(parent)
         controls[#controls+1]=control
         local function Load()
             if control.rested then control.rested:SetChecked(WoWTools.experienceText.IsEnabled()) end
+            if control.percent then control.percent:SetChecked(WoWTools.experienceText.IsPercentEnabled()) end
             if control.dirty then return end
             local config=Config();local value=config and config[spec.key];local regions=Regions(spec.key)
             local nativeSize,nativeFlags

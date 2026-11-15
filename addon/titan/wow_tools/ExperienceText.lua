@@ -1,4 +1,4 @@
--- Titan 38002: append rested XP through each native experience bar's text setter.
+-- Titan 38002: append optional XP details through each native experience bar's text setter.
 local module = {}
 WoWTools.experienceText = module
 
@@ -14,6 +14,15 @@ function module.IsEnabled()
     return type(config) == "table" and config.showRestedXP == true
 end
 
+function module.IsPercentEnabled()
+    local config = wowDetectorDB and wowDetectorDB.displayFonts
+    return type(config) == "table" and config.showXPPercent == true
+end
+
+local function IsActive()
+    return module.IsEnabled() or module.IsPercentEnabled()
+end
+
 local function RemainingXP()
     if type(GetXPExhaustion) ~= "function" then return nil end
     local ok, amount = pcall(GetXPExhaustion)
@@ -26,20 +35,34 @@ local function RemainingXP()
     return string.format("%.0f", math.floor(amount))
 end
 
-local function AppendRemainingXP(bar, nativeText)
+local function CurrentXPPercent()
+    if type(UnitXP) ~= "function" or type(UnitXPMax) ~= "function" then return nil end
+    local currentOK, current = pcall(UnitXP, "player")
+    local maximumOK, maximum = pcall(UnitXPMax, "player")
+    if not currentOK or not maximumOK
+        or (issecretvalue and (issecretvalue(current) or issecretvalue(maximum))) then return nil end
+    if type(current) ~= "number" or current ~= current or current < 0 or current >= math.huge
+        or type(maximum) ~= "number" or maximum ~= maximum or maximum <= 0 or maximum >= math.huge
+        or current > maximum then return nil end
+    return string.format("%.1f%%", current / maximum * 100)
+end
+
+local function AppendExperienceInfo(bar, nativeText)
     local record = bars[bar]
     record.nativeText, record.decoratedText = nativeText, nil
-    if not module.IsEnabled() or (issecretvalue and issecretvalue(nativeText)) then return end
+    if not IsActive() or (issecretvalue and issecretvalue(nativeText)) then return end
     if type(nativeText) ~= "string" or nativeText == "" then return end
-    local remaining = RemainingXP()
-    if remaining then
-        record.decoratedText = nativeText .. "（" .. remaining .. "）"
+    local suffix = module.IsEnabled() and RemainingXP() or nil
+    local percent = module.IsPercentEnabled() and CurrentXPPercent() or nil
+    if percent then suffix = suffix and (suffix .. "-" .. percent) or percent end
+    if suffix then
+        record.decoratedText = nativeText .. "（" .. suffix .. "）"
         bar.OverlayFrame.Text:SetText(record.decoratedText)
     end
 end
 
 local function Refresh()
-    if module.IsEnabled() then
+    if IsActive() then
         local experience = StatusTrackingBarInfo and StatusTrackingBarInfo.BarsEnum
             and StatusTrackingBarInfo.BarsEnum.Experience
         for _, container in pairs(StatusTrackingBarManager and StatusTrackingBarManager.barContainers or {}) do
@@ -48,13 +71,13 @@ local function Refresh()
             if text and type(text.SetText) == "function" and type(bar.SetBarText) == "function"
                 and type(bar.UpdateCurrentText) == "function" and not bars[bar] then
                 bars[bar] = {}
-                hooksecurefunc(bar, "SetBarText", AppendRemainingXP)
+                hooksecurefunc(bar, "SetBarText", AppendExperienceInfo)
             end
         end
     end
     -- Rebuild from native data both on refresh and when removing our suffix.
     for bar, record in pairs(bars) do
-        if not module.IsEnabled() and record.decoratedText then
+        if record.decoratedText then
             local text = bar.OverlayFrame.Text
             local current = text:GetText()
             if not (issecretvalue and issecretvalue(current)) and current == record.decoratedText then
@@ -64,24 +87,35 @@ local function Refresh()
         end
         -- Titan skips UpdateCurrentText at maxBar == 0, so remove our own text first.
         bar:UpdateCurrentText()
+        if IsActive() and not record.decoratedText then
+            AppendExperienceInfo(bar, bar.OverlayFrame.Text:GetText())
+        end
     end
 end
 
 local function UpdateEvents()
-    local enabled = module.IsEnabled()
+    local enabled = IsActive()
     for _, event in ipairs(refreshEvents) do
         if enabled then events:RegisterEvent(event)
         else events:UnregisterEvent(event) end
     end
 end
 
-function module.SetEnabled(enabled)
+local function SetOption(key, enabled)
     if type(wowDetectorDB) ~= "table" then return false, "插件尚未初始化。" end
     if type(wowDetectorDB.displayFonts) ~= "table" then wowDetectorDB.displayFonts = {} end
-    wowDetectorDB.displayFonts.showRestedXP = enabled == true
+    wowDetectorDB.displayFonts[key] = enabled == true
     UpdateEvents()
     Refresh()
     return true, enabled and "已开启并自动保存。" or "已关闭并自动保存。"
+end
+
+function module.SetEnabled(enabled)
+    return SetOption("showRestedXP", enabled)
+end
+
+function module.SetPercentEnabled(enabled)
+    return SetOption("showXPPercent", enabled)
 end
 
 events:RegisterEvent("PLAYER_ENTERING_WORLD")
