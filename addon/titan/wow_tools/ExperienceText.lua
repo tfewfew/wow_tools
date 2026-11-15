@@ -23,7 +23,17 @@ local function IsActive()
     return module.IsEnabled() or module.IsPercentEnabled()
 end
 
-local function RemainingXP()
+local function RequiredXP()
+    if type(UnitXPMax) ~= "function" then return nil end
+    local ok, maximum = pcall(UnitXPMax, "player")
+    if not ok or (issecretvalue and issecretvalue(maximum)) then return nil end
+    if type(maximum) ~= "number" or maximum ~= maximum or maximum <= 0 or maximum >= math.huge then
+        return nil
+    end
+    return maximum
+end
+
+local function RemainingXP(maximum)
     if type(GetXPExhaustion) ~= "function" then return nil end
     local ok, amount = pcall(GetXPExhaustion)
     if not ok or (issecretvalue and issecretvalue(amount)) then return nil end
@@ -32,17 +42,16 @@ local function RemainingXP()
     if type(amount) ~= "number" or amount ~= amount or amount < 0 or amount >= math.huge then
         return nil
     end
-    return string.format("%.0f", math.floor(amount))
+    local text = string.format("%.0f", math.floor(amount))
+    if maximum then text = text .. "/" .. string.format("%.1f%%", amount / maximum * 100) end
+    return text
 end
 
-local function CurrentXPPercent()
-    if type(UnitXP) ~= "function" or type(UnitXPMax) ~= "function" then return nil end
+local function CurrentXPPercent(maximum)
+    if not maximum or type(UnitXP) ~= "function" then return nil end
     local currentOK, current = pcall(UnitXP, "player")
-    local maximumOK, maximum = pcall(UnitXPMax, "player")
-    if not currentOK or not maximumOK
-        or (issecretvalue and (issecretvalue(current) or issecretvalue(maximum))) then return nil end
+    if not currentOK or (issecretvalue and issecretvalue(current)) then return nil end
     if type(current) ~= "number" or current ~= current or current < 0 or current >= math.huge
-        or type(maximum) ~= "number" or maximum ~= maximum or maximum <= 0 or maximum >= math.huge
         or current > maximum then return nil end
     return string.format("%.1f%%", current / maximum * 100)
 end
@@ -52,8 +61,9 @@ local function AppendExperienceInfo(bar, nativeText)
     record.nativeText, record.decoratedText = nativeText, nil
     if not IsActive() or (issecretvalue and issecretvalue(nativeText)) then return end
     if type(nativeText) ~= "string" or nativeText == "" then return end
-    local suffix = module.IsEnabled() and RemainingXP() or nil
-    local percent = module.IsPercentEnabled() and CurrentXPPercent() or nil
+    local maximum = RequiredXP()
+    local suffix = module.IsEnabled() and RemainingXP(maximum) or nil
+    local percent = module.IsPercentEnabled() and CurrentXPPercent(maximum) or nil
     if percent then suffix = suffix and (suffix .. "-" .. percent) or percent end
     if suffix then
         record.decoratedText = nativeText .. "（" .. suffix .. "）"
@@ -123,4 +133,10 @@ events:SetScript("OnEvent", function(_, event, unit)
     if event == "PLAYER_XP_UPDATE" and ((issecretvalue and issecretvalue(unit)) or unit ~= "player") then return end
     if event == "PLAYER_ENTERING_WORLD" then UpdateEvents() end
     Refresh()
+    if event == "PLAYER_LEVEL_UP" then
+        -- Read the new level's XP requirement again after the level-up event finishes.
+        C_Timer.After(0, function()
+            if IsActive() then Refresh() end
+        end)
+    end
 end)

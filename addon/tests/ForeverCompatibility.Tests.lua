@@ -355,7 +355,25 @@ assert(type(experienceText.SetPercentEnabled) == "function"
 assert(not experienceText.IsPercentEnabled(), "XP percentage must default to disabled")
 assert(experienceText.SetEnabled(true) and experienceText.SetPercentEnabled(true), "XP text setters failed")
 assert(wowDetectorDB.displayFonts.showRestedXP and wowDetectorDB.displayFonts.showXPPercent
-    and xpText:GetText() == "100 / 1000（12345-10.0%）", "XP text API or persistence binding failed")
+    and xpText:GetText() == "100 / 1000（12345/1234.5%-10.0%）", "XP text API or persistence binding failed")
+local xpEvents
+for _, frame in ipairs(frames) do
+    if frame.events.PLAYER_LEVEL_UP and frame.events.PLAYER_XP_UPDATE and frame.events.ADDON_LOADED then
+        assert(not xpEvents, "Experience text events are registered more than once")
+        xpEvents = frame
+    end
+end
+assert(xpEvents, "Missing XP level-up event binding")
+local levelRefresh, originalAfter = nil, C_Timer.After
+C_Timer.After = function(delay, callback)
+    assert(delay == 0 and type(callback) == "function", "XP level-up refresh timer signature failed")
+    assert(not levelRefresh, "XP level-up refresh registered more than once")
+    levelRefresh = callback
+end
+xpEvents.scripts.OnEvent(xpEvents, "PLAYER_LEVEL_UP", 61)
+C_Timer.After = originalAfter
+assert(levelRefresh, "Missing XP level-up refresh callback")
+levelRefresh()
 local experienceControl = assert(WoWTools.displayFonts.controls[1], "Missing experience font controls")
 assert(experienceControl.key == "experience" and experienceControl.percent.kind == "CheckButton"
     and experienceControl.rested.kind == "CheckButton", "XP text options require independent checkboxes")
