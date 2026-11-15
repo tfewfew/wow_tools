@@ -93,6 +93,17 @@
         "skipFromVersion": null,
         "fixedEvidence": []
       }
+    ],
+    "Questie": [
+      {
+        "id": "zone-proximity-sort",
+        "description": "按区域远近以组内最近的已追踪可见任务地点排序区域，再按距离排列组内任务；已完成任务使用交任务地点，反向模式同步反转区域，坐标未知的区域置后。",
+        "variants": [
+          "zone-proximity-sort/12.9.0/manifest.json"
+        ],
+        "skipFromVersion": null,
+        "fixedEvidence": []
+      }
     ]
   }
 }
