@@ -5,13 +5,39 @@
     "DungeonsForever": [
       {
         "id": "background-scans",
-        "description": "区域提示读取书籍缓存，软刷新最少2秒，主地图巡检1秒，独立地图1/2秒，提示框0.5秒与皮肤探测2秒，手柄守护10秒。",
+        "description": "区域提示读取书籍缓存，软刷新最少2秒，主地图巡检1秒，独立地图1/2秒，手柄守护10秒。",
         "variants": [
           "background-scans/2.1.95/manifest.json",
-          "background-scans/2.1.96/manifest.json"
+          "background-scans/2.1.96/manifest.json",
+          "background-scans/2.1.99/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
+      },
+      {
+        "id": "tooltip-scans",
+        "description": "自有提示框子控件扫描0.5秒，外部皮肤探测2秒。",
+        "variants": [
+          "tooltip-scans/2.1.95/manifest.json"
+        ],
+        "skipFromVersion": "2.1.99",
+        "fixedEvidence": [
+          {
+            "version": "2.1.99",
+            "reason": "已核对 2.1.99 的 Hui.lua、TOC 加载清单及 DungeonsForever 系列源码。上游删除了 ExtTipSkin 外部皮肤轮询、CollectForeign 子控件遍历、SkinGameTooltip 的 OnUpdate 挂接以及登录后的 RefreshGameTooltipSkin 初始化链，原提示框周期修复涉及的实现已随该调用链移除。",
+            "files": [
+              {
+                "path": "DungeonsForever/Core/Hui.lua",
+                "sha256": "ec55b10f13c8c3dfc481b4f6408cf6529766aa99d95af440ff1b02be245648f9"
+              },
+              {
+                "path": "DungeonsForever/DungeonsForever.toc",
+                "sha256": "56a5d1983ed74759b3b392fad2cde1e134c75059679e1fa87abfd638022f9cd0"
+              }
+            ],
+            "checkedAt": "2026-11-15T05:24:55+00:00"
+          }
+        ]
       }
     ],
     "DungeonsForeverExplore": [
@@ -38,7 +64,8 @@
         "description": "专业跟随HUD每5秒更新，专业页悬停同步0.25秒。",
         "variants": [
           "background-scans/2.0.3/manifest.json",
-          "background-scans/2.0.3-20261114/manifest.json"
+          "background-scans/2.0.3-20261114/manifest.json",
+          "background-scans/2.0.3-20261115/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
@@ -49,7 +76,8 @@
         "id": "background-scans",
         "description": "法术书状态检查1秒，技能等级入口战斗0.5秒、脱战2秒，进入战斗事件即时更新安全显示。",
         "variants": [
-          "background-scans/2.3.12/manifest.json"
+          "background-scans/2.3.12/manifest.json",
+          "background-scans/2.3.12-20261115/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
