@@ -1,0 +1,166 @@
+-- Typed contracts for Forever's pooled native container and presentation APIs.
+local root = TEST_ROOT or "."
+local hooks, pending, frames = {}, {}, {}
+local cvar, loaded = "0", {}
+local slots = {[0] = 16, 4, 4, 4, 0, 4}
+local families = {[0] = 0, 0, 0, 1, 0, 0}
+WoWTools, wowDetectorDB = {}, {}
+Enum = {BagIndex = {ReagentBag = 5}, ItemClass = {Quiver = 11}}
+C_AddOns = {IsAddOnLoaded = function(name) assert(type(name) == "string") return loaded[name] end}
+InputUtil = {IsGamepadUIEnabled = function() return false end}
+C_Container = {
+    GetContainerNumSlots = function(bagID)
+        assert(type(bagID) == "number" and slots[bagID], "Unexpected container ID")
+        return slots[bagID]
+    end,
+    GetContainerNumFreeSlots = function(bagID)
+        assert(type(bagID) == "number" and families[bagID], "Unexpected family query")
+        return 0, families[bagID]
+    end,
+    ContainerIDToInventoryID = function(bagID)
+        assert(bagID >= 1 and bagID <= 4, "Bag slots must use the native inventory conversion")
+        return bagID + 19
+    end,
+}
+function GetInventoryItemLink(unit, inventoryID)
+    assert(unit == "player" and inventoryID >= 20 and inventoryID <= 23, "Equipment link signature mismatch")
+    return "bag:" .. inventoryID
+end
+C_Item = {GetItemInfoInstant = function(link)
+    assert(type(link) == "string" and link:match("^bag:"), "Instant item query must use a link")
+    return 1, "Container", "Bag", "INVTYPE_BAG", 1, 1, 0
+end}
+C_XMLUtil = {GetTemplateInfo = function(template)
+    assert(template == "ContainerFrameItemButtonTemplate", "Native item pool template mismatch")
+    return {width = 37, height = 37}
+end}
+C_Timer = {After = function(delay, callback)
+    assert(delay == 0 and type(callback) == "function", "Layout timer signature mismatch")
+    pending[#pending + 1] = callback
+end}
+bit = {band = function(value, mask)
+    assert(mask == 3 and type(value) == "number", "Ammo bag-family mask mismatch")
+    return value % 4
+end}
+function InCombatLockdown() return false end
+function GetCVar(name) assert(name == "combinedBags") return cvar end
+function GetCVarBool(name) return GetCVar(name) == "1" end
+function SetCVar(name, value)
+    assert(name == "combinedBags" and (value == "0" or value == "1"), "Unexpected CVar write")
+    cvar = value
+end
+local function Region(kind)
+    local region = {kind = kind, shown = false, scripts = {}, events = {}}
+    function region:SetPoint(point, relative, relativePoint, x, y)
+        assert(type(point) == "string" and type(relative) == "table" and type(relativePoint) == "string"
+            and type(x) == "number" and type(y) == "number", "Native anchor signature mismatch")
+    end
+    function region:ClearAllPoints() end
+    function region:SetText(value) assert(type(value) == "string") end
+    function region:SetHeight(value) assert(type(value) == "number") end
+    function region:SetColorTexture(r, g, b, a)
+        assert(type(r) == "number" and type(g) == "number" and type(b) == "number" and a == 1)
+    end
+    function region:Show() self.shown = true end
+    function region:Hide() self.shown = false end
+    function region:IsShown() return self.shown end
+    function region:SetScript(event, callback) self.scripts[event] = callback end
+    function region:RegisterEvent(event) self.events[event] = true end
+    function region:UnregisterEvent(event) self.events[event] = nil end
+    return region
+end
+function CreateFrame(kind)
+    assert(kind == "Frame", "Runtime integration must use the native item pool")
+    local frame = Region(kind)
+    frames[#frames + 1] = frame
+    return frame
+end
+local container = Region("Frame")
+ContainerFrameCombinedBags = container
+container.itemButtonPool = {GetTemplate = function() return "ContainerFrameItemButtonTemplate" end}
+function container:CreateFontString(name, layer, font)
+    assert(name == nil and layer == "ARTWORK" and font == "GameFontHighlightSmall")
+    return Region("FontString")
+end
+function container:CreateTexture(name, layer)
+    assert(name == nil and layer == "ARTWORK")
+    return Region("Texture")
+end
+function container:ClearItems() self.Items = {} end
+function container:AcquireNewItemButton()
+    local button = Region("ItemButton")
+    function button:Initialize(bagID, slotID)
+        assert(type(bagID) == "number" and slotID >= 1 and slotID <= slots[bagID], "Pooled item Initialize signature mismatch")
+        self.bagID, self.slotID = bagID, slotID
+    end
+    function button:GetBagID() return self.bagID end
+    function button:GetID() return self.slotID end
+    self.Items[#self.Items + 1] = button
+    return button
+end
+function container:SetBagSize()
+    self.size = 0
+    for bagID = 0, 4 do self.size = self.size + slots[bagID] end
+end
+function container:UpdateItemSlots()
+    self:ClearItems()
+    for bagID = 4, 0, -1 do
+        for slotID = slots[bagID], 1, -1 do self:AcquireNewItemButton():Initialize(bagID, slotID) end
+    end
+end
+function container:EnumerateValidItems() return ipairs(self.Items) end
+function container:MatchesBagID(bagID) return bagID >= 0 and bagID <= 4 end
+function container:IsBagOpen(bagID) if self.shown and self:MatchesBagID(bagID) then return bagID end end
+function container:UpdateItemLayout() end
+function container:UpdateFrameSize() end
+function container:HookScript(event, callback) self.scripts[event] = callback end
+function container:GetColumns() return 10 end
+function container:GetPaddingWidth() return 15 end
+function container:CalculateExtraHeight() return 28 end
+function container:LayoutAddSlots() end
+function container:SetSize(width, height) assert(width > 0 and height > 0) self.height = height end
+function container:GetHeight() return self.height end
+function container:SetScale(value) assert(value > 0) self.scale = value end
+ContainerFrameSettingsManager = {
+    IsUsingCombinedBags = function(_, bagID) return (not bagID or bagID <= 4) and cvar == "1" end,
+    OnCombinedBagSettingChanged = function(_, combined) assert(type(combined) == "boolean") end,
+}
+function IsAnyBagOpen() return container.shown end
+function CloseAllBags() container:Hide() end
+function OpenBackpack() container:Show() end
+function UpdateContainerFrameAnchors() container:SetScale(0.75) end
+NineSliceUtil = {UpdateCornerCropping = function(frame, height)
+    assert(frame == container and height == container:GetHeight(), "NineSlice interface mismatch")
+end}
+function hooksecurefunc(target, method, callback)
+    assert(target == container and type(target[method]) == "function" and type(callback) == "function")
+    hooks[method] = callback
+end
+dofile(root .. "/addon/forerver/wow_tools/BagIntegration.lua")
+local bags = WoWTools.bagIntegration
+assert(bags.SetEnabled(true) and bags.active and wowDetectorDB.bagIntegration.enabled,
+    "Enabled account setting must bind the native container integration")
+assert(container:MatchesBagID(5) and ContainerFrameSettingsManager:IsUsingCombinedBags(5),
+    "Reagent container routing must participate in the same native window")
+assert(not container:MatchesBagID(6), "Bank container routing changed")
+container:SetBagSize()
+hooks.SetBagSize(container)
+container:UpdateItemSlots()
+hooks.UpdateItemSlots(container)
+assert(container.size == #container.Items and container.size == 32,
+    "Native enumeration size must include every pooled reagent slot exactly once")
+hooks.UpdateItemSlots(container)
+assert(container.size == #container.Items, "Reagent buttons were acquired twice")
+container.meihang, container.suofang = 8, 1.1
+container:Show()
+hooks.UpdateFrameSize(container)
+hooks.UpdateItemLayout(container)
+for _, callback in ipairs(pending) do callback() end
+assert(container.scale == 1.1, "The native anchor pass must preserve !Pig's scale binding")
+assert(bags.SetEnabled(false) and not bags.active and cvar == "0",
+    "Disabling must restore the prior combinedBags interface setting")
+assert(not container:MatchesBagID(5) and not ContainerFrameSettingsManager:IsUsingCombinedBags(5),
+    "Inactive native routing must delegate to its original interfaces")
+loaded.Baganator = true
+assert(bags.SetEnabled(true) and not bags.active and cvar == "0", "A full bag replacement must retain native UI ownership")
+print("PASS: forerver native bag pool, reagent routing, presentation signatures and addon ownership contracts.")

@@ -220,6 +220,7 @@ local uiCategories = {
     } },
     { name = "界面", cvars = { frameratePosition = true } },
     { name = "字体", cvars = {}, fonts = true },
+    { name = "背包整合", cvars = {}, bags = true },
     { name = "Lua", cvars = {}, luaGC = true },
 }
 local function SmallDescription(text)
@@ -413,6 +414,7 @@ local function BuildControls(parent, categories, titleText)
     pages[categoryIndex] = scroll
     if category.fonts and WoWTools.displayFonts then WoWTools.displayFonts.BuildSettings(list) end
     if category.luaGC and WoWTools.luaGC then WoWTools.luaGC.BuildSettings(list) end
+    if category.bags then WoWTools.bagIntegration.BuildSettings(list) end
     local entries = {}
     local function Layout()
         local offset = 0
@@ -443,6 +445,7 @@ local function BuildControls(parent, categories, titleText)
         end
         list:SetHeight(category.fonts and WoWTools.displayFonts.settingsHeight
             or category.luaGC and WoWTools.luaGC.settingsHeight
+            or category.bags and WoWTools.bagIntegration.settingsHeight
             or math.max(1, offset))
     end
     layouts[categoryIndex] = Layout

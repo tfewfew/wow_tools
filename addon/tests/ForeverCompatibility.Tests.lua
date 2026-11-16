@@ -295,6 +295,7 @@ C_Container = {
     GetContainerNumSlots = function(bag) return bag == 0 and 16 or 0 end,
     GetContainerNumFreeSlots = function() return free, 0 end,
 }
+if flavor == "forerver" then Enum.BagIndex = {ReagentBag = 5} end
 function UnitIsDeadOrGhost() return dead end
 local ghost=false
 UnitIsDead=UnitIsDeadOrGhost
@@ -483,6 +484,14 @@ for _, frame in ipairs(frames) do
 end
 for _, name in ipairs({"缓存与分配", "界面", "字体", "Lua"}) do
     assert(uiTabs[name] and not graphicTabs[name], "UI category is bound to the wrong settings page " .. name)
+end
+if flavor == "forerver" then
+    assert(uiTabs["背包整合"] and not graphicTabs["背包整合"], "Bag integration settings page binding failed")
+    local bags = assert(WoWTools.bagIntegration, "Missing bag integration module")
+    assert(type(bags.SetEnabled) == "function" and type(bags.IsEnabled) == "function", "Missing bag settings interfaces")
+    assert(not bags.IsEnabled() and not bags.active, "Bag integration must initially be optional")
+    assert(#bags.views == 1 and bags.views[1].enabled.template == "UICheckButtonTemplate",
+        "Bag integration checkbox must bind to the shared UI page")
 end
 for tabName, values in pairs({["重采样"] = resampleCVars, ["贴图质量"] = textureCVars, ["缓存与分配"] = allocationCVars}) do
     local tabs = tabName == "缓存与分配" and uiTabs or graphicTabs
