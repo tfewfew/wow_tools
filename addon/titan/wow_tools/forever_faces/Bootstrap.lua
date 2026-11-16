@@ -1,6 +1,6 @@
 local portraits = {
-    sourceVersion = "1.0.9",
-    sourceCommit = "cbf2cd5b71f3e32b075af2001d7c726e41850240",
+    sourceVersion = "1.0.11",
+    sourceCommit = "20eaf8fd29b03ba3d91f73a90ccbaf39b49f2af4",
 }
 WoWTools.foreverFaces = portraits
 WoWTools.modules.forever_faces = portraits

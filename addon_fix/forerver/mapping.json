@@ -9,7 +9,8 @@
         "variants": [
           "background-scans/2.1.95/manifest.json",
           "background-scans/2.1.96/manifest.json",
-          "background-scans/2.1.99/manifest.json"
+          "background-scans/2.1.99/manifest.json",
+          "background-scans/2.1.102/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
@@ -36,6 +37,21 @@
               }
             ],
             "checkedAt": "2026-11-15T05:24:55+00:00"
+          },
+          {
+            "version": "2.1.102",
+            "reason": "核对 2.1.102 的 Hui.lua、TOC 与 DungeonsForever、Explore、Prof、Spell 的全部 Lua 调用链，ExtTipSkin、CollectForeign、SkinGameTooltip 和 RefreshGameTooltipSkin 均已删除，原提示框 OnUpdate 子控件扫描和外部皮肤探测链继续由上游移除。TOC 随新版本变化，追加当前源码指纹，停止边界继续沿用已核实的 2.1.99。",
+            "files": [
+              {
+                "path": "DungeonsForever/Core/Hui.lua",
+                "sha256": "ec55b10f13c8c3dfc481b4f6408cf6529766aa99d95af440ff1b02be245648f9"
+              },
+              {
+                "path": "DungeonsForever/DungeonsForever.toc",
+                "sha256": "a19b1e29b7e5ae90bcdb2e251b328dda1a17569b8aa048ed7ad8673382cfa288"
+              }
+            ],
+            "checkedAt": "2026-11-16T04:06:28+00:00"
           }
         ]
       }
@@ -77,7 +93,8 @@
         "description": "法术书状态检查1秒，技能等级入口战斗0.5秒、脱战2秒，进入战斗事件即时更新安全显示。",
         "variants": [
           "background-scans/2.3.12/manifest.json",
-          "background-scans/2.3.12-20261115/manifest.json"
+          "background-scans/2.3.12-20261115/manifest.json",
+          "background-scans/2.3.12-20261116/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []

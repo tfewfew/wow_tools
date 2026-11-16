@@ -111,7 +111,7 @@ local function refreshWindow()
             or (
                 T('Level ')
                 .. Addon.LevelText(selectedSubject)
-                .. '  /  ' .. T(selectedSubject.foreverReference and 'Forever reference' or 'Classic reference')
+                .. ' / ' .. T(selectedSubject.mixedReference and 'Forever + Classic' or selectedSubject.foreverReference and 'Forever reference' or 'Classic reference')
                 .. (showingPreview and ('  /  ' .. T('Preview')) or '')
             )
     )
@@ -119,8 +119,9 @@ local function refreshWindow()
         selectedSubject.itemID
                 and T('Sources: Classic DB / source metadata / Forever records\nCoverage varies; ? = unknown chance')
             or (
-                selectedSubject.foreverReference
-                    and T('Icy Veins Forever / 2026-11-13\nPartial snapshot; * conditional chance')
+                selectedSubject.mixedReference
+                    and T('Forever sources + Classic fallback rates\nClassic % unverified for Forever; ? unknown')
+                or selectedSubject.foreverReference and T('Icy Veins Forever / 2026-11-13\nPartial snapshot; * conditional chance')
                 or T('cMaNGOS Classic 1.12 - not verified for Forever\n* Conditional drop chance')
             )
     )
@@ -395,12 +396,6 @@ function Addon.BuildBestiary()
     bestiaryFrame.questLine = createLabel(bestiaryFrame, 10, 10, -65, 280)
     bestiaryFrame.questLine:SetTextColor(1, 0.82, 0.2)
     bestiaryFrame.section = createLabel(bestiaryFrame, 9, 10, -68, 280)
-    local browse = button(bestiaryFrame, T('Browse'), 225, -65, 64, function()
-        Addon.OpenBrowser()
-    end)
-    browse:ClearAllPoints()
-    browse:SetPoint('TOPRIGHT', bestiaryFrame.section, 'TOPRIGHT', 0, 3)
-    browse:SetHeight(18)
     bestiaryFrame.scrollbar = Addon.Scrollbar(bestiaryFrame, function(value)
         scrollOffset = value
         hideRowTooltip()
@@ -426,6 +421,18 @@ function Addon.BuildBestiary()
         row.detail:SetJustifyH('RIGHT')
         row.location = createLabel(row, 9, 0, -21, 273)
         row.location:SetTextColor(unpack(Addon.Theme.muted))
+        row:SetScript('OnClick', function(self)
+            if not self.entry or not selectedSubject or selectedSubject.itemID then
+                return
+            end
+            local codex = _G.RaynnaCodexAPI
+            if codex and type(codex.OpenItem) == 'function' then
+                hideRowTooltip()
+                codex.OpenItem(self.entry.id, bestiaryFrame)
+            else
+                Addon.ShowBestiary(Addon.ReferenceItem(self.entry.id), false, true)
+            end
+        end)
         row:SetScript('OnEnter', function(self)
             if self.entry then
                 if not rowTooltipLevel then
@@ -485,6 +492,19 @@ function Addon.BuildBestiary()
                         1,
                         0.82,
                         0.2,
+                        true
+                    )
+                end
+                if not selectedSubject.itemID then
+                    local codex = _G.RaynnaCodexAPI
+                    GameTooltip:AddLine(
+                        codex
+                                and type(codex.OpenItem) == 'function'
+                                and T('Click for uses, recipes and sources in Codex')
+                            or T('Click to view item sources'),
+                        0.4,
+                        0.9,
+                        0.6,
                         true
                     )
                 end
@@ -586,7 +606,7 @@ function Addon.BuildBestiary()
         elseif message == 'demo' then
             Addon.BestiaryDemo()
         else
-            Addon.OpenBrowser()
+            Addon.OpenBrowser(nil, true)
         end
     end
     bestiaryFrame:Hide()

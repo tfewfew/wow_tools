@@ -1,7 +1,7 @@
 local _, addon = ...
 addon = addon or {}
-addon.sourceVersion = "120105.05"
-addon.sourceCommit = "355774b11757b46ed3bb4c784ad7145f03e43871"
+addon.sourceVersion = "120105.06"
+addon.sourceCommit = "65bc1fcef7d4de5df471397e7b467385d46f89e6"
 WoWTools.lsToasts = addon
 
 function addon.GetSettings()

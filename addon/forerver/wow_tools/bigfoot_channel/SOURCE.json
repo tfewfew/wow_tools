@@ -1,0 +1,471 @@
+{
+  "name": "BigFoot chat components",
+  "componentVersion": null,
+  "version": "1.60.1.2（整合包）",
+  "repository": "https://gitee.com/bigfoot-wow/forever",
+  "upstreamCommit": "6b8e7466470cd2daf4c8c647eb8f97f141caafb6",
+  "release": "https://gitee.com/bigfoot-wow/forever/releases/tag/1.60.1.2",
+  "packageSHA256": "b99fcd0eff2834c140bc5c1969008cc06ccda2e7e1337c0145e129cff750c505",
+  "packageMD5": "7bddec785f5c31a7146b6570564c643e",
+  "sourceFiles": {
+    "chatframe.lua": {
+      "path": "Interface/AddOns/BigFootChat/chatframe.lua",
+      "sha256": "852fe0c4e2bd7df0d20b9a3781cc6fab5803c032c7a477323ff501d5d5443e00"
+    },
+    "config.lua": {
+      "path": "Interface/AddOns/BigFootChat/config.lua",
+      "sha256": "23764fbd1c6b337f8901b259b8220129a8b007ed02ddb2740d80efb8e333b179"
+    },
+    "core.lua": {
+      "path": "Interface/AddOns/BigFootChat/core.lua",
+      "sha256": "017927fd63b48c53e475ae599aa39452a8495ce7ce8d7a873310878bb4cb33a0"
+    },
+    "frame.xml": {
+      "path": "Interface/AddOns/BigFootChat/frame.xml",
+      "sha256": "69b1175f70426e27878a35f967df8a3f1a62da572bb6cf4187f630c18f2f8bca"
+    },
+    "iconframe.lua": {
+      "path": "Interface/AddOns/BigFootChat/iconframe.lua",
+      "sha256": "3d06d0802823e08d59d340081652ff44725ceeffa5bffd89bd1f8c8b5ea554bf"
+    },
+    "raidersFrame.lua": {
+      "path": "Interface/AddOns/BigFootChat/raidersFrame.lua",
+      "sha256": "d347d7baa01b204218ceda2398d76cb56a87e5280ed920a6458ee5d7af49d05f"
+    },
+    "statReport.lua": {
+      "path": "Interface/AddOns/BigFootChat/statReport.lua",
+      "sha256": "fb401666070af96c81c690bee1825144dab9a857ecf9d0166ad4968193c9f04e"
+    },
+    "icon/angel.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/angel.tga",
+      "sha256": "23ea675a8a66227f535ca01df811cf8d0655b41994eba5fe9de468b8c5397dd5"
+    },
+    "icon/angry.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/angry.tga",
+      "sha256": "2ea789cc26d9a47cc3ab96758104fe9bde411e9c7e62dc95179ae85db8d67811"
+    },
+    "icon/biglaugh.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/biglaugh.tga",
+      "sha256": "268c4a6490469f7c283087bb5b2e0b4ef4551214d55905237fb53f0197d854ed"
+    },
+    "icon/clap.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/clap.tga",
+      "sha256": "fa0efb9f41bd75f5128d12d6b00972f268ae77f0dcaa4a3d7b89e74be90fdca9"
+    },
+    "icon/cool.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/cool.tga",
+      "sha256": "5a517f66355ba3d7cd1500195dbf6ec596c4ded9d581e9759bef8dd7deac6f02"
+    },
+    "icon/cry.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/cry.tga",
+      "sha256": "3aecb6a6be6bd362335ad0d0df35d74922b2430c4067b70eb653a110af0b62c1"
+    },
+    "icon/cutie.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/cutie.tga",
+      "sha256": "bb2bb237893bc119dce037bc07d31f8da82ade224a3d000d6601285201394c2f"
+    },
+    "icon/despise.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/despise.tga",
+      "sha256": "add1d9f70ecdebd4c2761bb9247b6199ceea791590bf1216fc503dd4ea0444b2"
+    },
+    "icon/dreamsmile.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/dreamsmile.tga",
+      "sha256": "2aeb06afad00b2abdc3b681ec263b21c88c6727b797e98b0479de4eb6392de14"
+    },
+    "icon/embarrass.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/embarrass.tga",
+      "sha256": "ecb7994d545b91eec8781e885612560082ee588b116226a5a5f867ce25a57e12"
+    },
+    "icon/evil.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/evil.tga",
+      "sha256": "8c80ced4282d6bb2134623ddfe2f10533d32573e9682acbb267b8b11dc892e5f"
+    },
+    "icon/excited.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/excited.tga",
+      "sha256": "b67c4fb1d34078e6be10e2165d70abda3eb7205af2938e8b23a1366b449f9752"
+    },
+    "icon/faint.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/faint.tga",
+      "sha256": "2a6dfa6661bc2b5627f9aa4c40cea277563715067b1e1c2fd717426c81e1cf44"
+    },
+    "icon/fight.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/fight.tga",
+      "sha256": "ca3f8dceb4d10f7b1d5f4f27d104e9c47df62b8992ea37e2f58170062767b588"
+    },
+    "icon/flu.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/flu.tga",
+      "sha256": "dfe3adf5b8cb36039c3054fcbae8cc5486db844cbb53eeb42313175966acaffc"
+    },
+    "icon/freeze.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/freeze.tga",
+      "sha256": "3fb0f15f7fed5fec0e06effcd559d5e0e8866c29cdb3b1b81b27b2ef28dbc6ea"
+    },
+    "icon/frown.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/frown.tga",
+      "sha256": "0463cc7f6a070c67f0b20f3409c465754010808ffb01b6fa6286bc2ebd3279e5"
+    },
+    "icon/greet.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/greet.tga",
+      "sha256": "d3dcd269f57a78da32bac4451cdfdc4b588b761023b89517f97c0b72f2e5f728"
+    },
+    "icon/grimace.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/grimace.tga",
+      "sha256": "fc38c507c70704783cfe5ad2ef9ce4dd4dab89219c156121026b3c8bbd362f2e"
+    },
+    "icon/growl.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/growl.tga",
+      "sha256": "8ab1d3c4f849107233d739409a3272a797e1c02773e4d5d08815e3eaf45c871e"
+    },
+    "icon/happy.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/happy.tga",
+      "sha256": "e472a51a371dd90d823d26687a18ed977511c2f7697a36639d9cbf48b93a265e"
+    },
+    "icon/heart.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/heart.tga",
+      "sha256": "9da62ab2cbde8927e8043f68100342d2e0a1982ce7c4bbd444d4fc25a1dc1040"
+    },
+    "icon/horror.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/horror.tga",
+      "sha256": "22654254e257bfb8affc5e32c4b06bc9bcec40bce8cbf49455635d7bb45b4bf2"
+    },
+    "icon/ill.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/ill.tga",
+      "sha256": "ff58e6bb5158d9716750593d54638671416c3563a5abd9934ba73ec3ae1ebc0f"
+    },
+    "icon/Innocent.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/Innocent.tga",
+      "sha256": "f39085e418b5f8ccfa695495b5303d077804696bec5165f61048f00391c19207"
+    },
+    "icon/kongfu.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/kongfu.tga",
+      "sha256": "7ca5736d7bf7cfb7ae46c26f9dc11e8f85e60e336c215355a91095191c757db5"
+    },
+    "icon/love.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/love.tga",
+      "sha256": "2ea1c590ed68a873b1302feb8ce45a7a9ba90e586b98027d6ab04fa55f78d3f9"
+    },
+    "icon/mail.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/mail.tga",
+      "sha256": "5f7799666ecb31d3e48d3e5b533445f059aea88577e0cc9b9f0fe2f8168a00c9"
+    },
+    "icon/makeup.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/makeup.tga",
+      "sha256": "2bb7896686681f1be5c0810755426b3342dcb29df11201ff60a3ac705d4c0c78"
+    },
+    "icon/mario.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/mario.tga",
+      "sha256": "f0186db8ef8355740e4a782519bd65cd7cbc19b20da2b713f5e736965b3f44b9"
+    },
+    "icon/meditate.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/meditate.tga",
+      "sha256": "070fd3889856486b38c45fb22ce2f4a5e3561f336c559f54254c29049ef80d6b"
+    },
+    "icon/miserable.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/miserable.tga",
+      "sha256": "bef2226272d97275f04f87f2ca544cc7910edc46f88e565a33f59bd28a2962b2"
+    },
+    "icon/okay.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/okay.tga",
+      "sha256": "60312cc7e83de2eb9f5d74c9b5f239694a31f6376d45c2eb85b9d4d71059038d"
+    },
+    "icon/pretty.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/pretty.tga",
+      "sha256": "48093d9c2906daac2127b908ee51bdf3798981d37abdf285562244c4d61aee98"
+    },
+    "icon/puke.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/puke.tga",
+      "sha256": "b713c1b5108b8e6e044858f9e308e7e35179b4800055c2413c8ee8b31d6f5591"
+    },
+    "icon/raiders.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/raiders.tga",
+      "sha256": "bb71d401674373cc7a53a1d34908ab3db63a70099e79444c301d7f6540841c9d"
+    },
+    "icon/report.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/report.tga",
+      "sha256": "da55306fc65315f961b8b69dcbf63698e6f40237a45e81f9cbc86e54b3ef71b4"
+    },
+    "icon/roll.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/roll.tga",
+      "sha256": "3488b1bee6e069ac44c5533337985b0c7722a154f5b552d11eb41bac7b977eeb"
+    },
+    "icon/shake.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/shake.tga",
+      "sha256": "4d0dc798c836c4329182e61488d3563df94bca7b8d42e428df363feeaee02863"
+    },
+    "icon/shout.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/shout.tga",
+      "sha256": "3cc19163aa174d4da8443eae4a6dd7c54e61d06415342588802baab543134e5c"
+    },
+    "icon/shuuuu.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/shuuuu.tga",
+      "sha256": "be9e39a8503ec0beb21f554a8bb77b72dd3464b3e4e3f87fdf3f818f9bf897bc"
+    },
+    "icon/shy.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/shy.tga",
+      "sha256": "f0926363a20a4d35b2f64828ec88af7404a046c42fd7f6ab56b73f4e59e2ad83"
+    },
+    "icon/sleep.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/sleep.tga",
+      "sha256": "c343882a71d741c3c99d017ece1cb28b9dc7dedc6bb01a67a23971f492a7cc93"
+    },
+    "icon/smile.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/smile.tga",
+      "sha256": "9f046ba86c30581c12eeda970f80253f31f482999e8e7b30582744ca66fa859b"
+    },
+    "icon/suprise.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/suprise.tga",
+      "sha256": "cbae54fcb8102d66bc9bff60355859e4ae7cb3af5dd82838772e409f3231438a"
+    },
+    "icon/surrender.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/surrender.tga",
+      "sha256": "7b2a9ed31c22a3d63f44abd26f89ea2aa5383d587accb1ecad2e599034d2a072"
+    },
+    "icon/sweat.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/sweat.tga",
+      "sha256": "7372e9d35540bae3441f89c4ca300c661e2b65173755e9d828292cd09e93dc6a"
+    },
+    "icon/tear.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/tear.tga",
+      "sha256": "f1cd59d3199883c37da217e701786a75f80817a590f13ede08308e56d178bd4d"
+    },
+    "icon/tears.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/tears.tga",
+      "sha256": "1b0d0c6fb4f005e644a3d39ec18433c4bb095d241bc67c7bc5c9dc0c00e5ffb7"
+    },
+    "icon/text_nor_frame.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/text_nor_frame.tga",
+      "sha256": "1a3185b92769e949db38570da885973f79909566cea9500652a29e90a4ac47f7"
+    },
+    "icon/text_nor_icon.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/text_nor_icon.tga",
+      "sha256": "856e1940e6f7d80c65c449084edf27567e4587ca17564522720b4ff4acda900e"
+    },
+    "icon/text_push_frame.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/text_push_frame.tga",
+      "sha256": "b30091ab1aeba41c105719df33782a6cf94716e9ff67e7ba3d542c2ade529b7d"
+    },
+    "icon/text_push_icon.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/text_push_icon.tga",
+      "sha256": "fcaf01fd56ae45483dbdb656f7aca13ab6e8b50756f35dcfc174bda731df9723"
+    },
+    "icon/think.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/think.tga",
+      "sha256": "fcf8b7c79ba20535d73f378c5f2bc3ac1514100ae2c136723d62ce3a332374d5"
+    },
+    "icon/Titter.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/Titter.tga",
+      "sha256": "211313cc96191b93043854efaba0994252ebc46c960102649b42236ac5bd300c"
+    },
+    "icon/ugly.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/ugly.tga",
+      "sha256": "07f593dcdb0560c7526302b2e2976f004d4dfc80c8f368702f0933afe73d9a51"
+    },
+    "icon/victory.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/victory.tga",
+      "sha256": "9a7e8658a790fb9be5f4b623e223038c0b3a3ecbe398fe22fddedc57f6784306"
+    },
+    "icon/volunteer.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/volunteer.tga",
+      "sha256": "3fe57f0b4ee49335c7eafd4f30bee32d210d1042bb75f416980b75e1c9154209"
+    },
+    "icon/wronged.tga": {
+      "path": "Interface/AddOns/BigFootChat/icon/wronged.tga",
+      "sha256": "af22719508d242b9aaa73bf3434c72bbfefcbea73cc017ff4f7fbfa025669b9c"
+    },
+    "Library/BigFootRaidersDate.lua": {
+      "path": "Interface/AddOns/BigFoot/Library/BigFootRaidersDate.lua",
+      "sha256": "5932d4514d4ac68713310b569752f278d52f0aeb99bdb2e109b94d118473440f"
+    },
+    "Libs/embeds.xml": {
+      "path": "Interface/AddOns/!!!Libs/embeds.xml",
+      "sha256": "3cd06788ecc9537f181bdf6ff287bc50f6c13442435a3ff5818806f0f367e5ff"
+    },
+    "locale/locale.cn.lua": {
+      "path": "Interface/AddOns/BigFootChat/locale/locale.cn.lua",
+      "sha256": "08364c8298bc2ed3c6f2640354d87faf4a2f96e03495c67c10eff7abcfe9fa5f"
+    },
+    "locale/locale.en.lua": {
+      "path": "Interface/AddOns/BigFootChat/locale/locale.en.lua",
+      "sha256": "8f4c2e17f2647d629ec2b0d00b5bb0b292553da18e94a99a27bcce0b22447a85"
+    },
+    "locale/locale.tw.lua": {
+      "path": "Interface/AddOns/BigFootChat/locale/locale.tw.lua",
+      "sha256": "f8b80aa3ac0f52fda31ab76c737ab5cd9c087a3d688bf21ef4e3d6630ae03d75"
+    },
+    "Media/bigfoot.tga": {
+      "path": "Interface/AddOns/BigFoot/Media/bigfoot.tga",
+      "sha256": "cecccb709f1f6798449afe6829221e992ba52d8e554592562321f359d448d126"
+    },
+    "Media/mute.tga": {
+      "path": "Interface/AddOns/BigFoot/Media/mute.tga",
+      "sha256": "5f4cfaa74bdb6aa20a8c7cefc57ae97e2a4dd5b37376fb5262ad0b15b4e7b3fa"
+    },
+    "Media/normal-up.tga": {
+      "path": "Interface/AddOns/BigFoot/Media/normal-up.tga",
+      "sha256": "0067b39ab74e78ec6820be61b2e7c5a73561327d4735359e99d767f9dea36b34"
+    },
+    "Libs/LibStub/LibStub.lua": {
+      "path": "Interface/AddOns/!!!Libs/LibStub/LibStub.lua",
+      "sha256": "4c6530b99337f21b0034b88117c89dd4b18bca971c73d5e8d8bd91638ce614a1"
+    },
+    "Libs/Ace3/AceAddon-3.0/AceAddon-3.0.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceAddon-3.0/AceAddon-3.0.lua",
+      "sha256": "9aaec858b04820b597155b040dd76ef0d6e8e4f0707e54630001bcfe68497307"
+    },
+    "Libs/Ace3/AceConfig-3.0/AceConfig-3.0.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceConfig-3.0/AceConfig-3.0.lua",
+      "sha256": "25d745c5a8b50cf4b145caa55b5aeb389762286690117f51341d4111f98ee462"
+    },
+    "Libs/Ace3/AceConfig-3.0/AceConfig-3.0.xml": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceConfig-3.0/AceConfig-3.0.xml",
+      "sha256": "053c18c00be7599900ae81a19be9e9295b2a0a4384406507577a8f5040ad8de2"
+    },
+    "Libs/Ace3/AceConsole-3.0/AceConsole-3.0.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceConsole-3.0/AceConsole-3.0.lua",
+      "sha256": "3372abc50efcfa4f643bf7c2f3254de19327d28e2040997d672f94d1845a5499"
+    },
+    "Libs/Ace3/AceDB-3.0/AceDB-3.0.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceDB-3.0/AceDB-3.0.lua",
+      "sha256": "9e755ea356454445dcbd3870768a0759e598fe89c220b05fde04d3b3ecded172"
+    },
+    "Libs/Ace3/AceDBOptions-3.0/AceDBOptions-3.0.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceDBOptions-3.0/AceDBOptions-3.0.lua",
+      "sha256": "f6959caf4ca1fae0f2713e3c32efa9dbe488f3d25f686a4453774308ad2c0eb6"
+    },
+    "Libs/Ace3/AceEvent-3.0/AceEvent-3.0.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceEvent-3.0/AceEvent-3.0.lua",
+      "sha256": "928729c0edae955407778463d345baa0e59fc8f6f6ad53877b6243e0f225da4e"
+    },
+    "Libs/Ace3/AceGUI-3.0/AceGUI-3.0.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceGUI-3.0/AceGUI-3.0.lua",
+      "sha256": "bcfcef55d727f8434606bdba2375929123422e051c27fd1bfcbd95e7ab723ed7"
+    },
+    "Libs/Ace3/AceGUI-3.0/AceGUI-3.0.xml": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceGUI-3.0/AceGUI-3.0.xml",
+      "sha256": "e54bd15393700719dbec2b1b433e570a3f364fa5e927f9227f63037eb16ad522"
+    },
+    "Libs/Ace3/AceHook-3.0/AceHook-3.0.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceHook-3.0/AceHook-3.0.lua",
+      "sha256": "9e8f57d06fa7bfcba6d2a2e9fb8fdfd9fbc040158f4401d4308f8279a26e1378"
+    },
+    "Libs/Ace3/AceLocale-3.0/AceLocale-3.0.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceLocale-3.0/AceLocale-3.0.lua",
+      "sha256": "584b30b5cd9da71408cdd83a49469aa4348941e185a42cbd218d964678d88e57"
+    },
+    "Libs/Ace3/AceTimer-3.0/AceTimer-3.0.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceTimer-3.0/AceTimer-3.0.lua",
+      "sha256": "ae95dbb59d8240cb5ff2c1308d526daf57e504710985fe8532b886a9ad543af6"
+    },
+    "Libs/Ace3/CallbackHandler-1.0/CallbackHandler-1.0.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/CallbackHandler-1.0/CallbackHandler-1.0.lua",
+      "sha256": "84a15af505e728ac5e5eb6a8eaba8989d1131d5f8ba14d11abcfe4ce086de3c1"
+    },
+    "Libs/Ace3/AceConfig-3.0/AceConfigCmd-3.0/AceConfigCmd-3.0.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceConfig-3.0/AceConfigCmd-3.0/AceConfigCmd-3.0.lua",
+      "sha256": "936138368dd8fa2523937428b321dab6ac9b5e0e502c6b49d5faa66dc5d5c609"
+    },
+    "Libs/Ace3/AceConfig-3.0/AceConfigDialog-3.0/AceConfigDialog-3.0.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceConfig-3.0/AceConfigDialog-3.0/AceConfigDialog-3.0.lua",
+      "sha256": "56f9cc0e8da69975296e22a1bfe0bc02b86c34a63c28bd5464e3d386fcdb523e"
+    },
+    "Libs/Ace3/AceConfig-3.0/AceConfigRegistry-3.0/AceConfigRegistry-3.0.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceConfig-3.0/AceConfigRegistry-3.0/AceConfigRegistry-3.0.lua",
+      "sha256": "dc0fa1aee9ac56690109078cd58045ae237635cf9dc7d80496242ab358e4d5fe"
+    },
+    "Libs/Ace3/AceGUI-3.0/widgets/AceGUIContainer-BlizOptionsGroup.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceGUI-3.0/widgets/AceGUIContainer-BlizOptionsGroup.lua",
+      "sha256": "566551ddd7c8c434d6bb6f4a4c9a67479e6e8a719fcc3a504b18eec4f11e6586"
+    },
+    "Libs/Ace3/AceGUI-3.0/widgets/AceGUIContainer-DropDownGroup.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceGUI-3.0/widgets/AceGUIContainer-DropDownGroup.lua",
+      "sha256": "ecf7743bd5fb9059d4226e35cd2374aa13282eca720938498f85d7f328f8c070"
+    },
+    "Libs/Ace3/AceGUI-3.0/widgets/AceGUIContainer-Frame.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceGUI-3.0/widgets/AceGUIContainer-Frame.lua",
+      "sha256": "fb3f9f3b3414bd3b27e1281c2b8836749e38906458df6b69e9f385fbe041df91"
+    },
+    "Libs/Ace3/AceGUI-3.0/widgets/AceGUIContainer-InlineGroup.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceGUI-3.0/widgets/AceGUIContainer-InlineGroup.lua",
+      "sha256": "e9458bd6378d017994408618cbc6921ef7e6bbe152e9bbded199255c399468a5"
+    },
+    "Libs/Ace3/AceGUI-3.0/widgets/AceGUIContainer-ScrollFrame.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceGUI-3.0/widgets/AceGUIContainer-ScrollFrame.lua",
+      "sha256": "fef3da3ce311b861d669bc503906cdd0780a372fbea039c1e2d3f75ac6e68709"
+    },
+    "Libs/Ace3/AceGUI-3.0/widgets/AceGUIContainer-SimpleGroup.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceGUI-3.0/widgets/AceGUIContainer-SimpleGroup.lua",
+      "sha256": "d65968489c0fa5749d2e35be69c60d0dd7969189aa14a9031f0654715625d214"
+    },
+    "Libs/Ace3/AceGUI-3.0/widgets/AceGUIContainer-TabGroup.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceGUI-3.0/widgets/AceGUIContainer-TabGroup.lua",
+      "sha256": "ad73ed3b619cba61778ec39b73206daac423bd1f539241f4a58ff623b0b0b687"
+    },
+    "Libs/Ace3/AceGUI-3.0/widgets/AceGUIContainer-TreeGroup.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceGUI-3.0/widgets/AceGUIContainer-TreeGroup.lua",
+      "sha256": "faf9f1eb9bec0af6d3493c8e264fbf6aef244c364ed72c85069578d69115682d"
+    },
+    "Libs/Ace3/AceGUI-3.0/widgets/AceGUIContainer-Window.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceGUI-3.0/widgets/AceGUIContainer-Window.lua",
+      "sha256": "d57f41b781d8c021fb69a94e084efadbb891d3a353738e6ca68853da21f94645"
+    },
+    "Libs/Ace3/AceGUI-3.0/widgets/AceGUIWidget-Button.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceGUI-3.0/widgets/AceGUIWidget-Button.lua",
+      "sha256": "1bcc3592c6315d1369f448316f4bc990c812a37d2a7b5c31fd2324daf6ad7e87"
+    },
+    "Libs/Ace3/AceGUI-3.0/widgets/AceGUIWidget-CheckBox.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceGUI-3.0/widgets/AceGUIWidget-CheckBox.lua",
+      "sha256": "81cef4bb6ddef3b8bc31360f292fe7b7a7916d675b9336a697545c9ba9adfd77"
+    },
+    "Libs/Ace3/AceGUI-3.0/widgets/AceGUIWidget-ColorPicker.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceGUI-3.0/widgets/AceGUIWidget-ColorPicker.lua",
+      "sha256": "beae8057a0e8939b1dbb335332071e1e3bd5f338f92060565d9ada9e69f710b6"
+    },
+    "Libs/Ace3/AceGUI-3.0/widgets/AceGUIWidget-DropDown-Items.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceGUI-3.0/widgets/AceGUIWidget-DropDown-Items.lua",
+      "sha256": "aa7d0bd54525e63b9549ec0a41ff3b3595267a377e0ae65da42577856cf03f4b"
+    },
+    "Libs/Ace3/AceGUI-3.0/widgets/AceGUIWidget-DropDown.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceGUI-3.0/widgets/AceGUIWidget-DropDown.lua",
+      "sha256": "42e2a9d9c41bc4f481af1721b6cc45988e2bc5573fd0282499e9bf3af8e8ec20"
+    },
+    "Libs/Ace3/AceGUI-3.0/widgets/AceGUIWidget-EditBox.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceGUI-3.0/widgets/AceGUIWidget-EditBox.lua",
+      "sha256": "24a7570e949647c67a0364a8b21d8904c7df812ce0a3d58a74413e473cd023e2"
+    },
+    "Libs/Ace3/AceGUI-3.0/widgets/AceGUIWidget-Heading.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceGUI-3.0/widgets/AceGUIWidget-Heading.lua",
+      "sha256": "43db0151f5ff7daaeb5bba3cb99d2aa6d8f0a0b8f5bf47477d274ee7b5d43773"
+    },
+    "Libs/Ace3/AceGUI-3.0/widgets/AceGUIWidget-Icon.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceGUI-3.0/widgets/AceGUIWidget-Icon.lua",
+      "sha256": "ebfe6a6d699dfdb32c1eab93f974d21ffc5eedc634dae297afc9bad3fd2117de"
+    },
+    "Libs/Ace3/AceGUI-3.0/widgets/AceGUIWidget-InteractiveLabel.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceGUI-3.0/widgets/AceGUIWidget-InteractiveLabel.lua",
+      "sha256": "e47543663cc5c4272ef6fb6d356fb63a49f6b101d3cc0501e769ac6615442cce"
+    },
+    "Libs/Ace3/AceGUI-3.0/widgets/AceGUIWidget-Keybinding.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceGUI-3.0/widgets/AceGUIWidget-Keybinding.lua",
+      "sha256": "5d372eb175c2768e0e13f46f77b5d5ec4a1ca74636b2ad940725040496a6ba7e"
+    },
+    "Libs/Ace3/AceGUI-3.0/widgets/AceGUIWidget-Label.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceGUI-3.0/widgets/AceGUIWidget-Label.lua",
+      "sha256": "5a62305ac4eaf31d173d84cc40bede59b0fe32c8b5fbbc9f015a1c5b7894c7d0"
+    },
+    "Libs/Ace3/AceGUI-3.0/widgets/AceGUIWidget-MultiLineEditBox.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceGUI-3.0/widgets/AceGUIWidget-MultiLineEditBox.lua",
+      "sha256": "ac67fd32a7a5642c0bebc5104ee4ac57088fb04e44b15cee64513b78e532e7cd"
+    },
+    "Libs/Ace3/AceGUI-3.0/widgets/AceGUIWidget-Slider.lua": {
+      "path": "Interface/AddOns/!!!Libs/Ace3/AceGUI-3.0/widgets/AceGUIWidget-Slider.lua",
+      "sha256": "d4aab13b831961cbef9c0639ba2f08c0d7ac1baae7e2d4de7621cea61850de37"
+    }
+  },
+  "localOverlays": [
+    "Host namespace, settings, load switches, media and saved-variable migration",
+    "World channel and ChannelFilter retained from the adopted installation",
+    "Restricted chat-value guards and on-demand report edit-box resolution",
+    "Host Ace3 bindings and typed client compatibility; Titan uses the shared newer host library baseline"
+  ],
+  "checkedAt": "2026-11-16"
+}

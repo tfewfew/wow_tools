@@ -1,5 +1,8 @@
 -- Extracted from the Forever chat-only BigFoot installation, including embedded Ace3.
-local channel = {}
+local channel = {
+    sourceVersion = "3.80.2.276（整合包）",
+    sourceCommit = "caae1533a5331d666c7b78d44544b6285c1a3424",
+}
 WoWTools.bigfootChannel = channel
 
 function channel.GetSettings()

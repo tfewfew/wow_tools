@@ -1,4 +1,4 @@
-local addon = { sourceVersion = "1.1.0", sources = {} }
+local addon = { sourceVersion = "1.1.3", sources = {} }
 WoWTools.raynnaBestiary = addon
 WoWTools.modules.raynna_bestiary = addon
 

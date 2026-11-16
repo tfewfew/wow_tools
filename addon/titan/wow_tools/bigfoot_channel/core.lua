@@ -1,4 +1,4 @@
--- BigFootChat by Terry, imported from Forever's 1.60.1.1-chat-only.2 extraction.
+-- BigFootChat by Terry, rebased on official classic_titan 3.80.2.276 with host integration.
 local issecretvalue = issecretvalue or function()
     return false
 end

@@ -379,7 +379,7 @@ if flavor == "forerver" then
     local bestiary, prr = WoWTools.raynnaBestiary, WoWTools.prr
     assert(bestiary == WoWTools.modules.raynna_bestiary and prr == WoWTools.modules.prr,
         "Bestiary/PRR module namespaces are not isolated")
-    assert(bestiary.sourceVersion == "1.1.0" and prr.sourceVersion == "1.5.2", "Installed source versions changed")
+    assert(bestiary.sourceVersion == "1.1.3" and prr.sourceVersion == "1.5.2", "Adopted source versions differ")
     if TEST_THIRD_PARTY_DISABLED then
         assert(not bestiary.db and not bestiary.BuildBestiary and not RaynnaBestiaryAPI,
             "Disabled Bestiary initialized its runtime")
@@ -683,7 +683,7 @@ do
         local savedStyle = wowDetectorDB.foreverFaces.db.style
         for _, source in ipairs({"unit", "display", "file"}) do
             wowDetectorDB.foreverFaces.db.style = {source=source, displayID=123, fileID=456, animation="idle"}
-            assert(style.Load(modelContract, "player", false), "Portrait model source interface failed " .. source)
+            assert(style.Load(modelContract, "player"), "Portrait model source interface failed " .. source)
         end
         wowDetectorDB.foreverFaces.db.style = savedStyle
         local unitPortraitHook = chatMock.hooks.UnitFramePortrait_Update

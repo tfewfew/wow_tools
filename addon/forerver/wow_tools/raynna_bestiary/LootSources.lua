@@ -162,12 +162,13 @@ function Addon.ReferenceItem(item)
                     rate = drop.rate and math.min(100, drop.rate * 100),
                     conditional = drop.conditional,
                     quest = drop.quest,
+                    source = 'cMaNGOS Classic (not verified for Forever)',
                 }
             end
         end
         for npcID, npc in pairs(Addon.ForeverReference or {}) do
             local drop = npc.drops[item]
-            if drop and not drops[npcID] then
+            if drop then
                 drops[npcID] = {
                     name = npc.name,
                     minLevel = npc.minLevel,
@@ -208,12 +209,22 @@ function Addon.ReferenceItem(item)
         end
     end
     for _, id in ipairs(get('Item', item, 'npcDrops') or {}) do
-        if not drops[id] then
+        if drops[id] then
+            local current = drops[id]
+            local updated = {}
+            for key, value in pairs(current) do
+                updated[key] = value
+            end
+            updated.name = Addon.EntityName('Npc', id, get('Npc', id, 'name') or current.name)
+            updated.minLevel = get('Npc', id, 'minLevel') or current.minLevel
+            updated.maxLevel = get('Npc', id, 'maxLevel') or current.maxLevel
+            drops[id] = updated
+        else
             drops[id] = {
                 name = get('Npc', id, 'name') or (T('Creature ') .. id),
                 minLevel = get('Npc', id, 'minLevel'),
                 maxLevel = get('Npc', id, 'maxLevel'),
-                source = 'Source metadata',
+                source = 'QuestieDB Forever metadata',
             }
         end
     end
@@ -222,7 +233,7 @@ function Addon.ReferenceItem(item)
             kind = 'Quest',
             name = get('Quest', id, 'name') or (T('Quest ') .. id),
             details = 'Quest reward / source metadata',
-            source = 'Source metadata',
+            source = 'QuestieDB Forever metadata',
         }
     end
     for _, id in ipairs(get('Item', item, 'vendors') or {}) do
@@ -230,7 +241,7 @@ function Addon.ReferenceItem(item)
             kind = 'Vendor',
             name = get('Npc', id, 'name') or (T('Vendor ') .. id),
             details = Addon.MonsterZones(id),
-            source = 'Source metadata',
+            source = 'QuestieDB Forever metadata',
         }
     end
     -- Verified Forever-only reward absent from the Classic reference snapshot.
@@ -259,30 +270,42 @@ function Addon.ReferenceItem(item)
     }
 end
 
+-- Build the reverse metadata index lazily, independently in each standalone package.
+local foreverItemsByNPC
+local function metadata(entity, id, field)
+    local api = Addon.ReferenceMetadata and Addon.ReferenceMetadata[entity]
+    if api and api.Get then
+        local ok, value = pcall(api.Get, id, field)
+        if ok then
+            return value
+        end
+    end
+end
+local function foreverItems(npcID)
+    if not foreverItemsByNPC then
+        foreverItemsByNPC = {}
+        for itemID in pairs(Addon.BundledMetadata and Addon.BundledMetadata.Item or {}) do
+            for _, id in ipairs(metadata('Item', itemID, 'npcDrops') or {}) do
+                foreverItemsByNPC[id] = foreverItemsByNPC[id] or {}
+                foreverItemsByNPC[id][itemID] = true
+            end
+        end
+    end
+    return foreverItemsByNPC[npcID] or {}
+end
+
 -- Forward lookup: creature to possible items
 function Addon.ReferenceMonster(id, name, level)
     local database = Addon.LootReference
     local npc = database and database.creatures[id]
     local monster = {
         npcID = id,
-        name = Addon.EntityName('Npc', id, name or (npc and npc[2]) or T('Unknown creature')),
-        minLevel = level or (npc and npc[3]),
-        maxLevel = level or (npc and npc[4]),
+        name = Addon.EntityName('Npc', id, name or metadata('Npc', id, 'name') or (npc and npc[2]) or T('Unknown creature')),
+        minLevel = level or metadata('Npc', id, 'minLevel') or (npc and npc[3]),
+        maxLevel = level or metadata('Npc', id, 'maxLevel') or (npc and npc[4]),
         drops = {},
     }
-    if not npc then
-        local fallback = Addon.ForeverReference and Addon.ForeverReference[id]
-        if fallback then
-            monster.name = Addon.EntityName('Npc', id, name or fallback.name)
-            monster.minLevel = level or fallback.minLevel
-            monster.maxLevel = level or fallback.maxLevel
-            monster.drops = fallback.drops
-            monster.source = fallback.source
-            monster.foreverReference = true
-        end
-        return monster
-    end
-    if not monsterDropCache[id] then
+    if npc and not monsterDropCache[id] then
         local drops = resolveLootTable(database.loot[npc[1]], {})
         for item, drop in pairs(drops) do
             drop.link = 'item:' .. item
@@ -294,7 +317,32 @@ function Addon.ReferenceMonster(id, name, level)
         end
         monsterDropCache[id] = drops
     end
-    monster.drops = monsterDropCache[id]
+    for itemID, drop in pairs(monsterDropCache[id] or {}) do
+        monster.drops[itemID] = drop
+    end
+    for itemID in pairs(foreverItems(id)) do
+        -- Metadata confirms a source relationship, not a drop percentage.
+        if not monster.drops[itemID] then
+            monster.drops[itemID] = {
+                link = 'item:' .. itemID,
+                name = metadata('Item', itemID, 'name') or database.names[itemID],
+                source = 'QuestieDB Forever metadata',
+                quest = #Addon.ItemQuests(itemID) > 0,
+            }
+        end
+        monster.mixedReference = true
+    end
+    local correction = Addon.ForeverReference and Addon.ForeverReference[id]
+    if correction then
+        for itemID, drop in pairs(correction.drops) do
+            monster.drops[itemID] = drop
+        end
+        monster.name = Addon.EntityName('Npc', id, name or correction.name)
+        monster.minLevel = level or correction.minLevel or monster.minLevel
+        monster.maxLevel = level or correction.maxLevel or monster.maxLevel
+        monster.source = correction.source
+        monster.foreverReference = true
+    end
     return monster
 end
 

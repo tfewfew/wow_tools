@@ -5,6 +5,7 @@ local T = A.Text
 local frame, search, scrollbar, countLabel
 local results, rows, offset = {}, {}, 0
 local tracked, scope = {}, 'all'
+local trackerOnly = false
 local names, englishNames
 
 function A.FindNPCs(query, source)
@@ -16,7 +17,7 @@ function A.FindNPCs(query, source)
             end
         end
         for id, npc in pairs(A.LootReference.creatures) do
-            names[id] = npc[2]
+            names[id] = names[id] or npc[2]
         end
         for id, npc in pairs(A.ForeverReference or {}) do
             names[id] = npc.name
@@ -81,10 +82,16 @@ local function render()
     scrollbar:Update(#results, 8, offset, 304)
     countLabel:SetText(
         #results > 0 and (#results .. T(' NPCs / click one to view drops'))
-            or T('No matching NPCs. Try another name or All.')
+            or (
+                trackerOnly and T('No matching tracked monsters.')
+                or T('No matching NPCs. Try another name or All.')
+            )
     )
 end
 local function refresh()
+    if trackerOnly then
+        scope = 'tracked'
+    end
     results = A.FindNPCs(search:GetText(), scope)
     offset = 0
     render()
@@ -106,8 +113,14 @@ local function button(text, x, y, width, action)
     return control
 end
 
-function A.OpenBrowser(monsters)
+function A.OpenBrowser(monsters, fullBrowser)
+    if fullBrowser then
+        trackerOnly = false
+        scope = 'all'
+    end
     if monsters then
+        trackerOnly = true
+        scope = 'tracked'
         tracked = {}
         for _, monster in pairs(monsters) do
             local id = A.TrackerPortraitID(monster)
@@ -140,7 +153,7 @@ function A.OpenBrowser(monsters)
             A.db.bestiary.browserPosition = { point, relative, x, y }
         end)
         A.SkinPanel(frame, true)
-        label(frame, 12, -9, 280):SetText(T("RAYNNA'S BESTIARY / BROWSE"))
+        frame.heading = label(frame, 12, -9, 280)
         button('x', 307, -5, 22, function()
             frame:Hide()
         end)
@@ -158,19 +171,27 @@ function A.OpenBrowser(monsters)
             self:ClearFocus()
         end)
         button(T('Search'), 263, -54, 64, refresh)
-        button(T('All'), 12, -83, 66, function()
+        frame.all = button(T('All'), 12, -83, 66, function()
             scope = 'all'
             refresh()
         end)
-        button(T('Tracked'), 85, -83, 70, function()
-            scope = 'tracked'
-            refresh()
+        frame.clear = button(T('Clear'), 85, -83, 70, function()
+            A.OpenBrowser(nil, true)
         end)
-        button(T('Recent'), 162, -83, 70, function()
+        frame.clear:SetScript('OnEnter', function(self)
+            GameTooltip:SetOwner(self, 'ANCHOR_RIGHT')
+            GameTooltip:SetText(T('Clear search and Tracker filter'))
+            GameTooltip:AddLine(T('Show all monsters. Your Tracker history is unchanged.'), 0.9, 0.85, 0.7, true)
+            GameTooltip:Show()
+        end)
+        frame.clear:SetScript('OnLeave', function()
+            GameTooltip:Hide()
+        end)
+        frame.recent = button(T('Recent'), 162, -83, 70, function()
             scope = 'recent'
             refresh()
         end)
-        button(T('Target'), 239, -83, 88, function()
+        frame.target = button(T('Target'), 239, -83, 88, function()
             local guid = UnitGUID('target')
             if (not issecretvalue or not issecretvalue(guid)) and type(guid) == 'string' then
                 local id = guid:match('^Creature%-%d+%-%d+%-%d+%-%d+%-(%d+)%-')
@@ -216,6 +237,13 @@ function A.OpenBrowser(monsters)
         end)
         countLabel = label(frame, 12, -418, 315)
     end
+    if monsters or fullBrowser then
+        search:SetText('')
+    end
+    frame.heading:SetText(trackerOnly and T('BESTIARY / TRACKER MONSTERS') or T("RAYNNA'S BESTIARY / BROWSE"))
+    frame.all:SetShown(not trackerOnly)
+    frame.recent:SetShown(not trackerOnly)
+    frame.target:SetShown(not trackerOnly)
     frame:SetScale(A.db.bestiary.scale or 1)
     frame:Show()
     refresh()

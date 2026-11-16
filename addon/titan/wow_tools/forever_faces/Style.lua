@@ -62,7 +62,7 @@ function style.ModelKey(unit)
     return table.concat({config.source, config.displayID, config.fileID, tostring(config.noMip), config.animation}, "/")
 end
 
-function style.Load(model, unit, ownAnimation)
+function style.Load(model, unit)
     local config = style.Config()
     local applies = style.Applies(unit)
     local source = applies and config.source or "unit"
@@ -74,9 +74,7 @@ function style.Load(model, unit, ownAnimation)
         if config.fileID == 0 then return false, "请填写大于 0 的模型 FileID" end
         ok, result = pcall(model.SetModel, model, config.fileID, config.noMip)
     else
-        local blend = not ownAnimation
-        if applies and config.animation ~= "default" then blend = false end
-        ok, result = pcall(model.SetUnit, model, unit, blend)
+        ok, result = pcall(model.SetUnit, model, unit, false)
     end
     if model.SetPaused then model:SetPaused(applies and config.animation == "paused") end
     if applies and config.animation == "idle" and model.SetAnimation then model:SetAnimation(0) end

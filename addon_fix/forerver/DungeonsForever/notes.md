@@ -33,3 +33,10 @@
 - 主插件更新为 2.1.99。沿 Core.lua 的手柄守护、ZoneHint.lua 的缓存清理与区域收集、MapOnWorld.lua / MapWindow.lua 的刷新入口核对，继续应用原书籍缓存与扫描周期修复，增加 `background-scans/2.1.99` 基线。Explore 2.0.3 的源码匹配 20261114 变体，沿用该补丁。
 - Hui.lua 已删除 ExtTipSkin、CollectForeign、SkinGameTooltip 的 OnUpdate 处理及 RefreshGameTooltipSkin 初始化链。结合 TOC 加载清单和系列插件源码核对，将这部分修复拆为独立的 `tooltip-scans`，记录 `skipFromVersion=2.1.99`，并采集 Hui.lua 与 TOC 的源码哈希作为停止依据。2.1.95 / 2.1.96 的后台补丁与提示框补丁分别保留原文件基线、修复结果和变更内容，供旧安装继续使用。
 - Prof 仍为 2.0.3，新增提示框处理后跟随 HUD 和悬停检查仍为 1 秒与 0.1 秒，增加 `background-scans/2.0.3-20261115`，维持 5 秒与 0.25 秒。Spell 仍为 2.3.12，NativeSpellBook.lua 移除旧提示框挂接并改用 LF 换行，原 0.2 秒法术书检查与 SpellRankUI.lua 的战斗 / 脱战检查仍在，增加 `background-scans/2.3.12-20261115`，沿用 1 秒、0.5 秒 / 2 秒与入战事件修复。
+
+## 2.1.102 更新适配（2026-11-16）
+
+- 遍历无限服 38 个安装目录及 7 项映射。主插件更新为 2.1.102，沿 Core.lua 手柄守护、MapOnWorld.lua 巡检、MapWindow.lua 双地图同步和 ZoneHint.lua 的书籍收集、缓存清理及背包/任务事件核对，既有修复意图继续适用。新增 `background-scans/2.1.102`，记录当前安装文件与补丁结果的完整 SHA256。
+- Hui.lua 及四个系列插件的全部 Lua 调用链继续采用上游移除提示框周期扫描后的实现，追加 2.1.102 的 Hui.lua 与 TOC 指纹和源码依据。提示框修复的停止边界仍为已核实的 2.1.99。
+- Spell 仍声明 2.3.12，NativeSpellBook.lua 新增原生技能窗口可见时 0.05 秒检查，SpellRankUI.lua 新增可见时 0.1 秒检查和窗口切换补查。新增 `background-scans/2.3.12-20261116`，法术书检查使用 1 秒 ticker，技能入口使用 0.5 秒 ticker 检查战斗与窗口可见性，脱战常规更新每 2 秒，窗口可见性切换在本轮检查即时刷新。进入战斗事件继续即时执行安全显示处理，保留上游新增的窗口切换分支。
+- Explore 2.0.3 与 Prof 2.0.3 的当前源码匹配已有变体，主插件修复核对完成后复用并应用。Accountant_Classic v2.30.03 与 Questie 12.9.0 已匹配本仓库修复后的文件指纹。

@@ -53,3 +53,14 @@ Standalone Bestiary source and build tools:
 https://github.com/raynna/raynnabestiary
 This package has no required Tracker dependency. Rebuild generators from the
 repository tools directory. Percentages and coverage retain the notices above.
+
+Forever metadata refresh: 2026-11-15
+QuestieDB 1.1.1 Forever release:
+https://github.com/Questie/QuestieDB/releases/tag/v1.1.1
+Rebuild: tools/build_metadata.py --source tools/data-cache/questiedb-1.1.1/QuestieDB
+Metadata.lua records the exact input TOC SHA-256. Both standalone packages bundle
+the same snapshot. NPC lookup includes Forever item-to-NPC source relationships;
+explicit Forever loot corrections override Classic matches. Missing percentages
+remain unknown. Existing Classic-only rates remain unverified fallback references.
+Optional newer QuestieDB fields are preferred; new item IDs require a bundled refresh.
+No website requests occur in game and player loot history is never synthesized.
