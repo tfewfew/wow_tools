@@ -5,6 +5,7 @@ WoWTools.bagIntegration = module
 local reagentBag = Enum.BagIndex.ReagentBag
 local installed, queued, applying = false, false, false
 local retryLayout = false
+local restoreOnShow = false
 local initializationError
 local status = "背包整合已关闭。"
 local decorations = {}
@@ -29,6 +30,41 @@ end
 local function Integer(value)
     return Readable(value) and type(value) == "number" and value >= 0
         and value <= 2147483647 and value == math.floor(value)
+end
+
+local function Finite(value)
+    return Readable(value) and type(value) == "number" and value == value and math.abs(value) < math.huge
+end
+
+local function SavedPosition()
+    local config = Config()
+    local position = config and config.position
+    if type(position) == "table" and Finite(position.x) and Finite(position.y) then return position end
+end
+
+local function SavePosition(frame)
+    if not module.active then return end
+    local config = Config()
+    if not config then return end
+    local left, top = frame:GetLeft(), frame:GetTop()
+    local parentLeft, parentTop = UIParent:GetLeft(), UIParent:GetTop()
+    local scale, parentScale = frame:GetEffectiveScale(), UIParent:GetEffectiveScale()
+    if not (Finite(left) and Finite(top) and Finite(parentLeft) and Finite(parentTop)
+        and Finite(scale) and scale > 0 and Finite(parentScale) and parentScale > 0) then return end
+    local ratio = scale / parentScale
+    local x, y = left * ratio - parentLeft, top * ratio - parentTop
+    if Finite(x) and Finite(y) then config.position = {x = x, y = y} end
+end
+
+local function RestorePosition()
+    local frame = ContainerFrameCombinedBags
+    local position = SavedPosition()
+    if not module.active or not frame:IsShown() or not position then return end
+    local scale, parentScale = frame:GetEffectiveScale(), UIParent:GetEffectiveScale()
+    if not (Finite(scale) and scale > 0 and Finite(parentScale) and parentScale > 0) then return end
+    local ratio = parentScale / scale
+    frame:ClearAllPoints()
+    frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", position.x * ratio, position.y * ratio)
 end
 
 local function Conflict()
@@ -159,6 +195,10 @@ ScheduleLayout = function()
     C_Timer.After(0, function()
         queued = false
         Layout()
+        if restoreOnShow then
+            restoreOnShow = false
+            RestorePosition()
+        end
     end)
 end
 
@@ -168,6 +208,7 @@ local function NativeReady()
         and type(frame.EnumerateValidItems) == "function" and type(frame.UpdateItemSlots) == "function"
         and type(frame.SetBagSize) == "function" and type(frame.MatchesBagID) == "function"
         and type(frame.IsBagOpen) == "function" and type(frame.UpdateItemLayout) == "function"
+        and type(frame.OnHide) == "function"
         and type(frame.UpdateFrameSize) == "function" and type(manager.IsUsingCombinedBags) == "function"
         and type(manager.OnCombinedBagSettingChanged) == "function"
 end
@@ -218,7 +259,18 @@ local function InstallHooks()
     end)
     hooksecurefunc(frame, "UpdateItemLayout", ScheduleLayout)
     hooksecurefunc(frame, "UpdateFrameSize", ScheduleLayout)
-    frame:HookScript("OnShow", ScheduleLayout)
+    frame:HookScript("OnShow", function()
+        restoreOnShow = module.active and SavedPosition() ~= nil
+        ScheduleLayout()
+    end)
+    -- The native OnHide rearranges windows, including !Pig's saved-point hook.
+    -- Capture the visible position before delegating to that method.
+    local onHide = frame.OnHide
+    frame.OnHide = function(self, ...)
+        if not restoreOnShow then SavePosition(self) end
+        restoreOnShow = false
+        return onHide(self, ...)
+    end
 end
 
 local function ApplyActive(enabled)
