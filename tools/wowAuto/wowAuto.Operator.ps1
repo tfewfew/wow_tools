@@ -148,6 +148,9 @@ function Invoke-OperatorShutdown($Request) {
 }
 function Invoke-OperatorRequest($Request) {
     $endpoint=$Request.Owner;$body=$Request.Json | ConvertFrom-Json;$timing=$Request.Timing
+    if($Request.Domain -eq 'Rest' -and ($endpoint.Flavor -cne 'forerver' -or $Request.Kind -cne 'Rest.Jump')) {
+        throw '放号操作只支持无限服跳跃。'
+    }
     if($Request.Kind -eq 'Process.Shutdown'){return Invoke-OperatorShutdown $Request}
     if($Request.Kind -eq 'Scan.Restore') {
         if($Hub.ActiveTasks -eq 0){$null=Invoke-OperatorAdapter Restore $endpoint $body}
@@ -205,7 +208,15 @@ function Invoke-OperatorRequest($Request) {
         $sent=Invoke-OperatorAdapter Up $endpoint $null $timing.ChatKeyPressMs
         return @{Executed=$sent;SentAt=$Hub.Now}
     }
-    if(-not (Invoke-OperatorAdapter Login $endpoint)){throw '操作前未检测到插件右下角登录白点。'}
+    if(-not (Invoke-OperatorAdapter Login $endpoint)){
+        if($Request.Domain -eq 'Rest'){return @{Executed=$false;SentAt=$Hub.Now}}
+        throw '操作前未检测到插件右下角登录白点。'
+    }
+    if($Request.Domain -eq 'Rest') {
+        if($body.Deadline -gt 0 -and $Hub.Now -ge $body.Deadline){return @{Executed=$false;Expired=$true;SentAt=$Hub.Now}}
+        if($Hub.Paused -or -not $Request.Current){return @{Executed=$false;SentAt=$Hub.Now}}
+        return @{Executed=(Invoke-OperatorAdapter Press $endpoint 'Space' $timing.KeyPressMs);SentAt=$Hub.Now}
+    }
     if($Request.Kind -in @('Rotation.EquipRod','Fish.EquipRod')) {
         if($body.Mode -cne 'fish' -or [string]::IsNullOrWhiteSpace([string]$body.Key)){throw '装备鱼竿需要钓鱼任务和已配置的按键。'}
         $null=ConvertFrom-AutoFightBinding ([string]$body.Key)

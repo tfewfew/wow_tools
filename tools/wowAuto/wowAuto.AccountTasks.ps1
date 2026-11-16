@@ -9,9 +9,24 @@ function ConvertTo-TaskMap($Value) {
 function New-DetectionPeriods {
     return @{FishMs=100;FightMs=1000;MenuMs=300;LoginMs=300;BaitMs=300;DeathMs=1000;AudioMs=50;PositionMs=1000;CaptureRetryMs=100;OcrMs=1000}
 }
+function New-RestTaskSettings {
+    return @{DurationSeconds=600;Rounds=5;JumpIntervalSeconds=60}
+}
+function Test-RestTaskSettings($Settings) {
+    $defaults=New-RestTaskSettings
+    if ($Settings -isnot [Collections.IDictionary] -or $Settings.Count -ne $defaults.Count -or
+        @($Settings.Keys | Where-Object {$_ -cnotin $defaults.Keys}).Count) {throw '放号配置字段无效。'}
+    foreach ($key in $defaults.Keys) {
+        if ($Settings[$key] -isnot [int] -or $Settings[$key] -lt 1) {throw '放号单次时间、轮次和跳跃间隔须为正整数，时间单位为秒。'}
+    }
+}
+function Get-AccountTaskModeLabel([string]$Mode) {
+    return @{fish='钓鱼';fight='战斗';rest='放号';tame='抓宠'}[$Mode]
+}
 function Test-AccountTaskConfiguration($Config) {
     if ($Config.Version -isnot [int] -or $Config.Version -ne 1 -or $Config.Accounts -isnot [Collections.IDictionary] -or $Config.Bindings -isnot [Collections.IDictionary] -or
-        @($Config.Keys | Where-Object {$_ -cnotin @('Version','MigrationComplete','Accounts','Bindings','Periods','Operations')}).Count) {throw '子战网任务配置格式无效。'}
+        @($Config.Keys | Where-Object {$_ -cnotin @('Version','MigrationComplete','Accounts','Bindings','Periods','Operations','Rest')}).Count) {throw '子战网任务配置格式无效。'}
+    if ($Config.ContainsKey('Rest')) {Test-RestTaskSettings $Config.Rest}
     if($Config.ContainsKey('Operations')){Test-OperationTimings $Config.Operations}
     if($Config.ContainsKey('MigrationComplete') -and $Config.MigrationComplete -isnot [bool]){throw '旧配置迁移标识无效。'}
     $defaults=New-DetectionPeriods
@@ -27,7 +42,8 @@ function Test-AccountTaskConfiguration($Config) {
         foreach($role in $Config.Accounts[$key]) {
             if ($role.Name -isnot [string] -or $role.Name -notmatch '^[\p{L}\p{M}]{1,24}$' -or
                 $role.Realm -isnot [string] -or -not $role.Realm -or $role.Realm -match '[\\/\p{C}]' -or
-                $role.Mode -cnotin @('fish','fight') -or $role.Enabled -isnot [bool] -or $role.UseItem -isnot [bool]) {throw '角色任务字段无效。'}
+                $role.Mode -cnotin @('fish','fight','rest') -or $role.Enabled -isnot [bool] -or $role.UseItem -isnot [bool]) {throw '角色任务字段无效。'}
+            if ($role.Mode -ceq 'rest' -and ($key -cnotlike 'forerver:*' -or $role.UseItem)) {throw '放号仅支持无限服，钓鱼道具须关闭。'}
             if($role.Keys.Count -ne 5 -or @($role.Keys | Where-Object {$_ -cnotin @('Name','Realm','Mode','Enabled','UseItem')}).Count){throw '角色任务存在未知字段。'}
             $identity=$role.Realm+'|'+$role.Name
             if ($names.ContainsKey($identity)) {throw '子战网角色记录重复。'};$names[$identity]=$true
@@ -45,6 +61,7 @@ function Test-AccountTaskConfiguration($Config) {
 function Initialize-AccountTasks([string]$Path=(Join-Path $PSScriptRoot 'account-tasks.config.json')) {
     $config=@{Version=1;Accounts=@{};Bindings=@{};Periods=(New-DetectionPeriods)}
     if ([IO.File]::Exists($Path)) {$config=ConvertTo-TaskMap ([IO.File]::ReadAllText($Path) | ConvertFrom-Json);Test-AccountTaskConfiguration $config}
+    if (-not $config.ContainsKey('Rest')) {$config.Rest=New-RestTaskSettings}
     if(-not $config.ContainsKey('Operations')){$config.Operations=Get-LegacyOperationTimings}
     if(-not $config.Operations.ContainsKey('FishColorRetryMs')){$config.Operations.FishColorRetryMs=3000}
     Test-OperationTimings $config.Operations
@@ -89,6 +106,7 @@ function Save-AccountTasks($Config=$script:accountTasks.Config) {
     Test-AccountTaskConfiguration $Config
     # The editor continues to live after Save; do not make its mutable draft the active configuration.
     $snapshot=ConvertTo-TaskMap ($Config | ConvertTo-Json -Depth 12 | ConvertFrom-Json)
+    if (-not $snapshot.ContainsKey('Rest')) {$snapshot.Rest=New-RestTaskSettings}
     if(-not $snapshot.ContainsKey('Operations')){$snapshot.Operations=if($script:accountTasks.Config.Operations){ConvertTo-TaskMap $script:accountTasks.Config.Operations}else{Get-LegacyOperationTimings}}
     if(-not $snapshot.Operations.ContainsKey('FishColorRetryMs')){$snapshot.Operations.FishColorRetryMs=3000}
     Test-OperationTimings $snapshot.Operations
