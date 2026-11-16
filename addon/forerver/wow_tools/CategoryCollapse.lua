@@ -95,13 +95,16 @@ local function InitializeButton(scrollBox, button, elementData)
 end
 
 local function AttachScrollBox(scrollBox)
-    if scrollBoxes[scrollBox] then return end
-    scrollBoxes[scrollBox] = true
+    -- EnumerateFrames also includes lists whose native view has not been installed yet.
+    if type(scrollBox.GetView) ~= "function" or not scrollBox:GetView() then return end
+    if not scrollBoxes[scrollBox] then
+        ScrollUtil.AddInitializedFrameCallback(scrollBox, InitializeButton, scrollBox)
+        scrollBoxes[scrollBox] = true
+    end
     -- Iterate explicitly because the native iterateExisting callback omits its owner argument.
     scrollBox:ForEachFrame(function(button, elementData)
         InitializeButton(scrollBox, button, elementData)
     end)
-    ScrollUtil.AddInitializedFrameCallback(scrollBox, InitializeButton, scrollBox)
 end
 
 local function Install(refreshExisting)
@@ -125,11 +128,6 @@ local function Install(refreshExisting)
             AttachScrollBox(frame)
         end
         frame = EnumerateFrames(frame)
-    end
-    for scrollBox in pairs(scrollBoxes) do
-        scrollBox:ForEachFrame(function(button, elementData)
-            InitializeButton(scrollBox, button, elementData)
-        end)
     end
 end
 

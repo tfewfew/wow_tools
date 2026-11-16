@@ -32,9 +32,10 @@ MenuUtil = {CreateContextMenu = function(owner, generator)
     generator(owner, menu)
 end}
 ScrollUtil = {
-    InitScrollBoxListWithScrollBar = function() end,
+    InitScrollBoxListWithScrollBar = function(scrollBox) scrollBox.view = {} end,
     AddInitializedFrameCallback = function(scrollBox, callback, owner, iterateExisting)
         assert(owner == scrollBox and not iterateExisting, "Use explicit iteration for existing frames")
+        assert(not scrollBox.initialized, "Native list callbacks must be registered once")
         scrollBox.initialized = callback
     end,
 }
@@ -49,11 +50,16 @@ function EnumerateFrames(previous)
         if frame == previous then return frames[index + 1] end
     end
 end
-local function ScrollBox(data)
+local function ScrollBox(data, initialized)
     local box = {button = Button(), data = data}
+    if initialized ~= false then box.view = {} end
     function box:IsForbidden() return false end
+    function box:GetView() return self.view end
     function box:GetDataProvider() return self.provider end
-    function box:ForEachFrame(callback) callback(self.button, self.data) end
+    function box:ForEachFrame(callback)
+        assert(self:GetView(), "Native ForEachFrame requires an initialized view")
+        callback(self.button, self.data)
+    end
     function box:Initialize(data)
         self.data = data
         self.initialized(self, self.button, data)
@@ -61,6 +67,8 @@ local function ScrollBox(data)
     frames[#frames + 1] = box
     return box
 end
+-- EnumerateFrames includes native lists before ScrollUtil has installed their views.
+local unloaded = ScrollBox(nil, false)
 local skills = ScrollBox({isHeader = true, skillIndex = 1})
 skills.button.ToggleCollapseButton = Button()
 local reputation = ScrollBox({isHeader = true, factionIndex = 1})
@@ -109,6 +117,7 @@ local collapse = WoWTools.categoryCollapse
 assert(not collapse.IsEnabled() and wowDetectorDB.unrelated, "Old account settings must load disabled")
 collapse.SetEnabled(true)
 assert(collapse.IsEnabled() and wowDetectorDB.unrelated, "Account persistence must preserve other settings")
+assert(not unloaded.initialized, "Uninitialized lists must remain available for later attachment")
 skills.button.scripts.OnClick()
 assert(nativeClicks == 1, "Native click script must remain bound")
 skills.button.scripts.OnMouseUp(skills.button, "LeftButton")
@@ -132,6 +141,12 @@ local later = ScrollBox(node)
 later.provider = recipes.provider
 ScrollUtil.InitScrollBoxListWithScrollBar(later)
 assert(later.button.scripts.OnMouseUp, "Load-on-demand lists must receive initialization callbacks")
+unloaded.data, unloaded.provider = node, recipes.provider
+ScrollUtil.InitScrollBoxListWithScrollBar(unloaded)
+assert(unloaded.button.scripts.OnMouseUp, "Previously uninitialized lists must bind after native initialization")
+later.view = nil
+collapse.SetEnabled(true)
+assert(skills.button.scripts.OnMouseUp, "A detached list view must preserve other list bindings")
 menuExtensions.MENU_QUEST_MAP_FRAME({}, menu)
 menuAction()
 assert(questCalls[1] == 3 and questCalls[2] == 1 and QuestSearcher.headerStates.header1 == true)
