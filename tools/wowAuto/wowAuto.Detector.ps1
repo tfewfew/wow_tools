@@ -37,6 +37,10 @@ function Get-DetectorObservation {
     if($Hub.Simulation){throw 'Simulation requires an explicit frame adapter.'}
     $login=[WowAutoRotation.Native]::LoginPoint($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)
     if(-not $login){return [pscustomobject]@{Login=$false;Color='unknown';Packet=$null;Lure='unknown'}}
+    if($script:mode -eq 'rest') {
+        if($Endpoint.Flavor -cne 'forerver'){throw '放号仅支持无限服。'}
+        return [pscustomobject]@{Login=$true;Color='';Packet=$null;Lure='unknown'}
+    }
     if($script:mode -eq 'tame') {
         return [pscustomobject]@{Login=$true;Color='';Packet=([WowAutoFight.Native]::ReadTame((Get-DetectorClient)));Lure='unknown'}
     }
@@ -107,15 +111,18 @@ function Get-DetectorObservationReady {
     return $null
 }
 function Invoke-DetectorScan {
-    $reply=Request-DetectorOperation Scan.Enable Scan @{Mode=$script:mode}
-    if(-not $reply -or -not $reply.Executed){throw '监控开启命令未完成。'}
+    if($script:mode -ne 'rest') {
+        $reply=Request-DetectorOperation Scan.Enable Scan @{Mode=$script:mode}
+        if(-not $reply -or -not $reply.Executed){throw '监控开启命令未完成。'}
+    }
     $null=Wait-Detector $script:config.Periods.LoginMs
     $until=$Hub.Now+5000;$valid=$false
     while(Test-DetectorCurrent) {
         $observation=Get-DetectorObservationReady
         $valid=($script:mode -eq 'fish' -and $observation.Color -in @('red','green')) -or
             ($script:mode -eq 'fight' -and $observation.Packet -and $observation.Packet.Action -ne 'dead') -or
-            ($script:mode -eq 'tame' -and $observation.Packet -and $observation.Packet.State -in @('idle','matched'))
+            ($script:mode -eq 'tame' -and $observation.Packet -and $observation.Packet.State -in @('idle','matched')) -or
+            ($script:mode -eq 'rest' -and $observation.Login)
         if($valid -or $Hub.Now -ge $until){break};$null=Wait-Detector $script:config.Periods.CaptureRetryMs
     }
     if(-not (Test-DetectorCurrent)){return}
@@ -147,6 +154,10 @@ function Start-DetectorTask {
     } elseif($script:mode -eq 'tame') {
         $script:tameConfig=ConvertTo-AutoTameConfig $script:config.Tame -RequireKey
         $script:tame=New-AutoTameSession $now $script:tameConfig
+    } elseif($script:mode -eq 'rest') {
+        if($Endpoint.Flavor -cne 'forerver' -or $script:direct){throw '请通过无限服的角色编排开始放号。'}
+        $script:restSession=@{RemainingMs=([long]$script:restSettings.DurationSeconds*1000);ObservedAt=$now;
+            Login=$false;Started=$false;Deadline=0L;NextJumpAt=$now;Round=([int]$script:restVisits[$script:roleName]+1)}
     } else {
         $observation=Get-DetectorObservationReady
         if(-not $observation.Packet){throw '战斗协议不可读，不能开始。'}
@@ -156,8 +167,9 @@ function Start-DetectorTask {
     }
     $script:running=$true;$script:round++
     if(-not $script:direct){$script:runLogins++}
-    Publish-Detector taskstart @{Role=$script:roleName;Index=$script:index;Mode=$script:mode;UseItem=$script:useItem;Round=$script:round;Direct=$script:direct;SwitchCount=([Math]::Max(0,$script:runLogins-1));Cycles=(Get-WowAutoCycleCount $script:scheduler $Endpoint.Key);BiteTimeouts=(Get-WowAutoBiteTimeoutCount $script:scheduler $Endpoint.Key);ClassId=$(if($script:combat -and $script:mode -eq 'fight'){$script:combat.ClassId}else{0})}
-    Write-Detector ('已开始'+@{fight='战斗';fish='钓鱼';tame='抓宠'}[$script:mode]+'；角色：'+$script:roleName+'；执行轮次 '+$script:round)
+    Publish-Detector taskstart @{Role=$script:roleName;Index=$script:index;Mode=$script:mode;UseItem=$script:useItem;Round=$script:round;Direct=$script:direct;SwitchCount=([Math]::Max(0,$script:runLogins-1));Cycles=(Get-WowAutoCycleCount $script:scheduler $Endpoint.Key);BiteTimeouts=(Get-WowAutoBiteTimeoutCount $script:scheduler $Endpoint.Key);ClassId=$(if($script:combat -and $script:mode -eq 'fight'){$script:combat.ClassId}else{0});RestRound=$(if($script:mode -eq 'rest'){$script:restSession.Round}else{0});RestRounds=$(if($script:mode -eq 'rest'){$script:restSettings.Rounds}else{0})}
+    $progress=if($script:mode -eq 'rest'){'放号轮次 '+$script:restSession.Round+' / '+$script:restSettings.Rounds}else{'执行轮次 '+$script:round}
+    Write-Detector ('已开始'+@{fight='战斗';fish='钓鱼';tame='抓宠';rest='放号'}[$script:mode]+'；角色：'+$script:roleName+'；'+$progress)
 }
 function Get-DetectorProfile([int]$ClassId) {
     if(-not $script:config.ProfilesReady){throw '战斗配置无效，请先在设置中修正。'}
@@ -185,7 +197,11 @@ function Exit-DetectorProcess([string]$Reason) {
 function Select-DetectorRole {
     for($offset=1;$offset -le $script:roles.Count;$offset++) {
         $index=($script:index+$offset)%$script:roles.Count
-        if($script:roles[$index].Name -cnotin $script:excluded){$script:index=$index;$script:roleName=$script:roles[$index].Name;$script:mode=$script:roles[$index].Mode;$script:useItem=$script:roles[$index].UseItem;return $true}
+        $role=$script:roles[$index]
+        if($role.Name -cin $script:excluded){continue}
+        if($role.Mode -eq 'rest' -and [int]$script:restVisits[$role.Name] -ge $script:restSettings.Rounds){continue}
+        $script:index=$index;$script:roleName=$role.Name;$script:mode=$role.Mode;$script:useItem=$role.UseItem
+        return $true
     }
     return $false
 }
@@ -272,12 +288,15 @@ function Invoke-DetectorRotation {
                     if(-not (Invoke-DetectorEquipRod)){return}
                     $rodEquipped=$true
                 }
-                $null=Request-DetectorOperation Rotation.Enable Rotation @{Mode=$script:mode}
-                $null=Wait-Detector $script:config.Periods.LoginMs
+                if($script:mode -ne 'rest') {
+                    $null=Request-DetectorOperation Rotation.Enable Rotation @{Mode=$script:mode}
+                    $null=Wait-Detector $script:config.Periods.LoginMs
+                }
                 $observation=Get-DetectorObservation
                 if($observation.Color -eq 'dead' -or ($observation.Packet -and $observation.Packet.Action -eq 'dead')){Remove-DetectorRole '角色死亡';return}
                 if($script:mode -eq 'fish' -and $observation.Color -eq 'yellow'){Remove-DetectorRole '背包已满';return}
-                if(($script:mode -eq 'fish' -and $observation.Color -in @('red','green')) -or ($script:mode -eq 'fight' -and $observation.Packet)) {
+                if(($script:mode -eq 'fish' -and $observation.Color -in @('red','green')) -or ($script:mode -eq 'fight' -and $observation.Packet) -or
+                    ($script:mode -eq 'rest' -and $observation.Login)) {
                     $script:scheduler=New-WowAutoScheduler;Set-DetectorScheduler
                     Start-DetectorTask;$script:batch.Mark($Endpoint.Key,8)
                     while((Test-DetectorCurrent) -and -not $script:batch.All(8)){$null=Wait-Detector 25}
@@ -318,8 +337,53 @@ function Apply-DetectorConfiguration {
 function Invoke-DetectorTask {
     try {Invoke-DetectorTaskCore} finally {Sync-DetectorAudioSession}
 }
+function Complete-DetectorRestVisit {
+    $script:running=$false;$script:restSession.Deadline=0L;$script:restSession.RemainingMs=0L
+    $script:restVisits[$script:roleName]=[int]$script:restVisits[$script:roleName]+1
+    $remaining=@($script:roles | Where-Object {
+        $_.Name -cnotin $script:excluded -and ($_.Mode -ne 'rest' -or [int]$script:restVisits[$_.Name] -lt $script:restSettings.Rounds)
+    })
+    if($remaining.Count) {
+        Write-Detector ('角色“'+$script:roleName+'”完成第 '+$script:restSession.Round+' / '+$script:restSettings.Rounds+' 次放号，准备切换下一角色。')
+        Publish-Detector rotate-needed @{Reason='放号单次时间已完成'}
+    } else {
+        if($script:batch){$script:batch.Drop($Endpoint.Key)}
+        $reason='指定角色已全部完成 '+$script:restSettings.Rounds+' 轮放号。'
+        Write-Detector $reason
+        Publish-Detector stopped @{Reason=$reason;Exited=$false}
+    }
+}
+function Invoke-DetectorRest {
+    $now=$Hub.Now
+    if($now -lt $script:nextColor){return}
+    $script:nextColor=$now+$script:config.Periods.LoginMs
+    $observation=Get-DetectorObservation
+    $session=$script:restSession
+    # Only consecutive confirmed in-world observations contribute to the online duration.
+    if($session.Started -and $session.Login -and $observation.Login) {
+        $session.RemainingMs=[Math]::Max(0L,$session.RemainingMs-($now-$session.ObservedAt))
+    }
+    $session.ObservedAt=$now;$session.Login=$observation.Login
+    $session.Deadline=if($session.Started -and $session.Login){$now+$session.RemainingMs}else{0L}
+    if(-not $observation.Login){Write-Detector '等待右下角登录白点，放号计时和跳跃暂停。';return}
+    if($session.Started -and $session.RemainingMs -le 0){Complete-DetectorRestVisit;return}
+    if($now -lt $session.NextJumpAt -or $now -lt $script:retryAt){return}
+    $reply=Request-DetectorOperation Rest.Jump Rest @{Deadline=$session.Deadline}
+    if($reply -and $reply.Expired -and $session.Started) {Complete-DetectorRestVisit;return}
+    if($reply -and $reply.Executed) {
+        if(-not $session.Started) {
+            $session.Started=$true;$session.ObservedAt=[long]$reply.SentAt
+            $session.Deadline=$session.ObservedAt+$session.RemainingMs
+        }
+        $session.NextJumpAt=[long]$reply.SentAt+[long]$script:restSettings.JumpIntervalSeconds*1000
+        Write-Detector ('放号第 '+$session.Round+' / '+$script:restSettings.Rounds+' 轮，单次 '+$script:restSettings.DurationSeconds+' 秒，跳跃间隔 '+$script:restSettings.JumpIntervalSeconds+' 秒。')
+    } else {
+        $session.Login=$false;$session.Deadline=0L;$session.ObservedAt=$Hub.Now
+    }
+}
 function Invoke-DetectorTaskCore {
     $now=$Hub.Now
+    if($script:mode -eq 'rest'){Invoke-DetectorRest;return}
     if($script:mode -eq 'tame') {
         if($now -lt $script:nextColor){return}
         $script:nextColor=$now+100
@@ -447,6 +511,7 @@ if($MockSource){. ([scriptblock]::Create($MockSource))}
 $script:version=$Endpoint.Version;$script:running=$false;$script:audio=$null;$script:batch=$null;$script:config=$null
 $script:round=0;$script:runLogins=0;$script:roleName='';$script:index=-1;$script:mode='fish';$script:useItem=$false;$script:direct=$false
 $script:account='';$script:accountCandidates=@();$script:discoverAccount=$false
+$script:restSettings=$null;$script:restVisits=@{};$script:restSession=$null
 $script:excluded=@();$script:lastStatus='';$script:nextPosition=0L;$script:nextFishPoll=0L;$script:retryAt=0L
 $script:nextMetrics=0L
 $script:lastConfiguration=$null
@@ -483,7 +548,10 @@ try {
                     Invoke-DetectorScan
                     continue
                 }
-                if($command.Kind -eq 'Start') {$script:excluded=@();$script:index=-1;$script:runLogins=0;$script:round=[Math]::Max($script:round,[int]$body.RoundBase)}
+                if($command.Kind -eq 'Start') {
+                    $script:excluded=@();$script:index=-1;$script:runLogins=0;$script:round=[Math]::Max($script:round,[int]$body.RoundBase)
+                    $script:restSettings=$body.Config.Rest;$script:restVisits=@{};$script:restSession=$null
+                }
                 if($script:direct) {
                     $script:roleName='';$script:index=-1;$script:mode=$body.Mode;$script:useItem=[bool]$body.UseItem
                     if($script:mode -eq 'fish' -and -not (Invoke-DetectorEquipRod)){continue}
@@ -509,13 +577,17 @@ try {
             if($script:running){Invoke-DetectorTask}
             if($script:running -and $Hub.Now -ge $script:nextMetrics) {
                 $script:nextMetrics=$Hub.Now+250
-                Publish-Detector metrics @{Deadline=$(if($script:mode -eq 'fish'){$script:fish.Deadline}else{0L});
+                Publish-Detector metrics @{Deadline=$(if($script:mode -eq 'fish'){$script:fish.Deadline}elseif($script:mode -eq 'rest'){$script:restSession.Deadline}else{0L});
+                    RestRemainingSeconds=$(if($script:mode -eq 'rest'){[Math]::Ceiling($script:restSession.RemainingMs/1000.0)}else{0});
                     Cycles=(Get-WowAutoCycleCount $script:scheduler $Endpoint.Key);BiteTimeouts=(Get-WowAutoBiteTimeoutCount $script:scheduler $Endpoint.Key);Audio=[bool]$script:audio;
                     Similarity=$(if($script:audio){$script:audio.Similarity}else{0.0});Peak=$(if($script:audio){$script:audio.Peak}else{0.0})}
             }
         } catch {
             if(-not (Test-DetectorCurrent)){continue}
-            if([WowAutoCapture.Native]::IsPending($_.Exception)){Repair-DetectorCapture;$null=Wait-Detector $script:config.Periods.CaptureRetryMs;continue}
+            if([WowAutoCapture.Native]::IsPending($_.Exception)){
+                if($script:mode -eq 'rest' -and $script:restSession){$script:restSession.Login=$false;$script:restSession.Deadline=0L}
+                Repair-DetectorCapture;$null=Wait-Detector $script:config.Periods.CaptureRetryMs;continue
+            }
             if($script:running -and $_.Exception.Message -match '前台保护时间') {
                 $script:retryAt=$Hub.Now+$script:config.FocusRetryMs
                 if($script:mode -eq 'fish'){Suspend-WowAutoFocus $script:scheduler $Endpoint.Key $Hub.Now '窗口操作暂时失败。'}elseif($script:mode -eq 'fight'){$script:combat.Due=$script:retryAt}

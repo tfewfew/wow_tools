@@ -21,7 +21,7 @@ function Get-ParallelConfig($Row) {
         UseAudio=$script:audioDetectionEnabled;FeaturePath=(Join-Path $script:audioFeatureDirectory $recording.Feature);AudioThreshold=$script:audioThresholds[$Row.Client.Flavor];
         Keys=@{Cast=$script:keyBindings.Cast.Text;Reel=$script:keyBindings.Reel.Text;Item=$script:keyBindings.Item.Text;EquipRod=[string]$script:equipRodBinding.Text};
         Profiles=$script:autoFight.Profiles;ProfilesReady=$script:autoFight.ConfigReady;Common=$common;CommandIntervalMs=$operations.CommandIntervalMs;
-        Tame=$script:autoTame.Config;Operations=$operations;Periods=$script:accountTasks.Config.Periods;Priorities=$script:gameActions.Priorities}
+        Tame=$script:autoTame.Config;Rest=$script:accountTasks.Config.Rest;Operations=$operations;Periods=$script:accountTasks.Config.Periods;Priorities=$script:gameActions.Priorities}
 }
 function Apply-ParallelTimings {
     $values=$script:accountTasks.Config.Operations
@@ -92,7 +92,7 @@ function Update-ParallelMessages {
             'position' {$row.Position=$data.Text;Update-RowName $row}
             'scanned' {$row.Validated=$data.Valid;$row.RuntimeScanning=$false;Set-RowControls $row}
             'switching' {$row.CurrentRole='';$row.CurrentIndex=-1;$row.Metrics=$null;$row.TargetRole=$data.TargetRole;$row.RuntimePhase='switching';Update-WowAutoRunInfo}
-            'taskstart' {$row.RuntimeRunning=$true;$row.RuntimeExiting=$false;$row.RuntimePhase='running';$row.Validated=$true;$row.Metrics=$null;$row.TargetRole='';$row.CurrentRole=$data.Role;$row.CurrentIndex=$data.Index;$row.ExecutionRound=$data.Round;$row.TaskMode=$data.Mode;$row.SlotUseItem=$data.UseItem;$row.RuntimeDirect=$data.Direct;$row.RotationSwitchCount=$data.SwitchCount;$row.CycleCount=$data.Cycles;$row.BiteTimeoutCount=$data.BiteTimeouts;$row.CurrentClassId=$data.ClassId;Update-RowName $row;Update-WowAutoRunInfo}
+            'taskstart' {$row.RuntimeRunning=$true;$row.RuntimeExiting=$false;$row.RuntimePhase='running';$row.Validated=$true;$row.Metrics=$null;$row.TargetRole='';$row.CurrentRole=$data.Role;$row.CurrentIndex=$data.Index;$row.ExecutionRound=$data.Round;$row.TaskMode=$data.Mode;$row.SlotUseItem=$data.UseItem;$row.RuntimeDirect=$data.Direct;$row.RotationSwitchCount=$data.SwitchCount;$row.CycleCount=$data.Cycles;$row.BiteTimeoutCount=$data.BiteTimeouts;$row.CurrentClassId=$data.ClassId;$row.RestRound=[int]$data.RestRound;$row.RestRounds=[int]$data.RestRounds;Update-RowName $row;Update-WowAutoRunInfo}
             'metrics' {$row.Metrics=$data;$row.CycleCount=$data.Cycles;$row.BiteTimeoutCount=$data.BiteTimeouts;Update-RowName $row}
             'counters' {$row.CycleCount=$data.Cycles;$row.BiteTimeoutCount=$data.BiteTimeouts;Update-RowName $row}
             'exiting' {$row.RuntimeRunning=$false;$row.RuntimeExiting=$true;$row.RuntimePhase='exiting';Set-RowControls $row;Update-WowAutoRunInfo}
@@ -142,7 +142,8 @@ function Update-ParallelMessages {
             if($startRows.Count){Start-ParallelBatch $startRows Start;foreach($key in $pending.Keys){if($pending[$key] -ne 'Start'){$script:parallelPending[$key]=$pending[$key]}}}
             else {Start-ParallelBatch @($pending.Keys | ForEach-Object {$script:rows[$_]})}
         } elseif($script:parallelNextAt -and $script:parallelHub.Now -ge $script:parallelNextAt -and -not $script:editingSettings) {
-            Start-ParallelBatch @($script:rows.Values | Where-Object {$_.RuntimeRunning -and -not $_.RuntimeDirect})
+            $timedRows=@($script:rows.Values | Where-Object {$_.RuntimeRunning -and -not $_.RuntimeDirect -and $_.TaskMode -ne 'rest'})
+            if ($timedRows.Count) {Start-ParallelBatch $timedRows} else {$script:parallelNextAt=0L}
         }
     }
     foreach($row in $script:rows.Values){Update-RotationRow $row;Update-ParallelStatusDisplay $row}
@@ -165,7 +166,7 @@ function Initialize-ParallelRuntime {
     try{Initialize-AccountTasks $accountPath}
     catch{
         $accountError=$_.Exception.Message
-        $script:accountTasks=[pscustomobject]@{Path=$accountPath;Config=@{Version=1;Accounts=@{};Bindings=@{};Periods=(New-DetectionPeriods);Operations=(Get-LegacyOperationTimings)};Catalog=@{};Warnings=@('子战网配置读取失败：'+$accountError+'；所有角色保持停用，请核对后保存。')}
+        $script:accountTasks=[pscustomobject]@{Path=$accountPath;Config=@{Version=1;Accounts=@{};Bindings=@{};Periods=(New-DetectionPeriods);Operations=(Get-LegacyOperationTimings);Rest=(New-RestTaskSettings)};Catalog=@{};Warnings=@('子战网配置读取失败：'+$accountError+'；所有角色保持停用，请核对后保存。')}
         Update-AccountTaskCatalog
         foreach($roles in $script:accountTasks.Config.Accounts.Values){foreach($role in $roles){$role.Enabled=$false}}
     }
