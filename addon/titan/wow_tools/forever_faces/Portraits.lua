@@ -47,10 +47,6 @@ local Reload -- loads a portrait's unit again, defined after Refresh
 local pending = {} -- [texture] = true, waiting for combat to end
 local hooked = {}
 
-function ns.DeferPortrait(entry)
-	pending[entry.texture] = true
-end
-
 local function DB() return ns.DB() end
 
 local function Secret(v)
@@ -180,7 +176,6 @@ end
 local function Flat(texture)
 	local e = entries[texture]
 	if not e then return end
-	if e.model then ns.style.Hide(e) end
 	-- already flat: the game redraws some portraits every frame
 	if not e.shown and not (e.model and e.model:IsShown()) then return end
 	e.shown = false
@@ -197,11 +192,9 @@ local function Flat(texture)
 	texture:SetAlpha(e.alpha)
 	e.hiding = false
 end
-ns.FlatPortrait = Flat
 
 local function Show3D(texture)
 	local e = entries[texture]
-	if e.captureError and InCombatLockdown() then Flat(texture); return end
 	if e.showing then return end
 	-- showing a model can fire its OnModelLoaded at once, which comes back here
 	e.showing = true
@@ -219,7 +212,6 @@ local function Show3D(texture)
 	e.hiding = true
 	texture:SetAlpha(0)
 	e.hiding = false
-	ns.style.Show(e)
 end
 
 -- The portrait's own frame holds the ring art, and on a unit frame the level
@@ -284,11 +276,9 @@ local function Layout(texture, e)
 	end
 	Levels(texture, e)
 end
-ns.LayoutPortrait = Layout
 
 local function Build(texture, e)
 	local host = texture:GetParent()
-	e.host, e.texture = host, texture
 
 	local back = CreateFrame("Frame", nil, host)
 	back:SetAllPoints(texture)
@@ -411,10 +401,6 @@ local function Refresh(texture, force)
 	end
 	e.styleDeferred = nil
 	e.styleConfig = config
-	if e.captureError and e.model and not InCombatLockdown() and e.model:GetParent() ~= e.host then
-		ns.style.Restore(e)
-		Layout(texture, e)
-	end
 	local modelKey = ns.style.ModelKey(e.unit)
 	if e.styleModelKey ~= modelKey then
 		Flat(texture)
@@ -436,11 +422,6 @@ local function Refresh(texture, force)
 	-- the target of target is redrawn every frame: nothing new, nothing to do
 	local w, h = texture:GetSize()
 	local resized = w ~= e.w or h ~= e.h
-	if e.capture and InCombatLockdown() and (force or resized) then
-		e.styleDeferred = true
-		pending[texture] = true
-		return
-	end
 	if e.shown and not e.dirty and not force and not resized and not styleChanged then return end
 
 	-- no model for a hidden identity: the picture stays until the next swap
@@ -468,7 +449,6 @@ local function Refresh(texture, force)
 
 	if force or resized or styleChanged then
 		e.w, e.h = w, h
-		ns.style.Prepare(e)
 		Layout(texture, e)
 	end
 	local model = e.model
@@ -776,7 +756,6 @@ function ns.ReloadPortraitModels()
 			pending[texture] = true
 		else
 			Flat(texture)
-			ns.style.Prepare(e)
 			Refresh(texture, true)
 		end
 	end
@@ -786,8 +765,8 @@ function ns.PortraitStyleStatus()
 	local lines = { ns.style.Status() }
 	for texture, e in pairs(entries) do
 		if e.unit and texture:IsVisible() and ns.style.Applies(e.unit) then
-			local state = e.captureError or e.modelError
-			if e.styleDeferred or e.captureDeferred then state = "等待脱战应用" end
+			local state = e.modelError
+			if e.styleDeferred then state = "等待脱战应用" end
 			local id = e.model and e.model.GetModelFileID and e.model:GetModelFileID()
 			local display = e.model and e.model.GetDisplayInfo and e.model:GetDisplayInfo()
 			if Secret(id) then id = nil end

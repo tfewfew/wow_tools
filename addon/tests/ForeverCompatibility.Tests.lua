@@ -174,6 +174,7 @@ VisibilityChanged = function()
     end
 end
 function CreateFrame(kind, name, parent, template)
+    assert(kind ~= "OffScreenFrame", "Portraits must not create the retired protected snapshot frame")
     assert(template ~= "UIDropDownMenuTemplate", "Forever still depends on legacy dropdown templates")
     local object = widget(name, parent, kind)
     object.template = template
@@ -677,12 +678,16 @@ do
             local control = assert(stylePanel.controls[option.key], "Missing portrait style control " .. option.key)
             assert(option.help and control:GetScript("OnEnter") and control:GetScript("OnLeave"),
                 "Missing portrait tooltip binding on control " .. option.key)
+            assert(control:IsEnabled() == not option.unavailable,
+                "Portrait option availability binding failed " .. option.key)
             if option.minimum then
                 assert(control:GetScript("OnTextChanged") and control:GetScript("OnEditFocusGained")
                     and control:GetScript("OnEditFocusLost") and control:GetScript("OnEscapePressed"),
                     "Portrait numeric control lacks editing/save bindings " .. option.key)
                 assert(control.apply:GetScript("OnClick") and control.apply:GetScript("OnEnter"),
                     "Portrait apply button lacks save/tooltip bindings " .. option.key)
+                assert(control.apply:IsEnabled() == not option.unavailable,
+                    "Unavailable snapshot parameters must disable their apply button " .. option.key)
             end
         end
         local modelContract = {
@@ -702,6 +707,12 @@ do
             SetAnimation = function(_, animation) assert(animation == 0, "Portrait idle animation binding failed") end,
         }
         local savedStyle = wowDetectorDB.foreverFaces.db.style
+        local enabled, unavailable = WoWTools.foreverFaces.SetStyle("pixelEnabled", true)
+        assert(enabled == false and unavailable == style.Status() and not style.Config().pixelEnabled,
+            "Portrait snapshot setter must reject the retired implementation")
+        wowDetectorDB.foreverFaces.db.style = {pixelEnabled=true, resolution=48}
+        assert(not style.Config().pixelEnabled and style.Config().resolution == 48,
+            "Previously enabled snapshots must normalize to the unavailable state")
         WoWTools.foreverFaces.SetStyle("resolution", 48)
         WoWTools.foreverFaces.SetStyle("fps", 12)
         assert(style.Config() == wowDetectorDB.foreverFaces.db.style
