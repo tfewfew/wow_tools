@@ -28,7 +28,7 @@ function ns.BuildStyleSettings(parent)
     Label("需要 Reload 的项目", -82, true)
     Label("安装本次更新后需 /reload。插件列表的加载开关需 Reload。", -108)
     Label("模型与采样说明", -148, true)
-    Label("客户端公开接口缺少强制 LOD。可填写客户端已有的低模 DisplayID 或 FileID。\n像素化使用离屏快照，实际分辨率、3D 捕获和采样效果由游戏内调试确认。", -174)
+    Label("低模可填写客户端已有的 DisplayID 或 FileID。\n当前离屏快照实现触发客户端受保护操作，像素化已停用。", -174)
     local y = -234
     for _, option in ipairs(ns.style.options) do
         local row = CreateFrame("Frame", nil, panel)
@@ -40,7 +40,8 @@ function ns.BuildStyleSettings(parent)
         label:SetJustifyH("LEFT")
         label:SetText(option.label)
         row:EnableMouse(true)
-        Tooltip(row, option.label, option.help)
+        local help = option.unavailable and (ns.style.Status() .. "\n" .. option.help) or option.help
+        Tooltip(row, option.label, help)
         local control
         if option.choices then
             control = CreateFrame("DropdownButton", nil, row, "WowStyle1DropdownTemplate")
@@ -90,7 +91,8 @@ function ns.BuildStyleSettings(parent)
                 panel:Refresh()
             end)
             save:SetScript("OnClick", Apply)
-            Tooltip(save, "应用" .. option.label, option.help)
+            Tooltip(save, "应用" .. option.label, help)
+            save:SetEnabled(not option.unavailable)
             control.apply = save
         else
             control = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
@@ -98,16 +100,17 @@ function ns.BuildStyleSettings(parent)
             control:SetSize(28, 28)
             control:SetScript("OnClick", function(self) ns.SetStyle(option.key, self:GetChecked() and true or false) end)
         end
-        Tooltip(control, option.label, option.help)
+        control:SetEnabled(not option.unavailable)
+        Tooltip(control, option.label, help)
         panel.controls[option.key] = control
         y = y - 40
     end
     local rebuild = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     rebuild:SetPoint("TOPLEFT", 16, y - 8)
     rebuild:SetSize(170, 26)
-    rebuild:SetText("重载模型 / 重建快照")
+    rebuild:SetText("重新加载模型")
     rebuild:SetScript("OnClick", function() ns.ReloadPortraitModels() end)
-    Tooltip(rebuild, "重载模型 / 重建快照", "按当前保存的参数重新加载模型并重建快照，战斗中的结构调整等待脱战。")
+    Tooltip(rebuild, "重新加载模型", "按当前保存的参数重新加载模型，战斗中的结构调整等待脱战。")
     local reset = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     reset:SetPoint("LEFT", rebuild, "RIGHT", 12, 0)
     reset:SetSize(150, 26)
