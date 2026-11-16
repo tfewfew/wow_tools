@@ -345,20 +345,6 @@ for line in io.lines(addon .. "wow_tools.toc") do
     end
 end
 -- SavedVariables become available after the TOC scripts and before ADDON_LOADED.
-local legacyDataLoads = 0
-if TEST_LEGACY_DATA then
-    C_AddOns = C_AddOns or {}
-    C_AddOns.LoadAddOn = function(name)
-        legacyDataLoads = legacyDataLoads + 1
-        if name == "PRR" then
-            PRRDB = {settings = {showReagentFor = false}}
-        else
-            assert(name == "RaynnaBestiary", "Unexpected legacy settings loader")
-            RaynnaBestiaryDB = {appearance = {opacity = 0.63}}
-        end
-        return true
-    end
-end
 if TEST_THIRD_PARTY_DISABLED then
     wowDetectorDB = {thirdPartyAddons = {bigfoot_channel = false, ls_toasts = false, forever_faces = false, better_vendor_ui = false, pet_xp_bar = false,
         raynna_bestiary = false, prr = false}}
@@ -384,15 +370,6 @@ if flavor == "forerver" then
         assert(bestiary.db == wowToolsCharacterSettings.raynnaBestiary.db,
             "Bestiary character settings binding failed")
         assert(prr.db == wowDetectorDB.prr.db and prr.ready, "PRR account settings or options binding failed")
-        if TEST_LEGACY_DATA then
-            assert(prr.db == PRRDB and bestiary.db == RaynnaBestiaryDB and legacyDataLoads == 2,
-                "Legacy account/character settings were not bound through their data loaders")
-            assert(prr.db.settings.showReagentFor == false and bestiary.db.appearance.opacity == 0.63,
-                "Legacy settings were overwritten by defaults")
-            prr.GetSettings()
-            bestiary.GetSettings()
-            assert(legacyDataLoads == 2, "Existing embedded settings reloaded their legacy data")
-        end
         assert(type(prr.Components.ItemTooltip.Fill) == "function",
             "PRR tooltip component load order failed")
         assert(type(chatMock.options.WoWToolsPRR) == "function", "PRR options were not registered")

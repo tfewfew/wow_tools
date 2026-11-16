@@ -41,11 +41,3 @@ function Get-WowToolsRetiredAddonNames {
     if ($Flavor -eq 'forerver') { $names += @('BigFoot', '!!!Libs', 'ForeverFaces', 'RaynnaBestiary', 'PRR') }
     return $names
 }
-
-function Get-WowToolsLegacyDataLoaders {
-    param([ValidateSet('titan','forerver')][string]$Flavor)
-    if ($Flavor -eq 'forerver') {
-        [pscustomobject]@{Name='PRR'; Declaration='SavedVariables: PRRDB'}
-        [pscustomobject]@{Name='RaynnaBestiary'; Declaration='SavedVariablesPerCharacter: RaynnaBestiaryDB'}
-    }
-}

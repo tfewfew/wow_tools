@@ -35,10 +35,6 @@ foreach ($module in @('raynna_bestiary','prr')) {
     }
 }
 Assert-Profile (Select-String -LiteralPath (Join-Path $forever.Source 'wow_tools.toc') -Pattern '^## SavedVariablesPerCharacter:.*\bwowToolsCharacterSettings\b' -Quiet) 'Bestiary character settings are not persisted.'
-$legacyLoaders = @(Get-WowToolsLegacyDataLoaders -Flavor forerver)
-Assert-Profile ($legacyLoaders.Count -eq 2 -and @(Get-WowToolsLegacyDataLoaders -Flavor titan).Count -eq 0) 'Legacy data loaders have the wrong client scope.'
-Assert-Profile ($legacyLoaders[0].Name -eq 'PRR' -and $legacyLoaders[0].Declaration -eq 'SavedVariables: PRRDB') 'PRR legacy account declaration changed.'
-Assert-Profile ($legacyLoaders[1].Name -eq 'RaynnaBestiary' -and $legacyLoaders[1].Declaration -eq 'SavedVariablesPerCharacter: RaynnaBestiaryDB') 'Bestiary legacy character declaration changed.'
 $single=@(Get-WowToolsDeploymentProfiles -RepoRoot $repo -Flavor forerver -GameRoot 'C:\test-games\infinite')
 Assert-Profile ($single.Count -eq 1 -and $single[0].Flavor -eq 'forerver' -and $single[0].Target -eq 'C:\test-games\infinite\Interface\AddOns\wow_tools') 'Explicit client override targets wrong archive.'
 $rejected=$false

@@ -11,13 +11,16 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 统一入口为 `skills/wow-tools/scripts/test-local.ps1`。它执行 PowerShell 解析、生产 C# 编译及 PowerShell/C# 调用契约、Python AST、Lua 5.1 编译、XML 与内联脚本解析、两服初始化和接口契约，以及客户端部署映射检查。`wowAuto.ps1 -UiTest` 调用 PC 端语法、编译与接口检查。后续测试用例按此范围维护。
 
+## 第三方插件收编
+
+第三方插件收编统一直接迁移已保存的旧配置，校验完成后将原独立插件目录及其配置导入入口一并归档，游戏插件目录采用收编后的 wow_tools 作为唯一功能入口。按账号和角色分别迁移，已有收编配置优先，迁移沿用字面量解析、校验备份及原子写入。
+
 以下为实现与发布历史，其中的测试名称和通过数量保留为历史记录，当前本地测试采用上述范围。
 
 ## 无限服怪物图鉴与配方用途收编（2026-11-16）
 
-- 用户明确限定无限服，forerver 2.2.106 收编已安装 Raynna's Bestiary 1.1.0 与 PRR 1.5.2，2.2.107 补齐运行中旧客户端退出保存后的导入。三方插件增加“怪物图鉴”和“配方用途”设置页及插件管理开关，勾选后在下次加载生效。分别使用 WoWTools.raynnaBestiary 与 WoWTools.prr 命名空间，停用时跳过源码初始化、业务事件、提示钩子和计时器。保留 `/rb`、`/prr`、原怪物浏览器、掉落与来源提示、配方查询及制造规划功能。
+- 用户明确限定无限服，forerver 2.2.106 收编已安装 Raynna's Bestiary 1.1.0 与 PRR 1.5.2，2.2.108 按用户确认统一采用直接迁移并归档配置导入入口。三方插件增加“怪物图鉴”和“配方用途”设置页及插件管理开关，勾选后在下次加载生效。分别使用 WoWTools.raynnaBestiary 与 WoWTools.prr 命名空间，停用时跳过源码初始化、业务事件、提示钩子和计时器。保留 `/rb`、`/prr`、原怪物浏览器、掉落与来源提示、配方查询及制造规划功能。
 - Bestiary 按角色保存到 wowToolsCharacterSettings.raynnaBestiary.db，PRR 按账号保存到 wowDetectorDB.prr.db。同步复用 Lua 字面量解析、校验备份和原子写入，分别迁移角色 RaynnaBestiaryDB 与账号 PRRDB，已有收编配置优先。部署校验完成后归档两个独立插件目录。正式目录仅有用户保存的 tools/wowAuto/config.ini 修改时，同步保留该文件并继续校验部署源码提交与远端一致。
-- 两个原插件名称下仅保留按需加载的配置 TOC，用原 SavedVariables 文件承接旧客户端在部署之后的退出保存。收编配置缺失时通过 C_AddOns.LoadAddOn 读取对应原始表，随后绑定到宿主的账号或角色设置。已有收编配置继续优先，两个配置导入入口没有 Lua/UI 脚本。
 - PRR 安装文件与 CurseForge 9629892 的 1.5.2 原包一致，上游未公布 Git commit，SOURCE.json 记录发布包 SHA256、原始文件指纹及许可。Bestiary 安装版 1.1.0 含公开 1.0.0 仓库尚未包含的 Browser.lua 等差异，保留实际安装版本，SOURCE.json 记录安装文件指纹及公开对照提交 3fb133ade257280ec69908dcf19c312de2e96887。原有许可、数据来源说明及数据覆盖范围继续保留。
 - 无限服接口按 Gethe/wow-ui-source forever 的 bebcb6bf309cf41b41bd74f8ca651e6a105b2676 核对，复用宿主 Ace3、LDB 和 DBIcon，仅内嵌 PRR 专用 JSON 库。统一入口分别检查两服 Lua 5.1 编译、TOC/XML 加载、模块启停、设置构建及持久化绑定。实际怪物掉落、配方提示、界面交互和配置迁移流程由用户在游戏内验证。
 

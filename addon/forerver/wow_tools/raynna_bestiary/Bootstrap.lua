@@ -12,12 +12,7 @@ function addon.GetSettings()
         wowToolsCharacterSettings.raynnaBestiary = {}
     end
     local settings = wowToolsCharacterSettings.raynnaBestiary
-    if type(settings.db) ~= "table" then
-        if type(RaynnaBestiaryDB) ~= "table" and C_AddOns and C_AddOns.LoadAddOn then
-            pcall(C_AddOns.LoadAddOn, "RaynnaBestiary")
-        end
-        settings.db = type(RaynnaBestiaryDB) == "table" and RaynnaBestiaryDB or {}
-    end
+    if type(settings.db) ~= "table" then settings.db = {} end
     return settings.db
 end
 
