@@ -101,7 +101,7 @@ function Receive-DetectorAudioBite($Command) {
     }
 }
 function Get-DetectorObservationReady {
-    $until=$Hub.Now+5000
+    $until=$Hub.Now+[WowAutoCapture.Native]::FrameWaitMs
     while(Test-DetectorCurrent) {
         try {return Get-DetectorObservation}
         catch {

@@ -20,7 +20,8 @@ namespace WowAutoCapture {
         internal string SourceKey;
     }
     public static class Native {
-        const int WaitMs=5000, FreshMs=1500;
+        public const int FrameWaitMs=30000;
+        const int RestoreWaitMs=5000, FreshMs=1500;
         static readonly object Gate=new object();
         static readonly Dictionary<string,Source> Sources=new Dictionary<string,Source>();
         static bool closing;
@@ -136,7 +137,7 @@ namespace WowAutoCapture {
         public static void RestoreMinimized(RestoreRequest request) {
             if(!RestoreCurrent(request)) return;
             Source source;lock(Gate) {if(!Sources.TryGetValue(request.SourceKey,out source)) return;}
-            lock(source.Sync) {if(source.RestoreUntil==0) source.RestoreUntil=Now+WaitMs;source.NextRestoreAt=Now+500;}
+            lock(source.Sync) {if(source.RestoreUntil==0) source.RestoreUntil=Now+RestoreWaitMs;source.NextRestoreAt=Now+500;}
             try {
                 IntPtr window=Resolve(request.ProcessId,request.StartTicks,request.Path);
                 if(window!=request.Window) {lock(source.Sync) source.Restore=null;return;}
@@ -174,7 +175,7 @@ namespace WowAutoCapture {
                     if(source.Error!=null) throw new InvalidOperationException(source.Error);
                     if(geometry && source.Frame!=null && source.Client==client && now-source.FrameAt<=FreshMs) return (Bitmap)source.Frame.Clone();
                     if(source.WaitingAt==0) source.WaitingAt=now;
-                    if(now-source.WaitingAt>=WaitMs) throw new InvalidOperationException("5秒内没有取得有效的窗口新帧。");
+                    if(now-source.WaitingAt>=FrameWaitMs) throw new InvalidOperationException((FrameWaitMs/1000)+"秒内没有取得有效的窗口新帧。");
                     throw new PendingException("等待窗口捕获首帧或尺寸更新后的新帧。");
                 }
             } finally {if(old!=IntPtr.Zero) SetThreadDpiAwarenessContext(old);}
