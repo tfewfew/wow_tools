@@ -140,6 +140,23 @@ foreach ($profile in $profiles) {
             Move-Item -LiteralPath $legacyAddon -Destination $legacyBackup
         }
     }
+    # Data-only, load-on-demand TOCs import saves written by the previous session.
+    # Their former Lua/UI source remains in the verified archive above.
+    foreach ($loader in Get-WowToolsLegacyDataLoaders -Flavor $profile.Flavor) {
+        $loaderRoot = [IO.Path]::GetFullPath((Join-Path $profile.AddOns $loader.Name))
+        if ((Split-Path $loaderRoot -Parent) -ne $profile.AddOns) { throw 'Legacy loader path check failed.' }
+        New-Item -ItemType Directory -Path $loaderRoot -Force | Out-Null
+        $loaderTOC = Join-Path $loaderRoot ($loader.Name + '.toc')
+        $loaderText = @(
+            "## Interface: $($profile.Interface)"
+            "## Title: wow_tools configuration import ($($loader.Name))"
+            '## Notes: Loads previous settings on demand for wow_tools.'
+            '## LoadOnDemand: 1'
+            "## $($loader.Declaration)"
+        ) -join "`n"
+        [IO.File]::WriteAllText($loaderTOC, $loaderText + "`n", [Text.UTF8Encoding]::new($false))
+        if ([IO.File]::ReadAllText($loaderTOC) -cne ($loaderText + "`n")) { throw 'Legacy loader verification failed.' }
+    }
 }
 
 foreach ($profile in $profiles) { Write-Output "Synced pushed commit $headCommit ($($profile.Flavor)) to $($profile.Target)." }
