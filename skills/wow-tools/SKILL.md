@@ -59,6 +59,12 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - forerver 2.2.121 的 Alt 点击物品 PRR 配方窗口，配方主图标与图纸图标按当前角色的已学状态去色，并覆盖与商人增强一致的 136814 绿色勾，勾图四边内缩 4px。沿用原图标纹理、UV、颜色与透明度，每次填充虚拟化行时更新状态，旧行重用及图纸缺失时清理原标记。
 - 复用 PRR 的 IsRecipeKnown 和角色级 knownRecipes，按本服 NEW_RECIPE_LEARNED 的 recipeID 接入学习记录，技能、法术及专业窗口读取更新后调用现有可见窗口 RefreshSoon 合并刷新。维护表登记 PR-05，上游基线沿用 1.5.2。统一入口执行语法、语义和接口检查，实际学习和窗口显示由用户在游戏内验证。此次沿用 PRR 已限定的无限服范围。
 
+## 无限服关闭位置采集修复（2026-11-17）
+
+- forerver 2.2.124 修正上一版替换实例 OnHide 方法未接入 XML 已绑定关闭脚本的问题。改用原生 ContainerFrame.CloseBag 回调，仅采集 ContainerFrameCombinedBags，在原生关闭重排和 !Pig 定位钩子前保存位置。回调按原生 owner、container 签名注册一次，开关复用同一注册。
+- 关闭时优先读取 UIParent 相对锚点和偏移，按有效缩放归一化保存，支持关闭后可见矩形已不可读的情况。其他相对框体沿用矩形换算，旧版仅 x/y 记录继续按 TOPLEFT 恢复。打开后复用已有单次下一帧布局恢复，普通物品更新保持空闲路径。
+- 接口检查固定绑定原生 OnHide，再加载模块，核对原生关闭事件、锚点与缩放换算、隐藏矩形、旧配置和其他容器回调过滤。统一入口执行语法、语义和接口检查，实际拖动、关闭与重新打开由用户游戏内验证。按用户要求仅部署无限服，更新后需 /reload。
+
 ## 无限服关闭位置记忆（2026-11-16）
 
 - forerver 2.2.120 在原生 ContainerFrameCombinedBags.OnHide 执行窗口重排前采集背包左上角，按 UIParent 坐标和有效缩放保存到账号 wowDetectorDB.bagIntegration.position。每次 OnShow 标记恢复请求，复用已有下一帧分区回调，在原生、!Pig 及分区尺寸/缩放应用完成后恢复一次关闭位置。首次缺少记录时沿用原生位置，下一次有效关闭后建立记录。

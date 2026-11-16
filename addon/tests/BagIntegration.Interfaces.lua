@@ -4,6 +4,7 @@ local hooks, pending, frames = {}, {}, {}
 local cvar, loaded, anchorUpdates = "0", {}, 0
 local windowPointWrites, nativeHides = 0, 0
 local parentScale, resetOnHide = 0.8, false
+local closeCallbacks = {}
 local itemPointWrites, familyReads = 0, 0
 local familiesReady = true
 local combat = false
@@ -15,6 +16,17 @@ UIParent = {
     GetLeft = function() return 0 end,
     GetTop = function() return 900 end,
     GetEffectiveScale = function() return parentScale end,
+}
+EventRegistry = {
+    RegisterCallback = function(_, event, callback, owner)
+        assert(event == "ContainerFrame.CloseBag" and type(callback) == "function" and type(owner) == "table",
+            "Native bag-close callbacks must preserve the event, callback and owner signature")
+        closeCallbacks[#closeCallbacks + 1] = {callback = callback, owner = owner}
+    end,
+    TriggerEvent = function(_, event, frame)
+        assert(event == "ContainerFrame.CloseBag" and type(frame) == "table")
+        for _, entry in ipairs(closeCallbacks) do entry.callback(entry.owner, frame) end
+    end,
 }
 Enum = {BagIndex = {ReagentBag = 5}, ItemClass = {Quiver = 11}}
 C_AddOns = {IsAddOnLoaded = function(name) assert(type(name) == "string") return loaded[name] end}
@@ -69,13 +81,14 @@ local function Region(kind)
             and type(x) == "number" and type(y) == "number", "Native anchor signature mismatch")
         if self.kind == "ItemButton" then itemPointWrites = itemPointWrites + 1 end
         if self == ContainerFrameCombinedBags then
-            assert(point == "TOPLEFT" and relative == UIParent and relativePoint == "TOPLEFT",
-                "Saved bag position must use the root frame's top-left anchor")
+            assert(relative == UIParent, "Saved bag position must use the root frame")
             windowPointWrites = windowPointWrites + 1
             self.anchor = {point, relative, relativePoint, x, y}
-            local ratio = relative:GetEffectiveScale() / self:GetEffectiveScale()
-            self.left = relative:GetLeft() * ratio + x
-            self.top = relative:GetTop() * ratio + y
+            if point == "TOPLEFT" and relativePoint == "TOPLEFT" then
+                local ratio = relative:GetEffectiveScale() / self:GetEffectiveScale()
+                self.left = relative:GetLeft() * ratio + x
+                self.top = relative:GetTop() * ratio + y
+            end
         end
     end
     function region:ClearAllPoints() end
@@ -88,7 +101,7 @@ local function Region(kind)
     function region:Hide()
         local wasShown = self.shown
         self.shown = false
-        if wasShown and self.OnHide then self:OnHide() end
+        if wasShown and self.scripts.OnHide then self.scripts.OnHide(self) end
     end
     function region:IsShown() return self.shown end
     function region:SetScript(event, callback) self.scripts[event] = callback end
@@ -108,10 +121,21 @@ container.left, container.top = 120, 700
 function container:GetLeft() return self.left end
 function container:GetTop() return self.top end
 function container:GetEffectiveScale() return (self.scale or 1) * parentScale end
+function container:GetPoint(index)
+    assert(index == 1, "Native bag anchor reads must use the first anchor")
+    if self.pointOverride then return unpack(self.pointOverride) end
+    if self.left == nil or self.top == nil then return end
+    local ratio = UIParent:GetEffectiveScale() / self:GetEffectiveScale()
+    return "TOPLEFT", UIParent, "TOPLEFT", self.left - UIParent:GetLeft() * ratio, self.top - UIParent:GetTop() * ratio
+end
 function container:OnHide()
+    EventRegistry:TriggerEvent("ContainerFrame.CloseBag", self)
     nativeHides = nativeHides + 1
     if resetOnHide then self.left, self.top = 10, 20 end
 end
+-- XML binds this script when the frame is created, before the addon changes instance methods.
+container.scripts.OnHide = container.OnHide
+local nativeOnHide = container.OnHide
 container.itemButtonPool = {
     GetTemplate = function() return "ContainerFrameItemButtonTemplate" end,
     Release = function(_, button) button:Hide() end,
@@ -191,6 +215,8 @@ dofile(root .. "/addon/forerver/wow_tools/BagIntegration.lua")
 local bags = WoWTools.bagIntegration
 assert(bags.SetEnabled(true) and bags.active and wowDetectorDB.bagIntegration.enabled,
     "Enabled account setting must bind the native container integration")
+assert(container.OnHide == nativeOnHide and container.scripts.OnHide == nativeOnHide and #closeCallbacks == 1,
+    "Position capture must use the native close event while preserving the XML-bound OnHide script")
 assert(container:MatchesBagID(5) and ContainerFrameSettingsManager:IsUsingCombinedBags(5),
     "Reagent container routing must participate in the same native window")
 assert(not container:MatchesBagID(6), "Bank container routing changed")
@@ -298,8 +324,8 @@ local expectedY = container:GetTop() * ratio - UIParent:GetTop()
 local previousHides = nativeHides
 resetOnHide = true
 container:Hide()
-assert(nativeHides == previousHides + 1 and positionConfig.position.x == expectedX
-    and positionConfig.position.y == expectedY and container:GetLeft() == 10,
+assert(nativeHides == previousHides + 1 and math.abs(positionConfig.position.x - expectedX) < 0.000001
+    and math.abs(positionConfig.position.y - expectedY) < 0.000001 and container:GetLeft() == 10,
     "Closing must save the current root-relative position before the native OnHide reanchors it")
 container.suofang, parentScale = 0.9, 0.7
 container:Show()
@@ -346,11 +372,51 @@ closedPosition = positionConfig.position
 container.left = nil
 container:Hide()
 assert(positionConfig.position == closedPosition, "An unavailable native rect must preserve the last valid saved position")
+container.left, container.top = 240, 650
+container:Show()
+container.pointOverride = {"CENTER", UIParent, "BOTTOMRIGHT", -350, 250}
+container.left, container.top = nil, nil
+container:Hide()
+ratio = container:GetEffectiveScale() / UIParent:GetEffectiveScale()
+assert(positionConfig.position.point == "CENTER" and positionConfig.position.relativePoint == "BOTTOMRIGHT"
+    and positionConfig.position.x == -350 * ratio and positionConfig.position.y == 250 * ratio,
+    "Native close callbacks must capture root-relative anchors even when the hidden rect is unavailable")
+closedPosition = positionConfig.position
+EventRegistry:TriggerEvent("ContainerFrame.CloseBag", {})
+assert(positionConfig.position == closedPosition, "Closing another bag must preserve the combined window's saved anchor")
+container.suofang, parentScale = 1.2, 0.9
+container:Show()
+container.scripts.OnShow(container)
+for _, callback in ipairs(pending) do callback() end
+pending = {}
+ratio = UIParent:GetEffectiveScale() / container:GetEffectiveScale()
+assert(container.anchor[1] == "CENTER" and container.anchor[3] == "BOTTOMRIGHT"
+    and math.abs(container.anchor[4] - closedPosition.x * ratio) < 0.000001
+    and math.abs(container.anchor[5] - closedPosition.y * ratio) < 0.000001,
+    "Restoring a native anchor must retain both anchor names and convert offsets for the current scale")
+container:Hide()
+container.pointOverride = nil
+positionConfig.position = {x = 150, y = -200}
+container:Show()
+container.scripts.OnShow(container)
+for _, callback in ipairs(pending) do callback() end
+pending = {}
+assert(container.anchor[1] == "TOPLEFT" and container.anchor[3] == "TOPLEFT"
+    and math.abs(container.anchor[4] - 150 * ratio) < 0.000001
+    and math.abs(container.anchor[5] + 200 * ratio) < 0.000001,
+    "Legacy coordinate-only records must retain their root-relative TOPLEFT anchor contract")
+container.pointOverride = {"TOPLEFT", {}, "TOPLEFT", 1, 2}
+container:Hide()
+local fallbackX, fallbackY = positionConfig.position.x, positionConfig.position.y
+assert(math.abs(fallbackX - 150) < 0.000001 and math.abs(fallbackY + 200) < 0.000001,
+    "Anchors relative to another window must use the native rect to preserve root-relative coordinates")
+container.pointOverride = nil
 assert(bags.SetEnabled(false) and not bags.active and cvar == "0",
     "Disabling must restore the prior combinedBags interface setting")
 assert(not container:MatchesBagID(5) and not ContainerFrameSettingsManager:IsUsingCombinedBags(5),
     "Inactive native routing must delegate to its original interfaces")
 assert(bags.SetEnabled(true) and bags.active, "Native integration did not rebind")
+assert(#closeCallbacks == 1, "Re-enabling integration must reuse its native close callback")
 rejectReagent = true
 container:SetBagSize()
 container:UpdateItemSlots()

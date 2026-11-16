@@ -36,22 +36,41 @@ local function Finite(value)
     return Readable(value) and type(value) == "number" and value == value and math.abs(value) < math.huge
 end
 
+local anchorPoints = {
+    TOPLEFT = true, TOP = true, TOPRIGHT = true,
+    LEFT = true, CENTER = true, RIGHT = true,
+    BOTTOMLEFT = true, BOTTOM = true, BOTTOMRIGHT = true,
+}
+
 local function SavedPosition()
     local config = Config()
     local position = config and config.position
-    if type(position) == "table" and Finite(position.x) and Finite(position.y) then return position end
+    if type(position) == "table" and Finite(position.x) and Finite(position.y)
+        and anchorPoints[position.point or "TOPLEFT"] and anchorPoints[position.relativePoint or "TOPLEFT"] then
+        return position
+    end
 end
 
 local function SavePosition(frame)
     if not module.active then return end
     local config = Config()
     if not config then return end
+    local scale, parentScale = frame:GetEffectiveScale(), UIParent:GetEffectiveScale()
+    if not (Finite(scale) and scale > 0 and Finite(parentScale) and parentScale > 0) then return end
+    local ratio = scale / parentScale
+    -- Anchors remain readable during OnHide even when the visible rect is unavailable.
+    local point, relative, relativePoint, offsetX, offsetY = frame:GetPoint(1)
+    if (relative == UIParent or relative == nil) and anchorPoints[point] and anchorPoints[relativePoint]
+        and Finite(offsetX) and Finite(offsetY) then
+        local x, y = offsetX * ratio, offsetY * ratio
+        if Finite(x) and Finite(y) then
+            config.position = {point = point, relativePoint = relativePoint, x = x, y = y}
+        end
+        return
+    end
     local left, top = frame:GetLeft(), frame:GetTop()
     local parentLeft, parentTop = UIParent:GetLeft(), UIParent:GetTop()
-    local scale, parentScale = frame:GetEffectiveScale(), UIParent:GetEffectiveScale()
-    if not (Finite(left) and Finite(top) and Finite(parentLeft) and Finite(parentTop)
-        and Finite(scale) and scale > 0 and Finite(parentScale) and parentScale > 0) then return end
-    local ratio = scale / parentScale
+    if not (Finite(left) and Finite(top) and Finite(parentLeft) and Finite(parentTop)) then return end
     local x, y = left * ratio - parentLeft, top * ratio - parentTop
     if Finite(x) and Finite(y) then config.position = {x = x, y = y} end
 end
@@ -64,7 +83,8 @@ local function RestorePosition()
     if not (Finite(scale) and scale > 0 and Finite(parentScale) and parentScale > 0) then return end
     local ratio = parentScale / scale
     frame:ClearAllPoints()
-    frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", position.x * ratio, position.y * ratio)
+    frame:SetPoint(position.point or "TOPLEFT", UIParent, position.relativePoint or "TOPLEFT",
+        position.x * ratio, position.y * ratio)
 end
 
 local function Conflict()
@@ -208,7 +228,7 @@ local function NativeReady()
         and type(frame.EnumerateValidItems) == "function" and type(frame.UpdateItemSlots) == "function"
         and type(frame.SetBagSize) == "function" and type(frame.MatchesBagID) == "function"
         and type(frame.IsBagOpen) == "function" and type(frame.UpdateItemLayout) == "function"
-        and type(frame.OnHide) == "function"
+        and EventRegistry and type(EventRegistry.RegisterCallback) == "function"
         and type(frame.UpdateFrameSize) == "function" and type(manager.IsUsingCombinedBags) == "function"
         and type(manager.OnCombinedBagSettingChanged) == "function"
 end
@@ -263,14 +283,12 @@ local function InstallHooks()
         restoreOnShow = module.active and SavedPosition() ~= nil
         ScheduleLayout()
     end)
-    -- The native OnHide rearranges windows, including !Pig's saved-point hook.
-    -- Capture the visible position before delegating to that method.
-    local onHide = frame.OnHide
-    frame.OnHide = function(self, ...)
-        if not restoreOnShow then SavePosition(self) end
+    -- Native OnHide emits this event before rearranging windows and !Pig's saved-point hook.
+    EventRegistry:RegisterCallback("ContainerFrame.CloseBag", function(_, container)
+        if container ~= frame then return end
+        if not restoreOnShow then SavePosition(container) end
         restoreOnShow = false
-        return onHide(self, ...)
-    end
+    end, module)
 end
 
 local function ApplyActive(enabled)
