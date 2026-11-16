@@ -74,7 +74,8 @@ end
 
 local function Layout()
     local frame = ContainerFrameCombinedBags
-    if not module.active or initializationError or not frame:IsShown() or InCombatLockdown() then return end
+    -- Native bag reflows also run in combat, and their grouped geometry must follow.
+    if not module.active or initializationError or not frame:IsShown() then return end
     local conflict = Conflict()
     if conflict or InputUtil.IsGamepadUIEnabled() then Reconcile() return end
     local groups = {{}, {}, {}}
@@ -300,7 +301,7 @@ function module.BuildSettings(parent)
     local hint = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     hint:SetPoint("TOPLEFT", 8, -48)
     hint:SetJustifyH("LEFT")
-    hint:SetText("从上到下显示普通背包、材料袋、弹药袋，各区以横线分隔。空分区自动隐藏。设置即时保存，战斗中的布局调整在脱战后应用。")
+    hint:SetText("从上到下显示普通背包、材料袋、弹药袋，各区以横线分隔。空分区自动隐藏。设置即时保存，战斗中切换此开关在脱战后生效。")
     local compatibility = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     compatibility:SetPoint("TOPLEFT", 8, -110)
     compatibility:SetJustifyH("LEFT")

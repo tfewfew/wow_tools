@@ -4,6 +4,7 @@ local hooks, pending, frames = {}, {}, {}
 local cvar, loaded, anchorUpdates = "0", {}, 0
 local itemPointWrites, familyReads = 0, 0
 local familiesReady = true
+local combat = false
 local backpackExtra, rejectReagent = 0, false
 local slots = {[0] = 16, 4, 4, 4, 0, 4}
 local families = {[0] = 0, 0, 0, 1, 0, 0}
@@ -47,7 +48,7 @@ bit = {band = function(value, mask)
     assert(mask == 3 and type(value) == "number", "Ammo bag-family mask mismatch")
     return value % 4
 end}
-function InCombatLockdown() return false end
+function InCombatLockdown() return combat end
 function GetCVar(name) assert(name == "combinedBags") return cvar end
 function GetCVarBool(name) return GetCVar(name) == "1" end
 function SetCVar(name, value)
@@ -235,6 +236,30 @@ assert(#pending == 1, "Native layout and size hooks must remain coalesced")
 for _, callback in ipairs(pending) do callback() end
 pending = {}
 assert(itemPointWrites > previousPoints, "Native layout regeneration must reapply the grouped geometry")
+combat = true
+previousPoints = itemPointWrites
+hooks.UpdateFrameSize(container)
+hooks.UpdateItemLayout(container)
+for _, callback in ipairs(pending) do callback() end
+pending = {}
+assert(itemPointWrites > previousPoints and anchorUpdates == 0,
+    "Combat native-layout callbacks must reapply grouped item geometry while retaining window anchors")
+container:SetBagSize()
+container:UpdateItemSlots()
+hooks.UpdateItemSlots(container)
+container:Show()
+previousPoints = itemPointWrites
+assert(type(container.scripts.OnShow) == "function", "Missing native container show hook")
+container.scripts.OnShow(container)
+for _, callback in ipairs(pending) do callback() end
+pending = {}
+assert(itemPointWrites > previousPoints and container.size == #container.Items,
+    "Native buttons generated while in combat must bind to the same grouped presentation")
+previousPoints = itemPointWrites
+bagEvents.scripts.OnEvent(bagEvents, "BAG_UPDATE_DELAYED")
+assert(#pending == 0 and itemPointWrites == previousPoints,
+    "Ordinary combat item updates must retain the existing grouped presentation")
+combat = false
 assert(bags.SetEnabled(false) and not bags.active and cvar == "0",
     "Disabling must restore the prior combinedBags interface setting")
 assert(not container:MatchesBagID(5) and not ContainerFrameSettingsManager:IsUsingCombinedBags(5),
