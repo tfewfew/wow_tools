@@ -26,6 +26,33 @@ local MARK_HEIGHT = 2
 local REAGENT_STAR_SIZE = 10   -- the favorite star of the small icons
 local MARK_COLOR = { 0.25, 1, 0.25, 1 }
 
+-- Match Better Vendor UI's learned-recipe icon treatment.
+local function UpdateKnownRecipeMarker(button, known)
+    local marker = button.prrKnownRecipe
+    if known then
+        if not marker then
+            marker = {
+                gray = button:CreateTexture(nil, "OVERLAY", nil, 1),
+                check = button:CreateTexture(nil, "OVERLAY", nil, 2),
+            }
+            marker.gray:SetAllPoints(button.icon)
+            marker.gray:SetDesaturated(true)
+            marker.check:SetTexture(136814)
+            marker.check:SetPoint("TOPLEFT", button, "TOPLEFT", 4, -4)
+            marker.check:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -4, 4)
+            button.prrKnownRecipe = marker
+        end
+        marker.gray:SetTexture(button.icon:GetTexture())
+        marker.gray:SetTexCoord(button.icon:GetTexCoord())
+        marker.gray:SetVertexColor(button.icon:GetVertexColor())
+        marker.gray:SetAlpha(button.icon:GetAlpha())
+    end
+    if marker then
+        marker.gray:SetShown(known == true)
+        marker.check:SetShown(known == true)
+    end
+end
+
 local function OpenClickedItem(button)
     if button.itemID and button.row.onOpenItem then
         button.row.onOpenItem(button.itemID)
@@ -143,6 +170,8 @@ function RecipeRow.Fill(row, recipe, itemID)
     else
         row.result:SetSpell(recipe.spellID)
     end
+    local known = ns.GameData.IsRecipeKnown(recipe.spellID)
+    UpdateKnownRecipeMarker(row.result, known)
     ns.UI.SetFavoriteStar(row.result, Favorites.IsFavorite(recipe.item))
     row.title:SetText(TitleText(recipe))
     if recipe.ignored then
@@ -152,9 +181,11 @@ function RecipeRow.Fill(row, recipe, itemID)
     end
     if recipe.recipeItem then
         row.recipeItem:SetItem(recipe.recipeItem, 1)
+        UpdateKnownRecipeMarker(row.recipeItem, known)
         ns.UI.SetFavoriteStar(row.recipeItem, Favorites.IsFavorite(recipe.recipeItem), REAGENT_STAR_SIZE)
         row.recipeItem:Show()
     else
+        UpdateKnownRecipeMarker(row.recipeItem, false)
         row.recipeItem:Hide()
     end
 

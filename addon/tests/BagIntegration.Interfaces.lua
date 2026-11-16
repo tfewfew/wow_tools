@@ -2,6 +2,8 @@
 local root = TEST_ROOT or "."
 local hooks, pending, frames = {}, {}, {}
 local cvar, loaded, anchorUpdates = "0", {}, 0
+local windowPointWrites, nativeHides = 0, 0
+local parentScale, resetOnHide = 0.8, false
 local itemPointWrites, familyReads = 0, 0
 local familiesReady = true
 local combat = false
@@ -9,6 +11,11 @@ local backpackExtra, rejectReagent = 0, false
 local slots = {[0] = 16, 4, 4, 4, 0, 4}
 local families = {[0] = 0, 0, 0, 1, 0, 0}
 WoWTools, wowDetectorDB = {}, {}
+UIParent = {
+    GetLeft = function() return 0 end,
+    GetTop = function() return 900 end,
+    GetEffectiveScale = function() return parentScale end,
+}
 Enum = {BagIndex = {ReagentBag = 5}, ItemClass = {Quiver = 11}}
 C_AddOns = {IsAddOnLoaded = function(name) assert(type(name) == "string") return loaded[name] end}
 InputUtil = {IsGamepadUIEnabled = function() return false end}
@@ -61,6 +68,15 @@ local function Region(kind)
         assert(type(point) == "string" and type(relative) == "table" and type(relativePoint) == "string"
             and type(x) == "number" and type(y) == "number", "Native anchor signature mismatch")
         if self.kind == "ItemButton" then itemPointWrites = itemPointWrites + 1 end
+        if self == ContainerFrameCombinedBags then
+            assert(point == "TOPLEFT" and relative == UIParent and relativePoint == "TOPLEFT",
+                "Saved bag position must use the root frame's top-left anchor")
+            windowPointWrites = windowPointWrites + 1
+            self.anchor = {point, relative, relativePoint, x, y}
+            local ratio = relative:GetEffectiveScale() / self:GetEffectiveScale()
+            self.left = relative:GetLeft() * ratio + x
+            self.top = relative:GetTop() * ratio + y
+        end
     end
     function region:ClearAllPoints() end
     function region:SetText(value) assert(type(value) == "string") end
@@ -69,7 +85,11 @@ local function Region(kind)
         assert(type(r) == "number" and type(g) == "number" and type(b) == "number" and a == 1)
     end
     function region:Show() self.shown = true end
-    function region:Hide() self.shown = false end
+    function region:Hide()
+        local wasShown = self.shown
+        self.shown = false
+        if wasShown and self.OnHide then self:OnHide() end
+    end
     function region:IsShown() return self.shown end
     function region:SetScript(event, callback) self.scripts[event] = callback end
     function region:RegisterEvent(event) self.events[event] = true end
@@ -84,6 +104,14 @@ function CreateFrame(kind)
 end
 local container = Region("Frame")
 ContainerFrameCombinedBags = container
+container.left, container.top = 120, 700
+function container:GetLeft() return self.left end
+function container:GetTop() return self.top end
+function container:GetEffectiveScale() return (self.scale or 1) * parentScale end
+function container:OnHide()
+    nativeHides = nativeHides + 1
+    if resetOnHide then self.left, self.top = 10, 20 end
+end
 container.itemButtonPool = {
     GetTemplate = function() return "ContainerFrameItemButtonTemplate" end,
     Release = function(_, button) button:Hide() end,
@@ -194,11 +222,13 @@ container:UpdateItemSlots()
 hooks.UpdateItemSlots(container)
 container.meihang, container.suofang = 8, 1.1
 container:Show()
+container.scripts.OnShow(container)
 hooks.UpdateFrameSize(container)
 hooks.UpdateItemLayout(container)
 for _, callback in ipairs(pending) do callback() end
 assert(container.scale == 1.1, "Grouped item layout must preserve !Pig's scale binding")
 assert(anchorUpdates == 0, "Grouped item layout must preserve ownership of the bag window's anchors")
+assert(windowPointWrites == 0, "A new account without a closed position must retain its native opening anchor")
 pending = {}
 local bagEvents
 for _, frame in ipairs(frames) do
@@ -260,6 +290,62 @@ bagEvents.scripts.OnEvent(bagEvents, "BAG_UPDATE_DELAYED")
 assert(#pending == 0 and itemPointWrites == previousPoints,
     "Ordinary combat item updates must retain the existing grouped presentation")
 combat = false
+local positionConfig = wowDetectorDB.bagIntegration
+container.left, container.top = 240, 650
+local ratio = container:GetEffectiveScale() / UIParent:GetEffectiveScale()
+local expectedX = container:GetLeft() * ratio - UIParent:GetLeft()
+local expectedY = container:GetTop() * ratio - UIParent:GetTop()
+local previousHides = nativeHides
+resetOnHide = true
+container:Hide()
+assert(nativeHides == previousHides + 1 and positionConfig.position.x == expectedX
+    and positionConfig.position.y == expectedY and container:GetLeft() == 10,
+    "Closing must save the current root-relative position before the native OnHide reanchors it")
+container.suofang, parentScale = 0.9, 0.7
+container:Show()
+local previousWindowPoints = windowPointWrites
+container.scripts.OnShow(container)
+for _, callback in ipairs(pending) do callback() end
+pending = {}
+ratio = container:GetEffectiveScale() / UIParent:GetEffectiveScale()
+assert(windowPointWrites == previousWindowPoints + 1
+    and math.abs(container:GetLeft() * ratio - UIParent:GetLeft() - expectedX) < 0.000001
+    and math.abs(container:GetTop() * ratio - UIParent:GetTop() - expectedY) < 0.000001,
+    "Opening must restore the closed position once after applying native and !Pig scaling")
+previousWindowPoints = windowPointWrites
+hooks.UpdateFrameSize(container)
+hooks.UpdateItemLayout(container)
+for _, callback in ipairs(pending) do callback() end
+pending = {}
+assert(windowPointWrites == previousWindowPoints, "An existing open window must retain its current positioning interface")
+container:Hide()
+local closedPosition = positionConfig.position
+container:Show()
+container.scripts.OnShow(container)
+container:Hide()
+for _, callback in ipairs(pending) do callback() end
+pending = {}
+assert(positionConfig.position == closedPosition and windowPointWrites == previousWindowPoints,
+    "Closing before the native opening completes must retain the last completed close position")
+positionConfig.position = {x = "invalid", y = 0}
+container:Show()
+container.scripts.OnShow(container)
+for _, callback in ipairs(pending) do callback() end
+pending = {}
+assert(windowPointWrites == previousWindowPoints, "Invalid saved coordinates must retain the native opening anchor")
+container:Hide()
+positionConfig.position = closedPosition
+combat = true
+container:Show()
+container.scripts.OnShow(container)
+for _, callback in ipairs(pending) do callback() end
+pending = {}
+assert(windowPointWrites == previousWindowPoints + 1, "Combat opening must retain the closed-position restoration interface")
+combat = false
+closedPosition = positionConfig.position
+container.left = nil
+container:Hide()
+assert(positionConfig.position == closedPosition, "An unavailable native rect must preserve the last valid saved position")
 assert(bags.SetEnabled(false) and not bags.active and cvar == "0",
     "Disabling must restore the prior combinedBags interface setting")
 assert(not container:MatchesBagID(5) and not ContainerFrameSettingsManager:IsUsingCombinedBags(5),
