@@ -4,6 +4,7 @@
 $script:screenshotListener=$null
 $script:screenshotInitialized=$false
 $script:screenshotBusy=$false
+$script:screenshotKeyEditing=$false
 $script:screenshotWarning=''
 
 function New-WowAutoScreenshotListener($Binding) {
@@ -32,8 +33,7 @@ function Close-WowAutoScreenshot {
 }
 
 function Invoke-WowAutoScreenshot {
-    if ($script:screenshotBusy -or $script:editingSettings -or $script:restartRequested -or $form.IsDisposed -or
-        $script:shutdownState.Started -or $script:shutdownState.DialogOpen) {return}
+    if ($script:screenshotBusy -or $script:screenshotKeyEditing -or $script:restartRequested -or $form.IsDisposed) {return}
     $script:screenshotBusy=$true
     $wasPaused=$false
     $shutdownWasEnabled=$shutdownTimer.Enabled
@@ -69,6 +69,9 @@ function New-WowAutoScreenshotSettingsPage {
     $inputBox.BackColor=$script:uiColors.Input;$inputBox.ForeColor=$script:uiColors.Text
     $inputBox.Text=if ($script:screenshotBinding) {$script:screenshotBinding.Text} else {'已停用'}
     $inputBox.Tag=[pscustomobject]@{Action='Screenshot';Bindings=$bindings}
+    $inputBox.Add_Enter({$script:screenshotKeyEditing=$true})
+    $inputBox.Add_Leave({$script:screenshotKeyEditing=$false})
+    $page.Add_Disposed({$script:screenshotKeyEditing=$false})
     $inputBox.Add_PreviewKeyDown({param($sender,$e) $e.IsInputKey=$true})
     $inputBox.Add_KeyDown({param($sender,$e)
         $e.SuppressKeyPress=$true;$e.Handled=$true
