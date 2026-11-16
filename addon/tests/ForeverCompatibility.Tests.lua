@@ -433,7 +433,7 @@ assert(type(experienceText.SetPercentEnabled) == "function"
 assert(not experienceText.IsPercentEnabled(), "XP percentage must default to disabled")
 assert(experienceText.SetEnabled(true) and experienceText.SetPercentEnabled(true), "XP text setters failed")
 assert(wowDetectorDB.displayFonts.showRestedXP and wowDetectorDB.displayFonts.showXPPercent
-    and xpText:GetText() == "100 / 1000（12345/1234.5%-10.0%）", "XP text API or persistence binding failed")
+    and xpText:GetText() == "100 / 1000-10.0%（12345-1234.5%）", "XP text API or persistence binding failed")
 local xpEvents
 for _, frame in ipairs(frames) do
     if frame.events.PLAYER_LEVEL_UP and frame.events.PLAYER_XP_UPDATE and frame.events.ADDON_LOADED then

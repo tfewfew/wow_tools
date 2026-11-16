@@ -43,7 +43,7 @@ local function RemainingXP(maximum)
         return nil
     end
     local text = string.format("%.0f", math.floor(amount))
-    if maximum then text = text .. "/" .. string.format("%.1f%%", amount / maximum * 100) end
+    if maximum then text = text .. "-" .. string.format("%.1f%%", amount / maximum * 100) end
     return text
 end
 
@@ -64,9 +64,11 @@ local function AppendExperienceInfo(bar, nativeText)
     local maximum = RequiredXP()
     local suffix = module.IsEnabled() and RemainingXP(maximum) or nil
     local percent = module.IsPercentEnabled() and CurrentXPPercent(maximum) or nil
-    if percent then suffix = suffix and (suffix .. "-" .. percent) or percent end
-    if suffix then
-        record.decoratedText = nativeText .. "（" .. suffix .. "）"
+    if suffix or percent then
+        local decoratedText = nativeText
+        if percent then decoratedText = decoratedText .. "-" .. percent end
+        if suffix then decoratedText = decoratedText .. "（" .. suffix .. "）" end
+        record.decoratedText = decoratedText
         bar.OverlayFrame.Text:SetText(record.decoratedText)
     end
 end
