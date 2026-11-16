@@ -3,9 +3,10 @@
 local module = { views = {}, settingsHeight = 240, active = false }
 WoWTools.bagIntegration = module
 local reagentBag = Enum.BagIndex.ReagentBag
-local installed, queued, applying = false, false, false
+local installed, applying = false, false
+local layoutTimer
 local retryLayout = false
-local restoreOnShow = false
+local opening = false
 local initializationError
 local status = "背包整合已关闭。"
 local decorations = {}
@@ -75,10 +76,17 @@ local function SavePosition(frame)
     if Finite(x) and Finite(y) then config.position = {x = x, y = y} end
 end
 
+local function ApplyScale(frame)
+    if Readable(frame.suofang) and type(frame.suofang) == "number" and frame.suofang > 0 then
+        frame:SetScale(frame.suofang)
+    end
+end
+
 local function RestorePosition()
     local frame = ContainerFrameCombinedBags
     local position = SavedPosition()
-    if not module.active or not frame:IsShown() or not position then return end
+    if not module.active or not position then return end
+    ApplyScale(frame)
     local scale, parentScale = frame:GetEffectiveScale(), UIParent:GetEffectiveScale()
     if not (Finite(scale) and scale > 0 and Finite(parentScale) and parentScale > 0) then return end
     local ratio = parentScale / scale
@@ -199,9 +207,7 @@ local function Layout()
     NineSliceUtil.UpdateCornerCropping(frame, frame:GetHeight())
     frame:LayoutAddSlots()
     -- Native opening and movement addons own the window anchors during item reflows.
-    if Readable(frame.suofang) and type(frame.suofang) == "number" and frame.suofang > 0 then
-        frame:SetScale(frame.suofang)
-    end
+    ApplyScale(frame)
     retryLayout = false
     events:UnregisterEvent("BAG_UPDATE_DELAYED")
     status = "背包整合已开启，按普通背包、材料袋、弹药袋分区显示。"
@@ -209,16 +215,12 @@ local function Layout()
 end
 
 ScheduleLayout = function()
-    if not module.active or queued or not ContainerFrameCombinedBags:IsShown() then return end
-    queued = true
+    if not module.active or layoutTimer or not ContainerFrameCombinedBags:IsShown() then return end
     -- Run after native and !Pig layout hooks, including hooks installed later.
-    C_Timer.After(0, function()
-        queued = false
+    layoutTimer = C_Timer.NewTimer(0, function()
+        layoutTimer = nil
+        opening = false
         Layout()
-        if restoreOnShow then
-            restoreOnShow = false
-            RestorePosition()
-        end
     end)
 end
 
@@ -229,6 +231,7 @@ local function NativeReady()
         and type(frame.SetBagSize) == "function" and type(frame.MatchesBagID) == "function"
         and type(frame.IsBagOpen) == "function" and type(frame.UpdateItemLayout) == "function"
         and EventRegistry and type(EventRegistry.RegisterCallback) == "function"
+        and type(ContainerFrame_GenerateFrame) == "function" and type(C_Timer.NewTimer) == "function"
         and type(frame.UpdateFrameSize) == "function" and type(manager.IsUsingCombinedBags) == "function"
         and type(manager.OnCombinedBagSettingChanged) == "function"
 end
@@ -252,6 +255,8 @@ local function InstallHooks()
     end
     hooksecurefunc(frame, "UpdateItemSlots", function(self)
         if not module.active or InputUtil.IsGamepadUIEnabled() then return end
+        -- Native generation creates the slots before Show, so prepare the opening anchor here.
+        if not self:IsShown() then RestorePosition() end
         local nativeCount = #self.Items
         -- Native enumeration is bounded by size, including any account-extension slots.
         -- Publish the extra count only after every reagent button is initialized.
@@ -280,14 +285,26 @@ local function InstallHooks()
     hooksecurefunc(frame, "UpdateItemLayout", ScheduleLayout)
     hooksecurefunc(frame, "UpdateFrameSize", ScheduleLayout)
     frame:HookScript("OnShow", function()
-        restoreOnShow = module.active and SavedPosition() ~= nil
+        opening = module.active
+        RestorePosition()
         ScheduleLayout()
+    end)
+    hooksecurefunc("ContainerFrame_GenerateFrame", function(container)
+        if container ~= frame or not opening then return end
+        opening = false
+        if layoutTimer then
+            layoutTimer:Cancel()
+            layoutTimer = nil
+        end
+        -- Generation reanchors after Show. Finish in this call, before the first rendered frame.
+        Layout()
+        RestorePosition()
     end)
     -- Native OnHide emits this event before rearranging windows and !Pig's saved-point hook.
     EventRegistry:RegisterCallback("ContainerFrame.CloseBag", function(_, container)
         if container ~= frame then return end
-        if not restoreOnShow then SavePosition(container) end
-        restoreOnShow = false
+        SavePosition(container)
+        opening = false
     end, module)
 end
 

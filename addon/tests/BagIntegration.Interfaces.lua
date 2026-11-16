@@ -3,6 +3,7 @@ local root = TEST_ROOT or "."
 local hooks, pending, frames = {}, {}, {}
 local cvar, loaded, anchorUpdates = "0", {}, 0
 local windowPointWrites, nativeHides = 0, 0
+local anchorBeforeShow
 local parentScale, resetOnHide = 0.8, false
 local closeCallbacks = {}
 local itemPointWrites, familyReads = 0, 0
@@ -63,6 +64,12 @@ C_Timer = {After = function(delay, callback)
     assert(delay == 0 and type(callback) == "function", "Layout timer signature mismatch")
     pending[#pending + 1] = callback
 end}
+function C_Timer.NewTimer(delay, callback)
+    local timer = {cancelled = false}
+    function timer:Cancel() self.cancelled = true end
+    C_Timer.After(delay, function() if not timer.cancelled then callback(timer) end end)
+    return timer
+end
 bit = {band = function(value, mask)
     assert(mask == 3 and type(value) == "number", "Ammo bag-family mask mismatch")
     return value % 4
@@ -97,7 +104,10 @@ local function Region(kind)
     function region:SetColorTexture(r, g, b, a)
         assert(type(r) == "number" and type(g) == "number" and type(b) == "number" and a == 1)
     end
-    function region:Show() self.shown = true end
+    function region:Show()
+        if self == ContainerFrameCombinedBags and not self.shown then anchorBeforeShow = self.anchor end
+        self.shown = true
+    end
     function region:Hide()
         local wasShown = self.shown
         self.shown = false
@@ -204,10 +214,33 @@ function UpdateContainerFrameAnchors()
     anchorUpdates = anchorUpdates + 1
     container:SetScale(0.75)
 end
+function ContainerFrame_GenerateFrame(frame, size, id)
+    assert(frame == container and size == 0 and id == 0, "Native combined-bag opening signature mismatch")
+    frame:SetBagSize()
+    frame:UpdateItemSlots()
+    hooks.UpdateItemSlots(frame)
+    local wasShown = frame:IsShown()
+    frame:Show()
+    if not wasShown then frame.scripts.OnShow(frame) end
+    frame:UpdateFrameSize()
+    hooks.UpdateFrameSize(frame)
+    frame:UpdateItemLayout()
+    hooks.UpdateItemLayout(frame)
+    UpdateContainerFrameAnchors()
+    frame.left, frame.top = 10, 20
+    frame.anchor = {"BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -10, 20}
+end
 NineSliceUtil = {UpdateCornerCropping = function(frame, height)
     assert(frame == container and height == container:GetHeight(), "NineSlice interface mismatch")
 end}
 function hooksecurefunc(target, method, callback)
+    if type(target) == "string" then
+        assert(target == "ContainerFrame_GenerateFrame" and type(_G[target]) == "function" and type(method) == "function",
+            "Synchronous opening must use the native container-generation post-hook")
+        local native = _G[target]
+        _G[target] = function(...) native(...); method(...) end
+        return
+    end
     assert(target == container and type(target[method]) == "function" and type(callback) == "function")
     hooks[method] = callback
 end
@@ -328,16 +361,25 @@ assert(nativeHides == previousHides + 1 and math.abs(positionConfig.position.x -
     and math.abs(positionConfig.position.y - expectedY) < 0.000001 and container:GetLeft() == 10,
     "Closing must save the current root-relative position before the native OnHide reanchors it")
 container.suofang, parentScale = 0.9, 0.7
-container:Show()
 local previousWindowPoints = windowPointWrites
-container.scripts.OnShow(container)
+ContainerFrame_GenerateFrame(container, 0, 0)
+ratio = container:GetEffectiveScale() / UIParent:GetEffectiveScale()
+assert(anchorBeforeShow and anchorBeforeShow[1] == "TOPLEFT"
+    and math.abs(anchorBeforeShow[4] * ratio - expectedX) < 0.000001
+    and math.abs(anchorBeforeShow[5] * ratio - expectedY) < 0.000001
+    and math.abs(container:GetLeft() * ratio - UIParent:GetLeft() - expectedX) < 0.000001
+    and math.abs(container:GetTop() * ratio - UIParent:GetTop() - expectedY) < 0.000001,
+    "Native generation must set the closed anchor before Show and finish positioning before returning to the renderer")
+local pointsBeforeTimers, readsBeforeTimers = itemPointWrites, familyReads
+local windowPointsBeforeTimers = windowPointWrites
 for _, callback in ipairs(pending) do callback() end
 pending = {}
 ratio = container:GetEffectiveScale() / UIParent:GetEffectiveScale()
-assert(windowPointWrites == previousWindowPoints + 1
+assert(windowPointWrites > previousWindowPoints and windowPointWrites == windowPointsBeforeTimers
+    and itemPointWrites == pointsBeforeTimers and familyReads == readsBeforeTimers
     and math.abs(container:GetLeft() * ratio - UIParent:GetLeft() - expectedX) < 0.000001
     and math.abs(container:GetTop() * ratio - UIParent:GetTop() - expectedY) < 0.000001,
-    "Opening must restore the closed position once after applying native and !Pig scaling")
+    "Opening must complete grouped geometry and scaled positioning synchronously and cancel its deferred layout")
 previousWindowPoints = windowPointWrites
 hooks.UpdateFrameSize(container)
 hooks.UpdateItemLayout(container)
@@ -348,11 +390,15 @@ container:Hide()
 local closedPosition = positionConfig.position
 container:Show()
 container.scripts.OnShow(container)
+local pointsAfterShow = windowPointWrites
 container:Hide()
 for _, callback in ipairs(pending) do callback() end
 pending = {}
-assert(positionConfig.position == closedPosition and windowPointWrites == previousWindowPoints,
-    "Closing before the native opening completes must retain the last completed close position")
+assert(math.abs(positionConfig.position.x - closedPosition.x) < 0.000001
+    and math.abs(positionConfig.position.y - closedPosition.y) < 0.000001
+    and windowPointWrites == pointsAfterShow,
+    "An immediate close must save the synchronously restored anchor without a deferred position write")
+previousWindowPoints = windowPointWrites
 positionConfig.position = {x = "invalid", y = 0}
 container:Show()
 container.scripts.OnShow(container)
