@@ -315,6 +315,9 @@ ns.Localization.Add("en", [==[
     },
     "language": {
         "native_name": "English"
+    },
+    "addon": {
+        "title": "PRR: Professions, Recipes, Reagents"
     }
 }
 ]==])

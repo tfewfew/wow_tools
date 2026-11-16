@@ -1,6 +1,7 @@
 WoWTools.raynnaBestiary.RegisterSource(function(...)
 -- Character-specific options for Raynna's installed tracker and bestiary.
 local _, Addon = ...
+local T = Addon.Text
 local panel
 local refreshers = {}
 
@@ -16,7 +17,7 @@ local function checkbox(text, x, y, get, set)
     local control = CreateFrame('CheckButton', nil, panel, 'UICheckButtonTemplate')
     control:SetSize(26, 26)
     control:SetPoint('TOPLEFT', x, y)
-    label(text, x + 30, y - 6)
+    label(T(text), x + 30, y - 6)
     local function refresh()
         control:SetChecked(get())
     end
@@ -30,12 +31,13 @@ local function button(text, x, y, callback)
     local control = CreateFrame('Button', nil, panel, 'UIPanelButtonTemplate')
     control:SetPoint('TOPLEFT', x, y)
     control:SetSize(150, 24)
-    control:SetText(text)
+    control:SetText(T(text))
     control:SetScript('OnClick', callback)
+    return control
 end
 
 local function percentage(text, y, get, set, minimum, maximum)
-    label(text, 24, y - 5)
+    label(T(text), 24, y - 5)
     local input = CreateFrame('EditBox', nil, panel, 'InputBoxTemplate')
     input:SetPoint('TOPLEFT', 245, y)
     input:SetSize(65, 24)
@@ -72,44 +74,72 @@ local function percentage(text, y, get, set, minimum, maximum)
 end
 
 function Addon.BuildOptions(host)
-        panel = host
-        label("Raynna's Bestiary", 24, -20, true)
-        label('修改立即生效，并按角色保存。', 24, -50)
-        checkbox('Alt 指向怪物显示掉落', 24, -85, function()
-            return Addon.db.bestiary.npcHover ~= false
-        end, function(value)
-            Addon.db.bestiary.npcHover = value
-        end)
-        checkbox('Alt 指向物品显示来源', 280, -85, function()
-            return Addon.db.bestiary.itemHover ~= false
-        end, function(value)
-            Addon.db.bestiary.itemHover = value
-        end)
-        percentage('怪物图鉴缩放', -130, function()
-            return Addon.db.bestiary.scale or 1
-        end, function(value)
-            Addon.SetBestiaryScale(value / 100)
-        end, 40, 180)
-        button('打开怪物图鉴', 365, -130, function()
-            SlashCmdList.RAYNNABESTIARY('')
-        end)
-        label('怪物图鉴外观', 24, -190, true)
-        checkbox('羊皮纸背景', 24, -225, function()
-            return Addon.db.appearance.paper ~= false
-        end, function(value)
-            Addon.SetAppearance('paper', value)
-        end)
-        percentage('背景不透明度', -270, function()
-            return Addon.db.appearance.opacity or 0.97
-        end, function(value)
-            Addon.SetAppearance('opacity', value / 100)
-        end, 20, 100)
-        local function refresh()
-            for _, callback in ipairs(refreshers) do
-                callback()
-            end
+    panel = host
+    label(T("Raynna's Bestiary"), 24, -20, true)
+    label(T('Settings save for this character.'), 24, -50)
+    checkbox('Alt-hover monsters', 24, -85, function()
+        return Addon.db.bestiary.npcHover ~= false
+    end, function(value)
+        Addon.db.bestiary.npcHover = value
+    end)
+    checkbox('Alt-hover inventory items', 280, -85, function()
+        return Addon.db.bestiary.itemHover ~= false
+    end, function(value)
+        Addon.db.bestiary.itemHover = value
+    end)
+    percentage('Bestiary scale', -130, function()
+        return Addon.db.bestiary.scale or 1
+    end, function(value)
+        Addon.SetBestiaryScale(value / 100)
+    end, 40, 180)
+    button('Open bestiary', 365, -130, function()
+        SlashCmdList.RAYNNABESTIARY('')
+    end)
+    label(T('Bestiary appearance'), 24, -190, true)
+    checkbox('Parchment background texture', 24, -225, function()
+        return Addon.db.appearance.paper ~= false
+    end, function(value)
+        Addon.SetAppearance('paper', value)
+    end)
+    percentage('Background opacity', -270, function()
+        return Addon.db.appearance.opacity or 0.97
+    end, function(value)
+        Addon.SetAppearance('opacity', value / 100)
+    end, 20, 100)
+    label(T('Language'), 24, -325)
+    local dropdown = CreateFrame('DropdownButton', nil, panel, 'WowStyle1DropdownTemplate')
+    dropdown:SetPoint('TOPLEFT', 245, -315)
+    dropdown:SetSize(180, 25)
+    Addon.languageDropdown = dropdown
+    local function refreshLanguage()
+        dropdown:SetDefaultText(Addon.db.language == 'en' and 'English' or '简体中文')
+    end
+    dropdown:SetupMenu(function(_, root)
+        for _, choice in ipairs({ { 'zh', '简体中文' }, { 'en', 'English' } }) do
+            local value, title = choice[1], choice[2]
+            root:CreateRadio(title, function() return Addon.db.language == value end, function()
+                Addon.db.language = value
+                refreshLanguage()
+            end)
         end
-        panel:SetScript('OnShow', refresh)
-        return refresh
+    end)
+    local reload = button('Reload', 24, -360, function()
+        if not InCombatLockdown() then ReloadUI() end
+    end)
+    label(T('Reload to apply the selected language.'), 185, -366)
+    local namesHint = label(T('Chinese NPC and quest names use QuestieDB translations when available. Missing translations keep their original names.'), 24, -402)
+    namesHint:SetWidth(560)
+    namesHint:SetWordWrap(true)
+    refreshers[#refreshers + 1] = function()
+        refreshLanguage()
+        reload:SetEnabled(not InCombatLockdown())
+    end
+    local function refresh()
+        for _, callback in ipairs(refreshers) do
+            callback()
+        end
+    end
+    panel:SetScript('OnShow', refresh)
+    return refresh
 end
 end)

@@ -119,7 +119,7 @@ ns.Localization.Add("zh", [==[
             "name": "“材料用于”",
             "description": "按专业列出使用该物品的配方"
         },
-        "link_header": "Wowhead Quick Link",
+        "link_header": "Wowhead 快捷链接",
         "copy_link": {
             "name": "在物品窗口中按 Ctrl+C -- 复制 Wowhead 链接",
             "description": "仅限物品窗口中的图标和配方行"
@@ -315,6 +315,9 @@ ns.Localization.Add("zh", [==[
     },
     "language": {
         "native_name": "简体中文"
+    },
+    "addon": {
+        "title": "PRR 配方用途"
     }
 }
 ]==])

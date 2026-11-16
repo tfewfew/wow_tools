@@ -243,7 +243,7 @@ local function LanguageChoices()
     local sorting = { Localization.AUTO }
     for _, language in ipairs(Localization.Languages()) do
         values[language] = Localization.NativeName(language)
-        table.insert(sorting, language)
+        if language == "zh" then table.insert(sorting, 1, language) else table.insert(sorting, language) end
     end
     return values, sorting
 end

@@ -13,6 +13,7 @@ ns.Dataflows = ns.Dataflows or {}
 
 local RecipeIndex = {}
 ns.Dataflows.RecipeIndex = RecipeIndex
+RecipeIndex.revision = 0
 
 local recipes = nil        -- [spell id] = recipe
 local byCreatedItem = nil  -- [item id] = { recipe, ... }
@@ -141,10 +142,13 @@ function RecipeIndex.FixOf(spellID)
 end
 
 function RecipeIndex.Invalidate()
+    RecipeIndex.revision = RecipeIndex.revision + 1
     recipes = nil
     byCreatedItem = nil
     byReagent = nil
     byRecipeItem = nil
+    local bestiary = WoWTools.raynnaBestiary
+    if bestiary and bestiary.RefreshRecipeView then bestiary.RefreshRecipeView() end
 end
 
 local function EnsureBuilt()
