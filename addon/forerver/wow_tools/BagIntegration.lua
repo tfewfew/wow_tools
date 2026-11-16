@@ -4,6 +4,7 @@ local module = { views = {}, settingsHeight = 240, active = false }
 WoWTools.bagIntegration = module
 local reagentBag = Enum.BagIndex.ReagentBag
 local installed, queued, applying = false, false, false
+local retryLayout = false
 local initializationError
 local status = "背包整合已关闭。"
 local decorations = {}
@@ -81,6 +82,8 @@ local function Layout()
     for bagID = 0, reagentBag do
         local group = BagGroup(bagID)
         if not group then
+            retryLayout = true
+            events:RegisterEvent("BAG_UPDATE_DELAYED")
             status = "背包类型暂不可读，等待背包数据更新。"
             UpdateViews()
             return
@@ -142,12 +145,14 @@ local function Layout()
     if Readable(frame.suofang) and type(frame.suofang) == "number" and frame.suofang > 0 then
         frame:SetScale(frame.suofang)
     end
+    retryLayout = false
+    events:UnregisterEvent("BAG_UPDATE_DELAYED")
     status = "背包整合已开启，按普通背包、材料袋、弹药袋分区显示。"
     UpdateViews()
 end
 
 ScheduleLayout = function()
-    if not module.active or queued then return end
+    if not module.active or queued or not ContainerFrameCombinedBags:IsShown() then return end
     queued = true
     -- Run after native and !Pig layout hooks, including hooks installed later.
     C_Timer.After(0, function()
@@ -232,9 +237,9 @@ local function ApplyActive(enabled)
     end
     module.active = enabled
     if enabled then
-        events:RegisterEvent("BAG_UPDATE_DELAYED")
         SetCVar("combinedBags", "1")
     else
+        retryLayout = false
         events:UnregisterEvent("BAG_UPDATE_DELAYED")
         if (config.previousCombinedBags == "0" or config.previousCombinedBags == "1") and GetCVar("combinedBags") == "1" then
             SetCVar("combinedBags", config.previousCombinedBags)
@@ -321,7 +326,10 @@ events:RegisterEvent("PLAYER_REGEN_ENABLED")
 events:RegisterEvent("ADDON_LOADED")
 events:RegisterEvent("CVAR_UPDATE")
 events:SetScript("OnEvent", function(_, event, name)
-    if event == "BAG_UPDATE_DELAYED" then ScheduleLayout() return end
+    if event == "BAG_UPDATE_DELAYED" then
+        if retryLayout then ScheduleLayout() end
+        return
+    end
     if event == "CVAR_UPDATE" and name ~= "combinedBags" and name ~= "combinedbags" then return end
     if event == "ADDON_LOADED" and not module.IsEnabled() then return end
     Reconcile()

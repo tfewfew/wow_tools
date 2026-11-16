@@ -2,6 +2,8 @@
 local root = TEST_ROOT or "."
 local hooks, pending, frames = {}, {}, {}
 local cvar, loaded, anchorUpdates = "0", {}, 0
+local itemPointWrites, familyReads = 0, 0
+local familiesReady = true
 local backpackExtra, rejectReagent = 0, false
 local slots = {[0] = 16, 4, 4, 4, 0, 4}
 local families = {[0] = 0, 0, 0, 1, 0, 0}
@@ -16,6 +18,8 @@ C_Container = {
     end,
     GetContainerNumFreeSlots = function(bagID)
         assert(type(bagID) == "number" and families[bagID], "Unexpected family query")
+        familyReads = familyReads + 1
+        if not familiesReady then return 0, nil end
         return 0, families[bagID]
     end,
     ContainerIDToInventoryID = function(bagID)
@@ -55,6 +59,7 @@ local function Region(kind)
     function region:SetPoint(point, relative, relativePoint, x, y)
         assert(type(point) == "string" and type(relative) == "table" and type(relativePoint) == "string"
             and type(x) == "number" and type(y) == "number", "Native anchor signature mismatch")
+        if self.kind == "ItemButton" then itemPointWrites = itemPointWrites + 1 end
     end
     function region:ClearAllPoints() end
     function region:SetText(value) assert(type(value) == "string") end
@@ -196,12 +201,40 @@ assert(anchorUpdates == 0, "Grouped item layout must preserve ownership of the b
 pending = {}
 local bagEvents
 for _, frame in ipairs(frames) do
-    if frame.events.BAG_UPDATE_DELAYED then bagEvents = frame end
+    if frame.events.PLAYER_LOGIN then bagEvents = frame end
 end
-assert(bagEvents and type(bagEvents.scripts.OnEvent) == "function", "Missing native bag-update event binding")
+assert(bagEvents and type(bagEvents.scripts.OnEvent) == "function", "Missing native bag event handler")
+assert(not bagEvents.events.BAG_UPDATE_DELAYED, "A complete native layout must release the content-update subscription")
+local previousPoints, previousReads = itemPointWrites, familyReads
 bagEvents.scripts.OnEvent(bagEvents, "BAG_UPDATE_DELAYED")
+assert(#pending == 0 and itemPointWrites == previousPoints and familyReads == previousReads,
+    "Ordinary item updates must retain the existing layout without extra timers or native geometry calls")
 for _, callback in ipairs(pending) do callback() end
 assert(anchorUpdates == 0, "Item-update callbacks must preserve the bag window's positioning interface")
+container:Hide()
+hooks.UpdateFrameSize(container)
+hooks.UpdateItemLayout(container)
+assert(#pending == 0, "Hidden native containers must defer layout work until shown")
+container:Show()
+familiesReady = false
+hooks.UpdateItemLayout(container)
+for _, callback in ipairs(pending) do callback() end
+pending = {}
+assert(bagEvents.events.BAG_UPDATE_DELAYED, "Unavailable bag families must subscribe for native-data recovery")
+familiesReady = true
+bagEvents.scripts.OnEvent(bagEvents, "BAG_UPDATE_DELAYED")
+bagEvents.scripts.OnEvent(bagEvents, "BAG_UPDATE_DELAYED")
+assert(#pending == 1, "Native-data retries must share one next-frame callback")
+for _, callback in ipairs(pending) do callback() end
+pending = {}
+assert(not bagEvents.events.BAG_UPDATE_DELAYED, "Native-data recovery must release the retry subscription")
+previousPoints = itemPointWrites
+hooks.UpdateFrameSize(container)
+hooks.UpdateItemLayout(container)
+assert(#pending == 1, "Native layout and size hooks must remain coalesced")
+for _, callback in ipairs(pending) do callback() end
+pending = {}
+assert(itemPointWrites > previousPoints, "Native layout regeneration must reapply the grouped geometry")
 assert(bags.SetEnabled(false) and not bags.active and cvar == "0",
     "Disabling must restore the prior combinedBags interface setting")
 assert(not container:MatchesBagID(5) and not ContainerFrameSettingsManager:IsUsingCombinedBags(5),
