@@ -15,6 +15,7 @@ local groups = {
     { key="inner_graphic_config", label="画面设置", category="game_settings" },
     { key="ui_addons", label="UI插件", category="game_settings" },
     { key="sound_control", label="声音控制", category="game_settings" },
+    { key="third_party", label="插件列表", category="third_party" },
     { key="bigfoot_channel", label="大脚聊天", category="third_party", app="WoWToolsBigFootChannel" },
     { key="ls_toasts", label="lsToast", category="third_party", app="ls_Toasts" },
     { key="forever_faces", label="3D头像", category="third_party" },
@@ -22,7 +23,6 @@ local groups = {
     { key="pet_xp_bar", label="宠物经验", category="third_party" },
     { key="raynna_bestiary", label="怪物图鉴", category="third_party" },
     { key="prr", label="配方用途", category="third_party", app="WoWToolsPRR" },
-    { key="third_party", label="插件管理", category="third_party" },
 }
 settings.groups, settings.categories, settings.categoryTabs = groups, categories, {}
 local categoriesByKey, groupsByKey = {}, {}
@@ -78,7 +78,7 @@ settings.window, settings.panel, settings.canvas = window, panel, canvas
 local function RenderAce(page, subgroup)
     if not WoWTools.thirdParty.IsActive(page.key) then
         if page.container then page.container.frame:Hide() end
-        page.message:SetText("此插件已停用，可在“三方插件 → 插件管理”中勾选并重载后启用。")
+        page.message:SetText("此插件已停用，可在“三方插件 → 插件列表”中勾选并重载后启用。")
         page.message:Show()
         return
     end

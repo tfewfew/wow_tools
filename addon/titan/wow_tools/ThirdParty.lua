@@ -4,7 +4,11 @@ WoWTools.thirdParty = manager
 WoWTools.modules.third_party = manager
 
 function manager.Register(key, label, openSettings)
-    manager.entries[#manager.entries + 1] = { key = key, label = label, openSettings = openSettings }
+    local metadata = assert(WoWTools.thirdPartyCatalog[key], "Missing third-party metadata: " .. key)
+    manager.entries[#manager.entries + 1] = {
+        key = key, label = label, openSettings = openSettings,
+        version = metadata.version, updatedAt = metadata.updatedAt,
+    }
 end
 
 local function Saved()
@@ -79,7 +83,8 @@ function manager.BuildSettings(parent)
         row.check:SetPoint("LEFT")
         row.label = row.check:CreateFontString(nil, "ARTWORK", "GameFontNormal")
         row.label:SetPoint("LEFT", row.check, "RIGHT", 4, 0)
-        row.label:SetText(entry.label)
+        row.label:SetText(entry.label .. "  " .. entry.version .. "  " .. entry.updatedAt)
+        row.label:SetWordWrap(false)
         row.check:SetScript("OnClick", function(self) manager.SetEnabled(entry.key, self:GetChecked()) end)
         row.configure = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
         row.configure:SetSize(72, 24)
@@ -90,6 +95,8 @@ function manager.BuildSettings(parent)
         end)
         row.status = row:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
         row.status:SetPoint("RIGHT", row.configure, "LEFT", -16, 0)
+        row.status:SetWidth(100)
+        row.label:SetPoint("RIGHT", row.status, "LEFT", -16, 0)
         panel.rows[#panel.rows + 1] = row
     end
     panel:SetScript("OnShow", manager.RefreshSettings)

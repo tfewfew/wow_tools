@@ -21,10 +21,15 @@ def main():
     except ImportError as error:
         raise SystemExit('Lua 5.1 is required. Select an existing lupa.lua51 installation with --lua-module-root.') from error
 
-    python_files = list((repo / 'tools/wowAuto/character-create').glob('*.py')) + [Path(__file__)] + list((repo / 'addon_fix/scripts').glob('*.py'))
+    python_files = list((repo / 'tools/wowAuto/character-create').glob('*.py'))
+    python_files += list(Path(__file__).parent.glob('*.py'))
+    python_files += list((repo / 'addon_fix/scripts').glob('*.py'))
     for path in python_files:
         ast.parse(path.read_text(encoding='utf-8-sig'), filename=str(path))
     print(f'PASS: Python syntax and AST ({len(python_files)} files).')
+    from third_party_catalog import sync_catalogs
+    sync_catalogs(repo)
+    print('PASS: third-party maintenance tables and runtime version/date catalogs.')
 
     compiler = LuaRuntime().eval('''function(source, name)
         local chunk, message = loadstring(source, name)

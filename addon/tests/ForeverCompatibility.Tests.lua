@@ -357,6 +357,8 @@ for _, name in ipairs({"wowDetector", "fight_detector", "pet_tamer", "button_sty
     assert(type(WoWTools.modules[name]) == "table", "Missing module export " .. name)
 end
 assert(WoWTools.settings and type(WoWTools.settings.Open) == "function", "Missing settings interface")
+assert(WoWTools.settings.categories[3].selected == "third_party",
+    "Plugin list must be the initial third-party tab")
 if flavor == "forerver" then
     local bestiary, prr = WoWTools.raynnaBestiary, WoWTools.prr
     assert(bestiary == WoWTools.modules.raynna_bestiary and prr == WoWTools.modules.prr,
@@ -566,10 +568,26 @@ for _, group in ipairs(WoWTools.settings.groups) do
         secondaryRow = secondaryRow + 1
     end
 end
-assert(WoWTools.settings.tabs.third_party.Text:GetText() == "插件管理", "Plugin manager label binding failed")
+assert(WoWTools.settings.tabs.third_party.Text:GetText() == "插件列表", "Plugin list label binding failed")
+local firstThirdPartyGroup
+for _, group in ipairs(WoWTools.settings.groups) do
+    if group.category == "third_party" then
+        firstThirdPartyGroup = group
+        break
+    end
+end
+assert(firstThirdPartyGroup.key == "third_party", "Plugin list must be the top third-party tab")
 assert(WoWTools.settings.pages.third_party and WoWTools.modules.third_party.BuildSettings,
     "Missing third-party settings interface")
 assert(#WoWTools.thirdParty.entries == (flavor == "forerver" and 7 or 4), "Wrong client plugin list")
+for _, row in ipairs(WoWTools.thirdParty.panel.rows) do
+    local entry = row.entry
+    local metadata = assert(WoWTools.thirdPartyCatalog[entry.key], "Missing plugin catalog entry")
+    assert(entry.version == metadata.version and entry.updatedAt == metadata.updatedAt,
+        "Plugin row metadata binding failed")
+    assert(row.label:GetText() == entry.label .. "  " .. metadata.version .. "  " .. metadata.updatedAt,
+        "Plugin name must be followed by its version and update date")
+end
 if TEST_THIRD_PARTY_DISABLED then
     assert(not WoWTools.lsToasts.C.db, "Disabled toast addon initialized its database")
     assert(not WoWTools.bigfootChannel.addon.db, "Disabled chat addon initialized its database")

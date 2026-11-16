@@ -24,7 +24,7 @@ function Addon.RefreshSettings()
     local panel = Addon.settingsPanel
     if not panel or not panel:IsVisible() then return end
     if not Addon.ready then
-        panel.message:SetText("宠物经验已停用，可在“三方插件”的插件管理中勾选并重载后启用。")
+        panel.message:SetText("宠物经验已停用，可在“三方插件 → 插件列表”中勾选并重载后启用。")
         panel.message:Show()
         return
     end

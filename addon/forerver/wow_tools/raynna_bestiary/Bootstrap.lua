@@ -29,7 +29,7 @@ function addon.RefreshSettings()
     if not panel or not panel:IsVisible() then return end
     if not addon.ready then
         panel.message:SetText(WoWTools.thirdParty.IsActive("raynna_bestiary")
-            and "模块正在初始化，请稍候。" or "怪物图鉴已停用，可在插件管理中勾选并重载后启用。")
+            and "模块正在初始化，请稍候。" or "怪物图鉴已停用，可在“三方插件 → 插件列表”中勾选并重载后启用。")
         panel.message:Show()
         return
     end

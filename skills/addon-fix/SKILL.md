@@ -5,7 +5,7 @@ description: 修复魔兽世界已安装第三方插件，遍历时光服或无�
 
 # 插件修复
 
-工程为 `C:\code\wow_tools`。先阅读工程 `AGENTS.md` 和 `skills/wow-tools/SKILL.md`，沿用独立临时 clone、分支、检查、提交推送、合入并推送 main、正式目录同步和部署流程。现有持续授权覆盖这些操作。
+工程为 `C:\code\wow_tools`。先阅读工程 `AGENTS.md` 和 `skills/wow-tools/SKILL.md`，沿用工作区锁、分支、检查、提交推送、合入并推送 main、正式目录同步和部署流程。取得正式工作区锁后直接维护正式目录，锁忙时使用独立临时 clone。下文的“临时 clone”适用于锁忙分支，持锁任务在自己的工作分支执行同样的补丁维护。现有持续授权覆盖这些操作。
 
 ## 每次修复
 

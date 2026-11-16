@@ -5,6 +5,15 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 # wow_tools
 
+## 工作区锁与编辑位置
+
+所有代码、配置、文档和维护约定修改先尝试取得正式目录 `C:\code\wow_tools` 的工作区锁。使用本技能 `scripts/workspace-lock.ps1 -Action Hold -Workspace C:\code\wow_tools -Owner <任务标识>`，通过 `exec_command` 的 `tty=true` 在持续会话运行，保留返回的 session_id。读取 JSON 的 state，`acquired` 表示本任务已持锁，`busy` 表示其他进程持锁。`-Action Status` 可判断是否忙，判断结束即释放探测句柄，实际编辑仍需 Hold 成功。
+
+- 取得锁后直接在正式目录核对 origin、分支和远端，创建本任务临时分支。检查用户已有未提交与已暂存改动，按明确文件提交本任务内容，并保留用户配置。已有改动与本次目标重叠时先核对来源和差异。
+- 获取结果为 busy 时才 clone 同一远端至独立临时目录，核对 origin 后创建本任务分支。权限、目录或 I/O 错误先修复并重试。使用 clone 的任务在更新正式目录和部署前仍须取得正式目录锁，锁忙期间继续完成 clone 内的工作，发布阶段等待并重试。
+- 持锁会话覆盖正式目录的检查、修改、验证、提交推送、主干合并及部署，期间可以用其他工具调用完成这些操作。读取其他任务的数据通常无需锁。退出前用 `write_stdin` 向持锁 session_id 发送 `release\n`，确认 released。进程退出后操作系统自动释放句柄，锁文件留存供后续复用，判断依据为句柄竞争结果。
+- 完成后恢复正式目录 main，核对远端 main 一致并保护用户已有改动。失败时保留任务分支、提交及必要的 clone，修复后继续发布。
+
 ## 本地测试范围
 
 本地测试仅包含语法、语义和接口兼容性检查。语义检查覆盖编译、类型与名称绑定、调用签名、依赖文件和加载顺序。两服分别检查各自的 TOC、原生 API 和运行库接口。功能流程、状态机时序、界面交互、OCR 识别效果、音频命中效果及配置迁移流程由用户验证。
@@ -14,6 +23,14 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 ## 第三方插件收编
 
 第三方插件收编统一直接迁移已保存的旧配置，校验完成后将原独立插件目录及其配置导入入口一并归档，游戏插件目录采用收编后的 wow_tools 作为唯一功能入口。按账号和角色分别迁移，已有收编配置优先，迁移沿用字面量解析、校验备份及原子写入。
+
+## 第三方插件版本与适配维护
+
+分别维护 `addon/titan/THIRD_PARTY.md` 和 `addon/forerver/THIRD_PARTY.md`，表中覆盖所有已收编插件，记录模块、名称、来源、当前上游版本、实际基线、当前本地适配、上次更新时间及核对依据。大脚安装副本也登记，未提供版本或 commit 时如实记录。更新时间按 Asia/Hong_Kong 记录本仓库最后一次插件源码或适配修改日期，整理表格和列表元数据沿用原日期。
+
+每次更新插件先读取适配清单，取得目标上游完整 commit 或原发布包与指纹，沿每项适配的函数、调用入口、事件、存储及依赖核对是否已被目标版本完整包含。已包含的项目从当前适配清单移除，并记录吸收版本、源码依据和核对日期。部分包含时拆分项目并保留剩余差异。更新源码后重新应用其余适配，分别核对两服 API、TOC、加载顺序及旧数据兼容性。宿主命名空间、统一设置、加载开关、配置迁移及运行库接入也逐项核对。
+
+更新受影响客户端维护表的来源、版本、基线、适配和日期，运行 `scripts/third_party_catalog.py --write` 生成各自 `ThirdPartyCatalog.lua`，同批提交并通过统一本地检查。“三方插件”首个 tab 为“插件列表”，名称后显示表中的版本及更新日期，设置按钮和加载开关沿用现有入口。
 
 以下为实现与发布历史，其中的测试名称和通过数量保留为历史记录，当前本地测试采用上述范围。
 
@@ -132,9 +149,9 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - titan 2.1.67 / forerver 2.2.83 的一级导航沿用左侧竖排布局，采用客户端原生 MinimalTabTemplate 与 CreateRadioButtonGroup。通过 HookScript 保留原生点击处理，点击与命令定位同步原生选中态和对应页面。标签按 UTF-8 字符数分成两行，偶数等长，奇数上行多一个字符，分别为“钓鱼 / 检测”等四字标签及“lsTo / ast”。使用模板原生37高度、45行距容纳两行文字。本条覆盖历史一级普通按钮样式。
 - ForeverCompatibility / TitanCompatibility 验证原生模板及点击处理、单选组、逐页切换/重复点击、程序定位、两行字符与宿主切换，配合全部 Lua5.1 / XML 内联编译、27组模拟和 ClientProfiles 检查。双端独立递增版本并默认 all 同步，实际视觉在游戏 `/reload` 后复测。
 
-## 临时 clone 与主干合并（2026-11-13）
+## 工作区维护与主干合并（2026-11-16）
 
-- 后续所有代码、配置、文档及维护约定修改均在独立临时文件夹 clone 仓库，创建临时分支后实施、验证、提交并推送。并发任务使用独立 clone 与分支，冲突在临时 clone 解决并重新验证。分支可通过 MR 自动合并，也可在正式目录合并已推送的分支并推送 main。
+- 后续代码、配置、文档及维护约定修改遵循前文工作区锁规则。取得锁后在正式目录创建临时分支实施、验证、提交并推送，锁忙时使用独立 clone 与分支。冲突在本任务工作目录解决并重新验证。分支可通过 MR 自动合并，也可本地合并已推送的分支并推送 main。
 - 仓库现有 auto-merge-main 工作流为仓库所有者创建并指向 main 的正式 MR 请求自动合并，沿用现有合并条件。MR 合并后在正式目录 C:\code\wow_tools 执行 git pull --ff-only。本地主干合并后复核并推送 main。确认正式目录与远端 main 一致后，再按客户端同步两服和桌面。正式目录本地改动按来源核对并保护，失败保留 clone 和提交并修复重试。
 
 ## 按钮纹理几何与连续边框（2026-11-13）
@@ -147,7 +164,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 - titan 2.1.65 / forerver 2.2.81 采用 ls-/ls_Toasts 的 120105.05，完整上游提交为 355774b11757b46ed3bb4c784ad7145f03e43871。用户要求覆盖既有本地实现，物品、金币、货币、成就、收藏、配方、商城、幻化、四组皮肤、原生完整/简化动画、编辑模式布局与导入导出采用新版源码。历史背包补报、跨来源去重和独立淡入淡出调整由本次上游实现替换。
 - Bootstrap / Integration 提供 wow_tools 加载、媒体路径、统一设置入口及 wowDetectorDB.lsToasts.db 接入，旧 loot_items 设置转为 loot_item，旧锚点交给上游 Modernize 转换。时光服保留 TitanReforged 身份并使用本端 C_Item.GetDetailedItemLevelInfo。新增 namespaced LibEditMode 19 运行库，原库源码提交为 adfa353adce0aacba122b28809abd9110c4c9b96，复用现有 Ace3 / SharedMedia，保留上游版权声明。两端独立加载与专项模拟，部署核对两端客户端身份与文件哈希，并备份后移除已从源码退役的 ls_toasts 文件。LsToastsSync 临时目录回归覆盖重复同步、源码隔离和备份失败保护。成功提交推送后默认 all 同步。
-- 第三方插件的映射分别放在 addon/titan/THIRD_PARTY.md 和 addon/forerver/THIRD_PARTY.md，每项只记录插件、原始仓库、当前引入版本和实际采用的上游完整 commit ID。当前记录 ls_Toasts，大脚相关模块作为例外。以后新导入第三方插件按同样格式增加记录，升级或替换源码时同批更新受影响客户端的表。本地修改保留原上游基线，改动通过本仓库 Git 历史追踪。
+- 第三方插件的来源与基线分别放在 addon/titan/THIRD_PARTY.md 和 addon/forerver/THIRD_PARTY.md，当前维护字段及升级核对流程遵循前文“第三方插件版本与适配维护”。本地修改保留原上游基线，改动通过本仓库 Git 历史追踪。
 
 ## 默认双端功能同步（2026-11-13）
 
@@ -307,10 +324,10 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 ## 修改与同步顺序
 
-1. 检查正式目录 Git 状态及远端，核对并保护无关改动。在独立临时文件夹 clone 远端仓库并创建临时分支，全部源码及必要说明在该 clone 修改。
+1. 按前文工作区锁规则尝试 Hold。取得锁后检查正式目录 Git 状态、用户已有改动及远端，在正式目录创建临时分支维护。获取结果为 busy 时才使用独立临时 clone 并核对 origin，全部源码及必要说明在本任务工作分支修改。
 2. 运行 `scripts/test-local.ps1`，按本地测试范围检查语法、语义和接口兼容性。Lua 采用 5.1，titan 与 forerver 各自使用独立源码核对 TOC、原生 API 和内嵌库接口。功能流程由用户验证。
-3. 在临时分支创建 Git 提交并推送 origin。通过 MR 自动合并 main，或在正式目录合并已推送的分支并推送 main。代码、配置、文档和维护约定均遵循此流程。用户已授权此流程，无需逐次索要许可。不强推。失败保留 clone 和提交，修复后重试。
-4. MR 合并后在正式目录执行 git pull --ff-only。本地主干合并后核对 main 已成功推送。确认正式目录与远端 main 一致后，从正式目录运行 `skills/wow-tools/scripts/sync-local.ps1`，默认Flavor=all分别同步两服。也可显式-Flavor titan/forerver；GameRoot覆盖必须同时选择一服，all通过TitanGameRoot/ForerverGameRoot各自覆盖。client-profiles.ps1提供独立源码和目标映射，写入前核对所有所选客户端可执行文件的3.80./1.60.版本前缀及源码TOC接口号，拒绝混用同一目录或写入零售版。同步脚本核对干净工作区和远端分支提交，同步插件并校验文件哈希，通过install-desktop-shortcut.ps1更新桌面源码快捷方式并归档旧运行副本。
+3. 在临时分支创建 Git 提交并推送 origin。通过 MR 自动合并 main，或本地合并已推送的分支并推送 main。代码、配置、文档和维护约定均遵循此流程。用户已授权此流程，无需逐次索要许可。不强推。失败保留工作分支、必要的 clone 和提交，修复后重试。
+4. 操作正式目录前确认本任务仍持锁，clone 任务在此重新获取 Hold。MR 合并后在正式目录 main 执行 git pull --ff-only。本地主干合并后核对 main 已成功推送。确认正式目录与远端 main 一致后，从正式目录运行 `skills/wow-tools/scripts/sync-local.ps1`，默认Flavor=all分别同步两服。也可显式-Flavor titan/forerver；GameRoot覆盖必须同时选择一服，all通过TitanGameRoot/ForerverGameRoot各自覆盖。client-profiles.ps1提供独立源码和目标映射，写入前核对所有所选客户端可执行文件的3.80./1.60.版本前缀及源码TOC接口号，拒绝混用同一目录或写入零售版。同步脚本核对已发布源码和远端分支提交，允许保留用户的 config.ini 修改，同步插件并校验文件哈希，通过install-desktop-shortcut.ps1更新桌面源码快捷方式并归档旧运行副本。完成后向持锁会话发送 release 并确认释放。
 5. 报告提交、推送和同步结果，提醒用户停止旧脚本并重启桌面 `wowAuto` 快捷方式；插件变更需 `/reload`，改名首次安装可能需要完全重启游戏。
 
 ## 安装目标
