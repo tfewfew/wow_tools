@@ -35,6 +35,19 @@ try {
     Add-Type -Path $sources -ReferencedAssemblies System.Core, System.Drawing, System.Windows.Forms
     Write-Output "PASS: C# compilation and type binding ($($sources.Count) compilation units)."
 
+    $hotkeyType = 'WowAuto.ScreenshotHotkey' -as [type]
+    $hotkeyConstructor = $hotkeyType.GetConstructor([type[]]@([int], [bool], [bool], [bool]))
+    if (-not $hotkeyConstructor -or -not [IDisposable].IsAssignableFrom($hotkeyType) -or
+        $hotkeyType.GetEvent('Pressed').EventHandlerType -ne [EventHandler]) {
+        throw 'Screenshot hotkey constructor, event or disposal contract is incompatible.'
+    }
+    $hubType = 'WowAuto.Threading.Hub' -as [type]
+    if ($hubType.GetMethod('PauseAndWait', [type[]]@([int])).ReturnType -ne [bool] -or
+        $hubType.GetMethod('FinishOperation', [type[]]@()).ReturnType -ne [void]) {
+        throw 'Screenshot operator pause contract is incompatible.'
+    }
+    Write-Output 'PASS: screenshot listener and operator pause interface compatibility.'
+
     $checked = 0
     $flags = [Reflection.BindingFlags]'Public,Static,FlattenHierarchy'
     foreach ($ast in $asts) {

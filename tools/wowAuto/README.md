@@ -4,6 +4,12 @@
 
 使用 `wowAuto.ps1 -PreviewPath <绝对PNG路径>` 可渲染初始窗口。
 
+## 框选截图
+
+脚本运行时按 `Ctrl+Alt+A`，在桌面拖动鼠标框选，松开左键后将选区图片复制到剪贴板，可用 `Ctrl+V` 粘贴。支持多显示器与跨屏选区，按 `Esc` 或右键取消。框选期间暂停自动操作，结束后恢复。
+
+在“设置 → 截图”点击输入框后按下新的组合键，再点击“保存截图设置”。组合键需要包含 Ctrl 或 Alt，可点击“停用”后保存以关闭监听。热键被微信等程序占用时显示注册失败，可更换组合键后保存。设置保存在 `config.ini` 的 `ScreenshotKey`，旧配置缺项默认 `Ctrl+Alt+A`，空值表示停用。更新后重新打开脚本生效，截图交互和剪贴板粘贴效果由用户验证。
+
 ## 本地检查
 
 本地检查包含语法、语义和接口兼容性，统一入口在仓库根目录运行。
@@ -41,6 +47,7 @@ Lua 编译与接口检查使用 `lupa.lua51`。可通过 `-Python` 指定已有 
 - `wowAuto.ps1`：窗口、取色、前台状态检查及按键执行。
 - `wowAuto.Engine.ps1`：钓鱼状态、截止时间及循环计数。
 - `wowAuto.Capture.cs`、`wowAuto.Capture.ps1`：统一Windows.Graphics.Capture窗口捕获、最小化恢复请求和画面读取适配。
+- `wowAuto.Screenshot.cs`、`wowAuto.Screenshot.ps1` 提供全局截图热键、桌面框选、剪贴板写入及截图设置页。
 - `wowAuto.ActionQueue.ps1`：所有进程、钓鱼、战斗、刷新、角色切换及退出保护共用的优先级执行队列；每轮循环处理所有已到期且可执行事件，逐事件重查冷却 / 保持 / 优先级，等待前台稳定时保留窗口并继续处理独立后台事务。
 - `wowAuto.Logging.ps1`、`wowAuto.Threading.cs`、`log/`：专用日志线程排队写入本次启动的合并事件日志与进程编排快照；保留消息来源 ThreadId，新增实际写入 WriterThreadId；运行日志不纳入 Git。
 - `action-priorities.json`：集中配置事件优先级；完整清单和调度规则见 [ACTION_PRIORITIES.md](ACTION_PRIORITIES.md)。

@@ -209,6 +209,13 @@ namespace WowAuto.Threading {
         public QueueTimings Timing {get {return Interlocked.CompareExchange(ref timing,null,null);}}
         public void ConfigureTiming(QueueTimings value) {if(value==null) throw new ArgumentNullException("value");Interlocked.Exchange(ref timing,value.Copy());Wake.Set();}
         public volatile bool Closing, Paused;
+        private readonly ManualResetEvent operatorIdle = new ManualResetEvent(true);
+        public bool PauseAndWait(int timeoutMs) {
+            lock(requestsGate) {Paused=true;}
+            Wake.Set();
+            return operatorIdle.WaitOne(timeoutMs);
+        }
+        public void FinishOperation() {operatorIdle.Set();}
         public bool Simulation;
         public volatile RotationBatch Batch;
         public Operation Focus;
@@ -266,7 +273,7 @@ namespace WowAuto.Threading {
                     if(next!=null && (next.Priority<Focus.Priority || next.Kind=="Capture.Restore")) {Focus.ReadyAt=0;Focus=null;}
                     else next=Focus.Due<=Now?Focus:null;
                 }
-                if(next!=null) requests.Remove(next);
+                if(next!=null) {requests.Remove(next);operatorIdle.Reset();}
                 return next;
             }
         }

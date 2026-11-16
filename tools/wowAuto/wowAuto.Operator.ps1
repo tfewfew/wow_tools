@@ -285,5 +285,6 @@ try {
             try{$Hub.Log($request.Owner,$request.Version,'error',('操作失败：'+$request.Kind+'：'+$_.Exception.Message))}
             catch{$Hub.Publish($request.Owner,$request.Version,'status',('操作失败，日志不可写：'+$_.Exception.Message))}
         }
+        finally {$Hub.FinishOperation()}
     }
 } finally {if([WowAutoFight.Native]::IsHolding){[WowAutoFight.Native]::ReleaseHold()}}

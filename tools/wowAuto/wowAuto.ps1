@@ -326,6 +326,7 @@ namespace WowAuto
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 . (Join-Path $PSScriptRoot 'wowAuto.Capture.ps1')
+. (Join-Path $PSScriptRoot 'wowAuto.Screenshot.ps1')
 if (-not ('WowAuto.DimTabControl' -as [type])) {
     Add-Type -ReferencedAssemblies System.Windows.Forms,System.Drawing -TypeDefinition @'
 using System;
@@ -485,6 +486,7 @@ $script:keyBindings=@{
     Item=(New-KeyBinding 189 $false $false $false)
 }
 $script:equipRodBinding=$null
+$script:screenshotBinding=New-KeyBinding 65 $true $false $true
 $script:directStartUseItem=$false
 $script:audioDetectionEnabled=-not $UiTest
 $script:processItemPreferences=@{}
@@ -494,7 +496,7 @@ $script:audioSettingsKeys = @('TitanAudioThresholdPercent','ForerverAudioThresho
 $script:audioTimeoutSettingsKeys = @('TitanAudioTimeoutMs','ForerverAudioTimeoutMs')
 $script:recordingSettingsKeys = @('TitanAudioRecordingId','ForerverAudioRecordingId')
 $script:preferenceSettingsKeys = @('ReelHoldMs','CastKey','ReelKey','ItemKey','AudioDetectionEnabled')
-$script:settingsKeys = $script:requiredSettingsKeys + $script:audioSettingsKeys + $script:audioTimeoutSettingsKeys + $script:recordingSettingsKeys + $script:preferenceSettingsKeys + @('StatusLogLimit','JumpEveryCycles','LogMaxSizeMB','EquipRodKey','DirectStartUseItem')
+$script:settingsKeys = $script:requiredSettingsKeys + $script:audioSettingsKeys + $script:audioTimeoutSettingsKeys + $script:recordingSettingsKeys + $script:preferenceSettingsKeys + @('StatusLogLimit','JumpEveryCycles','LogMaxSizeMB','EquipRodKey','DirectStartUseItem','ScreenshotKey')
 $script:settingsWarning = ''
 function Read-WowAutoSettingsIni([string]$Path) {
     $values=@{}; $items=@{}; $modes=@{}; $seen=@{}; $lineNumber=0
@@ -555,6 +557,7 @@ function Read-WowAutoSettingsIni([string]$Path) {
     if (-not $values.ContainsKey('LogMaxSizeMB')) { $values.LogMaxSizeMB=$script:logMaxSizeMB }
     if (-not $values.ContainsKey('EquipRodKey')) { $values.EquipRodKey='' }
     if (-not $values.ContainsKey('DirectStartUseItem')) { $values.DirectStartUseItem=0 }
+    if (-not $values.ContainsKey('ScreenshotKey')) { $values.ScreenshotKey='Ctrl+Alt+A' }
     $values.ProcessItemPreferences=$items
     $values.ProcessModePreferences=$modes
     return $values
@@ -572,7 +575,8 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
     $TitanAudioTimeoutMs=$script:versionRanges.titan.AudioTimeoutMs, $ForerverAudioTimeoutMs=$script:versionRanges.forerver.AudioTimeoutMs,
     $TitanAudioRecordingId=$script:audioRecordingSelections.titan, $ForerverAudioRecordingId=$script:audioRecordingSelections.forerver,
     $StatusLogLimit=$script:statusLogLimit, $JumpEveryCycles=$script:scheduler.JumpEveryCycles,
-    $LogMaxSizeMB=$script:logMaxSizeMB, $EquipRodKey=$script:equipRodBinding.Text, $DirectStartUseItem=$script:directStartUseItem) {
+    $LogMaxSizeMB=$script:logMaxSizeMB, $EquipRodKey=$script:equipRodBinding.Text, $DirectStartUseItem=$script:directStartUseItem,
+    $ScreenshotKey=$script:screenshotBinding.Text) {
     # Validate the entire edit before saving or changing any active task.
     $next=@{}
     foreach ($spec in @(@('titan',$TitanMinimum,$TitanMaximum),@('forerver',$ForerverMinimum,$ForerverMaximum))) {
@@ -611,6 +615,11 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
     foreach ($action in @('Cast','Reel','Item')) { $nextBindings[$action]=ConvertFrom-KeyBindingText $KeyBindings[$action].Text }
     $nextEquipRod=$null
     if (-not [string]::IsNullOrWhiteSpace([string]$EquipRodKey)) { $nextEquipRod=ConvertFrom-KeyBindingText ([string]$EquipRodKey) }
+    $nextScreenshot=$null
+    if (-not [string]::IsNullOrWhiteSpace([string]$ScreenshotKey)) {
+        $nextScreenshot=ConvertFrom-KeyBindingText ([string]$ScreenshotKey)
+        if (-not ($nextScreenshot.Ctrl -or $nextScreenshot.Alt)) {throw '截图快捷键需要包含 Ctrl 或 Alt。'}
+    }
     $nextAudio=ConvertTo-PreferenceFlag $AudioDetectionEnabled
     $nextDirectStartUseItem=ConvertTo-PreferenceFlag $DirectStartUseItem
     $nextItems=@{}
@@ -629,38 +638,58 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
             $modeTicks -gt [datetime]::MaxValue.Ticks -or $ProcessModePreferences[$key] -cnotin @('fish','fight')) {throw '进程任务模式配置无效。'}
         $nextModes[$key]=$ProcessModePreferences[$key]
     }
-    if ($Persist) {
-        $directory=Split-Path $script:settingsPath -Parent
-        New-Item -ItemType Directory -Path $directory -Force | Out-Null
-        $temporary=$script:settingsPath + '.' + [Guid]::NewGuid().ToString() + '.tmp'
-        try {
-            $values=[ordered]@{
-                TitanMinimumMs=$next.titan.MinimumMs; TitanMaximumMs=$next.titan.MaximumMs
-                ForerverMinimumMs=$next.forerver.MinimumMs; ForerverMaximumMs=$next.forerver.MaximumMs
-                FocusRetryIntervalMs=$retry
-                TitanAudioThresholdPercent=$nextThresholds.titan; ForerverAudioThresholdPercent=$nextThresholds.forerver
-                TitanAudioTimeoutMs=$next.titan.AudioTimeoutMs; ForerverAudioTimeoutMs=$next.forerver.AudioTimeoutMs
-                TitanAudioRecordingId=$nextRecordings.titan; ForerverAudioRecordingId=$nextRecordings.forerver
-                ReelHoldMs=$nextHold; CastKey=$nextBindings.Cast.Text; ReelKey=$nextBindings.Reel.Text; ItemKey=$nextBindings.Item.Text
-                AudioDetectionEnabled=$nextAudio; StatusLogLimit=$nextLogLimit; JumpEveryCycles=$nextJumpCycles; LogMaxSizeMB=$nextLogSize
-                EquipRodKey=$nextEquipRod.Text
-                DirectStartUseItem=$nextDirectStartUseItem
-            }
-            $lines=@('; wowAuto settings: ms for timing, percent for thresholds, 0/1 for switches.';
-                '; Shortcuts use Ctrl/Shift/Alt plus a key; UseItem_PID_StartTicks stores process choices.')
-            foreach ($key in $script:settingsKeys) { $lines += "$key=$($values[$key])" }
-            foreach ($key in @($nextItems.Keys | Sort-Object)) { $lines += "UseItem_$($key.Replace(':','_'))=$([int]$nextItems[$key])" }
-            foreach ($key in @($nextModes.Keys | Sort-Object)) { $lines += "Mode_$($key.Replace(':','_'))=$($nextModes[$key])" }
-            [IO.File]::WriteAllText($temporary,($lines -join "`r`n")+"`r`n",(New-Object Text.UTF8Encoding($false)))
-            # Windows PowerShell 5.1 converts ordinary $null to an empty string here.
-            # File.Replace requires an actual null backup filename, not an empty path.
-            if (Test-Path -LiteralPath $script:settingsPath) {
-                [IO.File]::Replace($temporary,$script:settingsPath,[System.Management.Automation.Language.NullString]::Value)
-            }
-            else { [IO.File]::Move($temporary,$script:settingsPath) }
-        }
-        finally { if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary } }
+    # Reserve a changed hotkey before writing the INI. Keep the previous listener until saving succeeds.
+    $nextScreenshotListener=$null
+    if ($script:screenshotInitialized -and $nextScreenshot -and
+        ($nextScreenshot.Text -ne $script:screenshotBinding.Text -or
+            (-not $script:screenshotListener -and $PSBoundParameters.ContainsKey('ScreenshotKey')))) {
+        $nextScreenshotListener=New-WowAutoScreenshotListener $nextScreenshot
     }
+    try {
+        if ($Persist) {
+            $directory=Split-Path $script:settingsPath -Parent
+            New-Item -ItemType Directory -Path $directory -Force | Out-Null
+            $temporary=$script:settingsPath + '.' + [Guid]::NewGuid().ToString() + '.tmp'
+            try {
+                $values=[ordered]@{
+                    TitanMinimumMs=$next.titan.MinimumMs; TitanMaximumMs=$next.titan.MaximumMs
+                    ForerverMinimumMs=$next.forerver.MinimumMs; ForerverMaximumMs=$next.forerver.MaximumMs
+                    FocusRetryIntervalMs=$retry
+                    TitanAudioThresholdPercent=$nextThresholds.titan; ForerverAudioThresholdPercent=$nextThresholds.forerver
+                    TitanAudioTimeoutMs=$next.titan.AudioTimeoutMs; ForerverAudioTimeoutMs=$next.forerver.AudioTimeoutMs
+                    TitanAudioRecordingId=$nextRecordings.titan; ForerverAudioRecordingId=$nextRecordings.forerver
+                    ReelHoldMs=$nextHold; CastKey=$nextBindings.Cast.Text; ReelKey=$nextBindings.Reel.Text; ItemKey=$nextBindings.Item.Text
+                    AudioDetectionEnabled=$nextAudio; StatusLogLimit=$nextLogLimit; JumpEveryCycles=$nextJumpCycles; LogMaxSizeMB=$nextLogSize
+                    EquipRodKey=$nextEquipRod.Text
+                    DirectStartUseItem=$nextDirectStartUseItem
+                    ScreenshotKey=$nextScreenshot.Text
+                }
+                $lines=@('; wowAuto settings: ms for timing, percent for thresholds, 0/1 for switches.';
+                    '; Shortcuts use Ctrl/Shift/Alt plus a key; UseItem_PID_StartTicks stores process choices.')
+                foreach ($key in $script:settingsKeys) { $lines += "$key=$($values[$key])" }
+                foreach ($key in @($nextItems.Keys | Sort-Object)) { $lines += "UseItem_$($key.Replace(':','_'))=$([int]$nextItems[$key])" }
+                foreach ($key in @($nextModes.Keys | Sort-Object)) { $lines += "Mode_$($key.Replace(':','_'))=$($nextModes[$key])" }
+                [IO.File]::WriteAllText($temporary,($lines -join "`r`n")+"`r`n",(New-Object Text.UTF8Encoding($false)))
+                # Windows PowerShell 5.1 converts ordinary $null to an empty string here.
+                # File.Replace requires an actual null backup filename, not an empty path.
+                if (Test-Path -LiteralPath $script:settingsPath) {
+                    [IO.File]::Replace($temporary,$script:settingsPath,[System.Management.Automation.Language.NullString]::Value)
+                }
+                else { [IO.File]::Move($temporary,$script:settingsPath) }
+            }
+            finally { if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary } }
+        }
+    }
+    catch {
+        if ($nextScreenshotListener) {$nextScreenshotListener.Dispose()}
+        throw
+    }
+    if ($script:screenshotInitialized -and ($nextScreenshotListener -or -not $nextScreenshot)) {
+        if ($script:screenshotListener) {$script:screenshotListener.Dispose()}
+        $script:screenshotListener=$nextScreenshotListener
+    }
+    $script:screenshotBinding=$nextScreenshot
+    if ($script:screenshotListener -or -not $nextScreenshot) {$script:screenshotWarning=''}
     $previousLogLimit=$script:statusLogLimit
     $script:statusLogLimit=$nextLogLimit
     $script:logMaxSizeMB=$nextLogSize
@@ -702,7 +731,7 @@ function Import-VersionWaitSettings {
         $saved=Read-WowAutoSettingsIni $script:settingsPath
         $bindings=@{}
         foreach ($action in @('Cast','Reel','Item')) { $bindings[$action]=ConvertFrom-KeyBindingText $saved[($action+'Key')] }
-        Set-VersionWaitRanges $saved.TitanMinimumMs $saved.TitanMaximumMs $saved.ForerverMinimumMs $saved.ForerverMaximumMs -Persist $false -FocusRetryIntervalMs $saved.FocusRetryIntervalMs -TitanAudioThresholdPercent $saved.TitanAudioThresholdPercent -ForerverAudioThresholdPercent $saved.ForerverAudioThresholdPercent -ReelHoldMs $saved.ReelHoldMs -KeyBindings $bindings -AudioDetectionEnabled $saved.AudioDetectionEnabled -ProcessItemPreferences $saved.ProcessItemPreferences -ProcessModePreferences $saved.ProcessModePreferences -TitanAudioTimeoutMs $saved.TitanAudioTimeoutMs -ForerverAudioTimeoutMs $saved.ForerverAudioTimeoutMs -TitanAudioRecordingId $saved.TitanAudioRecordingId -ForerverAudioRecordingId $saved.ForerverAudioRecordingId -StatusLogLimit $saved.StatusLogLimit -JumpEveryCycles $saved.JumpEveryCycles -LogMaxSizeMB $saved.LogMaxSizeMB -EquipRodKey $saved.EquipRodKey -DirectStartUseItem $saved.DirectStartUseItem
+        Set-VersionWaitRanges $saved.TitanMinimumMs $saved.TitanMaximumMs $saved.ForerverMinimumMs $saved.ForerverMaximumMs -Persist $false -FocusRetryIntervalMs $saved.FocusRetryIntervalMs -TitanAudioThresholdPercent $saved.TitanAudioThresholdPercent -ForerverAudioThresholdPercent $saved.ForerverAudioThresholdPercent -ReelHoldMs $saved.ReelHoldMs -KeyBindings $bindings -AudioDetectionEnabled $saved.AudioDetectionEnabled -ProcessItemPreferences $saved.ProcessItemPreferences -ProcessModePreferences $saved.ProcessModePreferences -TitanAudioTimeoutMs $saved.TitanAudioTimeoutMs -ForerverAudioTimeoutMs $saved.ForerverAudioTimeoutMs -TitanAudioRecordingId $saved.TitanAudioRecordingId -ForerverAudioRecordingId $saved.ForerverAudioRecordingId -StatusLogLimit $saved.StatusLogLimit -JumpEveryCycles $saved.JumpEveryCycles -LogMaxSizeMB $saved.LogMaxSizeMB -EquipRodKey $saved.EquipRodKey -DirectStartUseItem $saved.DirectStartUseItem -ScreenshotKey $saved.ScreenshotKey
     }
     catch { $script:settingsWarning="config.ini 读取失败，保留当前配置：$($_.Exception.Message)" }
 }
@@ -1990,6 +2019,7 @@ $shutdownTimer = New-Object System.Windows.Forms.Timer
 $shutdownTimer.Interval = 200
 $shutdownTimer.Add_Tick({ Invoke-WowAutoShutdownTick })
 $form.Add_FormClosing({
+    Close-WowAutoScreenshot
     if($script:characterCreate){Stop-CharacterCreate}
     $shutdownTimer.Stop()
     if($script:useWorkers){$timer.Stop();$positionTimer.Stop();$scanTimer.Stop();Stop-AllRows;$script:parallelHub.Close();return}
@@ -2061,9 +2091,10 @@ try {
             finally { $bitmap.Dispose() }
         }
     }
-    else { [void]$form.ShowDialog() }
+    else { Initialize-WowAutoScreenshot; [void]$form.ShowDialog() }
 }
 finally {
+    Close-WowAutoScreenshot
     if($script:characterCreate){Close-CharacterCreate}
     if($script:useWorkers){Stop-ParallelRuntime}
     if ($script:autoFight) { Close-AutoFightTab }

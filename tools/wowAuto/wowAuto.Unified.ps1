@@ -137,6 +137,7 @@ function New-UnifiedSettingsDialog {
     $fight.Tag.Cancel.Tag=$hostDialog; $fight.Tag.Cancel.Add_Click({param($sender,$e) $sender.Tag.Close()})
     $settingTabs.Add_SelectedIndexChanged({if ($script:unifiedSettingsHost) {Stop-AudioPreview $script:unifiedSettingsHost.Tag.Fish}})
     $directories=New-GameDirectorySettingsPage;$settingTabs.TabPages.Add($directories)
+    $settingTabs.TabPages.Add((New-WowAutoScreenshotSettingsPage))
     $hostDialog.Tag=[pscustomobject]@{Tabs=$settingTabs;Fish=$fish;Fight=$fight;Directories=$directories}
     $hostDialog.Tag | Add-Member NoteProperty Rotation (New-RotationIntervalControls $hostDialog)
     $script:unifiedSettingsHost=$hostDialog
