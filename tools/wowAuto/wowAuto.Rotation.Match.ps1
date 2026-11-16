@@ -1,32 +1,20 @@
 ﻿# Pure OCR interpretation shared by independent detector runspaces.
-function Resolve-RotationOcrName([string]$Text,[string[]]$Configured) {
+function Resolve-RotationOcrName([string]$Text,[string[]]$Configured,$Aliases=@()) {
     # OCR may misread one glyph. Keep the text length and every other position exact.
-    $matches=@(foreach ($name in $Configured) {
-        if ($Text.Length -ne $name.Length -or $name.Length -lt 2) {continue}
+    # Full display labels are compared intact and resolve to the saved task identity.
+    $labels=@(foreach ($name in $Configured) {[pscustomobject]@{Name=$name;Text=$name}})
+    $labels+=@($Aliases | Where-Object {$_.Name -cin $Configured})
+    $matches=@(foreach ($label in $labels) {
+        if ($Text.Length -ne $label.Text.Length -or $label.Text.Length -lt 2) {continue}
         $different=0
-        for ($i=0;$i -lt $name.Length;$i++) {
-            if ($Text[$i] -cne $name[$i]) {$different++;if ($different -gt 1) {break}}
+        for ($i=0;$i -lt $label.Text.Length;$i++) {
+            if ($Text[$i] -cne $label.Text[$i]) {$different++;if ($different -gt 1) {break}}
         }
-        if ($different -le 1) {$name}
+        if ($different -le 1) {$label.Name}
     })
+    $matches=@($matches | Select-Object -Unique)
     if ($matches.Count -eq 1) {return [pscustomobject]@{Name=$matches[0];Ambiguous=$false}}
     return [pscustomobject]@{Name=$Text;Ambiguous=($matches.Count -gt 1)}
-}
-function Get-RotationOcrCharacterText([string]$Text,[string[]]$Configured,[string[]]$DisplayRealms) {
-    # Connected-realm menus put the display realm on the same yellow name line.
-    # Only remove a suffix supplied by this client's saved character catalog.
-    if ($Text -cin $DisplayRealms) {return ''}
-    foreach ($realm in @($DisplayRealms | Where-Object {$_} | Sort-Object Length -Descending)) {
-        if ($Text.Length -le $realm.Length+1 -or -not $Text.EndsWith($realm,[StringComparison]::Ordinal)) {continue}
-        $name=$Text.Substring(0,$Text.Length-$realm.Length)
-        if ($Text -cin $Configured) {
-            $match=Resolve-RotationOcrName $name $Configured
-            if ($match.Ambiguous -or $match.Name -cin $Configured) {return ''}
-            return $Text
-        }
-        return $name
-    }
-    return $Text
 }
 function Get-RotationMenuGeometry($Ocr,$Bounds,[double]$ExpectedFirst=0.119) {
     # The character list keeps its own UI scale when the game window changes size.
@@ -83,7 +71,7 @@ function Get-RotationOcrLog($Screen,[string]$Name) {
 }
 function ConvertFrom-RotationOcr($Ocr,$Plan,[switch]$MenuWasConfirmed,[ValidateSet('titan','forerver')][string]$Flavor='titan') {
     $configured=@($Plan.Slots | Where-Object {$_.Name} | ForEach-Object {$_.Name} | Select-Object -Unique)
-    $displayRealms=@(if ($Flavor -eq 'forerver' -and $Plan.PSObject.Properties['DisplayRealms']) {$Plan.DisplayRealms})
+    $aliases=@(if ($Flavor -eq 'forerver' -and $Plan.PSObject.Properties['OcrNames']) {$Plan.OcrNames})
     $bounds=if ($Ocr.PSObject.Properties['NamesBounds'] -and $Ocr.NamesBounds) {$Ocr.NamesBounds} else {[pscustomobject]@{X=0.79;Y=0;W=0.21;H=0.84}}
     # Client-relative name centers from the 2026-11-17 forever selection screenshot.
     $fallback=if ($Flavor -eq 'forerver') {[pscustomobject]@{First=0.1432;Step=0.0820}} else {[pscustomobject]@{First=0.119;Step=0.0743}}
@@ -96,25 +84,21 @@ function ConvertFrom-RotationOcr($Ocr,$Plan,[switch]$MenuWasConfirmed,[ValidateS
     $targets=@(foreach ($line in $Ocr.Names) {
         $y=$bounds.Y+($line.Y+$line.H/2)*$bounds.H
         if ($y -lt 0.08 -or $y -gt 0.80 -or ($y -lt 0.15 -and $line.Text -eq '选择服务器') -or $line.Text -notmatch '^[\p{L}\p{M}]+$') {continue}
-        $text=Get-RotationOcrCharacterText $line.Text $configured $displayRealms
-        if (-not $text) {continue}
-        $match=Resolve-RotationOcrName $text $configured
+        $match=Resolve-RotationOcrName $line.Text $configured $aliases
         # A uniquely matched name may have a shifted OCR box; unrelated text
         # retains the tighter 2% threshold.
         $tolerance=if (-not $match.Ambiguous -and $match.Name -cin $configured) {0.034} else {0.02}
         $row=Get-RotationMenuRow $bounds $y $tolerance $geometry
         if (-not $row) {continue}
-        [pscustomobject]@{Name=$match.Name;RawName=$text;Ambiguous=$match.Ambiguous;MenuRow=$row.Index;X=$row.X;Y=$row.Y}
+        [pscustomobject]@{Name=$match.Name;RawName=$line.Text;Ambiguous=$match.Ambiguous;MenuRow=$row.Index;X=$row.X;Y=$row.Y}
     })
     # The normal pass can recover names that yellow-text preprocessing misread twice.
     foreach ($line in $Ocr.Lines) {
         if ($line.X -gt $bounds.X -and $line.Y -gt 0.08 -and $line.Y -lt 0.80) {
-            $text=Get-RotationOcrCharacterText $line.Text $configured $displayRealms
-            if (-not $text) {continue}
-            $match=Resolve-RotationOcrName $text $configured
+            $match=Resolve-RotationOcrName $line.Text $configured $aliases
             if (-not $match.Ambiguous -and $match.Name -cin $configured -and $match.Name -cnotin $targets.Name) {
                 $row=Get-RotationMenuRow $bounds ($line.Y+$line.H/2) 0.034 $geometry
-                if ($row) {$targets+=,[pscustomobject]@{Name=$match.Name;RawName=$text;Ambiguous=$false;MenuRow=$row.Index;X=$row.X;Y=$row.Y}}
+                if ($row) {$targets+=,[pscustomobject]@{Name=$match.Name;RawName=$line.Text;Ambiguous=$false;MenuRow=$row.Index;X=$row.X;Y=$row.Y}}
             }
         }
     }

@@ -2,14 +2,20 @@
 function Resolve-OcrAccount($Screen,$Candidates) {
     if($Screen.Kind -ne 'menu'){return [pscustomobject]@{Account='';Kind='unknown';Matches=@()}}
     $names=@($Candidates | ForEach-Object {$_.Names} | Sort-Object -Unique)
+    $aliases=@($Candidates | ForEach-Object {$_.OcrNames})
     $exact=@();$fuzzy=@()
     foreach($target in $Screen.Targets) {
         if($target.MenuRow -lt 1 -or $target.MenuRow -gt 10){continue}
         $text=if($target.PSObject.Properties['RawName'] -and $target.RawName){[string]$target.RawName}else{[string]$target.Name}
-        if($text -cnotmatch '^[\p{L}\p{M}]{2,24}$'){continue}
-        $name=$null;$isExact=$text -cin $names
-        if($isExact){$name=$text}else{
-            $match=Resolve-RotationOcrName $text $names
+        if($text -cnotmatch '^[\p{L}\p{M}]{2,152}$'){continue}
+        $name=$null
+        $exactNames=@($aliases | Where-Object {$_.Text -ceq $text} | ForEach-Object Name)
+        if($text -cin $names){$exactNames+=,$text}
+        $exactNames=@($exactNames | Select-Object -Unique)
+        $isExact=$exactNames.Count -gt 0
+        if($exactNames.Count -eq 1){$name=$exactNames[0]}
+        elseif(-not $isExact){
+            $match=Resolve-RotationOcrName $text $names $aliases
             if(-not $match.Ambiguous -and $match.Name -cin $names){$name=$match.Name}
         }
         if(-not $name){continue}

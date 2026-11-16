@@ -143,7 +143,11 @@ function Get-AccountDiscoveryCandidates($Row) {
             @{
                 Account=$account
                 Names=$names
-                DisplayRealms=@($script:accountTasks.Catalog[$key].Characters | ForEach-Object DisplayRealm | Sort-Object -Unique)
+                OcrNames=@(if($Row.Client.Flavor -eq 'forerver') {
+                    foreach($record in $script:accountTasks.Catalog[$key].Characters) {
+                        @{Name=$record.Name;Text=($record.FullName -replace '[-\s]','')}
+                    }
+                })
                 Roles=@(Get-AccountTaskRoles $Row $account)
             }
         }
