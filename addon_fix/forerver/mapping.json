@@ -10,7 +10,8 @@
           "background-scans/2.1.95/manifest.json",
           "background-scans/2.1.96/manifest.json",
           "background-scans/2.1.99/manifest.json",
-          "background-scans/2.1.102/manifest.json"
+          "background-scans/2.1.102/manifest.json",
+          "background-scans/2.1.104/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
@@ -52,6 +53,21 @@
               }
             ],
             "checkedAt": "2026-11-16T04:06:28+00:00"
+          },
+          {
+            "version": "2.1.104",
+            "reason": "核对 2.1.104 的 Hui.lua、TOC 加载清单与主模块、Explore、Prof、Spell 的全部 Lua 引用，ExtTipSkin、CollectForeign、SkinGameTooltip 和 RefreshGameTooltipSkin 均继续缺失。Hui.lua 沿用已核实的上游移除实现，原提示框 OnUpdate 子控件扫描和外部皮肤轮询链未恢复。追加当前 Hui.lua 与 TOC 指纹，停止边界继续采用已核实的 2.1.99。",
+            "files": [
+              {
+                "path": "DungeonsForever/Core/Hui.lua",
+                "sha256": "ec55b10f13c8c3dfc481b4f6408cf6529766aa99d95af440ff1b02be245648f9"
+              },
+              {
+                "path": "DungeonsForever/DungeonsForever.toc",
+                "sha256": "99f53ad29a3a01bbf7ac4436b0fa57904df5a12cbadf19803e4030c04dd7c253"
+              }
+            ],
+            "checkedAt": "2026-11-16T15:10:08+00:00"
           }
         ]
       }
@@ -68,7 +84,8 @@
         ],
         "variants": [
           "background-scans/2.0.3/manifest.json",
-          "background-scans/2.0.3-20261114/manifest.json"
+          "background-scans/2.0.3-20261114/manifest.json",
+          "background-scans/2.0.3-20261116/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
@@ -81,7 +98,8 @@
         "variants": [
           "background-scans/2.0.3/manifest.json",
           "background-scans/2.0.3-20261114/manifest.json",
-          "background-scans/2.0.3-20261115/manifest.json"
+          "background-scans/2.0.3-20261115/manifest.json",
+          "background-scans/2.0.3-20261116/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
