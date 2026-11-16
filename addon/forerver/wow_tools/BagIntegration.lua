@@ -1,9 +1,10 @@
--- Forever 16001, Gethe/wow-ui-source 943764493e6b16d63ded3ab304150d1f05e58b57.
+-- Forever 1.60.1.70938, Gethe/wow-ui-source bebcb6bf309cf41b41bd74f8ca651e6a105b2676.
 -- Extend the native container and its pooled buttons. Bag IDs and slot IDs stay native.
 local module = { views = {}, settingsHeight = 240, active = false }
 WoWTools.bagIntegration = module
 local reagentBag = Enum.BagIndex.ReagentBag
 local installed, queued, applying = false, false, false
+local initializationError
 local status = "背包整合已关闭。"
 local decorations = {}
 local events = CreateFrame("Frame")
@@ -72,7 +73,7 @@ end
 
 local function Layout()
     local frame = ContainerFrameCombinedBags
-    if not module.active or not frame:IsShown() or InCombatLockdown() then return end
+    if not module.active or initializationError or not frame:IsShown() or InCombatLockdown() then return end
     local conflict = Conflict()
     if conflict or InputUtil.IsGamepadUIEnabled() then Reconcile() return end
     local groups = {{}, {}, {}}
@@ -182,22 +183,32 @@ local function InstallHooks()
         if module.active and bagID == reagentBag then return true end
         return usingCombined(self, bagID)
     end
-    hooksecurefunc(frame, "SetBagSize", function(self)
-        if not module.active or InputUtil.IsGamepadUIEnabled() then return end
-        local total = 0
-        for bagID = 0, reagentBag do total = total + C_Container.GetContainerNumSlots(bagID) end
-        self.size = total
-    end)
     hooksecurefunc(frame, "UpdateItemSlots", function(self)
         if not module.active or InputUtil.IsGamepadUIEnabled() then return end
+        local nativeCount = #self.Items
+        -- Native enumeration is bounded by size, including any account-extension slots.
+        -- Publish the extra count only after every reagent button is initialized.
+        self.size = nativeCount
         for _, button in ipairs(self.Items) do
             if button:GetBagID() == reagentBag then return end
         end
         local size = C_Container.GetContainerNumSlots(reagentBag)
         for slotID = size, 1, -1 do
             local button = self:AcquireNewItemButton()
-            button:Initialize(reagentBag, slotID)
+            local initialized, message = pcall(button.Initialize, button, self, reagentBag, slotID)
+            if not initialized then
+                for index = #self.Items, nativeCount + 1, -1 do
+                    self.itemButtonPool:Release(self.Items[index])
+                    self.Items[index] = nil
+                end
+                initializationError = message
+                HideDecorations()
+                -- Finish the native generation with its original valid buttons before restoring its UI.
+                C_Timer.After(0, Reconcile)
+                return
+            end
         end
+        self.size = #self.Items
     end)
     hooksecurefunc(frame, "UpdateItemLayout", ScheduleLayout)
     hooksecurefunc(frame, "UpdateFrameSize", ScheduleLayout)
@@ -248,8 +259,10 @@ Reconcile = function()
     if not NativeReady() then
         status = enabled and "等待原生背包界面加载。" or "背包整合已关闭。"
     else
-        ApplyActive(enabled and not conflict and not gamepad)
-        if conflict then
+        ApplyActive(enabled and not conflict and not gamepad and not initializationError)
+        if initializationError then
+            status = "材料袋初始化失败，已暂停背包整合。关闭后重新开启可重试。"
+        elseif conflict then
             status = "已暂停背包整合，" .. conflict .. " 正在接管背包。停用对应背包模块或插件并重载后可启用。"
         elseif gamepad then
             status = "手柄背包模式下暂停分区，使用客户端布局。"
@@ -265,6 +278,7 @@ function module.SetEnabled(enabled)
     local config = Config()
     if not config then return false end
     config.enabled = enabled == true
+    initializationError = nil
     Reconcile()
     return true
 end

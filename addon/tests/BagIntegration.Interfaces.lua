@@ -1,7 +1,8 @@
--- Typed contracts for Forever's pooled native container and presentation APIs.
+-- Forever 1.60.1.70938, native container interfaces at bebcb6bf309cf41b41bd74f8ca651e6a105b2676.
 local root = TEST_ROOT or "."
 local hooks, pending, frames = {}, {}, {}
 local cvar, loaded = "0", {}
+local backpackExtra, rejectReagent = 0, false
 local slots = {[0] = 16, 4, 4, 4, 0, 4}
 local families = {[0] = 0, 0, 0, 1, 0, 0}
 WoWTools, wowDetectorDB = {}, {}
@@ -77,7 +78,10 @@ function CreateFrame(kind)
 end
 local container = Region("Frame")
 ContainerFrameCombinedBags = container
-container.itemButtonPool = {GetTemplate = function() return "ContainerFrameItemButtonTemplate" end}
+container.itemButtonPool = {
+    GetTemplate = function() return "ContainerFrameItemButtonTemplate" end,
+    Release = function(_, button) button:Hide() end,
+}
 function container:CreateFontString(name, layer, font)
     assert(name == nil and layer == "ARTWORK" and font == "GameFontHighlightSmall")
     return Region("FontString")
@@ -89,8 +93,12 @@ end
 function container:ClearItems() self.Items = {} end
 function container:AcquireNewItemButton()
     local button = Region("ItemButton")
-    function button:Initialize(bagID, slotID)
-        assert(type(bagID) == "number" and slotID >= 1 and slotID <= slots[bagID], "Pooled item Initialize signature mismatch")
+    function button:Initialize(containerFrame, bagID, slotID)
+        assert(containerFrame == container, "Native Initialize requires its container frame before bag and slot")
+        assert(type(bagID) == "number" and type(slotID) == "number" and slotID >= 1
+            and slotID <= slots[bagID] + (bagID == 0 and backpackExtra or 0), "Pooled item Initialize signature mismatch")
+        if bagID == 5 and rejectReagent then error("Native Initialize rejected reagent slot") end
+        self.containerFrame = containerFrame
         self.bagID, self.slotID = bagID, slotID
     end
     function button:GetBagID() return self.bagID end
@@ -99,16 +107,22 @@ function container:AcquireNewItemButton()
     return button
 end
 function container:SetBagSize()
-    self.size = 0
+    self.size = backpackExtra
     for bagID = 0, 4 do self.size = self.size + slots[bagID] end
 end
 function container:UpdateItemSlots()
     self:ClearItems()
     for bagID = 4, 0, -1 do
-        for slotID = slots[bagID], 1, -1 do self:AcquireNewItemButton():Initialize(bagID, slotID) end
+        local bagSize = slots[bagID] + (bagID == 0 and backpackExtra or 0)
+        for slotID = bagSize, 1, -1 do self:AcquireNewItemButton():Initialize(self, bagID, slotID) end
     end
 end
-function container:EnumerateValidItems() return ipairs(self.Items) end
+function container:EnumerateValidItems()
+    return function(self, index)
+        index = index + 1
+        if index <= self.size then return index, self.Items[index] end
+    end, self, 0
+end
 function container:MatchesBagID(bagID) return bagID >= 0 and bagID <= 4 end
 function container:IsBagOpen(bagID) if self.shown and self:MatchesBagID(bagID) then return bagID end end
 function container:UpdateItemLayout() end
@@ -144,13 +158,31 @@ assert(container:MatchesBagID(5) and ContainerFrameSettingsManager:IsUsingCombin
     "Reagent container routing must participate in the same native window")
 assert(not container:MatchesBagID(6), "Bank container routing changed")
 container:SetBagSize()
-hooks.SetBagSize(container)
 container:UpdateItemSlots()
 hooks.UpdateItemSlots(container)
 assert(container.size == #container.Items and container.size == 32,
     "Native enumeration size must include every pooled reagent slot exactly once")
 hooks.UpdateItemSlots(container)
 assert(container.size == #container.Items, "Reagent buttons were acquired twice")
+for _, button in container:EnumerateValidItems() do
+    assert(button.containerFrame == container, "Every native item button must retain its owning container")
+end
+backpackExtra = 4
+container:SetBagSize()
+container:UpdateItemSlots()
+hooks.UpdateItemSlots(container)
+assert(container.size == #container.Items and container.size == 36,
+    "Native account-extension slots must remain part of the enumeration")
+slots[5] = 0
+container:SetBagSize()
+container:UpdateItemSlots()
+hooks.UpdateItemSlots(container)
+assert(container.size == #container.Items and container.size == 32,
+    "An unequipped reagent bag must preserve the native slot-count contract")
+slots[5] = 4
+container:SetBagSize()
+container:UpdateItemSlots()
+hooks.UpdateItemSlots(container)
 container.meihang, container.suofang = 8, 1.1
 container:Show()
 hooks.UpdateFrameSize(container)
@@ -161,6 +193,20 @@ assert(bags.SetEnabled(false) and not bags.active and cvar == "0",
     "Disabling must restore the prior combinedBags interface setting")
 assert(not container:MatchesBagID(5) and not ContainerFrameSettingsManager:IsUsingCombinedBags(5),
     "Inactive native routing must delegate to its original interfaces")
+assert(bags.SetEnabled(true) and bags.active, "Native integration did not rebind")
+rejectReagent = true
+container:SetBagSize()
+container:UpdateItemSlots()
+hooks.UpdateItemSlots(container)
+assert(container.size == #container.Items and container.size == 32,
+    "A rejected reagent initializer must leave the original native enumeration complete")
+for _, button in container:EnumerateValidItems() do
+    assert(button and button.containerFrame == container and button:GetBagID() ~= 5,
+        "Native enumeration contains an uninitialized item after rejection")
+end
+for _, callback in ipairs(pending) do callback() end
+assert(not bags.active and cvar == "0", "A rejected native interface must restore the prior UI setting")
+rejectReagent = false
 loaded.Baganator = true
 assert(bags.SetEnabled(true) and not bags.active and cvar == "0", "A full bag replacement must retain native UI ownership")
 print("PASS: forerver native bag pool, reagent routing, presentation signatures and addon ownership contracts.")
