@@ -61,7 +61,7 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 ## 无限服关闭位置采集修复（2026-11-17）
 
-- forerver 2.2.124 修正上一版替换实例 OnHide 方法未接入 XML 已绑定关闭脚本的问题。改用原生 ContainerFrame.CloseBag 回调，仅采集 ContainerFrameCombinedBags，在原生关闭重排和 !Pig 定位钩子前保存位置。回调按原生 owner、container 签名注册一次，开关复用同一注册。
+- forerver 2.2.125 修正上一版替换实例 OnHide 方法未接入 XML 已绑定关闭脚本的问题。改用原生 ContainerFrame.CloseBag 回调，仅采集 ContainerFrameCombinedBags，在原生关闭重排和 !Pig 定位钩子前保存位置。回调按原生 owner、container 签名注册一次，开关复用同一注册。
 - 关闭时优先读取 UIParent 相对锚点和偏移，按有效缩放归一化保存，支持关闭后可见矩形已不可读的情况。其他相对框体沿用矩形换算，旧版仅 x/y 记录继续按 TOPLEFT 恢复。打开后复用已有单次下一帧布局恢复，普通物品更新保持空闲路径。
 - 接口检查固定绑定原生 OnHide，再加载模块，核对原生关闭事件、锚点与缩放换算、隐藏矩形、旧配置和其他容器回调过滤。统一入口执行语法、语义和接口检查，实际拖动、关闭与重新打开由用户游戏内验证。按用户要求仅部署无限服，更新后需 /reload。
 
