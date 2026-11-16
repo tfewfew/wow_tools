@@ -5,13 +5,13 @@ ns.style = style
 -- OffScreenFrame is documented by both clients. Capturing a model and the
 -- sampler retained by ApplySnapshot remain experimental, with visible status.
 style.options = {
-    { key="scope", label="调试范围", default="player", choices={{"player", "仅玩家头像"}, {"all", "全部已启用的头像"}} },
+    { key="scope", label="调试范围", default="player", choices={{"player", "仅玩家头像"}, {"all", "全部已启用的头像"}}, help="选择哪些头像使用本页的模型与像素化参数。默认只应用于玩家头像。" },
     { key="source", label="模型来源", default="unit", choices={{"unit", "当前单位"}, {"display", "指定 DisplayID"}, {"file", "指定模型 FileID"}}, help="指定模型会替换调试范围内的头像外观。低模需要填写客户端已有的对应模型 ID。" },
     { key="displayID", label="DisplayID", default=0, minimum=0, maximum=2147483647, help="选择指定 DisplayID 时使用，大于 0。页面底部可查看当前模型 ID。" },
     { key="fileID", label="模型 FileID", default=0, minimum=0, maximum=2147483647, help="选择指定模型 FileID 时使用，大于 0。模型文件的镜头适配效果需要游戏内观察。" },
     { key="noMip", label="文件模型禁用 MipMap", default=false, help="只作用于指定模型 FileID，传入 SetModel 的 noMip 参数。" },
-    { key="animation", label="动画", default="default", choices={{"default", "沿用头像动画"}, {"idle", "独立待机"}, {"paused", "暂停动画"}} },
-    { key="pixelEnabled", label="启用像素化快照（实验）", default=false },
+    { key="animation", label="动画", default="default", choices={{"default", "沿用头像动画"}, {"idle", "独立待机"}, {"paused", "暂停动画"}}, help="选择头像模型的默认动画、独立待机或暂停动画。" },
+    { key="pixelEnabled", label="启用像素化快照（实验）", default=false, help="启用离屏快照并按采样边长放大显示。页面底部显示快照状态和失败原因。" },
     { key="resolution", label="采样边长（物理像素）", default=32, minimum=8, maximum=128, help="范围 8–128，默认 32。较小值用于观察更粗的像素块，实际快照分辨率由客户端生成。" },
     { key="fps", label="快照更新帧率", default=10, minimum=1, maximum=30, help="范围 1–30，默认每秒 10 次。仅在像素化头像可见时更新。" },
     { key="filter", label="纹理采样请求", default="NEAREST", choices={{"NEAREST", "最近邻"}, {"LINEAR", "线性"}}, help="应用快照前设置纹理采样。客户端是否保留该采样方式，需要对照观察边缘效果。" },
