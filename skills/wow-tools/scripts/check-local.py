@@ -97,10 +97,11 @@ def main():
     for path in (repo / 'addon/tests').glob('*.lua'):
         compiler(path.read_text(encoding='utf-8-sig'), '@' + str(path))
         lua_count += 1
-    runtime = LuaRuntime()
-    runtime.globals().TEST_ROOT = repo.as_posix()
-    path = repo / 'addon/tests/BagIntegration.Interfaces.lua'
-    runtime.execute(path.read_text(encoding='utf-8-sig'), name='@' + str(path))
+    for fixture in ['BagIntegration.Interfaces.lua', 'CategoryCollapse.Interfaces.lua']:
+        runtime = LuaRuntime()
+        runtime.globals().TEST_ROOT = repo.as_posix()
+        path = repo / 'addon/tests' / fixture
+        runtime.execute(path.read_text(encoding='utf-8-sig'), name='@' + str(path))
     print(f'PASS: Lua 5.1 compilation ({lua_count} files), XML/dependencies ({xml_count} files), inline Lua ({inline_count} handlers).')
 
 
