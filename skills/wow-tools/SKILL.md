@@ -34,6 +34,11 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 以下为实现与发布历史，其中的测试名称和通过数量保留为历史记录，当前本地测试采用上述范围。
 
+## 角色全名与原生技能 ID 采集（2026-11-16）
+
+- titan 2.1.95 / forerver 2.2.123 配合共用 PC 读取器，为角色目录记录增加 FullName 与 DisplayRealm。数字服务器目录从角色目录取得“角色名-显示服务器名”，旧目录按角色名与服务器名组合。角色表、任务摘要和当前角色显示全名，表格行标签保存原生 Name/Realm 身份，设置保存继续使用原任务身份与顺序。永恒服服务器显示中文目录后缀，等级上限继续按快照原生服务器名称查询。
+- 技能采集优先原生 C_SkillInfo.GetSkillLineInfoByID，在本服 GetNumSkillLines 已返回有效正数后按生产、采集与生活技能 ID 查询，零行保留未知，nil 或 rank/maxRank 同为零表示未学习。受限或异常返回仅标记所属组未知，已学零熟练度保留。缺少原生 ID 接口时沿用完整技能列表和全局元组，名单兼容 v1–v6。永恒服接口核对 Gethe/wow-ui-source forever 的 bebcb6bf309cf41b41bd74f8ca651e6a105b2676 SkillInfoDocumentation.lua，双端统一检查覆盖原生返回结构、名称显示与持久化身份契约。实际游戏采集由用户重载保存后刷新验证。
+
 ## PC 全局框选截图（2026-11-16）
 
 - PC 脚本增加全局截图热键，默认 Ctrl+Alt+A，“设置 → 截图”可录入包含 Ctrl 或 Alt 的组合键或停用。config.ini 的可选 ScreenshotKey 缺项沿用默认，空值停用，读取旧配置不改写。保存前预留新热键，成功写入后释放旧监听，冲突或写入失败保留当前设置。

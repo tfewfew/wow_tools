@@ -71,7 +71,7 @@ def main():
                             compiler('return function(self, ...)\n' + body + '\nend', '@' + str(path))
                             inline_count += 1
         for fixture in ['TitanCompatibility.Tests.lua' if flavor == 'titan' else 'ForeverCompatibility.Tests.lua',
-                        'LsToastsLibraries.Tests.lua']:
+                        'LsToastsLibraries.Tests.lua', 'CharacterRecord.Interfaces.lua']:
             runtime = LuaRuntime()
             runtime.globals().TEST_ROOT = repo.as_posix()
             runtime.globals().TEST_FLAVOR = flavor

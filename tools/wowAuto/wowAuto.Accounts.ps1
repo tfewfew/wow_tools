@@ -22,6 +22,11 @@ function Format-WowCharacterSkills($Skills) {
     if(-not @($Skills).Count){return '未学习'}
     return (@($Skills | ForEach-Object {$_.Name+' '+$_.Rank+'/'+$_.MaxRank}) -join "`n")
 }
+function Get-WowCharacterDisplayName($Record) {
+    if ($Record.FullName) {return [string]$Record.FullName}
+    if ($Record.Realm) {return $Record.Name+'-'+$Record.Realm}
+    return [string]$Record.Name
+}
 function ConvertFrom-WowLuaString([string]$Text) {
     return [regex]::Replace($Text,'\\(?<escape>\d{1,3}|.)',{
         param($escape)
@@ -211,14 +216,19 @@ function Get-WowAccountCatalog([string]$GameDirectory) {
             foreach ($role in @(Get-ChildItem -LiteralPath $realm.FullName -Directory -ErrorAction Stop)) {
                 if ($role.Name -eq 'SavedVariables' -or ($role.Attributes -band [IO.FileAttributes]::ReparsePoint)) {continue}
                 $name=$role.Name
+                $displayRealm=$realm.Name
                 # Connected-realm clients store realmID/Name-DisplayRealm. The
                 # directory ID/display label differs from GetRealmName's key.
                 $connectedRealm=$realm.Name -cmatch '^[1-9]\d{0,9}$' -and
-                    $role.Name -cmatch '^(?<name>[\p{L}\p{M}]{1,24})-[^\p{C}\\/]{1,128}$'
-                if ($connectedRealm) {$name=$Matches['name']}
+                    $role.Name -cmatch '^(?<name>[\p{L}\p{M}]{1,24})-(?<realm>[^\p{C}\\/]{1,128})$'
+                if ($connectedRealm) {$name=$Matches['name'];$displayRealm=$Matches['realm']}
                 if ($name -notmatch '^[\p{L}\p{M}]{1,24}$') {continue}
                 $record=Read-WowCharacterRecord $role.FullName $name $realm.Name -ConnectedRealm:$connectedRealm
-                if ($record) {$characters+=,$record}
+                if ($record) {
+                    $record | Add-Member NoteProperty DisplayRealm $displayRealm
+                    $record | Add-Member NoteProperty FullName ($name+'-'+$displayRealm)
+                    $characters+=,$record
+                }
             }
         }
         # Empty accounts are selectable too, but do not invent character names for them.

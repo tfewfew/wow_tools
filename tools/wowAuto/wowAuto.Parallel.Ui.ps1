@@ -58,9 +58,12 @@ function Update-RotationRow($Row) {
     if(-not $Row.PSObject.Properties['RotationLabel']){return}
     $Row.AccountText.Text=if($Row.AccountName){$Row.AccountName}elseif($Row.RuntimeRunning -and -not $Row.RuntimeDirect){'识别中（等待选角界面）'}else{'未识别（开始任务后自动识别）'}
     $roles=@(Get-AccountTaskRoles $Row)
-    $Row.RotationLabel.Text=if($Row.AccountName){'启用 '+$roles.Count+' 个角色：'+(($roles | ForEach-Object {$_.Name+' / '+$(if($_.Mode -eq 'fight'){'战斗'}else{'钓鱼'})}) -join '、')}else{'开始任务后通过选角页角色名识别子战网，并加载该子战网角色任务。'}
+    $Row.RotationLabel.Text=if($Row.AccountName){'启用 '+$roles.Count+' 个角色：'+(($roles | ForEach-Object {(Get-WowCharacterDisplayName (Get-ParallelRoleRecord $Row $_.Name))+' / '+$(if($_.Mode -eq 'fight'){'战斗'}else{'钓鱼'})}) -join '、')}else{'开始任务后通过选角页角色名识别子战网，并加载该子战网角色任务。'}
     $remaining=if($Row.RuntimeDirect){'直接开始'}elseif(-not $Row.RuntimeRunning){'--'}elseif($script:parallelHub.Batch -and -not $script:parallelHub.Batch.All(8)){'角色切换中'}elseif($script:parallelNextAt){[Math]::Max(0,[int][Math]::Ceiling(($script:parallelNextAt-$script:parallelHub.Now)/1000.0)).ToString()+'秒'}else{'未启用定时轮转'}
-    $Row.RotationProgress.Text='当前角色：'+$(if($Row.CurrentRole){$Row.CurrentRole}elseif($Row.TargetRole){'切换至'+$Row.TargetRole}elseif($Row.RuntimeDirect -and $Row.RuntimeRunning){'当前已登录角色'}elseif($Row.RuntimeRunning){'确认中'}else{'未运行'})+'   剩余时间：'+$remaining+'   切换：'+$Row.RotationSwitchCount+'次'
+    $name=if($Row.CurrentRole){$Row.CurrentRole}else{$Row.TargetRole}
+    $record=Get-ParallelRoleRecord $Row $name
+    if($record){$name=Get-WowCharacterDisplayName $record}
+    $Row.RotationProgress.Text='当前角色：'+$(if($Row.CurrentRole){$name}elseif($Row.TargetRole){'切换至'+$name}elseif($Row.RuntimeDirect -and $Row.RuntimeRunning){'当前已登录角色'}elseif($Row.RuntimeRunning){'确认中'}else{'未运行'})+'   剩余时间：'+$remaining+'   切换：'+$Row.RotationSwitchCount+'次'
     $Row.RotationProgress.ForeColor=Get-WowClassColor (Get-ParallelRowClassId $Row)
 }
 function Set-RowControls($Row) {

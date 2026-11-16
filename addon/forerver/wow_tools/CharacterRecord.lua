@@ -88,7 +88,23 @@ local function CharacterSkills()
     end
     local countLines,readLine,expand,collapse=SkillLineAPI()
     local byId=C_SkillInfo and C_SkillInfo.GetSkillLineInfoByID
-    if countLines then
+    if type(byId)=="function" then
+        -- Native ID lookup includes learned skills hidden by collapsed headers.
+        -- A zero line count means the client has not supplied skill data yet.
+        if type(C_SkillInfo.GetNumSkillLines)=="function"
+            and not Integer(Read(C_SkillInfo.GetNumSkillLines),1,1000) then return "?","?" end
+        for _,id in ipairs(skillIds) do
+            local group=skillGroups[id]
+            local ok,info=pcall(byId,id)
+            if not ok or not Readable(info) then unknown[group]=true
+            elseif info~=nil then
+                if type(info)~="table" then unknown[group]=true
+                elseif not (Integer(info.rank,0,0) and Integer(info.maxRank,0,0)) then
+                    Add(id,info.name,info.rank,info.maxRank,group)
+                end
+            end
+        end
+    elseif countLines then
         -- Use the client's skill list before optional profession-index stubs.
         local count=Read(countLines)
         if not Integer(count,1,1000) then return "?","?" end
@@ -119,7 +135,7 @@ local function CharacterSkills()
                 local knownID=Readable(id) and skillGroups[id] and id or namedID
                 if not header and knownID then
                     if not Readable(id) then unknown[skillGroups[knownID]]=true
-                    else Add(id or knownID,name,rank,maximum,skillGroups[knownID]) end
+                    else Add(knownID,name,rank,maximum,skillGroups[knownID]) end
                 end
             end
         end)
@@ -134,16 +150,6 @@ local function CharacterSkills()
             end
         end
         if not ok then return "?","?" end
-    elseif type(byId)=="function" then
-        for _,id in ipairs(skillIds) do
-            local group=skillGroups[id]
-            local ok,info=pcall(byId,id)
-            if not ok or not Readable(info) then unknown[group]=true
-            elseif info~=nil then
-                if type(info)~="table" then unknown[group]=true
-                else Add(id,info.name,info.rank,info.maxRank,group) end
-            end
-        end
     elseif type(GetProfessions)=="function" and type(GetProfessionInfo)=="function" then
         local indices={pcall(GetProfessions)}
         if not indices[1] then return "?","?" end

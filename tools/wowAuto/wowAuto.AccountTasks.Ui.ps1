@@ -6,9 +6,10 @@
     $grid.DefaultCellStyle.SelectionBackColor=$script:uiColors.Tab;$grid.DefaultCellStyle.SelectionForeColor=$script:uiColors.Text
     $grid.EnableHeadersVisualStyles=$false;$grid.ColumnHeadersDefaultCellStyle.BackColor=$script:uiColors.Heading;$grid.ColumnHeadersDefaultCellStyle.ForeColor=$script:uiColors.Text
     $grid.RowTemplate.Height=36;$grid.RowTemplate.MinimumHeight=36;$grid.ColumnHeadersHeight=34;$grid.AutoSizeRowsMode='AllCells'
-    foreach($columnSpec in @(@('Enabled','启用',65,'check'),@('Name','角色',150,'text'),@('Class','职业',100,'text'),@('Realm','服务器',125,'text'),@('Mode','任务',85,'mode'),@('UseItem','钓鱼道具',90,'check'),@('Level','等级',55,'text'),@('FreeBagSlots','背包空格',90,'text'),@('Professions','生产 / 采集技能',210,'text'),@('SecondarySkills','生活技能',170,'text'),@('BindLocation','炉石位置',170,'text'))) {
+    foreach($columnSpec in @(@('Enabled','启用',65,'check'),@('Name','角色全名',240,'text'),@('Class','职业',100,'text'),@('Realm','服务器',125,'text'),@('Mode','任务',85,'mode'),@('UseItem','钓鱼道具',90,'check'),@('Level','等级',55,'text'),@('FreeBagSlots','背包空格',90,'text'),@('Professions','生产 / 采集技能',210,'text'),@('SecondarySkills','生活技能',170,'text'),@('BindLocation','炉石位置',170,'text'))) {
         $column=switch($columnSpec[3]) {'check'{New-Object WowAuto.LargeCheckBoxColumn}'mode'{New-Object Windows.Forms.DataGridViewComboBoxColumn}default{New-Object Windows.Forms.DataGridViewTextBoxColumn}}
         $column.Name=$columnSpec[0];$column.HeaderText=$columnSpec[1];$column.Width=$columnSpec[2];$column.SortMode='NotSortable'
+        if($columnSpec[0] -eq 'Name'){$column.AutoSizeMode='AllCells';$column.MinimumWidth=240}
         if($columnSpec[3] -eq 'mode'){$column.Items.AddRange([object[]]@('钓鱼','战斗'));$column.FlatStyle='Flat'}
         $column.ReadOnly=$columnSpec[0] -in @('Name','Class','Realm','Level','FreeBagSlots','Professions','SecondarySkills','BindLocation')
         if($columnSpec[0] -in @('Professions','SecondarySkills')){$column.DefaultCellStyle.WrapMode='True';$column.ToolTipText='最近保存的专业技能快照；生活技能不含急救。'}
@@ -119,7 +120,7 @@ function Save-AccountGridDraft($Editor) {
     foreach($grid in $Editor.Grids){
         $null=$grid.EndEdit()
         foreach($row in $grid.Rows){
-            $role=@{Name=[string]$row.Cells['Name'].Value;Realm=[string]$row.Cells['Realm'].Value;
+            $role=@{Name=[string]$row.Tag.Name;Realm=[string]$row.Tag.Realm;
                 Enabled=[bool]$row.Cells['Enabled'].Value;Mode=$(if($row.Cells['Mode'].Value -eq '战斗'){'fight'}else{'fish'});UseItem=([bool]$row.Cells['UseItem'].Value -and $row.Cells['Mode'].Value -eq '钓鱼')}
             $edits[$role.Realm+'|'+$role.Name]=$role
         }
@@ -148,7 +149,9 @@ function Show-AccountGridDraft($Editor,[string]$Key) {
                 $level=if($null -eq $record.Level){'未知'}else{$record.Level}
                 $professions=Format-WowCharacterSkills $record.Professions;$secondary=Format-WowCharacterSkills $record.SecondarySkills
                 $location=if([string]::IsNullOrWhiteSpace($record.BindLocation)){'未知'}else{$record.BindLocation}
-                $index=$grid.Rows.Add([object[]]@($role.Enabled,$role.Name,(Get-WowClassName $record.ClassId),$role.Realm,$(if($role.Mode -eq 'fight'){'战斗'}else{'钓鱼'}),$role.UseItem,$level,$freeSlots,$professions,$secondary,$location))
+                $displayRealm=if($record.DisplayRealm){$record.DisplayRealm}else{$role.Realm}
+                $index=$grid.Rows.Add([object[]]@($role.Enabled,(Get-WowCharacterDisplayName $record),(Get-WowClassName $record.ClassId),$displayRealm,$(if($role.Mode -eq 'fight'){'战斗'}else{'钓鱼'}),$role.UseItem,$level,$freeSlots,$professions,$secondary,$location))
+                $grid.Rows[$index].Tag=$record
                 foreach($field in @('Name','Class')){
                     $grid.Rows[$index].Cells[$field].Style.ForeColor=Get-WowClassColor $record.ClassId
                     $grid.Rows[$index].Cells[$field].Style.SelectionForeColor=Get-WowClassColor $record.ClassId

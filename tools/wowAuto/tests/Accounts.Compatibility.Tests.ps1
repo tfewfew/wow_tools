@@ -1,5 +1,6 @@
 ﻿$ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '..\wowAuto.Accounts.ps1')
+. (Join-Path $PSScriptRoot '..\wowAuto.AccountTasks.Ui.ps1')
 
 function Assert-AccountRecord($Condition, [string]$Message) {
     if (-not $Condition) { throw $Message }
@@ -57,10 +58,25 @@ try {
     $catalog = @(Get-WowAccountCatalog $temporaryRoot)
     Assert-AccountRecord ($catalog.Count -eq 1 -and @($catalog[0].Characters).Count -eq 1 -and
         $catalog[0].Characters[0].Name -ceq '嫩牛五方') 'Connected-realm layout did not preserve snapshot name validation.'
+    Assert-AccountRecord ($catalog[0].Characters[0].FullName -ceq '嫩牛五方-真棒' -and
+        $catalog[0].Characters[0].DisplayRealm -ceq '真棒' -and
+        (Get-WowCharacterDisplayName $catalog[0].Characters[0]) -ceq '嫩牛五方-真棒') 'Character display names lost their realm suffix.'
+    $draft = @{ Accounts = @{ TEST = @(@{Name='嫩牛五方';Realm='CN5 Realm 7 PvP';Enabled=$false;Mode='fish';UseItem=$false}) } }
+    $grid = [pscustomobject]@{Rows=@([pscustomobject]@{
+        Tag=$catalog[0].Characters[0]
+        Cells=@{Name=@{Value='嫩牛五方-真棒'};Realm=@{Value='真棒'};Enabled=@{Value=$true};Mode=@{Value='战斗'};UseItem=@{Value=$true}}
+    })}
+    $grid | Add-Member ScriptMethod EndEdit { return $true }
+    Save-AccountGridDraft ([pscustomobject]@{Selected='TEST';Draft=$draft;Grids=@($grid)})
+    Assert-AccountRecord ($draft.Accounts.TEST[0].Name -ceq '嫩牛五方' -and
+        $draft.Accounts.TEST[0].Realm -ceq 'CN5 Realm 7 PvP' -and $draft.Accounts.TEST[0].Enabled -and
+        $draft.Accounts.TEST[0].Mode -ceq 'fight' -and -not $draft.Accounts.TEST[0].UseItem) 'Displayed full names changed persistent task identities.'
     $legacyPath = Join-Path $account '旧服务器\嫩牛五方\SavedVariables\wow_tools.lua'
     [IO.File]::WriteAllText($legacyPath, $record.Replace('CN5 Realm 7 PvP', '旧服务器'))
     $catalog = @(Get-WowAccountCatalog $temporaryRoot)
     Assert-AccountRecord (@($catalog[0].Characters).Count -eq 2) 'Legacy realm/name layout was rejected.'
+    $legacyRecord = @($catalog[0].Characters | Where-Object Realm -ceq '旧服务器')[0]
+    Assert-AccountRecord ($legacyRecord.FullName -ceq '嫩牛五方-旧服务器') 'Legacy full names lost their realm suffix.'
     $realmSaved = Join-Path $account 'SavedVariables'
     [IO.Directory]::CreateDirectory($realmSaved) | Out-Null
     [IO.File]::WriteAllText((Join-Path $realmSaved 'wow_tools.lua'), 'wowToolsRealmLevels = { ["CN5 Realm 7 PvP"] = { maxLevel = 60, recordedAt = 1794842263, }, }')
@@ -72,4 +88,7 @@ try {
         (Split-Path $resolved -Leaf) -notmatch '^wow-roster-[a-f0-9]{32}$') { throw 'Unexpected temporary catalog path.' }
     if (Test-Path -LiteralPath $resolved) { Remove-Item -LiteralPath $resolved -Recurse -Force }
 }
+$skillRecord = ConvertFrom-WowCharacterRecord ($record.Replace('["professions"] = "?"', '["professions"] = "171|Alchemy|225|300;182|Herbalism|200|300"').Replace('["secondarySkills"] = ""', '["secondarySkills"] = "356|Fishing|175|225"'))
+Assert-AccountRecord ((Format-WowCharacterSkills $skillRecord.Professions) -ceq "Alchemy 225/300`nHerbalism 200/300" -and
+    (Format-WowCharacterSkills $skillRecord.SecondarySkills) -ceq 'Fishing 175/225') 'Skill snapshots did not reach the display formatter.'
 Write-Output 'PASS: character snapshot literal parsing, v1-v6 compatibility and legacy/connected-realm directory contracts.'
