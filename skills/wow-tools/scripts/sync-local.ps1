@@ -10,9 +10,10 @@ $status = & git -C $repo status --porcelain
 if ($LASTEXITCODE -ne 0) { throw 'Cannot read Git status.' }
 # Preserve the PC tool's user-saved configuration while deploying committed addons.
 $unpublished = @($status | Where-Object { $_ -cnotin @(
-    ' M tools/wowAuto/config.ini', 'M  tools/wowAuto/config.ini', 'MM tools/wowAuto/config.ini'
+    ' M tools/wowAuto/config.ini', 'M  tools/wowAuto/config.ini', 'MM tools/wowAuto/config.ini',
+    ' M tools/wowAuto/account-tasks.config.json', 'M  tools/wowAuto/account-tasks.config.json', 'MM tools/wowAuto/account-tasks.config.json'
 ) })
-if ($unpublished.Count) { throw 'Commit and push all deployment changes before syncing. Only local config.ini edits may remain.' }
+if ($unpublished.Count) { throw 'Commit and push all deployment changes before syncing. Only local config.ini and account-tasks.config.json edits may remain.' }
 $branch = & git -C $repo symbolic-ref --quiet --short HEAD
 if ($LASTEXITCODE -ne 0) { throw 'A named branch is required.' }
 $headCommit = & git -C $repo rev-parse HEAD

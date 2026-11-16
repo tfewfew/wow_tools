@@ -517,6 +517,27 @@ for _, name in ipairs({"缓存与分配", "界面", "字体", "Lua"}) do
     assert(uiTabs[name] and not graphicTabs[name], "UI category is bound to the wrong settings page " .. name)
 end
 if flavor == "forerver" then
+    local categoryControl, framerateControl
+    for _, frame in ipairs(frames) do
+        local definition = frame.definition
+        if definition and definition.categoryCollapse then
+            assert(not categoryControl, "Category collapse checkbox must be unique")
+            categoryControl = frame
+        elseif definition and definition.key == "frameratePosition" then
+            framerateControl = frame
+        end
+    end
+    assert(categoryControl and framerateControl and categoryControl:GetParent() == framerateControl:GetParent(),
+        "Category collapse must share the UI interface tab")
+    assert(categoryControl.template == "UICheckButtonTemplate" and not categoryControl:GetChecked(),
+        "Category collapse must initially be optional")
+    categoryControl:SetChecked(true)
+    categoryControl.scripts.OnClick(categoryControl)
+    assert(WoWTools.categoryCollapse.IsEnabled() and wowDetectorDB.categoryCollapse.enabled == true,
+        "Category collapse checkbox must bind to the account setter")
+    categoryControl:SetChecked(false)
+    categoryControl.scripts.OnClick(categoryControl)
+    assert(not WoWTools.categoryCollapse.IsEnabled(), "Category collapse checkbox must support disabling")
     assert(uiTabs["背包整合"] and not graphicTabs["背包整合"], "Bag integration settings page binding failed")
     local bags = assert(WoWTools.bagIntegration, "Missing bag integration module")
     assert(type(bags.SetEnabled) == "function" and type(bags.IsEnabled) == "function", "Missing bag settings interfaces")

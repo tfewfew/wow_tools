@@ -1,4 +1,4 @@
-﻿function New-AccountRoleGrid([int]$Y) {
+﻿function New-AccountRoleGrid([int]$Y,[string]$Flavor='titan') {
     $grid=New-Object Windows.Forms.DataGridView;$grid.SetBounds(18,$Y,1340,220)
     $grid.AllowUserToAddRows=$false;$grid.AllowUserToDeleteRows=$false;$grid.AllowUserToOrderColumns=$false;$grid.RowHeadersVisible=$false
     $grid.BackgroundColor=$script:uiColors.Input;$grid.GridColor=$script:uiColors.Border;$grid.AutoGenerateColumns=$false
@@ -10,7 +10,11 @@
         $column=switch($columnSpec[3]) {'check'{New-Object WowAuto.LargeCheckBoxColumn}'mode'{New-Object Windows.Forms.DataGridViewComboBoxColumn}default{New-Object Windows.Forms.DataGridViewTextBoxColumn}}
         $column.Name=$columnSpec[0];$column.HeaderText=$columnSpec[1];$column.Width=$columnSpec[2];$column.SortMode='NotSortable'
         if($columnSpec[0] -eq 'Name'){$column.AutoSizeMode='AllCells';$column.MinimumWidth=240}
-        if($columnSpec[3] -eq 'mode'){$column.Items.AddRange([object[]]@('钓鱼','战斗'));$column.FlatStyle='Flat'}
+        if($columnSpec[3] -eq 'mode'){
+            $column.Items.AddRange([object[]]@('钓鱼','战斗'))
+            if ($Flavor -eq 'forerver') {[void]$column.Items.Add('放号')}
+            $column.FlatStyle='Flat'
+        }
         $column.ReadOnly=$columnSpec[0] -in @('Name','Class','Realm','Level','FreeBagSlots','Professions','SecondarySkills','BindLocation')
         if($columnSpec[0] -in @('Professions','SecondarySkills')){$column.DefaultCellStyle.WrapMode='True';$column.ToolTipText='最近保存的专业技能快照；生活技能不含急救。'}
         if($columnSpec[0] -eq 'BindLocation'){$column.DefaultCellStyle.WrapMode='True';$column.ToolTipText='炉石绑定地点，来自最近保存的插件快照；旧记录或读取失败显示未知。'}
@@ -20,10 +24,10 @@
     $grid.Add_CurrentCellDirtyStateChanged({param($sender,$e) if($sender.IsCurrentCellDirty){$null=$sender.CommitEdit([Windows.Forms.DataGridViewDataErrorContexts]::Commit)}})
     $grid.Add_CellValueChanged({param($sender,$e)
         if($sender.Tag.Loading -or $e.RowIndex -lt 0){return}
-        $row=$sender.Rows[$e.RowIndex];$combat=$row.Cells['Mode'].Value -eq '战斗'
-        $row.Cells['UseItem'].ReadOnly=$combat;if($combat){$row.Cells['UseItem'].Value=$false}
+        $row=$sender.Rows[$e.RowIndex];$nonFishing=$row.Cells['Mode'].Value -ne '钓鱼'
+        $row.Cells['UseItem'].ReadOnly=$nonFishing;if($nonFishing){$row.Cells['UseItem'].Value=$false}
     })
-    $grid.Add_DataError({param($sender,$e) $sender.Tag.Error.Text='角色任务输入无效，请选择钓鱼或战斗。';$e.ThrowException=$false})
+    $grid.Add_DataError({param($sender,$e) $sender.Tag.Error.Text='角色任务输入无效，请从当前客户端的任务列表选择。';$e.ThrowException=$false})
     return $grid
 }
 function New-AccountTaskSettingsPage {
@@ -48,9 +52,9 @@ function New-AccountTaskSettingsPage {
         $hint=New-Object Windows.Forms.Label;$hint.Text='满级角色在上，未满级按等级降序。分表保留轮转顺序，新角色默认停用。资料为最近保存快照；上线和下线都会采集，需下线或 /reload 落盘后刷新。';$hint.SetBounds(18,58,1340,52)
         if(-not $accounts.Items.Count){$hint.Text='尚未发现该服的子战网角色记录，请检查游戏目录，正常下线保存角色记录后刷新进程。'}
         $fullLabel=New-Object Windows.Forms.Label;$fullLabel.SetBounds(18,106,1340,26);$fullLabel.Text='满级角色'
-        $fullGrid=New-AccountRoleGrid 134
+        $fullGrid=New-AccountRoleGrid 134 $spec[0]
         $levelingLabel=New-Object Windows.Forms.Label;$levelingLabel.SetBounds(18,364,1340,26);$levelingLabel.Text='未满级角色'
-        $levelingGrid=New-AccountRoleGrid 394
+        $levelingGrid=New-AccountRoleGrid 394 $spec[0]
         $clientEditor=[pscustomobject]@{Draft=$draft;Flavor=$spec[0];Page=$clientPage;Accounts=$accounts;FullGrid=$fullGrid;LevelingGrid=$levelingGrid;Grids=@($fullGrid,$levelingGrid);FullLabel=$fullLabel;LevelingLabel=$levelingLabel;Selected='';Error=$errorLabel;Loading=$false}
         $editor.Clients[$spec[0]]=$clientEditor;$clientPage.Tag=$clientEditor;$fullGrid.Tag=$clientEditor;$levelingGrid.Tag=$clientEditor;$accounts.Tag=$clientEditor
         $accounts.Add_SelectedIndexChanged({param($sender,$e)
@@ -84,6 +88,38 @@ function New-AccountTaskSettingsPage {
     })
     if($script:accountTasks.Warnings.Count){$errorLabel.Text=$script:accountTasks.Warnings -join '；'}
     $page.Controls.AddRange([Windows.Forms.Control[]]@($clients,$errorLabel,$save))
+    return $page
+}
+function New-RestTaskSettingsPage {
+    $page=New-Object Windows.Forms.TabPage
+    $page.Text='放号';$page.BackColor=$script:uiColors.Background;$page.AutoScroll=$true
+    $hint=New-Object Windows.Forms.Label
+    $hint.Text='无限服帐篷休息放号。先在“子战网 → 永恒服”启用指定角色，将任务设为“放号”，保存后点击进程行的“开始”。'+[Environment]::NewLine+
+        '每个角色完成单次时间后切换，全部指定放号角色完成一次算一轮，达到轮次后停止。登录确认后先跳跃一次，再按间隔跳跃。'
+    $hint.SetBounds(18,18,1000,100)
+    $inputs=@{};$y=138
+    foreach ($spec in @(@('DurationSeconds','单次时间（秒）'),@('Rounds','轮次'),@('JumpIntervalSeconds','跳跃间隔（秒）'))) {
+        $label=New-Object Windows.Forms.Label;$label.Text=$spec[1];$label.SetBounds(18,$y,300,32)
+        $inputBox=New-Object Windows.Forms.NumericUpDown
+        $inputBox.SetBounds(330,($y-2),240,34);$inputBox.Minimum=1;$inputBox.Maximum=[int]::MaxValue;$inputBox.DecimalPlaces=0
+        $inputBox.Value=$script:accountTasks.Config.Rest[$spec[0]]
+        $inputBox.BackColor=$script:uiColors.Input;$inputBox.ForeColor=$script:uiColors.Text
+        $inputs[$spec[0]]=$inputBox;$page.Controls.AddRange([Windows.Forms.Control[]]@($label,$inputBox));$y+=56
+    }
+    $status=New-Object Windows.Forms.Label;$status.SetBounds(18,330,1000,70)
+    $save=New-Object WowAuto.DimButton
+    $save.Text='保存放号设置';$save.SetBounds(18,418,220,38);Set-UiButtonStyle $save $true
+    $save.Tag=[pscustomobject]@{Inputs=$inputs;Status=$status}
+    $save.Add_Click({param($sender,$e)
+        try {
+            $next=ConvertTo-TaskMap ($script:accountTasks.Config | ConvertTo-Json -Depth 12 | ConvertFrom-Json)
+            $next.Rest=@{}
+            foreach ($key in $sender.Tag.Inputs.Keys) {$next.Rest[$key]=[int]$sender.Tag.Inputs[$key].Value}
+            Save-AccountTasks $next
+            $sender.Tag.Status.Text='放号设置已保存，下次开始放号时生效。'
+        } catch {$sender.Tag.Status.Text=$_.Exception.Message}
+    })
+    $page.Controls.AddRange([Windows.Forms.Control[]]@($hint,$status,$save))
     return $page
 }
 function New-DetectionPeriodSettingsPage {
@@ -121,7 +157,7 @@ function Save-AccountGridDraft($Editor) {
         $null=$grid.EndEdit()
         foreach($row in $grid.Rows){
             $role=@{Name=[string]$row.Tag.Name;Realm=[string]$row.Tag.Realm;
-                Enabled=[bool]$row.Cells['Enabled'].Value;Mode=$(if($row.Cells['Mode'].Value -eq '战斗'){'fight'}else{'fish'});UseItem=([bool]$row.Cells['UseItem'].Value -and $row.Cells['Mode'].Value -eq '钓鱼')}
+                Enabled=[bool]$row.Cells['Enabled'].Value;Mode=$(switch($row.Cells['Mode'].Value){'战斗'{'fight'}'放号'{'rest'}default{'fish'}});UseItem=([bool]$row.Cells['UseItem'].Value -and $row.Cells['Mode'].Value -eq '钓鱼')}
             $edits[$role.Realm+'|'+$role.Name]=$role
         }
     }
@@ -150,13 +186,13 @@ function Show-AccountGridDraft($Editor,[string]$Key) {
                 $professions=Format-WowCharacterSkills $record.Professions;$secondary=Format-WowCharacterSkills $record.SecondarySkills
                 $location=if([string]::IsNullOrWhiteSpace($record.BindLocation)){'未知'}else{$record.BindLocation}
                 $displayRealm=if($record.DisplayRealm){$record.DisplayRealm}else{$role.Realm}
-                $index=$grid.Rows.Add([object[]]@($role.Enabled,(Get-WowCharacterDisplayName $record),(Get-WowClassName $record.ClassId),$displayRealm,$(if($role.Mode -eq 'fight'){'战斗'}else{'钓鱼'}),$role.UseItem,$level,$freeSlots,$professions,$secondary,$location))
+                $index=$grid.Rows.Add([object[]]@($role.Enabled,(Get-WowCharacterDisplayName $record),(Get-WowClassName $record.ClassId),$displayRealm,(Get-AccountTaskModeLabel $role.Mode),$role.UseItem,$level,$freeSlots,$professions,$secondary,$location))
                 $grid.Rows[$index].Tag=$record
                 foreach($field in @('Name','Class')){
                     $grid.Rows[$index].Cells[$field].Style.ForeColor=Get-WowClassColor $record.ClassId
                     $grid.Rows[$index].Cells[$field].Style.SelectionForeColor=Get-WowClassColor $record.ClassId
                 }
-                $grid.Rows[$index].Cells['UseItem'].ReadOnly=$role.Mode -eq 'fight'
+                $grid.Rows[$index].Cells['UseItem'].ReadOnly=$role.Mode -ne 'fish'
                 $grid.Rows[$index].Cells['Level'].ToolTipText=if($null -eq $entry.MaxLevel){'服务器等级上限未知，该服务器任一角色保存资料后刷新进程。'}else{'服务器满级等级：'+$entry.MaxLevel}
             }
         }
