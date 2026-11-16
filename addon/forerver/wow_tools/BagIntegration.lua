@@ -138,7 +138,7 @@ local function Layout()
     frame:SetSize(width, offset + frame:CalculateExtraHeight() + 12)
     NineSliceUtil.UpdateCornerCropping(frame, frame:GetHeight())
     frame:LayoutAddSlots()
-    UpdateContainerFrameAnchors()
+    -- Native opening and movement addons own the window anchors during item reflows.
     if Readable(frame.suofang) and type(frame.suofang) == "number" and frame.suofang > 0 then
         frame:SetScale(frame.suofang)
     end

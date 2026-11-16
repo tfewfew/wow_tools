@@ -34,6 +34,10 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 以下为实现与发布历史，其中的测试名称和通过数量保留为历史记录，当前本地测试采用上述范围。
 
+## 无限服背包位置保持（2026-11-16）
+
+- forerver 2.2.115 移除分区布局完成后调用的 UpdateContainerFrameAnchors。物品移动产生 BAG_UPDATE_DELAYED 时只刷新格子、分区和框体尺寸，窗口锚点继续由原生打开流程及已安装的移动插件维护。接口检查覆盖分区与背包更新回调的窗口定位调用边界，实际拖动位置和物品移动后的显示由用户游戏内验证。仅部署无限服，更新后需 /reload。
+
 ## 无限服材料包按钮初始化修复（2026-11-16）
 
 - forerver 2.2.114 按当前本机 1.60.1.70938 及 Gethe/wow-ui-source forever 的 bebcb6bf309cf41b41bd74f8ca651e6a105b2676 复核原生按钮。Initialize 的参数为 containerFrame、bagID、slotID，2.2.113 沿用旧签名导致材料包格子的 slotID 缺失，客户端 SetID 报错后继续出现枚举空按钮和背包空白。采用当前签名并绑定所属容器。

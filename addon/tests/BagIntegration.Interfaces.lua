@@ -1,7 +1,7 @@
 -- Forever 1.60.1.70938, native container interfaces at bebcb6bf309cf41b41bd74f8ca651e6a105b2676.
 local root = TEST_ROOT or "."
 local hooks, pending, frames = {}, {}, {}
-local cvar, loaded = "0", {}
+local cvar, loaded, anchorUpdates = "0", {}, 0
 local backpackExtra, rejectReagent = 0, false
 local slots = {[0] = 16, 4, 4, 4, 0, 4}
 local families = {[0] = 0, 0, 0, 1, 0, 0}
@@ -142,7 +142,10 @@ ContainerFrameSettingsManager = {
 function IsAnyBagOpen() return container.shown end
 function CloseAllBags() container:Hide() end
 function OpenBackpack() container:Show() end
-function UpdateContainerFrameAnchors() container:SetScale(0.75) end
+function UpdateContainerFrameAnchors()
+    anchorUpdates = anchorUpdates + 1
+    container:SetScale(0.75)
+end
 NineSliceUtil = {UpdateCornerCropping = function(frame, height)
     assert(frame == container and height == container:GetHeight(), "NineSlice interface mismatch")
 end}
@@ -188,7 +191,17 @@ container:Show()
 hooks.UpdateFrameSize(container)
 hooks.UpdateItemLayout(container)
 for _, callback in ipairs(pending) do callback() end
-assert(container.scale == 1.1, "The native anchor pass must preserve !Pig's scale binding")
+assert(container.scale == 1.1, "Grouped item layout must preserve !Pig's scale binding")
+assert(anchorUpdates == 0, "Grouped item layout must preserve ownership of the bag window's anchors")
+pending = {}
+local bagEvents
+for _, frame in ipairs(frames) do
+    if frame.events.BAG_UPDATE_DELAYED then bagEvents = frame end
+end
+assert(bagEvents and type(bagEvents.scripts.OnEvent) == "function", "Missing native bag-update event binding")
+bagEvents.scripts.OnEvent(bagEvents, "BAG_UPDATE_DELAYED")
+for _, callback in ipairs(pending) do callback() end
+assert(anchorUpdates == 0, "Item-update callbacks must preserve the bag window's positioning interface")
 assert(bags.SetEnabled(false) and not bags.active and cvar == "0",
     "Disabling must restore the prior combinedBags interface setting")
 assert(not container:MatchesBagID(5) and not ContainerFrameSettingsManager:IsUsingCombinedBags(5),
