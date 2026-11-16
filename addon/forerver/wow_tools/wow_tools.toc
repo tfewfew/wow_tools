@@ -47,6 +47,7 @@ SellFish.lua
 ExperienceText.lua
 DisplayFonts.lua
 BagIntegration.lua
+CategoryCollapse.lua
 ButtonStyle.lua
 ButtonStyle.Settings.lua
 SoundControl.lua

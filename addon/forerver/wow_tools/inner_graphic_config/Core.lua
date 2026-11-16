@@ -105,6 +105,8 @@ local definitions = {
       description = "启用团队图形设置时使用的反射降采样档位，范围 0 至 4。数值越高，反射内部渲染分辨率越低，性能开销越小。" },
     { key = "frameratePosition", label = "帧率显示位置", action = true, defaultX = 0, defaultY = 180,
       description = "锨点固定为屏幕底部居中。X 控制左右偏移：正数向右，负数向左；Y 控制上下偏移：正数向上，负数向下。默认填入 X=0、Y=180。" },
+    { key = "categoryCollapse", label = "分类右键全部收起", categoryCollapse = true,
+      description = "右键点击专业、任务、技能、声望及原生树形列表的分类标题，在菜单中选择“全部收起”，收起当前列表的所有分类。开关按账号保存，勾选后立即生效。" },
 }
 local distanceCVars, raidDistanceCVars = {}, {}
 local distanceDefinitions = {
@@ -218,7 +220,7 @@ local uiCategories = {
         FrameBufferCacheForceNoHeaps = true,
         worldPreloadHighResTextures = true,
     } },
-    { name = "界面", cvars = { frameratePosition = true } },
+    { name = "界面", cvars = { frameratePosition = true, categoryCollapse = true } },
     { name = "字体", cvars = {}, fonts = true },
     { name = "背包整合", cvars = {}, bags = true },
     { name = "Lua", cvars = {}, luaGC = true },
@@ -243,7 +245,9 @@ end
 local function Refresh(force)
     if force and WoWTools.luaGC then WoWTools.luaGC.Refresh() end
     for _, control in ipairs(controls) do
-        if control.definition.action then
+        if control.definition.categoryCollapse then
+            control:SetChecked(WoWTools.categoryCollapse.IsEnabled())
+        elseif control.definition.action then
             local label = GetFramerateRegion()
             if not label then
                 if force or not control.dirty then
@@ -318,6 +322,11 @@ local function ApplyFrameratePosition(control)
 end
 
 local function Apply(control)
+    if control.definition.categoryCollapse then
+        WoWTools.categoryCollapse.SetEnabled(control:GetChecked())
+        Refresh()
+        return
+    end
     local desired
     local tolerance = control.definition.decimal and 0.000001 or 0
     if control.definition.numeric then
