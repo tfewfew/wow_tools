@@ -118,6 +118,8 @@ local function widget(name, parent, kind)
             return self.mockLineCount or newlines + 1
         end
         function object:GetSpacing() return self.spacing or 0 end
+    elseif kind == "ScrollFrame" then
+        function object:UpdateScrollChildRect() self.scrollRectUpdated = true end
     end
     function object:SetEnabled(value) self.enabled = value end
     function object:Enable() self.enabled = true end
@@ -693,13 +695,23 @@ do
             "Portrait controls did not initialize in the unified settings card")
         assert(portraitPanel.submenus.general and portraitPanel.submenus.style,
             "Portrait settings lack the general/style submenus")
+        assert(portraitPanel.scroll.scrollRectUpdated, "Portrait scroll-child geometry was not refreshed")
         local style = WoWTools.foreverFaces.style
         assert(style.Config() == wowDetectorDB.foreverFaces.db.style and not style.Config().pixelEnabled,
             "Portrait style defaults or persistence binding failed")
         local stylePanel = WoWTools.foreverFaces.BuildStyleSettings(portraitPanel.content)
         stylePanel:Refresh()
         for _, option in ipairs(style.options) do
-            assert(stylePanel.controls[option.key], "Missing portrait style control " .. option.key)
+            local control = assert(stylePanel.controls[option.key], "Missing portrait style control " .. option.key)
+            assert(option.help and control:GetScript("OnEnter") and control:GetScript("OnLeave"),
+                "Missing portrait tooltip binding on control " .. option.key)
+            if option.minimum then
+                assert(control:GetScript("OnTextChanged") and control:GetScript("OnEditFocusGained")
+                    and control:GetScript("OnEditFocusLost") and control:GetScript("OnEscapePressed"),
+                    "Portrait numeric control lacks editing/save bindings " .. option.key)
+                assert(control.apply:GetScript("OnClick") and control.apply:GetScript("OnEnter"),
+                    "Portrait apply button lacks save/tooltip bindings " .. option.key)
+            end
         end
         local modelContract = {
             SetUnit = function(_, unit, blend, ...)
@@ -718,6 +730,11 @@ do
             SetAnimation = function(_, animation) assert(animation == 0, "Portrait idle animation binding failed") end,
         }
         local savedStyle = wowDetectorDB.foreverFaces.db.style
+        WoWTools.foreverFaces.SetStyle("resolution", 48)
+        WoWTools.foreverFaces.SetStyle("fps", 12)
+        assert(style.Config() == wowDetectorDB.foreverFaces.db.style
+            and style.Config().resolution == 48 and style.Config().fps == 12,
+            "Portrait style setters failed to retain saved values across notifications")
         for _, source in ipairs({"unit", "display", "file"}) do
             wowDetectorDB.foreverFaces.db.style = {source=source, displayID=123, fileID=456, animation="idle"}
             assert(style.Load(modelContract, "player"), "Portrait model source interface failed " .. source)

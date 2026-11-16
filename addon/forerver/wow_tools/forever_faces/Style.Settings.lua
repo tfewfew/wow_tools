@@ -1,5 +1,15 @@
 local ns = WoWTools.foreverFaces
 
+local function Tooltip(frame, title, body)
+    frame:HookScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText(title)
+        GameTooltip:AddLine(body, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    frame:HookScript("OnLeave", function() GameTooltip:Hide() end)
+end
+
 function ns.BuildStyleSettings(parent)
     local panel = CreateFrame("Frame", nil, parent)
     panel:SetSize(560, 900)
@@ -29,16 +39,8 @@ function ns.BuildStyleSettings(parent)
         label:SetWidth(270)
         label:SetJustifyH("LEFT")
         label:SetText(option.label)
-        if option.help then
-            row:EnableMouse(true)
-            row:SetScript("OnEnter", function(self)
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                GameTooltip:SetText(option.label)
-                GameTooltip:AddLine(option.help, 1, 1, 1, true)
-                GameTooltip:Show()
-            end)
-            row:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        end
+        row:EnableMouse(true)
+        Tooltip(row, option.label, option.help)
         local control
         if option.choices then
             control = CreateFrame("DropdownButton", nil, row, "WowStyle1DropdownTemplate")
@@ -67,18 +69,36 @@ function ns.BuildStyleSettings(parent)
                     ns.Print(option.label .. "请输入 " .. option.minimum .. "–" .. option.maximum .. " 的整数")
                     return
                 end
+                -- Notify refreshes the whole page synchronously. Commit this
+                -- field before notifying and preserve every other draft.
+                control.dirty = false
                 ns.SetStyle(option.key, value)
                 control:ClearFocus()
             end
+            control:HookScript("OnTextChanged", function(self, userInput)
+                if userInput then self.dirty = true end
+            end)
+            control:HookScript("OnEditFocusGained", function(self) self.editing = true end)
+            control:HookScript("OnEditFocusLost", function(self)
+                self.editing = false
+                if self.dirty then Apply() end
+            end)
             control:SetScript("OnEnterPressed", Apply)
-            control:SetScript("OnEscapePressed", function(self) self:ClearFocus(); panel:Refresh() end)
+            control:SetScript("OnEscapePressed", function(self)
+                self.dirty = false
+                self:ClearFocus()
+                panel:Refresh()
+            end)
             save:SetScript("OnClick", Apply)
+            Tooltip(save, "应用" .. option.label, option.help)
+            control.apply = save
         else
             control = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
             control:SetPoint("RIGHT")
             control:SetSize(28, 28)
             control:SetScript("OnClick", function(self) ns.SetStyle(option.key, self:GetChecked() and true or false) end)
         end
+        Tooltip(control, option.label, option.help)
         panel.controls[option.key] = control
         y = y - 40
     end
@@ -87,11 +107,21 @@ function ns.BuildStyleSettings(parent)
     rebuild:SetSize(170, 26)
     rebuild:SetText("重载模型 / 重建快照")
     rebuild:SetScript("OnClick", function() ns.ReloadPortraitModels() end)
+    Tooltip(rebuild, "重载模型 / 重建快照", "按当前保存的参数重新加载模型并重建快照，战斗中的结构调整等待脱战。")
     local reset = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     reset:SetPoint("LEFT", rebuild, "RIGHT", 12, 0)
     reset:SetSize(150, 26)
     reset:SetText("恢复调试默认值")
-    reset:SetScript("OnClick", function() ns.Set("style", {}) end)
+    reset:SetScript("OnClick", function()
+        for _, control in pairs(panel.controls) do
+            if control.apply then
+                control.dirty = false
+                control:ClearFocus()
+            end
+        end
+        ns.Set("style", {})
+    end)
+    Tooltip(reset, "恢复调试默认值", "清除本页编辑草稿并恢复像素风调试的默认参数。")
     panel.status = Label("", y - 58)
     panel:SetHeight(-y + 190)
     local function UpdateStatus()
@@ -112,7 +142,9 @@ function ns.BuildStyleSettings(parent)
                 end
                 control:GenerateMenu()
             elseif option.minimum then
-                control:SetText(tostring(config[option.key]))
+                if not control.dirty and not control.editing then
+                    control:SetText(tostring(config[option.key]))
+                end
             else
                 control:SetChecked(config[option.key])
             end

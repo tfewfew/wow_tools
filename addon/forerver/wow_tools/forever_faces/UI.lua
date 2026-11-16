@@ -470,6 +470,7 @@ local function LayoutCard()
 	card:SetFrameLevel(panel.content:GetFrameLevel() + 1)
 	panel.content:SetWidth(width)
 	panel.content:SetHeight(card:GetHeight() * scale + 32)
+	panel.scroll:UpdateScrollChildRect()
 end
 ns.LayoutSettingsCard = LayoutCard
 

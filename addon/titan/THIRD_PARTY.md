@@ -16,6 +16,7 @@
 
 - FF-01 接入时光服独立的命名空间、TOC、统一设置、加载开关、账号配置、LDB/DBIcon 和原生单位头像挂接。使用本服 SetUnit(unit, blend)，等级圆环沿用本服原生处理。部署直接迁移 ForeverFacesDB 并归档独立插件目录。
 - FF-02 增加“3D头像 → 像素风调试”，配置保存到 wowDetectorDB.foreverFaces.db.style。模型来源、DisplayID/FileID、动画、MipMap、快照开关、采样边长、帧率和采样请求支持即时应用，战斗中结构调整延后到脱战。离屏捕获与采样效果由游戏内验证，页面显示运行状态和失败原因，单列安装更新及加载开关的 Reload 要求。公开接口缺少强制 LOD，低模使用客户端已有模型 ID。
+  2026-11-16 修复提示直接挂接到各输入控件与按钮，布局后刷新原生滚动子区域。数值草稿在刷新时保留，回车、应用和焦点离开保存，Esc 恢复已保存值，重置清理草稿。
 - BF-01 保留收编宿主接入。`bigfoot_channel/Bootstrap.lua`、`core.lua`、`frame.xml` 将命名空间、媒体、加载事件及 Ace 设置接入 wow_tools，账号配置为 `wowDetectorDB.bigfootChannel`。插件开关在加载时控制初始化，旧命令进入统一设置。当前安装基线仍需这些接入。
 - BF-02 保留频道及原配置接入。`ChannelFilter.lua`、`WorldChannel.lua`、`Copy.lua` 使用宿主设置，部署脚本直接迁移 BigFootChat 与 ChannelFilter 配置并归档独立目录。时光服继续保留其他插件依赖的独立 BigFoot 与 !!!Libs，避免重复接管。依据为 0fc692a、a98c774。
 - LS-01 保留宿主隔离。`ls_toasts/Bootstrap.lua`、`Integration.lua` 及 XML 使用独立命名空间、内嵌媒体、宿主 Ace3、SharedMedia、LibEditMode 及统一设置，保存到 `wowDetectorDB.lsToasts.db`，停用时跳过业务初始化。直接迁移旧配置，兼容 `loot_items` 与旧锚点。当前上游基线使用独立插件加载和存储。
