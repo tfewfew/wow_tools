@@ -66,6 +66,7 @@ try {
         }
     }
     Write-Output "PASS: PowerShell/C# static member and call-arity compatibility ($checked references)."
+    & (Join-Path $PSScriptRoot 'Accounts.Compatibility.Tests.ps1')
 } finally {
     foreach ($path in $temporaryFiles) { Remove-Item -LiteralPath $path -ErrorAction SilentlyContinue }
 }
