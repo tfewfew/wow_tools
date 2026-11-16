@@ -45,6 +45,10 @@ local Idle -- a party model's own idle loop, defined before Build
 local pending = {} -- [texture] = true, waiting for combat to end
 local hooked = {}
 
+function ns.DeferPortrait(entry)
+	pending[entry.texture] = true
+end
+
 local function DB() return ns.DB() end
 
 local function Secret(v)
@@ -174,6 +178,7 @@ end
 local function Flat(texture)
 	local e = entries[texture]
 	if not e then return end
+	if e.model then ns.style.Hide(e) end
 	-- already flat: the game redraws some portraits every frame
 	if not e.shown and not (e.model and e.model:IsShown()) then return end
 	if e.model then
@@ -189,9 +194,11 @@ local function Flat(texture)
 	texture:SetAlpha(e.alpha)
 	e.hiding = false
 end
+ns.FlatPortrait = Flat
 
 local function Show3D(texture)
 	local e = entries[texture]
+	if e.captureError and InCombatLockdown() then Flat(texture); return end
 	if e.showing then return end
 	-- showing a model can fire its OnModelLoaded at once, which comes back here
 	e.showing = true
@@ -209,6 +216,7 @@ local function Show3D(texture)
 	e.hiding = true
 	texture:SetAlpha(0)
 	e.hiding = false
+	ns.style.Show(e)
 end
 
 -- The portrait's own frame holds the ring art, and on a unit frame the level
@@ -273,6 +281,7 @@ local function Layout(texture, e)
 	end
 	Levels(texture, e)
 end
+ns.LayoutPortrait = Layout
 
 -- A party member is often behind the camera, where the game doesn't animate
 -- them; a model tied to that (SetUnit's blend) stands still. Party models are
@@ -283,10 +292,12 @@ end
 
 Idle = function(e)
 	if e.model and OwnAnimation(e.unit) and e.model.SetAnimation then pcall(e.model.SetAnimation, e.model, 0) end
+	if e.model then ns.style.Animate(e) end
 end
 
 local function Build(texture, e)
 	local host = texture:GetParent()
+	e.host, e.texture = host, texture
 
 	local back = CreateFrame("Frame", nil, host)
 	back:SetAllPoints(texture)
@@ -382,6 +393,25 @@ local function Refresh(texture, force)
 		Flat(texture)
 		return
 	end
+	local config = ns.style.Config()
+	local styleChanged = e.styleConfig ~= config
+	if (styleChanged or e.styleDeferred) and e.model and InCombatLockdown() then
+		e.styleDeferred = true
+		pending[texture] = true
+		return
+	end
+	e.styleDeferred = nil
+	e.styleConfig = config
+	if e.captureError and e.model and not InCombatLockdown() and e.model:GetParent() ~= e.host then
+		ns.style.Restore(e)
+		Layout(texture, e)
+	end
+	local modelKey = ns.style.ModelKey(e.unit)
+	if e.styleModelKey ~= modelKey then
+		Flat(texture)
+		e.styleModelKey = modelKey
+		e.dirty, e.blocked, e.retries = true, nil, nil
+	end
 
 	if not e.model then
 		local parent = texture:GetParent()
@@ -397,7 +427,12 @@ local function Refresh(texture, force)
 	-- the target of target is redrawn every frame: nothing new, nothing to do
 	local w, h = texture:GetSize()
 	local resized = w ~= e.w or h ~= e.h
-	if e.shown and not e.dirty and not force and not resized then return end
+	if e.capture and InCombatLockdown() and (force or resized) then
+		e.styleDeferred = true
+		pending[texture] = true
+		return
+	end
+	if e.shown and not e.dirty and not force and not resized and not styleChanged then return end
 
 	-- no model for a hidden identity: the picture stays until the next swap
 	-- or the end of combat
@@ -422,8 +457,9 @@ local function Refresh(texture, force)
 		return
 	end
 
-	if force or resized then
+	if force or resized or styleChanged then
 		e.w, e.h = w, h
+		ns.style.Prepare(e)
 		Layout(texture, e)
 	end
 	local model = e.model
@@ -435,14 +471,16 @@ local function Refresh(texture, force)
 	if e.dirty then
 		e.dirty = false
 		e.loaded = false
-		local ok, set = pcall(model.SetUnit, model, e.unit, not OwnAnimation(e.unit))
+		local ok, set = ns.style.Load(model, e.unit, OwnAnimation(e.unit))
 		if not ok or (not Secret(set) and set == false) then
+			e.modelError = not ok and tostring(set) or "客户端拒绝加载该单位模型"
 			e.dirty, e.blocked = true, true
 			model:ClearModel()
 			pending[texture] = true
 			Flat(texture)
 			return
 		end
+		e.modelError = nil
 		-- the game's update and our event may both ask for the same new unit
 		if fresh then e.loadTime = GetTime() end
 		model:SetPortraitZoom(1)
@@ -654,6 +692,36 @@ function ns.ApplyAll()
 	end
 end
 
+function ns.ReloadPortraitModels()
+	for texture, e in pairs(entries) do
+		e.dirty, e.blocked, e.retries = true, nil, nil
+		if InCombatLockdown() then
+			e.styleDeferred = true
+			pending[texture] = true
+		else
+			Flat(texture)
+			ns.style.Prepare(e)
+			Refresh(texture, true)
+		end
+	end
+end
+
+function ns.PortraitStyleStatus()
+	local lines = { ns.style.Status() }
+	for texture, e in pairs(entries) do
+		if e.unit and texture:IsVisible() and ns.style.Applies(e.unit) then
+			local state = e.captureError or e.modelError
+			if e.styleDeferred or e.captureDeferred then state = "等待脱战应用" end
+			local id = e.model and e.model.GetModelFileID and e.model:GetModelFileID()
+			local display = e.model and e.model.GetDisplayInfo and e.model:GetDisplayInfo()
+			if Secret(id) then id = nil end
+			if Secret(display) then display = nil end
+			lines[#lines + 1] = string.format("%s  FileID %s / DisplayID %s\n%s", e.unit, tostring(id or "待加载"), tostring(display or "待加载"), state or (e.shown and "模型显示中" or "使用原生头像"))
+		end
+	end
+	return table.concat(lines, "\n")
+end
+
 local function Same(a, b)
 	if a == b then return true end
 	local same = UnitIsUnit(a, b)
@@ -768,7 +836,7 @@ function ns.InitPortraits()
 			for _, texture in ipairs(list) do
 				local e = entries[texture]
 				if e then e.blocked = nil end
-				Refresh(texture)
+				Refresh(texture, true)
 			end
 		else
 			UnitChanged(unit, event == "UNIT_MODEL_CHANGED")

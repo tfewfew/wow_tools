@@ -8,7 +8,7 @@
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | bigfoot_channel | 大脚聊天 | 本机 BigFootChat、ChannelFilter、!!!Libs 安装副本，[大脚官网](https://bigfoot.178.com/) | 未标版本 | 安装副本未提供独立版本和 Git commit，仓库引入记录 4502573 | 2026-11-13 | BF-01、BF-02 | 2026-11-16 核对当前收编源码及引入历史 |
 | ls_toasts | ls_Toasts | [ls-/ls_Toasts](https://github.com/ls-/ls_Toasts) | 120105.05 | 355774b11757b46ed3bb4c784ad7145f03e43871 | 2026-11-14 | LS-01、LS-02 | 2026-11-16 核对 Bootstrap、Integration、120105.05 引入与 3905341 性能修改 |
-| forever_faces | Forever 3D Portraits | [sorrow8/forever-faces](https://github.com/sorrow8/forever-faces) | 1.0.9 | cbf2cd5b71f3e32b075af2001d7c726e41850240 | 2026-11-13 | FF-01、FF-02、FF-03 | 2026-11-16 核对 Bootstrap、Portraits、UI 及 a98c774、f38b061、cf97c5c |
+| forever_faces | Forever 3D Portraits | [sorrow8/forever-faces](https://github.com/sorrow8/forever-faces) | 1.0.9 | cbf2cd5b71f3e32b075af2001d7c726e41850240 | 2026-11-16 | FF-01、FF-02、FF-03、FF-04 | 2026-11-16 核对 Bootstrap、Portraits、UI、Style 及 forever 原生 CharacterModelBase、Model、OffScreenFrame 接口 |
 | better_vendor_ui | Better Vendor UI | [Vaniron 官方发布包](https://www.curseforge.com/wow/addons/better-vendor-ui/files/9436965) | 1.3.1 | 上游未公布 Git commit，发布包 SHA256 和文件指纹见 better_vendor_ui/SOURCE.json | 2026-11-14 | BV-01、BV-02、BV-03 | 2026-11-16 核对 Bootstrap、源码与 fd95272、12fc998 |
 | pet_xp_bar | PetXPBarPlus | [DustinChecketts/PetXPBarPlus](https://github.com/DustinChecketts/PetXPBarPlus) | 1.3.1 | 0c5da2aef6b2b56e307a77e37151fe4675be6c82 | 2026-11-16 | PX-01、PX-02 | 2026-11-16 核对 Bootstrap、Compat 与 c70da89，本批同步停用提示的列表入口 |
 | raynna_bestiary | Raynna's Bestiary | [raynna/raynnabestiary](https://github.com/raynna/raynnabestiary) | 1.1.0 | 安装版 commit 未公开，公开 1.0.0 对照为 3fb133ade257280ec69908dcf19c312de2e96887，安装版指纹及差异见 raynna_bestiary/SOURCE.json | 2026-11-16 | RB-01、RB-02、RB-03、RB-04 | 2026-11-16 核对安装版指纹、宿主接入及 f09b9c4 中文与配方联动 |
@@ -23,6 +23,7 @@
 - FF-01 保留宿主接入。`forever_faces/Bootstrap.lua`、Core 与媒体路径使用 `WoWTools.foreverFaces`、宿主加载事件及 `wowDetectorDB.foreverFaces.db`，复用 LibStub/CallbackHandler 并内嵌 LDB/DBIcon。开关控制初始化，部署直接迁移 ForeverFacesDB 并归档独立目录。依据为 a98c774。
 - FF-02 保留单位头像重绘挂接。`forever_faces/Portraits.lua` 在 SetPortraitTexture 及原生 UnitFramePortrait_Update 安全后钩子中按 frame.portrait / frame.unit 重新绑定，覆盖职业头像及 EasyFrames 重绘。登录、进世界、目标/焦点和配置变化后合并补查，保留受限值、战斗创建与原头像回退。依据为 f38b061。
 - FF-03 保留统一设置卡片。`forever_faces/UI.lua` 将原控件嵌入共享 canvas，按宽度适配和滚动，语言切换重建，旧命令与小地图入口打开此页。依据为 cf97c5c。
+- FF-04 增加“3D头像 → 像素风调试”，配置保存到 wowDetectorDB.foreverFaces.db.style。模型来源、DisplayID/FileID、动画、MipMap、快照开关、采样边长、帧率和采样请求支持即时应用，战斗中结构调整延后到脱战。离屏捕获与采样效果由游戏内验证，页面显示运行状态和失败原因，单列安装更新及加载开关的 Reload 要求。公开接口缺少强制 LOD，低模使用客户端已有模型 ID。
 - BV-01 保留宿主接入。`better_vendor_ui/Bootstrap.lua` 与四个业务文件隔离命名空间、媒体、初始化及统一设置，配置为 `wowDetectorDB.betterVendorUI.db`。停用时跳过事件与运行控件，部署直接迁移 BetterVendorUIDB 并归档原目录。当前 1.3.1 发布包使用独立插件入口。
 - BV-02 保留已学配方标记。`better_vendor_ui/BetterVendorUI.lua` 在完整与品质重绘中刷新图标去色及 136814 绿色勾，跟随学习和物品数据事件合并更新。旧 addon_fix Vendor 补丁已归档，维护收编实现。依据为 fd95272。
 - BV-03 保留简体中文设置。`BetterVendorUI_Config.lua`、`BetterVendorUI_Options.lua` 及相关反馈统一中文标题、控件、确认、名单和提示，保留格式参数。依据为 12fc998。

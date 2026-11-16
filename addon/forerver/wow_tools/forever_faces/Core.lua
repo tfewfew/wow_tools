@@ -87,7 +87,7 @@ function events.ADDON_LOADED(name)
 end
 
 function events.PLAYER_LOGIN()
-    ns.InitLevelCircle()
+    if ns.InitLevelCircle then ns.InitLevelCircle() end
 	ns.InitPortraits()
 	if ns.InitUI then ns.InitUI() end
 	ns.OnChange(ns.ApplyAll)

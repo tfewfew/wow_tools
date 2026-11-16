@@ -460,15 +460,18 @@ local function LayoutCard()
 	local panel = ns.settingsPanel
 	if not panel or not win then return end
 	local width = math.max(1, panel.scroll:GetWidth())
-	local scale = math.max(0.1, math.min(1, (width - 32) / WIDTH))
-	win:SetScale(scale)
-	win:ClearAllPoints()
-	win:SetPoint("TOPLEFT", panel.content, "TOPLEFT", 16 / scale, -16 / scale)
-	win:SetFrameStrata(panel:GetFrameStrata())
-	win:SetFrameLevel(panel.content:GetFrameLevel() + 1)
+	local card = panel.selectedTab == "style" and panel.styleCard or win
+	if not card then return end
+	local scale = math.max(0.1, math.min(1, (width - 32) / card:GetWidth()))
+	card:SetScale(scale)
+	card:ClearAllPoints()
+	card:SetPoint("TOPLEFT", panel.content, "TOPLEFT", 16 / scale, -16 / scale)
+	card:SetFrameStrata(panel:GetFrameStrata())
+	card:SetFrameLevel(panel.content:GetFrameLevel() + 1)
 	panel.content:SetWidth(width)
-	panel.content:SetHeight(win:GetHeight() * scale + 32)
+	panel.content:SetHeight(card:GetHeight() * scale + 32)
 end
+ns.LayoutSettingsCard = LayoutCard
 
 function ns.RefreshSettings()
 	local panel = ns.settingsPanel
@@ -483,10 +486,19 @@ function ns.RefreshSettings()
 	end
 	panel.message:Hide()
 	panel.scroll:Show()
+	for key, button in pairs(panel.submenus) do button:SetEnabled(key ~= panel.selectedTab) end
 	if not win then Build(panel.content) end
+	if panel.selectedTab == "style" then
+		if not panel.styleCard then panel.styleCard = ns.BuildStyleSettings(panel.content) end
+		win:Hide()
+		panel.styleCard:Show()
+		panel.styleCard:Refresh()
+	else
+		if panel.styleCard then panel.styleCard:Hide() end
+		win:Show()
+		Refresh()
+	end
 	LayoutCard()
-	win:Show()
-	Refresh()
 end
 
 function ns.BuildSettings(parent)
@@ -494,12 +506,26 @@ function ns.BuildSettings(parent)
 	local panel = CreateFrame("Frame", nil, parent)
 	panel:SetAllPoints(parent)
 	ns.settingsPanel = panel
+	panel.selectedTab = "general"
+	panel.submenus = {}
+	for index, tab in ipairs({ {"general", "常规"}, {"style", "像素风调试"} }) do
+		local button = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+		button:SetPoint("TOPLEFT", 8 + (index - 1) * 142, -8)
+		button:SetSize(134, 26)
+		button:SetText(tab[2])
+		button:SetScript("OnClick", function()
+			panel.selectedTab = tab[1]
+			panel.scroll:SetVerticalScroll(0)
+			ns.RefreshSettings()
+		end)
+		panel.submenus[tab[1]] = button
+	end
 	panel.message = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
 	panel.message:SetPoint("TOPLEFT", 16, -16)
 	panel.message:SetPoint("RIGHT", -16, 0)
 	panel.message:SetJustifyH("LEFT")
 	panel.scroll = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
-	panel.scroll:SetPoint("TOPLEFT")
+	panel.scroll:SetPoint("TOPLEFT", 0, -42)
 	panel.scroll:SetPoint("BOTTOMRIGHT", -24, 0)
 	panel.content = CreateFrame("Frame", nil, panel.scroll)
 	panel.content:SetSize(WIDTH + 32, 1)

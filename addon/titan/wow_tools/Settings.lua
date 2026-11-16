@@ -18,6 +18,7 @@ local groups = {
     { key="third_party", label="插件列表", category="third_party" },
     { key="bigfoot_channel", label="大脚聊天", category="third_party", app="WoWToolsBigFootChannel" },
     { key="ls_toasts", label="lsToast", category="third_party", app="ls_Toasts" },
+    { key="forever_faces", label="3D头像", category="third_party" },
     { key="better_vendor_ui", label="商人增强", category="third_party" },
     { key="pet_xp_bar", label="宠物经验", category="third_party" },
 }

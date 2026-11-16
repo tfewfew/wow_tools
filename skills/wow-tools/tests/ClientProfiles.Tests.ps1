@@ -21,10 +21,10 @@ foreach ($profile in $profiles) {
 }
 $titanRetired = @(Get-WowToolsRetiredAddonNames -Flavor titan)
 $foreverRetired = @(Get-WowToolsRetiredAddonNames -Flavor forerver)
-foreach ($name in @('BigFootChat','ChannelFilter','ls_Toasts','BetterVendorUI','PetXPBarPlus')) {
+foreach ($name in @('BigFootChat','ChannelFilter','ls_Toasts','BetterVendorUI','PetXPBarPlus','ForeverFaces')) {
     Assert-Profile ($titanRetired -contains $name -and $foreverRetired -contains $name) "Duplicate $name is not retired for both clients."
 }
-foreach ($name in @('BigFoot','!!!Libs','ForeverFaces','RaynnaBestiary','PRR')) {
+foreach ($name in @('BigFoot','!!!Libs','RaynnaBestiary','PRR')) {
     Assert-Profile ($titanRetired -notcontains $name -and $foreverRetired -contains $name) "Titan's shared dependency $name would be archived."
 }
 foreach ($module in @('raynna_bestiary','prr')) {

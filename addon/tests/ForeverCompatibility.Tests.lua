@@ -619,7 +619,7 @@ end
 assert(firstThirdPartyGroup.key == "third_party", "Plugin list must be the top third-party tab")
 assert(WoWTools.settings.pages.third_party and WoWTools.modules.third_party.BuildSettings,
     "Missing third-party settings interface")
-assert(#WoWTools.thirdParty.entries == (flavor == "forerver" and 7 or 4), "Wrong client plugin list")
+assert(#WoWTools.thirdParty.entries == (flavor == "forerver" and 7 or 5), "Wrong client plugin list")
 for _, row in ipairs(WoWTools.thirdParty.panel.rows) do
     local entry = row.entry
     local metadata = assert(WoWTools.thirdPartyCatalog[entry.key], "Missing plugin catalog entry")
@@ -634,7 +634,7 @@ if TEST_THIRD_PARTY_DISABLED then
 else
     assert(WoWTools.lsToasts.C.db and WoWTools.bigfootChannel.addon.db, "Enabled addons failed to initialize")
 end
-if flavor == "forerver" then
+do
     assert(WoWTools.foreverFaces ~= WoWTools.lsToasts, "Portrait and toast namespaces overlap")
     assert(WoWTools.settings.pages.forever_faces and WoWTools.modules.forever_faces == WoWTools.foreverFaces,
         "Missing unified portrait settings page or module")
@@ -644,7 +644,7 @@ if flavor == "forerver" then
         "Portrait legacy settings entry did not use the unified interface")
     assert(WoWTools.foreverFaces.DB() == wowDetectorDB.foreverFaces.db, "Portrait persistence binding failed")
     if not TEST_THIRD_PARTY_DISABLED then
-        WoWTools.foreverFaces.InitLevelCircle()
+        if WoWTools.foreverFaces.InitLevelCircle then WoWTools.foreverFaces.InitLevelCircle() end
         WoWTools.foreverFaces.InitPortraits()
         WoWTools.foreverFaces.InitUI()
         local portraitPanel = WoWTools.foreverFaces.settingsPanel
@@ -654,6 +654,38 @@ if flavor == "forerver" then
         portraitPanel.IsVisible = isVisible
         assert(ForeverFacesWindow:GetParent() == portraitPanel.content,
             "Portrait controls did not initialize in the unified settings card")
+        assert(portraitPanel.submenus.general and portraitPanel.submenus.style,
+            "Portrait settings lack the general/style submenus")
+        local style = WoWTools.foreverFaces.style
+        assert(style.Config() == wowDetectorDB.foreverFaces.db.style and not style.Config().pixelEnabled,
+            "Portrait style defaults or persistence binding failed")
+        local stylePanel = WoWTools.foreverFaces.BuildStyleSettings(portraitPanel.content)
+        stylePanel:Refresh()
+        for _, option in ipairs(style.options) do
+            assert(stylePanel.controls[option.key], "Missing portrait style control " .. option.key)
+        end
+        local modelContract = {
+            SetUnit = function(_, unit, blend, ...)
+                assert(type(unit) == "string" and type(blend) == "boolean" and select("#", ...) == 0,
+                    "Portrait SetUnit must use the common two-argument client signature")
+                return true
+            end,
+            SetDisplayInfo = function(_, id)
+                assert(type(id) == "number" and id > 0, "Portrait DisplayID binding failed")
+            end,
+            SetModel = function(_, id, noMip)
+                assert(type(id) == "number" and id > 0 and type(noMip) == "boolean",
+                    "Portrait model FileID/noMip binding failed")
+            end,
+            SetPaused = function(_, paused) assert(type(paused) == "boolean", "Portrait pause binding failed") end,
+            SetAnimation = function(_, animation) assert(animation == 0, "Portrait idle animation binding failed") end,
+        }
+        local savedStyle = wowDetectorDB.foreverFaces.db.style
+        for _, source in ipairs({"unit", "display", "file"}) do
+            wowDetectorDB.foreverFaces.db.style = {source=source, displayID=123, fileID=456, animation="idle"}
+            assert(style.Load(modelContract, "player", false), "Portrait model source interface failed " .. source)
+        end
+        wowDetectorDB.foreverFaces.db.style = savedStyle
         local unitPortraitHook = chatMock.hooks.UnitFramePortrait_Update
         assert(type(unitPortraitHook) == "function", "Missing native unit-frame portrait hook")
         local unitFrame = CreateFrame("Frame")
@@ -672,9 +704,6 @@ if flavor == "forerver" then
         UnitGUID = originalGUID
         assert(boundUnit == "target", "Native unit-frame portrait argument binding failed")
     end
-else
-    assert(not WoWTools.foreverFaces, "Forever portraits loaded on Titan")
-    assert(not WoWTools.settings.pages.forever_faces, "Forever portrait settings registered on Titan")
 end
 assert(#registeredCategories == 1 and #addonCategories == 1, "Settings category interface failed")
 for _, name in ipairs({"WOWDETECTOR", "FIGHTDETECTOR", "WOWTOOLS"}) do

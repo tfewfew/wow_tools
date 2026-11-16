@@ -8,11 +8,14 @@
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | bigfoot_channel | 大脚聊天 | 本机 BigFootChat、ChannelFilter、!!!Libs 安装副本，[大脚官网](https://bigfoot.178.com/) | 未标版本 | 安装副本未提供独立版本和 Git commit，仓库引入记录 0fc692a | 2026-11-13 | BF-01、BF-02 | 2026-11-16 核对当前收编源码及引入历史 |
 | ls_toasts | ls_Toasts | [ls-/ls_Toasts](https://github.com/ls-/ls_Toasts) | 120105.05 | 355774b11757b46ed3bb4c784ad7145f03e43871 | 2026-11-14 | LS-01、LS-02、LS-03 | 2026-11-16 核对 Bootstrap、Integration、120105.05 引入与 3905341 性能修改 |
+| forever_faces | Forever 3D Portraits | [sorrow8/forever-faces](https://github.com/sorrow8/forever-faces) | 1.0.9 | cbf2cd5b71f3e32b075af2001d7c726e41850240 | 2026-11-16 | FF-01、FF-02 | 2026-11-16 核对上游基线、既有无限服适配与 classic_titan 原生 CharacterModelBase、Model、OffScreenFrame 接口 |
 | better_vendor_ui | Better Vendor UI | [Vaniron 官方发布包](https://www.curseforge.com/wow/addons/better-vendor-ui/files/9436965) | 1.3.1 | 上游未公布 Git commit，发布包 SHA256 和文件指纹见 better_vendor_ui/SOURCE.json | 2026-11-14 | BV-01、BV-02、BV-03 | 2026-11-16 核对 Bootstrap、源码与 fd95272、12fc998 |
 | pet_xp_bar | PetXPBarPlus | [DustinChecketts/PetXPBarPlus](https://github.com/DustinChecketts/PetXPBarPlus) | 1.3.1 | 0c5da2aef6b2b56e307a77e37151fe4675be6c82 | 2026-11-16 | PX-01、PX-02 | 2026-11-16 核对 Bootstrap、Compat 与 c70da89，本批同步停用提示的列表入口 |
 
 ## 当前本地适配
 
+- FF-01 接入时光服独立的命名空间、TOC、统一设置、加载开关、账号配置、LDB/DBIcon 和原生单位头像挂接。使用本服 SetUnit(unit, blend)，等级圆环沿用本服原生处理。部署直接迁移 ForeverFacesDB 并归档独立插件目录。
+- FF-02 增加“3D头像 → 像素风调试”，配置保存到 wowDetectorDB.foreverFaces.db.style。模型来源、DisplayID/FileID、动画、MipMap、快照开关、采样边长、帧率和采样请求支持即时应用，战斗中结构调整延后到脱战。离屏捕获与采样效果由游戏内验证，页面显示运行状态和失败原因，单列安装更新及加载开关的 Reload 要求。公开接口缺少强制 LOD，低模使用客户端已有模型 ID。
 - BF-01 保留收编宿主接入。`bigfoot_channel/Bootstrap.lua`、`core.lua`、`frame.xml` 将命名空间、媒体、加载事件及 Ace 设置接入 wow_tools，账号配置为 `wowDetectorDB.bigfootChannel`。插件开关在加载时控制初始化，旧命令进入统一设置。当前安装基线仍需这些接入。
 - BF-02 保留频道及原配置接入。`ChannelFilter.lua`、`WorldChannel.lua`、`Copy.lua` 使用宿主设置，部署脚本直接迁移 BigFootChat 与 ChannelFilter 配置并归档独立目录。时光服继续保留其他插件依赖的独立 BigFoot 与 !!!Libs，避免重复接管。依据为 0fc692a、a98c774。
 - LS-01 保留宿主隔离。`ls_toasts/Bootstrap.lua`、`Integration.lua` 及 XML 使用独立命名空间、内嵌媒体、宿主 Ace3、SharedMedia、LibEditMode 及统一设置，保存到 `wowDetectorDB.lsToasts.db`，停用时跳过业务初始化。直接迁移旧配置，兼容 `loot_items` 与旧锚点。当前上游基线使用独立插件加载和存储。
