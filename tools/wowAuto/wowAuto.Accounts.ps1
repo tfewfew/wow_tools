@@ -1,5 +1,6 @@
 ﻿# Read account folders and the addon's own character snapshots, never login credentials.
 . (Join-Path $PSScriptRoot 'wowAuto.Classes.ps1')
+. (Join-Path $PSScriptRoot '..\..\skills\wow-tools\scripts\migrate-bigfoot.ps1')
 function ConvertFrom-WowSkillRecord([string]$Text,[string]$Group) {
     if($Text -ceq '?'){return $null}
     if($Text -ceq ''){return ,@()}
@@ -34,8 +35,17 @@ function ConvertFrom-WowLuaString([string]$Text) {
 }
 function ConvertFrom-WowCharacterRecord([string]$Text) {
     # Parse only our flat data table. SavedVariables are never executed.
-    if ($Text.Length -gt 64KB) {return $null}
-    $table=[regex]::Match($Text,'\A\s*wowToolsCharacterRecord\s*=\s*\{(?<body>[^{}]*)\}\s*\z')
+    if ($Text.Length -gt 16MB) {return $null}
+    try {
+        # Character settings share this file. Reuse the literal reader to locate
+        # the unique top-level snapshot without matching nested or quoted data.
+        $tables=Read-WowLuaData $Text
+        if (-not $tables.ContainsKey('wowToolsCharacterRecord')) {return $null}
+        $snapshot=$tables['wowToolsCharacterRecord']
+        if ($snapshot.Kind -cne 'table' -or $snapshot.End-$snapshot.Start -gt 64KB) {return $null}
+        $text=$Text.Substring($snapshot.Start,$snapshot.End-$snapshot.Start)
+    } catch {return $null}
+    $table=[regex]::Match($text,'\A\{(?<body>[^{}]*)\}\z')
     if (-not $table.Success) {return $null}
     $body=$table.Groups['body'].Value;$position=0;$values=@{}
     $field='\G\s*(?:\["(?<key>[A-Za-z]\w*)"\]|(?<key>[A-Za-z]\w*))\s*=\s*(?:"(?<text>(?:[^"\\\r\n]|\\(?:["\\nrt]|\d{1,3}))*)"|(?<number>-?\d+))\s*(?:,|\z)'
@@ -92,17 +102,17 @@ function Get-WowCharacterLevelGroups($Roles,$Records,$RealmLevels=@{}) {
     $leveling=@($leveling | Sort-Object -Property @{Expression={if($null -eq $_.Record.Level){-1}else{$_.Record.Level}};Descending=$true},Order)
     return [pscustomobject]@{Full=$full;Leveling=$leveling}
 }
-function Read-WowCharacterRecord([string]$CharacterDirectory,[string]$Name,[string]$Realm) {
+function Read-WowCharacterRecord([string]$CharacterDirectory,[string]$Name,[string]$Realm,[switch]$ConnectedRealm) {
     try {
         $saved=Join-Path $CharacterDirectory 'SavedVariables';$path=Join-Path $saved 'wow_tools.lua'
         foreach ($itemPath in @($saved,$path)) {
             $item=Get-Item -LiteralPath $itemPath -Force -ErrorAction Stop
             if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {return $null}
         }
-        if ($item.Length -gt 64KB) {return $null}
+        if ($item.Length -gt 16MB) {return $null}
         $text=[IO.File]::ReadAllText($path)
         $record=ConvertFrom-WowCharacterRecord $text
-        if (-not $record -or $record.Name -cne $Name -or $record.Realm -cne $Realm) {return $null}
+        if (-not $record -or $record.Name -cne $Name -or (-not $ConnectedRealm -and $record.Realm -cne $Realm)) {return $null}
         return $record
     } catch {return $null}
 }
@@ -199,8 +209,15 @@ function Get-WowAccountCatalog([string]$GameDirectory) {
         foreach ($realm in @(Get-ChildItem -LiteralPath $account.FullName -Directory -ErrorAction Stop)) {
             if ($realm.Name -eq 'SavedVariables' -or ($realm.Attributes -band [IO.FileAttributes]::ReparsePoint)) {continue}
             foreach ($role in @(Get-ChildItem -LiteralPath $realm.FullName -Directory -ErrorAction Stop)) {
-                if ($role.Name -notmatch '^[\p{L}\p{M}]{1,24}$' -or $role.Name -eq 'SavedVariables' -or ($role.Attributes -band [IO.FileAttributes]::ReparsePoint)) {continue}
-                $record=Read-WowCharacterRecord $role.FullName $role.Name $realm.Name
+                if ($role.Name -eq 'SavedVariables' -or ($role.Attributes -band [IO.FileAttributes]::ReparsePoint)) {continue}
+                $name=$role.Name
+                # Connected-realm clients store realmID/Name-DisplayRealm. The
+                # directory ID/display label differs from GetRealmName's key.
+                $connectedRealm=$realm.Name -cmatch '^[1-9]\d{0,9}$' -and
+                    $role.Name -cmatch '^(?<name>[\p{L}\p{M}]{1,24})-[^\p{C}\\/]{1,128}$'
+                if ($connectedRealm) {$name=$Matches['name']}
+                if ($name -notmatch '^[\p{L}\p{M}]{1,24}$') {continue}
+                $record=Read-WowCharacterRecord $role.FullName $name $realm.Name -ConnectedRealm:$connectedRealm
                 if ($record) {$characters+=,$record}
             }
         }
