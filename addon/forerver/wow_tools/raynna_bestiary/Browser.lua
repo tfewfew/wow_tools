@@ -1,14 +1,15 @@
 WoWTools.raynnaBestiary.RegisterSource(function(...)
 -- Explicit NPC browser. Search and selection are separate from Alt-hover state.
 local _, A = ...
+local T = A.Text
 local frame, search, scrollbar, countLabel
 local results, rows, offset = {}, {}, 0
 local tracked, scope = {}, 'all'
-local names
+local names, englishNames
 
 function A.FindNPCs(query, source)
     if not names then
-        names = {}
+        names, englishNames = {}, {}
         for id, npc in pairs(A.BundledMetadata.Npc) do
             if npc.name and (npc.maxLevel or 0) > 0 then
                 names[id] = npc.name
@@ -19,6 +20,10 @@ function A.FindNPCs(query, source)
         end
         for id, npc in pairs(A.ForeverReference or {}) do
             names[id] = npc.name
+        end
+        for id, name in pairs(names) do
+            englishNames[id] = name
+            names[id] = A.EntityName('Npc', id, name)
         end
     end
     local allowed
@@ -35,7 +40,8 @@ function A.FindNPCs(query, source)
     for id, name in pairs(names) do
         if
             (not allowed or allowed[id])
-            and (query == '' or tostring(id) == query or string.find(string.lower(name), query, 1, true))
+            and (query == '' or tostring(id) == query or string.find(string.lower(name), query, 1, true)
+                or string.find(string.lower(englishNames[id] or ''), query, 1, true))
         then
             result[#result + 1] = { id = id, name = name }
         end
@@ -68,14 +74,14 @@ local function render()
             row.name:SetText(entry.name)
             local npc = A.ReferenceMonster(entry.id, entry.name)
             local level = npc.minLevel or A.ReferenceMetadata.Npc.Get(entry.id, 'minLevel')
-            row.detail:SetText((level and ('Lv ' .. level .. ' / ') or '') .. A.MonsterZones(entry.id))
+            row.detail:SetText((level and (T('Lv ') .. level .. ' / ') or '') .. A.MonsterZones(entry.id))
             A.SetBestiaryPortrait(row.portrait, entry.id)
         end
     end
     scrollbar:Update(#results, 8, offset, 304)
     countLabel:SetText(
-        #results > 0 and (#results .. ' NPCs / click one to view drops')
-            or 'No matching NPCs. Try another name or All.'
+        #results > 0 and (#results .. T(' NPCs / click one to view drops'))
+            or T('No matching NPCs. Try another name or All.')
     )
 end
 local function refresh()
@@ -106,7 +112,7 @@ function A.OpenBrowser(monsters)
         for _, monster in pairs(monsters) do
             local id = A.TrackerPortraitID(monster)
             if id then
-                tracked[id] = monster.name or ('NPC ' .. id)
+                tracked[id] = A.EntityName('Npc', id, monster.name or ('NPC ' .. id))
             end
         end
     end
@@ -134,11 +140,11 @@ function A.OpenBrowser(monsters)
             A.db.bestiary.browserPosition = { point, relative, x, y }
         end)
         A.SkinPanel(frame, true)
-        label(frame, 12, -9, 280):SetText("RAYNNA'S BESTIARY / BROWSE")
+        label(frame, 12, -9, 280):SetText(T("RAYNNA'S BESTIARY / BROWSE"))
         button('x', 307, -5, 22, function()
             frame:Hide()
         end)
-        label(frame, 12, -35, 300):SetText('Search NPC name or ID, then press Enter')
+        label(frame, 12, -35, 300):SetText(T('Search NPC name or ID, then press Enter'))
         search = CreateFrame('EditBox', nil, frame, 'InputBoxTemplate')
         search:SetPoint('TOPLEFT', 18, -53)
         search:SetSize(236, 22)
@@ -151,20 +157,20 @@ function A.OpenBrowser(monsters)
         search:SetScript('OnEscapePressed', function(self)
             self:ClearFocus()
         end)
-        button('Search', 263, -54, 64, refresh)
-        button('All', 12, -83, 66, function()
+        button(T('Search'), 263, -54, 64, refresh)
+        button(T('All'), 12, -83, 66, function()
             scope = 'all'
             refresh()
         end)
-        button('Tracked', 85, -83, 70, function()
+        button(T('Tracked'), 85, -83, 70, function()
             scope = 'tracked'
             refresh()
         end)
-        button('Recent', 162, -83, 70, function()
+        button(T('Recent'), 162, -83, 70, function()
             scope = 'recent'
             refresh()
         end)
-        button('Target', 239, -83, 88, function()
+        button(T('Target'), 239, -83, 88, function()
             local guid = UnitGUID('target')
             if (not issecretvalue or not issecretvalue(guid)) and type(guid) == 'string' then
                 local id = guid:match('^Creature%-%d+%-%d+%-%d+%-%d+%-(%d+)%-')
@@ -175,7 +181,7 @@ function A.OpenBrowser(monsters)
                     return
                 end
             end
-            countLabel:SetText('Target a creature to find it in the browser.')
+            countLabel:SetText(T('Target a creature to find it in the browser.'))
         end)
         for index = 1, 8 do
             local row = CreateFrame('Button', nil, frame)

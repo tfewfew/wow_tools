@@ -3,10 +3,12 @@ WoWTools.raynnaBestiary.RegisterSource(function(...)
 -- Hover locking, pinning, scrolling and tooltip ownership are local UI state.
 
 local _, Addon = ...
+local T = Addon.Text
 local bestiaryFrame, selectedSubject, showingPreview, isPinned, scrollOffset = nil, nil, false, false, 0
 local sourceRows, visibleEntries, requestedItems = {}, {}, {}
 local itemLockedForAlt = false
 local rowTooltipLevel, rowTooltipStrata
+local selectedView = 'sources'
 
 -- Tooltip ownership and layering
 local function hideRowTooltip()
@@ -50,44 +52,79 @@ local function refreshWindow()
     end
     Addon.SetBestiaryPortrait(bestiaryFrame.portrait, selectedSubject.npcID, selectedSubject.itemID)
     bestiaryFrame.name:SetText(
-        (selectedSubject.itemID and selectedSubject.quest and '|cffffd100[Quest]|r ' or '')
+        (selectedSubject.itemID and selectedSubject.quest and ('|cffffd100' .. T('[Quest]') .. '|r ') or '')
             .. selectedSubject.name
     )
     local quests = selectedSubject.itemID and Addon.ItemQuests(selectedSubject.itemID) or {}
     selectedSubject.quests = quests
     local questSpace = #quests > 0 and 16 or 0
+    local isItem = selectedSubject.itemID ~= nil
+    local showingRecipes = isItem and selectedView == 'recipes'
+    local tabSpace = isItem and 26 or 0
+    local windowWidth = showingRecipes and 420 or 300
+    bestiaryFrame:SetWidth(windowWidth)
+    bestiaryFrame.name:SetWidth(windowWidth - 60)
+    bestiaryFrame.questLine:SetWidth(windowWidth - 20)
+    bestiaryFrame.section:SetWidth(windowWidth - 20)
+    bestiaryFrame.footer:SetWidth(windowWidth - 20)
+    bestiaryFrame.sourcesTab:SetShown(isItem)
+    bestiaryFrame.recipesTab:SetShown(isItem)
+    bestiaryFrame.sourcesTab:ClearAllPoints()
+    bestiaryFrame.sourcesTab:SetPoint('TOPLEFT', 10, -65 - questSpace)
+    bestiaryFrame.recipesTab:ClearAllPoints()
+    bestiaryFrame.recipesTab:SetPoint('TOPLEFT', 100, -65 - questSpace)
+    bestiaryFrame.sourcesTab:SetButtonState(showingRecipes and 'NORMAL' or 'PUSHED', not showingRecipes)
+    bestiaryFrame.recipesTab:SetButtonState(showingRecipes and 'PUSHED' or 'NORMAL', showingRecipes)
+    bestiaryFrame.recipeView:SetShown(showingRecipes)
     bestiaryFrame.questLine:SetShown(#quests > 0)
     bestiaryFrame.questLine:SetText(
         #quests > 0
-                and ('Quest: ' .. quests[1].name .. (#quests > 1 and (' (+' .. (#quests - 1) .. ')') or ''))
+                and (T('Quest: ') .. quests[1].name .. (#quests > 1 and (' (+' .. (#quests - 1) .. ')') or ''))
             or ''
     )
     bestiaryFrame.section:ClearAllPoints()
-    bestiaryFrame.section:SetPoint('TOPLEFT', 10, -68 - questSpace)
+    bestiaryFrame.section:SetPoint('TOPLEFT', 10, -68 - questSpace - tabSpace)
+    if showingRecipes then
+        for _, row in ipairs(sourceRows) do row:Hide() end
+        bestiaryFrame.empty:Hide()
+        bestiaryFrame.scrollbar:Hide()
+        bestiaryFrame.recipeView:ClearAllPoints()
+        bestiaryFrame.recipeView:SetPoint('TOPLEFT', 10, -83 - questSpace - tabSpace)
+        bestiaryFrame.recipeView:SetPoint('TOPRIGHT', -10, -83 - questSpace - tabSpace)
+        local count = bestiaryFrame.recipeView:Refresh(selectedSubject.itemID)
+        bestiaryFrame.section:SetText(T('Recipes') .. '  /  ' .. count)
+        bestiaryFrame.context:SetText(T('PRR recipe database'))
+        bestiaryFrame.footer:SetText(T('Hover a recipe to view its details.'))
+        bestiaryFrame.footer:ClearAllPoints()
+        bestiaryFrame.footer:SetPoint('BOTTOMLEFT', 10, 8)
+        bestiaryFrame.pin:SetText(isPinned and T('Unpin') or T('Pin'))
+        bestiaryFrame:SetHeight(140 + questSpace + tabSpace + math.max(1, math.min(7, count)) * 36)
+        return
+    end
     bestiaryFrame.scrollbar:ClearAllPoints()
-    bestiaryFrame.scrollbar:SetPoint('TOPRIGHT', -3, -83 - questSpace)
+    bestiaryFrame.scrollbar:SetPoint('TOPRIGHT', -3, -83 - questSpace - tabSpace)
     bestiaryFrame.empty:ClearAllPoints()
-    bestiaryFrame.empty:SetPoint('TOPLEFT', 10, -85 - questSpace)
+    bestiaryFrame.empty:SetPoint('TOPLEFT', 10, -85 - questSpace - tabSpace)
     bestiaryFrame.context:SetText(
         selectedSubject.itemID
-                and ((selectedSubject.quest and 'Quest item' or 'Item sources') .. ' / Reference databases')
+                and ((selectedSubject.quest and T('Quest item') or T('Item sources')) .. ' / ' .. T('Reference databases'))
             or (
-                'Level '
+                T('Level ')
                 .. Addon.LevelText(selectedSubject)
-                .. (selectedSubject.foreverReference and '  /  Forever reference' or '  /  Classic reference')
-                .. (showingPreview and '  /  Preview' or '')
+                .. '  /  ' .. T(selectedSubject.foreverReference and 'Forever reference' or 'Classic reference')
+                .. (showingPreview and ('  /  ' .. T('Preview')) or '')
             )
     )
     bestiaryFrame.footer:SetText(
         selectedSubject.itemID
-                and 'Sources: Classic DB / source metadata / Forever records\nCoverage varies; ? = unknown chance'
+                and T('Sources: Classic DB / source metadata / Forever records\nCoverage varies; ? = unknown chance')
             or (
                 selectedSubject.foreverReference
-                    and 'Icy Veins Forever / 2026-11-13\nPartial snapshot; * conditional chance'
-                or 'cMaNGOS Classic 1.12 - not verified for Forever\n* Conditional drop chance'
+                    and T('Icy Veins Forever / 2026-11-13\nPartial snapshot; * conditional chance')
+                or T('cMaNGOS Classic 1.12 - not verified for Forever\n* Conditional drop chance')
             )
     )
-    bestiaryFrame.pin:SetText(isPinned and 'Unpin' or 'Pin')
+    bestiaryFrame.pin:SetText(isPinned and T('Unpin') or T('Pin'))
     visibleEntries = {}
     for id, drop in pairs(selectedSubject.drops or {}) do
         table.insert(visibleEntries, { id = id, drop = drop })
@@ -100,24 +137,24 @@ local function refreshWindow()
     end)
     scrollOffset = math.max(0, math.min(scrollOffset, #visibleEntries - 7))
     bestiaryFrame.section:SetText(
-        (selectedSubject.itemID and 'SOURCES  /  ' or 'POSSIBLE DROPS  /  ') .. #visibleEntries
+        (selectedSubject.itemID and T('SOURCES  /  ') or T('POSSIBLE DROPS  /  ')) .. #visibleEntries
     )
     bestiaryFrame.empty:SetShown(#visibleEntries == 0)
     bestiaryFrame.empty:SetText(
         selectedSubject.itemID
-                and 'No known source in the loaded databases.\nCoverage is incomplete for Forever.'
-            or 'No source data for this creature ID.\nYour personal loot log is not used here.'
+                and T('No known source in the loaded databases.\nCoverage is incomplete for Forever.')
+            or T('No source data for this creature ID.\nYour personal loot log is not used here.')
     )
     local shownRows = math.max(1, math.min(7, #visibleEntries))
     local rowHeight = selectedSubject.itemID and 36 or 24
-    bestiaryFrame:SetHeight(116 + questSpace + shownRows * rowHeight)
+    bestiaryFrame:SetHeight(116 + questSpace + tabSpace + shownRows * rowHeight)
     bestiaryFrame.footer:ClearAllPoints()
     bestiaryFrame.footer:SetPoint('BOTTOMLEFT', 10, 8)
     bestiaryFrame.scrollbar:Update(#visibleEntries, 7, scrollOffset, shownRows * rowHeight)
     for i, row in ipairs(sourceRows) do
         row:SetHeight(rowHeight)
         row:ClearAllPoints()
-        row:SetPoint('TOPLEFT', 10, -83 - questSpace - (i - 1) * rowHeight)
+        row:SetPoint('TOPLEFT', 10, -83 - questSpace - tabSpace - (i - 1) * rowHeight)
         row.location:SetShown(not not selectedSubject.itemID)
         row.entry = visibleEntries[scrollOffset + i]
         row:SetShown(row.entry ~= nil)
@@ -139,16 +176,16 @@ local function refreshWindow()
                 row.location:SetPoint('TOPLEFT', inset, -21)
                 row.location:SetWidth(273 - inset)
                 row.name:SetText(sourceRecord.name)
-                sourceRecord.zones = sourceRecord.kind and sourceRecord.details or Addon.MonsterZones(item)
+                sourceRecord.zones = sourceRecord.kind and T(sourceRecord.details) or Addon.MonsterZones(item)
                 row.location:SetText(
-                    sourceRecord.kind and sourceRecord.details
-                        or ('Lv ' .. Addon.LevelText(sourceRecord) .. ' / ' .. sourceRecord.zones)
+                    sourceRecord.kind and T(sourceRecord.details)
+                        or (T('Lv ') .. Addon.LevelText(sourceRecord) .. ' / ' .. sourceRecord.zones)
                 )
                 row.detail:SetText(
-                    sourceRecord.kind
+                    sourceRecord.kind and T(sourceRecord.kind)
                         or (
                             sourceRecord.rate
-                                and Addon.DropChance(sourceRecord):gsub(' %(conditional%)', '*')
+                                and Addon.DropChance(sourceRecord, true)
                             or '?'
                         )
                 )
@@ -167,14 +204,14 @@ local function refreshWindow()
                 end
                 row.icon:SetTexture(icon or 'Interface\\Icons\\INV_Misc_QuestionMark')
                 row.name:SetText(
-                    ((sourceRecord.quest or classID == 12) and '|cffffd100[Quest]|r ' or '')
-                        .. (link or sourceRecord.name or sourceRecord.link or ('Item ' .. item))
+                    ((sourceRecord.quest or classID == 12) and ('|cffffd100' .. T('[Quest]') .. '|r ') or '')
+                        .. (link or sourceRecord.name or sourceRecord.link or (T('Item ') .. item))
                 )
                 row.detail:SetText(
-                    sourceRecord.kind
+                    sourceRecord.kind and T(sourceRecord.kind)
                         or (
                             sourceRecord.rate
-                                and Addon.DropChance(sourceRecord):gsub(' %(conditional%)', '*')
+                                and Addon.DropChance(sourceRecord, true)
                             or '?'
                         )
                 )
@@ -215,6 +252,10 @@ function Addon.ShowBestiary(monster, demo, pin)
 end
 function Addon.BestiaryDemo()
     Addon.ShowBestiary(Addon.ReferenceMonster(587), true, true)
+end
+
+function Addon.RefreshRecipeView()
+    if bestiaryFrame and bestiaryFrame:IsShown() and selectedView == 'recipes' then refreshWindow() end
 end
 
 -- Alt-hover selection and item locking
@@ -289,6 +330,7 @@ end
 function Addon.BuildBestiary()
     Addon.db.bestiary = Addon.db.bestiary or {}
     bestiaryFrame = CreateFrame('Frame', 'RaynnaBestiaryFrame', UIParent, 'BackdropTemplate')
+    Addon.detailFrame = bestiaryFrame
     bestiaryFrame:SetSize(300, 284)
     bestiaryFrame:SetClampedToScreen(true)
     bestiaryFrame:SetFrameStrata('TOOLTIP')
@@ -315,8 +357,8 @@ function Addon.BuildBestiary()
         local point, _, relative, x, y = bestiaryFrame:GetPoint()
         Addon.db.bestiary.position = { point = point, relative = relative, x = x, y = y }
     end)
-    createLabel(title, 11, 4, -7, 188, "RAYNNA'S BESTIARY"):SetTextColor(unpack(titleColor))
-    bestiaryFrame.pin = button(bestiaryFrame, 'Pin', 207, -6, 49, function()
+    createLabel(title, 11, 4, -7, 188, T("RAYNNA'S BESTIARY")):SetTextColor(unpack(titleColor))
+    bestiaryFrame.pin = button(bestiaryFrame, T('Pin'), 207, -6, 49, function()
         isPinned = not isPinned
         refreshWindow()
     end)
@@ -326,6 +368,24 @@ function Addon.BuildBestiary()
     end)
     bestiaryFrame.pin:SetHeight(18)
     bestiaryFrame.close:SetHeight(18)
+    bestiaryFrame.pin:ClearAllPoints()
+    bestiaryFrame.pin:SetPoint('TOPRIGHT', -44, -6)
+    bestiaryFrame.pin:SetWidth(72)
+    bestiaryFrame.close:ClearAllPoints()
+    bestiaryFrame.close:SetPoint('TOPRIGHT', -13, -6)
+    bestiaryFrame.sourcesTab = button(bestiaryFrame, T('Sources'), 10, -65, 80, function()
+        hideRowTooltip()
+        selectedView = 'sources'
+        refreshWindow()
+    end)
+    bestiaryFrame.recipesTab = button(bestiaryFrame, T('Recipes'), 100, -65, 80, function()
+        hideRowTooltip()
+        selectedView = 'recipes'
+        refreshWindow()
+    end)
+    bestiaryFrame.sourcesTab:Hide()
+    bestiaryFrame.recipesTab:Hide()
+    bestiaryFrame.recipeView = Addon.CreateRecipeView(bestiaryFrame)
     bestiaryFrame.portrait = CreateFrame('Frame', nil, bestiaryFrame)
     bestiaryFrame.portrait:SetSize(32, 32)
     bestiaryFrame.portrait:SetPoint('TOPLEFT', 10, -31)
@@ -335,7 +395,7 @@ function Addon.BuildBestiary()
     bestiaryFrame.questLine = createLabel(bestiaryFrame, 10, 10, -65, 280)
     bestiaryFrame.questLine:SetTextColor(1, 0.82, 0.2)
     bestiaryFrame.section = createLabel(bestiaryFrame, 9, 10, -68, 280)
-    local browse = button(bestiaryFrame, 'Browse', 225, -65, 64, function()
+    local browse = button(bestiaryFrame, T('Browse'), 225, -65, 64, function()
         Addon.OpenBrowser()
     end)
     browse:ClearAllPoints()
@@ -376,18 +436,18 @@ function Addon.BuildBestiary()
                 if selectedSubject.itemID then
                     GameTooltip:SetText(self.entry.drop.name)
                     if not self.entry.drop.kind then
-                        GameTooltip:AddLine('Level ' .. Addon.LevelText(self.entry.drop), 0.8, 0.8, 0.8)
+                        GameTooltip:AddLine(T('Level ') .. Addon.LevelText(self.entry.drop), 0.8, 0.8, 0.8)
                     end
                     GameTooltip:AddLine(
-                        self.entry.drop.zones or Addon.MonsterZones(self.entry.id),
+                        T(self.entry.drop.zones or Addon.MonsterZones(self.entry.id)),
                         0.6,
                         0.8,
                         0.8,
                         true
                     )
                     GameTooltip:AddLine(
-                        'Source: '
-                            .. (self.entry.drop.source or 'cMaNGOS Classic; locations: source metadata'),
+                        T('Source: ')
+                            .. T(self.entry.drop.source or 'cMaNGOS Classic; locations: source metadata'),
                         0.6,
                         0.6,
                         0.6
@@ -396,7 +456,7 @@ function Addon.BuildBestiary()
                     GameTooltip:SetHyperlink(self.entry.drop.link)
                 end
                 GameTooltip:AddLine(
-                    self.entry.drop.kind and (self.entry.drop.kind .. ' source - no drop roll')
+                    self.entry.drop.kind and (T(self.entry.drop.kind) .. T(' source - no drop roll'))
                         or Addon.DropChance(self.entry.drop),
                     0.7,
                     0.8,
@@ -404,7 +464,7 @@ function Addon.BuildBestiary()
                 )
                 if self.entry.drop.quest then
                     GameTooltip:AddLine(
-                        'Quest-only drop: requires eligibility for its quest.',
+                        T('Quest-only drop: requires eligibility for its quest.'),
                         1,
                         0.82,
                         0.2,
@@ -412,7 +472,7 @@ function Addon.BuildBestiary()
                     )
                 elseif self.entry.drop.conditional then
                     GameTooltip:AddLine(
-                        'This chance depends on additional loot conditions.',
+                        T('This chance depends on additional loot conditions.'),
                         1,
                         0.82,
                         0.2,
@@ -421,7 +481,7 @@ function Addon.BuildBestiary()
                 end
                 for _, quest in ipairs(selectedSubject.quests or {}) do
                     GameTooltip:AddLine(
-                        (quest.starts and 'Starts quest: ' or 'Related quest: ') .. quest.name,
+                        (quest.starts and T('Starts quest: ') or T('Related quest: ')) .. quest.name,
                         1,
                         0.82,
                         0.2,
@@ -444,11 +504,15 @@ function Addon.BuildBestiary()
         10,
         -250,
         280,
-        'cMaNGOS Classic 1.12 - not verified for Forever\n* Conditional drop chance'
+        T('cMaNGOS Classic 1.12 - not verified for Forever\n* Conditional drop chance')
     )
     bestiaryFrame.footer:SetWordWrap(true)
     bestiaryFrame.footer:SetTextColor(0.65, 0.65, 0.55)
     bestiaryFrame:SetScript('OnMouseWheel', function(_, delta)
+        if selectedSubject and selectedSubject.itemID and selectedView == 'recipes' then
+            bestiaryFrame.recipeView:Scroll(delta)
+            return
+        end
         scrollOffset = scrollOffset - delta
         hideRowTooltip()
         refreshWindow()

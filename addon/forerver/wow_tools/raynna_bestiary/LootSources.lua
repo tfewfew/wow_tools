@@ -3,6 +3,7 @@ WoWTools.raynnaBestiary.RegisterSource(function(...)
 -- Unknown probabilities remain unknown; this module never substitutes personal loot samples.
 
 local _, Addon = ...
+local T = Addon.Text
 local monsterDropCache = {}
 -- Resolve source tables without treating reference-pool chances as item chances.
 
@@ -93,7 +94,7 @@ function Addon.ItemQuests(itemID)
         local ok, name = pcall(referenceDatabase.Quest.Get, id, 'name')
         if ok and type(name) == 'string' and name ~= '' then
             seen[id] = true
-            result[#result + 1] = { id = id, name = name, starts = starts }
+            result[#result + 1] = { id = id, name = Addon.EntityName('Quest', id, name), starts = starts }
         end
     end
     local ok, ids = pcall(referenceDatabase.Item.Get, itemID, 'relatedQuests')
@@ -114,7 +115,7 @@ end
 function Addon.MonsterZones(npcID)
     local referenceDatabase = Addon.ReferenceMetadata
     if not referenceDatabase or not referenceDatabase.Npc or not referenceDatabase.Npc.Get then
-        return 'Zone unavailable'
+        return T('Zone unavailable')
     end
     local ok, spawns = pcall(referenceDatabase.Npc.Get, npcID, 'spawns')
     local zones, seen = {}, {}
@@ -140,7 +141,7 @@ function Addon.MonsterZones(npcID)
         end
     end
     table.sort(zones)
-    return #zones > 0 and table.concat(zones, ', ') or 'Zone unavailable'
+    return #zones > 0 and table.concat(zones, ', ') or T('Zone unavailable')
 end
 
 -- Reverse lookup: item to monster, vendor and quest sources
@@ -209,7 +210,7 @@ function Addon.ReferenceItem(item)
     for _, id in ipairs(get('Item', item, 'npcDrops') or {}) do
         if not drops[id] then
             drops[id] = {
-                name = get('Npc', id, 'name') or ('Creature ' .. id),
+                name = get('Npc', id, 'name') or (T('Creature ') .. id),
                 minLevel = get('Npc', id, 'minLevel'),
                 maxLevel = get('Npc', id, 'maxLevel'),
                 source = 'Source metadata',
@@ -219,7 +220,7 @@ function Addon.ReferenceItem(item)
     for _, id in ipairs(get('Item', item, 'questRewards') or {}) do
         drops['quest:' .. id] = {
             kind = 'Quest',
-            name = get('Quest', id, 'name') or ('Quest ' .. id),
+            name = get('Quest', id, 'name') or (T('Quest ') .. id),
             details = 'Quest reward / source metadata',
             source = 'Source metadata',
         }
@@ -227,19 +228,14 @@ function Addon.ReferenceItem(item)
     for _, id in ipairs(get('Item', item, 'vendors') or {}) do
         drops['vendor:' .. id] = {
             kind = 'Vendor',
-            name = get('Npc', id, 'name') or ('Vendor ' .. id),
+            name = get('Npc', id, 'name') or (T('Vendor ') .. id),
             details = Addon.MonsterZones(id),
             source = 'Source metadata',
         }
     end
     -- Verified Forever-only reward absent from the Classic reference snapshot.
     if item == 279844 then
-        local exists = false
-        for _, drop in pairs(drops) do
-            if drop.kind == 'Quest' and drop.name == 'Heart of Disruption' then
-                exists = true
-            end
-        end
+        local exists = drops['quest:96984'] ~= nil
         if not exists then
             drops['quest:96984'] = {
                 kind = 'Quest',
@@ -251,10 +247,14 @@ function Addon.ReferenceItem(item)
         end
         name = name or 'Striking Staff'
     end
+    for sourceID, drop in pairs(drops) do
+        local id = tonumber(tostring(sourceID):match(':(%d+)$')) or tonumber(sourceID)
+        drop.name = Addon.EntityName(drop.kind == 'Quest' and 'Quest' or 'Npc', id, drop.name)
+    end
     return {
         itemID = item,
         quest = quest,
-        name = name or Addon.LootReference.names[item] or ('Item ' .. item),
+        name = name or Addon.LootReference.names[item] or (T('Item ') .. item),
         drops = drops,
     }
 end
@@ -265,7 +265,7 @@ function Addon.ReferenceMonster(id, name, level)
     local npc = database and database.creatures[id]
     local monster = {
         npcID = id,
-        name = name or (npc and npc[2]) or 'Unknown creature',
+        name = Addon.EntityName('Npc', id, name or (npc and npc[2]) or T('Unknown creature')),
         minLevel = level or (npc and npc[3]),
         maxLevel = level or (npc and npc[4]),
         drops = {},
@@ -273,7 +273,7 @@ function Addon.ReferenceMonster(id, name, level)
     if not npc then
         local fallback = Addon.ForeverReference and Addon.ForeverReference[id]
         if fallback then
-            monster.name = name or fallback.name
+            monster.name = Addon.EntityName('Npc', id, name or fallback.name)
             monster.minLevel = level or fallback.minLevel
             monster.maxLevel = level or fallback.maxLevel
             monster.drops = fallback.drops
@@ -299,13 +299,13 @@ function Addon.ReferenceMonster(id, name, level)
 end
 
 -- Probability labels
-function Addon.DropChance(drop)
+function Addon.DropChance(drop, compact)
     if not drop or not drop.rate then
-        return 'Chance unknown'
+        return T('Chance unknown')
     end
     local rate = drop.rate
     local value = rate > 0 and rate < 0.01 and '<0.01'
         or string.format('%.2f', rate):gsub('0+$', ''):gsub('%.$', '')
-    return value .. '%' .. (drop.conditional and ' (conditional)' or '')
+    return value .. '%' .. (drop.conditional and (compact and '*' or T(' (conditional)')) or '')
 end
 end)

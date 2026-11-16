@@ -1,5 +1,6 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
     <Script file="Core.lua"/>
+    <Script file="Localization.lua"/>
     <Script file="Theme.lua"/>
     <Script file="Widgets.lua"/>
     <Script file="LootReference.lua"/>
@@ -9,6 +10,7 @@
     <Script file="LootSources.lua"/>
     <Script file="PortraitDisplays.lua"/>
     <Script file="Portraits.lua"/>
+    <Script file="RecipeView.lua"/>
     <Script file="Bestiary.lua"/>
     <Script file="Browser.lua"/>
     <Script file="Settings.lua"/>

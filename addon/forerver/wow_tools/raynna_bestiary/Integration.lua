@@ -18,6 +18,7 @@ events:SetScript("OnEvent", function(self, event, name)
         self:UnregisterEvent("PLAYER_LOGIN")
         addon.db.bestiary = addon.db.bestiary or {}
         addon.db.appearance = addon.db.appearance or {}
+        addon.InitializeLanguage()
         addon.PreloadTrackerPortraits()
         addon.BuildBestiary()
         addon.ready = true

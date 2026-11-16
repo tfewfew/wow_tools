@@ -77,7 +77,7 @@ Config.defaults = {
     settings = {
         -- the language of the addon's texts: "auto" -- the client's, or "en" / "ru"
         -- (utilities/localization.lua; another one takes a reload of the UI)
-        language = "auto",
+        language = "zh",
         showTooltip = true,      -- recipe lines in item tooltips at all
         showCraftedBy = true,    -- "Crafted by" block in the tooltip
         showReagentFor = true,   -- "Reagent for" block in the tooltip

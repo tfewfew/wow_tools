@@ -83,6 +83,17 @@ def main():
         runtime.globals().TEST_THIRD_PARTY_DISABLED = True
         path = repo / 'addon/tests/ForeverCompatibility.Tests.lua'
         runtime.execute(path.read_text(encoding='utf-8-sig'), name='@' + str(path))
+        if flavor == 'forerver':
+            runtime = LuaRuntime()
+            runtime.globals().TEST_ROOT = repo.as_posix()
+            runtime.globals().TEST_FLAVOR = flavor
+            runtime.globals().TEST_PLUGIN_LANGUAGE = 'en'
+            runtime.execute(path.read_text(encoding='utf-8-sig'), name='@' + str(path))
+            runtime = LuaRuntime()
+            runtime.globals().TEST_ROOT = repo.as_posix()
+            runtime.globals().TEST_FLAVOR = flavor
+            runtime.globals().TEST_PRR_AUTO_LANGUAGE = True
+            runtime.execute(path.read_text(encoding='utf-8-sig'), name='@' + str(path))
     for path in (repo / 'addon/tests').glob('*.lua'):
         compiler(path.read_text(encoding='utf-8-sig'), '@' + str(path))
         lua_count += 1

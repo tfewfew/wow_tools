@@ -260,6 +260,8 @@ end }
 Enum = { WeaponSlot = {MainHand = 0}, ItemEnchantType = {Permanent = 1, Temporary = 2, Imbue = 3} }
 ItemLocation = { CreateFromEquipmentSlot = function(_, slot) assert(slot == 16); return {slot = slot} end }
 C_Item = {
+    GetItemInfo = function(itemID) return "物品" .. itemID, "item:" .. itemID, 1 end,
+    GetItemIconByID = function() return 134400 end,
     GetItemID = function(location) assert(location.slot == 16); return 1 end,
     GetItemInfoInstant = function() return 1, nil, nil, nil, nil, 2, pole and 20 or 7 end,
     GetWeaponEnchantInfo = function(slot)
@@ -270,6 +272,13 @@ C_Item = {
     end,
 }
 C_Spell = { GetSpellName = function() return "Fishing" end }
+function GetBuildInfo() return flavor == "titan" and "3.80.2" or "1.60.1", "70790" end
+local localizedNameReads = 0
+LibQuestieDB = {Npc = {Get = function(id, field)
+    assert(field == "name", "Localized NPC adapter requested the wrong field")
+    localizedNameReads = localizedNameReads + 1
+    return id == 6 and "狗头人歹徒" or nil
+end}}
 function GetInventoryItemLink(unit, slot)
     assert(unit=="player" and slot==16)
     return pole and "fishing-pole" or "sword"
@@ -345,6 +354,13 @@ for line in io.lines(addon .. "wow_tools.toc") do
     end
 end
 -- SavedVariables become available after the TOC scripts and before ADDON_LOADED.
+if TEST_PLUGIN_LANGUAGE then
+    wowDetectorDB = {prr = {db = {settings = {language = TEST_PLUGIN_LANGUAGE}}}}
+    wowToolsCharacterSettings = {raynnaBestiary = {db = {language = TEST_PLUGIN_LANGUAGE}}}
+end
+if TEST_PRR_AUTO_LANGUAGE then
+    wowDetectorDB = {prr = {languageDefaultApplied = true, db = {settings = {language = "auto"}}}}
+end
 if TEST_THIRD_PARTY_DISABLED then
     wowDetectorDB = {thirdPartyAddons = {bigfoot_channel = false, ls_toasts = false, forever_faces = false, better_vendor_ui = false, pet_xp_bar = false,
         raynna_bestiary = false, prr = false}}
@@ -368,10 +384,16 @@ if flavor == "forerver" then
         assert(not bestiary.db and not bestiary.BuildBestiary and not RaynnaBestiaryAPI,
             "Disabled Bestiary initialized its runtime")
         assert(not prr.db and not prr.Events and not prr.ready, "Disabled PRR initialized its runtime")
+        assert(prr.GetItemRecipes(2318) == nil, "Disabled PRR exposed active recipe queries")
     else
         assert(bestiary.db == wowToolsCharacterSettings.raynnaBestiary.db,
             "Bestiary character settings binding failed")
         assert(prr.db == wowDetectorDB.prr.db and prr.ready, "PRR account settings or options binding failed")
+        local expectedLanguage = TEST_PLUGIN_LANGUAGE or "zh"
+        assert(prr.db.settings.language == (TEST_PRR_AUTO_LANGUAGE and "auto" or expectedLanguage),
+            "PRR language default/persistence binding failed")
+        assert(prr.Constants.ADDON_TITLE == (expectedLanguage == "zh" and "PRR 配方用途" or "PRR: Professions, Recipes, Reagents"),
+            "PRR title localization failed")
         assert(type(prr.Components.ItemTooltip.Fill) == "function",
             "PRR tooltip component load order failed")
         assert(type(chatMock.options.WoWToolsPRR) == "function", "PRR options were not registered")
@@ -380,9 +402,27 @@ if flavor == "forerver" then
             "PRR embedded options lost pages")
         bestiary.events.scripts.OnEvent(bestiary.events, "PLAYER_LOGIN")
         assert(bestiary.ready and type(bestiary.OpenBrowser) == "function", "Bestiary initialization contract failed")
+        assert(bestiary.language == expectedLanguage and bestiary.db.language == expectedLanguage,
+            "Bestiary language default/persistence binding failed")
+        assert(bestiary.Text("Sources") == (expectedLanguage == "zh" and "来源" or "Sources"),
+            "Bestiary text resource binding failed")
+        local name = bestiary.EntityName("Npc", 6, "Kobold Vermin")
+        assert(name == (expectedLanguage == "zh" and "狗头人歹徒" or "Kobold Vermin"),
+            "Bestiary localized NPC name API binding failed")
+        bestiary.EntityName("Npc", 6, "Kobold Vermin")
+        assert(localizedNameReads == (expectedLanguage == "zh" and 1 or 0), "Bestiary repeated its localized name lookup")
+        local recipes = prr.GetItemRecipes(2318)
+        assert(type(recipes) == "table" and #recipes > 0 and recipes[1].recipe.spellID,
+            "PRR indexed item recipe query contract failed")
+        assert(bestiary.detailFrame.recipeView:Refresh(2318) == #recipes,
+            "Bestiary recipe table did not bind the PRR query result")
+        assert(not bestiary.detailFrame.recipeView.scripts.OnUpdate, "Bestiary recipe table added persistent polling")
         WoWTools.settings.Open("raynna_bestiary")
         assert(bestiary.optionsPanel and bestiary.optionsPanel:GetParent() == bestiary.settingsPanel,
             "Bestiary options are not embedded in the shared canvas")
+        assert(bestiary.languageDropdown.template == "WowStyle1DropdownTemplate",
+            "Bestiary language selector is not the native dropdown")
+        bestiary.languageDropdown:GenerateMenu()
         WoWTools.settings.window:Hide()
     end
 end

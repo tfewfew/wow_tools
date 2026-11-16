@@ -11,8 +11,8 @@
 | forever_faces | Forever 3D Portraits | [sorrow8/forever-faces](https://github.com/sorrow8/forever-faces) | 1.0.9 | cbf2cd5b71f3e32b075af2001d7c726e41850240 | 2026-11-13 | FF-01、FF-02、FF-03 | 2026-11-16 核对 Bootstrap、Portraits、UI 及 a98c774、f38b061、cf97c5c |
 | better_vendor_ui | Better Vendor UI | [Vaniron 官方发布包](https://www.curseforge.com/wow/addons/better-vendor-ui/files/9436965) | 1.3.1 | 上游未公布 Git commit，发布包 SHA256 和文件指纹见 better_vendor_ui/SOURCE.json | 2026-11-14 | BV-01、BV-02、BV-03 | 2026-11-16 核对 Bootstrap、源码与 fd95272、12fc998 |
 | pet_xp_bar | PetXPBarPlus | [DustinChecketts/PetXPBarPlus](https://github.com/DustinChecketts/PetXPBarPlus) | 1.3.1 | 0c5da2aef6b2b56e307a77e37151fe4675be6c82 | 2026-11-16 | PX-01、PX-02 | 2026-11-16 核对 Bootstrap、Compat 与 c70da89，本批同步停用提示的列表入口 |
-| raynna_bestiary | Raynna's Bestiary | [raynna/raynnabestiary](https://github.com/raynna/raynnabestiary) | 1.1.0 | 安装版 commit 未公开，公开 1.0.0 对照为 3fb133ade257280ec69908dcf19c312de2e96887，安装版指纹及差异见 raynna_bestiary/SOURCE.json | 2026-11-16 | RB-01、RB-02 | 2026-11-16 核对安装版指纹、Bootstrap、Integration 及 7c38572、e3a1ac8 |
-| prr | PRR | [izicawow 官方发布包](https://www.curseforge.com/wow/addons/prr/files/9629892) | 1.5.2 | 上游未公布 Git commit，发布包 SHA256 与文件指纹见 prr/SOURCE.json | 2026-11-16 | PR-01、PR-02 | 2026-11-16 核对发布包指纹、Bootstrap、Integration 及 7c38572、e3a1ac8 |
+| raynna_bestiary | Raynna's Bestiary | [raynna/raynnabestiary](https://github.com/raynna/raynnabestiary) | 1.1.0 | 安装版 commit 未公开，公开 1.0.0 对照为 3fb133ade257280ec69908dcf19c312de2e96887，安装版指纹及差异见 raynna_bestiary/SOURCE.json | 2026-11-16 | RB-01、RB-02、RB-03、RB-04 | 2026-11-16 核对安装版指纹、宿主接入及 f09b9c4 中文与配方联动 |
+| prr | PRR | [izicawow 官方发布包](https://www.curseforge.com/wow/addons/prr/files/9629892) | 1.5.2 | 上游未公布 Git commit，发布包 SHA256 与文件指纹见 prr/SOURCE.json | 2026-11-16 | PR-01、PR-02、PR-03、PR-04 | 2026-11-16 核对发布包指纹、宿主接入及 f09b9c4 中文与配方索引接口 |
 
 ## 当前本地适配
 
@@ -30,8 +30,12 @@
 - PX-02 保留无限服接口适配。`pet_xp_bar/Compat.lua` 使用本服 GetEffectivePlayerMaxLevel / GetMaxPlayerLevel，保留原生 GetPetExperience、经验与等级事件以及条目可见性处理。依据为 c70da89。
 - RB-01 保留宿主接入。`raynna_bestiary/Bootstrap.lua`、`Integration.lua`、`files.xml` 与业务文件采用延迟 RegisterSource 初始化、独立命名空间和角色 `wowToolsCharacterSettings.raynnaBestiary.db`，停用时跳过业务源初始化，保留 `/rb` 与浏览器、提示及数据许可。当前安装基线仍使用独立插件存储及初始化。
 - RB-02 保留设置与迁移接入。原设置控件嵌入统一页面，部署按角色直接迁移 RaynnaBestiaryDB 并归档原目录，收编源码移除旧配置导入入口。安装版 1.1.0 与公开 1.0.0 的 Browser 等差异单列在 SOURCE.json，更新时逐文件核对实际采用的安装基线。依据为 7c38572、e3a1ac8。
+- RB-03 保留中英语言和中文名称接入。`raynna_bestiary/Localization.lua`、`Settings.lua`、`Bestiary.lua`、`Browser.lua`、`LootSources.lua` 增加默认中文及角色语言选择，界面文字使用语言资源，NPC 和任务名称按 ID 优先取 QuestieDB 中文或客户端名称，并按实体类型及 ID 缓存。依据为收编后的 f09b9c4。
+- RB-04 保留 PRR 配方联动。`raynna_bestiary/RecipeView.lua`、`Bestiary.lua`、`Integration.lua` 在 Alt 物品弹窗提供“来源 / 配方”页签、滚动表格、原生配方提示和 PRR 停用反馈。配方信息使用宿主 `WoWTools.prr.GetItemRecipes`，随索引更新刷新可见页面。依据为 f09b9c4。
 - PR-01 保留宿主接入。`prr/Bootstrap.lua`、`Integration.lua`、`files.xml` 与业务文件采用延迟 RegisterSource 初始化、独立命名空间、宿主 Ace3/LDB/DBIcon 和专用 JSON 库，配置为 `wowDetectorDB.prr.db`。停用时跳过业务事件、提示钩子与计时器，保留 `/prr` 及配方查询、规划。
 - PR-02 保留设置与迁移接入。Ace 设置以 WoWToolsPRR 嵌入统一页面，部署按账号直接迁移 PRRDB 并归档原目录，收编源码移除旧配置导入入口。依据为 7c38572、e3a1ac8，发布包使用原独立入口及存储。
+- PR-03 保留中文默认与补译。`prr/config/defaults.lua`、`core.lua`、`components/options_panel.lua`、`lang/en.lua`、`lang/zh.lua` 默认使用中文，首次将旧自动语言配置转为中文，保留用户明确指定的其他语言，中文优先列出并补齐标题。依据为收编后的 f09b9c4。
+- PR-04 保留物品配方查询接口。`prr/ItemRecipes.lua`、`dataflows/recipe_index.lua` 复用材料、成品及图纸索引与用户扫描和修正，按物品 ID 缓存并以索引 revision 失效，提供图鉴消费的配方关系和数量。依据为 f09b9c4。
 
 ## 更新时的适配核对
 
