@@ -26,12 +26,25 @@ end)
 ns.Events.On("SKILL_LINES_CHANGED", function()
     if not ns.db then return end
     ns.Components.LevelingTab.OnSkillsChanged()
+    ns.Components.ItemWindow.RefreshSoon()
+end)
+
+ns.Events.On("NEW_RECIPE_LEARNED", function(recipeID)
+    if not ns.db then return end
+    ns.GameData.RememberLearnedRecipe(recipeID)
+    ns.Components.ItemWindow.RefreshSoon()
+end)
+
+ns.Events.On("SPELLS_CHANGED", function()
+    if not ns.db then return end
+    ns.Components.ItemWindow.RefreshSoon()
 end)
 
 local function RememberLearned()
     if not ns.db then return end
     if ns.GameData.RememberLearnedRecipes() then
         ns.Components.LevelingTab.Refresh()
+        ns.Components.ItemWindow.RefreshSoon()
     end
 end
 ns.Events.On("TRADE_SKILL_SHOW", RememberLearned)

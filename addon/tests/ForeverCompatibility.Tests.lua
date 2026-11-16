@@ -152,6 +152,14 @@ local function widget(name, parent, kind)
         "SetPropagateKeyboardInput", "EnableKeyboard",
     }
     for _, method in ipairs(harmless) do object[method] = function() end end
+    if kind == "Texture" then
+        function object:SetTexture(value) self.texture = value end
+        function object:GetTexture() return self.texture end
+        function object:SetDesaturated(value) self.desaturated = value end
+        function object:SetTexCoord(...) self.coordinates = {...} end
+        function object:GetTexCoord() return unpack(self.coordinates or {0, 1, 0, 1}) end
+        function object:GetVertexColor() return unpack(self.vertex or {1, 1, 1, 1}) end
+    end
     widgets[#widgets + 1] = object
     object.lastVisible = object:IsVisible()
     if name then names[name] = object end
@@ -397,6 +405,26 @@ if flavor == "forerver" then
             "PRR title localization failed")
         assert(type(prr.Components.ItemTooltip.Fill) == "function",
             "PRR tooltip component load order failed")
+        assert(prr.GameData.RememberLearnedRecipe(2149)
+            and prr.GameData.IsRecipeKnown(2149), "PRR learned recipe event data binding failed")
+        local recipeRow = prr.Components.RecipeRow.Create(CreateFrame("Frame"), function() end)
+        prr.Components.RecipeRow.Fill(recipeRow, {
+            spellID = 2149, item = 2302, recipeItem = 2406, count = 1,
+            reagents = {{2318, 2}, {2320, 1}},
+        }, 2318)
+        for _, icon in ipairs({recipeRow.result, recipeRow.recipeItem}) do
+            local marker = assert(icon.prrKnownRecipe, "PRR learned icon marker binding failed")
+            assert(marker.gray.fill == icon.icon and marker.gray.desaturated
+                and marker.gray:GetTexture() == icon.icon:GetTexture(), "PRR learned icon grayscale binding failed")
+            assert(marker.check:GetTexture() == 136814 and marker.check:IsShown(),
+                "PRR learned icon uses a different check mark from Vendor")
+        end
+        prr.Components.RecipeRow.Fill(recipeRow, {
+            spellID = 2152, item = 2303, count = 1, reagents = {},
+        }, 2318)
+        assert(not recipeRow.result.prrKnownRecipe.check:IsShown()
+            and not recipeRow.result.prrKnownRecipe.gray:IsShown()
+            and not recipeRow.recipeItem.prrKnownRecipe.check:IsShown(), "PRR recipe row retained an old marker binding")
         assert(type(chatMock.options.WoWToolsPRR) == "function", "PRR options were not registered")
         local options = chatMock.options.WoWToolsPRR()
         assert(options.args.general and options.args.tooltip and options.args.language,

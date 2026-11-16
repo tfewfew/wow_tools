@@ -12,7 +12,7 @@
 | better_vendor_ui | Better Vendor UI | [Vaniron 官方发布包](https://www.curseforge.com/wow/addons/better-vendor-ui/files/9436965) | 1.3.1 | 上游未公布 Git commit，发布包 SHA256 和文件指纹见 better_vendor_ui/SOURCE.json | 2026-11-14 | BV-01、BV-02、BV-03 | 2026-11-16 官方文件 API 最新为 1.3.1 / 9436965，重新下载包 SHA256 与 SOURCE.json 一致；三项适配继续适用 |
 | pet_xp_bar | PetXPBarPlus | [DustinChecketts/PetXPBarPlus](https://github.com/DustinChecketts/PetXPBarPlus) | 1.3.1 | 0c5da2aef6b2b56e307a77e37151fe4675be6c82 | 2026-11-16 | PX-01、PX-02 | 2026-11-16 官方最新正式版仍为 v1.3.1，tag 指向已采用完整 commit；宿主与本服接口适配继续适用 |
 | raynna_bestiary | Raynna's Bestiary | [raynna/raynnabestiary](https://github.com/raynna/raynnabestiary) | 1.1.3 | 上游未公布该版本 Git commit，官方文件 9638877 的发布包 SHA256 及文件指纹见 raynna_bestiary/SOURCE.json | 2026-11-16 | RB-01、RB-02、RB-03、RB-04 | 2026-11-16 旧 1.1.0 官方包指纹匹配已采用安装基线，升级官方 1.1.3，并逐项合并中文、角色存储和 PRR 配方接入 |
-| prr | PRR | [izicawow 官方发布包](https://www.curseforge.com/wow/addons/prr/files/9629892) | 1.5.2 | 上游未公布 Git commit，发布包 SHA256 与文件指纹见 prr/SOURCE.json | 2026-11-16 | PR-01、PR-02、PR-03、PR-04 | 2026-11-16 官方文件 API 最新为 1.5.2 / 9629892，重新下载包 SHA256 与 SOURCE.json 一致；四项适配继续适用 |
+| prr | PRR | [izicawow 官方发布包](https://www.curseforge.com/wow/addons/prr/files/9629892) | 1.5.2 | 上游未公布 Git commit，发布包 SHA256 与文件指纹见 prr/SOURCE.json | 2026-11-16 | PR-01、PR-02、PR-03、PR-04、PR-05 | 2026-11-16 原发布包 SHA256 与 SOURCE.json 一致，PR-01 至 PR-04 继续适用，原 recipe_row.lua 尚无已学图标标记，本次新增 PR-05 |
 
 ## 当前本地适配
 
@@ -37,6 +37,7 @@
 - PR-02 保留设置与迁移接入。Ace 设置以 WoWToolsPRR 嵌入统一页面，部署按账号直接迁移 PRRDB 并归档原目录，收编源码移除旧配置导入入口。依据为 7c38572、e3a1ac8，发布包使用原独立入口及存储。
 - PR-03 保留中文默认与补译。`prr/config/defaults.lua`、`core.lua`、`components/options_panel.lua`、`lang/en.lua`、`lang/zh.lua` 默认使用中文，首次将旧自动语言配置转为中文，保留用户明确指定的其他语言，中文优先列出并补齐标题。依据为收编后的 f09b9c4。
 - PR-04 保留物品配方查询接口。`prr/ItemRecipes.lua`、`dataflows/recipe_index.lua` 复用材料、成品及图纸索引与用户扫描和修正，按物品 ID 缓存并以索引 revision 失效，提供图鉴消费的配方关系和数量。依据为 f09b9c4。
+- PR-05 增加已学配方标记。`prr/components/recipe_row.lua` 在配方主图标和图纸图标上使用与 Better Vendor UI 一致的去色覆盖及 136814 绿色勾，勾图四边内缩 4px，每次填充行时按当前角色的已学状态更新。`utilities/game_data.lua` 按本服 NEW_RECIPE_LEARNED 的 recipeID 记录本角色已学配方，`events/items.lua` 在学习、技能及法术变化和专业窗口读取后沿用可见窗口合并刷新。原 1.5.2 的 RecipeRow.Fill 仅有品质与收藏显示，尚无该标记。
 
 ## 更新时的适配核对
 

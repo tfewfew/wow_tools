@@ -56,6 +56,16 @@ local function KnownRecipes()
     return ns.db.knownRecipes[key]
 end
 
+function GameData.RememberLearnedRecipe(spellID)
+    if type(issecretvalue) == "function" and issecretvalue(spellID) then return false end
+    if type(spellID) ~= "number" or spellID <= 0 or spellID == math.huge
+        or spellID ~= math.floor(spellID) then return false end
+    local known = KnownRecipes()
+    if known[spellID] then return false end
+    known[spellID] = true
+    return true
+end
+
 -- The profession window of this character is open (not a linked or guild
 -- one): every recipe it shows as learned is remembered.
 function GameData.RememberLearnedRecipes()
