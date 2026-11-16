@@ -150,6 +150,7 @@ libraries["AceConfigRegistry-3.0"] = {
         for owner, method in pairs(configCallbacks) do owner[method](owner, "ConfigTableChange", app) end
     end,
 }
+libraries["AceConfig-3.0"] = libraries["AceConfigRegistry-3.0"]
 local dialog = { OpenFrames = {}, BlizOptions = {} }
 function dialog:Open(name, container)
     if container then
@@ -226,8 +227,10 @@ function mock.LoadXML(path)
             CreateFrame(kind, name, _G[attributes:match('parent="([^"]+)"')] or UIParent)
         end
     end
-    BFChannelMuteButtonMute, ChannelFilterMuteButtonMute = CreateFrame("Frame"), CreateFrame("Frame")
-    BFCIconFrameRaidersButton_OnLoad(BFCIconFrameRaidersButton)
+    if path:find("/bigfoot_channel/", 1, true) then
+        BFChannelMuteButtonMute, ChannelFilterMuteButtonMute = CreateFrame("Frame"), CreateFrame("Frame")
+        BFCIconFrameRaidersButton_OnLoad(BFCIconFrameRaidersButton)
+    end
 end
 function mock.LoadAddonFile(path)
     -- Embedded libraries have a separate dependency API check.

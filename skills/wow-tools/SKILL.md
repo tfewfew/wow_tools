@@ -13,6 +13,13 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 以下为实现与发布历史，其中的测试名称和通过数量保留为历史记录，当前本地测试采用上述范围。
 
+## 无限服怪物图鉴与配方用途收编（2026-11-16）
+
+- 用户明确限定无限服，forerver 2.2.106 收编已安装 Raynna's Bestiary 1.1.0 与 PRR 1.5.2。三方插件增加“怪物图鉴”和“配方用途”设置页及插件管理开关，勾选后在下次加载生效。分别使用 WoWTools.raynnaBestiary 与 WoWTools.prr 命名空间，停用时跳过源码初始化、业务事件、提示钩子和计时器。保留 `/rb`、`/prr`、原怪物浏览器、掉落与来源提示、配方查询及制造规划功能。
+- Bestiary 按角色保存到 wowToolsCharacterSettings.raynnaBestiary.db，PRR 按账号保存到 wowDetectorDB.prr.db。同步复用 Lua 字面量解析、校验备份和原子写入，分别迁移角色 RaynnaBestiaryDB 与账号 PRRDB，已有收编配置优先。部署校验完成后归档两个独立插件目录。正式目录仅有用户保存的 tools/wowAuto/config.ini 修改时，同步保留该文件并继续校验部署源码提交与远端一致。
+- PRR 安装文件与 CurseForge 9629892 的 1.5.2 原包一致，上游未公布 Git commit，SOURCE.json 记录发布包 SHA256、原始文件指纹及许可。Bestiary 安装版 1.1.0 含公开 1.0.0 仓库尚未包含的 Browser.lua 等差异，保留实际安装版本，SOURCE.json 记录安装文件指纹及公开对照提交 3fb133ade257280ec69908dcf19c312de2e96887。原有许可、数据来源说明及数据覆盖范围继续保留。
+- 无限服接口按 Gethe/wow-ui-source forever 的 bebcb6bf309cf41b41bd74f8ca651e6a105b2676 核对，复用宿主 Ace3、LDB 和 DBIcon，仅内嵌 PRR 专用 JSON 库。统一入口分别检查两服 Lua 5.1 编译、TOC/XML 加载、模块启停、设置构建及持久化绑定。实际怪物掉落、配方提示、界面交互和配置迁移流程由用户在游戏内验证。
+
 ## 剩余双倍经验的升级占比（2026-11-16）
 
 - titan 2.1.88 / forerver 2.2.105 将经验文字后缀调整为 `（x/y%-z%）`，x 为剩余双倍经验整数，y 为剩余双倍经验除以本级升级所需经验的百分比，z 为当前经验百分比，两项百分比沿用一位小数。y 随原“显示剩余双倍经验”开关显示，可超过 100%。单独勾选双倍时显示 `（x/y%）`，单独勾选当前百分比时显示 `（z%）`。

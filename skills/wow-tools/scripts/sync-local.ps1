@@ -8,7 +8,11 @@ $ErrorActionPreference = 'Stop'
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
 $status = & git -C $repo status --porcelain
 if ($LASTEXITCODE -ne 0) { throw 'Cannot read Git status.' }
-if ($status) { throw 'Commit and push all intended changes before syncing; working tree must be clean.' }
+# Preserve the PC tool's user-saved configuration while deploying committed addons.
+$unpublished = @($status | Where-Object { $_ -cnotin @(
+    ' M tools/wowAuto/config.ini', 'M  tools/wowAuto/config.ini', 'MM tools/wowAuto/config.ini'
+) })
+if ($unpublished.Count) { throw 'Commit and push all deployment changes before syncing. Only local config.ini edits may remain.' }
 $branch = & git -C $repo symbolic-ref --quiet --short HEAD
 if ($LASTEXITCODE -ne 0) { throw 'A named branch is required.' }
 $headCommit = & git -C $repo rev-parse HEAD
@@ -93,6 +97,20 @@ foreach ($profile in $profiles) {
                 $portraitBackup = Join-Path $backup "forerver\SavedVariables\$($account.Name)\ForeverFacesMigration"
                 if (Merge-WowForeverFacesSettings -SavedPath $savedPath -BackupPath $portraitBackup) {
                     Write-Output "Migrated ForeverFaces settings for $($account.Name)."
+                }
+                $prrBackup = Join-Path $backup "forerver\SavedVariables\$($account.Name)\PRRMigration"
+                if (Merge-WowPRRSettings -SavedPath $savedPath -BackupPath $prrBackup) {
+                    Write-Output "Migrated PRR settings for $($account.Name)."
+                }
+                foreach ($realm in Get-ChildItem -LiteralPath $account.FullName -Directory) {
+                    if ($realm.Name -eq 'SavedVariables') { continue }
+                    foreach ($character in Get-ChildItem -LiteralPath $realm.FullName -Directory) {
+                        $characterSaved = Join-Path $character.FullName 'SavedVariables'
+                        $bestiaryBackup = Join-Path $backup "forerver\SavedVariables\$($account.Name)\$($realm.Name)\$($character.Name)\RaynnaBestiaryMigration"
+                        if (Merge-WowRaynnaBestiarySettings -SavedPath $characterSaved -BackupPath $bestiaryBackup) {
+                            Write-Output "Migrated Raynna's Bestiary settings for $($realm.Name)/$($character.Name)."
+                        }
+                    }
                 }
             }
             $vendorBackup = Join-Path $backup "$($profile.Flavor)\SavedVariables\$($account.Name)\BetterVendorUIMigration"

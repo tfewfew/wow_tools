@@ -24,9 +24,17 @@ $foreverRetired = @(Get-WowToolsRetiredAddonNames -Flavor forerver)
 foreach ($name in @('BigFootChat','ChannelFilter','ls_Toasts','BetterVendorUI','PetXPBarPlus')) {
     Assert-Profile ($titanRetired -contains $name -and $foreverRetired -contains $name) "Duplicate $name is not retired for both clients."
 }
-foreach ($name in @('BigFoot','!!!Libs','ForeverFaces')) {
+foreach ($name in @('BigFoot','!!!Libs','ForeverFaces','RaynnaBestiary','PRR')) {
     Assert-Profile ($titanRetired -notcontains $name -and $foreverRetired -contains $name) "Titan's shared dependency $name would be archived."
 }
+foreach ($module in @('raynna_bestiary','prr')) {
+    foreach ($file in @('Bootstrap.lua','files.xml','Integration.lua')) {
+        $relative="$module\$file"
+        Assert-Profile (Test-Path -LiteralPath (Join-Path $forever.Source $relative) -PathType Leaf) "Missing Forever module file $relative."
+        Assert-Profile (Select-String -LiteralPath (Join-Path $forever.Source 'wow_tools.toc') -Pattern ('^'+[regex]::Escape($relative)+'\s*$') -Quiet) "Unloaded Forever module file $relative."
+    }
+}
+Assert-Profile (Select-String -LiteralPath (Join-Path $forever.Source 'wow_tools.toc') -Pattern '^## SavedVariablesPerCharacter:.*\bwowToolsCharacterSettings\b' -Quiet) 'Bestiary character settings are not persisted.'
 $single=@(Get-WowToolsDeploymentProfiles -RepoRoot $repo -Flavor forerver -GameRoot 'C:\test-games\infinite')
 Assert-Profile ($single.Count -eq 1 -and $single[0].Flavor -eq 'forerver' -and $single[0].Target -eq 'C:\test-games\infinite\Interface\AddOns\wow_tools') 'Explicit client override targets wrong archive.'
 $rejected=$false

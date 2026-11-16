@@ -75,12 +75,12 @@ function Read-WowLuaValue($Cursor, [int]$Depth) {
     return [pscustomobject]@{Kind=$token.Kind; Start=$token.Start; End=$token.End; Fields=$null}
 }
 
-function Merge-WowAddonSettingsGroup([string]$SavedPath, [string]$BackupPath, [string]$GroupKey, $LegacyMappings) {
+function Merge-WowAddonSettingsGroup([string]$SavedPath, [string]$BackupPath, [string]$GroupKey, $LegacyMappings, [string]$RootGlobal = 'wowDetectorDB') {
     $target = Join-Path $SavedPath 'wow_tools.lua'
     $text = if (Test-Path -LiteralPath $target) { [IO.File]::ReadAllText($target) } else { '' }
     $tables = Read-WowLuaData $text
-    $detector = $tables['wowDetectorDB']
-    if ($detector -and $detector.Kind -ne 'table') { throw 'wowDetectorDB must be a literal table.' }
+    $detector = $tables[$RootGlobal]
+    if ($detector -and $detector.Kind -ne 'table') { throw "$RootGlobal must be a literal table." }
     if ($detector -and $detector.Fields.ContainsKey($GroupKey)) { return $false }
     $entries = @()
     foreach ($legacy in $LegacyMappings) {
@@ -104,7 +104,7 @@ function Merge-WowAddonSettingsGroup([string]$SavedPath, [string]$BackupPath, [s
     if ($detector) {
         $separator = if ($detector.NeedsSeparator) { ',' } else { '' }
         $merged = $text.Insert($detector.End-1, $separator + "`n" + $data + ",`n")
-    } else { $merged = $text + "`nwowDetectorDB = {`n" + $data + "`n}`n" }
+    } else { $merged = $text + "`n$RootGlobal = {`n" + $data + "`n}`n" }
     $null = Read-WowLuaData $merged
     New-Item -ItemType Directory -Path $SavedPath -Force | Out-Null
     $temporary = Join-Path $SavedPath ('wow_tools-migrate-' + [guid]::NewGuid().ToString('N') + '.tmp')
@@ -148,4 +148,16 @@ function Merge-WowBetterVendorUISettings([string]$SavedPath, [string]$BackupPath
     return Merge-WowAddonSettingsGroup $SavedPath $BackupPath 'betterVendorUI' @(
         @{File='BetterVendorUI.lua'; Global='BetterVendorUIDB'; Key='db'}
     )
+}
+
+function Merge-WowPRRSettings([string]$SavedPath, [string]$BackupPath) {
+    return Merge-WowAddonSettingsGroup $SavedPath $BackupPath 'prr' @(
+        @{File='PRR.lua'; Global='PRRDB'; Key='db'}
+    )
+}
+
+function Merge-WowRaynnaBestiarySettings([string]$SavedPath, [string]$BackupPath) {
+    return Merge-WowAddonSettingsGroup $SavedPath $BackupPath 'raynnaBestiary' @(
+        @{File='RaynnaBestiary.lua'; Global='RaynnaBestiaryDB'; Key='db'}
+    ) 'wowToolsCharacterSettings'
 }

@@ -144,11 +144,12 @@ local function widget(name, parent, kind)
     function object:SetDefaultText(text) self.defaultText = text end
     function object:CloseMenu() self.menuClosed = true end
     local harmless = {
-        "SetBackdrop", "SetHitRectInsets", "SetFrameLevel", "SetScale", "SetButtonState", "LockHighlight", "UnlockHighlight", "SetClampedToScreen", "SetMovable", "EnableMouse",
+        "SetBackdrop", "SetBackdropColor", "SetBackdropBorderColor", "SetHitRectInsets", "SetFrameLevel", "SetScale", "SetButtonState", "LockHighlight", "UnlockHighlight", "SetClampedToScreen", "SetMovable", "EnableMouse",
         "RegisterForDrag", "RegisterForClicks", "SetHighlightTexture", "SetTexture",
         "ClearAllPoints", "SetFont", "SetJustifyH", "SetAutoFocus",
         "SetMaxLetters", "ClearFocus", "SetScrollChild", "StartMoving", "StopMovingOrSizing", "SetMultiLine", "SetFontObject", "SetBlendMode", "SetTexCoord",
         "SetOrientation", "SetMinMaxValues", "SetValueStep", "SetObeyStepOnDrag", "SetThumbTexture", "EnableMouseWheel", "SetTextColor",
+        "SetPropagateKeyboardInput", "EnableKeyboard",
     }
     for _, method in ipairs(harmless) do object[method] = function() end end
     widgets[#widgets + 1] = object
@@ -212,8 +213,10 @@ function CreateRadioButtonGroup()
     return group
 end
 UIParent, Minimap, FramerateFrame, GameTooltip = widget(), widget(), widget(), widget()
+ItemRefTooltip = widget()
 FramerateLabel = flavor=="titan" and widget() or nil
-function GameTooltip:SetOwner() end
+function GameTooltip:SetOwner(owner) self.owner = owner end
+function GameTooltip:GetOwner() return self.owner end
 function GameTooltip:AddLine() end
 DEFAULT_CHAT_FRAME = { AddMessage = function(_, message) messages[#messages + 1] = message end }
 SlashCmdList, UISpecialFrames, StaticPopupDialogs = {}, {}, {}
@@ -316,6 +319,10 @@ else
     function GetMaxPlayerLevel() return 60 end
 end
 local chatMock = dofile(root .. "/addon/tests/BigFootChannel.Mock.lua")
+function C_Timer.NewTicker(seconds, callback)
+    assert(type(seconds) == "number" and seconds > 0 and type(callback) == "function")
+    return {Cancel = function() end}
+end
 local originalHook = hooksecurefunc
 function hooksecurefunc(target, method, callback)
     if type(target) == "table" and method == "SetBarText" then
@@ -339,7 +346,8 @@ for line in io.lines(addon .. "wow_tools.toc") do
 end
 -- SavedVariables become available after the TOC scripts and before ADDON_LOADED.
 if TEST_THIRD_PARTY_DISABLED then
-    wowDetectorDB = {thirdPartyAddons = {bigfoot_channel = false, ls_toasts = false, forever_faces = false, better_vendor_ui = false, pet_xp_bar = false}}
+    wowDetectorDB = {thirdPartyAddons = {bigfoot_channel = false, ls_toasts = false, forever_faces = false, better_vendor_ui = false, pet_xp_bar = false,
+        raynna_bestiary = false, prr = false}}
 end
 for _, frame in ipairs(frames) do
     if frame.events.ADDON_LOADED then frame.scripts.OnEvent(frame, "ADDON_LOADED", "wow_tools") end
@@ -349,6 +357,33 @@ for _, name in ipairs({"wowDetector", "fight_detector", "pet_tamer", "button_sty
     assert(type(WoWTools.modules[name]) == "table", "Missing module export " .. name)
 end
 assert(WoWTools.settings and type(WoWTools.settings.Open) == "function", "Missing settings interface")
+if flavor == "forerver" then
+    local bestiary, prr = WoWTools.raynnaBestiary, WoWTools.prr
+    assert(bestiary == WoWTools.modules.raynna_bestiary and prr == WoWTools.modules.prr,
+        "Bestiary/PRR module namespaces are not isolated")
+    assert(bestiary.sourceVersion == "1.1.0" and prr.sourceVersion == "1.5.2", "Installed source versions changed")
+    if TEST_THIRD_PARTY_DISABLED then
+        assert(not bestiary.db and not bestiary.BuildBestiary and not RaynnaBestiaryAPI,
+            "Disabled Bestiary initialized its runtime")
+        assert(not prr.db and not prr.Events and not prr.ready, "Disabled PRR initialized its runtime")
+    else
+        assert(bestiary.db == wowToolsCharacterSettings.raynnaBestiary.db,
+            "Bestiary character settings binding failed")
+        assert(prr.db == wowDetectorDB.prr.db and prr.ready, "PRR account settings or options binding failed")
+        assert(type(prr.Components.ItemTooltip.Fill) == "function",
+            "PRR tooltip component load order failed")
+        assert(type(chatMock.options.WoWToolsPRR) == "function", "PRR options were not registered")
+        local options = chatMock.options.WoWToolsPRR()
+        assert(options.args.general and options.args.tooltip and options.args.language,
+            "PRR embedded options lost pages")
+        bestiary.events.scripts.OnEvent(bestiary.events, "PLAYER_LOGIN")
+        assert(bestiary.ready and type(bestiary.OpenBrowser) == "function", "Bestiary initialization contract failed")
+        WoWTools.settings.Open("raynna_bestiary")
+        assert(bestiary.optionsPanel and bestiary.optionsPanel:GetParent() == bestiary.settingsPanel,
+            "Bestiary options are not embedded in the shared canvas")
+        WoWTools.settings.window:Hide()
+    end
+end
 local experienceText = assert(WoWTools.experienceText, "Missing experience text module")
 assert(type(experienceText.SetPercentEnabled) == "function"
     and type(experienceText.IsPercentEnabled) == "function", "Missing XP percentage interfaces")
@@ -492,6 +527,7 @@ local expectedCategories = {
     wowDetector="game_assist", fight_detector="game_assist", pet_tamer="game_assist",
     button_style="game_settings", inner_graphic_config="game_settings", ui_addons="game_settings", sound_control="game_settings",
     bigfoot_channel="third_party", ls_toasts="third_party", forever_faces="third_party", better_vendor_ui="third_party", pet_xp_bar="third_party", third_party="third_party",
+    raynna_bestiary="third_party", prr="third_party",
 }
 assert(#WoWTools.settings.categories == 3, "Wrong primary settings category count")
 local categoryWidth = math.max(1, settingsCanvas:GetWidth() - 16) / #WoWTools.settings.categories
@@ -533,7 +569,7 @@ end
 assert(WoWTools.settings.tabs.third_party.Text:GetText() == "插件管理", "Plugin manager label binding failed")
 assert(WoWTools.settings.pages.third_party and WoWTools.modules.third_party.BuildSettings,
     "Missing third-party settings interface")
-assert(#WoWTools.thirdParty.entries == (flavor == "forerver" and 5 or 4), "Wrong client plugin list")
+assert(#WoWTools.thirdParty.entries == (flavor == "forerver" and 7 or 4), "Wrong client plugin list")
 if TEST_THIRD_PARTY_DISABLED then
     assert(not WoWTools.lsToasts.C.db, "Disabled toast addon initialized its database")
     assert(not WoWTools.bigfootChannel.addon.db, "Disabled chat addon initialized its database")

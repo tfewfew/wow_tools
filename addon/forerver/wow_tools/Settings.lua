@@ -20,6 +20,8 @@ local groups = {
     { key="forever_faces", label="3D头像", category="third_party" },
     { key="better_vendor_ui", label="商人增强", category="third_party" },
     { key="pet_xp_bar", label="宠物经验", category="third_party" },
+    { key="raynna_bestiary", label="怪物图鉴", category="third_party" },
+    { key="prr", label="配方用途", category="third_party", app="WoWToolsPRR" },
     { key="third_party", label="插件管理", category="third_party" },
 }
 settings.groups, settings.categories, settings.categoryTabs = groups, categories, {}
@@ -82,6 +84,7 @@ local function RenderAce(page, subgroup)
     end
     local ready = page.key == "ls_toasts" and WoWTools.lsToasts.ready
         or page.key == "bigfoot_channel" and WoWTools.bigfootChannel.addon and WoWTools.bigfootChannel.addon.db
+    ready = ready or page.key == "prr" and WoWTools.prr.ready
     local blocked = page.key == "ls_toasts" and InCombatLockdown()
     if not ready or blocked then
         if page.container then page.container.frame:Hide() end

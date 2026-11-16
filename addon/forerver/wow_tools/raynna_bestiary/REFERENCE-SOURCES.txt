@@ -1,0 +1,55 @@
+Classic loot reference
+======================
+Source: https://github.com/cmangos/classic-db
+File: Full_DB/ClassicDB_1_12_1_z2815.sql.gz
+Git blob: 0a77f5230a3d5d6db968678203dfe3b30c34b8a9
+Imported: 2026-11-13
+License: GPL-3.0; see LICENSE-ClassicDB.txt.
+The data in LootReference.lua is derived from this source, not from player logs.
+Reproduction: tools/build_loot_reference.py in the tracker workspace verifies the
+source blob and converts the SQL into Lua without executing SQL.
+
+This is a Classic 1.12 reference snapshot, NOT verified Forever server data.
+It can omit new or changed creatures/items. No online requests happen in game.
+NPC IDs select the loot table. Names do not determine source matches.
+Direct and resolvable single-roll reference/group probabilities are displayed.
+Quest/condition-dependent direct rates are labeled conditional. Repeated pools,
+ambiguous groups and duplicate paths show Chance unknown instead of false precision.
+Item quality and item bonus/stat tooltips come from the running game client.
+
+Additional item-source providers: installed QuestieDB (runtime read-only lookup of npcDrops, questRewards, vendors). Striking Staff 279844 reward correction verified 2026-11-13 at https://www.wowhead.com/forever/item=279844/striking-staff .
+
+Standalone metadata snapshot (1.13.0):
+QuestieDB 1.0.13 Forever, build commit 0f7d8adc92b28ac6594f4ad8745257f4d9784edf.
+Upstream: https://github.com/Questie/QuestieDB
+Selected factual records exported by tools/build_metadata.py; TOC SHA-256 is in
+Metadata.lua. Static corrections are baked into that source. Required faction
+NPC/item overlays are exported for Horde and Alliance. Item objective references
+also produce associated quest names. No Questie runtime or name/logo is bundled.
+Attribution: QuestieDB and Questie contributors; full licensing notice retained in
+LICENSE-QuestieDB.txt, including historic contributor limitations. GPLv3 text is
+in GPL-3.0.txt. This package does not claim ownership of upstream material.
+No GearQuest artwork is distributed or referenced; backgrounds are game assets.
+
+Forever fallback snapshot (2026-11-13)
+--------------------------------------
+ForeverReference.lua contains selected factual item-ID/rate records from:
+https://db.icy-veins.com/wow-forever/npcs/262397
+https://db.icy-veins.com/wow-forever/npcs/269175
+Brinescale Skirmisher: 65 records; excludes the remaining rare-drop tail.
+Carnivorous Weed: 34 records visible at review time.
+These are published reference percentages, not verified server probabilities.
+Coverage is partial and the upstream pages describe their database as incomplete.
+No page text, artwork, portraits or website assets are bundled. Item names resolve
+from existing metadata/client data. Quest conditions remain explicit.
+This dated snapshot does not auto-refresh from the website or QuestieDB.
+No verified display IDs were found for these NPCs; portrait mappings are unchanged.
+
+Source code and data-generation tools for this distribution:
+https://github.com/raynna/raynnatracker
+The player ZIP omits development tools; source is supplied in that repository.
+
+Standalone Bestiary source and build tools:
+https://github.com/raynna/raynnabestiary
+This package has no required Tracker dependency. Rebuild generators from the
+repository tools directory. Percentages and coverage retain the notices above.
