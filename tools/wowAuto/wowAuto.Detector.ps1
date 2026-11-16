@@ -65,7 +65,8 @@ function Get-DetectorScreen {
     $current=[WowAutoRotation.Native]::ReadClientSize($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)
     if(-not [WowAutoRotation.Native]::ClientSizeWithinTolerance($size.Width,$size.Height,$current.Width,$current.Height)){return [pscustomobject]@{Kind='pending';Targets=@()}}
     $ocrRoles=if($script:discoverAccount){@($script:accountCandidates | ForEach-Object {$_.Names} | Sort-Object -Unique | ForEach-Object {[pscustomobject]@{Name=$_}})}else{$script:roles}
-    $screen=ConvertFrom-RotationOcr ($result | ConvertFrom-Json) ([pscustomobject]@{Slots=$ocrRoles})
+    $ocrNames=@($script:accountCandidates | ForEach-Object {$_.OcrNames})
+    $screen=ConvertFrom-RotationOcr ($result | ConvertFrom-Json) ([pscustomobject]@{Slots=$ocrRoles;OcrNames=$ocrNames}) -Flavor $Endpoint.Flavor
     foreach($target in $screen.Targets){$target | Add-Member NoteProperty ClientSize $size}
     return $screen
 }

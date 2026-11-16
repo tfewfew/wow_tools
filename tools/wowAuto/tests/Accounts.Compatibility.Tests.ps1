@@ -1,5 +1,6 @@
 ﻿$ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '..\wowAuto.Accounts.ps1')
+. (Join-Path $PSScriptRoot '..\wowAuto.AccountTasks.ps1')
 . (Join-Path $PSScriptRoot '..\wowAuto.AccountTasks.Ui.ps1')
 
 function Assert-AccountRecord($Condition, [string]$Message) {
@@ -61,6 +62,24 @@ try {
     Assert-AccountRecord ($catalog[0].Characters[0].FullName -ceq '嫩牛五方-真棒' -and
         $catalog[0].Characters[0].DisplayRealm -ceq '真棒' -and
         (Get-WowCharacterDisplayName $catalog[0].Characters[0]) -ceq '嫩牛五方-真棒') 'Character display names lost their realm suffix.'
+    $previousRotation=$script:rotation
+    $previousAccountTasks=$script:accountTasks
+    try {
+        $script:rotation=@{GameDirectories=@{forerver=$temporaryRoot}}
+        $script:accountTasks=@{
+            Catalog=@{'forerver:TEST'=$catalog[0]}
+            Config=@{Accounts=@{'forerver:TEST'=@()}}
+        }
+        $row=[pscustomobject]@{Client=[pscustomobject]@{Flavor='forerver';ExecutablePath=(Join-Path $temporaryRoot 'Wow.exe')}}
+        $candidates=@(Get-AccountDiscoveryCandidates $row)
+        $decoded=@($candidates | ConvertTo-Json -Depth 12 | ConvertFrom-Json)
+        Assert-AccountRecord ($decoded.Count -eq 1 -and $decoded[0].Names[0] -ceq '嫩牛五方' -and
+            $decoded[0].OcrNames[0].Name -ceq '嫩牛五方' -and $decoded[0].OcrNames[0].Text -ceq '嫩牛五方真棒' -and
+            $decoded[0].Roles.Count -eq 0) 'Detector JSON lost the full OCR label or changed the saved role identity.'
+    } finally {
+        $script:rotation=$previousRotation
+        $script:accountTasks=$previousAccountTasks
+    }
     $draft = @{ Accounts = @{ TEST = @(@{Name='嫩牛五方';Realm='CN5 Realm 7 PvP';Enabled=$false;Mode='fish';UseItem=$false}) } }
     $grid = [pscustomobject]@{Rows=@([pscustomobject]@{
         Tag=$catalog[0].Characters[0]

@@ -1,18 +1,22 @@
 ﻿# Pure OCR interpretation shared by independent detector runspaces.
-function Resolve-RotationOcrName([string]$Text,[string[]]$Configured) {
+function Resolve-RotationOcrName([string]$Text,[string[]]$Configured,$Aliases=@()) {
     # OCR may misread one glyph. Keep the text length and every other position exact.
-    $matches=@(foreach ($name in $Configured) {
-        if ($Text.Length -ne $name.Length -or $name.Length -lt 2) {continue}
+    # Full display labels are compared intact and resolve to the saved task identity.
+    $labels=@(foreach ($name in $Configured) {[pscustomobject]@{Name=$name;Text=$name}})
+    $labels+=@($Aliases | Where-Object {$_.Name -cin $Configured})
+    $matches=@(foreach ($label in $labels) {
+        if ($Text.Length -ne $label.Text.Length -or $label.Text.Length -lt 2) {continue}
         $different=0
-        for ($i=0;$i -lt $name.Length;$i++) {
-            if ($Text[$i] -cne $name[$i]) {$different++;if ($different -gt 1) {break}}
+        for ($i=0;$i -lt $label.Text.Length;$i++) {
+            if ($Text[$i] -cne $label.Text[$i]) {$different++;if ($different -gt 1) {break}}
         }
-        if ($different -le 1) {$name}
+        if ($different -le 1) {$label.Name}
     })
+    $matches=@($matches | Select-Object -Unique)
     if ($matches.Count -eq 1) {return [pscustomobject]@{Name=$matches[0];Ambiguous=$false}}
     return [pscustomobject]@{Name=$Text;Ambiguous=($matches.Count -gt 1)}
 }
-function Get-RotationMenuGeometry($Ocr,$Bounds) {
+function Get-RotationMenuGeometry($Ocr,$Bounds,[double]$ExpectedFirst=0.119) {
     # The character list keeps its own UI scale when the game window changes size.
     # Calibrate a row grid from several yellow name lines, never from one target box.
     $centers=@($Ocr.Names | Where-Object {$_.Text -match '^[\p{L}\p{M}]+$'} |
@@ -31,7 +35,7 @@ function Get-RotationMenuGeometry($Ocr,$Bounds) {
     if ($gaps.Count -lt 2) {return $null}
     $step=[double]$gaps[[int][Math]::Floor($gaps.Count/2)]
     if (@($gaps | Where-Object {[Math]::Abs($_-$step) -gt 0.012}).Count -gt [Math]::Floor($gaps.Count/3)) {return $null}
-    $firstIndex=[int][Math]::Round(($distinct[0]-0.119)/$step,[MidpointRounding]::AwayFromZero)
+    $firstIndex=[int][Math]::Round(($distinct[0]-$ExpectedFirst)/$step,[MidpointRounding]::AwayFromZero)
     if ($firstIndex -lt 0 -or $firstIndex -gt 3) {return $null}
     $offsets=@(for ($i=0;$i -lt $distinct.Count;$i++) {
         $index=$firstIndex+[int][Math]::Round(($distinct[$i]-$distinct[0])/$step,[MidpointRounding]::AwayFromZero)
@@ -65,10 +69,14 @@ function Get-RotationOcrLog($Screen,[string]$Name) {
     $selection=if ($matched.Count -eq 1) {'已定位第'+$matched[0].MenuRow+'个角色槽位（'+$Name+'）'} else {'目标“'+$Name+'”未唯一定位，暂不点击'}
     return 'OCR角色列表：'+$list+'；'+$selection+'。'
 }
-function ConvertFrom-RotationOcr($Ocr,$Plan,[switch]$MenuWasConfirmed) {
+function ConvertFrom-RotationOcr($Ocr,$Plan,[switch]$MenuWasConfirmed,[ValidateSet('titan','forerver')][string]$Flavor='titan') {
     $configured=@($Plan.Slots | Where-Object {$_.Name} | ForEach-Object {$_.Name} | Select-Object -Unique)
+    $aliases=@(if ($Flavor -eq 'forerver' -and $Plan.PSObject.Properties['OcrNames']) {$Plan.OcrNames})
     $bounds=if ($Ocr.PSObject.Properties['NamesBounds'] -and $Ocr.NamesBounds) {$Ocr.NamesBounds} else {[pscustomobject]@{X=0.79;Y=0;W=0.21;H=0.84}}
-    $geometry=Get-RotationMenuGeometry $Ocr $bounds
+    # Client-relative name centers from the 2026-11-17 forever selection screenshot.
+    $fallback=if ($Flavor -eq 'forerver') {[pscustomobject]@{First=0.1432;Step=0.0820}} else {[pscustomobject]@{First=0.119;Step=0.0743}}
+    $geometry=Get-RotationMenuGeometry $Ocr $bounds $fallback.First
+    if (-not $geometry) {$geometry=$fallback}
     $server=@($Ocr.Lines | Where-Object {$_.X -gt 0.65 -and $_.Y -lt 0.15 -and $_.Text -match '^[0一_—\-口□]*选择服务器[一_—\-口□]*$'}).Count -gt 0
     # The name-text pass also isolates the yellow server button from its border.
     $server=$server -or @($Ocr.Names | Where-Object {$_.Text -eq '选择服务器' -and ($bounds.X+$_.X*$bounds.W) -gt 0.65 -and ($bounds.Y+$_.Y*$bounds.H) -lt 0.15}).Count -gt 0
@@ -76,7 +84,7 @@ function ConvertFrom-RotationOcr($Ocr,$Plan,[switch]$MenuWasConfirmed) {
     $targets=@(foreach ($line in $Ocr.Names) {
         $y=$bounds.Y+($line.Y+$line.H/2)*$bounds.H
         if ($y -lt 0.08 -or $y -gt 0.80 -or ($y -lt 0.15 -and $line.Text -eq '选择服务器') -or $line.Text -notmatch '^[\p{L}\p{M}]+$') {continue}
-        $match=Resolve-RotationOcrName $line.Text $configured
+        $match=Resolve-RotationOcrName $line.Text $configured $aliases
         # A uniquely matched name may have a shifted OCR box; unrelated text
         # retains the tighter 2% threshold.
         $tolerance=if (-not $match.Ambiguous -and $match.Name -cin $configured) {0.034} else {0.02}
@@ -87,7 +95,7 @@ function ConvertFrom-RotationOcr($Ocr,$Plan,[switch]$MenuWasConfirmed) {
     # The normal pass can recover names that yellow-text preprocessing misread twice.
     foreach ($line in $Ocr.Lines) {
         if ($line.X -gt $bounds.X -and $line.Y -gt 0.08 -and $line.Y -lt 0.80) {
-            $match=Resolve-RotationOcrName $line.Text $configured
+            $match=Resolve-RotationOcrName $line.Text $configured $aliases
             if (-not $match.Ambiguous -and $match.Name -cin $configured -and $match.Name -cnotin $targets.Name) {
                 $row=Get-RotationMenuRow $bounds ($line.Y+$line.H/2) 0.034 $geometry
                 if ($row) {$targets+=,[pscustomobject]@{Name=$match.Name;RawName=$line.Text;Ambiguous=$false;MenuRow=$row.Index;X=$row.X;Y=$row.Y}}

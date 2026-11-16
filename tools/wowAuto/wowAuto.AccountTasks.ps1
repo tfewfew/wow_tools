@@ -139,7 +139,18 @@ function Get-AccountDiscoveryCandidates($Row) {
         if(-not $key.StartsWith($Row.Client.Flavor+':',[StringComparison]::Ordinal)){continue}
         $account=$key.Substring($Row.Client.Flavor.Length+1)
         $names=@($script:accountTasks.Catalog[$key].Characters | ForEach-Object Name | Sort-Object -Unique)
-        if($names.Count){@{Account=$account;Names=$names;Roles=@(Get-AccountTaskRoles $Row $account)}}
+        if($names.Count){
+            @{
+                Account=$account
+                Names=$names
+                OcrNames=@(if($Row.Client.Flavor -eq 'forerver') {
+                    foreach($record in $script:accountTasks.Catalog[$key].Characters) {
+                        @{Name=$record.Name;Text=($record.FullName -replace '[-\s]','')}
+                    }
+                })
+                Roles=@(Get-AccountTaskRoles $Row $account)
+            }
+        }
     }
 }
 function Test-AccountDiscoveryAvailable($Row) {

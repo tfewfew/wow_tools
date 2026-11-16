@@ -335,7 +335,7 @@ function Read-RotationScreen($Row,$Plan,[switch]$MenuWasConfirmed) {
             if ($work.Pipeline.Streams.Error.Count) {throw $work.Pipeline.Streams.Error[0].ToString()}
             if (-not (Test-RotationClientSize $Row $work.ClientSize)) {return [pscustomobject]@{Kind='pending'}}
             if ($script:schedulerClock.ElapsedMilliseconds-$work.At -gt 3000) {return [pscustomobject]@{Kind='pending'}}
-            $screen=ConvertFrom-RotationOcr ($result[0] | ConvertFrom-Json) $Plan -MenuWasConfirmed:$MenuWasConfirmed
+            $screen=ConvertFrom-RotationOcr ($result[0] | ConvertFrom-Json) $Plan -MenuWasConfirmed:$MenuWasConfirmed -Flavor $Row.Client.Flavor
             foreach ($target in @($screen.Targets)) {
                 $target | Add-Member NoteProperty ClientSize $work.ClientSize
             }
