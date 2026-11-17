@@ -39,7 +39,7 @@
 - PR-03 保留中文默认与补译。`prr/config/defaults.lua`、`core.lua`、`components/options_panel.lua`、`lang/en.lua`、`lang/zh.lua` 默认使用中文，首次将旧自动语言配置转为中文，保留用户明确指定的其他语言，中文优先列出并补齐标题。依据为收编后的 f09b9c4。
 - PR-05 增加已学配方标记。`prr/components/recipe_row.lua` 在配方主图标和图纸图标上使用与 Better Vendor UI 一致的去色覆盖及 136814 绿色勾，勾图四边内缩 4px，每次填充行时按当前角色的已学状态更新。`utilities/game_data.lua` 按本服 NEW_RECIPE_LEARNED 的 recipeID 记录本角色已学配方，`events/items.lua` 在学习、技能及法术变化和专业窗口读取后沿用可见窗口合并刷新。原 1.5.2 的 RecipeRow.Fill 仅有品质与收藏显示，尚无该标记。
 - PR-06 补齐缺失的专业学习等级。`database/recipe_details.lua` 由 `skills/wow-tools/scripts/build_prr_recipe_details.py` 从 MIT 的 LibProfessionDB 1.10.1 Forever 数据及 CC BY 4.0 的 Efficient Games 实测记录生成，固定发布包 SHA256、数据完整 commit 和输入文件指纹。原 PRR 修正后的 318 个缺项补齐 147 个，其中 87 个采用无限服数据、60 个采用带星号的经典旧世参考，171 个继续保留未知。`dataflows/recipe_index.lua` 在既有修正后补缺，用户明确标为未知及已知数值保持优先。原始上游包未含此数据接入。
-- PR-07 显示具体教授配方的训练师。`utilities/recipe_sources.lua`、`components/recipe_row.lua`、`recipe_picker.lua` 与 `item_tooltip.lua` 为 553 个配方关联 195 位训练师，行内显示姓名摘要，悬停提示给出完整已收录姓名和可用位置。NPC 中文名按 ID 使用 QuestieDB 并缓存，缺译名时使用数据原名。无限服观察与经典旧世参考分别标注，上游截断的历史名单保留实际总数和收录数，缺失来源明确显示尚未收录。数据许可随模块附带，运行时采用离线表。
+- PR-07 显示具体教授配方的训练师。`utilities/recipe_sources.lua`、`components/recipe_row.lua`、`recipe_picker.lua` 与 `item_tooltip.lua` 为 553 个配方关联 195 位训练师，行内摘要和悬停列表采用“训练师姓名 / 所处位置”，实测地图记录附百分比坐标，缺少实测位置时按 QuestieDB 的 zoneID 获取区域，仍缺失时显示“位置未收录”。NPC 中文名和位置按 ID 缓存，缺译名时使用数据原名。无限服观察与经典旧世参考分别标注，上游截断的历史名单保留实际总数和收录数，缺失来源明确显示尚未收录。数据许可随模块附带，运行时采用离线表。2026-11-17 按用户要求调整格式并核对本服 C_Map.GetMapInfo / GetAreaInfo 与 QuestieDB 字段契约。
 
 ## 已回退适配
 

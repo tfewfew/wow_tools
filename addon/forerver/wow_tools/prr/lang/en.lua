@@ -16,6 +16,7 @@ ns.Localization.Add("en", [==[
         "teaches": "Teaches:",
         "auction_price": "Auction(PRR)",
         "trainer": "Trainer: %s",
+        "location_unknown": "Location not recorded",
         "other_trainers": " and %d more",
         "reference_mark": " (Classic reference)",
         "skill_reference": "* Required skill uses Classic reference data and awaits Forever verification.",

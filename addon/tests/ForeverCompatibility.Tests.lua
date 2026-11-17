@@ -283,9 +283,20 @@ C_Item = {
     end,
 }
 C_Spell = { GetSpellName = function() return "Fishing" end }
+C_Map = {
+    GetMapInfo = function(uiMapID)
+        assert(type(uiMapID) == "number", "Map info requires a numeric UI map ID")
+        return {name = "Zone " .. uiMapID}
+    end,
+    GetAreaInfo = function(areaID)
+        assert(type(areaID) == "number", "Area info requires a numeric area ID")
+        return "Area " .. areaID
+    end,
+}
 function GetBuildInfo() return flavor == "titan" and "3.80.2" or "1.60.1", "70790" end
 local localizedNameReads = 0
 LibQuestieDB = {Npc = {Get = function(id, field)
+    if field == "zoneID" then return id == 3184 and 14 or nil end
     assert(field == "name", "Localized NPC adapter requested the wrong field")
     localizedNameReads = localizedNameReads + 1
     return id == 6 and "狗头人歹徒" or nil
@@ -472,8 +483,11 @@ if flavor == "forerver" then
         assert(prr.SkillRange.Text({skill = 185, skillReference = true}):find("[185*]", 1, true),
             "PRR borrowed skill label lost its reference marker")
         prr.Components.RecipeRow.Fill(recipeRow, repairedRecipe, 2318)
-        assert(recipeRow.trainers:IsShown() and recipeRow.trainers:GetText():find("Brawn", 1, true),
-            "PRR recipe row does not bind its named trainer summary")
+        assert(recipeRow.trainers:IsShown()
+            and recipeRow.trainers:GetText():find("Brawn / Zone 1434 (31.7, 28.8)", 1, true),
+            "PRR recipe row does not bind its trainer/map/coordinate summary")
+        assert(prr.RecipeSources.TrainerLocation(3184) == "Area 14",
+            "PRR trainer location did not bind the Questie zone/native area fallback")
         prr.RecipeSources.AddTooltip(GameTooltip, repairedRecipe)
         WoWTools.settings.Open("raynna_bestiary")
         assert(bestiary.optionsPanel and bestiary.optionsPanel:GetParent() == bestiary.settingsPanel,

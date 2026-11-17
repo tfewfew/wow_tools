@@ -16,6 +16,7 @@ ns.Localization.Add("zh", [==[
         "teaches": "教授：",
         "auction_price": "拍卖(PRR)",
         "trainer": "训练师：%s",
+        "location_unknown": "位置未收录",
         "other_trainers": "，另有 %d 位",
         "reference_mark": "（经典旧世参考）",
         "skill_reference": "* 学习等级沿用经典旧世参考数据，无限服待核实。",
