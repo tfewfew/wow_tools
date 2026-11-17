@@ -130,6 +130,7 @@ local function widget(name, parent, kind)
     function object:Hide() local visible=self:IsVisible(); self.shown=false; VisibilityChanged(self,visible) end
     function object:Show() local visible=self:IsVisible(); self.shown=true; VisibilityChanged(self,visible) end
     function object:IsShown() return self.shown end
+    function object:SetShown(value) if value then self:Show() else self:Hide() end end
     function object:GetFrameLevel() return 1 end
     function object:SetValue(value)
         self.value = value
@@ -357,11 +358,32 @@ function C_Timer.NewTicker(seconds, callback)
 end
 local originalHook = hooksecurefunc
 function hooksecurefunc(target, method, callback)
-    if type(target) == "table" and method == "SetBarText" then
+    if type(target) == "table" and (method == "SetBarText" or method == "Init" or method == "Invalidate") then
         local original = target[method]
-        target[method] = function(self, text) original(self, text); callback(self, text) end
+        assert(type(original) == "function", "Post-hooks require a native method")
+        target[method] = function(...) original(...); callback(...) end
     else originalHook(target, method, callback) end
 end
+local function CreateNativeProfessionForm()
+    ProfessionsFrame = CreateFrame("Frame", nil, UIParent)
+    local page = CreateFrame("Frame", nil, ProfessionsFrame)
+    ProfessionsFrame.CraftingPage = page
+    local form = CreateFrame("Frame", nil, page)
+    page.SchematicForm = form
+    form:SetSize(360, 484)
+    form.currentRecipeInfo = {recipeID = 2159}
+    form.TrackRecipeCheckbox = CreateFrame("CheckButton", nil, form, "UICheckButtonTemplate")
+    local checkbox = form.TrackRecipeCheckbox
+    checkbox.nativeClick = function(self) self:SetChecked(not self:GetChecked()) end
+    checkbox:SetScript("OnClick", checkbox.nativeClick)
+    function form:GetRecipeInfo() return self.currentRecipeInfo end
+    function form:Init(info)
+        self.currentRecipeInfo = info
+        self.TrackRecipeCheckbox:SetShown(info ~= nil)
+    end
+    return form
+end
+if flavor == "forerver" and TEST_PROFESSIONS_PRELOADED then CreateNativeProfessionForm() end
 local xpText = widget(nil, nil, "FontString")
 local xpBar = {OverlayFrame = {Text = xpText}}
 function xpBar:SetBarText(text) self.OverlayFrame.Text:SetText(text) end
@@ -407,6 +429,8 @@ if flavor == "forerver" then
         assert(not bestiary.db and not bestiary.BuildBestiary and not RaynnaBestiaryAPI,
             "Disabled Bestiary initialized its runtime")
         assert(not prr.db and not prr.Events and not prr.ready, "Disabled PRR initialized its runtime")
+        assert(not ProfessionsFrame or not ProfessionsFrame.CraftingPage.SchematicForm.TrackRecipeCheckbox.prrSkillRange,
+            "Disabled PRR attached its native crafting skill display")
     else
         assert(bestiary.db == wowToolsCharacterSettings.raynnaBestiary.db,
             "Bestiary character settings binding failed")
@@ -558,6 +582,44 @@ if flavor == "forerver" then
         assert(#locationLines == 1 and locationLines[1]:find("Zone 1434 (31.7, 28.8)", 1, true)
             and not locationLines[1]:find("Brawn", 1, true),
             "PRR location tooltip must deduplicate locations and prefer observed source provenance")
+        local form = ProfessionsFrame and ProfessionsFrame.CraftingPage.SchematicForm
+        if not form then
+            form = CreateNativeProfessionForm()
+            for _, frame in ipairs(frames) do
+                if frame.events.ADDON_LOADED then frame.scripts.OnEvent(frame, "ADDON_LOADED", "Blizzard_Professions") end
+            end
+        end
+        local checkbox = form.TrackRecipeCheckbox
+        local levels = assert(checkbox.prrSkillRange, "PRR did not bind the native recipe tracking checkbox")
+        prr.Components.CraftingSkillRange.Setup()
+        assert(checkbox.prrSkillRange == levels and levels:GetParent() == checkbox
+            and levels.point[1] == "RIGHT" and levels.point[2] == checkbox
+            and levels.point[3] == "LEFT" and levels.point[4] == -8 and not levels.wordWrap
+            and checkbox:GetScript("OnClick") == checkbox.nativeClick,
+            "PRR skill thresholds lost their left-side anchor, native parent or tracking click binding")
+        form:Init({recipeID = 2159})
+        assert(levels:IsShown() and levels:GetText() == prr.SkillRange.Text(repairedRecipe)
+            and levels:GetText():find("[50]", 1, true) and levels:GetText():find("[70]", 1, true)
+            and levels:GetText():find("[85]", 1, true) and levels:GetText():find("[100]", 1, true),
+            "PRR native crafting selection does not bind all four colored skill thresholds")
+        form:Init({recipeID = 2149})
+        assert(levels:GetText() == prr.SkillRange.Text(prr.Dataflows.RecipeIndex.Get(2149)),
+            "PRR native crafting selection retained a previous recipe's thresholds")
+        form:Init({recipeID = 99999999})
+        assert(not levels:IsShown() and levels:GetText() == "", "PRR unknown recipes retained old thresholds")
+        form:Init({recipeID = secret})
+        assert(not levels:IsShown(), "PRR native selection compared a restricted recipe ID")
+        form:Init(nil)
+        assert(not levels:IsShown(), "PRR empty native selection retained its skill label")
+        form:Init({recipeID = 2159})
+        local savedFix = prr.db.fixes[2159]
+        prr.Services.RecipeFix.SetSkill(2159, 55)
+        assert(levels:GetText():find("[55]", 1, true), "PRR native skill label did not bind index invalidation")
+        prr.db.fixes[2159] = savedFix
+        prr.Dataflows.RecipeIndex.Invalidate()
+        assert(levels:GetText() == prr.SkillRange.Text(repairedRecipe),
+            "PRR native skill display did not restore the indexed supplement")
+        ProfessionsFrame:Hide()
         WoWTools.settings.Open("raynna_bestiary")
         assert(bestiary.optionsPanel and bestiary.optionsPanel:GetParent() == bestiary.settingsPanel,
             "Bestiary options are not embedded in the shared canvas")

@@ -77,6 +77,7 @@
     <Script file="components\prices_tab.lua"/>
     <Script file="components\recipe_picker.lua"/>
     <Script file="components\craft_button.lua"/>
+    <Script file="components\crafting_skill_range.lua"/>
     <Script file="components\leveling_tab.lua"/>
     <Script file="components\enchant_target_window.lua"/>
     <Script file="components\planner_window.lua"/>
@@ -93,6 +94,7 @@
     <Script file="events\tooltip.lua"/>
     <Script file="events\bag_click.lua"/>
     <Script file="events\items.lua"/>
+    <Script file="events\professions.lua"/>
     <Script file="events\hotkeys.lua"/>
     <Script file="events\bag_stars.lua"/>
     <Script file="events\loot_glow.lua"/>

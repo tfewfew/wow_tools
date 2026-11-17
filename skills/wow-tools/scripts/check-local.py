@@ -88,6 +88,7 @@ def main():
         runtime.globals().TEST_ROOT = repo.as_posix()
         runtime.globals().TEST_FLAVOR = flavor
         runtime.globals().TEST_THIRD_PARTY_DISABLED = True
+        runtime.globals().TEST_PROFESSIONS_PRELOADED = flavor == 'forerver'
         path = repo / 'addon/tests/ForeverCompatibility.Tests.lua'
         runtime.execute(path.read_text(encoding='utf-8-sig'), name='@' + str(path))
         if flavor == 'forerver':
@@ -95,6 +96,7 @@ def main():
             runtime.globals().TEST_ROOT = repo.as_posix()
             runtime.globals().TEST_FLAVOR = flavor
             runtime.globals().TEST_PLUGIN_LANGUAGE = 'en'
+            runtime.globals().TEST_PROFESSIONS_PRELOADED = True
             runtime.execute(path.read_text(encoding='utf-8-sig'), name='@' + str(path))
             runtime = LuaRuntime()
             runtime.globals().TEST_ROOT = repo.as_posix()

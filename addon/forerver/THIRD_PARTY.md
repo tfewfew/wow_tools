@@ -12,7 +12,7 @@
 | better_vendor_ui | Better Vendor UI | [Vaniron 官方发布包](https://www.curseforge.com/wow/addons/better-vendor-ui/files/9436965) | 1.3.1 | 上游未公布 Git commit，发布包 SHA256 和文件指纹见 better_vendor_ui/SOURCE.json | 2026-11-14 | BV-01、BV-02、BV-03 | 2026-11-17 官方文件 API 最新正式包仍为 1.3.1 / 9436965，重新下载包 SHA256 与 SOURCE.json 一致，三项适配继续适用 |
 | pet_xp_bar | PetXPBarPlus | [DustinChecketts/PetXPBarPlus](https://github.com/DustinChecketts/PetXPBarPlus) | 1.3.1 | 0c5da2aef6b2b56e307a77e37151fe4675be6c82 | 2026-11-16 | PX-01、PX-02 | 2026-11-17 官方最新正式版仍为 v1.3.1，tag 解析出的完整 commit 与当前基线一致，宿主与本服接口适配继续适用 |
 | raynna_bestiary | Raynna's Bestiary | [raynna/raynnabestiary](https://github.com/raynna/raynnabestiary) | 1.1.3 | 上游未公布该版本 Git commit，官方文件 9638877 的发布包 SHA256 及文件指纹见 raynna_bestiary/SOURCE.json | 2026-11-17 | RB-01、RB-02、RB-03、RB-05、RB-06 | 2026-11-17 官方最新正式包仍为 1.1.3 / 9638877，重新下载包 SHA256 与 SOURCE.json 一致，核对既有来源窗口，增加怪物剥皮并列视图及指针坐标适配 |
-| prr | PRR | [izicawow 官方发布包](https://www.curseforge.com/wow/addons/prr/files/9629892) | 1.5.2 | 上游未公布 Git commit，发布包 SHA256 与文件指纹见 prr/SOURCE.json | 2026-11-17 | PR-01、PR-02、PR-03、PR-05、PR-06、PR-07 | 2026-11-17 官方最新正式包仍为 1.5.2 / 9629892，重新下载包 SHA256 与 SOURCE.json 一致，保留已学标记、等级修正及训练师数据，来源显示改为去重学习地点，数据指纹见 prr/RECIPE-SOURCES.json |
+| prr | PRR | [izicawow 官方发布包](https://www.curseforge.com/wow/addons/prr/files/9629892) | 1.5.2 | 上游未公布 Git commit，发布包 SHA256 与文件指纹见 prr/SOURCE.json | 2026-11-18 | PR-01、PR-02、PR-03、PR-05、PR-06、PR-07、PR-08 | 2026-11-18 本地新增原生制作页的彩色熟练度阈值，沿用此前已核对的官方 1.5.2 / 9629892 基线及现有等级、训练师数据指纹 |
 
 ## 当前本地适配
 
@@ -43,6 +43,8 @@
 - PR-05 增加已学配方标记。`prr/components/recipe_row.lua` 在配方主图标和图纸图标上使用与 Better Vendor UI 一致的去色覆盖及 136814 绿色勾，勾图四边内缩 4px，每次填充行时按当前角色的已学状态更新。`utilities/game_data.lua` 按本服 NEW_RECIPE_LEARNED 的 recipeID 记录本角色已学配方，`events/items.lua` 在学习、技能及法术变化和专业窗口读取后沿用可见窗口合并刷新。原 1.5.2 的 RecipeRow.Fill 仅有品质与收藏显示，尚无该标记。
 - PR-06 补齐缺失的专业学习等级。`database/recipe_details.lua` 由 `skills/wow-tools/scripts/build_prr_recipe_details.py` 从 MIT 的 LibProfessionDB 1.10.1 Forever 数据及 CC BY 4.0 的 Efficient Games 实测记录生成，固定发布包 SHA256、数据完整 commit 和输入文件指纹。原 PRR 修正后的 318 个缺项补齐 147 个，其中 87 个采用无限服数据、60 个采用带星号的经典旧世参考，171 个继续保留未知。`dataflows/recipe_index.lua` 在既有修正后补缺，用户明确标为未知及已知数值保持优先。原始上游包未含此数据接入。
 - PR-07 显示配方学习地点。`utilities/recipe_sources.lua`、`components/recipe_row.lua`、`recipe_picker.lua` 与 `item_tooltip.lua` 复用 553 个配方与 195 位训练师的关联，行内摘要和悬停列表仅显示地点，实测地图记录附百分比坐标。同一地点去重，实测来源优先，摘要中的其他地点按处计数。位置按 NPC ID 缓存，缺少实测位置时按 QuestieDB 的 zoneID 获取区域，仍缺失时显示“位置未收录”。无限服观察与经典旧世参考分别标注，缺失来源明确显示尚未收录。数据许可随模块附带，运行时采用离线表。2026-11-17 按用户要求调整为地点显示，并核对本服 C_Map.GetMapInfo / GetAreaInfo 与 QuestieDB 字段契约。
+
+- PR-08 原生制作详情页显示配方熟练度阈值。`components/crafting_skill_range.lua` 在 ProfessionsFrame.CraftingPage.SchematicForm.TrackRecipeCheckbox 左侧添加橙、黄、绿、灰等级，复用 RecipeIndex.Get 的当前修正及 SkillRange.Text 的格式和颜色，随原生 Init、面板显示与索引失效刷新。`events/professions.lua` 和 Integration.lua 分别覆盖延迟加载与已加载的专业界面，PRR 停用时沿用宿主加载开关。阈值缺项沿用现有未知语义，等级标签继承勾选框的缩放和显隐。按 Gethe/wow-ui-source forever 的 bebcb6bf309cf41b41bd74f8ca651e6a105b2676 核对本服 SchematicForm.GetRecipeInfo、Init 与 Camelot 勾选框底部锚点，接口检查覆盖加载次序、选中配方、左侧定位、用户修正和受限 ID。
 
 ## 已回退适配
 

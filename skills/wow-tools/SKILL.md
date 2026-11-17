@@ -34,6 +34,11 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 以下为实现与发布历史，其中的测试名称和通过数量保留为历史记录，当前本地测试采用上述范围。
 
+## 无限服 PRR 原生制作页熟练度阈值（2026-11-18）
+
+- forerver 2.2.134 在原生专业制作详情页“追踪配方”勾选框左侧加入橙、黄、绿、灰熟练度等级，按所选配方 ID 复用 PRR 已有索引、用户修正及 SkillRange.Text。制作页初始化、显示和索引失效时刷新，覆盖原生专业界面已加载与延迟加载，停用 PRR 时沿用宿主模块开关。
+- 维护表登记 PR-08，沿用 PRR 1.5.2 上游基线。本服接口按 bebcb6bf309cf41b41bd74f8ca651e6a105b2676 的 SchematicForm 和 Camelot 原生锚点核对，两服统一检查覆盖语法、语义、加载、颜色阈值与原生控件接口。PRR 仅在无限服源码收编，本次按此范围维护并部署，实际游戏位置由用户重载后验证。
+
 ## 双端 Questie 专业采集与技能面板关闭刷新（2026-11-18）
 
 - titan 2.1.97 / forerver 2.2.133 为已安装 Questie 12.8.0 / 12.10.0 分别归档 profession-panel-close 补丁。原 SKILL_LINES_CHANGED 两秒桶及 CHAT_MSG_SKILL 延迟入口改为角色技能面板 OnHide 一次刷新，保留初始化和显式重置采集。无限服绑定原生 SkillsFrame，时光服绑定 SkillFrame，延迟加载时通过 ADDON_LOADED 补挂接一次。

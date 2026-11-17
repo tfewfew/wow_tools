@@ -11,5 +11,6 @@ events:SetScript("OnEvent", function(self, _, name)
     for _, initialize in ipairs(addon.sources) do initialize("wow_tools", addon) end
     addon.sources = nil
     addon.Core.Init()
+    addon.Components.CraftingSkillRange.Setup()
     addon.Components.OptionsPanel.Setup()
 end)

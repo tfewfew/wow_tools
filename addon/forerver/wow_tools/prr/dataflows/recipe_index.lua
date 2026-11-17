@@ -158,6 +158,13 @@ local function EnsureBuilt()
     end
 end
 
+-- The indexed recipe, including scans, supplements and the current hand fix.
+function RecipeIndex.Get(spellID)
+    EnsureBuilt()
+    local recipe = recipes[spellID]
+    if recipe and RecipeIndex.IsListed(recipe) then return recipe end
+end
+
 -- Recipes that create the item, or nil.
 function RecipeIndex.CraftedBy(itemID)
     EnsureBuilt()
