@@ -562,8 +562,8 @@ if flavor == "forerver" then
         local sourceDetails = assert(repairedRecipe.details, "PRR recipe detail dependency/load order failed")
         assert(sourceDetails.trainers[1].npcID == 1385 and not sourceDetails.trainers[1].reference
             and prr.Database.Trainers[1385].name == "Brawn", "PRR named trainer identity binding failed")
-        assert(prr.Database.RecipeDetails[3861].skillReference,
-            "PRR lost the borrowed skill provenance flag")
+        assert(prr.Database.RecipeDetails[3861].skill == 150 and not prr.Database.RecipeDetails[3861].skillReference,
+            "PRR observed Forever skill requirement did not replace the conflicting borrowed value")
         assert(prr.SkillRange.Text({skill = 185, skillReference = true}):find("[185*]", 1, true),
             "PRR borrowed skill label lost its reference marker")
         prr.Components.RecipeRow.Fill(recipeRow, repairedRecipe, 2318)

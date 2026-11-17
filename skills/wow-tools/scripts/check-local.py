@@ -106,7 +106,7 @@ def main():
     for path in (repo / 'addon/tests').glob('*.lua'):
         compiler(path.read_text(encoding='utf-8-sig'), '@' + str(path))
         lua_count += 1
-    for fixture in ['BagIntegration.Interfaces.lua', 'CategoryCollapse.Interfaces.lua']:
+    for fixture in ['BagIntegration.Interfaces.lua', 'CategoryCollapse.Interfaces.lua', 'PrrDatabase.Interfaces.lua']:
         runtime = LuaRuntime()
         runtime.globals().TEST_ROOT = repo.as_posix()
         path = repo / 'addon/tests' / fixture

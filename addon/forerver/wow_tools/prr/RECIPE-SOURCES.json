@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-17",
+  "updatedAt": "2026-11-18",
   "professionDB": {
     "version": "1.10.1",
     "license": "MIT",
@@ -10,7 +10,7 @@
   },
   "efficientGames": {
     "repository": "https://github.com/JIVESCORP/eg-link-output-wowf",
-    "commit": "6ff5612b54191f297eb77ca8eda81de029d9d6f0",
+    "commit": "06b4cc7b814c1cb16ff56b746181c2c62944fbc9",
     "license": "CC BY 4.0",
     "attribution": "Data from Efficient Games (https://efficient.games), licensed under CC BY 4.0.",
     "inputs": {
@@ -22,19 +22,850 @@
       "data/wowf/1.60.1.70425/trainers.json": "cbc0ab988e6123c77999c2a4b7da884120afee041b89f0636e2014e6300f6acb",
       "data/wowf/1.60.1.70450/trainers.json": "d3574ad747ee6e3f104656b5f1e55461503e2ec3577c36d12fc53d44a9d7d9a5",
       "data/wowf/1.60.1.70532/trainers.json": "9ee274ca32c07a34b2962991107a068572edef115652e253a6f46a827056b0c4",
-      "data/wowf/1.60.1.70790/trainers.json": "cb0c7515563ce5df4fc2f75716483331153e62873b1470f5ea2128bcb3084e0d",
-      "data/wowf/1.60.1.70840/trainers.json": "986dfda74fa1168510fd4ff6c223cb9d6a1677a211b618a7752dcce622085cd7",
-      "data/wowf/1.60.1.70862/trainers.json": "4486cb22a1bc88c8cf8667b13a61e020ddb3e446ca8a20973d012876f6939eb6",
-      "data/wowf/1.60.1.70888/trainers.json": "5292c0b2b564d8a6b1e0eb0d6032df3ce1d30e03ad9b4981b04551ce3d2fb461",
-      "data/wowf/1.60.1.70938/trainers.json": "4ffc5c0cabd8bb7bbc4c2fe6a4fc702d52ef792e918aeb02e773a7b77a596030"
+      "data/wowf/1.60.1.70790/trainers.json": "b6b629ec035855750b78183f1c3d10d89964bdf880678a8e94b40b76204fb001",
+      "data/wowf/1.60.1.70840/trainers.json": "120f44135f9b52ce2e5271a59b7bfa2863a83a586e9aa1f22fee90e3969e4a92",
+      "data/wowf/1.60.1.70862/trainers.json": "26d4b7a347d9b05a38480a9b33c5a48f77efb6f049ff5b09f11947bd8efa7344",
+      "data/wowf/1.60.1.70888/trainers.json": "8efacb229925c1f31ce7f3df4a7a5f495734c13376841375dcf588ecba35069a",
+      "data/wowf/1.60.1.70938/trainers.json": "f3ddf803593c5f05d7f8c56a7d17a96f79c157e164d9f4fb4cc00bbe3d5a4f3a"
+    }
+  },
+  "skillAuditBaseline": {
+    "efficientGamesCommit": "6ff5612b54191f297eb77ca8eda81de029d9d6f0",
+    "inputs": {
+      "data/wowf/1.60.1.70205/trainers.json": "e849ce929670674f2ffcf8ed2c217b7143f53d3d493a81cbd97a3b43ff4d549f",
+      "data/wowf/1.60.1.70291/trainers.json": "6827bd2cbd8c259b8c86019d240e4bbf2c3944cf7f695af699d7942be0836d63",
+      "data/wowf/1.60.1.70334/trainers.json": "6916df845f775845980d1a6ec9bfccda6ef1d89c6fe3646f15df53f11f9890d2",
+      "data/wowf/1.60.1.70338/trainers.json": "c333216a4ed64c761dc8b6a3d9e98e1438b33fe5eaf615135119d63616c4fd19",
+      "data/wowf/1.60.1.70374/trainers.json": "410c3bf0342577919afa605ba82161c519f04f00ea3e3e45dc8305ef31f7ed14",
+      "data/wowf/1.60.1.70425/trainers.json": "8c4c0983eda7e5757a7e59c45236f21517fd2cf7ffe184638bec8315bb4c54e8",
+      "data/wowf/1.60.1.70450/trainers.json": "005f9a6fb1b3e784792a033e6f3e0fe9876a29834d1aa510fce3182c3747b8ff",
+      "data/wowf/1.60.1.70532/trainers.json": "e797821f4356302b72316eedc88db2dc8929d448456f84218304d4d08710cedb",
+      "data/wowf/1.60.1.70790/trainers.json": "9406a2527b3cb26c9a96cc9a94807570f05d9f7238f291f2bc299472d714212d",
+      "data/wowf/1.60.1.70840/trainers.json": "db727c46e89c55b4f2605852927c4aa11fb7e0ad0f414e538d652e25d5ebaf2c",
+      "data/wowf/1.60.1.70862/trainers.json": "676cafd93cc025bb3a3e0a2b0058e45fd52785810bfd2f4f6dafbb7bd8060c09",
+      "data/wowf/1.60.1.70888/trainers.json": "d788ab7806f2a3bbf59234bb264398318fddb635cc0dccade8250b4b7e9e9eff",
+      "data/wowf/1.60.1.70938/trainers.json": "4014a15778cd14a50b24b1d1fea75150384adc7cc7796904605f2846eeef532b"
     }
   },
   "transformation": [
     "Export only spell IDs already present in PRR, and only the Forever data tree.",
-    "Keep native library requiredSkill, then observed Forever trainer ranks, then flagged Vanilla reference ranks.",
-    "Runtime fills missing skills after PRR fixes. Explicit user fixes and known values take priority.",
+    "Fill missing requirements from native library data, observed Forever trainers, then flagged Vanilla references.",
+    "Audit requirements above the native yellow threshold against trainers, native recipe items and own-flavor library data.",
+    "Correct verified differences and reject conflicting borrowed requirements. Confirmed learn requirements can exceed yellow.",
+    "Runtime applies verified base corrections and supplements below explicit PRR/user fixes.",
     "Merge named historical trainer IDs with observed Forever NPC/spell pairs. Observed pairs clear reference flags.",
     "Historical lists are capped by upstream. Preserve listed and total counts. Coverage is partial."
+  ],
+  "clientTables": {
+    "build": "1.60.1.70938",
+    "SkillLineAbility": {
+      "url": "https://wago.tools/db2/SkillLineAbility/csv?build=1.60.1.70938",
+      "sha256": "6696abd03ef90ad250a12ac23778616c292c46f6a0082130fbe187c96ead0aa0"
+    },
+    "ItemSparse": {
+      "url": "https://wago.tools/db2/ItemSparse/csv?build=1.60.1.70938",
+      "sha256": "fdc65396e8a1103ea5f552ea59aaebc0e73ba572612a3412c50e636b54c90b41"
+    }
+  },
+  "skillAudit": [
+    {
+      "spellID": 2665,
+      "previousSkill": 75,
+      "yellow": 40,
+      "gray": 55,
+      "skillLineAbilityID": 1636,
+      "nativeMinimum": 75,
+      "skill": 40,
+      "source": "Forever trainer observations",
+      "status": "corrected"
+    },
+    {
+      "spellID": 2674,
+      "previousSkill": 125,
+      "yellow": 100,
+      "gray": 115,
+      "skillLineAbilityID": 1644,
+      "nativeMinimum": 125,
+      "skill": 100,
+      "source": "Forever trainer observations",
+      "status": "corrected"
+    },
+    {
+      "spellID": 3304,
+      "previousSkill": 65,
+      "yellow": 50,
+      "gray": 75,
+      "skillLineAbilityID": 1848,
+      "nativeMinimum": 1,
+      "skill": 65,
+      "source": "Forever trainer observations",
+      "status": "confirmedLearnAboveYellow"
+    },
+    {
+      "spellID": 3861,
+      "previousSkill": 185,
+      "yellow": 170,
+      "gray": 200,
+      "skillLineAbilityID": 2397,
+      "nativeMinimum": 1,
+      "skill": 150,
+      "source": "Forever trainer observations",
+      "status": "corrected"
+    },
+    {
+      "spellID": 3865,
+      "previousSkill": 175,
+      "yellow": 145,
+      "gray": 150,
+      "skillLineAbilityID": 2377,
+      "nativeMinimum": 1,
+      "skill": 140,
+      "source": "Forever trainer observations",
+      "status": "corrected"
+    },
+    {
+      "spellID": 3871,
+      "previousSkill": 170,
+      "yellow": 145,
+      "gray": 155,
+      "skillLineAbilityID": 2405,
+      "nativeMinimum": 1,
+      "skill": 135,
+      "source": "Forever trainer observations",
+      "status": "corrected"
+    },
+    {
+      "spellID": 8483,
+      "previousSkill": 160,
+      "yellow": 135,
+      "gray": 145,
+      "skillLineAbilityID": 4715,
+      "nativeMinimum": 1,
+      "skill": 125,
+      "source": "Forever trainer observations",
+      "status": "corrected"
+    },
+    {
+      "spellID": 8489,
+      "previousSkill": 175,
+      "yellow": 150,
+      "gray": 160,
+      "skillLineAbilityID": 4714,
+      "nativeMinimum": 1,
+      "skill": 140,
+      "source": "Forever trainer observations",
+      "status": "corrected"
+    },
+    {
+      "spellID": 8762,
+      "previousSkill": 160,
+      "yellow": 135,
+      "gray": 145,
+      "skillLineAbilityID": 4851,
+      "nativeMinimum": 1,
+      "skill": 125,
+      "source": "Forever trainer observations",
+      "status": "corrected"
+    },
+    {
+      "spellID": 8764,
+      "previousSkill": 170,
+      "yellow": 155,
+      "gray": 185,
+      "skillLineAbilityID": 4852,
+      "nativeMinimum": 1,
+      "skill": 135,
+      "source": "Forever trainer observations",
+      "status": "corrected"
+    },
+    {
+      "spellID": 8766,
+      "previousSkill": 175,
+      "yellow": 160,
+      "gray": 190,
+      "skillLineAbilityID": 4853,
+      "nativeMinimum": 1,
+      "skill": 140,
+      "source": "Forever trainer observations",
+      "status": "corrected"
+    },
+    {
+      "spellID": 8770,
+      "previousSkill": 190,
+      "yellow": 175,
+      "gray": 205,
+      "skillLineAbilityID": 4854,
+      "nativeMinimum": 1,
+      "skill": 155,
+      "source": "Forever trainer observations",
+      "status": "corrected"
+    },
+    {
+      "spellID": 8772,
+      "previousSkill": 175,
+      "yellow": 160,
+      "gray": 190,
+      "skillLineAbilityID": 4855,
+      "nativeMinimum": 1,
+      "skill": 140,
+      "source": "Forever trainer observations",
+      "status": "corrected"
+    },
+    {
+      "spellID": 8774,
+      "previousSkill": 180,
+      "yellow": 165,
+      "gray": 195,
+      "skillLineAbilityID": 4856,
+      "nativeMinimum": 1,
+      "skill": 145,
+      "source": "Forever trainer observations",
+      "status": "corrected"
+    },
+    {
+      "spellID": 8791,
+      "previousSkill": 185,
+      "yellow": 170,
+      "gray": 190,
+      "skillLineAbilityID": 4872,
+      "nativeMinimum": 1,
+      "skill": 150,
+      "source": "Forever trainer observations",
+      "status": "corrected"
+    },
+    {
+      "spellID": 8799,
+      "previousSkill": 195,
+      "yellow": 180,
+      "gray": 200,
+      "skillLineAbilityID": 4876,
+      "nativeMinimum": 1,
+      "skill": 160,
+      "source": "Forever trainer observations",
+      "status": "corrected"
+    },
+    {
+      "spellID": 8804,
+      "previousSkill": 210,
+      "yellow": 190,
+      "gray": 220,
+      "skillLineAbilityID": 4878,
+      "nativeMinimum": 1,
+      "skill": 175,
+      "source": "Forever trainer observations",
+      "status": "corrected"
+    },
+    {
+      "spellID": 9273,
+      "previousSkill": 165,
+      "yellow": 160,
+      "gray": 200,
+      "skillLineAbilityID": 5068,
+      "nativeMinimum": 1,
+      "recipeItemID": 7561,
+      "skill": 165,
+      "source": "Forever ItemSparse",
+      "status": "confirmedLearnAboveYellow"
+    },
+    {
+      "spellID": 9954,
+      "previousSkill": 225,
+      "yellow": 220,
+      "gray": 240,
+      "skillLineAbilityID": 5326,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 9959,
+      "previousSkill": 230,
+      "yellow": 225,
+      "gray": 245,
+      "skillLineAbilityID": 5328,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 9961,
+      "previousSkill": 230,
+      "yellow": 225,
+      "gray": 245,
+      "skillLineAbilityID": 5329,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 9968,
+      "previousSkill": 235,
+      "yellow": 230,
+      "gray": 250,
+      "skillLineAbilityID": 5332,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 9974,
+      "previousSkill": 245,
+      "yellow": 240,
+      "gray": 260,
+      "skillLineAbilityID": 5335,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 10548,
+      "previousSkill": 235,
+      "yellow": 225,
+      "gray": 245,
+      "skillLineAbilityID": 5685,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 10552,
+      "previousSkill": 230,
+      "yellow": 225,
+      "gray": 245,
+      "skillLineAbilityID": 5687,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 10556,
+      "previousSkill": 235,
+      "yellow": 230,
+      "gray": 250,
+      "skillLineAbilityID": 5690,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 10558,
+      "previousSkill": 235,
+      "yellow": 230,
+      "gray": 250,
+      "skillLineAbilityID": 5691,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 10619,
+      "previousSkill": 225,
+      "yellow": 220,
+      "gray": 240,
+      "skillLineAbilityID": 5683,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 10621,
+      "previousSkill": 225,
+      "yellow": 220,
+      "gray": 240,
+      "skillLineAbilityID": 5684,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 10630,
+      "previousSkill": 230,
+      "yellow": 225,
+      "gray": 245,
+      "skillLineAbilityID": 5688,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 10632,
+      "previousSkill": 250,
+      "yellow": 245,
+      "gray": 265,
+      "skillLineAbilityID": 5700,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 10647,
+      "previousSkill": 250,
+      "yellow": 245,
+      "gray": 265,
+      "skillLineAbilityID": 5701,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 10650,
+      "previousSkill": 255,
+      "yellow": 250,
+      "gray": 270,
+      "skillLineAbilityID": 5702,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 12048,
+      "previousSkill": 205,
+      "yellow": 185,
+      "gray": 215,
+      "skillLineAbilityID": 6580,
+      "nativeMinimum": 1,
+      "skill": 170,
+      "source": "Forever trainer observations",
+      "status": "corrected"
+    },
+    {
+      "spellID": 12049,
+      "previousSkill": 205,
+      "yellow": 185,
+      "gray": 215,
+      "skillLineAbilityID": 6581,
+      "nativeMinimum": 1,
+      "skill": 170,
+      "source": "Forever trainer observations",
+      "status": "corrected"
+    },
+    {
+      "spellID": 12050,
+      "previousSkill": 210,
+      "yellow": 190,
+      "gray": 220,
+      "skillLineAbilityID": 6582,
+      "nativeMinimum": 1,
+      "skill": 175,
+      "source": "Forever trainer observations",
+      "status": "corrected"
+    },
+    {
+      "spellID": 12052,
+      "previousSkill": 210,
+      "yellow": 190,
+      "gray": 220,
+      "skillLineAbilityID": 6583,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 12053,
+      "previousSkill": 215,
+      "yellow": 195,
+      "gray": 225,
+      "skillLineAbilityID": 6584,
+      "nativeMinimum": 1,
+      "skill": 180,
+      "source": "Forever trainer observations",
+      "status": "corrected"
+    },
+    {
+      "spellID": 12055,
+      "previousSkill": 215,
+      "yellow": 195,
+      "gray": 225,
+      "skillLineAbilityID": 6585,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 12061,
+      "previousSkill": 215,
+      "yellow": 185,
+      "gray": 195,
+      "skillLineAbilityID": 6589,
+      "nativeMinimum": 1,
+      "skill": 180,
+      "source": "Forever trainer observations",
+      "status": "corrected"
+    },
+    {
+      "spellID": 12065,
+      "previousSkill": 225,
+      "yellow": 205,
+      "gray": 235,
+      "skillLineAbilityID": 6596,
+      "nativeMinimum": 1,
+      "skill": 190,
+      "source": "Forever trainer observations",
+      "status": "corrected"
+    },
+    {
+      "spellID": 12067,
+      "previousSkill": 225,
+      "yellow": 205,
+      "gray": 235,
+      "skillLineAbilityID": 6598,
+      "nativeMinimum": 1,
+      "skill": 190,
+      "source": "Forever trainer observations",
+      "status": "corrected"
+    },
+    {
+      "spellID": 12069,
+      "previousSkill": 225,
+      "yellow": 205,
+      "gray": 235,
+      "skillLineAbilityID": 6600,
+      "nativeMinimum": 1,
+      "skill": 190,
+      "source": "Forever trainer observations",
+      "status": "corrected"
+    },
+    {
+      "spellID": 12070,
+      "previousSkill": 225,
+      "yellow": 205,
+      "gray": 235,
+      "skillLineAbilityID": 6601,
+      "nativeMinimum": 1,
+      "skill": 190,
+      "source": "Forever trainer observations",
+      "status": "corrected"
+    },
+    {
+      "spellID": 12071,
+      "previousSkill": 225,
+      "yellow": 205,
+      "gray": 235,
+      "skillLineAbilityID": 6602,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 12072,
+      "previousSkill": 230,
+      "yellow": 205,
+      "gray": 235,
+      "skillLineAbilityID": 6603,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 12073,
+      "previousSkill": 230,
+      "yellow": 205,
+      "gray": 235,
+      "skillLineAbilityID": 6604,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 12074,
+      "previousSkill": 230,
+      "yellow": 205,
+      "gray": 235,
+      "skillLineAbilityID": 6605,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 12076,
+      "previousSkill": 235,
+      "yellow": 210,
+      "gray": 240,
+      "skillLineAbilityID": 6607,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 12077,
+      "previousSkill": 235,
+      "yellow": 200,
+      "gray": 210,
+      "skillLineAbilityID": 6608,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 12079,
+      "previousSkill": 235,
+      "yellow": 210,
+      "gray": 240,
+      "skillLineAbilityID": 6610,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 12082,
+      "previousSkill": 240,
+      "yellow": 215,
+      "gray": 245,
+      "skillLineAbilityID": 6613,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 12088,
+      "previousSkill": 245,
+      "yellow": 215,
+      "gray": 245,
+      "skillLineAbilityID": 6619,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 12092,
+      "previousSkill": 250,
+      "yellow": 220,
+      "gray": 250,
+      "skillLineAbilityID": 6623,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 16639,
+      "previousSkill": 250,
+      "yellow": 230,
+      "gray": 235,
+      "skillLineAbilityID": 9158,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 16640,
+      "previousSkill": 250,
+      "yellow": 230,
+      "gray": 235,
+      "skillLineAbilityID": 9157,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 16641,
+      "previousSkill": 250,
+      "yellow": 230,
+      "gray": 235,
+      "skillLineAbilityID": 9156,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 16991,
+      "previousSkill": 300,
+      "yellow": 295,
+      "gray": 315,
+      "skillLineAbilityID": 9452,
+      "nativeMinimum": 1,
+      "recipeItemID": 12835,
+      "skill": 300,
+      "source": "Forever ItemSparse",
+      "status": "confirmedLearnAboveYellow"
+    },
+    {
+      "spellID": 18401,
+      "previousSkill": 250,
+      "yellow": 210,
+      "gray": 215,
+      "skillLineAbilityID": 10396,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 18402,
+      "previousSkill": 255,
+      "yellow": 225,
+      "gray": 255,
+      "skillLineAbilityID": 10397,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 19047,
+      "previousSkill": 250,
+      "yellow": 225,
+      "gray": 235,
+      "skillLineAbilityID": 10756,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 19048,
+      "previousSkill": 255,
+      "yellow": 250,
+      "gray": 270,
+      "skillLineAbilityID": 10758,
+      "nativeMinimum": 1,
+      "recipeItemID": 15724,
+      "skill": 255,
+      "source": "Forever ItemSparse",
+      "status": "confirmedLearnAboveYellow"
+    },
+    {
+      "spellID": 19058,
+      "previousSkill": 250,
+      "yellow": 225,
+      "gray": 245,
+      "skillLineAbilityID": 10757,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 19435,
+      "previousSkill": 290,
+      "yellow": 285,
+      "gray": 315,
+      "skillLineAbilityID": 10957,
+      "nativeMinimum": 1,
+      "skill": 290,
+      "source": "ProfessionDB Forever requiredSkill",
+      "status": "confirmedLearnAboveYellow"
+    },
+    {
+      "spellID": 20201,
+      "previousSkill": 275,
+      "yellow": 250,
+      "gray": 260,
+      "skillLineAbilityID": 11480,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 22331,
+      "previousSkill": 250,
+      "yellow": 225,
+      "gray": 225,
+      "skillLineAbilityID": 12196,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 22757,
+      "previousSkill": 300,
+      "yellow": 275,
+      "gray": 295,
+      "skillLineAbilityID": 12302,
+      "nativeMinimum": 1,
+      "recipeItemID": 18264,
+      "skill": 300,
+      "source": "Forever ItemSparse",
+      "status": "confirmedLearnAboveYellow"
+    },
+    {
+      "spellID": 23650,
+      "previousSkill": 300,
+      "yellow": 295,
+      "gray": 315,
+      "skillLineAbilityID": 12685,
+      "nativeMinimum": 1,
+      "recipeItemID": 19210,
+      "skill": 300,
+      "source": "Forever ItemSparse",
+      "status": "confirmedLearnAboveYellow"
+    },
+    {
+      "spellID": 23652,
+      "previousSkill": 300,
+      "yellow": 295,
+      "gray": 315,
+      "skillLineAbilityID": 12686,
+      "nativeMinimum": 1,
+      "recipeItemID": 19211,
+      "skill": 300,
+      "source": "Forever ItemSparse",
+      "status": "confirmedLearnAboveYellow"
+    },
+    {
+      "spellID": 23653,
+      "previousSkill": 300,
+      "yellow": 295,
+      "gray": 315,
+      "skillLineAbilityID": 12687,
+      "nativeMinimum": 1,
+      "recipeItemID": 19212,
+      "skill": 300,
+      "source": "Forever ItemSparse",
+      "status": "confirmedLearnAboveYellow"
+    },
+    {
+      "spellID": 24655,
+      "previousSkill": 280,
+      "yellow": 275,
+      "gray": 295,
+      "skillLineAbilityID": 13042,
+      "nativeMinimum": 1,
+      "status": "rejectedReference"
+    },
+    {
+      "spellID": 427061,
+      "previousSkill": 150,
+      "yellow": 140,
+      "gray": 160,
+      "skillLineAbilityID": 49260,
+      "nativeMinimum": 1,
+      "recipeItemID": 210779,
+      "skill": 150,
+      "source": "Forever ItemSparse",
+      "status": "confirmedLearnAboveYellow"
+    },
+    {
+      "spellID": 435481,
+      "previousSkill": 225,
+      "yellow": 200,
+      "gray": 235,
+      "skillLineAbilityID": 49816,
+      "nativeMinimum": 1,
+      "recipeItemID": 215129,
+      "skill": 225,
+      "source": "Forever ItemSparse",
+      "status": "confirmedLearnAboveYellow"
+    },
+    {
+      "spellID": 435903,
+      "previousSkill": 225,
+      "yellow": 200,
+      "gray": 240,
+      "skillLineAbilityID": 49854,
+      "nativeMinimum": 1,
+      "recipeItemID": 215138,
+      "skill": 225,
+      "source": "Forever ItemSparse",
+      "status": "confirmedLearnAboveYellow"
+    },
+    {
+      "spellID": 1255000,
+      "previousSkill": 225,
+      "yellow": 220,
+      "gray": 240,
+      "skillLineAbilityID": 55061,
+      "nativeMinimum": 1,
+      "recipeItemID": 252907,
+      "skill": 225,
+      "source": "Forever ItemSparse",
+      "status": "confirmedLearnAboveYellow"
+    },
+    {
+      "spellID": 1255001,
+      "previousSkill": 225,
+      "yellow": 220,
+      "gray": 240,
+      "skillLineAbilityID": 55062,
+      "nativeMinimum": 1,
+      "recipeItemID": 252906,
+      "skill": 225,
+      "source": "Forever ItemSparse",
+      "status": "confirmedLearnAboveYellow"
+    },
+    {
+      "spellID": 1255002,
+      "previousSkill": 225,
+      "yellow": 220,
+      "gray": 240,
+      "skillLineAbilityID": 55063,
+      "nativeMinimum": 1,
+      "recipeItemID": 252905,
+      "skill": 225,
+      "source": "Forever ItemSparse",
+      "status": "confirmedLearnAboveYellow"
+    },
+    {
+      "spellID": 1255003,
+      "previousSkill": 225,
+      "yellow": 220,
+      "gray": 240,
+      "skillLineAbilityID": 55064,
+      "nativeMinimum": 1,
+      "recipeItemID": 252904,
+      "skill": 225,
+      "source": "Forever ItemSparse",
+      "status": "confirmedLearnAboveYellow"
+    }
   ],
   "npcNameCorrections": {
     "source": "QuestieDB 1.1.1 NPC records bundled with Raynna Bestiary",
@@ -48,12 +879,17 @@
   },
   "coverage": {
     "recipes": 622,
-    "trainers": 195,
+    "trainers": 196,
     "trainerRecipes": 553,
     "missingSkills": {
-      "native": 87,
-      "reference": 60,
-      "remaining": 171
+      "native": 110,
+      "reference": 0,
+      "remaining": 208
+    },
+    "skillAudit": {
+      "corrected": 25,
+      "rejectedReference": 37,
+      "confirmedLearnAboveYellow": 16
     }
   }
 }

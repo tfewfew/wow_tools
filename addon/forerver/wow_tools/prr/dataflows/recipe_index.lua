@@ -108,7 +108,8 @@ local function Build()
             recipe.ignored = true
         end
         recipe.details = ns.Database.RecipeDetails[spellID]
-        if recipe.details and not recipe.skill and not recipe.skillUnknown then
+        if recipe.details and not recipe.skillUnknown and not (fix and fix.skill)
+            and (not recipe.skill or recipe.details.skillCorrection) then
             recipe.skill = recipe.details.skill
             recipe.skillReference = recipe.details.skillReference
         end
