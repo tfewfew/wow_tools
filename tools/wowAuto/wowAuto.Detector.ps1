@@ -18,7 +18,7 @@ function Wait-Detector([int]$Milliseconds) {
 }
 function Request-DetectorOperation([string]$Kind,[string]$Domain,$Body=@{}) {
     if(-not (Test-DetectorCurrent)){return $null}
-    $priorityKey=switch($Kind){'Process.Exit'{'Process.Close'}'Rotation.Up'{'Rotation.Select'}default{$Kind}}
+    $priorityKey=switch($Kind){'Process.Exit'{'Process.Close'}'Rotation.Up'{'Rotation.Select'}'Rotation.ParkCursor'{'Rotation.Select'}default{$Kind}}
     if(-not $script:config.Priorities.PSObject.Properties[$priorityKey]){throw ('缺少操作优先级：'+$priorityKey)}
     $priority=[int]$script:config.Priorities.$priorityKey
     $request=$Hub.Request($Endpoint,$script:version,$Kind,$Domain,$priority,($Body | ConvertTo-Json -Depth 12 -Compress),$script:operationTiming)
@@ -54,6 +54,10 @@ function Get-DetectorObservation {
 function Get-DetectorLure {if($Hub.Simulation){throw 'Simulation requires a lure adapter.'};return [WowAuto.NativeInput]::ReadLureColor($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
 function Get-DetectorScreen {
     if($Hub.Simulation){throw 'Simulation requires an OCR adapter.'}
+    if($Endpoint.Flavor -eq 'forerver') {
+        $reply=Request-DetectorOperation Rotation.ParkCursor Rotation
+        if(-not $reply -or -not $reply.Executed){return [pscustomobject]@{Kind='pending';Targets=@()}}
+    }
     $size=[WowAutoRotation.Native]::ReadClientSize($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)
     $ocrTimeoutMs=[WowAutoRotation.Native]::OcrTimeoutMs($Endpoint.Flavor)
     $started=$Hub.Now

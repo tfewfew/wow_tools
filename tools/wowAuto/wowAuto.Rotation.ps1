@@ -299,6 +299,7 @@ function Send-RotationAction($Row,[string]$Action,$Target=$null) {
             if (-not $sent) {return $false}
         }
         'up' {$sent=[WowAuto.NativeInput]::PressChord($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,[uint16]0x26,$false,$false,$false)}
+        'park-cursor' {[WowAutoRotation.Native]::ParkCursor($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath);$sent=$true}
         default {throw '未知编排动作。'}
     }
     if (-not $sent) {throw '角色切换输入失败。'}
@@ -347,6 +348,7 @@ function Read-RotationScreen($Row,$Plan,[switch]$MenuWasConfirmed) {
     if ($sampleAt -lt $script:rotation.NextOcrAt) {return [pscustomobject]@{Kind='pending'}}
     Assert-GameActionContext
     try {
+        if ($Row.Client.Flavor -eq 'forerver') {$null=Send-RotationAction $Row 'park-cursor'}
         $clientSize=Get-RotationClientSize $Row
         $bitmap=[WowAutoRotation.Native]::Capture($Row.Process.Id,$Row.StartTime.Ticks,$Row.Client.ExecutablePath,$clientSize.Width,$clientSize.Height)
     } catch {

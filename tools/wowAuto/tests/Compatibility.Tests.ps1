@@ -41,6 +41,12 @@ try {
     }
     Write-Output 'PASS: client-specific OCR sample timeout interface contract.'
 
+    $parking=[WowAutoRotation.Native]::CursorParkPoint(3559,2105)
+    if ($parking.X -ne 1779 -or $parking.Y -ne 1052) {
+        throw 'OCR cursor parking coordinates must resolve to the client center.'
+    }
+    Write-Output 'PASS: OCR cursor parking coordinate interface contract.'
+
     $hotkeyType = 'WowAuto.ScreenshotHotkey' -as [type]
     $hotkeyConstructor = $hotkeyType.GetConstructor([type[]]@([int], [bool], [bool], [bool]))
     if (-not $hotkeyConstructor -or -not [IDisposable].IsAssignableFrom($hotkeyType) -or

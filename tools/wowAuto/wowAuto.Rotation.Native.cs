@@ -78,7 +78,7 @@ namespace WowAutoRotation {
         }
         public static System.Drawing.Point CursorParkPoint(int width,int height) {
             if(width<48 || height<48) throw new ArgumentException("Client too small for cursor parking.");
-            return new System.Drawing.Point(Math.Max(16,(int)Math.Round(width*0.04)),Math.Max(16,(int)Math.Round(height*0.04)));
+            return new System.Drawing.Point(width/2,height/2);
         }
         public static void ParkCursor(int pid,long ticks,string path) {
             IntPtr old=SetThreadDpiAwarenessContext(new IntPtr(-4));
@@ -86,7 +86,8 @@ namespace WowAutoRotation {
                 IntPtr h=Window(pid,ticks,path);Rect r;Point origin=new Point();
                 if(!GetClientRect(h,out r) || r.R<48 || r.B<48 || !ClientToScreen(h,ref origin)) throw new InvalidOperationException("Client geometry unavailable.");
                 var parking=CursorParkPoint(r.R,r.B);
-                if(!SetCursorPos(origin.X+parking.X,origin.Y+parking.Y)) throw new InvalidOperationException("Cannot park cursor in game client.");
+                Point target=new Point {X=origin.X+parking.X,Y=origin.Y+parking.Y};
+                if(!SetCursorPos(target.X,target.Y)) throw new InvalidOperationException("Cannot park cursor in game client.");
                 Rect after;Point next=new Point();
                 if(Window(pid,ticks,path)!=h || !GetClientRect(h,out after) || !ClientToScreen(h,ref next) ||
                     after.R!=r.R || after.B!=r.B || next.X!=origin.X || next.Y!=origin.Y)

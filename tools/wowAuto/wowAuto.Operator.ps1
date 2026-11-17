@@ -65,6 +65,7 @@ function Invoke-OperatorAdapter([string]$Action,$Endpoint,$Data=$null,[int]$Dura
         'Up' {return [WowAuto.NativeInput]::PressChord($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,38,$false,$false,$false,$DurationMs)}
         'Enable' {return [WowAuto.NativeInput]::SendDetectorCommand($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,$Data.Mode,$DurationMs)}
         'Logout' {return [WowAuto.NativeInput]::SendRotationCommand($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,'logout',0,$DurationMs)}
+        'ParkCursor' {[WowAutoRotation.Native]::ParkCursor($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path);return $true}
         'Click' {return [WowAutoRotation.Native]::ClickCharacter($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,$Data.X,$Data.Y,$Data.Width,$Data.Height,$Data.FirstDelay,$Data.SecondDelay,$Data.MinimumMs,$Data.MaximumMs)}
         'Restore' {return [WowAuto.NativeInput]::RestoreAfterScan([IntPtr][long]$Data.Window)}
         'Capture.Restore' {$restore=@([WowAutoCapture.Native]::PendingRestores() | Where-Object Key -eq $Endpoint.Key | Select-Object -First 1);if($restore.Count){[WowAutoCapture.Native]::RestoreMinimized($restore[0])};return $true}
@@ -196,6 +197,11 @@ function Invoke-OperatorRequest($Request) {
     if(-not $Request.ReadyAt){$Request.ReadyAt=$Hub.Now+$timing.ForegroundSettleMs}
     if($Hub.Now -lt $Request.ReadyAt){$Hub.Focus=$Request;$Hub.Requeue($Request,[int]($Request.ReadyAt-$Hub.Now));return $null}
     if(-not $Request.Current){return @{Executed=$false;SentAt=$Hub.Now}}
+    if($Request.Kind -eq 'Rotation.ParkCursor') {
+        if($endpoint.Flavor -cne 'forerver'){throw 'OCR前移动指针仅支持无限服。'}
+        if(Invoke-OperatorAdapter Login $endpoint){return @{Executed=$false;SentAt=$Hub.Now}}
+        return @{Executed=(Invoke-OperatorAdapter ParkCursor $endpoint);SentAt=$Hub.Now}
+    }
     if($Request.Kind -eq 'Rotation.Click') {
         if(Invoke-OperatorAdapter Login $endpoint){return @{Executed=$false;SentAt=$Hub.Now}}
         $body | Add-Member NoteProperty MinimumMs $timing.ClickMinMs -Force;$body | Add-Member NoteProperty MaximumMs $timing.ClickMaxMs -Force
