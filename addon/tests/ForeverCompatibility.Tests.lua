@@ -443,6 +443,17 @@ if flavor == "forerver" then
             "Bestiary localized NPC name API binding failed")
         bestiary.EntityName("Npc", 6, "Kobold Vermin")
         assert(localizedNameReads == (expectedLanguage == "zh" and 1 or 0), "Bestiary repeated its localized name lookup")
+        assert(bestiary.Text("Skinning") == (expectedLanguage == "zh" and "剥皮" or "Skinning"),
+            "Bestiary skinning text resource binding failed")
+        assert(bestiary.SkinningReference.creatures[113][1] == 113,
+            "Bestiary skinning data dependency/load order failed")
+        local leatherSources = bestiary.ReferenceItem(2318).drops
+        local skinningSource = assert(leatherSources["skinning:113"], "Bestiary item-to-skinning query binding failed")
+        assert(skinningSource.kind == "Skinning" and skinningSource.npcID == 113
+            and type(skinningSource.rate) == "number" and skinningSource.rate > 0 and skinningSource.rate <= 100,
+            "Bestiary skinning source lost its NPC identity or probability contract")
+        assert(not leatherSources[113] and not bestiary.ReferenceItem(769).drops[113].kind,
+            "Bestiary skinning sources collided with corpse loot")
         local recipes = prr.GetItemRecipes(2318)
         assert(type(recipes) == "table" and #recipes > 0 and recipes[1].recipe.spellID,
             "PRR indexed item recipe query contract failed")

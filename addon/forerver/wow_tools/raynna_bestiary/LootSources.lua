@@ -144,7 +144,7 @@ function Addon.MonsterZones(npcID)
     return #zones > 0 and table.concat(zones, ', ') or T('Zone unavailable')
 end
 
--- Reverse lookup: item to monster, vendor and quest sources
+-- Reverse lookup: item to monster, skinning, vendor and quest sources
 function Addon.ReferenceItem(item)
     if not itemDropCache[item] then
         local drops, lootCache, memo = {}, {}, {}
@@ -156,6 +156,27 @@ function Addon.ReferenceItem(item)
             local drop = lootCache[lootID][item]
             if drop then
                 drops[npcID] = {
+                    name = npc[2],
+                    minLevel = npc[3],
+                    maxLevel = npc[4],
+                    rate = drop.rate and math.min(100, drop.rate * 100),
+                    conditional = drop.conditional,
+                    quest = drop.quest,
+                    source = 'cMaNGOS Classic (not verified for Forever)',
+                }
+            end
+        end
+        local skinning, skinningLootCache = Addon.SkinningReference, {}
+        for npcID, npc in pairs(skinning.creatures) do
+            local lootID = npc[1]
+            if not skinningLootCache[lootID] then
+                skinningLootCache[lootID] = resolveLootTable(skinning.loot[lootID], {}, item, memo)
+            end
+            local drop = skinningLootCache[lootID][item]
+            if drop then
+                drops['skinning:' .. npcID] = {
+                    kind = 'Skinning',
+                    npcID = npcID,
                     name = npc[2],
                     minLevel = npc[3],
                     maxLevel = npc[4],
@@ -219,7 +240,8 @@ function Addon.ReferenceItem(item)
             updated.minLevel = get('Npc', id, 'minLevel') or current.minLevel
             updated.maxLevel = get('Npc', id, 'maxLevel') or current.maxLevel
             drops[id] = updated
-        else
+        elseif not drops['skinning:' .. id] then
+            -- Untyped NPC metadata may describe skinning, which already has its own row.
             drops[id] = {
                 name = get('Npc', id, 'name') or (T('Creature ') .. id),
                 minLevel = get('Npc', id, 'minLevel'),
@@ -261,11 +283,15 @@ function Addon.ReferenceItem(item)
     for sourceID, drop in pairs(drops) do
         local id = tonumber(tostring(sourceID):match(':(%d+)$')) or tonumber(sourceID)
         drop.name = Addon.EntityName(drop.kind == 'Quest' and 'Quest' or 'Npc', id, drop.name)
+        if drop.kind == 'Skinning' then
+            drop.minLevel = get('Npc', id, 'minLevel') or drop.minLevel
+            drop.maxLevel = get('Npc', id, 'maxLevel') or drop.maxLevel
+        end
     end
     return {
         itemID = item,
         quest = quest,
-        name = name or Addon.LootReference.names[item] or (T('Item ') .. item),
+        name = name or Addon.LootReference.names[item] or Addon.SkinningReference.names[item] or (T('Item ') .. item),
         drops = drops,
     }
 end

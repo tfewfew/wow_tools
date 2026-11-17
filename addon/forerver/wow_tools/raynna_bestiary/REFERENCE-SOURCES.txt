@@ -64,3 +64,21 @@ explicit Forever loot corrections override Classic matches. Missing percentages
 remain unknown. Existing Classic-only rates remain unverified fallback references.
 Optional newer QuestieDB fields are preferred; new item IDs require a bundled refresh.
 No website requests occur in game and player loot history is never synthesized.
+
+WoWTools skinning-source extension: 2026-11-17
+--------------------------------------------
+SkinningReference.lua uses the same ClassicDB_1_12_1_z2815.sql.gz Git blob
+0a77f5230a3d5d6db968678203dfe3b30c34b8a9 as LootReference.lua above.
+The generator verifies the source Git blob before reading SQL as data.
+Rebuild from the wow_tools repository:
+python skills/wow-tools/scripts/build_skinning_reference.py <classic.sql.gz>
+Exported fields: creature_template.Entry, SkinningLootId, Name, MinLevel,
+MaxLevel; skinning_loot_template uses the same six-field loot row format.
+Snapshot coverage: 924 creatures, 774 loot tables, 48 directly named items.
+All mapped creatures in this pinned snapshot use normal skinning, with neither
+the herbalism nor mining skin-loot type flags set. Reference pools resolve
+through the existing LootReference.refs from the same pinned source.
+Skinning sources have separate IDs from corpse loot, vendors and quests.
+Skinning percentages use the existing group/reference/condition resolver.
+Classic coverage and percentages remain unverified for Forever. New or changed
+Forever skinning sources require a verified data refresh. No runtime requests.

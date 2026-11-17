@@ -4,6 +4,7 @@
     <Script file="Theme.lua"/>
     <Script file="Widgets.lua"/>
     <Script file="LootReference.lua"/>
+    <Script file="SkinningReference.lua"/>
     <Script file="Metadata.lua"/>
     <Script file="MetadataQueries.lua"/>
     <Script file="ForeverReference.lua"/>

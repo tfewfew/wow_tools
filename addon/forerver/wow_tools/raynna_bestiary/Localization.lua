@@ -85,6 +85,7 @@ local chinese = {
     [" (conditional)"] = "（有条件）",
     ["Quest"] = "任务",
     ["Vendor"] = "商人",
+    ["Skinning"] = "剥皮",
     ["Quest reward / source metadata"] = "任务奖励 / 来源元数据",
     ["Source metadata"] = "来源元数据",
     ["cMaNGOS Classic"] = "cMaNGOS 经典旧世",

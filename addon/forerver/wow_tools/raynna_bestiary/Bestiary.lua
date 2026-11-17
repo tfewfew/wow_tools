@@ -163,7 +163,9 @@ local function refreshWindow()
             local item, sourceRecord = row.entry.id, row.entry.drop
             if selectedSubject.itemID then
                 row.icon:Hide()
-                local npcID = sourceRecord.kind == 'Vendor' and tonumber(tostring(item):match('vendor:(%d+)'))
+                local creatureSource = not sourceRecord.kind or sourceRecord.kind == 'Skinning'
+                local npcID = sourceRecord.npcID
+                    or (sourceRecord.kind == 'Vendor' and tonumber(tostring(item):match('vendor:(%d+)')))
                     or (not sourceRecord.kind and item)
                 row.portrait:SetShown(not not npcID)
                 if npcID then
@@ -177,13 +179,16 @@ local function refreshWindow()
                 row.location:SetPoint('TOPLEFT', inset, -21)
                 row.location:SetWidth(273 - inset)
                 row.name:SetText(sourceRecord.name)
-                sourceRecord.zones = sourceRecord.kind and T(sourceRecord.details) or Addon.MonsterZones(item)
-                row.location:SetText(
-                    sourceRecord.kind and T(sourceRecord.details)
-                        or (T('Lv ') .. Addon.LevelText(sourceRecord) .. ' / ' .. sourceRecord.zones)
-                )
+                sourceRecord.zones = creatureSource and Addon.MonsterZones(npcID) or T(sourceRecord.details)
+                local location = creatureSource
+                    and (T('Lv ') .. Addon.LevelText(sourceRecord) .. ' / ' .. sourceRecord.zones)
+                    or T(sourceRecord.details)
+                if sourceRecord.kind == 'Skinning' then
+                    location = T('Skinning') .. ' / ' .. location
+                end
+                row.location:SetText(location)
                 row.detail:SetText(
-                    sourceRecord.kind and T(sourceRecord.kind)
+                    not creatureSource and T(sourceRecord.kind)
                         or (
                             sourceRecord.rate
                                 and Addon.DropChance(sourceRecord, true)
@@ -442,7 +447,7 @@ function Addon.BuildBestiary()
                 GameTooltip:SetOwner(self, 'ANCHOR_RIGHT')
                 if selectedSubject.itemID then
                     GameTooltip:SetText(self.entry.drop.name)
-                    if not self.entry.drop.kind then
+                    if not self.entry.drop.kind or self.entry.drop.kind == 'Skinning' then
                         GameTooltip:AddLine(T('Level ') .. Addon.LevelText(self.entry.drop), 0.8, 0.8, 0.8)
                     end
                     GameTooltip:AddLine(
@@ -463,7 +468,9 @@ function Addon.BuildBestiary()
                     GameTooltip:SetHyperlink(self.entry.drop.link)
                 end
                 GameTooltip:AddLine(
-                    self.entry.drop.kind and (T(self.entry.drop.kind) .. T(' source - no drop roll'))
+                    self.entry.drop.kind == 'Skinning'
+                        and (T('Skinning') .. ' / ' .. Addon.DropChance(self.entry.drop))
+                        or self.entry.drop.kind and (T(self.entry.drop.kind) .. T(' source - no drop roll'))
                         or Addon.DropChance(self.entry.drop),
                     0.7,
                     0.8,
