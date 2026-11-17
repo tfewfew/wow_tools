@@ -4,8 +4,9 @@ WoWTools.raynnaBestiary.RegisterSource(function(...)
 
 local _, Addon = ...
 local T = Addon.Text
-local bestiaryFrame, selectedSubject, showingPreview, isPinned, scrollOffset = nil, nil, false, false, 0
-local sourceRows, visibleEntries, requestedItems = {}, {}, {}
+local bestiaryFrame, selectedSubject, showingPreview, isPinned = nil, nil, false, false
+local sourceRows, requestedItems = {}, {}
+local columns = { { rows = {}, offset = 0 }, { rows = {}, offset = 0 } }
 local itemLockedForAlt = false
 local rowTooltipLevel, rowTooltipStrata
 
@@ -44,6 +45,27 @@ local function button(parent, label, x, y, width, callback)
     return control
 end
 
+local function positionBesideCursor()
+    bestiaryFrame:SetScale(Addon.db.bestiary.scale or 1)
+    local x, y = GetCursorPosition()
+    local parentScale = UIParent:GetEffectiveScale()
+    local screenWidth, screenHeight = UIParent:GetWidth() * parentScale, UIParent:GetHeight() * parentScale
+    local scale = bestiaryFrame:GetEffectiveScale()
+    local gap, margin = 16, 8
+    local rightSpace = screenWidth - margin - x - gap
+    local leftSpace = x - gap - margin
+    local width, height = bestiaryFrame:GetWidth() * scale, bestiaryFrame:GetHeight() * scale
+    -- Fit the whole window on one side, including both columns at larger saved scales.
+    local fit = math.min(1, math.max(leftSpace, rightSpace) / width, (screenHeight - 2 * margin) / height)
+    bestiaryFrame:SetScale((Addon.db.bestiary.scale or 1) * fit)
+    scale = bestiaryFrame:GetEffectiveScale()
+    width, height = bestiaryFrame:GetWidth() * scale, bestiaryFrame:GetHeight() * scale
+    local left = width <= rightSpace and (x + gap) or (x - gap - width)
+    local top = math.max(margin + height, math.min(screenHeight - margin, y - 12))
+    bestiaryFrame:ClearAllPoints()
+    bestiaryFrame:SetPoint('TOPLEFT', UIParent, 'BOTTOMLEFT', left / scale, top / scale)
+end
+
 -- Render the selected NPC or item and its visible source rows
 local function refreshWindow()
     if not bestiaryFrame or not selectedSubject then
@@ -63,12 +85,11 @@ local function refreshWindow()
                 and (T('Quest: ') .. quests[1].name .. (#quests > 1 and (' (+' .. (#quests - 1) .. ')') or ''))
             or ''
     )
-    bestiaryFrame.section:ClearAllPoints()
-    bestiaryFrame.section:SetPoint('TOPLEFT', 10, -68 - questSpace)
-    bestiaryFrame.scrollbar:ClearAllPoints()
-    bestiaryFrame.scrollbar:SetPoint('TOPRIGHT', -3, -83 - questSpace)
-    bestiaryFrame.empty:ClearAllPoints()
-    bestiaryFrame.empty:SetPoint('TOPLEFT', 10, -85 - questSpace)
+    local hasSkinning = not selectedSubject.itemID and next(selectedSubject.skinning or {}) ~= nil
+    bestiaryFrame:SetWidth(hasSkinning and 600 or 300)
+    bestiaryFrame.name:SetWidth(hasSkinning and 540 or 240)
+    bestiaryFrame.context:SetWidth(hasSkinning and 540 or 240)
+    bestiaryFrame.skinningFooter:SetShown(hasSkinning)
     bestiaryFrame.context:SetText(
         selectedSubject.itemID
                 and ((selectedSubject.quest and T('Quest item') or T('Item sources')) .. ' / ' .. T('Reference databases'))
@@ -90,108 +111,105 @@ local function refreshWindow()
             )
     )
     bestiaryFrame.pin:SetText(isPinned and T('Unpin') or T('Pin'))
-    visibleEntries = {}
-    for id, drop in pairs(selectedSubject.drops or {}) do
-        table.insert(visibleEntries, { id = id, drop = drop })
-    end
-    table.sort(visibleEntries, function(a, control)
-        if (a.drop.rate or -1) ~= (control.drop.rate or -1) then
-            return (a.drop.rate or -1) > (control.drop.rate or -1)
-        end
-        return tostring(a.id) < tostring(control.id)
-    end)
-    scrollOffset = math.max(0, math.min(scrollOffset, #visibleEntries - 7))
-    bestiaryFrame.section:SetText(
-        (selectedSubject.itemID and T('SOURCES  /  ') or T('POSSIBLE DROPS  /  ')) .. #visibleEntries
-    )
-    bestiaryFrame.empty:SetShown(#visibleEntries == 0)
-    bestiaryFrame.empty:SetText(
-        selectedSubject.itemID
-                and T('No known source in the loaded databases.\nCoverage is incomplete for Forever.')
-            or T('No source data for this creature ID.\nYour personal loot log is not used here.')
-    )
-    local shownRows = math.max(1, math.min(7, #visibleEntries))
     local rowHeight = selectedSubject.itemID and 36 or 24
-    bestiaryFrame:SetHeight(116 + questSpace + shownRows * rowHeight)
-    bestiaryFrame.footer:ClearAllPoints()
-    bestiaryFrame.footer:SetPoint('BOTTOMLEFT', 10, 8)
-    bestiaryFrame.scrollbar:Update(#visibleEntries, 7, scrollOffset, shownRows * rowHeight)
-    for i, row in ipairs(sourceRows) do
-        row:SetHeight(rowHeight)
-        row:ClearAllPoints()
-        row:SetPoint('TOPLEFT', 10, -83 - questSpace - (i - 1) * rowHeight)
-        row.location:SetShown(not not selectedSubject.itemID)
-        row.entry = visibleEntries[scrollOffset + i]
-        row:SetShown(row.entry ~= nil)
-        if row.entry then
-            local item, sourceRecord = row.entry.id, row.entry.drop
-            if selectedSubject.itemID then
-                row.icon:Hide()
-                local creatureSource = not sourceRecord.kind or sourceRecord.kind == 'Skinning'
-                local npcID = sourceRecord.npcID
-                    or (sourceRecord.kind == 'Vendor' and tonumber(tostring(item):match('vendor:(%d+)')))
-                    or (not sourceRecord.kind and item)
-                row.portrait:SetShown(not not npcID)
-                if npcID then
-                    Addon.SetBestiaryPortrait(row.portrait, npcID)
-                end
-                local inset = npcID and 32 or 0
-                row.name:ClearAllPoints()
-                row.name:SetPoint('TOPLEFT', inset, -5)
-                row.name:SetWidth(205 - inset)
-                row.location:ClearAllPoints()
-                row.location:SetPoint('TOPLEFT', inset, -21)
-                row.location:SetWidth(273 - inset)
-                row.name:SetText(sourceRecord.name)
-                sourceRecord.zones = creatureSource and Addon.MonsterZones(npcID) or T(sourceRecord.details)
-                local location = creatureSource
-                    and (T('Lv ') .. Addon.LevelText(sourceRecord) .. ' / ' .. sourceRecord.zones)
-                    or T(sourceRecord.details)
-                if sourceRecord.kind == 'Skinning' then
-                    location = T('Skinning') .. ' / ' .. location
-                end
-                row.location:SetText(location)
-                row.detail:SetText(
-                    not creatureSource and T(sourceRecord.kind)
-                        or (
-                            sourceRecord.rate
-                                and Addon.DropChance(sourceRecord, true)
-                            or '?'
-                        )
-                )
-            else
-                row.portrait:Hide()
-                row.icon:Show()
-                row.name:ClearAllPoints()
-                row.name:SetPoint('TOPLEFT', 24, -5)
-                row.name:SetWidth(181)
-                local name, link, quality, _, _, _, _, _, _, icon, _, classID
-                if C_Item and C_Item.GetItemInfo then
-                    name, link, quality, _, _, _, _, _, _, icon, _, classID = C_Item.GetItemInfo(item)
-                end
-                if not icon and C_Item and C_Item.GetItemIconByID then
-                    icon = C_Item.GetItemIconByID(item)
-                end
-                row.icon:SetTexture(icon or 'Interface\\Icons\\INV_Misc_QuestionMark')
-                row.name:SetText(
-                    ((sourceRecord.quest or classID == 12) and ('|cffffd100' .. T('[Quest]') .. '|r ') or '')
-                        .. (link or sourceRecord.name or sourceRecord.link or (T('Item ') .. item))
-                )
-                row.detail:SetText(
-                    sourceRecord.kind and T(sourceRecord.kind)
-                        or (
-                            sourceRecord.rate
-                                and Addon.DropChance(sourceRecord, true)
-                            or '?'
-                        )
-                )
-                if not name and not requestedItems[item] and C_Item and C_Item.RequestLoadItemDataByID then
-                    requestedItems[item] = true
-                    C_Item.RequestLoadItemDataByID(item)
+    local maximumRows = 1
+    for index, column in ipairs(columns) do
+        column.frame:SetShown(index == 1 or hasSkinning)
+        column.frame:ClearAllPoints()
+        column.frame:SetPoint('TOPLEFT', (index - 1) * 300, -68 - questSpace)
+        local entries = {}
+        for id, drop in pairs((index == 1 and selectedSubject.drops or selectedSubject.skinning) or {}) do
+            entries[#entries + 1] = { id = id, drop = drop }
+        end
+        table.sort(entries, function(a, b)
+            if (a.drop.rate or -1) ~= (b.drop.rate or -1) then
+                return (a.drop.rate or -1) > (b.drop.rate or -1)
+            end
+            return tostring(a.id) < tostring(b.id)
+        end)
+        column.offset = math.max(0, math.min(column.offset, #entries - 7))
+        local heading = index == 2 and T('SKINNING  /  ')
+            or selectedSubject.itemID and T('SOURCES  /  ') or T('POSSIBLE DROPS  /  ')
+        column.section:SetText(heading .. #entries)
+        column.empty:SetShown(#entries == 0)
+        column.empty:SetText(
+            selectedSubject.itemID
+                and T('No known source in the loaded databases.\nCoverage is incomplete for Forever.')
+                or T('No source data for this creature ID.\nYour personal loot log is not used here.')
+        )
+        local shownRows = math.max(1, math.min(7, #entries))
+        maximumRows = math.max(maximumRows, shownRows)
+        column.frame:SetHeight(15 + shownRows * rowHeight)
+        column.scrollbar:Update(#entries, 7, column.offset, shownRows * rowHeight)
+        for i, row in ipairs(column.rows) do
+            row:SetHeight(rowHeight)
+            row:ClearAllPoints()
+            row:SetPoint('TOPLEFT', 10, -15 - (i - 1) * rowHeight)
+            row.location:SetShown(not not selectedSubject.itemID)
+            row.entry = entries[column.offset + i]
+            row:SetShown(row.entry ~= nil)
+            if row.entry then
+                local item, sourceRecord = row.entry.id, row.entry.drop
+                if selectedSubject.itemID then
+                    row.icon:Hide()
+                    local creatureSource = not sourceRecord.kind or sourceRecord.kind == 'Skinning'
+                    local npcID = sourceRecord.npcID
+                        or (sourceRecord.kind == 'Vendor' and tonumber(tostring(item):match('vendor:(%d+)')))
+                        or (not sourceRecord.kind and item)
+                    row.portrait:SetShown(not not npcID)
+                    if npcID then
+                        Addon.SetBestiaryPortrait(row.portrait, npcID)
+                    end
+                    local inset = npcID and 32 or 0
+                    row.name:ClearAllPoints()
+                    row.name:SetPoint('TOPLEFT', inset, -5)
+                    row.name:SetWidth(205 - inset)
+                    row.location:ClearAllPoints()
+                    row.location:SetPoint('TOPLEFT', inset, -21)
+                    row.location:SetWidth(273 - inset)
+                    row.name:SetText(sourceRecord.name)
+                    sourceRecord.zones = creatureSource and Addon.MonsterZones(npcID) or T(sourceRecord.details)
+                    local location = creatureSource
+                        and (T('Lv ') .. Addon.LevelText(sourceRecord) .. ' / ' .. sourceRecord.zones)
+                        or T(sourceRecord.details)
+                    if sourceRecord.kind == 'Skinning' then
+                        location = T('Skinning') .. ' / ' .. location
+                    end
+                    row.location:SetText(location)
+                    row.detail:SetText(
+                        not creatureSource and T(sourceRecord.kind)
+                            or (sourceRecord.rate and Addon.DropChance(sourceRecord, true) or '?')
+                    )
+                else
+                    row.portrait:Hide()
+                    row.icon:Show()
+                    row.name:ClearAllPoints()
+                    row.name:SetPoint('TOPLEFT', 24, -5)
+                    row.name:SetWidth(181)
+                    local name, link, quality, _, _, _, _, _, _, icon, _, classID
+                    if C_Item and C_Item.GetItemInfo then
+                        name, link, quality, _, _, _, _, _, _, icon, _, classID = C_Item.GetItemInfo(item)
+                    end
+                    if not icon and C_Item and C_Item.GetItemIconByID then
+                        icon = C_Item.GetItemIconByID(item)
+                    end
+                    row.icon:SetTexture(icon or 'Interface\\Icons\\INV_Misc_QuestionMark')
+                    row.name:SetText(
+                        ((sourceRecord.quest or classID == 12) and ('|cffffd100' .. T('[Quest]') .. '|r ') or '')
+                            .. (link or sourceRecord.name or sourceRecord.link or (T('Item ') .. item))
+                    )
+                    row.detail:SetText(sourceRecord.rate and Addon.DropChance(sourceRecord, true) or '?')
+                    if not name and not requestedItems[item] and C_Item and C_Item.RequestLoadItemDataByID then
+                        requestedItems[item] = true
+                        C_Item.RequestLoadItemDataByID(item)
+                    end
                 end
             end
         end
     end
+    bestiaryFrame:SetHeight(116 + questSpace + maximumRows * rowHeight)
+    bestiaryFrame.footer:ClearAllPoints()
+    bestiaryFrame.footer:SetPoint('BOTTOMLEFT', 10, 8)
 end
 
 -- Open, position and raise the window
@@ -199,14 +217,12 @@ function Addon.ShowBestiary(monster, demo, pin)
     if not bestiaryFrame then
         return
     end
-    selectedSubject, showingPreview, isPinned, scrollOffset = monster, not not demo, not not pin, 0
+    selectedSubject, showingPreview, isPinned = monster, not not demo, not not pin
+    for _, column in ipairs(columns) do column.offset = 0 end
     Addon.HideDrops(true)
     refreshWindow()
     if not isPinned then
-        bestiaryFrame:ClearAllPoints()
-        local x, y = GetCursorPosition()
-        local s = bestiaryFrame:GetEffectiveScale()
-        bestiaryFrame:SetPoint('TOPLEFT', UIParent, 'BOTTOMLEFT', x / s + 16, y / s - 12)
+        positionBesideCursor()
     end
     local level = GameTooltip:GetFrameLevel()
     for _, tooltip in pairs({
@@ -347,122 +363,135 @@ function Addon.BuildBestiary()
     bestiaryFrame.context:SetTextColor(unpack(Addon.Theme.muted))
     bestiaryFrame.questLine = createLabel(bestiaryFrame, 10, 10, -65, 280)
     bestiaryFrame.questLine:SetTextColor(1, 0.82, 0.2)
-    bestiaryFrame.section = createLabel(bestiaryFrame, 9, 10, -68, 280)
-    bestiaryFrame.scrollbar = Addon.Scrollbar(bestiaryFrame, function(value)
-        scrollOffset = value
-        hideRowTooltip()
-        refreshWindow()
-    end)
-    bestiaryFrame.scrollbar:SetPoint('TOPRIGHT', -3, -83)
-
-    -- Source rows and their detailed tooltips
-    for i = 1, 7 do
-        local row = CreateFrame('Button', nil, bestiaryFrame)
-        row:SetSize(278, 24)
-        row:SetPoint('TOPLEFT', 10, -83 - (i - 1) * 24)
-        row:SetHighlightTexture('Interface\\QuestFrame\\UI-QuestTitleHighlight', 'ADD')
-        row.portrait = CreateFrame('Frame', nil, row)
-        row.portrait:SetSize(28, 28)
-        row.portrait:SetPoint('TOPLEFT', 0, -4)
-        row.icon = row:CreateTexture(nil, 'ARTWORK')
-        row.icon:SetSize(18, 18)
-        row.icon:SetPoint('TOPLEFT', 0, -3)
-        row.name = createLabel(row, 11, 24, -5, 181)
-        row.detail = createLabel(row, 10, 208, -5, 65)
-        row.detail:SetTextColor(unpack(Addon.Theme.text))
-        row.detail:SetJustifyH('RIGHT')
-        row.location = createLabel(row, 9, 0, -21, 273)
-        row.location:SetTextColor(unpack(Addon.Theme.muted))
-        row:SetScript('OnClick', function(self)
-            if not self.entry or not selectedSubject or selectedSubject.itemID then
-                return
-            end
+    bestiaryFrame.columns = columns
+    for index, column in ipairs(columns) do
+        column.frame = CreateFrame('Frame', nil, bestiaryFrame)
+        column.frame:SetSize(300, 200)
+        column.frame:SetPoint('TOPLEFT', (index - 1) * 300, -68)
+        column.frame:EnableMouseWheel(true)
+        column.section = createLabel(column.frame, 9, 10, 0, 280)
+        column.scrollbar = Addon.Scrollbar(column.frame, function(value)
+            column.offset = value
             hideRowTooltip()
-            Addon.ShowBestiary(Addon.ReferenceItem(self.entry.id), false, true)
+            refreshWindow()
         end)
-        row:SetScript('OnEnter', function(self)
-            if self.entry then
-                if not rowTooltipLevel then
-                    rowTooltipLevel = GameTooltip:GetFrameLevel()
-                    rowTooltipStrata = GameTooltip:GetFrameStrata()
+        column.scrollbar:SetPoint('TOPRIGHT', -3, -15)
+        column.empty = createLabel(column.frame, 10, 10, -17, 278)
+        column.empty:SetWordWrap(true)
+        column.frame:SetScript('OnMouseWheel', function(_, delta)
+            column.offset = column.offset - delta
+            hideRowTooltip()
+            refreshWindow()
+        end)
+
+        -- Source rows and their detailed tooltips
+        for i = 1, 7 do
+            local row = CreateFrame('Button', nil, column.frame)
+            row:SetSize(278, 24)
+            row:SetPoint('TOPLEFT', 10, -15 - (i - 1) * 24)
+            row:SetHighlightTexture('Interface\\QuestFrame\\UI-QuestTitleHighlight', 'ADD')
+            row.portrait = CreateFrame('Frame', nil, row)
+            row.portrait:SetSize(28, 28)
+            row.portrait:SetPoint('TOPLEFT', 0, -4)
+            row.icon = row:CreateTexture(nil, 'ARTWORK')
+            row.icon:SetSize(18, 18)
+            row.icon:SetPoint('TOPLEFT', 0, -3)
+            row.name = createLabel(row, 11, 24, -5, 181)
+            row.detail = createLabel(row, 10, 208, -5, 65)
+            row.detail:SetTextColor(unpack(Addon.Theme.text))
+            row.detail:SetJustifyH('RIGHT')
+            row.location = createLabel(row, 9, 0, -21, 273)
+            row.location:SetTextColor(unpack(Addon.Theme.muted))
+            row:SetScript('OnClick', function(self)
+                if not self.entry or not selectedSubject or selectedSubject.itemID then
+                    return
                 end
-                GameTooltip:SetOwner(self, 'ANCHOR_RIGHT')
-                if selectedSubject.itemID then
-                    GameTooltip:SetText(self.entry.drop.name)
-                    if not self.entry.drop.kind or self.entry.drop.kind == 'Skinning' then
-                        GameTooltip:AddLine(T('Level ') .. Addon.LevelText(self.entry.drop), 0.8, 0.8, 0.8)
+                hideRowTooltip()
+                Addon.ShowBestiary(Addon.ReferenceItem(self.entry.id), false, true)
+            end)
+            row:SetScript('OnEnter', function(self)
+                if self.entry then
+                    if not rowTooltipLevel then
+                        rowTooltipLevel = GameTooltip:GetFrameLevel()
+                        rowTooltipStrata = GameTooltip:GetFrameStrata()
+                    end
+                    GameTooltip:SetOwner(self, 'ANCHOR_RIGHT')
+                    if selectedSubject.itemID then
+                        GameTooltip:SetText(self.entry.drop.name)
+                        if not self.entry.drop.kind or self.entry.drop.kind == 'Skinning' then
+                            GameTooltip:AddLine(T('Level ') .. Addon.LevelText(self.entry.drop), 0.8, 0.8, 0.8)
+                        end
+                        GameTooltip:AddLine(
+                            T(self.entry.drop.zones or Addon.MonsterZones(self.entry.id)),
+                            0.6,
+                            0.8,
+                            0.8,
+                            true
+                        )
+                        GameTooltip:AddLine(
+                            T('Source: ')
+                                .. T(self.entry.drop.source or 'cMaNGOS Classic; locations: source metadata'),
+                            0.6,
+                            0.6,
+                            0.6
+                        )
+                    else
+                        GameTooltip:SetHyperlink(self.entry.drop.link)
                     end
                     GameTooltip:AddLine(
-                        T(self.entry.drop.zones or Addon.MonsterZones(self.entry.id)),
-                        0.6,
+                        self.entry.drop.kind == 'Skinning'
+                            and (T('Skinning') .. ' / ' .. Addon.DropChance(self.entry.drop))
+                            or self.entry.drop.kind and (T(self.entry.drop.kind) .. T(' source - no drop roll'))
+                            or Addon.DropChance(self.entry.drop),
+                        0.7,
                         0.8,
-                        0.8,
-                        true
+                        0.7
                     )
-                    GameTooltip:AddLine(
-                        T('Source: ')
-                            .. T(self.entry.drop.source or 'cMaNGOS Classic; locations: source metadata'),
-                        0.6,
-                        0.6,
-                        0.6
-                    )
-                else
-                    GameTooltip:SetHyperlink(self.entry.drop.link)
+                    if self.entry.drop.quest then
+                        GameTooltip:AddLine(
+                            T('Quest-only drop: requires eligibility for its quest.'),
+                            1,
+                            0.82,
+                            0.2,
+                            true
+                        )
+                    elseif self.entry.drop.conditional then
+                        GameTooltip:AddLine(
+                            T('This chance depends on additional loot conditions.'),
+                            1,
+                            0.82,
+                            0.2,
+                            true
+                        )
+                    end
+                    for _, quest in ipairs(selectedSubject.quests or {}) do
+                        GameTooltip:AddLine(
+                            (quest.starts and T('Starts quest: ') or T('Related quest: ')) .. quest.name,
+                            1,
+                            0.82,
+                            0.2,
+                            true
+                        )
+                    end
+                    if not selectedSubject.itemID then
+                        GameTooltip:AddLine(
+                            T('Click to view item sources'),
+                            0.4,
+                            0.9,
+                            0.6,
+                            true
+                        )
+                    end
+                    GameTooltip:Show()
+                    GameTooltip:SetFrameStrata('TOOLTIP')
+                    GameTooltip:SetFrameLevel(bestiaryFrame:GetFrameLevel() + 20)
                 end
-                GameTooltip:AddLine(
-                    self.entry.drop.kind == 'Skinning'
-                        and (T('Skinning') .. ' / ' .. Addon.DropChance(self.entry.drop))
-                        or self.entry.drop.kind and (T(self.entry.drop.kind) .. T(' source - no drop roll'))
-                        or Addon.DropChance(self.entry.drop),
-                    0.7,
-                    0.8,
-                    0.7
-                )
-                if self.entry.drop.quest then
-                    GameTooltip:AddLine(
-                        T('Quest-only drop: requires eligibility for its quest.'),
-                        1,
-                        0.82,
-                        0.2,
-                        true
-                    )
-                elseif self.entry.drop.conditional then
-                    GameTooltip:AddLine(
-                        T('This chance depends on additional loot conditions.'),
-                        1,
-                        0.82,
-                        0.2,
-                        true
-                    )
-                end
-                for _, quest in ipairs(selectedSubject.quests or {}) do
-                    GameTooltip:AddLine(
-                        (quest.starts and T('Starts quest: ') or T('Related quest: ')) .. quest.name,
-                        1,
-                        0.82,
-                        0.2,
-                        true
-                    )
-                end
-                if not selectedSubject.itemID then
-                    GameTooltip:AddLine(
-                        T('Click to view item sources'),
-                        0.4,
-                        0.9,
-                        0.6,
-                        true
-                    )
-                end
-                GameTooltip:Show()
-                GameTooltip:SetFrameStrata('TOOLTIP')
-                GameTooltip:SetFrameLevel(bestiaryFrame:GetFrameLevel() + 20)
-            end
-        end)
-        row:SetScript('OnLeave', hideRowTooltip)
-        sourceRows[i] = row
+            end)
+            row:SetScript('OnLeave', hideRowTooltip)
+            sourceRows[#sourceRows + 1] = row
+            column.rows[i] = row
+        end
     end
-    bestiaryFrame.empty = createLabel(bestiaryFrame, 10, 10, -85, 278)
-    bestiaryFrame.empty:SetWordWrap(true)
     bestiaryFrame.footer = createLabel(
         bestiaryFrame,
         9,
@@ -473,8 +502,14 @@ function Addon.BuildBestiary()
     )
     bestiaryFrame.footer:SetWordWrap(true)
     bestiaryFrame.footer:SetTextColor(0.65, 0.65, 0.55)
+    bestiaryFrame.skinningFooter = createLabel(bestiaryFrame, 9, 310, 0, 280,
+        T('cMaNGOS Classic 1.12 - not verified for Forever\n* Conditional drop chance'))
+    bestiaryFrame.skinningFooter:ClearAllPoints()
+    bestiaryFrame.skinningFooter:SetPoint('BOTTOMLEFT', 310, 8)
+    bestiaryFrame.skinningFooter:SetWordWrap(true)
+    bestiaryFrame.skinningFooter:SetTextColor(0.65, 0.65, 0.55)
     bestiaryFrame:SetScript('OnMouseWheel', function(_, delta)
-        scrollOffset = scrollOffset - delta
+        columns[1].offset = columns[1].offset - delta
         hideRowTooltip()
         refreshWindow()
     end)
@@ -493,7 +528,8 @@ function Addon.BuildBestiary()
         if not IsAltKeyDown() then
             itemLockedForAlt = false
         end
-        if isPinned or bestiaryFrame:IsMouseOver() or bestiaryFrame.scrollbar.dragging or IsAltKeyDown() then
+        if isPinned or bestiaryFrame:IsMouseOver() or columns[1].scrollbar.dragging
+            or columns[2].scrollbar.dragging or IsAltKeyDown() then
             return
         end
         bestiaryFrame:Hide()
@@ -557,6 +593,9 @@ function Addon.BuildBestiary()
         end
         Addon.db.bestiary.scale = math.max(0.4, math.min(1.8, value))
         bestiaryFrame:SetScale(Addon.db.bestiary.scale)
+        if bestiaryFrame:IsShown() and not isPinned then
+            positionBesideCursor()
+        end
     end
     Addon.SetBestiaryScale(Addon.db.bestiary.scale or 1)
 end

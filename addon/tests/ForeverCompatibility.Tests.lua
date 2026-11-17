@@ -466,6 +466,66 @@ if flavor == "forerver" then
             "Bestiary skinning source lost its NPC identity or probability contract")
         assert(not leatherSources[113] and not bestiary.ReferenceItem(769).drops[113].kind,
             "Bestiary skinning sources collided with corpse loot")
+        local boar = bestiary.ReferenceMonster(113)
+        assert(boar.skinning[2318].kind == "Skinning" and boar.skinning[2318].link == "item:2318"
+            and boar.skinning[2318].rate == skinningSource.rate and boar.drops[769] and not boar.drops[2318],
+            "Bestiary creature skinning query lost its independent loot table or probability units")
+        local detail = bestiary.detailFrame
+        local originalCursor = GetCursorPosition
+        local originalWidth, originalHeight = UIParent.GetWidth, UIParent.GetHeight
+        local originalParentScale = UIParent.GetEffectiveScale
+        local originalSetScale, originalEffectiveScale = detail.SetScale, detail.GetEffectiveScale
+        local cursorX, cursorY, frameScale = 600, 540, 1
+        local viewportWidth, viewportHeight, parentScale = width, height, scale
+        function GetCursorPosition() return cursorX, cursorY end
+        function UIParent:GetWidth() return viewportWidth / parentScale end
+        function UIParent:GetHeight() return viewportHeight / parentScale end
+        function UIParent:GetEffectiveScale() return parentScale end
+        function detail:SetScale(value) frameScale = value end
+        function detail:GetEffectiveScale() return parentScale * frameScale end
+        local savedScale = bestiary.db.bestiary.scale
+        local right = detail.columns[2]
+        bestiary.ShowBestiary(boar, false, false)
+        assert(detail:GetWidth() == 600 and right.frame:IsShown()
+            and right.section:GetText() == bestiary.Text("SKINNING  /  ") .. "2"
+            and right.rows[1].entry.drop.kind == "Skinning"
+            and right.rows[1].detail:GetText():find("%%")
+            and right.frame.point[2] == 300,
+            "Bestiary two-column labels, rates, rows or parent anchors are not bound")
+        for _, viewport in ipairs({{1920, 1080, 0.7}, {800, 600, 1.25}}) do
+            viewportWidth, viewportHeight, parentScale = unpack(viewport)
+            for _, configuredScale in ipairs({0.4, 1, 1.8}) do
+                bestiary.db.bestiary.scale = configuredScale
+                for _, cursor in ipairs({{8, 8}, {viewportWidth / 2, viewportHeight / 2},
+                    {viewportWidth - 8, viewportHeight - 8}}) do
+                    cursorX, cursorY = unpack(cursor)
+                    bestiary.ShowBestiary(boar, false, false)
+                    local effective = detail:GetEffectiveScale()
+                    local left, top = detail.point[4] * effective, detail.point[5] * effective
+                    local panelWidth, panelHeight = detail:GetWidth() * effective, detail:GetHeight() * effective
+                    assert(detail.point[2] == UIParent and detail.point[3] == "BOTTOMLEFT"
+                        and left >= 7.99 and left + panelWidth <= viewportWidth - 7.99
+                        and top <= viewportHeight - 7.99 and top - panelHeight >= 7.99
+                        and (left >= cursorX + 15.99 or left + panelWidth <= cursorX - 15.99),
+                        "Bestiary cursor/screen coordinate contract fails for combined width and effective scale")
+                    assert(bestiary.db.bestiary.scale == configuredScale,
+                        "Bestiary cursor fitting changed the saved scale")
+                end
+            end
+        end
+        bestiary.ShowBestiary(bestiary.ReferenceMonster(6), false, true)
+        assert(detail:GetWidth() == 300 and not right.frame:IsShown(),
+            "Bestiary single-column creature binding retained the skinning column")
+        bestiary.ShowBestiary(bestiary.ReferenceItem(2318), false, true)
+        assert(detail:GetWidth() == 300 and not right.frame:IsShown()
+            and detail.columns[1].rows[1].location:IsShown(),
+            "Bestiary item-source row binding changed with the creature columns")
+        detail:Hide()
+        bestiary.db.bestiary.scale = savedScale
+        GetCursorPosition = originalCursor
+        UIParent.GetWidth, UIParent.GetHeight = originalWidth, originalHeight
+        UIParent.GetEffectiveScale = originalParentScale
+        detail.SetScale, detail.GetEffectiveScale = originalSetScale, originalEffectiveScale
         local recipes = prr.Dataflows.RecipeIndex.ReagentFor(2318)
         assert(type(recipes) == "table" and #recipes > 0 and recipes[1].spellID,
             "PRR indexed item recipe query contract failed")
@@ -484,11 +544,20 @@ if flavor == "forerver" then
             "PRR borrowed skill label lost its reference marker")
         prr.Components.RecipeRow.Fill(recipeRow, repairedRecipe, 2318)
         assert(recipeRow.trainers:IsShown()
-            and recipeRow.trainers:GetText():find("Brawn / Zone 1434 (31.7, 28.8)", 1, true),
-            "PRR recipe row does not bind its trainer/map/coordinate summary")
+            and recipeRow.trainers:GetText():find("Zone 1434 (31.7, 28.8)", 1, true)
+            and not recipeRow.trainers:GetText():find("Brawn", 1, true),
+            "PRR recipe row does not bind its location-only map/coordinate summary")
         assert(prr.RecipeSources.TrainerLocation(3184) == "Area 14",
             "PRR trainer location did not bind the Questie zone/native area fallback")
         prr.RecipeSources.AddTooltip(GameTooltip, repairedRecipe)
+        local locationLines = {}
+        prr.RecipeSources.AddTooltip({AddLine = function(_, line) locationLines[#locationLines + 1] = line end}, {
+            spellID = 2159,
+            details = {trainers = {{npcID = 1385, reference = true}, {npcID = 1385}, {npcID = 1385}}},
+        })
+        assert(#locationLines == 1 and locationLines[1]:find("Zone 1434 (31.7, 28.8)", 1, true)
+            and not locationLines[1]:find("Brawn", 1, true),
+            "PRR location tooltip must deduplicate locations and prefer observed source provenance")
         WoWTools.settings.Open("raynna_bestiary")
         assert(bestiary.optionsPanel and bestiary.optionsPanel:GetParent() == bestiary.settingsPanel,
             "Bestiary options are not embedded in the shared canvas")

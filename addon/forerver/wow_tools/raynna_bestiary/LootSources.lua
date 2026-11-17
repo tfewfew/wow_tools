@@ -5,6 +5,7 @@ WoWTools.raynnaBestiary.RegisterSource(function(...)
 local _, Addon = ...
 local T = Addon.Text
 local monsterDropCache = {}
+local monsterSkinningCache = {}
 -- Resolve source tables without treating reference-pool chances as item chances.
 
 -- Loot-pool probability resolution
@@ -324,12 +325,16 @@ end
 function Addon.ReferenceMonster(id, name, level)
     local database = Addon.LootReference
     local npc = database and database.creatures[id]
+    local skinning = Addon.SkinningReference
+    local skinningNPC = skinning.creatures[id]
+    local identity = npc or skinningNPC
     local monster = {
         npcID = id,
-        name = Addon.EntityName('Npc', id, name or metadata('Npc', id, 'name') or (npc and npc[2]) or T('Unknown creature')),
-        minLevel = level or metadata('Npc', id, 'minLevel') or (npc and npc[3]),
-        maxLevel = level or metadata('Npc', id, 'maxLevel') or (npc and npc[4]),
+        name = Addon.EntityName('Npc', id, name or metadata('Npc', id, 'name') or (identity and identity[2]) or T('Unknown creature')),
+        minLevel = level or metadata('Npc', id, 'minLevel') or (identity and identity[3]),
+        maxLevel = level or metadata('Npc', id, 'maxLevel') or (identity and identity[4]),
         drops = {},
+        skinning = {},
     }
     if npc and not monsterDropCache[id] then
         local drops = resolveLootTable(database.loot[npc[1]], {})
@@ -346,9 +351,25 @@ function Addon.ReferenceMonster(id, name, level)
     for itemID, drop in pairs(monsterDropCache[id] or {}) do
         monster.drops[itemID] = drop
     end
+    if skinningNPC and not monsterSkinningCache[id] then
+        local drops = resolveLootTable(skinning.loot[skinningNPC[1]], {})
+        for item, drop in pairs(drops) do
+            drop.link = 'item:' .. item
+            drop.name = skinning.names[item]
+            drop.kind = 'Skinning'
+            drop.source = 'cMaNGOS Classic (not verified for Forever)'
+            if drop.rate then
+                drop.rate = math.min(100, drop.rate * 100)
+            end
+        end
+        monsterSkinningCache[id] = drops
+    end
+    for itemID, drop in pairs(monsterSkinningCache[id] or {}) do
+        monster.skinning[itemID] = drop
+    end
     for itemID in pairs(foreverItems(id)) do
         -- Metadata confirms a source relationship, not a drop percentage.
-        if not monster.drops[itemID] then
+        if not monster.drops[itemID] and not monster.skinning[itemID] then
             monster.drops[itemID] = {
                 link = 'item:' .. itemID,
                 name = metadata('Item', itemID, 'name') or database.names[itemID],

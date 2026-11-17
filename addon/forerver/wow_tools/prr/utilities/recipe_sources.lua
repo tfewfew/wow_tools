@@ -3,26 +3,7 @@ local _, ns = ...
 local Text = ns.Localization.Text
 local Sources = {}
 ns.RecipeSources = Sources
-local names = {}
 local locations = {}
-
-function Sources.TrainerName(npcID)
-    if names[npcID] then return names[npcID] end
-    local trainer = ns.Database.Trainers[npcID]
-    local name = trainer and trainer.name or ("NPC " .. npcID)
-    local language = ns.db.settings.language
-    local chinese = language == "zh" or (language == "auto" and ns.Localization.ClientLanguage() == "zh")
-    local provider = LibQuestieDB and LibQuestieDB.Npc
-    if chinese and provider and type(provider.Get) == "function" then
-        local ok, translated = pcall(provider.Get, npcID, "name")
-        if ok and not (issecretvalue and issecretvalue(translated)) and type(translated) == "string"
-            and translated:find("[\228-\233][\128-\191][\128-\191]") then
-            name = translated
-        end
-    end
-    names[npcID] = name
-    return name
-end
 
 function Sources.TrainerLocation(npcID)
     if locations[npcID] then return locations[npcID] end
@@ -46,15 +27,33 @@ function Sources.TrainerLocation(npcID)
     return locations[npcID]
 end
 
+local function learningLocations(trainers)
+    local observed, reference, seen = {}, {}, {}
+    local function add(group, source)
+        local location = Sources.TrainerLocation(source.npcID)
+        if not seen[location] then
+            seen[location] = true
+            group[#group + 1] = location
+        end
+    end
+    for _, source in ipairs(trainers) do
+        if not source.reference then add(observed, source) end
+    end
+    for _, source in ipairs(trainers) do
+        if source.reference then add(reference, source) end
+    end
+    return observed, reference
+end
+
 function Sources.Summary(recipe)
     local details = recipe.details or ns.Database.RecipeDetails[recipe.spellID]
     local trainers = details and details.trainers
-    if not trainers then return nil end
-    local first = trainers[1]
-    local name = Sources.TrainerName(first.npcID)
-    if first.reference then name = name .. Text("tooltip.reference_mark") end
-    local summary = Text("tooltip.trainer", name .. " / " .. Sources.TrainerLocation(first.npcID))
-    if #trainers > 1 then summary = summary .. Text("tooltip.other_trainers", #trainers - 1) end
+    if not trainers or #trainers == 0 then return nil end
+    local observed, reference = learningLocations(trainers)
+    local location = observed[1] or (reference[1] .. Text("tooltip.reference_mark"))
+    local summary = Text("tooltip.learning_location", location)
+    local otherLocations = #observed + #reference - 1
+    if otherLocations > 0 then summary = summary .. Text("tooltip.other_locations", otherLocations) end
     return summary
 end
 
@@ -72,21 +71,12 @@ function Sources.AddTooltip(tooltip, recipe)
         end
         return
     end
-    local observed, reference = {}, {}
-    for _, source in ipairs(trainers) do
-        local name = Sources.TrainerName(source.npcID) .. " / " .. Sources.TrainerLocation(source.npcID)
-        local group = source.reference and reference or observed
-        group[#group + 1] = name
-    end
+    local observed, reference = learningLocations(trainers)
     if #observed > 0 then
-        tooltip:AddLine(Text("tooltip.trainers_forever", table.concat(observed, ", ")), 0.7, 0.9, 0.7, true)
+        tooltip:AddLine(Text("tooltip.locations_forever", table.concat(observed, ", ")), 0.7, 0.9, 0.7, true)
     end
     if #reference > 0 then
-        tooltip:AddLine(Text("tooltip.trainers_reference", table.concat(reference, ", ")), 1, 0.82, 0.2, true)
-    end
-    if #reference > 0 and details.referenceTrainerTotal then
-        tooltip:AddLine(Text("tooltip.trainer_reference_count", details.referenceTrainerTotal,
-            details.referenceTrainerListed), 0.6, 0.6, 0.6, true)
+        tooltip:AddLine(Text("tooltip.locations_reference", table.concat(reference, ", ")), 1, 0.82, 0.2, true)
     end
 end
 end)

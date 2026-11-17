@@ -44,6 +44,7 @@ local chinese = {
     ["cMaNGOS Classic 1.12 - not verified for Forever\n* Conditional drop chance"] = "cMaNGOS 经典旧世 1.12 参考数据\n无限服掉率待核实，* 表示有条件掉率",
     ["SOURCES  /  "] = "来源  /  ",
     ["POSSIBLE DROPS  /  "] = "可能掉落  /  ",
+    ["SKINNING  /  "] = "剥皮  /  ",
     ["No known source in the loaded databases.\nCoverage is incomplete for Forever."] = "已加载数据库中暂无已知来源。\n无限服数据仍有缺项。",
     ["No source data for this creature ID.\nYour personal loot log is not used here."] = "此怪物 ID 暂无来源数据。\n本页展示数据库中的参考掉落。",
     ["Source: "] = "数据来源 ",
