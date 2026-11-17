@@ -220,6 +220,7 @@ local function toast_Release(self)
 	self:Hide()
 	self:SetScript("OnClick", toast_OnClick)
 	self:SetScript("OnEnter", toast_OnEnter)
+	self.UpdateTooltip = nil
 
 	self.AnimArrows:Stop()
 	self.AnimInFull:Stop()

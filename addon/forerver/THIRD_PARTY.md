@@ -7,7 +7,7 @@
 | 模块 | 插件 | 来源 | 当前版本 | 上游基线 | 上次更新 | 本地适配 | 上次核对依据 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | bigfoot_channel | 大脚聊天 | [大脚官方 forever](https://gitee.com/bigfoot-wow/forever) | 1.60.1.2（整合包） | 6b8e7466470cd2daf4c8c647eb8f97f141caafb6，整包和原文件指纹见 bigfoot_channel/SOURCE.json | 2026-11-16 | BF-01、BF-02、BF-03、BF-04 | 2026-11-17 官方 latest 仍为 1.60.1.2，manifest commit、整包 MD5 和 SHA256 与 SOURCE.json 一致，当前宿主、聊天及运行库适配继续适用 |
-| ls_toasts | ls_Toasts | [ls-/ls_Toasts](https://github.com/ls-/ls_Toasts) | 120105.06 | 65bc1fcef7d4de5df471397e7b467385d46f89e6 | 2026-11-16 | LS-01、LS-02 | 2026-11-17 官方最新正式版仍为 120105.06，tag 解析出的完整 commit 与当前基线一致，宿主、接口和性能适配继续适用 |
+| ls_toasts | ls_Toasts | [ls-/ls_Toasts](https://github.com/ls-/ls_Toasts) | 120105.06 | 65bc1fcef7d4de5df471397e7b467385d46f89e6 | 2026-11-17 | LS-01、LS-02、LS-04、LS-05 | 2026-11-17 官方正式版基线一致，核对既有金币勿扰设置及本服背包提示接口，一次性关闭旧金币战斗排队，物品提示接入实时背包格、原生锚点与装备比较 |
 | forever_faces | Forever 3D Portraits | [sorrow8/forever-3d-portraits](https://github.com/sorrow8/forever-3d-portraits) | 1.0.11 | 20eaf8fd29b03ba3d91f73a90ccbaf39b49f2af4 | 2026-11-16 | FF-01、FF-02、FF-03、FF-04 | 2026-11-17 官方最新正式版仍为 v1.0.11，tag 解析出的完整 commit 与当前基线一致，宿主、重绘挂接、统一设置和像素调试适配继续适用 |
 | better_vendor_ui | Better Vendor UI | [Vaniron 官方发布包](https://www.curseforge.com/wow/addons/better-vendor-ui/files/9436965) | 1.3.1 | 上游未公布 Git commit，发布包 SHA256 和文件指纹见 better_vendor_ui/SOURCE.json | 2026-11-14 | BV-01、BV-02、BV-03 | 2026-11-17 官方文件 API 最新正式包仍为 1.3.1 / 9436965，重新下载包 SHA256 与 SOURCE.json 一致，三项适配继续适用 |
 | pet_xp_bar | PetXPBarPlus | [DustinChecketts/PetXPBarPlus](https://github.com/DustinChecketts/PetXPBarPlus) | 1.3.1 | 0c5da2aef6b2b56e307a77e37151fe4675be6c82 | 2026-11-16 | PX-01、PX-02 | 2026-11-17 官方最新正式版仍为 v1.3.1，tag 解析出的完整 commit 与当前基线一致，宿主与本服接口适配继续适用 |
@@ -20,6 +20,8 @@
 - BF-02 保留频道及原配置接入。`ChannelFilter.lua`、`WorldChannel.lua`、`Copy.lua` 使用宿主设置，部署脚本直接迁移 BigFootChat 与 ChannelFilter 配置，验证后归档原独立目录和无限服 !!!Libs，复用宿主内嵌 Ace3。依据为 4502573、34e091f、a98c774。
 - LS-01 保留宿主隔离。`ls_toasts/Bootstrap.lua`、`Integration.lua` 及 XML 使用独立命名空间、内嵌媒体、宿主 Ace3、SharedMedia、LibEditMode 及统一设置，保存到 `wowDetectorDB.lsToasts.db`，停用时跳过业务初始化。直接迁移旧配置，兼容 `loot_items` 与旧锚点，保留本服身份。当前上游基线使用独立插件加载和存储。
 - LS-02 保留空闲和布局开销调整。`ls_toasts/core` 数字动画按需创建及取消 ticker，仅整数变化时写文本，回收时清理引用。队列追加破坏顺序时才排序，布局与可见性仅在变化时写入。依据为上游引入后的 3905341，更新时逐项核对数字任务、排序和锚点处理链。
+- LS-04 修正金币战斗勿扰配置。`ls_toasts/Bootstrap.lua` 在首次读取既有账号配置时将各配置档的 `types.loot_gold.dnd` 设为 false，以 `goldCombatQueueMigrated` 记录已处理，后续设置仍可由用户修改。新配置沿用上游默认关闭勿扰，金币仍按原生 `PLAYER_MONEY` 和 `GetMoney` 的实际余额差记录。用户保存的勿扰开关曾使战斗拾取进入队列并累计至脱战后显示。
+- LS-05 物品悬停复用本服背包提示。`core/components/tooltip.lua` 以完整物品链接在全部已装备背包及材料袋定位当前格位，保留随机后缀、附魔和修正字段，通过 `GameTooltip:SetBagItem` 接入 !Pig 等背包提示挂接。物品不在背包时采用原始链接，锚点与装备比较分别复用本服 ContainerFrameItemButton_CalculateItemTooltipAnchors 和 TooltipUtil.ShouldDoItemComparison。`systems/forever/loot_item.lua` 提供原生 UpdateTooltip 回调，回收弹窗时清除回调。接口核对 forever 943764493e6b16d63ded3ab304150d1f05e58b57 的容器与 GameTooltip 源码。
 - FF-01 保留宿主接入。`forever_faces/Bootstrap.lua`、Core 与媒体路径使用 `WoWTools.foreverFaces`、宿主加载事件及 `wowDetectorDB.foreverFaces.db`，复用 LibStub/CallbackHandler 并内嵌 LDB/DBIcon。开关控制初始化，部署直接迁移 ForeverFacesDB 并归档独立目录。依据为 a98c774。
 - FF-02 保留单位头像重绘挂接。`forever_faces/Portraits.lua` 在 SetPortraitTexture 及原生 UnitFramePortrait_Update 安全后钩子中按 frame.portrait / frame.unit 重新绑定，覆盖职业头像及 EasyFrames 重绘。登录、进世界、目标/焦点和配置变化后合并补查，保留受限值、战斗创建与原头像回退。依据为 f38b061。
 - FF-03 保留统一设置卡片。`forever_faces/UI.lua` 将原控件嵌入共享 canvas，按宽度适配和滚动，语言切换重建，旧命令与小地图入口打开此页。依据为 cf97c5c。

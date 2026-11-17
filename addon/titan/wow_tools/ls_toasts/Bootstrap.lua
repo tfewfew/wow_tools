@@ -9,6 +9,14 @@ function addon.GetSettings()
     wowDetectorDB.lsToasts = wowDetectorDB.lsToasts or {}
     local settings = wowDetectorDB.lsToasts
     settings.db = settings.db or {}
+    -- Apply the requested gold notification setting once, including existing profiles.
+    if not settings.goldCombatQueueMigrated then
+        for _, profile in pairs(settings.db.profiles or {}) do
+            local gold = profile.types and profile.types.loot_gold
+            if gold then gold.dnd = false end
+        end
+        settings.goldCombatQueueMigrated = true
+    end
     for _, profile in pairs(settings.db.profiles or {}) do
         if profile.types and profile.types.loot_items then
             profile.types.loot_item = profile.types.loot_item or profile.types.loot_items

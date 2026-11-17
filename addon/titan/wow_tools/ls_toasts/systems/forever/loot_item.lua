@@ -76,8 +76,7 @@ end
 
 local function Toast_OnEnter(self)
 	if self._data.tooltip_link then
-		GameTooltip:SetHyperlink(self._data.tooltip_link)
-		GameTooltip:Show()
+		addon.Tooltip:ShowLootItem(self, self._data.tooltip_link)
 	end
 end
 
@@ -176,6 +175,7 @@ local function Toast_SetUp(event, link, quantity)
 		toast._data.tooltip_link = originalLink
 
 		if C.db.profile.types.loot_item.tooltip then
+			toast.UpdateTooltip = Toast_OnEnter
 			toast:HookScript("OnEnter", Toast_OnEnter)
 		end
 

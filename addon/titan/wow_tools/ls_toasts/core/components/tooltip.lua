@@ -54,6 +54,42 @@ function addon.Tooltip:ShowHyperlink(link)
 	GameTooltip:Show()
 end
 
+local function GetItemString(link)
+	if link then
+		return link:match("|H(item:[^|]+)|h") or link:match("^(item:[^|]+)$")
+	end
+end
+
+function addon.Tooltip:ShowLootItem(frame, link)
+	GameTooltip:SetOwner(frame, "ANCHOR_NONE")
+	GameTooltip:ClearAllPoints()
+	ContainerFrameItemButton_CalculateItemTooltipAnchors(frame, GameTooltip)
+
+	-- Resolve the slot at hover time. Keep suffixes, enchants and modifiers intact.
+	local itemString = GetItemString(link)
+	local bagID, slotID
+	for bag = 0, NUM_BAG_SLOTS do
+		for slot = 1, C_Container.GetContainerNumSlots(bag) do
+			if itemString and GetItemString(C_Container.GetContainerItemLink(bag, slot)) == itemString then
+				bagID, slotID = bag, slot
+				break
+			end
+		end
+		if bagID then break end
+	end
+
+	if bagID then
+		GameTooltip:SetBagItem(bagID, slotID)
+	else
+		GameTooltip:SetHyperlink(link)
+	end
+
+	if IsModifiedClick("COMPAREITEMS") or GetCVarBool("alwaysCompareItems") then
+		GameTooltip_ShowCompareItem(GameTooltip)
+	end
+	GameTooltip:Show()
+end
+
 function addon.Tooltip:ShowPet(petLink)
 	local _, speciesID, level, breedQuality, maxHealth, power, speed = s_split(":", petLink)
 	speciesID, level, breedQuality, maxHealth, power, speed = tonumber(speciesID), tonumber(level), tonumber(breedQuality), tonumber(maxHealth), tonumber(power), tonumber(speed)
