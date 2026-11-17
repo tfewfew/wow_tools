@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "plugin": "Questie",
+  "id": "zone-proximity-sort",
+  "version": "12.10.0",
+  "patch": "fix.patch",
+  "patchSha256": "cd02f20fe8badafc01080d2b8ab26712ac33c4b11e6b9cbe8aa559161cb10916",
+  "files": [
+    {
+      "path": "Questie/Modules/Tracker/TrackerUtils.lua",
+      "originalSha256": "9b9ed7326b34c82693ad9a38146202b87580590eb8b27bfdcfdf75d07780cc33",
+      "patchedSha256": "b50a254cf80ada51bc0478bd688175bf27b1c84d3398428a1a1fba1adf686ae9"
+    }
+  ],
+  "loadOrder": [
+    "Modules/Libs/DistanceUtils.lua",
+    "Modules/Tracker/TrackerData.lua",
+    "Modules/Tracker/QuestieTracker.lua",
+    "Modules/Tracker/TrackerUtils.lua",
+    "Modules/Tracker/TrackerQuestTimers.lua"
+  ]
+}

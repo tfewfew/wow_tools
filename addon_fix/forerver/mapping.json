@@ -11,7 +11,8 @@
           "background-scans/2.1.96/manifest.json",
           "background-scans/2.1.99/manifest.json",
           "background-scans/2.1.102/manifest.json",
-          "background-scans/2.1.104/manifest.json"
+          "background-scans/2.1.104/manifest.json",
+          "background-scans/2.1.109/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
@@ -68,6 +69,21 @@
               }
             ],
             "checkedAt": "2026-11-16T15:10:08+00:00"
+          },
+          {
+            "version": "2.1.109",
+            "reason": "核对 2.1.109 的 Hui.lua、TOC 加载清单和 DungeonsForever 主模块、Explore、Prof、Spell 的全部 Lua 引用，ExtTipSkin、CollectForeign、SkinGameTooltip、RefreshGameTooltipSkin 均继续缺失。Hui.lua 与此前上游移除提示框扫描后的源码指纹一致，现存滑条及按钮 OnUpdate 不属于已删除的提示框轮询链。追加当前 Hui.lua 与 TOC 指纹，停止边界继续采用已核实的 2.1.99。",
+            "files": [
+              {
+                "path": "DungeonsForever/Core/Hui.lua",
+                "sha256": "ec55b10f13c8c3dfc481b4f6408cf6529766aa99d95af440ff1b02be245648f9"
+              },
+              {
+                "path": "DungeonsForever/DungeonsForever.toc",
+                "sha256": "3535811f7845b05bf8db0bee5bb64899c5987fdc3f260e7debca7290b046b190"
+              }
+            ],
+            "checkedAt": "2026-11-17T14:09:07+00:00"
           }
         ]
       }
@@ -85,7 +101,8 @@
         "variants": [
           "background-scans/2.0.3/manifest.json",
           "background-scans/2.0.3-20261114/manifest.json",
-          "background-scans/2.0.3-20261116/manifest.json"
+          "background-scans/2.0.3-20261116/manifest.json",
+          "background-scans/2.0.3-20261117/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
@@ -99,7 +116,8 @@
           "background-scans/2.0.3/manifest.json",
           "background-scans/2.0.3-20261114/manifest.json",
           "background-scans/2.0.3-20261115/manifest.json",
-          "background-scans/2.0.3-20261116/manifest.json"
+          "background-scans/2.0.3-20261116/manifest.json",
+          "background-scans/2.0.3-20261117/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
@@ -136,7 +154,8 @@
         "variants": [
           "zone-proximity-sort/12.9.0-timer-state/manifest.json",
           "zone-proximity-sort/12.9.0-timer-state-upgrade/manifest.json",
-          "zone-proximity-sort/12.9.0/manifest.json"
+          "zone-proximity-sort/12.9.0/manifest.json",
+          "zone-proximity-sort/12.10.0/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
