@@ -34,6 +34,11 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 以下为实现与发布历史，其中的测试名称和通过数量保留为历史记录，当前本地测试采用上述范围。
 
+## 双端 Questie 专业采集与技能面板关闭刷新（2026-11-18）
+
+- titan 2.1.97 / forerver 2.2.133 为已安装 Questie 12.8.0 / 12.10.0 分别归档 profession-panel-close 补丁。原 SKILL_LINES_CHANGED 两秒桶及 CHAT_MSG_SKILL 延迟入口改为角色技能面板 OnHide 一次刷新，保留初始化和显式重置采集。无限服绑定原生 SkillsFrame，时光服绑定 SkillFrame，延迟加载时通过 ADDON_LOADED 补挂接一次。
+- 无限服按 C_SkillInfo.GetSkillLineInfoByID 读取专业等级，时光服兼容原列表及名称查询，采集后恢复原收起分类，部分读取或展开失败也执行恢复。未加载或受限数据保留上次有效专业缓存。沿用任务条件、训练师筛选和成就刷新入口，本地检查两服补丁指纹、Lua 编译、TOC 依赖、采集接口与关闭回调绑定，游戏内折叠和关闭效果由用户重载后验证。
+
 ## 无限服学习地点与剥皮并排显示（2026-11-17）
 
 - forerver 2.2.132 将 PRR 配方行和悬停来源改为仅显示学习地点，保留实测坐标，按地点去重并优先无限服实测来源。

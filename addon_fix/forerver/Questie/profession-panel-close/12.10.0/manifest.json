@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "plugin": "Questie",
+  "id": "profession-panel-close",
+  "version": "12.10.0",
+  "patch": "fix.patch",
+  "patchSha256": "96b58cb353fd8d7dbc9b8f79e1010449e95be0056589d8bb4c7fa9b5e2a2cb1b",
+  "files": [
+    {
+      "path": "Questie/Modules/QuestieProfessions.lua",
+      "originalSha256": "d8abc196d858a135ecbcc1246eb767a1b53d836b7f954573195a2bb10b039baf",
+      "patchedSha256": "a15e22981d915873f91c7d3d7f791ffe153126c1a4195b499890022fa84f521f"
+    },
+    {
+      "path": "Questie/Modules/EventHandler/EventHandler.lua",
+      "originalSha256": "3e60da452b31f9c709d3905e032b05d7b142c22a9f2bcb09905891a6511cb75f",
+      "patchedSha256": "788f1cacdb32d1e5a2cbde6bf12f929f04ac5affac7290bcb2841f5081c0a568"
+    }
+  ],
+  "loadOrder": [
+    "Modules/QuestieCompat.lua",
+    "Modules/QuestieProfessions.lua",
+    "Modules/EventHandler/EventHandler.lua"
+  ]
+}

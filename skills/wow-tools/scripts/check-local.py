@@ -43,6 +43,13 @@ def main():
     if args.addon_fix_addons_root:
         count = addon_fix_registry.validate_installed(args.addon_fix_flavor, args.addon_fix_addons_root.resolve(), compiler)
         print(f'PASS: addon_fix installed Lua syntax, TOC dependencies and {args.addon_fix_flavor} interfaces ({count} files).')
+        questie = args.addon_fix_addons_root.resolve() / 'Questie'
+        if (questie / 'Modules/QuestieProfessions.lua').is_file():
+            runtime = LuaRuntime()
+            runtime.globals().TEST_QUESTIE_ROOT = questie.as_posix()
+            runtime.globals().TEST_FLAVOR = args.addon_fix_flavor
+            fixture = repo / 'addon/tests/QuestieProfessions.Interfaces.lua'
+            runtime.execute(fixture.read_text(encoding='utf-8-sig'), name='@' + str(fixture))
     lua_count = xml_count = inline_count = 0
     for flavor, interface in [('titan', '38002'), ('forerver', '16001')]:
         addon = repo / 'addon' / flavor / 'wow_tools'
