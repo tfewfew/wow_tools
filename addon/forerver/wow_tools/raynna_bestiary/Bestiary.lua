@@ -8,7 +8,6 @@ local bestiaryFrame, selectedSubject, showingPreview, isPinned, scrollOffset = n
 local sourceRows, visibleEntries, requestedItems = {}, {}, {}
 local itemLockedForAlt = false
 local rowTooltipLevel, rowTooltipStrata
-local selectedView = 'sources'
 
 -- Tooltip ownership and layering
 local function hideRowTooltip()
@@ -58,24 +57,6 @@ local function refreshWindow()
     local quests = selectedSubject.itemID and Addon.ItemQuests(selectedSubject.itemID) or {}
     selectedSubject.quests = quests
     local questSpace = #quests > 0 and 16 or 0
-    local isItem = selectedSubject.itemID ~= nil
-    local showingRecipes = isItem and selectedView == 'recipes'
-    local tabSpace = isItem and 26 or 0
-    local windowWidth = showingRecipes and 420 or 300
-    bestiaryFrame:SetWidth(windowWidth)
-    bestiaryFrame.name:SetWidth(windowWidth - 60)
-    bestiaryFrame.questLine:SetWidth(windowWidth - 20)
-    bestiaryFrame.section:SetWidth(windowWidth - 20)
-    bestiaryFrame.footer:SetWidth(windowWidth - 20)
-    bestiaryFrame.sourcesTab:SetShown(isItem)
-    bestiaryFrame.recipesTab:SetShown(isItem)
-    bestiaryFrame.sourcesTab:ClearAllPoints()
-    bestiaryFrame.sourcesTab:SetPoint('TOPLEFT', 10, -65 - questSpace)
-    bestiaryFrame.recipesTab:ClearAllPoints()
-    bestiaryFrame.recipesTab:SetPoint('TOPLEFT', 100, -65 - questSpace)
-    bestiaryFrame.sourcesTab:SetButtonState(showingRecipes and 'NORMAL' or 'PUSHED', not showingRecipes)
-    bestiaryFrame.recipesTab:SetButtonState(showingRecipes and 'PUSHED' or 'NORMAL', showingRecipes)
-    bestiaryFrame.recipeView:SetShown(showingRecipes)
     bestiaryFrame.questLine:SetShown(#quests > 0)
     bestiaryFrame.questLine:SetText(
         #quests > 0
@@ -83,28 +64,11 @@ local function refreshWindow()
             or ''
     )
     bestiaryFrame.section:ClearAllPoints()
-    bestiaryFrame.section:SetPoint('TOPLEFT', 10, -68 - questSpace - tabSpace)
-    if showingRecipes then
-        for _, row in ipairs(sourceRows) do row:Hide() end
-        bestiaryFrame.empty:Hide()
-        bestiaryFrame.scrollbar:Hide()
-        bestiaryFrame.recipeView:ClearAllPoints()
-        bestiaryFrame.recipeView:SetPoint('TOPLEFT', 10, -83 - questSpace - tabSpace)
-        bestiaryFrame.recipeView:SetPoint('TOPRIGHT', -10, -83 - questSpace - tabSpace)
-        local count = bestiaryFrame.recipeView:Refresh(selectedSubject.itemID)
-        bestiaryFrame.section:SetText(T('Recipes') .. '  /  ' .. count)
-        bestiaryFrame.context:SetText(T('PRR recipe database'))
-        bestiaryFrame.footer:SetText(T('Hover a recipe to view its details.'))
-        bestiaryFrame.footer:ClearAllPoints()
-        bestiaryFrame.footer:SetPoint('BOTTOMLEFT', 10, 8)
-        bestiaryFrame.pin:SetText(isPinned and T('Unpin') or T('Pin'))
-        bestiaryFrame:SetHeight(140 + questSpace + tabSpace + math.max(1, math.min(7, count)) * 36)
-        return
-    end
+    bestiaryFrame.section:SetPoint('TOPLEFT', 10, -68 - questSpace)
     bestiaryFrame.scrollbar:ClearAllPoints()
-    bestiaryFrame.scrollbar:SetPoint('TOPRIGHT', -3, -83 - questSpace - tabSpace)
+    bestiaryFrame.scrollbar:SetPoint('TOPRIGHT', -3, -83 - questSpace)
     bestiaryFrame.empty:ClearAllPoints()
-    bestiaryFrame.empty:SetPoint('TOPLEFT', 10, -85 - questSpace - tabSpace)
+    bestiaryFrame.empty:SetPoint('TOPLEFT', 10, -85 - questSpace)
     bestiaryFrame.context:SetText(
         selectedSubject.itemID
                 and ((selectedSubject.quest and T('Quest item') or T('Item sources')) .. ' / ' .. T('Reference databases'))
@@ -148,14 +112,14 @@ local function refreshWindow()
     )
     local shownRows = math.max(1, math.min(7, #visibleEntries))
     local rowHeight = selectedSubject.itemID and 36 or 24
-    bestiaryFrame:SetHeight(116 + questSpace + tabSpace + shownRows * rowHeight)
+    bestiaryFrame:SetHeight(116 + questSpace + shownRows * rowHeight)
     bestiaryFrame.footer:ClearAllPoints()
     bestiaryFrame.footer:SetPoint('BOTTOMLEFT', 10, 8)
     bestiaryFrame.scrollbar:Update(#visibleEntries, 7, scrollOffset, shownRows * rowHeight)
     for i, row in ipairs(sourceRows) do
         row:SetHeight(rowHeight)
         row:ClearAllPoints()
-        row:SetPoint('TOPLEFT', 10, -83 - questSpace - tabSpace - (i - 1) * rowHeight)
+        row:SetPoint('TOPLEFT', 10, -83 - questSpace - (i - 1) * rowHeight)
         row.location:SetShown(not not selectedSubject.itemID)
         row.entry = visibleEntries[scrollOffset + i]
         row:SetShown(row.entry ~= nil)
@@ -258,10 +222,6 @@ function Addon.ShowBestiary(monster, demo, pin)
 end
 function Addon.BestiaryDemo()
     Addon.ShowBestiary(Addon.ReferenceMonster(587), true, true)
-end
-
-function Addon.RefreshRecipeView()
-    if bestiaryFrame and bestiaryFrame:IsShown() and selectedView == 'recipes' then refreshWindow() end
 end
 
 -- Alt-hover selection and item locking
@@ -379,19 +339,6 @@ function Addon.BuildBestiary()
     bestiaryFrame.pin:SetWidth(72)
     bestiaryFrame.close:ClearAllPoints()
     bestiaryFrame.close:SetPoint('TOPRIGHT', -13, -6)
-    bestiaryFrame.sourcesTab = button(bestiaryFrame, T('Sources'), 10, -65, 80, function()
-        hideRowTooltip()
-        selectedView = 'sources'
-        refreshWindow()
-    end)
-    bestiaryFrame.recipesTab = button(bestiaryFrame, T('Recipes'), 100, -65, 80, function()
-        hideRowTooltip()
-        selectedView = 'recipes'
-        refreshWindow()
-    end)
-    bestiaryFrame.sourcesTab:Hide()
-    bestiaryFrame.recipesTab:Hide()
-    bestiaryFrame.recipeView = Addon.CreateRecipeView(bestiaryFrame)
     bestiaryFrame.portrait = CreateFrame('Frame', nil, bestiaryFrame)
     bestiaryFrame.portrait:SetSize(32, 32)
     bestiaryFrame.portrait:SetPoint('TOPLEFT', 10, -31)
@@ -430,13 +377,8 @@ function Addon.BuildBestiary()
             if not self.entry or not selectedSubject or selectedSubject.itemID then
                 return
             end
-            local codex = _G.RaynnaCodexAPI
-            if codex and type(codex.OpenItem) == 'function' then
-                hideRowTooltip()
-                codex.OpenItem(self.entry.id, bestiaryFrame)
-            else
-                Addon.ShowBestiary(Addon.ReferenceItem(self.entry.id), false, true)
-            end
+            hideRowTooltip()
+            Addon.ShowBestiary(Addon.ReferenceItem(self.entry.id), false, true)
         end)
         row:SetScript('OnEnter', function(self)
             if self.entry then
@@ -503,12 +445,8 @@ function Addon.BuildBestiary()
                     )
                 end
                 if not selectedSubject.itemID then
-                    local codex = _G.RaynnaCodexAPI
                     GameTooltip:AddLine(
-                        codex
-                                and type(codex.OpenItem) == 'function'
-                                and T('Click for uses, recipes and sources in Codex')
-                            or T('Click to view item sources'),
+                        T('Click to view item sources'),
                         0.4,
                         0.9,
                         0.6,
@@ -536,10 +474,6 @@ function Addon.BuildBestiary()
     bestiaryFrame.footer:SetWordWrap(true)
     bestiaryFrame.footer:SetTextColor(0.65, 0.65, 0.55)
     bestiaryFrame:SetScript('OnMouseWheel', function(_, delta)
-        if selectedSubject and selectedSubject.itemID and selectedView == 'recipes' then
-            bestiaryFrame.recipeView:Scroll(delta)
-            return
-        end
         scrollOffset = scrollOffset - delta
         hideRowTooltip()
         refreshWindow()

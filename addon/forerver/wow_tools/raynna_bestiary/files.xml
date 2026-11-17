@@ -11,7 +11,6 @@
     <Script file="LootSources.lua"/>
     <Script file="PortraitDisplays.lua"/>
     <Script file="Portraits.lua"/>
-    <Script file="RecipeView.lua"/>
     <Script file="Bestiary.lua"/>
     <Script file="Browser.lua"/>
     <Script file="Settings.lua"/>

@@ -396,7 +396,6 @@ if flavor == "forerver" then
         assert(not bestiary.db and not bestiary.BuildBestiary and not RaynnaBestiaryAPI,
             "Disabled Bestiary initialized its runtime")
         assert(not prr.db and not prr.Events and not prr.ready, "Disabled PRR initialized its runtime")
-        assert(prr.GetItemRecipes(2318) == nil, "Disabled PRR exposed active recipe queries")
     else
         assert(bestiary.db == wowToolsCharacterSettings.raynnaBestiary.db,
             "Bestiary character settings binding failed")
@@ -436,13 +435,15 @@ if flavor == "forerver" then
         assert(bestiary.ready and type(bestiary.OpenBrowser) == "function", "Bestiary initialization contract failed")
         assert(bestiary.language == expectedLanguage and bestiary.db.language == expectedLanguage,
             "Bestiary language default/persistence binding failed")
-        assert(bestiary.Text("Sources") == (expectedLanguage == "zh" and "来源" or "Sources"),
+        assert(bestiary.Text("Item sources") == (expectedLanguage == "zh" and "物品来源" or "Item sources"),
             "Bestiary text resource binding failed")
+        local nameReadsBefore = localizedNameReads
         local name = bestiary.EntityName("Npc", 6, "Kobold Vermin")
         assert(name == (expectedLanguage == "zh" and "狗头人歹徒" or "Kobold Vermin"),
             "Bestiary localized NPC name API binding failed")
         bestiary.EntityName("Npc", 6, "Kobold Vermin")
-        assert(localizedNameReads == (expectedLanguage == "zh" and 1 or 0), "Bestiary repeated its localized name lookup")
+        assert(localizedNameReads == nameReadsBefore + (expectedLanguage == "zh" and 1 or 0),
+            "Bestiary repeated its localized name lookup")
         assert(bestiary.Text("Skinning") == (expectedLanguage == "zh" and "剥皮" or "Skinning"),
             "Bestiary skinning text resource binding failed")
         assert(bestiary.SkinningReference.creatures[113][1] == 113,
@@ -454,12 +455,26 @@ if flavor == "forerver" then
             "Bestiary skinning source lost its NPC identity or probability contract")
         assert(not leatherSources[113] and not bestiary.ReferenceItem(769).drops[113].kind,
             "Bestiary skinning sources collided with corpse loot")
-        local recipes = prr.GetItemRecipes(2318)
-        assert(type(recipes) == "table" and #recipes > 0 and recipes[1].recipe.spellID,
+        local recipes = prr.Dataflows.RecipeIndex.ReagentFor(2318)
+        assert(type(recipes) == "table" and #recipes > 0 and recipes[1].spellID,
             "PRR indexed item recipe query contract failed")
-        assert(bestiary.detailFrame.recipeView:Refresh(2318) == #recipes,
-            "Bestiary recipe table did not bind the PRR query result")
-        assert(not bestiary.detailFrame.recipeView.scripts.OnUpdate, "Bestiary recipe table added persistent polling")
+        assert(not bestiary.CreateRecipeView and not bestiary.RefreshRecipeView and not prr.GetItemRecipes
+            and not bestiary.detailFrame.recipeView and not bestiary.detailFrame.recipesTab,
+            "Bestiary still loads its retired recipe integration")
+        local repairedRecipe = prr.Dataflows.RecipeIndex.CraftedBy(2308)[1]
+        assert(repairedRecipe.spellID == 2159 and repairedRecipe.skill == 50 and not repairedRecipe.skillReference,
+            "PRR native Forever skill supplement binding failed")
+        local sourceDetails = assert(repairedRecipe.details, "PRR recipe detail dependency/load order failed")
+        assert(sourceDetails.trainers[1].npcID == 1385 and not sourceDetails.trainers[1].reference
+            and prr.Database.Trainers[1385].name == "Brawn", "PRR named trainer identity binding failed")
+        assert(prr.Database.RecipeDetails[3861].skillReference,
+            "PRR lost the borrowed skill provenance flag")
+        assert(prr.SkillRange.Text({skill = 185, skillReference = true}):find("[185*]", 1, true),
+            "PRR borrowed skill label lost its reference marker")
+        prr.Components.RecipeRow.Fill(recipeRow, repairedRecipe, 2318)
+        assert(recipeRow.trainers:IsShown() and recipeRow.trainers:GetText():find("Brawn", 1, true),
+            "PRR recipe row does not bind its named trainer summary")
+        prr.RecipeSources.AddTooltip(GameTooltip, repairedRecipe)
         WoWTools.settings.Open("raynna_bestiary")
         assert(bestiary.optionsPanel and bestiary.optionsPanel:GetParent() == bestiary.settingsPanel,
             "Bestiary options are not embedded in the shared canvas")

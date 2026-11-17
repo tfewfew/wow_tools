@@ -74,6 +74,16 @@ foreach ($profile in $profiles) {
         if ((Get-FileHash -LiteralPath $retiredRotation).Hash -ne (Get-FileHash -LiteralPath $retiredBackup).Hash) {throw 'Retired rotation marker backup failed.'}
         Remove-Item -LiteralPath $retiredRotation
     }
+    foreach ($relative in @('raynna_bestiary\RecipeView.lua', 'prr\ItemRecipes.lua')) {
+        $retiredFile = Join-Path $profile.Target $relative
+        if (-not (Test-Path -LiteralPath (Join-Path $profile.Source $relative)) -and (Test-Path -LiteralPath $retiredFile -PathType Leaf)) {
+            $retiredBackup = Join-Path $backup "$($profile.Flavor)\retired-recipe-view\$relative"
+            New-Item -ItemType Directory -Path (Split-Path $retiredBackup -Parent) -Force | Out-Null
+            Copy-Item -LiteralPath $retiredFile -Destination $retiredBackup
+            if ((Get-FileHash -LiteralPath $retiredFile).Hash -ne (Get-FileHash -LiteralPath $retiredBackup).Hash) { throw "Retired recipe file backup failed: $relative" }
+            Remove-Item -LiteralPath $retiredFile
+        }
+    }
 }
 & (Join-Path $PSScriptRoot 'install-desktop-shortcut.ps1') `
     -ToolRoot (Join-Path $repo 'tools\wowAuto') -DesktopPath $desktop -BackupPath (Join-Path $backup 'Desktop')

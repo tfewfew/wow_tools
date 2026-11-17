@@ -166,6 +166,7 @@ function RecipePicker.Create(parent, options)
             GameTooltip:SetOwner(row, "ANCHOR_LEFT")
             GameTooltip:SetText(ItemNames.RecipeName(row.recipe) or LOADING_NAME)
             GameTooltip:AddLine(ns.SkillRange.Text(row.recipe) or "", 1, 1, 1)
+            ns.RecipeSources.AddTooltip(GameTooltip, row.recipe)
             GameTooltip:Show()
         end,
     })

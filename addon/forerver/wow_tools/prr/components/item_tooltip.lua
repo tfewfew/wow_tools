@@ -54,6 +54,7 @@ local function AddTeaches(tooltip, recipes)
         tooltip:AddLine(Config.COLOR_HEADER .. Text("tooltip.teaches") .. "|r "
             .. ProfessionTitle(recipe) .. " " .. name)
         tooltip:AddLine(INDENT .. ReagentsText(recipe), 1, 1, 1, true)
+        ns.RecipeSources.AddTooltip(tooltip, recipe)
     end
 end
 
@@ -71,6 +72,7 @@ local function AddCraftedBy(tooltip, recipes, showAll)
         end
         tooltip:AddLine(title)
         tooltip:AddLine(INDENT .. ReagentsText(recipe), 1, 1, 1, true)
+        ns.RecipeSources.AddTooltip(tooltip, recipe)
     end
     if shown < #recipes then
         tooltip:AddLine(INDENT .. Config.COLOR_HINT .. Text("tooltip.more_shift", #recipes - shown) .. "|r")

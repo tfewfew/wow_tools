@@ -44,6 +44,9 @@ function SkillRange.Text(recipe)
     if recipe.skillUnknown then
         learn = ns.Localization.Text("dev.skill_unknown")
     end
+    if learn and recipe.skillReference then
+        learn = learn .. "*"
+    end
     if not recipe.gray then
         return learn and Level(Config.COLOR_SKILL_ORANGE, learn) or nil
     end

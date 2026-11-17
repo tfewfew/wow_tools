@@ -14,7 +14,16 @@ ns.Localization.Add("en", [==[
         "reagents_unknown": "reagents are not known",
         "more_shift": "and %d more (Shift)",
         "teaches": "Teaches:",
-        "auction_price": "Auction(PRR)"
+        "auction_price": "Auction(PRR)",
+        "trainer": "Trainer: %s",
+        "other_trainers": " and %d more",
+        "reference_mark": " (Classic reference)",
+        "skill_reference": "* Required skill uses Classic reference data and awaits Forever verification.",
+        "trainers_forever": "Trainers recorded on Forever: %s",
+        "trainers_reference": "Trainer reference from Classic: %s",
+        "trainer_reference_count": "The historical database lists %d trainers. This snapshot includes %d of those entries.",
+        "auto_taught": "Learned automatically with the profession.",
+        "source_unknown": "Learning source has not been recorded."
     },
     "professions": {
         "0": "Unknown profession",

@@ -6,7 +6,6 @@ local chinese = {
     ["BESTIARY / TRACKER MONSTERS"] = "怪物图鉴 / 追踪怪物",
     ["Forever + Classic"] = "无限服与经典旧世参考",
     ["Forever sources + Classic fallback rates\nClassic % unverified for Forever; ? unknown"] = "无限服来源与经典旧世参考掉率\n经典掉率尚待无限服验证，? 为未知",
-    ["Click for uses, recipes and sources in Codex"] = "点击在 Codex 中查看用途、配方和来源",
     ["Click to view item sources"] = "点击查看物品来源",
     ["No matching tracked monsters."] = "未找到匹配的追踪怪物。",
     ["Clear"] = "清除",
@@ -30,23 +29,6 @@ local chinese = {
     ["Pin"] = "固定",
     ["Unpin"] = "取消固定",
     ["Browse"] = "浏览",
-    ["Sources"] = "来源",
-    ["Recipes"] = "配方",
-    ["Recipe"] = "配方名称",
-    ["Profession"] = "专业",
-    ["Quantity"] = "数量",
-    ["Reagent for"] = "用作材料",
-    ["Crafted by"] = "制作此物品",
-    ["Teaches"] = "图纸教授",
-    ["PRR recipe database"] = "PRR 配方数据库",
-    ["Hover a recipe to view its details."] = "鼠标指向配方可查看详情。",
-    ["Enable Recipe Uses in Third-party Addons to view recipes."] = "请在三方插件的插件管理中启用“配方用途”。",
-    ["No associated recipes in PRR."] = "PRR 中暂无关联配方。",
-    ["Required per craft"] = "每次制造所需数量",
-    ["Produced per craft"] = "每次制造产出数量",
-    ["Required skill %s"] = "所需技能 %s",
-    ["Recipe %d"] = "配方 %d",
-    ["Unknown profession"] = "未知专业",
     ["Quest: "] = "任务 ",
     ["[Quest]"] = "[任务]",
     ["Quest item"] = "任务物品",
@@ -98,12 +80,6 @@ local chinese = {
     ["Vendor "] = "商人 ",
     ["Item "] = "物品 ",
 }
-local professionNames = {
-    [40] = "毒药", [129] = "急救", [164] = "锻造", [165] = "制皮",
-    [171] = "炼金术", [182] = "草药学", [185] = "烹饪", [186] = "采矿",
-    [197] = "裁缝", [202] = "工程学", [333] = "附魔", [356] = "钓鱼",
-    [393] = "剥皮", [755] = "珠宝加工", [773] = "铭文",
-}
 local nameCache = { Npc = {}, Quest = {} }
 
 function Addon.InitializeLanguage()
@@ -150,7 +126,4 @@ function Addon.EntityName(entity, id, fallback)
     return cache[id] or fallback
 end
 
-function Addon.ProfessionName(id, fallback)
-    return Addon.language ~= "en" and professionNames[id] or fallback or Addon.Text("Unknown profession")
-end
 end)

@@ -20,6 +20,8 @@
     <Script file="lang\zh.lua"/>
     <Script file="database\recipes.lua"/>
     <Script file="database\fixes.lua"/>
+    <Script file="database\recipe_details.lua"/>
+    <Script file="utilities\recipe_sources.lua"/>
     <Script file="dataflows\item_names.lua"/>
     <Script file="dataflows\recipe_index.lua"/>
     <Script file="dataflows\search_history.lua"/>

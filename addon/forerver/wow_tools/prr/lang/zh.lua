@@ -14,7 +14,16 @@ ns.Localization.Add("zh", [==[
         "reagents_unknown": "材料未知",
         "more_shift": "另有 %d 个（Shift）",
         "teaches": "教授：",
-        "auction_price": "拍卖(PRR)"
+        "auction_price": "拍卖(PRR)",
+        "trainer": "训练师：%s",
+        "other_trainers": "，另有 %d 位",
+        "reference_mark": "（经典旧世参考）",
+        "skill_reference": "* 学习等级沿用经典旧世参考数据，无限服待核实。",
+        "trainers_forever": "无限服记录的训练师：%s",
+        "trainers_reference": "经典旧世参考训练师：%s",
+        "trainer_reference_count": "历史库共记录 %d 位训练师，本快照收录其中 %d 位。",
+        "auto_taught": "学习该专业时自动学会。",
+        "source_unknown": "学习来源暂未收录。"
     },
     "professions": {
         "0": "未知专业",

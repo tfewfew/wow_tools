@@ -91,7 +91,7 @@ function RecipeRow.Create(parent, onOpenItem)
         onClick = OpenClickedItem,
     })
     row.result.row = row
-    row.result:SetPoint("LEFT", Config.RECIPE_ROW_PADDING, 0)
+    row.result:SetPoint("TOPLEFT", Config.RECIPE_ROW_PADDING, -4)
 
     -- the item that teaches the recipe; a click opens it like any other icon
     row.recipeItem = ns.UI.IconButton(row, {
@@ -99,7 +99,7 @@ function RecipeRow.Create(parent, onOpenItem)
         onClick = OpenClickedItem,
     })
     row.recipeItem.row = row
-    row.recipeItem:SetPoint("RIGHT", -Config.RECIPE_ROW_PADDING, 0)
+    row.recipeItem:SetPoint("TOPRIGHT", -Config.RECIPE_ROW_PADDING, -4)
 
     row.title = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     row.title:SetPoint("TOPLEFT", row.result, "TOPRIGHT", Config.RECIPE_ROW_GAP, -1)
@@ -110,6 +110,12 @@ function RecipeRow.Create(parent, onOpenItem)
     row.hint = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     row.hint:SetPoint("BOTTOMLEFT", row.result, "BOTTOMRIGHT", Config.RECIPE_ROW_GAP, 2)
     row.hint:SetText(Text("tooltip.reagents_unknown"))
+
+    row.trainers = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    row.trainers:SetPoint("TOPLEFT", row.result, "BOTTOMLEFT", 0, -4)
+    row.trainers:SetPoint("RIGHT", row, "RIGHT", -Config.RECIPE_ROW_PADDING, 0)
+    row.trainers:SetJustifyH("LEFT")
+    row.trainers:SetWordWrap(false)
 
     row.reagentButtons = {}
 
@@ -132,6 +138,9 @@ function RecipeRow.Create(parent, onOpenItem)
     row:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetSpellByID(self.recipe.spellID)
+        local levels = ns.SkillRange.Text(self.recipe)
+        if levels then GameTooltip:AddLine(levels, 1, 1, 1) end
+        ns.RecipeSources.AddTooltip(GameTooltip, self.recipe)
         GameTooltip:Show()
         ns.Wowhead.SetHovered("spell", self.recipe.spellID)
     end)
@@ -174,6 +183,9 @@ function RecipeRow.Fill(row, recipe, itemID)
     UpdateKnownRecipeMarker(row.result, known)
     ns.UI.SetFavoriteStar(row.result, Favorites.IsFavorite(recipe.item))
     row.title:SetText(TitleText(recipe))
+    local trainers = ns.RecipeSources.Summary(recipe)
+    row.trainers:SetText(trainers or "")
+    row.trainers:SetShown(trainers ~= nil)
     if recipe.ignored then
         row:SetAlpha(Config.IGNORED_ROW_ALPHA)
     else

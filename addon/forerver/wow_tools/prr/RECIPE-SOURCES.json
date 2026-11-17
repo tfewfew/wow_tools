@@ -1,0 +1,59 @@
+{
+  "updatedAt": "2026-11-17",
+  "professionDB": {
+    "version": "1.10.1",
+    "license": "MIT",
+    "author": "Pimptasty",
+    "release": "https://www.curseforge.com/wow/addons/libprofessiondb/files/9653856",
+    "packageSHA256": "fa3add2bf667b1499cdac7f9c0abe323571620536ec72ee26c6dec26d3ae98d6",
+    "data": "Data/Forever/_core"
+  },
+  "efficientGames": {
+    "repository": "https://github.com/JIVESCORP/eg-link-output-wowf",
+    "commit": "6ff5612b54191f297eb77ca8eda81de029d9d6f0",
+    "license": "CC BY 4.0",
+    "attribution": "Data from Efficient Games (https://efficient.games), licensed under CC BY 4.0.",
+    "inputs": {
+      "data/wowf/1.60.1.70205/trainers.json": "b17baa7c721dfbd1eec686c816503f1b52b23a777ad59bae9b9d75b9616f627a",
+      "data/wowf/1.60.1.70291/trainers.json": "6ed4498ac8119f11584bb50c1b9673974e7844c364b60a0d5a9bf471d342c240",
+      "data/wowf/1.60.1.70334/trainers.json": "c2c6bd60dddc591ae41e24c1341dc8216bbe690b4ea7e655686234e16a387101",
+      "data/wowf/1.60.1.70338/trainers.json": "253900b3a1b0da3787464f1be83a3debb10e0e045bb43e209e37daf8f8aeb3e3",
+      "data/wowf/1.60.1.70374/trainers.json": "16aadca102ad4a680838121a1d87641c759a5461ca5ad5e4a7e9eef9dfc8c806",
+      "data/wowf/1.60.1.70425/trainers.json": "cbc0ab988e6123c77999c2a4b7da884120afee041b89f0636e2014e6300f6acb",
+      "data/wowf/1.60.1.70450/trainers.json": "d3574ad747ee6e3f104656b5f1e55461503e2ec3577c36d12fc53d44a9d7d9a5",
+      "data/wowf/1.60.1.70532/trainers.json": "9ee274ca32c07a34b2962991107a068572edef115652e253a6f46a827056b0c4",
+      "data/wowf/1.60.1.70790/trainers.json": "cb0c7515563ce5df4fc2f75716483331153e62873b1470f5ea2128bcb3084e0d",
+      "data/wowf/1.60.1.70840/trainers.json": "986dfda74fa1168510fd4ff6c223cb9d6a1677a211b618a7752dcce622085cd7",
+      "data/wowf/1.60.1.70862/trainers.json": "4486cb22a1bc88c8cf8667b13a61e020ddb3e446ca8a20973d012876f6939eb6",
+      "data/wowf/1.60.1.70888/trainers.json": "5292c0b2b564d8a6b1e0eb0d6032df3ce1d30e03ad9b4981b04551ce3d2fb461",
+      "data/wowf/1.60.1.70938/trainers.json": "4ffc5c0cabd8bb7bbc4c2fe6a4fc702d52ef792e918aeb02e773a7b77a596030"
+    }
+  },
+  "transformation": [
+    "Export only spell IDs already present in PRR, and only the Forever data tree.",
+    "Keep native library requiredSkill, then observed Forever trainer ranks, then flagged Vanilla reference ranks.",
+    "Runtime fills missing skills after PRR fixes. Explicit user fixes and known values take priority.",
+    "Merge named historical trainer IDs with observed Forever NPC/spell pairs. Observed pairs clear reference flags.",
+    "Historical lists are capped by upstream. Preserve listed and total counts. Coverage is partial."
+  ],
+  "npcNameCorrections": {
+    "source": "QuestieDB 1.1.1 NPC records bundled with Raynna Bestiary",
+    "release": "https://github.com/Questie/QuestieDB/releases/tag/v1.1.1",
+    "names": {
+      "3184": "Miao'zan",
+      "3484": "Kil'hala",
+      "4159": "Me'lynn",
+      "7871": "Se'Jib"
+    }
+  },
+  "coverage": {
+    "recipes": 622,
+    "trainers": 195,
+    "trainerRecipes": 553,
+    "missingSkills": {
+      "native": 87,
+      "reference": 60,
+      "remaining": 171
+    }
+  }
+}
