@@ -334,7 +334,7 @@ function Read-RotationScreen($Row,$Plan,[switch]$MenuWasConfirmed) {
             $result=$work.Pipeline.EndInvoke($work.Async)
             if ($work.Pipeline.Streams.Error.Count) {throw $work.Pipeline.Streams.Error[0].ToString()}
             if (-not (Test-RotationClientSize $Row $work.ClientSize)) {return [pscustomobject]@{Kind='pending'}}
-            if ($script:schedulerClock.ElapsedMilliseconds-$work.At -gt 3000) {return [pscustomobject]@{Kind='pending'}}
+            if ($script:schedulerClock.ElapsedMilliseconds-$work.At -gt [WowAutoRotation.Native]::OcrTimeoutMs($Row.Client.Flavor)) {return [pscustomobject]@{Kind='pending'}}
             $screen=ConvertFrom-RotationOcr ($result[0] | ConvertFrom-Json) $Plan -MenuWasConfirmed:$MenuWasConfirmed -Flavor $Row.Client.Flavor
             foreach ($target in @($screen.Targets)) {
                 $target | Add-Member NoteProperty ClientSize $work.ClientSize
@@ -357,7 +357,7 @@ function Read-RotationScreen($Row,$Plan,[switch]$MenuWasConfirmed) {
     $script:rotation.NextOcrAt=$sampleAt+[long]$script:rotation.OcrIntervalMs
     $pipeline=[powershell]::Create()
     try {
-        $null=$pipeline.AddScript($script:rotation.OcrSource).AddArgument([WowAutoRotation.Native]::Png($bitmap))
+        $null=$pipeline.AddScript($script:rotation.OcrSource).AddParameter('ScreenBytes',[WowAutoRotation.Native]::Png($bitmap)).AddParameter('Flavor',$Row.Client.Flavor)
         $script:rotation.OcrWork=[pscustomobject]@{Key=$Row.Key;Pipeline=$pipeline;Async=$pipeline.BeginInvoke();
             ClientSize=$clientSize;At=$script:schedulerClock.ElapsedMilliseconds}
     } catch {$pipeline.Dispose();throw} finally {$bitmap.Dispose()}

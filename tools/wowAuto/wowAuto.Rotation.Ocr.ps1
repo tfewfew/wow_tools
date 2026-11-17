@@ -1,5 +1,6 @@
-﻿param([byte[]]$ScreenBytes,[byte[]]$NamesBytes,$OcrOwner=$null,[long]$OcrVersion=0)
+﻿param([byte[]]$ScreenBytes,[byte[]]$NamesBytes,$OcrOwner=$null,[long]$OcrVersion=0,[ValidateSet('titan','forerver')][string]$Flavor='titan')
 $ErrorActionPreference='Stop'
+$ocrTimeoutMs=[WowAutoRotation.Native]::OcrTimeoutMs($Flavor)
 # Runs in an isolated PowerShell runspace. No window input or disk image files.
 $namesBounds=$null
 $anchorsBytes=$null
@@ -28,7 +29,7 @@ function Wait-OcrOperation($Operation,[type]$ResultType) {
     $task=$asTask.MakeGenericMethod($ResultType).Invoke($null,@($Operation))
     if($OcrOwner) {
         while(-not $task.Wait(50)) {
-            if(-not $OcrOwner.Current($OcrVersion) -or $ocrTimer.ElapsedMilliseconds -gt 3000) {
+            if(-not $OcrOwner.Current($OcrVersion) -or $ocrTimer.ElapsedMilliseconds -gt $ocrTimeoutMs) {
                 try {$Operation.Cancel()}catch{}
                 throw 'OCR sample timed out or its process task was cancelled.'
             }

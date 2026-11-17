@@ -35,6 +35,12 @@ try {
     Add-Type -Path $sources -ReferencedAssemblies System.Core, System.Drawing, System.Windows.Forms
     Write-Output "PASS: C# compilation and type binding ($($sources.Count) compilation units)."
 
+    if ([WowAutoRotation.Native]::OcrTimeoutMs('forerver') -ne 10000 -or
+        [WowAutoRotation.Native]::OcrTimeoutMs('titan') -ne 3000) {
+        throw 'Client-specific OCR sample timeout contract is incompatible.'
+    }
+    Write-Output 'PASS: client-specific OCR sample timeout interface contract.'
+
     $hotkeyType = 'WowAuto.ScreenshotHotkey' -as [type]
     $hotkeyConstructor = $hotkeyType.GetConstructor([type[]]@([int], [bool], [bool], [bool]))
     if (-not $hotkeyConstructor -or -not [IDisposable].IsAssignableFrom($hotkeyType) -or

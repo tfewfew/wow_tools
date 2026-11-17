@@ -55,13 +55,14 @@ function Get-DetectorLure {if($Hub.Simulation){throw 'Simulation requires a lure
 function Get-DetectorScreen {
     if($Hub.Simulation){throw 'Simulation requires an OCR adapter.'}
     $size=[WowAutoRotation.Native]::ReadClientSize($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)
+    $ocrTimeoutMs=[WowAutoRotation.Native]::OcrTimeoutMs($Endpoint.Flavor)
     $started=$Hub.Now
     $bitmap=[WowAutoRotation.Native]::Capture($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,$size.Width,$size.Height)
     try {$bytes=[WowAutoRotation.Native]::Png($bitmap)} finally {$bitmap.Dispose()}
     # Synchronous invocation stays on this process's detector runspace, never on the UI/operator thread.
-    try {$result=& (Join-Path $ToolRoot 'wowAuto.Rotation.Ocr.ps1') -ScreenBytes $bytes -OcrOwner $Endpoint -OcrVersion $script:version}
+    try {$result=& (Join-Path $ToolRoot 'wowAuto.Rotation.Ocr.ps1') -ScreenBytes $bytes -OcrOwner $Endpoint -OcrVersion $script:version -Flavor $Endpoint.Flavor}
     catch {if(-not (Test-DetectorCurrent) -or $_.Exception.Message -match 'OCR sample timed out'){return [pscustomobject]@{Kind='pending';Targets=@()}};throw}
-    if(-not (Test-DetectorCurrent) -or $Hub.Now-$started -gt 3000){return [pscustomobject]@{Kind='pending';Targets=@()}}
+    if(-not (Test-DetectorCurrent) -or $Hub.Now-$started -gt $ocrTimeoutMs){return [pscustomobject]@{Kind='pending';Targets=@()}}
     $current=[WowAutoRotation.Native]::ReadClientSize($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)
     if(-not [WowAutoRotation.Native]::ClientSizeWithinTolerance($size.Width,$size.Height,$current.Width,$current.Height)){return [pscustomobject]@{Kind='pending';Targets=@()}}
     $ocrRoles=if($script:discoverAccount){@($script:accountCandidates | ForEach-Object {$_.Names} | Sort-Object -Unique | ForEach-Object {[pscustomobject]@{Name=$_}})}else{$script:roles}

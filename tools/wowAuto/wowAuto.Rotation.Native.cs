@@ -142,6 +142,9 @@ namespace WowAutoRotation {
         public static byte[] AnchorsPng(Bitmap b) {
             return TextPng(b,new Rectangle(0,0,b.Width,b.Height),false);
         }
+        public static int OcrTimeoutMs(string flavor) {
+            return String.Equals(flavor,"forerver",StringComparison.Ordinal)?10000:3000;
+        }
         public static byte[] OcrPng(Bitmap b,int maximumDimension) {
             if(maximumDimension<1) throw new ArgumentOutOfRangeException("maximumDimension");
             // Enlarge small windows for text recognition, cap both axes at the engine's actual limit.
