@@ -89,7 +89,7 @@ def main():
     for item, name in sorted(names.items()):
         output.append('D.names[' + str(item) + ']=' + lua(name))
     output.append('end)')
-    args.output.write_text('\n'.join(output) + '\n', encoding='utf8')
+    args.output.write_bytes(('\n'.join(output) + '\n').encode('utf8'))
     print(f'Generated {len(creatures)} creatures, {len(loot)} skinning tables, {len(names)} named items.')
 
 
