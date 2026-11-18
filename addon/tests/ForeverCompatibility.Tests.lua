@@ -297,7 +297,7 @@ C_Map = {
 function GetBuildInfo() return flavor == "titan" and "3.80.2" or "1.60.1", "70790" end
 local localizedNameReads = 0
 LibQuestieDB = {Npc = {Get = function(id, field)
-    if field == "zoneID" then return id == 3184 and 14 or nil end
+    if field == "zoneID" then return id == 9990001 and 14 or nil end
     assert(field == "name", "Localized NPC adapter requested the wrong field")
     localizedNameReads = localizedNameReads + 1
     return id == 6 and "狗头人歹徒" or nil
@@ -571,7 +571,9 @@ if flavor == "forerver" then
             and recipeRow.trainers:GetText():find("Zone 1434 (31.7, 28.8)", 1, true)
             and not recipeRow.trainers:GetText():find("Brawn", 1, true),
             "PRR recipe row does not bind its location-only map/coordinate summary")
-        assert(prr.RecipeSources.TrainerLocation(3184) == "Area 14",
+        assert(prr.RecipeSources.TrainerLocation(3184) == "Zone 1411 (55.5, 74.1)",
+            "PRR documented Forever trainer location is missing")
+        assert(prr.RecipeSources.TrainerLocation(9990001) == "Area 14",
             "PRR trainer location did not bind the Questie zone/native area fallback")
         prr.RecipeSources.AddTooltip(GameTooltip, repairedRecipe)
         local locationLines = {}

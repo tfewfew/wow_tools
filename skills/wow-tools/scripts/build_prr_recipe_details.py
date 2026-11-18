@@ -2,6 +2,7 @@
 
 import argparse
 import csv
+from collections import defaultdict
 import hashlib
 import json
 from pathlib import Path
@@ -16,6 +17,11 @@ AUDIT_BASELINE_COMMIT = '6ff5612b54191f297eb77ca8eda81de029d9d6f0'
 CLIENT_BUILD = '1.60.1.70938'
 SKILLLINE_SHA256 = '6696abd03ef90ad250a12ac23778616c292c46f6a0082130fbe187c96ead0aa0'
 ITEMSPARSE_SHA256 = 'fdc65396e8a1103ea5f552ea59aaebc0e73ba572612a3412c50e636b54c90b41'
+TEACHING_TABLES = {
+    'ItemEffect': '02b66eca6ae40a0ec67f972999456ce1d950e316c6f1f078b03f3d267d8ce420',
+    'ItemXItemEffect': '4a0604e047f72390991e3a7914fe3e309829fb8773c36f5e4aff5628b7913f88',
+    'SpellEffect': 'f419db3f95ef93b2cf052d9c3996ec355df60846f1fa24c671822aacfa8f59a3',
+}
 PROFESSIONS = ('Alchemy', 'Blacksmithing', 'Cooking', 'Enchanting', 'Engineering',
                'Firstaid', 'Fishing', 'Herbalism', 'Leatherworking', 'Mining', 'Skinning', 'Tailoring')
 # These IDs lack names in ProfessionDB. Cross-checked against the bundled QuestieDB 1.1.1 NPC records.
@@ -43,6 +49,159 @@ def read_client_table(path, expected_hash):
         raise ValueError('Unexpected client table fingerprint: ' + str(path))
     with path.open(encoding='utf-8-sig', newline='') as stream:
         return list(csv.DictReader(stream))
+
+
+def verify_learning(repo, args, recipes, details, trainers, client_ranges, client_items):
+    evidence_path = repo / 'skills/wow-tools/data/prr-learning-evidence.json'
+    evidence_text = evidence_path.read_text(encoding='utf8')
+    evidence = json.loads(evidence_text)
+    targets = evidence['targets']
+    tables = {name: read_client_table(args.item_sparse_csv.parent / (name + '-' + CLIENT_BUILD + '.csv'), digest)
+              for name, digest in TEACHING_TABLES.items()}
+    taught_spells = defaultdict(set)
+    for row in tables['SpellEffect']:
+        if int(row['Effect']) == 36:
+            taught_spells[int(row['SpellID'])].add(int(row['EffectTriggerSpell']))
+    effects = {int(row['ID']): row for row in tables['ItemEffect']}
+    teaching_items = defaultdict(set)
+    for row in tables['ItemXItemEffect']:
+        effect = effects.get(int(row['ItemEffectID']))
+        if not effect:
+            continue
+        spell_id = int(effect['SpellID'])
+        spells = taught_spells[spell_id].copy()
+        if int(effect['TriggerType']) == 6:
+            spells.add(spell_id)
+        for taught in spells:
+            teaching_items[taught].add(int(row['ItemID']))
+
+    documented = {}
+    documentation = {row['spellID']: row for row in evidence['foreverDB']['recipes']}
+    for row in evidence['foreverDB']['recipes']:
+        recipe = recipes[row['spellID']]
+        native = client_ranges.get((row['spellID'], row['profession']))
+        if (recipe and native and recipe.profession == row['profession']
+                and int(native['ID']) == row['skillLineAbilityID']
+                and (recipe.yellow, recipe.gray) == (row['yellow'], row['gray'])
+                and row['source'] == 'trainer' and row['trainingCost'] is not None
+                and row['trainerNPCIDs']):
+            documented[row['spellID']] = row
+
+    beta, beta_inputs = {}, {}
+    for path in sorted((args.forever_data / 'data/wow_classic_beta').glob('*/trainers.json'),
+                       key=lambda path: tuple(map(int, path.parent.name.split('.')))):
+        relative = path.relative_to(args.forever_data).as_posix()
+        beta_inputs[relative] = hashlib.sha256(path.read_bytes()).hexdigest()
+        for npc_id, npc in json.loads(path.read_bytes())['trainers'].items():
+            if npc.get('tradeskill'):
+                for spell_id, service in npc.get('services', {}).items():
+                    beta[int(spell_id), int(npc_id)] = (service, npc, relative)
+
+    skill_audit = []
+    for spell_id in targets['unknownSkills']:
+        recipe = recipes[spell_id]
+        detail = details.setdefault(spell_id, {})
+        native = client_ranges[spell_id, recipe.profession]
+        record = {'spellID': spell_id, 'profession': recipe.profession,
+                  'skillLineAbilityID': int(native['ID']), 'nativeMinimum': int(native['MinSkillLineRank']),
+                  'acquireMethod': int(native['AcquireMethod']), 'teachingItems': [],
+                  'status': 'unresolved', 'reason': 'No verified learning requirement in the checked sources'}
+        raw_doc = documentation.get(spell_id)
+        record['documentationCheck'] = {'status': 'recipeNotListed'}
+        if raw_doc:
+            record['documentationCheck'] = {
+                'page': raw_doc['page'], 'reportedRank': raw_doc['reportedLearnRank'],
+                'status': 'explicitTrainerListed' if spell_id in documented else 'inferredOrClientMismatch',
+            }
+        candidates = teaching_items[spell_id].copy()
+        if recipe.recipeItem:
+            candidates.add(recipe.recipeItem)
+        for item_id in sorted(candidates):
+            item = client_items.get(item_id)
+            item_record = {'itemID': item_id, 'presentInCurrentItemSparse': bool(item)}
+            if item:
+                item_record.update(requiredSkill=int(item['RequiredSkill']), requiredRank=int(item['RequiredSkillRank']))
+            record['teachingItems'].append(item_record)
+        verified, source = None, None
+        for item in record['teachingItems']:
+            if item.get('requiredSkill') == recipe.profession and item.get('requiredRank', 0) > 0:
+                verified = min(verified or item['requiredRank'], item['requiredRank'])
+                source = 'Forever ItemSparse teaching item'
+        if int(native['AcquireMethod']) in (1, 2):
+            verified, source = max(1, int(native['MinSkillLineRank'])), 'Forever automatic skill grant'
+        doc = documented.get(spell_id)
+        if doc and not verified:
+            verified, source = doc['reportedLearnRank'], 'ForeverDB explicit trainer listing'
+            record.update(documentationPage=doc['page'], trainerNPCIDs=doc['trainerNPCIDs'],
+                          trainingCost=doc['trainingCost'])
+        for row in evidence['profit']['records']:
+            if row['spellID'] == spell_id and row['profession'] == recipe.profession and not verified:
+                record['historicalTrainer'] = row
+                record['reason'] = 'Only a beta trainer rank is available, current acquisition is unverified'
+        if verified:
+            detail['skill'] = verified
+            detail.pop('skillReference', None)
+            if source == 'Forever automatic skill grant':
+                detail['autoTaught'] = True
+            record.update(status='verified', skill=verified, source=source)
+            record.pop('reason')
+        skill_audit.append(record)
+
+    trainer_audit = []
+    for spell_text, npc_ids in targets['referenceTrainers'].items():
+        spell_id = int(spell_text)
+        detail = details[spell_id]
+        sources = {row['npcID']: row for row in detail['trainers']}
+        doc = documented.get(spell_id)
+        record = {'spellID': spell_id, 'verifiedDocumentationNPCIDs': [], 'verifiedBetaNPCIDs': [],
+                  'unresolvedReferenceNPCIDs': [], 'betaObservations': {}}
+        raw_doc = documentation.get(spell_id)
+        if raw_doc:
+            record['documentationPage'] = raw_doc['page']
+            record['documentationStatus'] = 'explicitTrainerListed' if doc else 'inferredOrClientMismatch'
+        for npc_id in npc_ids:
+            source = sources[npc_id]
+            status = 'unresolvedReferenceNPCIDs'
+            if (spell_id, npc_id) in beta:
+                _, npc, relative = beta[spell_id, npc_id]
+                position = next((pos for pos in npc.get('positions', []) if pos.get('uiMap')), None)
+                if position:
+                    source.pop('reference', None)
+                    trainer = trainers[npc_id]
+                    if not trainer.get('mapID'):
+                        trainer.update(mapID=position['uiMap'], x=position['mapX'], y=position['mapY'])
+                    status = 'verifiedBetaNPCIDs'
+                    record['betaObservations'][str(npc_id)] = relative
+            if doc and npc_id in doc['trainerNPCIDs']:
+                position = evidence['foreverDB']['trainers'][str(npc_id)]
+                source.pop('reference', None)
+                if not trainers[npc_id].get('mapID'):
+                    trainers[npc_id].update({key: position[key] for key in ('mapID', 'x', 'y')})
+                status = 'verifiedDocumentationNPCIDs'
+                record['documentationPage'] = doc['page']
+            record[status].append(npc_id)
+        if not record['betaObservations']:
+            record.pop('betaObservations')
+        trainer_audit.append(record)
+        detail['trainers'] = sorted(sources.values(), key=lambda row: (row.get('reference', False), row['npcID']))
+    # New documented recipes also use the same location-only runtime lookup.
+    for record in skill_audit:
+        if record.get('source') == 'ForeverDB explicit trainer listing':
+            spell_id = record['spellID']
+            sources = {row['npcID']: row for row in details[spell_id].get('trainers', [])}
+            for npc_id in record['trainerNPCIDs']:
+                sources[npc_id] = {'npcID': npc_id}
+                position = evidence['foreverDB']['trainers'][str(npc_id)]
+                if not trainers.get(npc_id, {}).get('mapID'):
+                    trainers[npc_id] = {key: position[key] for key in ('name', 'mapID', 'x', 'y')}
+            details[spell_id]['trainers'] = sorted(sources.values(), key=lambda row: (row.get('reference', False), row['npcID']))
+    return {'baseline': evidence['targetBaseline'], 'evidenceFile': evidence_path.relative_to(repo).as_posix(),
+            'evidenceSHA256': hashlib.sha256(evidence_text.encode('utf8')).hexdigest(),
+            'evidenceNormalization': 'UTF-8 with LF line endings', 'policy': evidence['policy'],
+            'foreverDB': {'pages': evidence['foreverDB']['pages'], 'trainers': evidence['foreverDB']['trainers']},
+            'profit': evidence['profit'], 'betaInputs': beta_inputs,
+            'unknownSkills': skill_audit,
+            'referenceTrainers': sorted(trainer_audit, key=lambda row: row['spellID'])}
 
 
 def main():
@@ -226,6 +385,7 @@ def main():
         if (recipe.skill and not detail.get('skillCorrection')) or (fix and fix.skill):
             detail.pop('skill', None)
             detail.pop('skillReference', None)
+    verification = verify_learning(repo, args, recipes, details, trainers, client_ranges, client_items)
     details = {id_: detail for id_, detail in details.items() if detail}
     repaired = {'native': 0, 'reference': 0, 'remaining': 0}
     for spell_id, recipe in recipes.items():
@@ -276,7 +436,10 @@ def main():
                                  'sha256': SKILLLINE_SHA256},
             'ItemSparse': {'url': 'https://wago.tools/db2/ItemSparse/csv?build=' + CLIENT_BUILD,
                            'sha256': ITEMSPARSE_SHA256},
+            **{name: {'url': 'https://wago.tools/db2/' + name + '/csv?build=' + CLIENT_BUILD, 'sha256': digest}
+               for name, digest in TEACHING_TABLES.items()},
         },
+        'learningVerification': verification,
         'skillAudit': sorted(skill_audit, key=lambda row: row['spellID']),
         'npcNameCorrections': {'source': 'QuestieDB 1.1.1 NPC records bundled with Raynna Bestiary',
                                'release': 'https://github.com/Questie/QuestieDB/releases/tag/v1.1.1',
@@ -284,6 +447,19 @@ def main():
         'coverage': {'recipes': len(details), 'trainers': len(trainers),
                      'trainerRecipes': sum(bool(detail.get('trainers')) for detail in details.values()),
                      'missingSkills': repaired,
+                     'learningVerification': {
+                         'unknownSkillsChecked': len(verification['unknownSkills']),
+                         'skillsVerified': sum(row['status'] == 'verified' for row in verification['unknownSkills']),
+                         'referenceRecipesChecked': len(verification['referenceTrainers']),
+                         'referencePairsChecked': sum(len(row[key]) for row in verification['referenceTrainers']
+                                                      for key in ('verifiedDocumentationNPCIDs', 'verifiedBetaNPCIDs',
+                                                                  'unresolvedReferenceNPCIDs')),
+                         'referencePairsVerified': sum(len(row['verifiedDocumentationNPCIDs'])
+                                                       + len(row['verifiedBetaNPCIDs'])
+                                                       for row in verification['referenceTrainers']),
+                         'remainingReferencePairs': sum(len(row['unresolvedReferenceNPCIDs'])
+                                                        for row in verification['referenceTrainers']),
+                     },
                      'skillAudit': {status: sum(row['status'] == status for row in skill_audit)
                                     for status in ('corrected', 'rejectedReference', 'confirmedLearnAboveYellow')}},
     }

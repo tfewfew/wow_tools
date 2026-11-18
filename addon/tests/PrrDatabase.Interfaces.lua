@@ -45,6 +45,64 @@ assert(index.Get(3861).skill == 150 and not index.Get(9954).skill,
 assert(index.Get(9273).skill == 165 and index.Get(9273).yellow == 160,
     "A verified recipe-item requirement was clamped to the yellow threshold")
 
+local verification = assert(provenance.learningVerification)
+local coverage = provenance.coverage.learningVerification
+local evidenceFile = assert(io.open(root .. "/" .. verification.evidenceFile, "r"))
+local evidence = ns.json.decode(evidenceFile:read("*a"))
+evidenceFile:close()
+assert(#verification.unknownSkills == #evidence.targets.unknownSkills
+    and #verification.unknownSkills == coverage.unknownSkillsChecked,
+    "The learning audit omitted a previously unknown requirement")
+local auditedSkills, verifiedSkills = {}, 0
+for _, record in ipairs(verification.unknownSkills) do
+    local recipe = assert(index.Get(record.spellID))
+    assert(not auditedSkills[record.spellID], "Duplicate unknown-skill audit record")
+    auditedSkills[record.spellID] = true
+    if record.status == "verified" then
+        verifiedSkills = verifiedSkills + 1
+        assert(recipe.skill == record.skill and not recipe.skillReference,
+            "A verified requirement did not reach the normal indexed lookup")
+    else
+        assert(record.status == "unresolved" and not recipe.skill,
+            "A missing trainer rank or absent teaching item was replaced with a guess")
+    end
+end
+for _, spellID in ipairs(evidence.targets.unknownSkills) do
+    assert(auditedSkills[spellID], "An unknown-skill audit target is missing")
+end
+assert(verifiedSkills == coverage.skillsVerified)
+assert(index.Get(1249631).skill == 120 and index.Get(1249632).skill == 215
+    and index.Get(8681).skill == 1, "Verified dye and automatic poison requirements are missing")
+assert(not index.Get(818).skill, "A historical beta trainer rank was asserted as a current requirement")
+
+local checkedPairs, verifiedPairs, pendingPairs, checkedRecipes = 0, 0, 0, 0
+for _, record in ipairs(verification.referenceTrainers) do
+    checkedRecipes = checkedRecipes + 1
+    local expected = assert(evidence.targets.referenceTrainers[tostring(record.spellID)])
+    local sources, checked = {}, {}
+    for _, source in ipairs(index.Get(record.spellID).details.trainers) do sources[source.npcID] = source end
+    for _, key in ipairs({"verifiedDocumentationNPCIDs", "verifiedBetaNPCIDs", "unresolvedReferenceNPCIDs"}) do
+        for _, npcID in ipairs(record[key]) do
+            assert(not checked[npcID], "A reference trainer has multiple audit dispositions")
+            checked[npcID] = true
+            checkedPairs = checkedPairs + 1
+            local source = assert(sources[npcID], "An audited trainer relationship disappeared")
+            if key == "unresolvedReferenceNPCIDs" then
+                pendingPairs = pendingPairs + 1
+                assert(source.reference, "An unverified trainer reference lost its reference marker")
+            else
+                verifiedPairs = verifiedPairs + 1
+                assert(not source.reference and ns.Database.Trainers[npcID].mapID,
+                    "A verified trainer relationship lacks its Forever location")
+            end
+        end
+    end
+    for _, npcID in ipairs(expected) do assert(checked[npcID], "An individual reference pair was not audited") end
+end
+assert(checkedPairs == coverage.referencePairsChecked and verifiedPairs == coverage.referencePairsVerified
+    and pendingPairs == coverage.remainingReferencePairs and checkedRecipes == coverage.referenceRecipesChecked,
+    "Reference trainer audit coverage does not match its individual records")
+
 ns.db.fixes[2665] = {skill = 55}
 index.Invalidate()
 assert(index.Get(2665).skill == 55, "Explicit user corrections must keep priority over generated data")
@@ -59,4 +117,4 @@ assert(index.Get(2665).skill == 45, "Built-in PRR fixes must keep their existing
 ns.Database.Fixes[2665] = nil
 index.Invalidate()
 assert(index.Get(2665).skill == 40, "Cleared hand fixes did not restore the corrected source data")
-print("PASS: PRR generated skill audit, client thresholds, indexed corrections and user-fix precedence.")
+print("PASS: PRR exhaustive learning audit, client thresholds, indexed corrections and user-fix precedence.")
