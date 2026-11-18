@@ -724,6 +724,7 @@ assert(WoWTools.settings.pages.button_style.frame == WoWTools.buttonStyle.panel
 assert(#WoWTools.buttonStyle.editors == 1, "Button skin editor is registered more than once")
 
 local graphicControls, graphicTabs, uiTabs = {}, {}, {}
+local hoverControl, framerateControl
 local graphicContent = WoWTools.settings.pages.inner_graphic_config.content
 local uiContent = WoWTools.settings.pages.ui_addons.content
 for _, frame in ipairs(frames) do
@@ -731,6 +732,12 @@ for _, frame in ipairs(frames) do
     if definition and definition.cvar then
         assert(not graphicControls[definition.cvar], "Graphics control was registered twice " .. definition.cvar)
         graphicControls[definition.cvar] = frame
+    end
+    if definition and definition.key == "chatItemHover" then
+        assert(not hoverControl, "Chat item hover checkbox must be unique")
+        hoverControl = frame
+    elseif definition and definition.key == "frameratePosition" then
+        framerateControl = frame
     end
     if frame.template == "MinimalTabTemplate" and frame:GetParent() == graphicContent then
         graphicTabs[frame.Text:GetText()] = frame
@@ -741,15 +748,24 @@ end
 for _, name in ipairs({"缓存与分配", "界面", "字体", "Lua"}) do
     assert(uiTabs[name] and not graphicTabs[name], "UI category is bound to the wrong settings page " .. name)
 end
+assert(hoverControl and framerateControl and hoverControl:GetParent() == framerateControl:GetParent(),
+    "Chat item hover must share the UI interface tab")
+assert(hoverControl.template == "UICheckButtonTemplate" and not hoverControl:GetChecked(),
+    "Chat item hover must initially be optional")
+hoverControl:SetChecked(true)
+hoverControl.scripts.OnClick(hoverControl)
+assert(WoWTools.chatItemHover.IsEnabled() and wowDetectorDB.chatItemHover == true,
+    "Chat item hover checkbox must save its account value")
+hoverControl:SetChecked(false)
+hoverControl.scripts.OnClick(hoverControl)
+assert(not WoWTools.chatItemHover.IsEnabled(), "Chat item hover checkbox must support disabling")
 if flavor == "forerver" then
-    local categoryControl, framerateControl
+    local categoryControl
     for _, frame in ipairs(frames) do
         local definition = frame.definition
         if definition and definition.categoryCollapse then
             assert(not categoryControl, "Category collapse checkbox must be unique")
             categoryControl = frame
-        elseif definition and definition.key == "frameratePosition" then
-            framerateControl = frame
         end
     end
     assert(categoryControl and framerateControl and categoryControl:GetParent() == framerateControl:GetParent(),
