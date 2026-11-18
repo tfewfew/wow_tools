@@ -1,0 +1,48 @@
+--- a/QuestieTrace/Modules/Trackers/SkillLines.lua
++++ b/QuestieTrace/Modules/Trackers/SkillLines.lua
+@@ -65,18 +65,6 @@
+ local knownProfessionIndices
+ ---@type table<number, boolean>
+ local knownTradeSkillLineIds
+----@type boolean
+-local expandingSkillHeaders
+-
+---- Expand all skill headers so all visible rows can be sampled.
+-local function ExpandAllSkillHeaders()
+-  if type(ExpandSkillHeader) ~= "function" then return end
+-
+-  expandingSkillHeaders = true
+-  ExpandSkillHeader(0)
+-  expandingSkillHeaders = false
+-end
+-
+ ---Safely call a function and return the first result.
+ ---@param fn function?
+ ---@param ... any
+@@ -282,7 +270,7 @@
+ local function SampleSkills(capture)
+   if not functions then return end
+ 
+-  ExpandAllSkillHeaders()
++  -- Record the native return values for the current visible rows.
+ 
+   ---@type number
+   local t = GetTime() - capture.startedAt
+@@ -310,7 +298,6 @@
+     knownSkillLineIndices = {}
+     knownProfessionIndices = {}
+     knownTradeSkillLineIds = {}
+-    expandingSkillHeaders = false
+ 
+     if type(GetNumSkillLines) == "function" then
+       functions["GetNumSkillLines"] = {}
+@@ -337,9 +324,6 @@
+   ---@param capture CaptureState
+   ---@param event string
+   OnEvent = function(capture, event)
+-    if event == "SKILL_LINES_CHANGED" and expandingSkillHeaders then
+-      return
+-    end
+     SampleSkills(capture)
+   end,
+ })

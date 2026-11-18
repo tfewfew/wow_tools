@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "plugin": "QuestieTrace",
+  "id": "skill-scan-read-only",
+  "version": "1.12.0",
+  "patch": "fix.patch",
+  "patchSha256": "2d2a9641a6964c7b887414ab9020a14fbc584270ee3c59507981103da4e83752",
+  "files": [
+    {
+      "path": "QuestieTrace/Modules/Trackers/SkillLines.lua",
+      "originalSha256": "5a83736b469bbab3bce50be0153c5d0222f9db0b40f9496a9f739c126cda20dd",
+      "patchedSha256": "7019e74dc176ea958cd323a89709c37e53b0dc19f4fe7f2f3af14f9feb915007"
+    }
+  ]
+}

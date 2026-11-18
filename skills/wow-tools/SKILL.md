@@ -39,6 +39,11 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - forerver 2.2.138 以 c16642d 的全部 198 个未知学习等级为清单，逐项对照本机当前训练师快照、70938 客户端技能与教学物品链，以及 Wowhead Forever、Azeroth DB 的明确配方与教学列表。采用社区资料补齐 36 项，162 项保留逐条缺证原因，学习等级和本服黄灰阈值分别核对。明确教学要求高于黄色值的 7 个制皮配方保留原始阈值。
 - 来源 URL、返回文本或 NPC 原始页面指纹、冲突候选、地图与教学关联记录在 prr-learning-evidence.json 和 RECIPE-SOURCES.json 的 questionMarkReview。当前实测坐标优先，缺少当前位置和可用性依据的海加尔山砂纸训练师保留待核对记录。统一检查覆盖两服语法、语义、接口及完整审查清单，PRR 仅在无限服收编，游戏显示由用户重载后验证。
 
+## 无限服技能分类展开调用链全量核对（2026-11-18）
+
+- 遍历无限服全部 38 个已安装插件目录及 8 项既有补丁，7 项已应用，DungeonsForever 提示框扫描沿用 2.1.99 起停止边界，当前 2.1.109 源码依据仍匹配。检查 Lua/XML 的技能分类写入口、原生制作页与配方列表接入，Questie 和 CharacterRecord 优先按 C_SkillInfo.GetSkillLineInfoByID 读取，旧接口分支保留分类恢复，其他命中的技能读取入口仅查询可见列表或技能 ID。
+- QuestieTrace 1.12.0 的 SkillLines.lua 在追踪初始化及 SKILL_LINES_CHANGED、SPELLS_CHANGED、PLAYER_ENTERING_WORLD 采集前调用 ExpandSkillHeader(0)，随后缺少恢复。新增 skill-scan-read-only 补丁，按当前可见行记录原生返回值，专业与制作技能流继续各自采集。接口检查通过正常追踪器 Init/OnEvent 入口校验原始元组及可选 API，并将分类写接口视为采集契约错误。当前本机落盘采集开关为 false，原生文档只声明命名空间 API，因此该源码风险与用户所述偶发现象的实际关联仍需游戏内确认。本次按用户指定范围维护无限服，补丁生效需重载。
+
 ## 无限服 PRR 硬甲皮与训练师来源纠正（2026-11-18）
 
 - forerver 2.2.137 按用户截图追查硬甲皮 22331，确认旧参考训练师来自 ProfessionDB 的 Wrath/Cata 世界库。4,737 条未获本服佐证的关联从运行时撤下，逐项拒绝记录保留，已有本服实测和明确配方资料继续使用。

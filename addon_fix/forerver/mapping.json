@@ -169,6 +169,17 @@
         "skipFromVersion": null,
         "fixedEvidence": []
       }
+    ],
+    "QuestieTrace": [
+      {
+        "id": "skill-scan-read-only",
+        "description": "技能追踪按当前可见行记录原生返回值，移除采集前展开全部技能分类的副作用。",
+        "variants": [
+          "skill-scan-read-only/1.12.0/manifest.json"
+        ],
+        "skipFromVersion": null,
+        "fixedEvidence": []
+      }
     ]
   }
 }

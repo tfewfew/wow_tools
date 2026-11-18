@@ -50,6 +50,12 @@ def main():
             runtime.globals().TEST_FLAVOR = args.addon_fix_flavor
             fixture = repo / 'addon/tests/QuestieProfessions.Interfaces.lua'
             runtime.execute(fixture.read_text(encoding='utf-8-sig'), name='@' + str(fixture))
+        questie_trace = args.addon_fix_addons_root.resolve() / 'QuestieTrace'
+        if args.addon_fix_flavor == 'forerver' and (questie_trace / 'Modules/Trackers/SkillLines.lua').is_file():
+            runtime = LuaRuntime()
+            runtime.globals().TEST_QUESTIETRACE_ROOT = questie_trace.as_posix()
+            fixture = repo / 'addon/tests/QuestieTraceSkills.Interfaces.lua'
+            runtime.execute(fixture.read_text(encoding='utf-8-sig'), name='@' + str(fixture))
     lua_count = xml_count = inline_count = 0
     for flavor, interface in [('titan', '38002'), ('forerver', '16001')]:
         addon = repo / 'addon' / flavor / 'wow_tools'
