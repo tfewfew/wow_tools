@@ -1,4 +1,4 @@
--- Forever native UI at 943764493e6b16d63ded3ab304150d1f05e58b57.
+-- Forever native UI at bebcb6bf309cf41b41bd74f8ca651e6a105b2676.
 -- Verify ScrollUtil owner arguments, native menu extensions and collapse API signatures.
 local root = TEST_ROOT or "."
 WoWTools, wowDetectorDB = {}, {unrelated = true}
@@ -40,9 +40,14 @@ ScrollUtil = {
     end,
 }
 function hooksecurefunc(target, method, callback)
-    assert(target == ScrollUtil and method == "InitScrollBoxListWithScrollBar")
+    assert(target == ScrollUtil and method == "InitScrollBoxListWithScrollBar"
+        or target == ProfessionsFrame.CraftingPage and (method == "GetCollapses" or method == "StoreCollapses"))
     local original = target[method]
-    target[method] = function(...) original(...); callback(...) end
+    target[method] = function(...)
+        local result = original(...)
+        callback(...)
+        return result
+    end
 end
 function EnumerateFrames(previous)
     if not previous then return frames[1] end
@@ -74,8 +79,26 @@ skills.button.ToggleCollapseButton = Button()
 local reputation = ScrollBox({isHeader = true, factionIndex = 1})
 local node = {GetNodes = function() return {} end, GetData = function() return {categoryInfo = {}} end}
 local recipes = ScrollBox(node)
+local categoryNodes = {
+    {id = 1, collapsed = true},
+    {id = 2, collapsed = true}, -- A child category inside the collapsed root.
+    {id = 3, collapsed = false},
+    {id = 1, collapsed = false}, -- Native learned/unlearned trees share category IDs.
+}
+for _, entry in ipairs(categoryNodes) do
+    function entry:GetData() return {categoryInfo = {categoryID = self.id}} end
+    function entry:IsCollapsed() return self.collapsed end
+end
+local page = {RecipeList = {ScrollBox = recipes}}
+function page:GetCollapses() return self.collapses end
+function page:StoreCollapses(scrollBox)
+    assert(scrollBox == recipes)
+    self.collapses = {[1] = true} -- The native implementation stores root categories.
+end
+ProfessionsFrame = {CraftingPage = page}
 local providerCalls = 0
-recipes.provider = {CollapseAll = function(self)
+recipes.provider = {EnumerateEntireRange = function() return ipairs(categoryNodes) end,
+    CollapseAll = function(self)
     assert(self == recipes.provider, "Tree collapse must use the current native provider")
     providerCalls = providerCalls + 1
 end}
@@ -133,6 +156,16 @@ assert(reputationCalls[1] == 3 and reputationCalls[2] == 1)
 recipes.button.scripts.OnMouseUp(recipes.button, "RightButton")
 menuAction()
 assert(providerCalls == 1)
+local saved = page:GetCollapses()
+assert(saved == page.collapses and saved[1] and saved[2] and saved[3] == nil,
+    "Native recipe regeneration must receive current root and child collapse states")
+categoryNodes[1].collapsed, categoryNodes[2].collapsed = false, false
+saved = page:GetCollapses()
+assert(saved[1] == nil and saved[2] == nil,
+    "Native recipe regeneration must receive explicit category expansions")
+categoryNodes[2].collapsed = true
+page:StoreCollapses(recipes)
+assert(page.collapses[2], "Native panel-close storage must include child categories")
 recipes:Initialize({GetNodes = function() return {} end, GetData = function() return {recipeInfo = {}} end})
 menuAction = nil
 recipes.button.scripts.OnMouseUp(recipes.button, "RightButton")

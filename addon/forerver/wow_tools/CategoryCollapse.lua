@@ -3,12 +3,44 @@ WoWTools.categoryCollapse = collapse
 
 local scrollBoxes = setmetatable({}, {__mode = "k"})
 local buttons = setmetatable({}, {__mode = "k"})
-local scrollHooked, questMenuHooked = false, false
+local scrollHooked, questMenuHooked, craftingHooked = false, false, false
 
 function collapse.IsEnabled()
     return type(wowDetectorDB) == "table"
         and type(wowDetectorDB.categoryCollapse) == "table"
         and wowDetectorDB.categoryCollapse.enabled == true
+end
+
+local function StoreRecipeCollapses(page)
+    if not collapse.IsEnabled() then return end
+    local scrollBox = page.RecipeList.ScrollBox
+    local provider = scrollBox:GetDataProvider()
+    local saved = page.collapses
+    if not provider or type(provider.EnumerateEntireRange) ~= "function" or type(saved) ~= "table" then return end
+
+    local categories = {}
+    for _, node in provider:EnumerateEntireRange() do
+        local data = node:GetData()
+        local category = data and data.categoryInfo
+        if category and category.categoryID then
+            local id = category.categoryID
+            categories[id] = categories[id] or node:IsCollapsed() or false
+        end
+    end
+    for id, collapsed in pairs(categories) do saved[id] = collapsed or nil end
+end
+
+local function InstallRecipeCollapses()
+    if craftingHooked then return end
+    local page = ProfessionsFrame and ProfessionsFrame.CraftingPage
+    if not page or not page.RecipeList or not page.RecipeList.ScrollBox
+        or type(page.GetCollapses) ~= "function" or type(page.StoreCollapses) ~= "function" then return end
+
+    page.collapses = page.collapses or {}
+    -- The native getter returns this table to the recipe-tree generator.
+    hooksecurefunc(page, "GetCollapses", StoreRecipeCollapses)
+    hooksecurefunc(page, "StoreCollapses", StoreRecipeCollapses)
+    craftingHooked = true
 end
 
 local function CollapseSkills()
@@ -109,6 +141,7 @@ end
 
 local function Install(refreshExisting)
     if not collapse.IsEnabled() then return end
+    InstallRecipeCollapses()
     if not scrollHooked and ScrollUtil and ScrollUtil.AddInitializedFrameCallback then
         hooksecurefunc(ScrollUtil, "InitScrollBoxListWithScrollBar", AttachScrollBox)
         scrollHooked = true

@@ -39,9 +39,10 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 - forerver 2.2.138 以 c16642d 的全部 198 个未知学习等级为清单，逐项对照本机当前训练师快照、70938 客户端技能与教学物品链，以及 Wowhead Forever、Azeroth DB 的明确配方与教学列表。采用社区资料补齐 36 项，162 项保留逐条缺证原因，学习等级和本服黄灰阈值分别核对。明确教学要求高于黄色值的 7 个制皮配方保留原始阈值。
 - 来源 URL、返回文本或 NPC 原始页面指纹、冲突候选、地图与教学关联记录在 prr-learning-evidence.json 和 RECIPE-SOURCES.json 的 questionMarkReview。当前实测坐标优先，缺少当前位置和可用性依据的海加尔山砂纸训练师保留待核对记录。统一检查覆盖两服语法、语义、接口及完整审查清单，PRR 仅在无限服收编，游戏显示由用户重载后验证。
 
-## 无限服技能分类展开调用链全量核对（2026-11-18）
+## 无限服配方分类折叠保持与插件全量核对（2026-11-18）
 
 - 遍历无限服全部 38 个已安装插件目录及 8 项既有补丁，7 项已应用，DungeonsForever 提示框扫描沿用 2.1.99 起停止边界，当前 2.1.109 源码依据仍匹配。检查 Lua/XML 的技能分类写入口、原生制作页与配方列表接入，Questie 和 CharacterRecord 优先按 C_SkillInfo.GetSkillLineInfoByID 读取，旧接口分支保留分类恢复，其他命中的技能读取入口仅查询可见列表或技能 ID。
+- 用户确认问题位于制皮、烹饪等原生制作页的配方分类。forerver 2.2.139 核对 Gethe/wow-ui-source forever 的 bebcb6bf309cf41b41bd74f8ca651e6a105b2676，原生 Init 按 GetCollapses 重建配方树，StoreCollapses 仅在关闭时记录根分类。CategoryCollapse 为本服原生页面挂接这两个方法的安全后置钩子，原地更新原生返回表，按 EnumerateEntireRange 收集当前根分类与收起节点内的子分类，显式展开清除对应缓存，共用分类 ID 沿用原生合并语义。接口检查覆盖返回表引用、原生方法签名、子分类和展开值。PRR、Questie、ls_Toasts 与 DungeonsForeverProf 的原生配方定位沿点击入口调用，当前源码扫描未发现另一处后台强制展开原生配方树的实现。实际刷新与交互效果由用户重载后验证，本次按用户指定范围维护无限服。
 - QuestieTrace 1.12.0 的 SkillLines.lua 在追踪初始化及 SKILL_LINES_CHANGED、SPELLS_CHANGED、PLAYER_ENTERING_WORLD 采集前调用 ExpandSkillHeader(0)，随后缺少恢复。新增 skill-scan-read-only 补丁，按当前可见行记录原生返回值，专业与制作技能流继续各自采集。接口检查通过正常追踪器 Init/OnEvent 入口校验原始元组及可选 API，并将分类写接口视为采集契约错误。当前本机落盘采集开关为 false，原生文档只声明命名空间 API，因此该源码风险与用户所述偶发现象的实际关联仍需游戏内确认。本次按用户指定范围维护无限服，补丁生效需重载。
 
 ## 无限服 PRR 硬甲皮与训练师来源纠正（2026-11-18）
