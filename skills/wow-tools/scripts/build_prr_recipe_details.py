@@ -31,6 +31,8 @@ TRAINER_NAMES = {3184: "Miao'zan", 3484: "Kil'hala", 4159: "Me'lynn", 7871: "Se'
 def lua(value):
     if value is True:
         return 'true'
+    if value is False:
+        return 'false'
     if isinstance(value, str):
         return json.dumps(value, ensure_ascii=False)
     if isinstance(value, dict):
@@ -99,6 +101,37 @@ def verify_learning(repo, args, recipes, details, trainers, client_ranges, clien
 
     skill_audit = []
     local_captures = {row['spellID']: row for row in evidence['localTrainerCaptures']['records']}
+    question_review = evidence['questionMarkReview']
+    reviewed = {row['spellID']: row for row in question_review['records']}
+    if (set(reviewed) != set(question_review['targetSpellIDs'])
+            or len(reviewed) != len(question_review['records'])
+            or question_review['clientBuild'] != CLIENT_BUILD):
+        raise ValueError('Incomplete question-mark recipe review')
+    for spell_id, review in reviewed.items():
+        recipe = recipes[spell_id]
+        native = client_ranges[spell_id, review['profession']]
+        if (recipe.profession != review['profession'] or recipe.item != review['itemID']
+                or recipe.recipeItem != review['recipeItemID']
+                or (recipe.yellow, recipe.gray) != (review['yellow'], review['gray'])
+                or int(native['ID']) != review['skillLineAbilityID']):
+            raise ValueError('Reviewed recipe identity changed for spell ' + str(spell_id))
+        if review['yellow'] is not None and (
+                int(native['TrivialSkillLineRankLow']) != review['yellow']
+                or int(native['TrivialSkillLineRankHigh']) != review['gray']):
+            raise ValueError('Reviewed client thresholds changed for spell ' + str(spell_id))
+        if review['status'] not in ('verified', 'unresolved') or (
+                ('requirement' in review) != (review['status'] == 'verified')):
+            raise ValueError('Invalid learning review disposition for spell ' + str(spell_id))
+        if review['status'] == 'verified':
+            requirement = review['requirement']
+            if (requirement['skill'] <= 0 or not requirement['sourceIDs']
+                    or not all(key in question_review['sources'] for key in requirement['sourceIDs'])
+                    or not all(str(npc_id) in question_review['trainers'] for npc_id in requirement['trainerNPCIDs'])):
+                raise ValueError('Incomplete learning evidence for spell ' + str(spell_id))
+            difficulty = requirement.get('documentedDifficulty')
+            if difficulty and difficulty != [requirement['skill'], review['yellow'],
+                                            (review['yellow'] + review['gray']) // 2, review['gray']]:
+                raise ValueError('Documented difficulty mismatch for spell ' + str(spell_id))
     for spell_id in targets['unknownSkills']:
         recipe = recipes[spell_id]
         detail = details.setdefault(spell_id, {})
@@ -138,6 +171,17 @@ def verify_learning(repo, args, recipes, details, trainers, client_ranges, clien
                 raise ValueError('Invalid local trainer capture for spell ' + str(spell_id))
             verified, source = capture['skill'], 'Local Forever trainer capture'
             record.update(build=capture['build'], trainingCost=capture['trainingCost'])
+        review = reviewed.get(spell_id)
+        requirement = review.get('requirement') if review else None
+        if requirement and not verified:
+            verified, source = requirement['skill'], 'Reviewed Forever recipe documentation'
+            record.update(documentationSources=[question_review['sources'][key]['url']
+                                                for key in requirement['sourceIDs']],
+                          trainerNPCIDs=requirement['trainerNPCIDs'], trainingCost=requirement['trainingCost'])
+            if requirement.get('trainingCostMeaning'):
+                record['trainingCostMeaning'] = requirement['trainingCostMeaning']
+        if review and not verified:
+            record['reason'] = review['reason']
         doc = documented.get(spell_id)
         if doc and not verified:
             verified, source = doc['reportedLearnRank'], 'ForeverDB explicit trainer listing'
@@ -188,6 +232,14 @@ def verify_learning(repo, args, recipes, details, trainers, client_ranges, clien
                     trainers[npc_id].update({key: position[key] for key in ('mapID', 'x', 'y')})
                 status = 'verifiedDocumentationNPCIDs'
                 record['documentationPage'] = doc['page']
+            requirement = reviewed.get(spell_id, {}).get('requirement', {})
+            if npc_id in requirement.get('trainerNPCIDs', []):
+                source.pop('reference', None)
+                position = question_review['trainers'][str(npc_id)]
+                if not trainers[npc_id].get('mapID'):
+                    trainers[npc_id].update({key: position[key] for key in ('mapID', 'x', 'y')})
+                status = 'verifiedDocumentationNPCIDs'
+                record['documentationPage'] = question_review['sources'][requirement['sourceIDs'][0]]['url']
             record[status].append(npc_id)
         if not record['betaObservations']:
             record.pop('betaObservations')
@@ -216,6 +268,28 @@ def verify_learning(repo, args, recipes, details, trainers, client_ranges, clien
             if not trainers.get(npc_id, {}).get('mapID'):
                 trainers[npc_id] = {key: position[key] for key in ('name', 'mapID', 'x', 'y')}
         detail['trainers'] = sorted(sources.values(), key=lambda row: row['npcID'])
+    for spell_id, review in reviewed.items():
+        requirement = review.get('requirement')
+        if not requirement:
+            continue
+        detail = details.setdefault(spell_id, {})
+        if detail.get('skill') != requirement['skill']:
+            raise ValueError('Reviewed requirement was not applied for spell ' + str(spell_id))
+        teaching_item = requirement.get('teachingItem')
+        if teaching_item:
+            if (teaching_item['sourceID'] not in requirement['sourceIDs'] or teaching_item['itemID'] <= 0
+                    or not isinstance(teaching_item['bound'], bool)
+                    or recipes[spell_id].recipeItem not in (None, teaching_item['itemID'])):
+                raise ValueError('Reviewed teaching item mismatch for spell ' + str(spell_id))
+            detail.update(recipeItem=teaching_item['itemID'], recipeItemBound=teaching_item['bound'])
+        sources = {row['npcID']: row for row in detail.get('trainers', []) if not row.get('reference')}
+        for npc_id in requirement['trainerNPCIDs']:
+            sources[npc_id] = {'npcID': npc_id}
+            position = question_review['trainers'][str(npc_id)]
+            if not trainers.get(npc_id, {}).get('mapID'):
+                trainers[npc_id] = {key: position[key] for key in ('name', 'mapID', 'x', 'y')}
+        if sources:
+            detail['trainers'] = sorted(sources.values(), key=lambda row: row['npcID'])
     for detail in details.values():
         # Sources.lua imports Wrath/Cataclysm emulator trainer lists. Only corroborated pairs can be shown.
         confirmed = [row for row in detail.get('trainers', []) if not row.get('reference')]
@@ -232,6 +306,7 @@ def verify_learning(repo, args, recipes, details, trainers, client_ranges, clien
             'profit': evidence['profit'], 'betaInputs': beta_inputs,
             'localTrainerCaptures': evidence['localTrainerCaptures'],
             'recipeTrainerReviews': evidence['recipeTrainerReviews'],
+            'questionMarkReview': question_review,
             'unknownSkills': skill_audit,
             'referenceTrainers': sorted(trainer_audit, key=lambda row: row['spellID'])}
 
@@ -422,7 +497,8 @@ def main():
     for record in skill_audit:
         verified = verified_skills.get(record['spellID'])
         if record['status'] == 'rejectedReference' and verified:
-            record.update(status='corrected', skill=verified['skill'], source=verified['source'],
+            status = ('confirmedLearnAboveYellow' if verified['skill'] == record['previousSkill'] else 'corrected')
+            record.update(status=status, skill=verified['skill'], source=verified['source'],
                           sourceAudit='learningVerification')
     details = {id_: detail for id_, detail in details.items() if detail}
     used_trainers = {source['npcID'] for detail in details.values() for source in detail.get('trainers', [])}
@@ -470,6 +546,7 @@ def main():
             'Corroborate imported trainer IDs against Forever observations and explicit recipe-specific documentation.',
             'Exclude unverified Wrath/Cataclysm emulator trainer pairs from runtime locations and retain their audit records.',
             'Use current-build player trainer captures for missing learning requirements and review trainer identity separately.',
+            'Review every remaining unknown at the c16642d baseline and retain exact-source conflicts and unresolved teaching routes.',
         ],
         'clientTables': {
             'build': CLIENT_BUILD,
@@ -504,6 +581,9 @@ def main():
                                                        for row in verification['referenceTrainers']),
                          'remainingReferencePairs': sum(bool(source.get('reference')) for detail in details.values()
                                                         for source in detail.get('trainers', [])),
+                         'questionMarksChecked': len(verification['questionMarkReview']['records']),
+                         'questionMarksVerified': sum(row['status'] == 'verified'
+                                                      for row in verification['questionMarkReview']['records']),
                      },
                      'skillAudit': {status: sum(row['status'] == status for row in skill_audit)
                                     for status in ('corrected', 'rejectedReference', 'confirmedLearnAboveYellow')}},

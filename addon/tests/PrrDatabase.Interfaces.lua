@@ -33,6 +33,11 @@ end
 for status, count in pairs(statuses) do
     assert(count == provenance.coverage.skillAudit[status], "Skill-audit coverage does not match its records")
 end
+for _, review in ipairs(provenance.learningVerification.questionMarkReview.records) do
+    if review.status == "verified" and review.yellow and review.requirement.skill > review.yellow then
+        confirmed[review.spellID] = true
+    end
+end
 for _, recipe in ipairs(index.AllRecipes()) do
     if recipe.skill and recipe.yellow and recipe.skill > recipe.yellow then
         assert(confirmed[recipe.spellID], "Unverified learning requirement still exceeds the yellow threshold")
@@ -40,8 +45,8 @@ for _, recipe in ipairs(index.AllRecipes()) do
 end
 assert(index.Get(2665).skill == 40 and index.Get(2674).skill == 100,
     "Observed Forever sharpening-stone ranks did not override the old base values")
-assert(index.Get(3861).skill == 150 and not index.Get(9954).skill,
-    "Observed and unconfirmed Forever skill supplements are not distinguished")
+assert(index.Get(3861).skill == 150 and index.Get(9954).skill == 200,
+    "Observed and documented Forever skill supplements did not reach the index")
 assert(index.Get(9273).skill == 165 and index.Get(9273).yellow == 160,
     "A verified recipe-item requirement was clamped to the yellow threshold")
 
@@ -74,6 +79,68 @@ assert(verifiedSkills == coverage.skillsVerified)
 assert(index.Get(1249631).skill == 120 and index.Get(1249632).skill == 215
     and index.Get(8681).skill == 1, "Verified dye and automatic poison requirements are missing")
 assert(not index.Get(818).skill, "A historical beta trainer rank was asserted as a current requirement")
+
+local questionReview = assert(verification.questionMarkReview)
+assert(questionReview.baseline == "c16642dcfafc1b4457239c09e50009fc1cef233a"
+    and questionReview.clientBuild == "1.60.1.70938")
+local questionSkills, questionCount, questionVerified = {}, 0, 0
+for _, record in ipairs(questionReview.records) do
+    assert(not questionSkills[record.spellID], "Duplicate question-mark review")
+    questionSkills[record.spellID] = true
+    questionCount = questionCount + 1
+    local recipe = assert(index.Get(record.spellID))
+    assert(recipe.profession == record.profession and recipe.item == record.itemID
+        and recipe.yellow == record.yellow and recipe.gray == record.gray,
+        "Question-mark review changed recipe identity or native thresholds")
+    assert(record.checks and record.reason and record.checks.exactSpellSearch,
+        "An individual unknown requirement lacks its source review")
+    if record.status == "verified" then
+        questionVerified = questionVerified + 1
+        local requirement = assert(record.requirement)
+        assert(recipe.skill == requirement.skill and not recipe.skillReference,
+            "A reviewed requirement did not reach the normal lookup")
+        for _, sourceID in ipairs(requirement.sourceIDs) do
+            assert(questionReview.sources[sourceID].url, "Missing reviewed source")
+        end
+        local teachers = {}
+        for _, source in ipairs(recipe.details.trainers or {}) do teachers[source.npcID] = true end
+        for _, npcID in ipairs(requirement.trainerNPCIDs) do
+            assert(teachers[npcID] and ns.Database.Trainers[npcID].mapID,
+                "A reviewed teacher lacks its learning location")
+        end
+    else
+        assert(record.status == "unresolved" and not recipe.skill and not record.requirement,
+            "An unresolved class gate, old schematic or ambiguous recipe was assigned a guessed rank")
+    end
+end
+for _, spellID in ipairs(questionReview.targetSpellIDs) do
+    assert(questionSkills[spellID], "A baseline question-mark recipe was omitted")
+end
+for _, recipe in ipairs(index.AllRecipes()) do
+    if not recipe.skill then assert(questionSkills[recipe.spellID], "An unknown recipe escaped review") end
+end
+assert(questionCount == 198 and questionCount == coverage.questionMarksChecked
+    and questionVerified == coverage.questionMarksVerified)
+assert(index.Get(12052).skill == 175 and index.Get(12072).skill == 190
+    and index.Get(12088).skill == 200 and index.Get(18402).skill == 210
+    and index.Get(1249634).skill == 120 and index.Get(1293088).skill == 125,
+    "Current documented requirements were replaced by stale Quick Facts or yellow fallbacks")
+assert(index.Get(10619).skill == 225 and index.Get(10619).yellow == 220
+    and index.Get(10630).skill == 230 and index.Get(10630).yellow == 225
+    and index.Get(24655).skill == 280 and index.Get(24655).yellow == 275,
+    "Documented specialization requirements were clamped to yellow")
+local battery = assert(index.TaughtBy(274049)[1])
+assert(battery.spellID == 1293088 and battery.skill == 125 and battery.recipeItemBound,
+    "The verified battery schematic is missing from normal recipe-item lookups")
+local batteryBase = ns.Database.Recipes[1293088]
+batteryBase.recipeItem, batteryBase.recipeItemBound = 12345, false
+index.Invalidate()
+assert(index.Get(1293088).recipeItem == 12345 and index.Get(1293088).recipeItemBound == false,
+    "A generated teaching item overwrote an existing recipe item or explicit unbound flag")
+batteryBase.recipeItem, batteryBase.recipeItemBound = nil, nil
+index.Invalidate()
+assert(index.TaughtBy(274049)[1].spellID == 1293088,
+    "The reviewed teaching item was not restored after clearing base data")
 
 local checkedPairs, verifiedPairs, rejectedPairs, checkedRecipes = 0, 0, 0, 0
 for _, record in ipairs(verification.referenceTrainers) do

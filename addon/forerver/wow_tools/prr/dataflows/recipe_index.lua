@@ -108,6 +108,12 @@ local function Build()
             recipe.ignored = true
         end
         recipe.details = ns.Database.RecipeDetails[spellID]
+        if recipe.details then
+            recipe.recipeItem = recipe.recipeItem or recipe.details.recipeItem
+            if recipe.recipeItemBound == nil then
+                recipe.recipeItemBound = recipe.details.recipeItemBound
+            end
+        end
         if recipe.details and not recipe.skillUnknown and not (fix and fix.skill)
             and (not recipe.skill or recipe.details.skillCorrection) then
             recipe.skill = recipe.details.skill
