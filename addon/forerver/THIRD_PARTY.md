@@ -12,7 +12,7 @@
 | better_vendor_ui | Better Vendor UI | [Vaniron 官方发布包](https://www.curseforge.com/wow/addons/better-vendor-ui/files/9436965) | 1.3.1 | 上游未公布 Git commit，发布包 SHA256 和文件指纹见 better_vendor_ui/SOURCE.json | 2026-11-14 | BV-01、BV-02、BV-03 | 2026-11-17 官方文件 API 最新正式包仍为 1.3.1 / 9436965，重新下载包 SHA256 与 SOURCE.json 一致，三项适配继续适用 |
 | pet_xp_bar | PetXPBarPlus | [DustinChecketts/PetXPBarPlus](https://github.com/DustinChecketts/PetXPBarPlus) | 1.3.1 | 0c5da2aef6b2b56e307a77e37151fe4675be6c82 | 2026-11-16 | PX-01、PX-02 | 2026-11-17 官方最新正式版仍为 v1.3.1，tag 解析出的完整 commit 与当前基线一致，宿主与本服接口适配继续适用 |
 | raynna_bestiary | Raynna's Bestiary | [raynna/raynnabestiary](https://github.com/raynna/raynnabestiary) | 1.1.3 | 上游未公布该版本 Git commit，官方文件 9638877 的发布包 SHA256 及文件指纹见 raynna_bestiary/SOURCE.json | 2026-11-17 | RB-01、RB-02、RB-03、RB-05、RB-06 | 2026-11-17 官方最新正式包仍为 1.1.3 / 9638877，重新下载包 SHA256 与 SOURCE.json 一致，核对既有来源窗口，增加怪物剥皮并列视图及指针坐标适配 |
-| prr | PRR | [izicawow 官方发布包](https://www.curseforge.com/wow/addons/prr/files/9629892) | 1.5.2 | 上游未公布 Git commit，发布包 SHA256 与文件指纹见 prr/SOURCE.json | 2026-11-18 | PR-01、PR-02、PR-03、PR-05、PR-06、PR-07、PR-08、PR-09、PR-10、PR-11、PR-12 | 2026-11-18 逐项核查余下 198 个未知等级，采用明确无限服配方及教学资料补齐 36 项，162 项保留缺证记录。来源与审查记录见 prr/RECIPE-SOURCES.json，沿用官方 1.5.2 基线 |
+| prr | PRR | [izicawow 官方发布包](https://www.curseforge.com/wow/addons/prr/files/9629892) | 1.5.2 | 上游未公布 Git commit，发布包 SHA256 与文件指纹见 prr/SOURCE.json | 2026-11-18 | PR-01、PR-02、PR-03、PR-05、PR-06、PR-07、PR-08、PR-09、PR-10、PR-11、PR-12、PR-13 | 2026-11-18 补录 142 位训练师阵营，学习地点按当前角色显示同阵营及中立来源，摘要、悬停与计数共用过滤结果。来源与审查记录见 prr/RECIPE-SOURCES.json，沿用官方 1.5.2 基线 |
 
 ## 当前本地适配
 
@@ -53,6 +53,8 @@
 - PR-11 修正硬甲皮及跨版本训练师来源。确认 ProfessionDB Forever/Sources.lua 的表头明确使用 TrinityCore Cata 与 AzerothCore Wrath 世界库，先前“经典旧世参考”的标记不准确。4,737 条未获本服佐证的关联从运行时撤下，逐项拒绝记录继续保留。只读本机 DungeonsForeverProfDB.prof.economy 中当前 1.60.1:70938 的 learningRequirements，按 CaptureTrainer 的 GetTrainerServiceSkillReq、GetTrainerServiceCost 及法术 ID 采集链核对，补齐夜色短裤／龟壳头盔 205、龟壳护腿／夜色长靴 210、熟化毛皮／毛皮护甲片／硬甲皮 225。硬甲皮 22331 学习地点改为辛特兰德拉克·石手 11097 和菲拉斯哈拉纳·铁皮 11098，对应明确教学列表及地图证据随学习摘录留存，等级来自本机实测，地点关联采用本服社区资料。其余六个同次扫描配方沿两位训练师的明确条目补录。完整 SavedVariables 保留在本机，仓库仅记录相关数值、构建及指纹。旧等级冲突审查同步更新为 32 项修正、30 项缺证、16 项确认。接口检查覆盖硬甲皮的物品入口、等级、材料、地点、原生制作页和跨版本关联撤回。
 
 - PR-12 逐项复核 c16642d 的全部 198 个未知学习等级，含两个缺少颜色阈值的记录。本机当前训练师快照、70938 客户端教学链、物品和技能表逐项核对后，结合 Wowhead Forever 与 Azeroth DB 的明确配方要求及教学列表补齐 36 项，覆盖暗纹、黑色魔纹、专业制皮、秘银、致密石、变色治疗药水、砂纸和电池组。社区网页来源、返回文本或原始 NPC 页面指纹、同名配方及旧 Quick Facts 冲突、162 个保留未知的具体原因均存入 `questionMarkReview`。学习等级与本服黄灰阈值独立核对，7 个制皮配方的要求高于黄色值，保留其明确教学要求。补录教学关联与独立地图证据，当前实测坐标优先。电池组图纸 274049 的明确教学关系补入既有配方物品索引，沿用基础数据优先及绑定标记语义。砂纸的海加尔山 NPC 缺少已确认位置与当前可用性，保留待核对记录。原 78 项等级冲突现为 55 项修正与 23 项确认，4,695 条跨版本缺证关联继续从运行时撤下。接口检查覆盖全部审查条目、缺证语义、正常索引、地点与显式用户修正优先级。
+
+- PR-13 学习地点按当前角色阵营过滤。`utilities/recipe_sources.lua` 在位置去重与计数前读取 UnitFactionGroup，部落显示部落与中立训练师，联盟显示联盟与中立训练师，行内摘要和所有配方悬停入口共用结果，全部被过滤时隐藏地点行。生成器为 142 位训练师补录阵营，固定 QuestieDB Forever 1.1.2、完整构建 commit、TOC 与字段及动态修正源码指纹，按 friendlyToFaction 收录联盟 45、部落 81 位，双阵营可访问训练师 16 位标记中立，其中梅罗什采用明确的木喉声望商人双阵营访问资料。来源与逐项阵营保存到 prr-learning-evidence.json 和 RECIPE-SOURCES.json。接口检查核对两阵营、保留中立、位置去重与过滤后数量、空结果、未知训练师、受限阵营及参考标记。
 
 ## 已回退适配
 

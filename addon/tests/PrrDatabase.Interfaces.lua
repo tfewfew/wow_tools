@@ -52,6 +52,19 @@ assert(index.Get(9273).skill == 165 and index.Get(9273).yellow == 160,
 
 local verification = assert(provenance.learningVerification)
 local coverage = provenance.coverage.learningVerification
+local factionNames = {A = "Alliance", H = "Horde", AH = "Neutral"}
+local factionCounts = {Alliance = 0, Horde = 0, Neutral = 0}
+for npcID, trainer in pairs(ns.Database.Trainers) do
+    local expected = factionNames[verification.trainerFactions.records[tostring(npcID)]]
+    assert(expected and trainer.faction == expected, "A learning location lacks its reviewed trainer faction")
+    factionCounts[expected] = factionCounts[expected] + 1
+end
+for faction, count in pairs(factionCounts) do
+    assert(count == provenance.coverage.trainerFactions[faction], "Trainer faction coverage differs from the data")
+end
+assert(ns.Database.Trainers[11097].faction == "Alliance" and ns.Database.Trainers[11098].faction == "Horde"
+    and ns.Database.Trainers[11557].faction == "Neutral",
+    "Faction-specific master trainers or the neutral reputation trainer were classified incorrectly")
 local evidenceFile = assert(io.open(root .. "/" .. verification.evidenceFile, "r"))
 local evidence = ns.json.decode(evidenceFile:read("*a"))
 evidenceFile:close()

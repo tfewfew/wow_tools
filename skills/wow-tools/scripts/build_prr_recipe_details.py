@@ -307,6 +307,7 @@ def verify_learning(repo, args, recipes, details, trainers, client_ranges, clien
             'localTrainerCaptures': evidence['localTrainerCaptures'],
             'recipeTrainerReviews': evidence['recipeTrainerReviews'],
             'questionMarkReview': question_review,
+            'trainerFactions': evidence['trainerFactions'],
             'unknownSkills': skill_audit,
             'referenceTrainers': sorted(trainer_audit, key=lambda row: row['spellID'])}
 
@@ -503,6 +504,12 @@ def main():
     details = {id_: detail for id_, detail in details.items() if detail}
     used_trainers = {source['npcID'] for detail in details.values() for source in detail.get('trainers', [])}
     trainers = {npc_id: trainer for npc_id, trainer in trainers.items() if npc_id in used_trainers}
+    faction_names = {'A': 'Alliance', 'H': 'Horde', 'AH': 'Neutral'}
+    for npc_id, trainer in trainers.items():
+        faction = verification['trainerFactions']['records'].get(str(npc_id))
+        if faction not in faction_names:
+            raise ValueError('Missing trainer faction for NPC ' + str(npc_id))
+        trainer['faction'] = faction_names[faction]
     repaired = {'native': 0, 'reference': 0, 'remaining': 0}
     for spell_id, recipe in recipes.items():
         fix = fixes[spell_id]
@@ -547,6 +554,7 @@ def main():
             'Exclude unverified Wrath/Cataclysm emulator trainer pairs from runtime locations and retain their audit records.',
             'Use current-build player trainer captures for missing learning requirements and review trainer identity separately.',
             'Review every remaining unknown at the c16642d baseline and retain exact-source conflicts and unresolved teaching routes.',
+            'Classify each runtime trainer by player faction using the pinned Forever NPC metadata and documented neutral overrides.',
         ],
         'clientTables': {
             'build': CLIENT_BUILD,
@@ -564,6 +572,8 @@ def main():
                                'names': TRAINER_NAMES},
         'coverage': {'recipes': len(details), 'trainers': len(trainers),
                      'trainerRecipes': sum(bool(detail.get('trainers')) for detail in details.values()),
+                     'trainerFactions': {name: sum(trainer['faction'] == name for trainer in trainers.values())
+                                         for name in faction_names.values()},
                      'missingSkills': repaired,
                      'learningVerification': {
                          'unknownSkillsChecked': len(verification['unknownSkills']),

@@ -29,7 +29,14 @@ end
 
 local function learningLocations(trainers)
     local observed, reference, seen = {}, {}, {}
+    local playerFaction = UnitFactionGroup and UnitFactionGroup("player")
+    if issecretvalue and issecretvalue(playerFaction) then playerFaction = nil end
     local function add(group, source)
+        local trainer = ns.Database.Trainers[source.npcID]
+        if not trainer or not trainer.faction
+            or (trainer.faction ~= "Neutral" and trainer.faction ~= playerFaction) then
+            return
+        end
         local location = Sources.TrainerLocation(source.npcID)
         if not seen[location] then
             seen[location] = true
@@ -50,7 +57,9 @@ function Sources.Summary(recipe)
     local trainers = details and details.trainers
     if not trainers or #trainers == 0 then return nil end
     local observed, reference = learningLocations(trainers)
-    local location = observed[1] or (reference[1] .. Text("tooltip.reference_mark"))
+    local location = observed[1] or reference[1]
+    if not location then return nil end
+    if not observed[1] then location = location .. Text("tooltip.reference_mark") end
     local summary = Text("tooltip.learning_location", location)
     local otherLocations = #observed + #reference - 1
     if otherLocations > 0 then summary = summary .. Text("tooltip.other_locations", otherLocations) end

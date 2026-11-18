@@ -6,6 +6,7 @@ local frames, names, widgets = {}, {}, {}
 local scale, width, height, dead, free = 0.7, 1920, 1080, false, 10
 local pole, enchants, channelName, channelID, castName, castID = true, {}, nil, nil, nil, nil
 local apiFailure, cvarWrites, menuEntries = false, 0, {}
+local playerFaction = "Horde"
 local targetGUID, targetName, interactable, interactCVar = nil, "模拟鱼漂", false, "3"
 local guidFailure, interactFailure = false, false
 local messages = {}
@@ -19,6 +20,10 @@ function collectgarbage(option, value)
     return previous
 end
 function date() return "12:00:00" end
+function UnitFactionGroup(unit)
+    assert(type(unit) == "string" and unit:lower() == "player", "Unexpected faction-query unit")
+    return playerFaction
+end
 function InCombatLockdown() return false end
 function ClearOverrideBindings() end
 function SetOverrideBindingClick() end
@@ -578,7 +583,8 @@ if flavor == "forerver" then
         local ruggedRecipe = prr.Dataflows.RecipeIndex.CraftedBy(8170)[1]
         assert(ruggedRecipe.skill == 225
             and prr.SkillRange.Text(ruggedRecipe):find("[225]", 1, true)
-            and prr.RecipeSources.Summary(ruggedRecipe):find("Zone 1425 (13.4, 43.5)", 1, true)
+            and prr.RecipeSources.Summary(ruggedRecipe):find("Zone 1444 (74.4, 43.1)", 1, true)
+            and not prr.RecipeSources.Summary(ruggedRecipe):find("1425", 1, true)
             and not prr.RecipeSources.Summary(ruggedRecipe):find("1434", 1, true),
             "PRR Rugged Leather still binds the unknown requirement or Stranglethorn trainer list")
         prr.RecipeSources.AddTooltip(GameTooltip, repairedRecipe)
@@ -590,6 +596,42 @@ if flavor == "forerver" then
         assert(#locationLines == 1 and locationLines[1]:find("Zone 1434 (31.7, 28.8)", 1, true)
             and not locationLines[1]:find("Brawn", 1, true),
             "PRR location tooltip must deduplicate locations and prefer observed source provenance")
+        local factionRecipe = {details = {trainers = {
+            {npcID = 11097}, {npcID = 11098}, {npcID = 2836}, {npcID = 2836},
+            {npcID = 11097, reference = true},
+        }}}
+        local text = prr.Localization.Text
+        local function checkFactionLocations(faction, included, excluded)
+            playerFaction = faction
+            local location = prr.RecipeSources.TrainerLocation(included)
+            local neutral = prr.RecipeSources.TrainerLocation(2836)
+            assert(prr.RecipeSources.Summary(factionRecipe) == text("tooltip.learning_location", location)
+                .. text("tooltip.other_locations", 1),
+                "PRR location summary or count includes an opposing-faction trainer")
+            local lines = {}
+            prr.RecipeSources.AddTooltip({AddLine = function(_, line) lines[#lines + 1] = line end}, factionRecipe)
+            assert(#lines == 1 and lines[1]:find(location, 1, true) and lines[1]:find(neutral, 1, true)
+                and not lines[1]:find(prr.RecipeSources.TrainerLocation(excluded), 1, true),
+                "PRR tooltip did not retain friendly and neutral learning locations")
+            local opposing = {details = {trainers = {{npcID = excluded}, {npcID = excluded, reference = true}}}}
+            assert(prr.RecipeSources.Summary(opposing) == nil, "An opposing-only recipe still shows a learning location")
+            lines = {}
+            prr.RecipeSources.AddTooltip({AddLine = function(_, line) lines[#lines + 1] = line end}, opposing)
+            assert(#lines == 0, "An opposing-only recipe still adds tooltip locations")
+        end
+        checkFactionLocations("Alliance", 11097, 11098)
+        checkFactionLocations("Horde", 11098, 11097)
+        playerFaction = secret
+        assert(prr.RecipeSources.Summary(factionRecipe) == text("tooltip.learning_location",
+            prr.RecipeSources.TrainerLocation(2836)), "A restricted player faction leaked faction-specific locations")
+        playerFaction = "Horde"
+        local unknownTeacher = {details = {trainers = {{npcID = 9990001}}}}
+        assert(prr.RecipeSources.Summary(unknownTeacher) == nil,
+            "A teacher with unknown faction was treated as neutral")
+        local neutralReference = {details = {trainers = {{npcID = 11557, reference = true}}}}
+        assert(prr.RecipeSources.Summary(neutralReference) == text("tooltip.learning_location",
+            prr.RecipeSources.TrainerLocation(11557) .. text("tooltip.reference_mark")),
+            "A neutral reputation teacher lost its location or reference marker")
         local form = ProfessionsFrame and ProfessionsFrame.CraftingPage.SchematicForm
         if not form then
             form = CreateNativeProfessionForm()
