@@ -1,0 +1,69 @@
+--- a/DungeonsForeverSpell/Core/NativeSpellBook.lua
++++ b/DungeonsForeverSpell/Core/NativeSpellBook.lua
+@@ -1746,7 +1746,7 @@
+         end
+     end
+ 
+-    local beatAcc, lastShown, lastW, lastH, lastTal, lastSig = 0, nil, nil, nil, nil, nil
++    local lastShown, lastW, lastH, lastTal, lastSig = nil, nil, nil, nil, nil
+     local lastPsf = nil
+     local beat = CreateFrame("Frame")
+     beat:RegisterEvent("UI_SCALE_CHANGED")
+@@ -1754,10 +1754,7 @@
+     beat:SetScript("OnEvent", function()
+         if activePage and not InCombat() then InstallOurs() end
+     end)
+-    beat:SetScript("OnUpdate", function(_, elapsed)
+-        beatAcc = beatAcc + elapsed
+-        if beatAcc < (lastPsf and 0.05 or 0.2) then return end
+-        beatAcc = 0
++    C_Timer.NewTicker(1, function()
+         if InCombat() then
+             if activePage and sb and sb.GetTab then
+                 local okt, id = pcall(sb.GetTab, sb)
+--- a/DungeonsForeverSpell/Core/SpellRankUI.lua
++++ b/DungeonsForeverSpell/Core/SpellRankUI.lua
+@@ -1290,7 +1290,9 @@
+     local f = CreateFrame("Frame")
+     f:RegisterEvent("PLAYER_ENTERING_WORLD")
+     f:RegisterEvent("ADDON_LOADED")
++    f:RegisterEvent("PLAYER_REGEN_DISABLED")
+     f:SetScript("OnEvent", function(_, event)
++        if event == "PLAYER_REGEN_DISABLED" then UpdateEntryCombat() return end
+         if event == "PLAYER_ENTERING_WORLD" then SR.Sync() end
+         if C_Timer and C_Timer.After then
+             C_Timer.After(1, UpdateEntry)
+@@ -1299,14 +1301,11 @@
+             UpdateEntry()
+         end
+     end)
+-    local acc = 0
++    local nextEntryAt = 0
+     local lastPsfVis = false
+-    local tick = CreateFrame("Frame")
+-    tick:SetScript("OnUpdate", function(_, elapsed)
+-        acc = acc + elapsed
++    C_Timer.NewTicker(0.5, function()
++        local now = GetTime()
+         if InCombat() then
+-            if acc < 0.1 then return end
+-            acc = 0
+             UpdateEntryCombat()
+             return
+         end
+@@ -1318,12 +1317,12 @@
+         end
+         if pv ~= lastPsfVis then
+             lastPsfVis = pv
+-            acc = 0
++            nextEntryAt = now + 2
+             UpdateEntry()
+             return
+         end
+-        if acc < (lastPsfVis and 0.1 or 0.5) then return end
+-        acc = 0
++        if now < nextEntryAt then return end
++        nextEntryAt = now + 2
+         UpdateEntry()
+     end)
+     UpdateEntry()
