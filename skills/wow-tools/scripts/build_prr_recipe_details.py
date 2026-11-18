@@ -98,6 +98,7 @@ def verify_learning(repo, args, recipes, details, trainers, client_ranges, clien
                     beta[int(spell_id), int(npc_id)] = (service, npc, relative)
 
     skill_audit = []
+    local_captures = {row['spellID']: row for row in evidence['localTrainerCaptures']['records']}
     for spell_id in targets['unknownSkills']:
         recipe = recipes[spell_id]
         detail = details.setdefault(spell_id, {})
@@ -129,6 +130,14 @@ def verify_learning(repo, args, recipes, details, trainers, client_ranges, clien
                 source = 'Forever ItemSparse teaching item'
         if int(native['AcquireMethod']) in (1, 2):
             verified, source = max(1, int(native['MinSkillLineRank'])), 'Forever automatic skill grant'
+        capture = local_captures.get(spell_id)
+        if capture and not verified:
+            expected_build = ':'.join(CLIENT_BUILD.rsplit('.', 1))
+            if (capture['build'] != expected_build or capture['profession'] != recipe.profession
+                    or not capture['trainerObserved'] or capture['skill'] <= 0):
+                raise ValueError('Invalid local trainer capture for spell ' + str(spell_id))
+            verified, source = capture['skill'], 'Local Forever trainer capture'
+            record.update(build=capture['build'], trainingCost=capture['trainingCost'])
         doc = documented.get(spell_id)
         if doc and not verified:
             verified, source = doc['reportedLearnRank'], 'ForeverDB explicit trainer listing'
@@ -154,14 +163,14 @@ def verify_learning(repo, args, recipes, details, trainers, client_ranges, clien
         sources = {row['npcID']: row for row in detail['trainers']}
         doc = documented.get(spell_id)
         record = {'spellID': spell_id, 'verifiedDocumentationNPCIDs': [], 'verifiedBetaNPCIDs': [],
-                  'unresolvedReferenceNPCIDs': [], 'betaObservations': {}}
+                  'rejectedCrossExpansionNPCIDs': [], 'betaObservations': {}}
         raw_doc = documentation.get(spell_id)
         if raw_doc:
             record['documentationPage'] = raw_doc['page']
             record['documentationStatus'] = 'explicitTrainerListed' if doc else 'inferredOrClientMismatch'
         for npc_id in npc_ids:
             source = sources[npc_id]
-            status = 'unresolvedReferenceNPCIDs'
+            status = 'rejectedCrossExpansionNPCIDs'
             if (spell_id, npc_id) in beta:
                 _, npc, relative = beta[spell_id, npc_id]
                 position = next((pos for pos in npc.get('positions', []) if pos.get('uiMap')), None)
@@ -195,11 +204,34 @@ def verify_learning(repo, args, recipes, details, trainers, client_ranges, clien
                 if not trainers.get(npc_id, {}).get('mapID'):
                     trainers[npc_id] = {key: position[key] for key in ('name', 'mapID', 'x', 'y')}
             details[spell_id]['trainers'] = sorted(sources.values(), key=lambda row: (row.get('reference', False), row['npcID']))
+    for review in evidence['recipeTrainerReviews']['recipes']:
+        spell_id = review['spellID']
+        if recipes[spell_id].profession != review['profession']:
+            raise ValueError('Reviewed trainer profession mismatch for spell ' + str(spell_id))
+        detail = details.setdefault(spell_id, {})
+        sources = {row['npcID']: row for row in detail.get('trainers', []) if not row.get('reference')}
+        for npc_id in review['trainerNPCIDs']:
+            sources[npc_id] = {'npcID': npc_id}
+            position = evidence['recipeTrainerReviews']['trainers'][str(npc_id)]
+            if not trainers.get(npc_id, {}).get('mapID'):
+                trainers[npc_id] = {key: position[key] for key in ('name', 'mapID', 'x', 'y')}
+        detail['trainers'] = sorted(sources.values(), key=lambda row: row['npcID'])
+    for detail in details.values():
+        # Sources.lua imports Wrath/Cataclysm emulator trainer lists. Only corroborated pairs can be shown.
+        confirmed = [row for row in detail.get('trainers', []) if not row.get('reference')]
+        detail.pop('referenceTrainerTotal', None)
+        detail.pop('referenceTrainerListed', None)
+        if confirmed:
+            detail['trainers'] = confirmed
+        else:
+            detail.pop('trainers', None)
     return {'baseline': evidence['targetBaseline'], 'evidenceFile': evidence_path.relative_to(repo).as_posix(),
             'evidenceSHA256': hashlib.sha256(evidence_text.encode('utf8')).hexdigest(),
             'evidenceNormalization': 'UTF-8 with LF line endings', 'policy': evidence['policy'],
             'foreverDB': {'pages': evidence['foreverDB']['pages'], 'trainers': evidence['foreverDB']['trainers']},
             'profit': evidence['profit'], 'betaInputs': beta_inputs,
+            'localTrainerCaptures': evidence['localTrainerCaptures'],
+            'recipeTrainerReviews': evidence['recipeTrainerReviews'],
             'unknownSkills': skill_audit,
             'referenceTrainers': sorted(trainer_audit, key=lambda row: row['spellID'])}
 
@@ -386,7 +418,15 @@ def main():
             detail.pop('skill', None)
             detail.pop('skillReference', None)
     verification = verify_learning(repo, args, recipes, details, trainers, client_ranges, client_items)
+    verified_skills = {row['spellID']: row for row in verification['unknownSkills'] if row['status'] == 'verified'}
+    for record in skill_audit:
+        verified = verified_skills.get(record['spellID'])
+        if record['status'] == 'rejectedReference' and verified:
+            record.update(status='corrected', skill=verified['skill'], source=verified['source'],
+                          sourceAudit='learningVerification')
     details = {id_: detail for id_, detail in details.items() if detail}
+    used_trainers = {source['npcID'] for detail in details.values() for source in detail.get('trainers', [])}
+    trainers = {npc_id: trainer for npc_id, trainer in trainers.items() if npc_id in used_trainers}
     repaired = {'native': 0, 'reference': 0, 'remaining': 0}
     for spell_id, recipe in recipes.items():
         fix = fixes[spell_id]
@@ -427,8 +467,9 @@ def main():
             'Audit requirements above the native yellow threshold against trainers, native recipe items and own-flavor library data.',
             'Correct verified differences and reject conflicting borrowed requirements. Confirmed learn requirements can exceed yellow.',
             'Runtime applies verified base corrections and supplements below explicit PRR/user fixes.',
-            'Merge named historical trainer IDs with observed Forever NPC/spell pairs. Observed pairs clear reference flags.',
-            'Historical lists are capped by upstream. Preserve listed and total counts. Coverage is partial.',
+            'Corroborate imported trainer IDs against Forever observations and explicit recipe-specific documentation.',
+            'Exclude unverified Wrath/Cataclysm emulator trainer pairs from runtime locations and retain their audit records.',
+            'Use current-build player trainer captures for missing learning requirements and review trainer identity separately.',
         ],
         'clientTables': {
             'build': CLIENT_BUILD,
@@ -450,15 +491,19 @@ def main():
                      'learningVerification': {
                          'unknownSkillsChecked': len(verification['unknownSkills']),
                          'skillsVerified': sum(row['status'] == 'verified' for row in verification['unknownSkills']),
+                         'localSkillsVerified': len(verification['localTrainerCaptures']['records']),
+                         'reviewedTrainerRecipes': len(verification['recipeTrainerReviews']['recipes']),
                          'referenceRecipesChecked': len(verification['referenceTrainers']),
                          'referencePairsChecked': sum(len(row[key]) for row in verification['referenceTrainers']
                                                       for key in ('verifiedDocumentationNPCIDs', 'verifiedBetaNPCIDs',
-                                                                  'unresolvedReferenceNPCIDs')),
+                                                                  'rejectedCrossExpansionNPCIDs')),
                          'referencePairsVerified': sum(len(row['verifiedDocumentationNPCIDs'])
                                                        + len(row['verifiedBetaNPCIDs'])
                                                        for row in verification['referenceTrainers']),
-                         'remainingReferencePairs': sum(len(row['unresolvedReferenceNPCIDs'])
-                                                        for row in verification['referenceTrainers']),
+                         'rejectedReferencePairs': sum(len(row['rejectedCrossExpansionNPCIDs'])
+                                                       for row in verification['referenceTrainers']),
+                         'remainingReferencePairs': sum(bool(source.get('reference')) for detail in details.values()
+                                                        for source in detail.get('trainers', [])),
                      },
                      'skillAudit': {status: sum(row['status'] == status for row in skill_audit)
                                     for status in ('corrected', 'rejectedReference', 'confirmedLearnAboveYellow')}},

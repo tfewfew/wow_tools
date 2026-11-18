@@ -8,7 +8,9 @@
     "A documented rank requires that relationship and matching Forever skill-line ability, profession and raw yellow/gray thresholds.",
     "A numeric fallback equal to yellow without a trainer listing remains unverified. Missing observations do not disprove a reference.",
     "Client AcquireMethod 1 or 2 establishes an automatic skill requirement. MinSkillLineRank 1 alone does not.",
-    "Historical Forever beta observations retain their product/build in the audit. Current observations take precedence."
+    "Historical Forever beta observations retain their product/build in the audit. Current observations take precedence.",
+    "Unverified trainer lists from ProfessionDB Sources.lua are Wrath/Cataclysm emulator data and are excluded from runtime learning locations. Retain per-pair rejection records.",
+    "Current-build player learningRequirements captured through the trainer API establish learning rank. Trainer identity is checked separately against explicit recipe listings."
   ],
   "targets": {
     "unknownSkills": [
@@ -14756,5 +14758,207 @@
         "observedAt": 1790781974
       }
     ]
+  },
+  "localTrainerCaptures": {
+    "addon": "DungeonsForeverProf",
+    "version": "2.0.3",
+    "sourceFile": "WTF/Account/*/SavedVariables/DungeonsForeverProf.lua",
+    "sourceSHA256": "985aa5c49b1a5c90d380465a17240b025e3e385a01d94455345ecb30f368930c",
+    "captureCode": "DungeonsForeverProf/Core/ProfClientScan.lua",
+    "captureCodeSHA256": "63aa50f77a0efade487725b364994a3802437bf7acc1a92ccce8d7e4e164555f",
+    "captureAPIs": [
+      "GetTrainerServiceSkillReq",
+      "GetTrainerServiceCost",
+      "C_Trainer.GetServiceSpellID"
+    ],
+    "records": [
+      {
+        "spellID": 10548,
+        "skill": 205,
+        "profession": 165,
+        "trainingCost": 3600,
+        "level": 0,
+        "build": "1.60.1:70938",
+        "trainerObserved": true,
+        "recipeObservedAt": 1794961521
+      },
+      {
+        "spellID": 10552,
+        "skill": 205,
+        "profession": 165,
+        "trainingCost": 3600,
+        "level": 0,
+        "build": "1.60.1:70938",
+        "trainerObserved": true,
+        "recipeObservedAt": 1794961521
+      },
+      {
+        "spellID": 10556,
+        "skill": 210,
+        "profession": 165,
+        "trainingCost": 4050,
+        "level": 0,
+        "build": "1.60.1:70938",
+        "trainerObserved": true,
+        "recipeObservedAt": 1794961521
+      },
+      {
+        "spellID": 10558,
+        "skill": 210,
+        "profession": 165,
+        "trainingCost": 4050,
+        "level": 0,
+        "build": "1.60.1:70938",
+        "trainerObserved": true,
+        "recipeObservedAt": 1794961521
+      },
+      {
+        "spellID": 19047,
+        "skill": 225,
+        "profession": 165,
+        "trainingCost": 4500,
+        "level": 0,
+        "build": "1.60.1:70938",
+        "trainerObserved": true,
+        "recipeObservedAt": 1794961521
+      },
+      {
+        "spellID": 19058,
+        "skill": 225,
+        "profession": 165,
+        "trainingCost": 4500,
+        "level": 0,
+        "build": "1.60.1:70938",
+        "trainerObserved": true,
+        "recipeObservedAt": 1794961521
+      },
+      {
+        "spellID": 22331,
+        "skill": 225,
+        "profession": 165,
+        "trainingCost": 4500,
+        "level": 0,
+        "build": "1.60.1:70938",
+        "trainerObserved": true,
+        "recipeObservedAt": 1794961521
+      }
+    ]
+  },
+  "recipeTrainerReviews": {
+    "checkedAt": "2026-11-18",
+    "pages": [
+      {
+        "url": "https://www.stillsixty.com/npc/11097",
+        "sha256": "1533c398dfc6368b4b1d4ffd3091f5da6a03c9c942001e6d34dadb0cea0d4785"
+      },
+      {
+        "url": "https://www.stillsixty.com/npc/11098",
+        "sha256": "e2bf243ab7a87d9e3fc84801ecddd8989bcaf1bec1b37106040b147af80ee7ab"
+      }
+    ],
+    "recipes": [
+      {
+        "spellID": 10548,
+        "profession": 165,
+        "trainerNPCIDs": [
+          11097,
+          11098
+        ],
+        "pages": [
+          0,
+          1
+        ]
+      },
+      {
+        "spellID": 10552,
+        "profession": 165,
+        "trainerNPCIDs": [
+          11097,
+          11098
+        ],
+        "pages": [
+          0,
+          1
+        ]
+      },
+      {
+        "spellID": 10556,
+        "profession": 165,
+        "trainerNPCIDs": [
+          11097,
+          11098
+        ],
+        "pages": [
+          0,
+          1
+        ]
+      },
+      {
+        "spellID": 10558,
+        "profession": 165,
+        "trainerNPCIDs": [
+          11097,
+          11098
+        ],
+        "pages": [
+          0,
+          1
+        ]
+      },
+      {
+        "spellID": 19047,
+        "profession": 165,
+        "trainerNPCIDs": [
+          11097,
+          11098
+        ],
+        "pages": [
+          0,
+          1
+        ]
+      },
+      {
+        "spellID": 19058,
+        "profession": 165,
+        "trainerNPCIDs": [
+          11097,
+          11098
+        ],
+        "pages": [
+          0,
+          1
+        ]
+      },
+      {
+        "spellID": 22331,
+        "profession": 165,
+        "trainerNPCIDs": [
+          11097,
+          11098
+        ],
+        "pages": [
+          0,
+          1
+        ]
+      }
+    ],
+    "trainers": {
+      "11097": {
+        "name": "Drakk Stonehand",
+        "mapID": 1425,
+        "x": 0.1338701,
+        "y": 0.4349013,
+        "positionSource": "https://www.foreverdb.app/en/forever/npcs/11097",
+        "positionSHA256": "e9729dd2befd51df992f343b3b32d93d32d17ddefc667f39ddd85f9e3d0af2b1"
+      },
+      "11098": {
+        "name": "Hahrana Ironhide",
+        "mapID": 1444,
+        "x": 0.7442,
+        "y": 0.4306,
+        "positionSource": "data/wowf/1.60.1.70888/npcs.json",
+        "positionSHA256": "91eabf807962eadbc9395c73d1d2edcafb11e97ee15df4665315ee2bee112d86"
+      }
+    }
   }
 }

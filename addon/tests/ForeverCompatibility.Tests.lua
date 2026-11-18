@@ -575,6 +575,12 @@ if flavor == "forerver" then
             "PRR documented Forever trainer location is missing")
         assert(prr.RecipeSources.TrainerLocation(9990001) == "Area 14",
             "PRR trainer location did not bind the Questie zone/native area fallback")
+        local ruggedRecipe = prr.Dataflows.RecipeIndex.CraftedBy(8170)[1]
+        assert(ruggedRecipe.skill == 225
+            and prr.SkillRange.Text(ruggedRecipe):find("[225]", 1, true)
+            and prr.RecipeSources.Summary(ruggedRecipe):find("Zone 1425 (13.4, 43.5)", 1, true)
+            and not prr.RecipeSources.Summary(ruggedRecipe):find("1434", 1, true),
+            "PRR Rugged Leather still binds the unknown requirement or Stranglethorn trainer list")
         prr.RecipeSources.AddTooltip(GameTooltip, repairedRecipe)
         local locationLines = {}
         prr.RecipeSources.AddTooltip({AddLine = function(_, line) locationLines[#locationLines + 1] = line end}, {
@@ -607,6 +613,10 @@ if flavor == "forerver" then
         form:Init({recipeID = 2149})
         assert(levels:GetText() == prr.SkillRange.Text(prr.Dataflows.RecipeIndex.Get(2149)),
             "PRR native crafting selection retained a previous recipe's thresholds")
+        form:Init({recipeID = 22331})
+        assert(levels:GetText() == prr.SkillRange.Text(ruggedRecipe)
+            and not levels:GetText():find("[?]", 1, true),
+            "PRR native Rugged Leather detail does not use the corrected indexed requirement")
         form:Init({recipeID = 99999999})
         assert(not levels:IsShown() and levels:GetText() == "", "PRR unknown recipes retained old thresholds")
         form:Init({recipeID = secret})

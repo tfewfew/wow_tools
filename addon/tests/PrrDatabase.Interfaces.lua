@@ -75,24 +75,25 @@ assert(index.Get(1249631).skill == 120 and index.Get(1249632).skill == 215
     and index.Get(8681).skill == 1, "Verified dye and automatic poison requirements are missing")
 assert(not index.Get(818).skill, "A historical beta trainer rank was asserted as a current requirement")
 
-local checkedPairs, verifiedPairs, pendingPairs, checkedRecipes = 0, 0, 0, 0
+local checkedPairs, verifiedPairs, rejectedPairs, checkedRecipes = 0, 0, 0, 0
 for _, record in ipairs(verification.referenceTrainers) do
     checkedRecipes = checkedRecipes + 1
     local expected = assert(evidence.targets.referenceTrainers[tostring(record.spellID)])
     local sources, checked = {}, {}
-    for _, source in ipairs(index.Get(record.spellID).details.trainers) do sources[source.npcID] = source end
-    for _, key in ipairs({"verifiedDocumentationNPCIDs", "verifiedBetaNPCIDs", "unresolvedReferenceNPCIDs"}) do
+    local details = index.Get(record.spellID).details
+    for _, source in ipairs(details and details.trainers or {}) do sources[source.npcID] = source end
+    for _, key in ipairs({"verifiedDocumentationNPCIDs", "verifiedBetaNPCIDs", "rejectedCrossExpansionNPCIDs"}) do
         for _, npcID in ipairs(record[key]) do
             assert(not checked[npcID], "A reference trainer has multiple audit dispositions")
             checked[npcID] = true
             checkedPairs = checkedPairs + 1
-            local source = assert(sources[npcID], "An audited trainer relationship disappeared")
-            if key == "unresolvedReferenceNPCIDs" then
-                pendingPairs = pendingPairs + 1
-                assert(source.reference, "An unverified trainer reference lost its reference marker")
+            local source = sources[npcID]
+            if key == "rejectedCrossExpansionNPCIDs" then
+                rejectedPairs = rejectedPairs + 1
+                assert(not source, "An unverified cross-expansion trainer is still offered as a learning location")
             else
                 verifiedPairs = verifiedPairs + 1
-                assert(not source.reference and ns.Database.Trainers[npcID].mapID,
+                assert(source and not source.reference and ns.Database.Trainers[npcID].mapID,
                     "A verified trainer relationship lacks its Forever location")
             end
         end
@@ -100,8 +101,33 @@ for _, record in ipairs(verification.referenceTrainers) do
     for _, npcID in ipairs(expected) do assert(checked[npcID], "An individual reference pair was not audited") end
 end
 assert(checkedPairs == coverage.referencePairsChecked and verifiedPairs == coverage.referencePairsVerified
-    and pendingPairs == coverage.remainingReferencePairs and checkedRecipes == coverage.referenceRecipesChecked,
+    and rejectedPairs == coverage.rejectedReferencePairs and coverage.remainingReferencePairs == 0
+    and checkedRecipes == coverage.referenceRecipesChecked,
     "Reference trainer audit coverage does not match its individual records")
+for _, capture in ipairs(verification.localTrainerCaptures.records) do
+    assert(capture.build == "1.60.1:70938" and capture.trainerObserved
+        and index.Get(capture.spellID).skill == capture.skill,
+        "Current-client trainer skill requirements did not reach the indexed recipes")
+end
+for _, review in ipairs(verification.recipeTrainerReviews.recipes) do
+    local sources = {}
+    for _, source in ipairs(index.Get(review.spellID).details.trainers) do sources[source.npcID] = true end
+    for _, npcID in ipairs(review.trainerNPCIDs) do
+        assert(sources[npcID], "A recipe-specific reviewed teacher is missing")
+    end
+end
+local rugged = assert(index.CraftedBy(8170)[1])
+assert(rugged.spellID == 22331 and rugged.profession == 165 and rugged.skill == 225
+    and rugged.yellow == 225 and rugged.gray == 225 and rugged.reagents[1][1] == 4304
+    and rugged.reagents[1][2] == 6, "Rugged Leather must use its current-client learning requirement")
+assert(#rugged.details.trainers == 2 and rugged.details.trainers[1].npcID == 11097
+    and rugged.details.trainers[2].npcID == 11098,
+    "Rugged Leather still uses the generic Wrath/Cataclysm trainer list")
+for _, recipe in ipairs(index.AllRecipes()) do
+    for _, source in ipairs(recipe.details and recipe.details.trainers or {}) do
+        assert(not source.reference, "Unverified imported teachers remain in the runtime database")
+    end
+end
 
 ns.db.fixes[2665] = {skill = 55}
 index.Invalidate()

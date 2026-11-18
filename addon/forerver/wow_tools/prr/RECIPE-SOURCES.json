@@ -53,8 +53,9 @@
     "Audit requirements above the native yellow threshold against trainers, native recipe items and own-flavor library data.",
     "Correct verified differences and reject conflicting borrowed requirements. Confirmed learn requirements can exceed yellow.",
     "Runtime applies verified base corrections and supplements below explicit PRR/user fixes.",
-    "Merge named historical trainer IDs with observed Forever NPC/spell pairs. Observed pairs clear reference flags.",
-    "Historical lists are capped by upstream. Preserve listed and total counts. Coverage is partial."
+    "Corroborate imported trainer IDs against Forever observations and explicit recipe-specific documentation.",
+    "Exclude unverified Wrath/Cataclysm emulator trainer pairs from runtime locations and retain their audit records.",
+    "Use current-build player trainer captures for missing learning requirements and review trainer identity separately."
   ],
   "clientTables": {
     "build": "1.60.1.70938",
@@ -82,14 +83,16 @@
   "learningVerification": {
     "baseline": "c0d8162b166a23108ec1b665c2e862ee5f09fc04",
     "evidenceFile": "skills/wow-tools/data/prr-learning-evidence.json",
-    "evidenceSHA256": "e0688b03678a23005bf7911f8cac4edd822c6ce081a24eb047d8df08b33856ac",
+    "evidenceSHA256": "bc9013752a5f8dfd6832a77471415e03484f2df3d4d72ce75f3531dd3d3247a9",
     "evidenceNormalization": "UTF-8 with LF line endings",
     "policy": [
       "A documented trainer relationship requires an explicit NPC/spell listing with a training cost. A profession-wide list alone is insufficient.",
       "A documented rank requires that relationship and matching Forever skill-line ability, profession and raw yellow/gray thresholds.",
       "A numeric fallback equal to yellow without a trainer listing remains unverified. Missing observations do not disprove a reference.",
       "Client AcquireMethod 1 or 2 establishes an automatic skill requirement. MinSkillLineRank 1 alone does not.",
-      "Historical Forever beta observations retain their product/build in the audit. Current observations take precedence."
+      "Historical Forever beta observations retain their product/build in the audit. Current observations take precedence.",
+      "Unverified trainer lists from ProfessionDB Sources.lua are Wrath/Cataclysm emulator data and are excluded from runtime learning locations. Retain per-pair rejection records.",
+      "Current-build player learningRequirements captured through the trainer API establish learning rank. Trainer identity is checked separately against explicit recipe listings."
     ],
     "foreverDB": {
       "pages": [
@@ -388,6 +391,208 @@
       "data/wow_classic_beta/1.60.1.70425/trainers.json": "324fdea14494f2b63514d83b0d5090b2a91baddf8d377a6b9fc2739ab54ca44a",
       "data/wow_classic_beta/1.60.1.70450/trainers.json": "c25c2e7d8b249c87238d4bb13d1c3b26fbd8cc6e728efd4aabab20f946c59ed7",
       "data/wow_classic_beta/1.60.1.70532/trainers.json": "4a073e52da16b8389f48ad4959bbd5beeb8570683fa12ed0e5359b94b7e376a5"
+    },
+    "localTrainerCaptures": {
+      "addon": "DungeonsForeverProf",
+      "version": "2.0.3",
+      "sourceFile": "WTF/Account/*/SavedVariables/DungeonsForeverProf.lua",
+      "sourceSHA256": "985aa5c49b1a5c90d380465a17240b025e3e385a01d94455345ecb30f368930c",
+      "captureCode": "DungeonsForeverProf/Core/ProfClientScan.lua",
+      "captureCodeSHA256": "63aa50f77a0efade487725b364994a3802437bf7acc1a92ccce8d7e4e164555f",
+      "captureAPIs": [
+        "GetTrainerServiceSkillReq",
+        "GetTrainerServiceCost",
+        "C_Trainer.GetServiceSpellID"
+      ],
+      "records": [
+        {
+          "spellID": 10548,
+          "skill": 205,
+          "profession": 165,
+          "trainingCost": 3600,
+          "level": 0,
+          "build": "1.60.1:70938",
+          "trainerObserved": true,
+          "recipeObservedAt": 1794961521
+        },
+        {
+          "spellID": 10552,
+          "skill": 205,
+          "profession": 165,
+          "trainingCost": 3600,
+          "level": 0,
+          "build": "1.60.1:70938",
+          "trainerObserved": true,
+          "recipeObservedAt": 1794961521
+        },
+        {
+          "spellID": 10556,
+          "skill": 210,
+          "profession": 165,
+          "trainingCost": 4050,
+          "level": 0,
+          "build": "1.60.1:70938",
+          "trainerObserved": true,
+          "recipeObservedAt": 1794961521
+        },
+        {
+          "spellID": 10558,
+          "skill": 210,
+          "profession": 165,
+          "trainingCost": 4050,
+          "level": 0,
+          "build": "1.60.1:70938",
+          "trainerObserved": true,
+          "recipeObservedAt": 1794961521
+        },
+        {
+          "spellID": 19047,
+          "skill": 225,
+          "profession": 165,
+          "trainingCost": 4500,
+          "level": 0,
+          "build": "1.60.1:70938",
+          "trainerObserved": true,
+          "recipeObservedAt": 1794961521
+        },
+        {
+          "spellID": 19058,
+          "skill": 225,
+          "profession": 165,
+          "trainingCost": 4500,
+          "level": 0,
+          "build": "1.60.1:70938",
+          "trainerObserved": true,
+          "recipeObservedAt": 1794961521
+        },
+        {
+          "spellID": 22331,
+          "skill": 225,
+          "profession": 165,
+          "trainingCost": 4500,
+          "level": 0,
+          "build": "1.60.1:70938",
+          "trainerObserved": true,
+          "recipeObservedAt": 1794961521
+        }
+      ]
+    },
+    "recipeTrainerReviews": {
+      "checkedAt": "2026-11-18",
+      "pages": [
+        {
+          "url": "https://www.stillsixty.com/npc/11097",
+          "sha256": "1533c398dfc6368b4b1d4ffd3091f5da6a03c9c942001e6d34dadb0cea0d4785"
+        },
+        {
+          "url": "https://www.stillsixty.com/npc/11098",
+          "sha256": "e2bf243ab7a87d9e3fc84801ecddd8989bcaf1bec1b37106040b147af80ee7ab"
+        }
+      ],
+      "recipes": [
+        {
+          "spellID": 10548,
+          "profession": 165,
+          "trainerNPCIDs": [
+            11097,
+            11098
+          ],
+          "pages": [
+            0,
+            1
+          ]
+        },
+        {
+          "spellID": 10552,
+          "profession": 165,
+          "trainerNPCIDs": [
+            11097,
+            11098
+          ],
+          "pages": [
+            0,
+            1
+          ]
+        },
+        {
+          "spellID": 10556,
+          "profession": 165,
+          "trainerNPCIDs": [
+            11097,
+            11098
+          ],
+          "pages": [
+            0,
+            1
+          ]
+        },
+        {
+          "spellID": 10558,
+          "profession": 165,
+          "trainerNPCIDs": [
+            11097,
+            11098
+          ],
+          "pages": [
+            0,
+            1
+          ]
+        },
+        {
+          "spellID": 19047,
+          "profession": 165,
+          "trainerNPCIDs": [
+            11097,
+            11098
+          ],
+          "pages": [
+            0,
+            1
+          ]
+        },
+        {
+          "spellID": 19058,
+          "profession": 165,
+          "trainerNPCIDs": [
+            11097,
+            11098
+          ],
+          "pages": [
+            0,
+            1
+          ]
+        },
+        {
+          "spellID": 22331,
+          "profession": 165,
+          "trainerNPCIDs": [
+            11097,
+            11098
+          ],
+          "pages": [
+            0,
+            1
+          ]
+        }
+      ],
+      "trainers": {
+        "11097": {
+          "name": "Drakk Stonehand",
+          "mapID": 1425,
+          "x": 0.1338701,
+          "y": 0.4349013,
+          "positionSource": "https://www.foreverdb.app/en/forever/npcs/11097",
+          "positionSHA256": "e9729dd2befd51df992f343b3b32d93d32d17ddefc667f39ddd85f9e3d0af2b1"
+        },
+        "11098": {
+          "name": "Hahrana Ironhide",
+          "mapID": 1444,
+          "x": 0.7442,
+          "y": 0.4306,
+          "positionSource": "data/wowf/1.60.1.70888/npcs.json",
+          "positionSHA256": "91eabf807962eadbc9395c73d1d2edcafb11e97ee15df4665315ee2bee112d86"
+        }
+      }
     },
     "unknownSkills": [
       {
@@ -777,13 +982,16 @@
         "nativeMinimum": 1,
         "acquireMethod": 0,
         "teachingItems": [],
-        "status": "unresolved",
-        "reason": "No verified learning requirement in the checked sources",
+        "status": "verified",
         "documentationCheck": {
           "page": 6,
           "reportedRank": 225,
           "status": "inferredOrClientMismatch"
-        }
+        },
+        "build": "1.60.1:70938",
+        "trainingCost": 3600,
+        "skill": 205,
+        "source": "Local Forever trainer capture"
       },
       {
         "spellID": 10552,
@@ -792,13 +1000,16 @@
         "nativeMinimum": 1,
         "acquireMethod": 0,
         "teachingItems": [],
-        "status": "unresolved",
-        "reason": "No verified learning requirement in the checked sources",
+        "status": "verified",
         "documentationCheck": {
           "page": 6,
           "reportedRank": 225,
           "status": "inferredOrClientMismatch"
-        }
+        },
+        "build": "1.60.1:70938",
+        "trainingCost": 3600,
+        "skill": 205,
+        "source": "Local Forever trainer capture"
       },
       {
         "spellID": 10556,
@@ -807,13 +1018,16 @@
         "nativeMinimum": 1,
         "acquireMethod": 0,
         "teachingItems": [],
-        "status": "unresolved",
-        "reason": "No verified learning requirement in the checked sources",
+        "status": "verified",
         "documentationCheck": {
           "page": 6,
           "reportedRank": 230,
           "status": "inferredOrClientMismatch"
-        }
+        },
+        "build": "1.60.1:70938",
+        "trainingCost": 4050,
+        "skill": 210,
+        "source": "Local Forever trainer capture"
       },
       {
         "spellID": 10558,
@@ -822,13 +1036,16 @@
         "nativeMinimum": 1,
         "acquireMethod": 0,
         "teachingItems": [],
-        "status": "unresolved",
-        "reason": "No verified learning requirement in the checked sources",
+        "status": "verified",
         "documentationCheck": {
           "page": 6,
           "reportedRank": 230,
           "status": "inferredOrClientMismatch"
-        }
+        },
+        "build": "1.60.1:70938",
+        "trainingCost": 4050,
+        "skill": 210,
+        "source": "Local Forever trainer capture"
       },
       {
         "spellID": 10619,
@@ -1386,13 +1603,16 @@
         "nativeMinimum": 1,
         "acquireMethod": 0,
         "teachingItems": [],
-        "status": "unresolved",
-        "reason": "No verified learning requirement in the checked sources",
+        "status": "verified",
         "documentationCheck": {
           "page": 6,
           "reportedRank": 225,
           "status": "inferredOrClientMismatch"
-        }
+        },
+        "build": "1.60.1:70938",
+        "trainingCost": 4500,
+        "skill": 225,
+        "source": "Local Forever trainer capture"
       },
       {
         "spellID": 19058,
@@ -1401,13 +1621,16 @@
         "nativeMinimum": 1,
         "acquireMethod": 0,
         "teachingItems": [],
-        "status": "unresolved",
-        "reason": "No verified learning requirement in the checked sources",
+        "status": "verified",
         "documentationCheck": {
           "page": 6,
           "reportedRank": 225,
           "status": "inferredOrClientMismatch"
-        }
+        },
+        "build": "1.60.1:70938",
+        "trainingCost": 4500,
+        "skill": 225,
+        "source": "Local Forever trainer capture"
       },
       {
         "spellID": 20201,
@@ -1431,13 +1654,16 @@
         "nativeMinimum": 1,
         "acquireMethod": 0,
         "teachingItems": [],
-        "status": "unresolved",
-        "reason": "No verified learning requirement in the checked sources",
+        "status": "verified",
         "documentationCheck": {
           "page": 6,
           "reportedRank": 225,
           "status": "inferredOrClientMismatch"
-        }
+        },
+        "build": "1.60.1:70938",
+        "trainingCost": 4500,
+        "skill": 225,
+        "source": "Local Forever trainer capture"
       },
       {
         "spellID": 22430,
@@ -3872,7 +4098,7 @@
           3069
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           3703,
           4212,
           4588,
@@ -3885,7 +4111,7 @@
         "spellID": 2159,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1632,
           3069,
           3549,
@@ -3904,7 +4130,7 @@
           3069
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           3703,
           4212,
           4588,
@@ -3919,7 +4145,7 @@
           3069
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           3703,
           4212,
           4588,
@@ -3934,7 +4160,7 @@
           3069
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           3703,
           4212,
           4588,
@@ -3947,7 +4173,7 @@
         "spellID": 2165,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1632,
           3069,
           3549,
@@ -3964,7 +4190,7 @@
         "spellID": 2166,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1632,
           3069,
           3549,
@@ -3981,7 +4207,7 @@
         "spellID": 2167,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1632,
           3069,
           3549,
@@ -3998,7 +4224,7 @@
         "spellID": 2168,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1632,
           3069,
           3549,
@@ -4021,7 +4247,7 @@
           3347
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           2391,
@@ -4046,7 +4272,7 @@
           3347
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           2391,
@@ -4071,7 +4297,7 @@
           3347
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           2391,
@@ -4094,7 +4320,7 @@
           4193
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1346,
           2399,
           2627,
@@ -4111,7 +4337,7 @@
           4193
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1346,
           2399,
           2627,
@@ -4128,7 +4354,7 @@
           4193
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1346,
           2399,
           2627,
@@ -4145,7 +4371,7 @@
           4193
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1346,
           2399,
           2627,
@@ -4162,7 +4388,7 @@
           4193
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1346,
           2399,
           2627,
@@ -4179,7 +4405,7 @@
           4193
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1346,
           2399,
           2627,
@@ -4196,7 +4422,7 @@
           4193
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1346,
           2399,
           2627,
@@ -4213,7 +4439,7 @@
           4193
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1346,
           2399,
           2627,
@@ -4228,7 +4454,7 @@
           3004
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -4247,7 +4473,7 @@
           3004
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -4268,7 +4494,7 @@
           4193
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1346,
           2399,
           2627,
@@ -4283,7 +4509,7 @@
           3004
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -4303,7 +4529,7 @@
           3067
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1382,
           2818,
           4210,
@@ -4322,7 +4548,7 @@
           3067
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1382,
           2818,
           4210,
@@ -4341,7 +4567,7 @@
           3067
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1382,
           2818,
           4210,
@@ -4360,7 +4586,7 @@
           3067
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1382,
           2818,
           4210,
@@ -4381,7 +4607,7 @@
           3555
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           4254,
           5392,
           6297
@@ -4398,7 +4624,7 @@
           3555
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           4254,
           5392,
           6297
@@ -4416,7 +4642,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1241,
           2836,
           4258,
@@ -4435,7 +4661,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1241,
           2836,
           4258,
@@ -4452,7 +4678,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -4474,7 +4700,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1241,
           2836,
           4258,
@@ -4493,7 +4719,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1241,
           2836,
           4258,
@@ -4510,7 +4736,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -4530,7 +4756,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -4550,7 +4776,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -4570,7 +4796,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -4590,7 +4816,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -4612,7 +4838,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1241,
           2836,
           4258,
@@ -4631,7 +4857,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1241,
           2836,
           4258,
@@ -4650,7 +4876,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1241,
           2836,
           4258,
@@ -4667,7 +4893,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -4687,7 +4913,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -4707,7 +4933,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -4723,7 +4949,7 @@
         "spellID": 2795,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           2880
         ],
         "documentationPage": 2,
@@ -4737,7 +4963,7 @@
           4193
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1346,
           2399,
           2627,
@@ -4756,7 +4982,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1241,
           2836,
           4258,
@@ -4773,7 +4999,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -4795,7 +5021,7 @@
           3347
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           2391,
@@ -4817,7 +5043,7 @@
           3347
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -4839,7 +5065,7 @@
           3347
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -4861,7 +5087,7 @@
           3347
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -4883,7 +5109,7 @@
           3347
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -4908,7 +5134,7 @@
           5943
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           4211
         ],
         "documentationPage": 5,
@@ -4924,7 +5150,7 @@
           5943
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           4211
         ],
         "documentationPage": 5,
@@ -4940,7 +5166,7 @@
           5943
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           4211
         ],
         "documentationPage": 5,
@@ -4954,7 +5180,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -4976,7 +5202,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1241,
           2836,
           4258,
@@ -4995,7 +5221,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1241,
           2836,
           4258,
@@ -5012,7 +5238,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -5033,7 +5259,7 @@
           3555
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           4254,
           5392,
           6297
@@ -5050,7 +5276,7 @@
           3555
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           4254,
           5392,
           6297
@@ -5067,7 +5293,7 @@
           3555
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           4254,
           5392,
           6297
@@ -5085,7 +5311,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1241,
           2836,
           4258,
@@ -5104,7 +5330,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1241,
           2836,
           4258,
@@ -5123,7 +5349,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1241,
           2836,
           4258,
@@ -5142,7 +5368,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1241,
           2836,
           4258,
@@ -5155,7 +5381,7 @@
         "spellID": 3326,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -5177,7 +5403,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -5197,7 +5423,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -5217,7 +5443,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -5237,7 +5463,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -5253,7 +5479,7 @@
         "spellID": 3399,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1355,
           1382,
           1430,
@@ -5274,7 +5500,7 @@
         "spellID": 3400,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1355,
           1382,
           1430,
@@ -5295,7 +5521,7 @@
         "spellID": 3448,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -5316,7 +5542,7 @@
         "spellID": 3449,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1470,
           2132,
@@ -5337,7 +5563,7 @@
         "spellID": 3450,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -5358,7 +5584,7 @@
         "spellID": 3452,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -5383,7 +5609,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -5399,7 +5625,7 @@
         "spellID": 3501,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -5419,7 +5645,7 @@
         "spellID": 3502,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -5439,7 +5665,7 @@
         "spellID": 3506,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -5459,7 +5685,7 @@
         "spellID": 3508,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -5484,7 +5710,7 @@
           3555
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           4254,
           5392,
           6297
@@ -5498,7 +5724,7 @@
           3069
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           3703,
           4212,
           4588,
@@ -5511,7 +5737,7 @@
         "spellID": 3755,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1346,
           2399,
           2627,
@@ -5529,7 +5755,7 @@
           3069
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           3703,
           4212,
           4588,
@@ -5544,7 +5770,7 @@
           3004
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -5563,7 +5789,7 @@
           3069
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           3703,
           4212,
           4588,
@@ -5576,7 +5802,7 @@
         "spellID": 3760,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1632,
           3069,
           3549,
@@ -5593,7 +5819,7 @@
         "spellID": 3761,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1632,
           3069,
           3549,
@@ -5610,7 +5836,7 @@
         "spellID": 3763,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1632,
           3069,
           3549,
@@ -5627,7 +5853,7 @@
         "spellID": 3764,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1632,
           3069,
           3549,
@@ -5644,7 +5870,7 @@
         "spellID": 3766,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1632,
           3069,
           3549,
@@ -5661,7 +5887,7 @@
         "spellID": 3768,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1632,
           3069,
           3549,
@@ -5678,7 +5904,7 @@
         "spellID": 3770,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1632,
           3069,
           3549,
@@ -5695,7 +5921,7 @@
         "spellID": 3774,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3069,
@@ -5715,7 +5941,7 @@
         "spellID": 3776,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3069,
@@ -5735,7 +5961,7 @@
         "spellID": 3780,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1632,
           3069,
           3549,
@@ -5754,7 +5980,7 @@
           3004
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -5773,7 +5999,7 @@
           3069
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           3703,
           4212,
           4588,
@@ -5786,7 +6012,7 @@
         "spellID": 3817,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1632,
           3069,
           3549,
@@ -5803,7 +6029,7 @@
         "spellID": 3818,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1632,
           3069,
           3549,
@@ -5822,7 +6048,7 @@
           3004
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -5843,7 +6069,7 @@
           4193
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1346,
           2399,
           2627,
@@ -5860,7 +6086,7 @@
           4193
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1346,
           2399,
           2627,
@@ -5877,7 +6103,7 @@
           4193
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1346,
           2399,
           2627,
@@ -5892,7 +6118,7 @@
           3004
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -5911,7 +6137,7 @@
           3004
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -5930,7 +6156,7 @@
           3004
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -5949,7 +6175,7 @@
           3004
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -5968,7 +6194,7 @@
           3004
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -5987,7 +6213,7 @@
           3004
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -6006,7 +6232,7 @@
           3004
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -6023,7 +6249,7 @@
         "spellID": 3861,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -6043,7 +6269,7 @@
         "spellID": 3865,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -6065,7 +6291,7 @@
           3004
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -6082,7 +6308,7 @@
         "spellID": 3871,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -6106,7 +6332,7 @@
           4193
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1346,
           2399,
           2627,
@@ -6119,7 +6345,7 @@
         "spellID": 3915,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -6143,7 +6369,7 @@
           3494
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           4941,
@@ -6163,7 +6389,7 @@
           3494
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           4941,
@@ -6183,7 +6409,7 @@
           3494
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           5174,
@@ -6203,7 +6429,7 @@
           3494
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           4941,
@@ -6223,7 +6449,7 @@
           3494
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           5174,
@@ -6243,7 +6469,7 @@
           3494
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           4941,
@@ -6263,7 +6489,7 @@
           3494
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           5174,
@@ -6283,7 +6509,7 @@
           3494
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           4941,
@@ -6300,7 +6526,7 @@
         "spellID": 3932,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -6320,7 +6546,7 @@
         "spellID": 3934,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -6340,7 +6566,7 @@
         "spellID": 3936,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -6360,7 +6586,7 @@
         "spellID": 3937,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -6380,7 +6606,7 @@
         "spellID": 3938,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -6400,7 +6626,7 @@
         "spellID": 3939,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -6421,7 +6647,7 @@
         "spellID": 3941,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -6441,7 +6667,7 @@
         "spellID": 3942,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -6461,7 +6687,7 @@
         "spellID": 3945,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -6481,7 +6707,7 @@
         "spellID": 3946,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -6501,7 +6727,7 @@
         "spellID": 3947,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -6521,7 +6747,7 @@
         "spellID": 3949,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -6541,7 +6767,7 @@
         "spellID": 3950,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -6561,7 +6787,7 @@
         "spellID": 3953,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -6581,7 +6807,7 @@
         "spellID": 3955,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -6601,7 +6827,7 @@
         "spellID": 3956,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -6621,7 +6847,7 @@
         "spellID": 3958,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -6642,7 +6868,7 @@
         "spellID": 3961,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -6663,7 +6889,7 @@
         "spellID": 3962,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -6684,7 +6910,7 @@
         "spellID": 3963,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -6705,7 +6931,7 @@
         "spellID": 3965,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -6726,7 +6952,7 @@
         "spellID": 3967,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -6747,7 +6973,7 @@
         "spellID": 3973,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -6770,7 +6996,7 @@
           3494
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           4941,
@@ -6787,7 +7013,7 @@
         "spellID": 3978,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -6807,7 +7033,7 @@
         "spellID": 4094,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1355,
           1382,
           1430,
@@ -6828,7 +7054,7 @@
         "spellID": 6412,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1355,
           1382,
           1430,
@@ -6849,7 +7075,7 @@
         "spellID": 6415,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1355,
           1382,
           1430,
@@ -6870,7 +7096,7 @@
         "spellID": 6458,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -6893,7 +7119,7 @@
           3067
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1382,
           2818,
           4210,
@@ -6912,7 +7138,7 @@
           3067
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1382,
           2818,
           4210,
@@ -6932,7 +7158,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -6950,7 +7176,7 @@
           3004
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -6967,7 +7193,7 @@
         "spellID": 6661,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3069,
@@ -6989,7 +7215,7 @@
           3004
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -7006,7 +7232,7 @@
         "spellID": 7135,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1632,
           3069,
           3549,
@@ -7023,7 +7249,7 @@
         "spellID": 7147,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3069,
@@ -7043,7 +7269,7 @@
         "spellID": 7151,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3069,
@@ -7063,7 +7289,7 @@
         "spellID": 7156,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3069,
@@ -7086,7 +7312,7 @@
           3347
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -7105,7 +7331,7 @@
         "spellID": 7223,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -7131,7 +7357,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1241,
           2836,
           4258,
@@ -7144,7 +7370,7 @@
         "spellID": 7420,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3606,
@@ -7161,7 +7387,7 @@
         "spellID": 7426,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3606,
@@ -7178,7 +7404,7 @@
         "spellID": 7428,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -7202,7 +7428,7 @@
           3494
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           4941,
@@ -7219,7 +7445,7 @@
         "spellID": 7454,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3606,
@@ -7236,7 +7462,7 @@
         "spellID": 7457,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3606,
@@ -7257,7 +7483,7 @@
           4193
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1346,
           2399,
           2627,
@@ -7274,7 +7500,7 @@
           4193
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1346,
           2399,
           2627,
@@ -7287,7 +7513,7 @@
         "spellID": 7745,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3606,
@@ -7305,7 +7531,7 @@
         "spellID": 7748,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3606,
@@ -7322,7 +7548,7 @@
         "spellID": 7771,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3606,
@@ -7339,7 +7565,7 @@
         "spellID": 7779,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3606,
@@ -7357,7 +7583,7 @@
         "spellID": 7788,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3606,
@@ -7375,7 +7601,7 @@
         "spellID": 7795,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3606,
@@ -7397,7 +7623,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -7417,7 +7643,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -7436,7 +7662,7 @@
           3347
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -7458,7 +7684,7 @@
           3347
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -7480,7 +7706,7 @@
           3347
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -7502,7 +7728,7 @@
           3347
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -7521,7 +7747,7 @@
         "spellID": 7857,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3606,
@@ -7539,7 +7765,7 @@
         "spellID": 7861,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3606,
@@ -7557,7 +7783,7 @@
         "spellID": 7863,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3606,
@@ -7581,7 +7807,7 @@
           5943
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           4211
         ],
         "documentationPage": 5,
@@ -7591,7 +7817,7 @@
         "spellID": 7929,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           2326,
           2327,
           2329,
@@ -7618,7 +7844,7 @@
           5943
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           4211
         ],
         "documentationPage": 5,
@@ -7628,7 +7854,7 @@
         "spellID": 8334,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -7652,7 +7878,7 @@
           4193
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1346,
           2399,
           2627,
@@ -7667,7 +7893,7 @@
           3004
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -7684,7 +7910,7 @@
         "spellID": 8483,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -7704,7 +7930,7 @@
         "spellID": 8489,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -7726,7 +7952,7 @@
           3004
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -7745,7 +7971,7 @@
           3004
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -7762,7 +7988,7 @@
         "spellID": 8762,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -7782,7 +8008,7 @@
         "spellID": 8764,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -7802,7 +8028,7 @@
         "spellID": 8766,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -7826,7 +8052,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -7842,7 +8068,7 @@
         "spellID": 8770,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -7862,7 +8088,7 @@
         "spellID": 8772,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -7882,7 +8108,7 @@
         "spellID": 8774,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -7906,7 +8132,7 @@
           4193
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1346,
           2399,
           2627,
@@ -7919,7 +8145,7 @@
         "spellID": 8791,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -7939,7 +8165,7 @@
         "spellID": 8799,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -7959,7 +8185,7 @@
         "spellID": 8804,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -7985,7 +8211,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1241,
           2836,
           4258,
@@ -7998,7 +8224,7 @@
         "spellID": 8895,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -8021,7 +8247,7 @@
           3069
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           3703,
           4212,
           4588,
@@ -8036,7 +8262,7 @@
           3069
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           3703,
           4212,
           4588,
@@ -8051,7 +8277,7 @@
           3069
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           3703,
           4212,
           4588,
@@ -8064,7 +8290,7 @@
         "spellID": 9068,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1632,
           3069,
           3549,
@@ -8081,7 +8307,7 @@
         "spellID": 9074,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1632,
           3069,
           3549,
@@ -8098,7 +8324,7 @@
         "spellID": 9145,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1632,
           3069,
           3549,
@@ -8115,7 +8341,7 @@
         "spellID": 9193,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1632,
           3069,
           3549,
@@ -8132,7 +8358,7 @@
         "spellID": 9194,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1632,
           3069,
           3549,
@@ -8149,7 +8375,7 @@
         "spellID": 9196,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3069,
@@ -8169,7 +8395,7 @@
         "spellID": 9198,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3069,
@@ -8189,7 +8415,7 @@
         "spellID": 9201,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3069,
@@ -8209,7 +8435,7 @@
         "spellID": 9206,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3069,
@@ -8229,7 +8455,7 @@
         "spellID": 9271,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -8249,7 +8475,7 @@
         "spellID": 9916,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -8269,7 +8495,7 @@
         "spellID": 9918,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -8289,7 +8515,7 @@
         "spellID": 9920,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -8309,7 +8535,7 @@
         "spellID": 9921,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -8329,7 +8555,7 @@
         "spellID": 9926,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -8349,7 +8575,7 @@
         "spellID": 9928,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -8369,7 +8595,7 @@
         "spellID": 9931,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -8389,7 +8615,7 @@
         "spellID": 9935,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -8409,7 +8635,7 @@
         "spellID": 9954,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           5164,
           7230,
           11177,
@@ -8423,7 +8649,7 @@
         "spellID": 9959,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -8444,7 +8670,7 @@
         "spellID": 9961,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -8465,7 +8691,7 @@
         "spellID": 9968,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -8486,7 +8712,7 @@
         "spellID": 9974,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           5164,
           7230,
           11177,
@@ -8506,7 +8732,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1241,
           2836,
           4258,
@@ -8523,7 +8749,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -8543,7 +8769,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -8563,7 +8789,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -8579,7 +8805,7 @@
         "spellID": 9993,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -8599,7 +8825,7 @@
         "spellID": 10001,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -8620,7 +8846,7 @@
         "spellID": 10003,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           7231,
           7232,
           11146,
@@ -8635,7 +8861,7 @@
         "spellID": 10007,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           7231,
           7232,
           11146,
@@ -8650,7 +8876,7 @@
         "spellID": 10011,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           7231,
           7232,
           11146,
@@ -8665,7 +8891,7 @@
         "spellID": 10015,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           7231,
           7232,
           11146,
@@ -8685,7 +8911,7 @@
           3555
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           4254,
           5392,
           6297
@@ -8702,7 +8928,7 @@
           3555
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           4254,
           5392,
           6297
@@ -8714,7 +8940,7 @@
         "spellID": 10482,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3069,
@@ -8734,7 +8960,7 @@
         "spellID": 10487,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3069,
@@ -8754,7 +8980,7 @@
         "spellID": 10499,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3069,
@@ -8774,7 +9000,7 @@
         "spellID": 10507,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3069,
@@ -8794,7 +9020,7 @@
         "spellID": 10511,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3069,
@@ -8814,7 +9040,7 @@
         "spellID": 10518,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3069,
@@ -8834,7 +9060,7 @@
         "spellID": 10548,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3007,
@@ -8855,7 +9081,7 @@
         "spellID": 10552,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3007,
@@ -8876,7 +9102,7 @@
         "spellID": 10556,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3007,
@@ -8897,7 +9123,7 @@
         "spellID": 10558,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3007,
@@ -8918,7 +9144,7 @@
         "spellID": 10619,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           7866,
           7867,
           29508
@@ -8930,7 +9156,7 @@
         "spellID": 10621,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           7870,
           7871,
           29509
@@ -8942,7 +9168,7 @@
         "spellID": 10630,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           7868,
           7869,
           29507
@@ -8954,7 +9180,7 @@
         "spellID": 10632,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           7868,
           7869,
           29507
@@ -8966,7 +9192,7 @@
         "spellID": 10647,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           7870,
           7871,
           29509
@@ -8978,7 +9204,7 @@
         "spellID": 10650,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           7866,
           7867,
           29508
@@ -8990,7 +9216,7 @@
         "spellID": 10840,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           2326,
           2327,
           2329,
@@ -9011,7 +9237,7 @@
         "spellID": 10841,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           2326,
           2327,
           2329,
@@ -9032,7 +9258,7 @@
         "spellID": 11448,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -9053,7 +9279,7 @@
         "spellID": 11449,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -9074,7 +9300,7 @@
         "spellID": 11450,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -9095,7 +9321,7 @@
         "spellID": 11451,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -9116,7 +9342,7 @@
         "spellID": 11460,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -9137,7 +9363,7 @@
         "spellID": 11461,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -9158,7 +9384,7 @@
         "spellID": 11465,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -9179,7 +9405,7 @@
         "spellID": 11467,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -9200,7 +9426,7 @@
         "spellID": 11478,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -9225,7 +9451,7 @@
           4193
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1346,
           2399,
           2627,
@@ -9242,7 +9468,7 @@
           4193
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1346,
           2399,
           2627,
@@ -9255,7 +9481,7 @@
         "spellID": 12048,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -9275,7 +9501,7 @@
         "spellID": 12049,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -9295,7 +9521,7 @@
         "spellID": 12050,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -9315,7 +9541,7 @@
         "spellID": 12052,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -9336,7 +9562,7 @@
         "spellID": 12053,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -9356,7 +9582,7 @@
         "spellID": 12055,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -9377,7 +9603,7 @@
         "spellID": 12061,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -9397,7 +9623,7 @@
         "spellID": 12065,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -9417,7 +9643,7 @@
         "spellID": 12067,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -9437,7 +9663,7 @@
         "spellID": 12069,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -9457,7 +9683,7 @@
         "spellID": 12070,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -9477,7 +9703,7 @@
         "spellID": 12071,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -9498,7 +9724,7 @@
         "spellID": 12072,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -9519,7 +9745,7 @@
         "spellID": 12073,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -9540,7 +9766,7 @@
         "spellID": 12074,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -9561,7 +9787,7 @@
         "spellID": 12076,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -9582,7 +9808,7 @@
         "spellID": 12077,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -9603,7 +9829,7 @@
         "spellID": 12079,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -9624,7 +9850,7 @@
         "spellID": 12082,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -9645,7 +9871,7 @@
         "spellID": 12088,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -9666,7 +9892,7 @@
         "spellID": 12092,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -9687,7 +9913,7 @@
         "spellID": 12584,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -9707,7 +9933,7 @@
         "spellID": 12585,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -9728,7 +9954,7 @@
         "spellID": 12586,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -9749,7 +9975,7 @@
         "spellID": 12589,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -9770,7 +9996,7 @@
         "spellID": 12590,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -9791,7 +10017,7 @@
         "spellID": 12591,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -9812,7 +10038,7 @@
         "spellID": 12594,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -9833,7 +10059,7 @@
         "spellID": 12595,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -9854,7 +10080,7 @@
         "spellID": 12596,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -9875,7 +10101,7 @@
         "spellID": 12599,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -9896,7 +10122,7 @@
         "spellID": 12603,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -9917,7 +10143,7 @@
         "spellID": 12609,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -9938,7 +10164,7 @@
         "spellID": 12615,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -9959,7 +10185,7 @@
         "spellID": 12617,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -9980,7 +10206,7 @@
         "spellID": 12618,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -10001,7 +10227,7 @@
         "spellID": 12619,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -10022,7 +10248,7 @@
         "spellID": 12621,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -10043,7 +10269,7 @@
         "spellID": 12622,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -10064,7 +10290,7 @@
         "spellID": 12715,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -10085,7 +10311,7 @@
         "spellID": 12716,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -10106,7 +10332,7 @@
         "spellID": 12717,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -10127,7 +10353,7 @@
         "spellID": 12718,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -10148,7 +10374,7 @@
         "spellID": 12754,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -10169,7 +10395,7 @@
         "spellID": 12755,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -10190,7 +10416,7 @@
         "spellID": 12758,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -10211,7 +10437,7 @@
         "spellID": 12759,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -10232,7 +10458,7 @@
         "spellID": 12760,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -10253,7 +10479,7 @@
         "spellID": 12895,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -10274,7 +10500,7 @@
         "spellID": 12897,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -10295,7 +10521,7 @@
         "spellID": 12899,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -10316,7 +10542,7 @@
         "spellID": 12902,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -10337,7 +10563,7 @@
         "spellID": 12903,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -10358,7 +10584,7 @@
         "spellID": 12905,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -10379,7 +10605,7 @@
         "spellID": 12906,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -10400,7 +10626,7 @@
         "spellID": 12907,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -10421,7 +10647,7 @@
         "spellID": 12908,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -10442,7 +10668,7 @@
         "spellID": 13378,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3606,
@@ -10460,7 +10686,7 @@
         "spellID": 13421,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3606,
@@ -10478,7 +10704,7 @@
         "spellID": 13485,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3606,
@@ -10496,7 +10722,7 @@
         "spellID": 13501,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3606,
@@ -10514,7 +10740,7 @@
         "spellID": 13503,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3606,
@@ -10532,7 +10758,7 @@
         "spellID": 13529,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3606,
@@ -10550,7 +10776,7 @@
         "spellID": 13538,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3606,
@@ -10568,7 +10794,7 @@
         "spellID": 13607,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3606,
@@ -10586,7 +10812,7 @@
         "spellID": 13622,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3606,
@@ -10604,7 +10830,7 @@
         "spellID": 13626,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3606,
@@ -10622,7 +10848,7 @@
         "spellID": 13628,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3606,
@@ -10640,7 +10866,7 @@
         "spellID": 13631,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -10660,7 +10886,7 @@
         "spellID": 13635,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -10680,7 +10906,7 @@
         "spellID": 13637,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -10700,7 +10926,7 @@
         "spellID": 13640,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -10720,7 +10946,7 @@
         "spellID": 13642,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -10740,7 +10966,7 @@
         "spellID": 13644,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -10760,7 +10986,7 @@
         "spellID": 13646,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317
         ],
         "documentationPage": 3,
@@ -10770,7 +10996,7 @@
         "spellID": 13648,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -10790,7 +11016,7 @@
         "spellID": 13657,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -10810,7 +11036,7 @@
         "spellID": 13659,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -10830,7 +11056,7 @@
         "spellID": 13661,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -10850,7 +11076,7 @@
         "spellID": 13663,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -10870,7 +11096,7 @@
         "spellID": 13693,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -10890,7 +11116,7 @@
         "spellID": 13695,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -10910,7 +11136,7 @@
         "spellID": 13700,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -10930,7 +11156,7 @@
         "spellID": 13702,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -10950,7 +11176,7 @@
         "spellID": 13746,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -10970,7 +11196,7 @@
         "spellID": 13794,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -10990,7 +11216,7 @@
         "spellID": 13815,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -11010,7 +11236,7 @@
         "spellID": 13822,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -11030,7 +11256,7 @@
         "spellID": 13836,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -11050,7 +11276,7 @@
         "spellID": 13858,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -11070,7 +11296,7 @@
         "spellID": 13887,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -11090,7 +11316,7 @@
         "spellID": 13890,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -11110,7 +11336,7 @@
         "spellID": 13905,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -11131,7 +11357,7 @@
         "spellID": 13917,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -11152,7 +11378,7 @@
         "spellID": 13935,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -11173,7 +11399,7 @@
         "spellID": 13937,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -11194,7 +11420,7 @@
         "spellID": 13939,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -11215,7 +11441,7 @@
         "spellID": 13941,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -11236,7 +11462,7 @@
         "spellID": 13943,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -11257,7 +11483,7 @@
         "spellID": 13948,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -11278,7 +11504,7 @@
         "spellID": 14293,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3606,
@@ -11299,7 +11525,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -11315,7 +11541,7 @@
         "spellID": 14380,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -11335,7 +11561,7 @@
         "spellID": 14807,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3606,
@@ -11352,7 +11578,7 @@
         "spellID": 14809,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -11372,7 +11598,7 @@
         "spellID": 14810,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -11392,7 +11618,7 @@
         "spellID": 14930,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3069,
@@ -11412,7 +11638,7 @@
         "spellID": 14932,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3069,
@@ -11432,7 +11658,7 @@
         "spellID": 15255,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -11453,7 +11679,7 @@
         "spellID": 15833,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -11474,7 +11700,7 @@
         "spellID": 15972,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -11499,7 +11725,7 @@
           3555
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           4254,
           5392,
           6297
@@ -11511,7 +11737,7 @@
         "spellID": 16639,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -11532,7 +11758,7 @@
         "spellID": 16640,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -11553,7 +11779,7 @@
         "spellID": 16641,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -11574,7 +11800,7 @@
         "spellID": 16642,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -11595,7 +11821,7 @@
         "spellID": 16643,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -11616,7 +11842,7 @@
         "spellID": 16644,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -11637,7 +11863,7 @@
         "spellID": 16646,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -11658,7 +11884,7 @@
         "spellID": 16647,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -11679,7 +11905,7 @@
         "spellID": 16649,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -11700,7 +11926,7 @@
         "spellID": 16652,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -11721,7 +11947,7 @@
         "spellID": 16653,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -11742,7 +11968,7 @@
         "spellID": 16657,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -11763,7 +11989,7 @@
         "spellID": 16658,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -11784,7 +12010,7 @@
         "spellID": 16662,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -11805,7 +12031,7 @@
         "spellID": 16663,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -11826,7 +12052,7 @@
         "spellID": 16730,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -11847,7 +12073,7 @@
         "spellID": 16969,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -11868,7 +12094,7 @@
         "spellID": 16971,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -11889,7 +12115,7 @@
         "spellID": 17180,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -11910,7 +12136,7 @@
         "spellID": 17181,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -11931,7 +12157,7 @@
         "spellID": 17551,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -11952,7 +12178,7 @@
         "spellID": 17552,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -11973,7 +12199,7 @@
         "spellID": 17553,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -11994,7 +12220,7 @@
         "spellID": 17555,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -12015,7 +12241,7 @@
         "spellID": 17557,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -12036,7 +12262,7 @@
         "spellID": 17572,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -12057,7 +12283,7 @@
         "spellID": 17573,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -12078,7 +12304,7 @@
         "spellID": 18238,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1355,
           1382,
           1430,
@@ -12099,7 +12325,7 @@
         "spellID": 18240,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1355,
           1382,
           1430,
@@ -12120,7 +12346,7 @@
         "spellID": 18243,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1355,
           1382,
           1430,
@@ -12141,7 +12367,7 @@
         "spellID": 18244,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1355,
           1382,
           1430,
@@ -12162,7 +12388,7 @@
         "spellID": 18401,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12183,7 +12409,7 @@
         "spellID": 18402,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12204,7 +12430,7 @@
         "spellID": 18403,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12225,7 +12451,7 @@
         "spellID": 18406,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12246,7 +12472,7 @@
         "spellID": 18407,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12267,7 +12493,7 @@
         "spellID": 18409,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12288,7 +12514,7 @@
         "spellID": 18410,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12309,7 +12535,7 @@
         "spellID": 18411,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12330,7 +12556,7 @@
         "spellID": 18413,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12351,7 +12577,7 @@
         "spellID": 18414,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12372,7 +12598,7 @@
         "spellID": 18415,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12393,7 +12619,7 @@
         "spellID": 18416,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12414,7 +12640,7 @@
         "spellID": 18417,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12435,7 +12661,7 @@
         "spellID": 18420,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12456,7 +12682,7 @@
         "spellID": 18421,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12477,7 +12703,7 @@
         "spellID": 18423,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12498,7 +12724,7 @@
         "spellID": 18424,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12519,7 +12745,7 @@
         "spellID": 18437,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12540,7 +12766,7 @@
         "spellID": 18438,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12561,7 +12787,7 @@
         "spellID": 18441,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12582,7 +12808,7 @@
         "spellID": 18442,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12603,7 +12829,7 @@
         "spellID": 18444,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12624,7 +12850,7 @@
         "spellID": 18446,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12645,7 +12871,7 @@
         "spellID": 18449,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12666,7 +12892,7 @@
         "spellID": 18450,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12687,7 +12913,7 @@
         "spellID": 18451,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12708,7 +12934,7 @@
         "spellID": 18453,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1103,
           1346,
           2399,
@@ -12729,7 +12955,7 @@
         "spellID": 18629,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           2326,
           2327,
           2329,
@@ -12750,7 +12976,7 @@
         "spellID": 18630,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           2326,
           2327,
           2329,
@@ -12771,7 +12997,7 @@
         "spellID": 19047,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3007,
@@ -12792,7 +13018,7 @@
         "spellID": 19052,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3007,
@@ -12813,7 +13039,7 @@
         "spellID": 19055,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3007,
@@ -12834,7 +13060,7 @@
         "spellID": 19058,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3007,
@@ -12855,7 +13081,7 @@
         "spellID": 19065,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3007,
@@ -12876,7 +13102,7 @@
         "spellID": 19071,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3007,
@@ -12897,7 +13123,7 @@
         "spellID": 19072,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3007,
@@ -12918,7 +13144,7 @@
         "spellID": 19082,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3007,
@@ -12939,7 +13165,7 @@
         "spellID": 19083,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3007,
@@ -12960,7 +13186,7 @@
         "spellID": 19091,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3007,
@@ -12981,7 +13207,7 @@
         "spellID": 19092,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3007,
@@ -13002,7 +13228,7 @@
         "spellID": 19098,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3007,
@@ -13023,7 +13249,7 @@
         "spellID": 19102,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3007,
@@ -13044,7 +13270,7 @@
         "spellID": 19103,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3007,
@@ -13065,7 +13291,7 @@
         "spellID": 19567,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -13090,7 +13316,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -13110,7 +13336,7 @@
           4596
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -13126,7 +13352,7 @@
         "spellID": 19668,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -13146,7 +13372,7 @@
         "spellID": 19669,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -13167,7 +13393,7 @@
         "spellID": 19788,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -13188,7 +13414,7 @@
         "spellID": 19790,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -13209,7 +13435,7 @@
         "spellID": 19791,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -13230,7 +13456,7 @@
         "spellID": 19792,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -13251,7 +13477,7 @@
         "spellID": 19794,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -13272,7 +13498,7 @@
         "spellID": 19795,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -13293,7 +13519,7 @@
         "spellID": 19800,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -13314,7 +13540,7 @@
         "spellID": 19825,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -13335,7 +13561,7 @@
         "spellID": 20008,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -13356,7 +13582,7 @@
         "spellID": 20012,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -13377,7 +13603,7 @@
         "spellID": 20013,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -13398,7 +13624,7 @@
         "spellID": 20014,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -13419,7 +13645,7 @@
         "spellID": 20016,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -13440,7 +13666,7 @@
         "spellID": 20023,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -13461,7 +13687,7 @@
         "spellID": 20028,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317,
           3011,
           3345,
@@ -13482,7 +13708,7 @@
         "spellID": 20051,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1317
         ],
         "documentationPage": 3,
@@ -13492,7 +13718,7 @@
         "spellID": 20201,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           514,
           1241,
           2836,
@@ -13513,7 +13739,7 @@
         "spellID": 20648,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1632,
           3069,
           3549,
@@ -13530,7 +13756,7 @@
         "spellID": 20649,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1632,
           3069,
           3549,
@@ -13547,7 +13773,7 @@
         "spellID": 20650,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3069,
@@ -13570,7 +13796,7 @@
           3067
         ],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1382,
           2818,
           4210,
@@ -13586,7 +13812,7 @@
         "spellID": 22331,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1385,
           1632,
           3007,
@@ -13607,7 +13833,7 @@
         "spellID": 22808,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1215,
           1386,
           1470,
@@ -13628,7 +13854,7 @@
         "spellID": 23070,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -13649,7 +13875,7 @@
         "spellID": 23071,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           1676,
           1702,
           3290,
@@ -13670,7 +13896,7 @@
         "spellID": 24654,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           7866,
           7867,
           29508
@@ -13682,7 +13908,7 @@
         "spellID": 24655,
         "verifiedDocumentationNPCIDs": [],
         "verifiedBetaNPCIDs": [],
-        "unresolvedReferenceNPCIDs": [
+        "rejectedCrossExpansionNPCIDs": [
           7866,
           7867,
           29508
@@ -13944,7 +14170,10 @@
       "gray": 245,
       "skillLineAbilityID": 5685,
       "nativeMinimum": 1,
-      "status": "rejectedReference"
+      "status": "corrected",
+      "skill": 205,
+      "source": "Local Forever trainer capture",
+      "sourceAudit": "learningVerification"
     },
     {
       "spellID": 10552,
@@ -13953,7 +14182,10 @@
       "gray": 245,
       "skillLineAbilityID": 5687,
       "nativeMinimum": 1,
-      "status": "rejectedReference"
+      "status": "corrected",
+      "skill": 205,
+      "source": "Local Forever trainer capture",
+      "sourceAudit": "learningVerification"
     },
     {
       "spellID": 10556,
@@ -13962,7 +14194,10 @@
       "gray": 250,
       "skillLineAbilityID": 5690,
       "nativeMinimum": 1,
-      "status": "rejectedReference"
+      "status": "corrected",
+      "skill": 210,
+      "source": "Local Forever trainer capture",
+      "sourceAudit": "learningVerification"
     },
     {
       "spellID": 10558,
@@ -13971,7 +14206,10 @@
       "gray": 250,
       "skillLineAbilityID": 5691,
       "nativeMinimum": 1,
-      "status": "rejectedReference"
+      "status": "corrected",
+      "skill": 210,
+      "source": "Local Forever trainer capture",
+      "sourceAudit": "learningVerification"
     },
     {
       "spellID": 10619,
@@ -14298,7 +14536,10 @@
       "gray": 235,
       "skillLineAbilityID": 10756,
       "nativeMinimum": 1,
-      "status": "rejectedReference"
+      "status": "corrected",
+      "skill": 225,
+      "source": "Local Forever trainer capture",
+      "sourceAudit": "learningVerification"
     },
     {
       "spellID": 19048,
@@ -14319,7 +14560,10 @@
       "gray": 245,
       "skillLineAbilityID": 10757,
       "nativeMinimum": 1,
-      "status": "rejectedReference"
+      "status": "corrected",
+      "skill": 225,
+      "source": "Local Forever trainer capture",
+      "sourceAudit": "learningVerification"
     },
     {
       "spellID": 19435,
@@ -14348,7 +14592,10 @@
       "gray": 225,
       "skillLineAbilityID": 12196,
       "nativeMinimum": 1,
-      "status": "rejectedReference"
+      "status": "corrected",
+      "skill": 225,
+      "source": "Local Forever trainer capture",
+      "sourceAudit": "learningVerification"
     },
     {
       "spellID": 22757,
@@ -14503,25 +14750,28 @@
     }
   },
   "coverage": {
-    "recipes": 625,
-    "trainers": 197,
-    "trainerRecipes": 555,
+    "recipes": 425,
+    "trainers": 122,
+    "trainerRecipes": 353,
     "missingSkills": {
-      "native": 113,
+      "native": 120,
       "reference": 0,
-      "remaining": 205
+      "remaining": 198
     },
     "learningVerification": {
       "unknownSkillsChecked": 208,
-      "skillsVerified": 3,
+      "skillsVerified": 10,
+      "localSkillsVerified": 7,
+      "reviewedTrainerRecipes": 7,
       "referenceRecipesChecked": 503,
       "referencePairsChecked": 5126,
       "referencePairsVerified": 389,
-      "remainingReferencePairs": 4737
+      "rejectedReferencePairs": 4737,
+      "remainingReferencePairs": 0
     },
     "skillAudit": {
-      "corrected": 25,
-      "rejectedReference": 37,
+      "corrected": 32,
+      "rejectedReference": 30,
       "confirmedLearnAboveYellow": 16
     }
   }
