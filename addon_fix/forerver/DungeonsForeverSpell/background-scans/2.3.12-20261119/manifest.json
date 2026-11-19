@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "plugin": "DungeonsForeverSpell",
+  "id": "background-scans",
+  "version": "2.3.12",
+  "patch": "fix.patch",
+  "patchSha256": "d42961c25179ba399eb97860507ad92b49e746b0b2ded15022ea57a0ca641eea",
+  "files": [
+    {
+      "path": "DungeonsForeverSpell/Core/NativeSpellBook.lua",
+      "originalSha256": "570c17eb384dcb6c0ccfcad8bed0d1d03d24bd9a748b535e512591beb9969909",
+      "patchedSha256": "0e08a0fb4b419a5703dc1fc22d86dff5aa784d1abbf39003b3e1e1c06dd5b2df"
+    },
+    {
+      "path": "DungeonsForeverSpell/Core/SpellRankUI.lua",
+      "originalSha256": "4bf31bd29eeeb2d01ef3cad7caddc8a5c85351db92c94f5b24e182a4e382a5b0",
+      "patchedSha256": "1c8d5eb82226d38755901c3a99c1aa43ddfc55e161d5ad0339792dba340ad563"
+    }
+  ]
+}

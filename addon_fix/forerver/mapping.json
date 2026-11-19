@@ -13,7 +13,8 @@
           "background-scans/2.1.102/manifest.json",
           "background-scans/2.1.104/manifest.json",
           "background-scans/2.1.109/manifest.json",
-          "background-scans/2.1.112/manifest.json"
+          "background-scans/2.1.112/manifest.json",
+          "background-scans/2.1.117/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
@@ -100,6 +101,21 @@
               }
             ],
             "checkedAt": "2026-11-18T12:52:15+00:00"
+          },
+          {
+            "version": "2.1.117",
+            "reason": "核对 2.1.117 的 Hui.lua、TOC 及已安装 DungeonsForever 系列的 Lua 和 XML 引用。Hui.lua 指纹与 2.1.112 的已核实源码一致。ExtTipSkin、CollectForeign、SkinGameTooltip 与 RefreshGameTooltipSkin 及原提示框 OnUpdate 轮询链均未恢复，沿用 2.1.99 停止边界。",
+            "files": [
+              {
+                "path": "DungeonsForever/Core/Hui.lua",
+                "sha256": "ea8160197623527a467e48503aeb56a46bf78189adb4f9c5154b6de016fa1118"
+              },
+              {
+                "path": "DungeonsForever/DungeonsForever.toc",
+                "sha256": "ca61cab37355ca4e031535c429b88804362de7b772eff2c5178c6155dc2e58a6"
+              }
+            ],
+            "checkedAt": "2026-11-19T00:13:28+00:00"
           }
         ]
       }
@@ -119,7 +135,8 @@
           "background-scans/2.0.3-20261114/manifest.json",
           "background-scans/2.0.3-20261116/manifest.json",
           "background-scans/2.0.3-20261117/manifest.json",
-          "background-scans/2.0.3-20261118/manifest.json"
+          "background-scans/2.0.3-20261118/manifest.json",
+          "background-scans/2.0.3-20261119/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
@@ -135,7 +152,8 @@
           "background-scans/2.0.3-20261115/manifest.json",
           "background-scans/2.0.3-20261116/manifest.json",
           "background-scans/2.0.3-20261117/manifest.json",
-          "background-scans/2.0.3-20261118/manifest.json"
+          "background-scans/2.0.3-20261118/manifest.json",
+          "background-scans/2.0.3-20261119/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
@@ -149,7 +167,8 @@
           "background-scans/2.3.12/manifest.json",
           "background-scans/2.3.12-20261115/manifest.json",
           "background-scans/2.3.12-20261116/manifest.json",
-          "background-scans/2.3.12-20261118/manifest.json"
+          "background-scans/2.3.12-20261118/manifest.json",
+          "background-scans/2.3.12-20261119/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
