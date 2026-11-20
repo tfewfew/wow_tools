@@ -39,7 +39,7 @@ local LOAD_CHECK = 0.25 -- seconds; a cached model may never fire OnModelLoaded
 local RETRIES = 3        -- load checks, and retries of a failed load out of combat
 local RETRY_DELAY = 1    -- seconds between those retries
 local RECHECK = 0.5      -- seconds between looks at the portraits that stayed flat
-local RETRY_FLAT = 5     -- seconds between tries for one of them
+local RETRY_MODEL = 5    -- seconds between attempts to recover a missing model
 
 local entries = {} -- [texture] = { unit, guid, alpha, round, framed, model, back, cover, fade, shade, tint, ring, desat, r, g, b, dirty, loaded, checking, loadTime, shown, hiding, tinted, blocked, w, h }
 local Swapped -- defined with the events below
@@ -163,12 +163,29 @@ local function OnUnitFrame(texture)
 	return false
 end
 
--- Only for the load check below: the model is cleared before a new unit, so
--- a file ID is the new unit's.
-local function Loaded(model)
-	if not model.GetModelFileID then return true end
+local function IsTargetOfTarget(unit)
+	return unit == "targettarget" or unit == "focustarget"
+end
+
+-- nil means the client did not expose a model file status.
+local function ModelFileReady(model)
+	if not model.GetModelFileID then return end
 	local id = model:GetModelFileID()
+	if Secret(id) then return end
 	return id ~= nil and id ~= 0
+end
+
+local function SetPortraitCamera(e)
+	e.model:SetPortraitZoom(1)
+	e.model:SetCamDistanceScale(e.camScale or 1)
+	e.model:SetPosition(0, 0, 0)
+end
+
+local function ModelLoaded(e)
+	e.loaded = true
+	-- Apply the portrait camera once the async model is ready.
+	if IsTargetOfTarget(e.unit) then SetPortraitCamera(e) end
+	ns.style.Animate(e)
 end
 
 -- Showing --------------------------------------------------------------------------
@@ -292,9 +309,9 @@ local function Build(texture, e)
 	model:Hide()
 	model:SetScript("OnModelLoaded", function()
 		local entry = entries[texture]
-		if not entry then return end
-		entry.loaded = true
-		ns.style.Animate(entry)
+		if not entry or not entry.unit or entry.dirty then return end
+		if IsTargetOfTarget(entry.unit) and ModelFileReady(model) == false then return end
+		ModelLoaded(entry)
 		if Wanted(texture, entry) then Show3D(texture) end
 	end)
 	-- Hidden with its frame (a party frame put away, the interface hidden) the
@@ -452,10 +469,12 @@ local function Refresh(texture, force)
 		Layout(texture, e)
 	end
 	local model = e.model
-	-- a new unit: nothing of the last one's model may show (cleared before
-	-- Show, which can fire OnModelLoaded)
+	-- Clear the previous unit before Show. Also clear an empty target-chain
+	-- model so SetUnit binds it afresh even if the unit token is unchanged.
 	local fresh = e.dirty and not e.shown
-	if fresh then model:ClearModel() end
+	if fresh or (e.dirty and IsTargetOfTarget(e.unit) and ModelFileReady(model) == false) then
+		model:ClearModel()
+	end
 	if not model:IsShown() then model:Show() end
 	if e.dirty then
 		e.dirty = false
@@ -475,26 +494,23 @@ local function Refresh(texture, force)
 		e.loads, e.loadedAt = (e.loads or 0) + 1, GetTime()
 		-- a load under way is given its time before Recheck tries again
 		e.tried = e.loadedAt
-		model:SetPortraitZoom(1)
-		model:SetCamDistanceScale(e.camScale or 1)
-		model:SetPosition(0, 0, 0)
+		SetPortraitCamera(e)
 	end
 
 	-- a model already on screen stays while the same unit loads again
-	if e.loaded or e.shown then
-		Show3D(texture)
-	elseif not e.checking then
-		-- keep the flat picture until the model is there; one check at a time,
-		-- a few times over (a cached model may never say it loaded)
+	if e.loaded or e.shown then Show3D(texture) end
+	if not e.loaded and not e.checking and (not e.shown or IsTargetOfTarget(e.unit)) then
+		-- A cached model can skip OnModelLoaded. Check even an already shown
+		-- target-chain portrait so the new model gets its portrait camera.
 		e.checking = true
 		local tries = 0
 		local function Check()
 			local entry = entries[texture]
 			if not entry then return end
 			tries = tries + 1
-			if entry.model and not entry.loaded and not entry.dirty and Loaded(entry.model) then
-				entry.loaded = true
-				ns.style.Animate(entry)
+			if entry.unit and not entry.loaded and not entry.dirty
+				and ModelFileReady(entry.model) == true then
+				ModelLoaded(entry)
 			end
 			if not entry.loaded and not entry.dirty and tries < RETRIES then
 				C_Timer.After(LOAD_CHECK * tries * 2, Check)
@@ -521,7 +537,8 @@ end
 -- member out of sight when the group formed, a load that failed or never
 -- reported) would stay, and the game redraws nothing when the member comes
 -- back into sight. So a portrait on a unit frame that should show a model and
--- doesn't is tried again.
+-- doesn't is tried again. Also recover a target-of-target model that disappeared
+-- while its 3D display was still active.
 local function Recheck()
 	local now = GetTime()
 	local combat = InCombatLockdown()
@@ -535,8 +552,10 @@ local function Recheck()
 				e.hiding = false
 			end
 		end
-		if e.unit and e.framed and not e.shown and not e.checking and not e.retrying
-			and now - (e.tried or 0) >= RETRY_FLAT and texture:IsVisible() and Wanted(texture, e) then
+		if e.unit and e.framed and not e.checking and not e.retrying
+			and now - (e.tried or 0) >= RETRY_MODEL and texture:IsVisible()
+			and (not e.shown or (IsTargetOfTarget(e.unit) and ModelFileReady(e.model) == false and not Hidden(e.unit)))
+			and Wanted(texture, e) then
 			e.tried = now
 			-- in combat a failed load waits for its end
 			if not (combat and (e.blocked or pending[texture])) then

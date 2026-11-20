@@ -8,7 +8,7 @@
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | bigfoot_channel | 大脚聊天 | [大脚官方 forever](https://gitee.com/bigfoot-wow/forever) | 1.60.1.2（整合包） | 6b8e7466470cd2daf4c8c647eb8f97f141caafb6，整包和原文件指纹见 bigfoot_channel/SOURCE.json | 2026-11-16 | BF-01、BF-02、BF-03、BF-04 | 2026-11-17 官方 latest 仍为 1.60.1.2，manifest commit、整包 MD5 和 SHA256 与 SOURCE.json 一致，当前宿主、聊天及运行库适配继续适用 |
 | ls_toasts | ls_Toasts | [ls-/ls_Toasts](https://github.com/ls-/ls_Toasts) | 120105.07 | 105214a4cc0f2d13a4c9deef57614f30cff79b33 | 2026-11-20 | LS-01、LS-02、LS-04、LS-05、LS-06 | 2026-11-20 核对 120105.06 到 120105.07 的源码差异，合并默认关闭的 Slug 字体渲染开关。宿主接入、客户端接口、拾取队列、弹窗预建及背包提示适配继续沿用 |
-| forever_faces | Forever 3D Portraits | [sorrow8/forever-3d-portraits](https://github.com/sorrow8/forever-3d-portraits) | 1.0.11 | 20eaf8fd29b03ba3d91f73a90ccbaf39b49f2af4 | 2026-11-16 | FF-01、FF-02、FF-03、FF-04 | 2026-11-17 官方最新正式版仍为 v1.0.11，tag 解析出的完整 commit 与当前基线一致，宿主、重绘挂接、统一设置和像素调试适配继续适用 |
+| forever_faces | Forever 3D Portraits | [sorrow8/forever-3d-portraits](https://github.com/sorrow8/forever-3d-portraits) | 1.0.11 | 20eaf8fd29b03ba3d91f73a90ccbaf39b49f2af4 | 2026-11-20 | FF-01、FF-02、FF-03、FF-04、FF-05 | 2026-11-20 核对 1.0.11 的 Portraits.lua，已显示状态可跳过空模型重试，补上目标链头像的 3D 重绑和加载后镜头设置 |
 | better_vendor_ui | Better Vendor UI | [Vaniron 官方发布包](https://www.curseforge.com/wow/addons/better-vendor-ui/files/9436965) | 1.3.1 | 上游未公布 Git commit，发布包 SHA256 和文件指纹见 better_vendor_ui/SOURCE.json | 2026-11-14 | BV-01、BV-02、BV-03 | 2026-11-17 官方文件 API 最新正式包仍为 1.3.1 / 9436965，重新下载包 SHA256 与 SOURCE.json 一致，三项适配继续适用 |
 | pet_xp_bar | PetXPBarPlus | [DustinChecketts/PetXPBarPlus](https://github.com/DustinChecketts/PetXPBarPlus) | 1.3.1 | 0c5da2aef6b2b56e307a77e37151fe4675be6c82 | 2026-11-16 | PX-01、PX-02 | 2026-11-17 官方最新正式版仍为 v1.3.1，tag 解析出的完整 commit 与当前基线一致，宿主与本服接口适配继续适用 |
 | raynna_bestiary | Raynna's Bestiary | [raynna/raynnabestiary](https://github.com/raynna/raynnabestiary) | 1.1.3 | 上游未公布该版本 Git commit，官方文件 9638877 的发布包 SHA256 及文件指纹见 raynna_bestiary/SOURCE.json | 2026-11-17 | RB-01、RB-02、RB-03、RB-05、RB-06 | 2026-11-17 官方最新正式包仍为 1.1.3 / 9638877，重新下载包 SHA256 与 SOURCE.json 一致，核对既有来源窗口，增加怪物剥皮并列视图及指针坐标适配 |
@@ -29,6 +29,7 @@
 - FF-03 保留统一设置卡片。`forever_faces/UI.lua` 将原控件嵌入共享 canvas，按宽度适配和滚动，语言切换重建，旧命令与小地图入口打开此页。依据为 cf97c5c。
 - FF-04 增加“3D头像 → 像素风调试”，配置保存到 wowDetectorDB.foreverFaces.db.style。模型来源、DisplayID/FileID、动画和 MipMap 支持即时应用，战斗中结构调整延后到脱战。2026-11-16 根据游戏内暴雪专用功能拦截撤下离屏快照调用链，像素化开关与采样参数显示为不可用并说明原因，已保存开启值归为关闭，采样参数保留。页面显示模型状态与 ID，单列安装更新及加载开关的 Reload 要求。公开接口缺少强制 LOD，低模使用客户端已有模型 ID。
   2026-11-16 修复提示直接挂接到各输入控件与按钮，布局后刷新原生滚动子区域。数值草稿在刷新时保留，回车、应用和焦点离开保存，Esc 恢复已保存值，重置清理草稿。
+- FF-05 目标的目标及焦点的目标沿用原生重绘入口。已显示的 3D 头像丢失模型文件时，按现有定时检查间隔重新绑定并加载当前模型。模型回调或缓存检查确认加载后重新应用头像镜头。依据为 1.0.11 的模型加载与重试分支，以及本服原生基线 3d8abb1da73acd38e412e24fb3f99454a6392346 的 TargetOfTargetMixin:Update、SimpleModelAPI.GetModelFileID 和 ClearModel。
 - BV-01 保留宿主接入。`better_vendor_ui/Bootstrap.lua` 与四个业务文件隔离命名空间、媒体、初始化及统一设置，配置为 `wowDetectorDB.betterVendorUI.db`。停用时跳过事件与运行控件，部署直接迁移 BetterVendorUIDB 并归档原目录。当前 1.3.1 发布包使用独立插件入口。
 - BV-02 保留已学配方标记。`better_vendor_ui/BetterVendorUI.lua` 在完整与品质重绘中刷新图标去色及 136814 绿色勾，跟随学习和物品数据事件合并更新。旧 addon_fix Vendor 补丁已归档，维护收编实现。依据为 fd95272。
 - BV-03 保留简体中文设置。`BetterVendorUI_Config.lua`、`BetterVendorUI_Options.lua` 及相关反馈统一中文标题、控件、确认、名单和提示，保留格式参数。依据为 12fc998。

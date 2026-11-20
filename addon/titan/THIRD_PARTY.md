@@ -8,7 +8,7 @@
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | bigfoot_channel | 大脚聊天 | [大脚官方 classic_titan](https://gitee.com/bigfoot-wow/classic_titan) | 3.80.2.276（整合包） | caae1533a5331d666c7b78d44544b6285c1a3424，整包和原文件指纹见 bigfoot_channel/SOURCE.json | 2026-11-16 | BF-01、BF-02、BF-03、BF-04 | 2026-11-16 官方 manifest、整包 MD5 及组件指纹核对完成，按最新包复核并保留宿主与聊天适配 |
 | ls_toasts | ls_Toasts | [ls-/ls_Toasts](https://github.com/ls-/ls_Toasts) | 120105.07 | 105214a4cc0f2d13a4c9deef57614f30cff79b33 | 2026-11-20 | LS-01、LS-02、LS-03、LS-04、LS-05、LS-06 | 2026-11-20 核对 120105.06 到 120105.07 的源码差异，合并默认关闭的 Slug 字体渲染开关。宿主接入、客户端接口、拾取队列、弹窗预建及背包提示适配继续沿用 |
-| forever_faces | Forever 3D Portraits | [sorrow8/forever-3d-portraits](https://github.com/sorrow8/forever-3d-portraits) | 1.0.11 | 20eaf8fd29b03ba3d91f73a90ccbaf39b49f2af4 | 2026-11-16 | FF-01、FF-02 | 2026-11-16 核对 1.0.9 至 1.0.11 全部变更，更新队伍动画、隐藏重载、失败重试与原图透明度处理，重新适配统一设置和像素调试 |
+| forever_faces | Forever 3D Portraits | [sorrow8/forever-3d-portraits](https://github.com/sorrow8/forever-3d-portraits) | 1.0.11 | 20eaf8fd29b03ba3d91f73a90ccbaf39b49f2af4 | 2026-11-20 | FF-01、FF-02、FF-03 | 2026-11-20 核对 1.0.11 的 Portraits.lua，已显示状态可跳过空模型重试，补上目标链头像的 3D 重绑和加载后镜头设置 |
 | better_vendor_ui | Better Vendor UI | [Vaniron 官方发布包](https://www.curseforge.com/wow/addons/better-vendor-ui/files/9436965) | 1.3.1 | 上游未公布 Git commit，发布包 SHA256 和文件指纹见 better_vendor_ui/SOURCE.json | 2026-11-14 | BV-01、BV-02、BV-03 | 2026-11-16 官方文件 API 最新为 1.3.1 / 9436965，重新下载包 SHA256 与 SOURCE.json 一致；三项适配继续适用 |
 | pet_xp_bar | PetXPBarPlus | [DustinChecketts/PetXPBarPlus](https://github.com/DustinChecketts/PetXPBarPlus) | 1.3.1 | 0c5da2aef6b2b56e307a77e37151fe4675be6c82 | 2026-11-16 | PX-01、PX-02 | 2026-11-16 官方最新正式版仍为 v1.3.1，tag 指向已采用完整 commit；宿主与本服接口适配继续适用 |
 
@@ -19,6 +19,7 @@
 - FF-01 接入时光服独立的命名空间、TOC、统一设置、加载开关、账号配置、LDB/DBIcon 和原生单位头像挂接。使用本服 SetUnit(unit, blend)，等级圆环沿用本服原生处理。部署直接迁移 ForeverFacesDB 并归档独立插件目录。
 - FF-02 增加“3D头像 → 像素风调试”，配置保存到 wowDetectorDB.foreverFaces.db.style。模型来源、DisplayID/FileID、动画和 MipMap 支持即时应用，战斗中结构调整延后到脱战。2026-11-16 根据游戏内暴雪专用功能拦截撤下离屏快照调用链，像素化开关与采样参数显示为不可用并说明原因，已保存开启值归为关闭，采样参数保留。页面显示模型状态与 ID，单列安装更新及加载开关的 Reload 要求。公开接口缺少强制 LOD，低模使用客户端已有模型 ID。
   2026-11-16 修复提示直接挂接到各输入控件与按钮，布局后刷新原生滚动子区域。数值草稿在刷新时保留，回车、应用和焦点离开保存，Esc 恢复已保存值，重置清理草稿。
+- FF-03 目标的目标及焦点的目标沿用原生重绘入口。已显示的 3D 头像丢失模型文件时，按现有定时检查间隔重新绑定并加载当前模型。模型回调或缓存检查确认加载后重新应用头像镜头。依据为 1.0.11 的模型加载与重试分支，以及本服原生基线 7014c309a25338905c41dc3799a93f9719ebb533 的 TargetOfTargetMixin:Update、SimpleModelAPI.GetModelFileID 和 ClearModel。
 - BF-01 保留收编宿主接入。`bigfoot_channel/Bootstrap.lua`、`core.lua`、`frame.xml` 将命名空间、媒体、加载事件及 Ace 设置接入 wow_tools，账号配置为 `wowDetectorDB.bigfootChannel`。插件开关在加载时控制初始化，旧命令进入统一设置。当前安装基线仍需这些接入。
 - BF-02 保留频道及原配置接入。`ChannelFilter.lua`、`WorldChannel.lua`、`Copy.lua` 使用宿主设置，部署脚本直接迁移 BigFootChat 与 ChannelFilter 配置并归档独立目录。时光服继续保留其他插件依赖的独立 BigFoot 与 !!!Libs，避免重复接管。依据为 0fc692a、a98c774。
 - LS-01 保留宿主隔离。`ls_toasts/Bootstrap.lua`、`Integration.lua` 及 XML 使用独立命名空间、内嵌媒体、宿主 Ace3、SharedMedia、LibEditMode 及统一设置，保存到 `wowDetectorDB.lsToasts.db`，停用时跳过业务初始化。直接迁移旧配置，兼容 `loot_items` 与旧锚点。当前上游基线使用独立插件加载和存储。
