@@ -98,27 +98,26 @@ local MAT_SUBCLASS_IDS = {
 
 local function Toast_SetUp(event, link, quantity)
 	local sanitizedLink, originalLink, _, itemID = E:SanitizeLink(link)
-	local toast, isNew, isQueued = E:GetToast(event, "link", sanitizedLink)
-	if isNew then
+	local toast, isQueued = E:FindToast(event, "link", sanitizedLink)
+	if not toast then
+		local settings = C.db.profile.types.loot_item
+		local filter = settings.filters[itemID]
+		if not originalLink or filter == false then
+			return
+		end
+
 		local name, _, quality, _, _, _, _, _, _, icon, _, classID, subClassID, bindType = C_Item.GetItemInfo(originalLink)
 		local isMaterial = classID == 7 and MAT_SUBCLASS_IDS[subClassID]
 		local isQuestItem = bindType == 4 or (classID == 12 and subClassID == 0)
 
-		if not name or C.db.profile.types.loot_item.filters[itemID] == false then
-			toast:Release()
-
+		if not name or not ((quality and quality >= settings.threshold and quality <= 5)
+		or (isMaterial and settings.material)
+		or (isQuestItem and settings.quest)
+		or filter) then
 			return
 		end
 
-		if not ((quality and quality >= C.db.profile.types.loot_item.threshold and quality <= 5)
-		or (isMaterial and C.db.profile.types.loot_item.material)
-		or (isQuestItem and C.db.profile.types.loot_item.quest)
-		or C.db.profile.types.loot_item.filters[itemID]) then
-			toast:Release()
-
-			return
-		end
-
+		toast = E:GetToast()
 		local color = ITEM_QUALITY_COLORS[quality] or ITEM_QUALITY_COLORS[1]
 		local title = L["YOU_RECEIVED"]
 		local soundFile = 31578 -- SOUNDKIT.UI_EPICLOOT_TOAST
@@ -137,7 +136,7 @@ local function Toast_SetUp(event, link, quantity)
 			toast.IconBorder:SetVertexColor(color.r, color.g, color.b)
 		end
 
-		if C.db.profile.types.loot_item.ilvl then
+		if settings.ilvl then
 			local iLevel = E:GetItemLevel(originalLink)
 
 			if iLevel > 0 then
@@ -170,17 +169,17 @@ local function Toast_SetUp(event, link, quantity)
 		toast._data.event = event
 		toast._data.item_id = itemID
 		toast._data.link = sanitizedLink
-		toast._data.sound_file = C.db.profile.types.loot_item.sfx and soundFile
-		toast._data.vfx = C.db.profile.types.loot_item.vfx
+		toast._data.sound_file = settings.sfx and soundFile
+		toast._data.vfx = settings.vfx
 		toast._data.tooltip_link = originalLink
 
-		if C.db.profile.types.loot_item.tooltip then
+		if settings.tooltip then
 			toast.UpdateTooltip = Toast_OnEnter
 			toast:HookScript("OnEnter", Toast_OnEnter)
 		end
 
 		toast:HookScript("OnClick", Toast_OnClick)
-		toast:Spawn(addon:GetAnchorIDForType("loot_item"), C.db.profile.types.loot_item.dnd)
+		toast:Spawn(addon:GetAnchorIDForType("loot_item"), settings.dnd)
 	else
 		if isQueued then
 			toast._data.count = toast._data.count + quantity

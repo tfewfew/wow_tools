@@ -7,7 +7,7 @@
 | 模块 | 插件 | 来源 | 当前版本 | 上游基线 | 上次更新 | 本地适配 | 上次核对依据 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | bigfoot_channel | 大脚聊天 | [大脚官方 forever](https://gitee.com/bigfoot-wow/forever) | 1.60.1.2（整合包） | 6b8e7466470cd2daf4c8c647eb8f97f141caafb6，整包和原文件指纹见 bigfoot_channel/SOURCE.json | 2026-11-16 | BF-01、BF-02、BF-03、BF-04 | 2026-11-17 官方 latest 仍为 1.60.1.2，manifest commit、整包 MD5 和 SHA256 与 SOURCE.json 一致，当前宿主、聊天及运行库适配继续适用 |
-| ls_toasts | ls_Toasts | [ls-/ls_Toasts](https://github.com/ls-/ls_Toasts) | 120105.06 | 65bc1fcef7d4de5df471397e7b467385d46f89e6 | 2026-11-17 | LS-01、LS-02、LS-04、LS-05 | 2026-11-17 官方正式版基线一致，核对既有金币勿扰设置及本服背包提示接口，一次性关闭旧金币战斗排队，物品提示接入实时背包格、原生锚点与装备比较 |
+| ls_toasts | ls_Toasts | [ls-/ls_Toasts](https://github.com/ls-/ls_Toasts) | 120105.06 | 65bc1fcef7d4de5df471397e7b467385d46f89e6 | 2026-11-20 | LS-01、LS-02、LS-04、LS-05、LS-06 | 2026-11-20 核对拾取事件、弹窗构建及原生提示框刷新调用，过滤无须展示的物品后再取弹窗，分次预建弹窗并复用悬停格位 |
 | forever_faces | Forever 3D Portraits | [sorrow8/forever-3d-portraits](https://github.com/sorrow8/forever-3d-portraits) | 1.0.11 | 20eaf8fd29b03ba3d91f73a90ccbaf39b49f2af4 | 2026-11-16 | FF-01、FF-02、FF-03、FF-04 | 2026-11-17 官方最新正式版仍为 v1.0.11，tag 解析出的完整 commit 与当前基线一致，宿主、重绘挂接、统一设置和像素调试适配继续适用 |
 | better_vendor_ui | Better Vendor UI | [Vaniron 官方发布包](https://www.curseforge.com/wow/addons/better-vendor-ui/files/9436965) | 1.3.1 | 上游未公布 Git commit，发布包 SHA256 和文件指纹见 better_vendor_ui/SOURCE.json | 2026-11-14 | BV-01、BV-02、BV-03 | 2026-11-17 官方文件 API 最新正式包仍为 1.3.1 / 9436965，重新下载包 SHA256 与 SOURCE.json 一致，三项适配继续适用 |
 | pet_xp_bar | PetXPBarPlus | [DustinChecketts/PetXPBarPlus](https://github.com/DustinChecketts/PetXPBarPlus) | 1.3.1 | 0c5da2aef6b2b56e307a77e37151fe4675be6c82 | 2026-11-16 | PX-01、PX-02 | 2026-11-17 官方最新正式版仍为 v1.3.1，tag 解析出的完整 commit 与当前基线一致，宿主与本服接口适配继续适用 |
@@ -15,6 +15,8 @@
 | prr | PRR | [izicawow 官方发布包](https://www.curseforge.com/wow/addons/prr/files/9629892) | 1.5.2 | 上游未公布 Git commit，发布包 SHA256 与文件指纹见 prr/SOURCE.json | 2026-11-18 | PR-01、PR-02、PR-03、PR-05、PR-06、PR-07、PR-08、PR-09、PR-10、PR-11、PR-12、PR-13 | 2026-11-18 补录 142 位训练师阵营，学习地点按当前角色显示同阵营及中立来源，摘要、悬停与计数共用过滤结果。来源与审查记录见 prr/RECIPE-SOURCES.json，沿用官方 1.5.2 基线 |
 
 ## 当前本地适配
+
+- LS-06 减少拾取通知的同步开销。两服 TOC 加载的 `systems/forever/loot_item.lua` 先查合并目标，再检查物品过滤和可用数据，通过后才取弹窗。`core/toast.lua` 登录后分次预建最多四个可复用弹窗。`core/components/tooltip.lua` 核对完整链接后复用背包格位，格位失效时重新定位，未命中缓存在 `BAG_UPDATE_DELAYED` 清除。继续使用本服的背包范围、原生锚点与装备比较。
 
 - BF-01 保留收编宿主接入。`bigfoot_channel/Bootstrap.lua`、`core.lua`、`frame.xml` 将命名空间、媒体、加载事件及 Ace 设置接入 wow_tools，账号配置为 `wowDetectorDB.bigfootChannel`。插件开关在加载时控制初始化，旧命令进入统一设置。当前安装基线仍需这些接入。
 - BF-02 保留频道及原配置接入。`ChannelFilter.lua`、`WorldChannel.lua`、`Copy.lua` 使用宿主设置，部署脚本直接迁移 BigFootChat 与 ChannelFilter 配置，验证后归档原独立目录和无限服 !!!Libs，复用宿主内嵌 Ace3。依据为 4502573、34e091f、a98c774。

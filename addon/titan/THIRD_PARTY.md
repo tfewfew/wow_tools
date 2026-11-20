@@ -7,12 +7,14 @@
 | 模块 | 插件 | 来源 | 当前版本 | 上游基线 | 上次更新 | 本地适配 | 上次核对依据 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | bigfoot_channel | 大脚聊天 | [大脚官方 classic_titan](https://gitee.com/bigfoot-wow/classic_titan) | 3.80.2.276（整合包） | caae1533a5331d666c7b78d44544b6285c1a3424，整包和原文件指纹见 bigfoot_channel/SOURCE.json | 2026-11-16 | BF-01、BF-02、BF-03、BF-04 | 2026-11-16 官方 manifest、整包 MD5 及组件指纹核对完成，按最新包复核并保留宿主与聊天适配 |
-| ls_toasts | ls_Toasts | [ls-/ls_Toasts](https://github.com/ls-/ls_Toasts) | 120105.06 | 65bc1fcef7d4de5df471397e7b467385d46f89e6 | 2026-11-17 | LS-01、LS-02、LS-03、LS-04、LS-05 | 2026-11-17 核对原生 PLAYER_MONEY、既有金币勿扰设置及本服背包提示接口，一次性关闭旧金币战斗排队，物品提示接入实时背包格、原生锚点与装备比较 |
+| ls_toasts | ls_Toasts | [ls-/ls_Toasts](https://github.com/ls-/ls_Toasts) | 120105.06 | 65bc1fcef7d4de5df471397e7b467385d46f89e6 | 2026-11-20 | LS-01、LS-02、LS-03、LS-04、LS-05、LS-06 | 2026-11-20 核对拾取事件、弹窗构建及原生提示框刷新调用，过滤无须展示的物品后再取弹窗，分次预建弹窗并复用悬停格位 |
 | forever_faces | Forever 3D Portraits | [sorrow8/forever-3d-portraits](https://github.com/sorrow8/forever-3d-portraits) | 1.0.11 | 20eaf8fd29b03ba3d91f73a90ccbaf39b49f2af4 | 2026-11-16 | FF-01、FF-02 | 2026-11-16 核对 1.0.9 至 1.0.11 全部变更，更新队伍动画、隐藏重载、失败重试与原图透明度处理，重新适配统一设置和像素调试 |
 | better_vendor_ui | Better Vendor UI | [Vaniron 官方发布包](https://www.curseforge.com/wow/addons/better-vendor-ui/files/9436965) | 1.3.1 | 上游未公布 Git commit，发布包 SHA256 和文件指纹见 better_vendor_ui/SOURCE.json | 2026-11-14 | BV-01、BV-02、BV-03 | 2026-11-16 官方文件 API 最新为 1.3.1 / 9436965，重新下载包 SHA256 与 SOURCE.json 一致；三项适配继续适用 |
 | pet_xp_bar | PetXPBarPlus | [DustinChecketts/PetXPBarPlus](https://github.com/DustinChecketts/PetXPBarPlus) | 1.3.1 | 0c5da2aef6b2b56e307a77e37151fe4675be6c82 | 2026-11-16 | PX-01、PX-02 | 2026-11-16 官方最新正式版仍为 v1.3.1，tag 指向已采用完整 commit；宿主与本服接口适配继续适用 |
 
 ## 当前本地适配
+
+- LS-06 减少拾取通知的同步开销。两服 TOC 加载的 `systems/forever/loot_item.lua` 先查合并目标，再检查物品过滤和可用数据，通过后才取弹窗。`core/toast.lua` 登录后分次预建最多四个可复用弹窗。`core/components/tooltip.lua` 核对完整链接后复用背包格位，格位失效时重新定位，未命中缓存在 `BAG_UPDATE_DELAYED` 清除。继续使用本服的背包范围、原生锚点与装备比较。
 
 - FF-01 接入时光服独立的命名空间、TOC、统一设置、加载开关、账号配置、LDB/DBIcon 和原生单位头像挂接。使用本服 SetUnit(unit, blend)，等级圆环沿用本服原生处理。部署直接迁移 ForeverFacesDB 并归档独立插件目录。
 - FF-02 增加“3D头像 → 像素风调试”，配置保存到 wowDetectorDB.foreverFaces.db.style。模型来源、DisplayID/FileID、动画和 MipMap 支持即时应用，战斗中结构调整延后到脱战。2026-11-16 根据游戏内暴雪专用功能拦截撤下离屏快照调用链，像素化开关与采样参数显示为不可用并说明原因，已保存开启值归为关闭，采样参数保留。页面显示模型状态与 ID，单列安装更新及加载开关的 Reload 要求。公开接口缺少强制 LOD，低模使用客户端已有模型 ID。

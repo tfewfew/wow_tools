@@ -60,26 +60,40 @@ local function GetItemString(link)
 	end
 end
 
+local cachedItem, cachedBag, cachedSlot
+addon.E:RegisterEvent("BAG_UPDATE_DELAYED", function()
+	if not cachedBag then
+		cachedItem = nil
+	end
+end)
+
+local function FindLootItemSlot(itemString)
+	if not itemString then return end
+
+	for bag = 0, NUM_BAG_SLOTS do
+		for slot = 1, C_Container.GetContainerNumSlots(bag) do
+			if GetItemString(C_Container.GetContainerItemLink(bag, slot)) == itemString then
+				return bag, slot
+			end
+		end
+	end
+end
+
 function addon.Tooltip:ShowLootItem(frame, link)
 	GameTooltip:SetOwner(frame, "ANCHOR_NONE")
 	GameTooltip:ClearAllPoints()
 	ContainerFrameItemButton_CalculateItemTooltipAnchors(frame, GameTooltip)
 
-	-- Resolve the slot at hover time. Keep suffixes, enchants and modifiers intact.
+	-- Keep the full item variant and verify the slot before reusing it.
 	local itemString = GetItemString(link)
-	local bagID, slotID
-	for bag = 0, NUM_BAG_SLOTS do
-		for slot = 1, C_Container.GetContainerNumSlots(bag) do
-			if itemString and GetItemString(C_Container.GetContainerItemLink(bag, slot)) == itemString then
-				bagID, slotID = bag, slot
-				break
-			end
-		end
-		if bagID then break end
+	if cachedItem ~= itemString
+	or (cachedBag and GetItemString(C_Container.GetContainerItemLink(cachedBag, cachedSlot)) ~= itemString) then
+		cachedItem = itemString
+		cachedBag, cachedSlot = FindLootItemSlot(itemString)
 	end
 
-	if bagID then
-		GameTooltip:SetBagItem(bagID, slotID)
+	if cachedBag then
+		GameTooltip:SetBagItem(cachedBag, cachedSlot)
 	else
 		GameTooltip:SetHyperlink(link)
 	end

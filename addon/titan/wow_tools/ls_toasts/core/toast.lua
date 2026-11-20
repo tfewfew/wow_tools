@@ -694,6 +694,25 @@ local function constructToast()
 	return toast
 end
 
+local PREWARM_TOAST_COUNT = 4
+
+local function prewarmToasts()
+	if #toasts >= PREWARM_TOAST_COUNT or not WoWTools.thirdParty.IsActive("ls_toasts")
+	or not C.db.profile.types.loot_item.enabled then
+		return
+	end
+
+	-- Spread frame, texture and animation creation across separate ticks.
+	t_insert(freeToasts, constructToast())
+	if #toasts < PREWARM_TOAST_COUNT then
+		C_Timer.After(0.25, prewarmToasts)
+	end
+end
+
+E:RegisterEvent("PLAYER_LOGIN", function()
+	C_Timer.After(1, prewarmToasts)
+end)
+
 function E:FindToast(toastEvent, dataType, dataValue)
 	if dataType and dataValue then
 		for _, queuedToasts in next, P:GetQueuedToasts() do

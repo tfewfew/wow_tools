@@ -1,12 +1,18 @@
 local root = TEST_ROOT or "."
 local flavor = TEST_FLAVOR or "forerver"
 local directory = root .. "/addon/" .. flavor .. "/wow_tools/ls_toasts/"
-local addon = {C = {}, D = {}, L = {}}
+local bagUpdate
+local addon = {C = {}, D = {}, L = {}, E = {}}
+function addon.E:RegisterEvent(event, handler)
+    assert(event == "BAG_UPDATE_DELAYED" and type(handler) == "function")
+    bagUpdate = handler
+end
 local frame = {}
 local expectedLink = "item:123:0:0:0:0:0:456:0:60:0:0:0:0:0:0"
 local otherLink = "item:123:0:0:0:0:0:789:0:60:0:0:0:0:0:0"
 local targetBag = flavor == "forerver" and 5 or 4
 local bagCalls, linkCalls, anchorCalls, comparisonCalls = 0, 0, 0, 0
+local slotCountCalls = 0
 local hasItem = true
 
 NUM_BAG_SLOTS = 4
@@ -14,6 +20,7 @@ NUM_TOTAL_EQUIPPED_BAG_SLOTS = flavor == "forerver" and 5 or nil
 C_Container = {
     GetContainerNumSlots = function(bag)
         assert(type(bag) == "number" and bag >= 0 and bag <= targetBag)
+        slotCountCalls = slotCountCalls + 1
         return bag == targetBag and 2 or 0
     end,
     GetContainerItemLink = function(bag, slot)
@@ -60,8 +67,14 @@ end
 assert(loadfile(directory .. "core/components/tooltip.lua"))("wow_tools", addon)
 assert(type(addon.Tooltip.ShowLootItem) == "function")
 addon.Tooltip:ShowLootItem(frame, expectedLink)
+local initialSlotCountCalls = slotCountCalls
+addon.Tooltip:ShowLootItem(frame, expectedLink)
+assert(slotCountCalls == initialSlotCountCalls, "Refresh must validate the cached slot directly")
 hasItem = false
 addon.Tooltip:ShowLootItem(frame, expectedLink)
-assert(bagCalls == 1 and linkCalls == 1 and anchorCalls == 2 and comparisonCalls == 2,
+hasItem = true
+bagUpdate()
+addon.Tooltip:ShowLootItem(frame, expectedLink)
+assert(bagCalls == 3 and linkCalls == 1 and anchorCalls == 4 and comparisonCalls == 4,
     "Loot tooltip bag, hyperlink, anchor or client comparison interface was not bound")
 print("PASS: " .. flavor .. " toast item tooltip bag-slot, full-link and native comparison interfaces.")
