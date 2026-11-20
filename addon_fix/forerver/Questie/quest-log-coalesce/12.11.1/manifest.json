@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "plugin": "Questie",
+  "id": "quest-log-coalesce",
+  "version": "12.11.1",
+  "patch": "fix.patch",
+  "patchSha256": "4a1550b095ad05b3b35d2affd3baaca08fb126ca634ab0a36bfb037f23b2da12",
+  "files": [
+    {
+      "path": "Questie/Modules/EventHandler/QuestEventHandler.lua",
+      "originalSha256": "08b67ae7541562da64236f22edf294903bd4c6c38f6260914f00f9453da73aac",
+      "patchedSha256": "7e66dad066c8ada99ac85295c45e8c1fbfe89ae9f5ea8acfb36c5bf18a95e47e"
+    }
+  ],
+  "loadOrder": [
+    "Modules/EventHandler/EventHandler.lua",
+    "Modules/EventHandler/QuestEventHandler.lua",
+    "Modules/Quest/QuestLogCache.lua",
+    "Modules/Quest/QuestgiverFrame.lua"
+  ]
+}

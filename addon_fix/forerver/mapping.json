@@ -262,6 +262,15 @@
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
+      },
+      {
+        "id": "quest-log-coalesce",
+        "description": "全量任务日志扫描统一由一秒定时任务触发，同一秒内的请求合并并保留补查标记。",
+        "variants": [
+          "quest-log-coalesce/12.11.1/manifest.json"
+        ],
+        "skipFromVersion": null,
+        "fixedEvidence": []
       }
     ],
     "QuestieTrace": [
