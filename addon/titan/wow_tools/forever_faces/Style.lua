@@ -65,10 +65,14 @@ function style.ModelKey(unit)
     return table.concat({config.source, config.displayID, config.fileID, tostring(config.noMip), config.animation}, "/")
 end
 
+function style.Source(unit)
+    return style.Applies(unit) and style.Config().source or "unit"
+end
+
 function style.Load(model, unit)
     local config = style.Config()
     local applies = style.Applies(unit)
-    local source = applies and config.source or "unit"
+    local source = style.Source(unit)
     local ok, result
     if source == "display" then
         if config.displayID == 0 then return false, "请填写大于 0 的 DisplayID" end

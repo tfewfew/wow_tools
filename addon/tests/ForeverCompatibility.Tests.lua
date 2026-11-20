@@ -1030,6 +1030,43 @@ do
         unitPortraitHook(unitFrame)
         UnitGUID = originalGUID
         assert(boundUnit == "target", "Native unit-frame portrait argument binding failed")
+
+        local createFrame = CreateFrame
+        local unitExists, unitVisible, unitReady, getTime = UnitExists, UnitIsVisible, IsUnitModelReadyForUI, GetTime
+        local model, cameraConfigured
+        CreateFrame = function(kind, ...)
+            local frame = createFrame(kind, ...)
+            if kind == "PlayerModel" then
+                model = frame
+                frame.ClearModel = function() end
+                frame.GetModelFileID = function() return 0 end
+                frame.SetCamDistanceScale = function(_, value) assert(type(value) == "number") end
+                frame.SetPosition = function(_, x, y, z) assert(x == 0 and y == 0 and z == 0) end
+                frame.SetPortraitZoom = function(_, zoom) cameraConfigured = zoom == 1 end
+                frame.SetUnit = function(self, unit, blend, ...)
+                    assert(unit == "targettarget" and blend == false and select("#", ...) == 0)
+                    self:GetScript("OnModelLoaded")(self)
+                    assert(cameraConfigured, "The native model-loaded callback must accept a portrait with no file ID")
+                    return true
+                end
+            end
+            return frame
+        end
+        local function TargetOfTargetAPI(unit, ...)
+            assert(unit == "targettarget" and select("#", ...) == 0, "Invalid target-of-target model unit argument")
+            return true
+        end
+        UnitExists, UnitIsVisible, IsUnitModelReadyForUI = TargetOfTargetAPI, TargetOfTargetAPI, TargetOfTargetAPI
+        UnitGUID, GetTime = function() return "test-target-of-target" end, function() return 0 end
+        unitFrame.unit = "targettarget"
+        function unitFrame:GetAttribute(key) if key == "unit" then return self.unit end end
+        unitFrame.portrait = unitFrame:CreateTexture()
+        unitFrame.portrait.GetObjectType = function() return "Texture" end
+        unitFrame.portrait.GetSize = function() return 36, 36 end
+        unitPortraitHook(unitFrame)
+        assert(model and cameraConfigured, "Target-of-target PlayerModel contract failed")
+        CreateFrame, UnitGUID, GetTime = createFrame, originalGUID, getTime
+        UnitExists, UnitIsVisible, IsUnitModelReadyForUI = unitExists, unitVisible, unitReady
     end
 end
 assert(#registeredCategories == 1 and #addonCategories == 1, "Settings category interface failed")
