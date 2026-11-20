@@ -5,9 +5,8 @@ function Read-WowLuaData([string]$Text) {
     $reader = [regex]::new($pattern, [Text.RegularExpressions.RegexOptions]::None, [timespan]::FromSeconds(2))
     $tokens = [Collections.Generic.List[object]]::new()
     $position = 0
-    while ($position -lt $Text.Length) {
-        $match = $reader.Match($Text, $position)
-        if (-not $match.Success -or $match.Index -ne $position) { throw 'Settings contain non-literal Lua.' }
+    foreach ($match in $reader.Matches($Text)) {
+        if ($match.Index -ne $position) { throw 'Settings contain non-literal Lua.' }
         if (-not $match.Groups['space'].Success) {
             $kind = if ($match.Groups['string'].Success) { 'string' }
                 elseif ($match.Groups['number'].Success) { 'number' }
@@ -16,6 +15,7 @@ function Read-WowLuaData([string]$Text) {
         }
         $position += $match.Length
     }
+    if ($position -ne $Text.Length) { throw 'Settings contain non-literal Lua.' }
     $cursor = [pscustomobject]@{Tokens=$tokens; Index=0}
     $assignments = [Collections.Generic.Dictionary[string,object]]::new([StringComparer]::Ordinal)
     while ($cursor.Index -lt $tokens.Count) {
