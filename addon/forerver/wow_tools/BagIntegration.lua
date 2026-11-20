@@ -1,5 +1,5 @@
 -- Forever native container interfaces at Gethe/wow-ui-source 3d8abb1da73acd38e412e24fb3f99454a6392346.
--- Group the item buttons the native combined container already owns.
+-- Group native item buttons without changing which container owns them.
 local module = { views = {}, settingsHeight = 240, active = false }
 WoWTools.bagIntegration = module
 local reagentBag = Enum.BagIndex.ReagentBag
@@ -9,6 +9,7 @@ local retryLayout = false
 local opening = false
 local status = "背包整合已关闭。"
 local decorations = {}
+local dockedReagent
 local events = CreateFrame("Frame")
 local Reconcile, ScheduleLayout
 
@@ -118,6 +119,46 @@ local function HideDecorations()
     end
 end
 
+local function GetShownReagent()
+    local frame = ContainerFrame6 -- The dedicated reagent-capable container in Forever's ContainerFrame.xml.
+    return frame and frame:IsShown() and frame:GetBagID() == reagentBag and frame
+end
+
+local function RememberReagentAnchor(dock)
+    local frame = dock.frame
+    local point, relative, relativePoint, x, y = frame:GetPoint(1)
+    if point == "TOPRIGHT" and relative == UIParent and relativePoint == "BOTTOMLEFT" and x == -32 and y == -32 then return end
+    dock.anchor = point and {point, relative, relativePoint, x, y}
+    dock.scale = frame:GetScale()
+end
+
+local function RestoreReagentLayout()
+    local dock = dockedReagent
+    if not dock then return end
+    dockedReagent = nil
+    local frame = dock.frame
+    frame:SetFrameLevel(dock.level)
+    frame:SetClampedToScreen(dock.clamped)
+    frame:SetScale(dock.scale)
+    frame:ClearAllPoints()
+    if dock.anchor then frame:SetPoint(unpack(dock.anchor, 1, 5)) end
+    if frame:IsShown() then frame:UpdateItemLayout() end
+end
+
+local function DockReagent(reagent, combined)
+    if not dockedReagent then
+        dockedReagent = {frame = reagent, level = reagent:GetFrameLevel(), clamped = reagent:IsClampedToScreen()}
+        RememberReagentAnchor(dockedReagent)
+    end
+    -- Keep the native frame shown and the buttons parented to it. Park only its window chrome
+    -- outside the screen so its title bar and buttons cannot intercept clicks in the combined window.
+    reagent:SetClampedToScreen(false)
+    reagent:SetScale(combined:GetEffectiveScale() / reagent:GetParent():GetEffectiveScale())
+    reagent:SetFrameLevel(combined:GetFrameLevel() + 1)
+    reagent:ClearAllPoints()
+    reagent:SetPoint("TOPRIGHT", UIParent, "BOTTOMLEFT", -32, -32)
+end
+
 local function BagGroup(bagID)
     if bagID == 0 then return 1 end
     if bagID == reagentBag then return 2 end
@@ -161,6 +202,12 @@ local function Layout()
     local template = C_XMLUtil.GetTemplateInfo(frame.itemButtonPool:GetTemplate())
     local columns = frame.meihang or frame:GetColumns()
     if not Integer(columns) or columns < 1 or not template then return end
+    local reagent = GetShownReagent()
+    if reagent then
+        for _, button in reagent:EnumerateValidItems() do
+            groups[2][#groups[2] + 1] = button
+        end
+    end
     local itemWidth, itemHeight = template.width, template.height
     local width = columns * itemWidth + (columns - 1) * 5 + frame:GetPaddingWidth()
     local offset, visibleGroups = 64, 0
@@ -207,6 +254,7 @@ local function Layout()
     frame:LayoutAddSlots()
     -- Native opening and movement addons own the window anchors during item reflows.
     ApplyScale(frame)
+    if reagent then DockReagent(reagent, frame) else RestoreReagentLayout() end
     retryLayout = false
     events:UnregisterEvent("BAG_UPDATE_DELAYED")
     status = "背包整合已开启，按普通背包、材料袋、弹药袋分区显示。"
@@ -228,7 +276,8 @@ local function NativeReady()
     return frame and type(frame.EnumerateValidItems) == "function" and type(frame.UpdateItemSlots) == "function"
         and type(frame.UpdateItemLayout) == "function" and type(frame.UpdateFrameSize) == "function"
         and EventRegistry and type(EventRegistry.RegisterCallback) == "function"
-        and type(ContainerFrame_GenerateFrame) == "function" and type(C_Timer.NewTimer) == "function"
+        and type(ContainerFrame_GenerateFrame) == "function" and type(UpdateContainerFrameAnchors) == "function"
+        and type(C_Timer.NewTimer) == "function"
 end
 
 local function InstallHooks()
@@ -244,6 +293,15 @@ local function InstallHooks()
     end)
     hooksecurefunc(frame, "UpdateItemLayout", ScheduleLayout)
     hooksecurefunc(frame, "UpdateFrameSize", ScheduleLayout)
+    if ContainerFrame6 then
+        hooksecurefunc(ContainerFrame6, "UpdateItemLayout", function(container)
+            if container:GetBagID() == reagentBag then ScheduleLayout() end
+        end)
+        hooksecurefunc("UpdateContainerFrameAnchors", function()
+            if dockedReagent then RememberReagentAnchor(dockedReagent) end
+            if GetShownReagent() then ScheduleLayout() end
+        end)
+    end
     frame:HookScript("OnShow", function()
         opening = module.active
         RestorePosition()
@@ -262,9 +320,14 @@ local function InstallHooks()
     end)
     -- Native OnHide emits this event before rearranging windows and !Pig's saved-point hook.
     EventRegistry:RegisterCallback("ContainerFrame.CloseBag", function(_, container)
-        if container ~= frame then return end
-        SavePosition(container)
-        opening = false
+        if container == frame then
+            SavePosition(container)
+            opening = false
+            RestoreReagentLayout()
+        elseif dockedReagent and container == dockedReagent.frame then
+            RestoreReagentLayout()
+            ScheduleLayout()
+        end
     end, module)
 end
 
@@ -284,6 +347,7 @@ local function ApplyActive(enabled)
         ScheduleLayout()
     else
         HideDecorations()
+        RestoreReagentLayout()
         retryLayout = false
         events:UnregisterEvent("BAG_UPDATE_DELAYED")
         local previous = config.previousCombinedBags
@@ -345,7 +409,7 @@ function module.BuildSettings(parent)
     local hint = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     hint:SetPoint("TOPLEFT", 8, -48)
     hint:SetJustifyH("LEFT")
-    hint:SetText("整合窗口按普通背包、材料袋、弹药袋分区，空分区自动隐藏。客户端单独打开的材料袋沿用原生窗口。战斗中切换此开关在脱战后生效。")
+    hint:SetText("整合窗口按普通背包、材料袋、弹药袋分区，空分区自动隐藏。打开所有背包时一并显示已装备的材料袋。战斗中切换此开关在脱战后生效。")
     local compatibility = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     compatibility:SetPoint("TOPLEFT", 8, -110)
     compatibility:SetJustifyH("LEFT")

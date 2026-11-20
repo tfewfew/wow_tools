@@ -87,7 +87,10 @@ local function Region(kind)
     function region:SetPoint(point, relative, relativePoint, x, y)
         assert(type(point) == "string" and type(relative) == "table" and type(relativePoint) == "string"
             and type(x) == "number" and type(y) == "number", "Native anchor signature mismatch")
-        if self.kind == "ItemButton" then itemPointWrites = itemPointWrites + 1 end
+        if self.kind == "ItemButton" then
+            itemPointWrites = itemPointWrites + 1
+            self.anchor = {point, relative, relativePoint, x, y}
+        end
         if self == ContainerFrameCombinedBags then
             assert(relative == UIParent, "Saved bag position must use the root frame")
             windowPointWrites = windowPointWrites + 1
@@ -203,6 +206,33 @@ function container:LayoutAddSlots() end
 function container:SetSize(width, height) assert(width > 0 and height > 0) self.height = height end
 function container:GetHeight() return self.height end
 function container:SetScale(value) assert(value > 0) self.scale = value end
+function container:GetFrameLevel() return 10 end
+local reagent = Region("Frame")
+ContainerFrame6 = reagent
+local reagentButton = Region("ItemButton")
+function reagentButton:GetBagID() return 5 end
+function reagentButton:GetID() return 1 end
+function reagentButton:GetParent() return reagent end
+function reagent:GetBagID() return 5 end
+function reagent:GetParent() return UIParent end
+function reagent:GetScale() return self.scale end
+function reagent:SetScale(value) assert(value > 0) self.scale = value end
+function reagent:GetFrameLevel() return self.level end
+function reagent:SetFrameLevel(value) assert(type(value) == "number") self.level = value end
+function reagent:IsClampedToScreen() return self.clamped end
+function reagent:SetClampedToScreen(value) assert(type(value) == "boolean") self.clamped = value end
+function reagent:GetPoint() return unpack(self.anchor, 1, 5) end
+function reagent:SetPoint(point, relative, relativePoint, x, y)
+    assert(type(point) == "string" and type(relativePoint) == "string" and type(x) == "number" and type(y) == "number")
+    self.anchor = {point, relative, relativePoint, x, y}
+end
+function reagent:EnumerateValidItems() return ipairs({reagentButton}) end
+function reagent:UpdateItemLayout()
+    reagentButton:SetPoint("TOPLEFT", self, "TOPLEFT", 4, -8)
+    hooks.reagentLayout(self)
+end
+reagent.scale, reagent.level, reagent.clamped = 0.75, 4, true
+reagent:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -42, 85)
 ContainerFrameSettingsManager = {
     IsUsingCombinedBags = function(_, bagID) return (not bagID or bagID <= 4) and cvar == "1" end,
     OnCombinedBagSettingChanged = function() error("Only the native CVar event may call this handler") end,
@@ -213,6 +243,10 @@ local nativeIsUsingCombinedBags = ContainerFrameSettingsManager.IsUsingCombinedB
 function UpdateContainerFrameAnchors()
     anchorUpdates = anchorUpdates + 1
     container:SetScale(0.75)
+    if reagent:IsShown() then
+        reagent:SetScale(0.8)
+        reagent:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -90, 85)
+    end
 end
 function ContainerFrame_GenerateFrame(frame, size, id)
     assert(frame == container and size == 0 and id == 0, "Native combined-bag opening signature mismatch")
@@ -235,10 +269,16 @@ NineSliceUtil = {UpdateCornerCropping = function(frame, height)
 end}
 function hooksecurefunc(target, method, callback)
     if type(target) == "string" then
-        assert(target == "ContainerFrame_GenerateFrame" and type(_G[target]) == "function" and type(method) == "function",
-            "Synchronous opening must use the native container-generation post-hook")
+        assert((target == "ContainerFrame_GenerateFrame" or target == "UpdateContainerFrameAnchors")
+            and type(_G[target]) == "function" and type(method) == "function",
+            "Native generation and window placement must use post-hooks")
         local native = _G[target]
         _G[target] = function(...) native(...); method(...) end
+        return
+    end
+    if target == reagent then
+        assert(method == "UpdateItemLayout" and type(callback) == "function")
+        hooks.reagentLayout = callback
         return
     end
     assert(target == container and type(target[method]) == "function" and type(callback) == "function")
@@ -457,8 +497,26 @@ SetCVar("combinedBags", "1")
 assert(bags.SetEnabled(true) and bags.active and combinedChanges == 3,
     "Enabling must reuse the combined CVar if another addon already enabled it")
 assert(#closeCallbacks == 1, "Re-enabling integration must reuse its native close callback")
+container:Show()
+reagent:Show()
+reagent:UpdateItemLayout()
+for _, callback in ipairs(pending) do callback() end
+pending = {}
+assert(reagent:IsShown() and reagentButton:GetParent() == reagent and reagentButton.anchor[2] == container,
+    "The material section must anchor the real native buttons without changing their owning frame")
+assert(reagent.anchor[1] == "TOPRIGHT" and reagent.anchor[2] == UIParent and reagent.anchor[3] == "BOTTOMLEFT"
+    and reagent.scale == container:GetEffectiveScale() / UIParent:GetEffectiveScale() and reagent.level > container:GetFrameLevel(),
+    "The material buttons must share the combined window scale while their chrome is outside the screen")
+UpdateContainerFrameAnchors()
+for _, callback in ipairs(pending) do callback() end
+pending = {}
+assert(reagent.anchor[1] == "TOPRIGHT" and reagentButton.anchor[2] == container,
+    "The native anchor refresh must retain the grouped item anchors")
 assert(bags.SetEnabled(false) and not bags.active and cvar == "1" and combinedChanges == 3,
     "Disabling must retain the combined CVar if it was already enabled")
+assert(reagent:IsShown() and reagent.anchor[1] == "BOTTOMRIGHT" and reagent.anchor[4] == -90
+    and reagent.scale == 0.8 and reagent.level == 4 and reagent.clamped and reagentButton.anchor[2] == reagent,
+    "Disabling must restore native window anchors, scale, frame level and item layout")
 loaded.Baganator = true
 assert(bags.SetEnabled(true) and not bags.active and cvar == "1", "A full bag replacement must retain native UI ownership")
 print("PASS: forerver native bag routing, combined CVar event and presentation interface contracts.")

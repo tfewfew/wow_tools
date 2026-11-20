@@ -34,6 +34,10 @@ description: 维护titan时光服、forerver无限服的独立wow_tools插件合
 
 以下为实现与发布历史，其中的测试名称和通过数量保留为历史记录，当前本地测试采用上述范围。
 
+## 无限服整合背包材料分区恢复（2026-11-20）
+
+- forerver 2.2.147 在客户端同时打开整合背包和第 5 号材料袋时，将原生材料袋物品格排入整合窗材料区。无限服原生 `ContainerFrame6` 继续持有这些格子、袋号、点击和事件，分区只设置缩放、层级和锚点。关闭窗口或关闭整合时恢复独立窗布局。沿用 `3d8abb1da73acd38e412e24fb3f99454a6392346` 的容器定义及锚点后置钩子，原生背包查询和银行调用链保持原有入口。
+
 ## 无限服银行打开时的受保护调用（2026-11-20）
 
 - forerver 2.2.144 根据 !Pig 11.391 的两条错误记录核对无限服银行入口。原生 `BankFrameBaseMixin:OnShow` 先执行 `OpenAllBags`，再选中默认页并触发首个免费银行栏位的 `C_Bank.PurchaseBankTab`。背包分区移除对 `IsBagOpen`、`MatchesBagID` 和 `IsUsingCombinedBags` 的替换，合并背包模式交由原生 `USE_COMBINED_BAGS_CHANGED` 处理。界面继续分区排列原生整合窗已有物品格，第 5 号材料袋由客户端单独显示。保留既有背包位置和开关数据。
