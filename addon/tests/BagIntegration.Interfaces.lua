@@ -1,4 +1,4 @@
--- Forever 1.60.1.70938, native container interfaces at bebcb6bf309cf41b41bd74f8ca651e6a105b2676.
+-- Forever native container interfaces at 3d8abb1da73acd38e412e24fb3f99454a6392346.
 local root = TEST_ROOT or "."
 local hooks, pending, frames = {}, {}, {}
 local cvar, loaded, anchorUpdates = "0", {}, 0
@@ -9,7 +9,8 @@ local closeCallbacks = {}
 local itemPointWrites, familyReads = 0, 0
 local familiesReady = true
 local combat = false
-local backpackExtra, rejectReagent = 0, false
+local backpackExtra = 0
+local combinedChanges = 0
 local slots = {[0] = 16, 4, 4, 4, 0, 4}
 local families = {[0] = 0, 0, 0, 1, 0, 0}
 WoWTools, wowDetectorDB = {}, {}
@@ -76,10 +77,10 @@ bit = {band = function(value, mask)
 end}
 function InCombatLockdown() return combat end
 function GetCVar(name) assert(name == "combinedBags") return cvar end
-function GetCVarBool(name) return GetCVar(name) == "1" end
 function SetCVar(name, value)
     assert(name == "combinedBags" and (value == "0" or value == "1"), "Unexpected CVar write")
     cvar = value
+    combinedChanges = combinedChanges + 1
 end
 local function Region(kind)
     local region = {kind = kind, shown = false, scripts = {}, events = {}}
@@ -165,7 +166,6 @@ function container:AcquireNewItemButton()
         assert(containerFrame == container, "Native Initialize requires its container frame before bag and slot")
         assert(type(bagID) == "number" and type(slotID) == "number" and slotID >= 1
             and slotID <= slots[bagID] + (bagID == 0 and backpackExtra or 0), "Pooled item Initialize signature mismatch")
-        if bagID == 5 and rejectReagent then error("Native Initialize rejected reagent slot") end
         self.containerFrame = containerFrame
         self.bagID, self.slotID = bagID, slotID
     end
@@ -205,11 +205,11 @@ function container:GetHeight() return self.height end
 function container:SetScale(value) assert(value > 0) self.scale = value end
 ContainerFrameSettingsManager = {
     IsUsingCombinedBags = function(_, bagID) return (not bagID or bagID <= 4) and cvar == "1" end,
-    OnCombinedBagSettingChanged = function(_, combined) assert(type(combined) == "boolean") end,
+    OnCombinedBagSettingChanged = function() error("Only the native CVar event may call this handler") end,
 }
-function IsAnyBagOpen() return container.shown end
-function CloseAllBags() container:Hide() end
-function OpenBackpack() container:Show() end
+local nativeMatchesBagID = container.MatchesBagID
+local nativeIsBagOpen = container.IsBagOpen
+local nativeIsUsingCombinedBags = ContainerFrameSettingsManager.IsUsingCombinedBags
 function UpdateContainerFrameAnchors()
     anchorUpdates = anchorUpdates + 1
     container:SetScale(0.75)
@@ -250,16 +250,19 @@ assert(bags.SetEnabled(true) and bags.active and wowDetectorDB.bagIntegration.en
     "Enabled account setting must bind the native container integration")
 assert(container.OnHide == nativeOnHide and container.scripts.OnHide == nativeOnHide and #closeCallbacks == 1,
     "Position capture must use the native close event while preserving the XML-bound OnHide script")
-assert(container:MatchesBagID(5) and ContainerFrameSettingsManager:IsUsingCombinedBags(5),
-    "Reagent container routing must participate in the same native window")
-assert(not container:MatchesBagID(6), "Bank container routing changed")
+assert(container.MatchesBagID == nativeMatchesBagID and container.IsBagOpen == nativeIsBagOpen
+    and ContainerFrameSettingsManager.IsUsingCombinedBags == nativeIsUsingCombinedBags,
+    "BankFrameBaseMixin:OnShow must retain native routing through OpenAllBags")
+assert(combinedChanges == 1 and not container:MatchesBagID(5) and not container:MatchesBagID(6)
+    and not ContainerFrameSettingsManager:IsUsingCombinedBags(5),
+    "The native CVar must control combined bags and preserve separate reagent and bank routing")
 container:SetBagSize()
 container:UpdateItemSlots()
 hooks.UpdateItemSlots(container)
-assert(container.size == #container.Items and container.size == 32,
-    "Native enumeration size must include every pooled reagent slot exactly once")
+assert(container.size == #container.Items and container.size == 28,
+    "Presentation hooks must preserve the native combined enumeration")
 hooks.UpdateItemSlots(container)
-assert(container.size == #container.Items, "Reagent buttons were acquired twice")
+assert(container.size == #container.Items and container.size == 28, "Presentation hooks changed the pool size")
 for _, button in container:EnumerateValidItems() do
     assert(button.containerFrame == container, "Every native item button must retain its owning container")
 end
@@ -267,18 +270,8 @@ backpackExtra = 4
 container:SetBagSize()
 container:UpdateItemSlots()
 hooks.UpdateItemSlots(container)
-assert(container.size == #container.Items and container.size == 36,
-    "Native account-extension slots must remain part of the enumeration")
-slots[5] = 0
-container:SetBagSize()
-container:UpdateItemSlots()
-hooks.UpdateItemSlots(container)
 assert(container.size == #container.Items and container.size == 32,
-    "An unequipped reagent bag must preserve the native slot-count contract")
-slots[5] = 4
-container:SetBagSize()
-container:UpdateItemSlots()
-hooks.UpdateItemSlots(container)
+    "Native account-extension slots must remain part of the enumeration")
 container.meihang, container.suofang = 8, 1.1
 container:Show()
 container.scripts.OnShow(container)
@@ -459,23 +452,13 @@ assert(math.abs(fallbackX - 150) < 0.000001 and math.abs(fallbackY + 200) < 0.00
 container.pointOverride = nil
 assert(bags.SetEnabled(false) and not bags.active and cvar == "0",
     "Disabling must restore the prior combinedBags interface setting")
-assert(not container:MatchesBagID(5) and not ContainerFrameSettingsManager:IsUsingCombinedBags(5),
-    "Inactive native routing must delegate to its original interfaces")
-assert(bags.SetEnabled(true) and bags.active, "Native integration did not rebind")
+assert(combinedChanges == 2, "Restore the previous layout with the CVar only")
+SetCVar("combinedBags", "1")
+assert(bags.SetEnabled(true) and bags.active and combinedChanges == 3,
+    "Enabling must reuse the combined CVar if another addon already enabled it")
 assert(#closeCallbacks == 1, "Re-enabling integration must reuse its native close callback")
-rejectReagent = true
-container:SetBagSize()
-container:UpdateItemSlots()
-hooks.UpdateItemSlots(container)
-assert(container.size == #container.Items and container.size == 32,
-    "A rejected reagent initializer must leave the original native enumeration complete")
-for _, button in container:EnumerateValidItems() do
-    assert(button and button.containerFrame == container and button:GetBagID() ~= 5,
-        "Native enumeration contains an uninitialized item after rejection")
-end
-for _, callback in ipairs(pending) do callback() end
-assert(not bags.active and cvar == "0", "A rejected native interface must restore the prior UI setting")
-rejectReagent = false
+assert(bags.SetEnabled(false) and not bags.active and cvar == "1" and combinedChanges == 3,
+    "Disabling must retain the combined CVar if it was already enabled")
 loaded.Baganator = true
-assert(bags.SetEnabled(true) and not bags.active and cvar == "0", "A full bag replacement must retain native UI ownership")
-print("PASS: forerver native bag pool, reagent routing, presentation signatures and addon ownership contracts.")
+assert(bags.SetEnabled(true) and not bags.active and cvar == "1", "A full bag replacement must retain native UI ownership")
+print("PASS: forerver native bag routing, combined CVar event and presentation interface contracts.")

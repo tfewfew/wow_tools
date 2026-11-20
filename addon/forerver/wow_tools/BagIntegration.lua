@@ -1,5 +1,5 @@
--- Forever 1.60.1.70938, Gethe/wow-ui-source bebcb6bf309cf41b41bd74f8ca651e6a105b2676.
--- Extend the native container and its pooled buttons. Bag IDs and slot IDs stay native.
+-- Forever native container interfaces at Gethe/wow-ui-source 3d8abb1da73acd38e412e24fb3f99454a6392346.
+-- Group the item buttons the native combined container already owns.
 local module = { views = {}, settingsHeight = 240, active = false }
 WoWTools.bagIntegration = module
 local reagentBag = Enum.BagIndex.ReagentBag
@@ -7,7 +7,6 @@ local installed, applying = false, false
 local layoutTimer
 local retryLayout = false
 local opening = false
-local initializationError
 local status = "背包整合已关闭。"
 local decorations = {}
 local events = CreateFrame("Frame")
@@ -139,25 +138,25 @@ end
 local function Layout()
     local frame = ContainerFrameCombinedBags
     -- Native bag reflows also run in combat, and their grouped geometry must follow.
-    if not module.active or initializationError or not frame:IsShown() then return end
+    if not module.active or not frame:IsShown() then return end
     local conflict = Conflict()
     if conflict or InputUtil.IsGamepadUIEnabled() then Reconcile() return end
     local groups = {{}, {}, {}}
     local groupByBag = {}
-    for bagID = 0, reagentBag do
-        local group = BagGroup(bagID)
-        if not group then
-            retryLayout = true
-            events:RegisterEvent("BAG_UPDATE_DELAYED")
-            status = "背包类型暂不可读，等待背包数据更新。"
-            UpdateViews()
-            return
-        end
-        groupByBag[bagID] = group
-    end
     for _, button in frame:EnumerateValidItems() do
-        local group = groups[groupByBag[button:GetBagID()]]
-        if group then group[#group + 1] = button end
+        local bagID = button:GetBagID()
+        if bagID >= 0 and bagID <= reagentBag then
+            local group = groupByBag[bagID] or BagGroup(bagID)
+            if not group then
+                retryLayout = true
+                events:RegisterEvent("BAG_UPDATE_DELAYED")
+                status = "背包类型暂不可读，等待背包数据更新。"
+                UpdateViews()
+                return
+            end
+            groupByBag[bagID] = group
+            groups[group][#groups[group] + 1] = button
+        end
     end
     local template = C_XMLUtil.GetTemplateInfo(frame.itemButtonPool:GetTemplate())
     local columns = frame.meihang or frame:GetColumns()
@@ -225,62 +224,23 @@ ScheduleLayout = function()
 end
 
 local function NativeReady()
-    local frame, manager = ContainerFrameCombinedBags, ContainerFrameSettingsManager
-    return frame and manager and type(frame.AcquireNewItemButton) == "function"
-        and type(frame.EnumerateValidItems) == "function" and type(frame.UpdateItemSlots) == "function"
-        and type(frame.SetBagSize) == "function" and type(frame.MatchesBagID) == "function"
-        and type(frame.IsBagOpen) == "function" and type(frame.UpdateItemLayout) == "function"
+    local frame = ContainerFrameCombinedBags
+    return frame and type(frame.EnumerateValidItems) == "function" and type(frame.UpdateItemSlots) == "function"
+        and type(frame.UpdateItemLayout) == "function" and type(frame.UpdateFrameSize) == "function"
         and EventRegistry and type(EventRegistry.RegisterCallback) == "function"
         and type(ContainerFrame_GenerateFrame) == "function" and type(C_Timer.NewTimer) == "function"
-        and type(frame.UpdateFrameSize) == "function" and type(manager.IsUsingCombinedBags) == "function"
-        and type(manager.OnCombinedBagSettingChanged) == "function"
 end
 
 local function InstallHooks()
     if installed then return end
     installed = true
-    local frame, manager = ContainerFrameCombinedBags, ContainerFrameSettingsManager
-    local matchesBagID, isBagOpen, usingCombined = frame.MatchesBagID, frame.IsBagOpen, manager.IsUsingCombinedBags
-    frame.MatchesBagID = function(self, bagID)
-        if module.active and bagID == reagentBag then return true end
-        return matchesBagID(self, bagID)
-    end
-    frame.IsBagOpen = function(self, bagID)
-        if module.active and bagID == reagentBag and self:IsShown() then return bagID end
-        return isBagOpen(self, bagID)
-    end
-    manager.IsUsingCombinedBags = function(self, bagID)
-        if module.active and bagID == reagentBag then return true end
-        return usingCombined(self, bagID)
-    end
+    local frame = ContainerFrameCombinedBags
+    -- BankFrameBaseMixin opens bags before selecting its tab. Leave native bag routing intact
+    -- so that the subsequent protected first-tab purchase stays in the Blizzard execution path.
     hooksecurefunc(frame, "UpdateItemSlots", function(self)
         if not module.active or InputUtil.IsGamepadUIEnabled() then return end
         -- Native generation creates the slots before Show, so prepare the opening anchor here.
         if not self:IsShown() then RestorePosition() end
-        local nativeCount = #self.Items
-        -- Native enumeration is bounded by size, including any account-extension slots.
-        -- Publish the extra count only after every reagent button is initialized.
-        self.size = nativeCount
-        for _, button in ipairs(self.Items) do
-            if button:GetBagID() == reagentBag then return end
-        end
-        local size = C_Container.GetContainerNumSlots(reagentBag)
-        for slotID = size, 1, -1 do
-            local button = self:AcquireNewItemButton()
-            local initialized, message = pcall(button.Initialize, button, self, reagentBag, slotID)
-            if not initialized then
-                for index = #self.Items, nativeCount + 1, -1 do
-                    self.itemButtonPool:Release(self.Items[index])
-                    self.Items[index] = nil
-                end
-                initializationError = message
-                HideDecorations()
-                -- Finish the native generation with its original valid buttons before restoring its UI.
-                C_Timer.After(0, Reconcile)
-                return
-            end
-        end
-        self.size = #self.Items
     end)
     hooksecurefunc(frame, "UpdateItemLayout", ScheduleLayout)
     hooksecurefunc(frame, "UpdateFrameSize", ScheduleLayout)
@@ -309,33 +269,33 @@ local function InstallHooks()
 end
 
 local function ApplyActive(enabled)
-    if enabled == module.active and (not enabled or GetCVar("combinedBags") == "1") then
+    local combined = GetCVar("combinedBags")
+    if enabled == module.active and (not enabled or combined == "1") then
         ScheduleLayout()
         return
     end
     local config = Config()
-    local reopen = IsAnyBagOpen()
-    CloseAllBags()
-    HideDecorations()
-    ContainerFrameCombinedBags:ClearItems()
-    ContainerFrameCombinedBags.size = nil
-    if enabled then
-        InstallHooks()
-        if config.previousCombinedBags == nil then config.previousCombinedBags = GetCVar("combinedBags") end
-    end
     module.active = enabled
     if enabled then
-        SetCVar("combinedBags", "1")
+        InstallHooks()
+        if config.previousCombinedBags == nil then config.previousCombinedBags = combined end
+        -- The client applies combinedBags through USE_COMBINED_BAGS_CHANGED.
+        if combined ~= "1" then SetCVar("combinedBags", "1") end
+        ScheduleLayout()
     else
+        HideDecorations()
         retryLayout = false
         events:UnregisterEvent("BAG_UPDATE_DELAYED")
-        if (config.previousCombinedBags == "0" or config.previousCombinedBags == "1") and GetCVar("combinedBags") == "1" then
-            SetCVar("combinedBags", config.previousCombinedBags)
-        end
+        local previous = config.previousCombinedBags
         config.previousCombinedBags = nil
+        local frame = ContainerFrameCombinedBags
+        if combined == "1" and previous == "0" then
+            SetCVar("combinedBags", previous)
+        elseif combined == "1" and frame:IsShown() then
+            frame:UpdateFrameSize()
+            frame:UpdateItemLayout()
+        end
     end
-    ContainerFrameSettingsManager:OnCombinedBagSettingChanged(GetCVarBool("combinedBags"))
-    if reopen and not Conflict() then OpenBackpack() end
 end
 
 Reconcile = function()
@@ -352,10 +312,8 @@ Reconcile = function()
     if not NativeReady() then
         status = enabled and "等待原生背包界面加载。" or "背包整合已关闭。"
     else
-        ApplyActive(enabled and not conflict and not gamepad and not initializationError)
-        if initializationError then
-            status = "材料袋初始化失败，已暂停背包整合。关闭后重新开启可重试。"
-        elseif conflict then
+        ApplyActive(enabled and not conflict and not gamepad)
+        if conflict then
             status = "已暂停背包整合，" .. conflict .. " 正在接管背包。停用对应背包模块或插件并重载后可启用。"
         elseif gamepad then
             status = "手柄背包模式下暂停分区，使用客户端布局。"
@@ -371,7 +329,6 @@ function module.SetEnabled(enabled)
     local config = Config()
     if not config then return false end
     config.enabled = enabled == true
-    initializationError = nil
     Reconcile()
     return true
 end
@@ -388,7 +345,7 @@ function module.BuildSettings(parent)
     local hint = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     hint:SetPoint("TOPLEFT", 8, -48)
     hint:SetJustifyH("LEFT")
-    hint:SetText("从上到下显示普通背包、材料袋、弹药袋，各区以横线分隔。空分区自动隐藏。设置即时保存，战斗中切换此开关在脱战后生效。")
+    hint:SetText("整合窗口按普通背包、材料袋、弹药袋分区，空分区自动隐藏。客户端单独打开的材料袋沿用原生窗口。战斗中切换此开关在脱战后生效。")
     local compatibility = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     compatibility:SetPoint("TOPLEFT", 8, -110)
     compatibility:SetJustifyH("LEFT")
