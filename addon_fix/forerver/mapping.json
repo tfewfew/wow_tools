@@ -201,6 +201,17 @@
         "fixedEvidence": []
       }
     ],
+    "OpenMap": [
+      {
+        "id": "texture-fade-steps",
+        "description": "缩小地图时将新载入瓦片淡入的透明度档数从 8 提到 16，减少淡入的阶梯感。",
+        "variants": [
+          "texture-fade-steps/0.8.10/manifest.json"
+        ],
+        "skipFromVersion": null,
+        "fixedEvidence": []
+      }
+    ],
     "Questie": [
       {
         "id": "zone-proximity-sort",
