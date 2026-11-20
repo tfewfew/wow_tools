@@ -1,0 +1,34 @@
+--- a/OpenMap/Map/Stitch.lua
++++ b/OpenMap/Map/Stitch.lua
+@@ -2281,7 +2281,7 @@
+ -- set over its frames at the most: 60, not 300 (a frame setting 300 files was a 35 ms hitch on
+ -- a 240 Hz machine, each file set being a load and an upload, in testing: two seconds for the
+ -- detail to come in, and a pan into new ground arriving over a few more frames)
+-local LOAD_PER_FRAME = { 40, frames = 6, most = 60, steps = 16 }   -- (one local: the file is at Lua's limit of 200)
++local LOAD_PER_FRAME = { 40, frames = 6, most = 60 }   -- (one local: the file is at Lua's limit of 200)
+ local LOAD_FADE = 0.3           -- seconds
+ local loadQueue, loadAt = {}, 1
+ local fading, fadingN = {}, 0   -- texture -> when it got its file
+@@ -2300,7 +2300,6 @@
+ 			tex:SetTexture(tex.omFile, nil, nil, "TRILINEAR")
+ 			tex.omFile = nil
+ 			tex:SetAlpha(0)
+-			tex.omStep = 0
+ 			fading[tex] = now
+ 			fadingN = fadingN + 1
+ 			n = n + 1
+@@ -2314,13 +2313,7 @@
+ 			fading[tex] = nil
+ 			fadingN = fadingN - 1
+ 		else
+-			-- (in steps: a fade is a call to the client a frame for every texture fading, 700 and more while a
+-			-- zoom out brings the continents' tiles in; a step more than the eye sees is one it doesn't)
+-			local a = math.floor(t * t * (3 - 2 * t) * L_.steps + 0.5) / L_.steps
+-			if a ~= tex.omStep then
+-				tex.omStep = a
+-				tex:SetAlpha(a)
+-			end
++			tex:SetAlpha(t * t * (3 - 2 * t))
+ 		end
+ 	end
+ 	if loadAt == 1 and #loadQueue == 0 and fadingN == 0 then

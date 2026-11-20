@@ -204,9 +204,10 @@
     "OpenMap": [
       {
         "id": "texture-fade-steps",
-        "description": "缩小地图时将新载入瓦片淡入的透明度档数从 8 提到 16，减少淡入的阶梯感。",
+        "description": "恢复 OpenMap v0.8.9 的逐帧瓦片淡入曲线，减少缩小地图时淡入的阶梯感。",
         "variants": [
-          "texture-fade-steps/0.8.10/manifest.json"
+          "texture-fade-steps/0.8.10/manifest.json",
+          "texture-fade-steps/0.8.10-16-step-trial/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
