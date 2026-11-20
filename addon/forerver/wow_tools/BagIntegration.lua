@@ -5,6 +5,7 @@ WoWTools.bagIntegration = module
 local reagentBag = Enum.BagIndex.ReagentBag
 local installed, applying = false, false
 local layoutTimer
+local backpackUpdatePending, openedWithBackpack = false, false
 local retryLayout = false
 local opening = false
 local status = "背包整合已关闭。"
@@ -129,7 +130,6 @@ local function RememberReagentAnchor(dock)
     local point, relative, relativePoint, x, y = frame:GetPoint(1)
     if point == "TOPRIGHT" and relative == UIParent and relativePoint == "BOTTOMLEFT" and x == -32 and y == -32 then return end
     dock.anchor = point and {point, relative, relativePoint, x, y}
-    dock.scale = frame:GetScale()
 end
 
 local function RestoreReagentLayout()
@@ -137,26 +137,28 @@ local function RestoreReagentLayout()
     if not dock then return end
     dockedReagent = nil
     local frame = dock.frame
-    frame:SetFrameLevel(dock.level)
+    for button, level in pairs(dock.buttonLevels) do
+        button:ClearAllPoints()
+        button:SetParent(frame)
+        button:SetFrameLevel(level)
+    end
     frame:SetClampedToScreen(dock.clamped)
-    frame:SetScale(dock.scale)
     frame:ClearAllPoints()
     if dock.anchor then frame:SetPoint(unpack(dock.anchor, 1, 5)) end
     if frame:IsShown() then frame:UpdateItemLayout() end
 end
 
-local function DockReagent(reagent, combined)
+local function DockReagent(reagent)
     if not dockedReagent then
-        dockedReagent = {frame = reagent, level = reagent:GetFrameLevel(), clamped = reagent:IsClampedToScreen()}
+        dockedReagent = {frame = reagent, clamped = reagent:IsClampedToScreen(), buttonLevels = {}}
         RememberReagentAnchor(dockedReagent)
     end
-    -- Keep the native frame shown and the buttons parented to it. Park only its window chrome
-    -- outside the screen so its title bar and buttons cannot intercept clicks in the combined window.
+    -- Keep the native bag and its pool active. The window chrome can sit off-screen because
+    -- the items are parented to the visible combined window for mouse hit testing.
     reagent:SetClampedToScreen(false)
-    reagent:SetScale(combined:GetEffectiveScale() / reagent:GetParent():GetEffectiveScale())
-    reagent:SetFrameLevel(combined:GetFrameLevel() + 1)
     reagent:ClearAllPoints()
     reagent:SetPoint("TOPRIGHT", UIParent, "BOTTOMLEFT", -32, -32)
+    return dockedReagent.buttonLevels
 end
 
 local function BagGroup(bagID)
@@ -204,9 +206,17 @@ local function Layout()
     if not Integer(columns) or columns < 1 or not template then return end
     local reagent = GetShownReagent()
     if reagent then
+        local buttonLevels = DockReagent(reagent)
         for _, button in reagent:EnumerateValidItems() do
+            if button:GetParent() ~= frame then
+                buttonLevels[button] = buttonLevels[button] or button:GetFrameLevel()
+                button:SetParent(frame)
+            end
+            button:SetFrameLevel(frame:GetFrameLevel() + 1)
             groups[2][#groups[2] + 1] = button
         end
+    else
+        RestoreReagentLayout()
     end
     local itemWidth, itemHeight = template.width, template.height
     local width = columns * itemWidth + (columns - 1) * 5 + frame:GetPaddingWidth()
@@ -254,7 +264,6 @@ local function Layout()
     frame:LayoutAddSlots()
     -- Native opening and movement addons own the window anchors during item reflows.
     ApplyScale(frame)
-    if reagent then DockReagent(reagent, frame) else RestoreReagentLayout() end
     retryLayout = false
     events:UnregisterEvent("BAG_UPDATE_DELAYED")
     status = "背包整合已开启，按普通背包、材料袋、弹药袋分区显示。"
@@ -271,12 +280,35 @@ ScheduleLayout = function()
     end)
 end
 
+local function ScheduleBackpackReagent()
+    if not module.active or backpackUpdatePending then return end
+    backpackUpdatePending = true
+    C_Timer.After(0, function()
+        backpackUpdatePending = false
+        -- Opening the bank already runs its own OpenAllBags before selecting a protected tab.
+        if not module.active or InputUtil.IsGamepadUIEnabled() or (BankFrame and BankFrame:IsShown()) then return end
+        if ContainerFrameCombinedBags:IsShown() then
+            local slots = C_Container.GetContainerNumSlots(reagentBag)
+            if not GetShownReagent() and Integer(slots) and slots > 0 then
+                OpenBag(reagentBag)
+                openedWithBackpack = GetShownReagent() and true or false
+                if openedWithBackpack then RestorePosition() end
+            end
+        elseif openedWithBackpack then
+            openedWithBackpack = false
+            if GetShownReagent() then CloseBag(reagentBag) end
+        end
+    end)
+end
+
 local function NativeReady()
     local frame = ContainerFrameCombinedBags
     return frame and type(frame.EnumerateValidItems) == "function" and type(frame.UpdateItemSlots) == "function"
         and type(frame.UpdateItemLayout) == "function" and type(frame.UpdateFrameSize) == "function"
         and EventRegistry and type(EventRegistry.RegisterCallback) == "function"
         and type(ContainerFrame_GenerateFrame) == "function" and type(UpdateContainerFrameAnchors) == "function"
+        and MainMenuBarBackpackButton and type(MainMenuBarBackpackButton.HookScript) == "function"
+        and type(ToggleBackpack) == "function" and type(OpenBag) == "function" and type(CloseBag) == "function"
         and type(C_Timer.NewTimer) == "function"
 end
 
@@ -294,6 +326,10 @@ local function InstallHooks()
     hooksecurefunc(frame, "UpdateItemLayout", ScheduleLayout)
     hooksecurefunc(frame, "UpdateFrameSize", ScheduleLayout)
     if ContainerFrame6 then
+        hooksecurefunc("ToggleBackpack", ScheduleBackpackReagent)
+        MainMenuBarBackpackButton:HookScript("OnClick", function(_, button)
+            if button == "LeftButton" then ScheduleBackpackReagent() end
+        end)
         hooksecurefunc(ContainerFrame6, "UpdateItemLayout", function(container)
             if container:GetBagID() == reagentBag then ScheduleLayout() end
         end)
@@ -324,7 +360,8 @@ local function InstallHooks()
             SavePosition(container)
             opening = false
             RestoreReagentLayout()
-        elseif dockedReagent and container == dockedReagent.frame then
+        elseif container == ContainerFrame6 then
+            openedWithBackpack = false
             RestoreReagentLayout()
             ScheduleLayout()
         end
@@ -348,6 +385,7 @@ local function ApplyActive(enabled)
     else
         HideDecorations()
         RestoreReagentLayout()
+        openedWithBackpack = false
         retryLayout = false
         events:UnregisterEvent("BAG_UPDATE_DELAYED")
         local previous = config.previousCombinedBags
@@ -409,7 +447,7 @@ function module.BuildSettings(parent)
     local hint = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     hint:SetPoint("TOPLEFT", 8, -48)
     hint:SetJustifyH("LEFT")
-    hint:SetText("整合窗口按普通背包、材料袋、弹药袋分区，空分区自动隐藏。打开所有背包时一并显示已装备的材料袋。战斗中切换此开关在脱战后生效。")
+    hint:SetText("整合窗口按普通背包、材料袋、弹药袋分区，空分区自动隐藏。打开行囊时一并显示已装备的材料袋。战斗中切换此开关在脱战后生效。")
     local compatibility = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     compatibility:SetPoint("TOPLEFT", 8, -110)
     compatibility:SetJustifyH("LEFT")

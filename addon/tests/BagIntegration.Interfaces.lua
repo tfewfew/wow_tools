@@ -210,15 +210,15 @@ function container:GetFrameLevel() return 10 end
 local reagent = Region("Frame")
 ContainerFrame6 = reagent
 local reagentButton = Region("ItemButton")
+reagentButton.containerFrame, reagentButton.parent, reagentButton.level = reagent, reagent, 10
 function reagentButton:GetBagID() return 5 end
 function reagentButton:GetID() return 1 end
-function reagentButton:GetParent() return reagent end
+function reagentButton:GetParent() return self.parent end
+function reagentButton:SetParent(parent) self.parent = parent end
+function reagentButton:GetFrameLevel() return self.level end
+function reagentButton:SetFrameLevel(level) self.level = level end
 function reagent:GetBagID() return 5 end
-function reagent:GetParent() return UIParent end
-function reagent:GetScale() return self.scale end
 function reagent:SetScale(value) assert(value > 0) self.scale = value end
-function reagent:GetFrameLevel() return self.level end
-function reagent:SetFrameLevel(value) assert(type(value) == "number") self.level = value end
 function reagent:IsClampedToScreen() return self.clamped end
 function reagent:SetClampedToScreen(value) assert(type(value) == "boolean") self.clamped = value end
 function reagent:GetPoint() return unpack(self.anchor, 1, 5) end
@@ -231,8 +231,31 @@ function reagent:UpdateItemLayout()
     reagentButton:SetPoint("TOPLEFT", self, "TOPLEFT", 4, -8)
     hooks.reagentLayout(self)
 end
-reagent.scale, reagent.level, reagent.clamped = 0.75, 4, true
+reagent.scale, reagent.clamped = 0.75, true
 reagent:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -42, 85)
+reagent.scripts.OnHide = function(self) EventRegistry:TriggerEvent("ContainerFrame.CloseBag", self) end
+local backpack = Region("ItemButton")
+MainMenuBarBackpackButton = backpack
+function backpack:HookScript(event, callback)
+    assert(event == "OnClick" and type(callback) == "function")
+    self.scripts[event] = callback
+end
+BankFrame = Region("Frame")
+local reagentOpens, reagentCloses = 0, 0
+function OpenBag(id)
+    assert(id == 5 and container:IsShown(), "Backpack companion must open only the native reagent bag")
+    reagentOpens = reagentOpens + 1
+    reagent:Show()
+    reagent:UpdateItemLayout()
+end
+function CloseBag(id)
+    assert(id == 5 and not container:IsShown(), "Backpack companion must close only the native reagent bag")
+    reagentCloses = reagentCloses + 1
+    reagent:Hide()
+end
+function ToggleBackpack()
+    if container:IsShown() then container:Hide() else container:Show() end
+end
 ContainerFrameSettingsManager = {
     IsUsingCombinedBags = function(_, bagID) return (not bagID or bagID <= 4) and cvar == "1" end,
     OnCombinedBagSettingChanged = function() error("Only the native CVar event may call this handler") end,
@@ -269,7 +292,7 @@ NineSliceUtil = {UpdateCornerCropping = function(frame, height)
 end}
 function hooksecurefunc(target, method, callback)
     if type(target) == "string" then
-        assert((target == "ContainerFrame_GenerateFrame" or target == "UpdateContainerFrameAnchors")
+        assert((target == "ContainerFrame_GenerateFrame" or target == "UpdateContainerFrameAnchors" or target == "ToggleBackpack")
             and type(_G[target]) == "function" and type(method) == "function",
             "Native generation and window placement must use post-hooks")
         local native = _G[target]
@@ -497,16 +520,35 @@ SetCVar("combinedBags", "1")
 assert(bags.SetEnabled(true) and bags.active and combinedChanges == 3,
     "Enabling must reuse the combined CVar if another addon already enabled it")
 assert(#closeCallbacks == 1, "Re-enabling integration must reuse its native close callback")
-container:Show()
-reagent:Show()
-reagent:UpdateItemLayout()
+BankFrame:Show()
+ToggleBackpack()
+backpack.scripts.OnClick(backpack, "LeftButton")
 for _, callback in ipairs(pending) do callback() end
 pending = {}
-assert(reagent:IsShown() and reagentButton:GetParent() == reagent and reagentButton.anchor[2] == container,
-    "The material section must anchor the real native buttons without changing their owning frame")
+assert(reagentOpens == 0 and not reagent:IsShown(), "The backpack hooks must leave the open bank's native bag routing alone")
+BankFrame:Hide()
+container:Hide()
+container:Show()
+backpack.scripts.OnClick(backpack, "LeftButton")
+for _, callback in ipairs(pending) do callback() end
+pending = {}
+assert(reagentOpens == 1 and reagent:IsShown(), "Clicking the backpack must open its equipped native reagent bag")
+assert(reagentButton:GetParent() == container and reagentButton.anchor[2] == container
+    and reagentButton.containerFrame == reagent and reagentButton:GetBagID() == 5 and reagentButton:GetID() == 1,
+    "The native button must participate in the combined window's input hierarchy while retaining its bag and slot identity")
 assert(reagent.anchor[1] == "TOPRIGHT" and reagent.anchor[2] == UIParent and reagent.anchor[3] == "BOTTOMLEFT"
-    and reagent.scale == container:GetEffectiveScale() / UIParent:GetEffectiveScale() and reagent.level > container:GetFrameLevel(),
-    "The material buttons must share the combined window scale while their chrome is outside the screen")
+    and reagentButton:GetFrameLevel() > container:GetFrameLevel(), "The visible item must be above the combined window's chrome")
+ToggleBackpack()
+backpack.scripts.OnClick(backpack, "LeftButton")
+for _, callback in ipairs(pending) do callback() end
+pending = {}
+assert(reagentCloses == 1 and not reagent:IsShown() and reagentButton:GetParent() == reagent,
+    "Closing the backpack must return the button to its native reagent frame and close the automatically opened bag")
+ToggleBackpack()
+backpack.scripts.OnClick(backpack, "LeftButton")
+for _, callback in ipairs(pending) do callback() end
+pending = {}
+assert(reagentOpens == 2, "The keyboard and click hooks must share the same native bag request")
 UpdateContainerFrameAnchors()
 for _, callback in ipairs(pending) do callback() end
 pending = {}
@@ -515,8 +557,9 @@ assert(reagent.anchor[1] == "TOPRIGHT" and reagentButton.anchor[2] == container,
 assert(bags.SetEnabled(false) and not bags.active and cvar == "1" and combinedChanges == 3,
     "Disabling must retain the combined CVar if it was already enabled")
 assert(reagent:IsShown() and reagent.anchor[1] == "BOTTOMRIGHT" and reagent.anchor[4] == -90
-    and reagent.scale == 0.8 and reagent.level == 4 and reagent.clamped and reagentButton.anchor[2] == reagent,
-    "Disabling must restore native window anchors, scale, frame level and item layout")
+    and reagent.clamped and reagentButton:GetParent() == reagent and reagentButton.anchor[2] == reagent
+    and reagentButton:GetFrameLevel() == 10,
+    "Disabling must restore the native window and return the item button to its native parent and frame level")
 loaded.Baganator = true
 assert(bags.SetEnabled(true) and not bags.active and cvar == "1", "A full bag replacement must retain native UI ownership")
 print("PASS: forerver native bag routing, combined CVar event and presentation interface contracts.")
