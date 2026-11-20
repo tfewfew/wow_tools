@@ -18,7 +18,8 @@
         "id": "profession-panel-close",
         "description": "专业数据在关闭角色技能面板时刷新一次，保留初始采集及原有分类折叠状态。",
         "variants": [
-          "profession-panel-close/12.8.0/manifest.json"
+          "profession-panel-close/12.8.0/manifest.json",
+          "profession-panel-close/12.0.3/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []

@@ -40,7 +40,10 @@ local records = {
     [356] = {name = "Fishing", rank = 0, maxRank = 75},
     [794] = {name = "Archaeology", rank = 0, maxRank = 0},
 }
-env.C_SkillInfo = {GetSkillLineInfoByID = function(id) return records[id] end}
+env.C_SkillInfo = {
+    GetNumSkillLines = function() return count end,
+    GetSkillLineInfoByID = function(id) return records[id] end,
+}
 Load("Modules/QuestieProfessions.lua")
 local professions = modules.QuestieProfessions
 professions:Init()
@@ -66,8 +69,13 @@ local function Lines()
     if not secondaryCollapsed then lines[#lines + 1] = {"Fishing", false, false, 75} end
     return lines
 end
-env.GetSkillLineInfo = function(index) return unpack(assert(Lines()[index])) end
+env.GetSkillLineInfo = function(index)
+    local line = assert(Lines()[index])
+    if failRead and line[1] == "Alchemy" then error("Unavailable skill row") end
+    return unpack(line)
+end
 compat.GetNumSkillLines = function() return #Lines() end
+env.GetNumSkillLines = compat.GetNumSkillLines
 compat.GetSkillLineInfo = function(index)
     if failRead then error("Unavailable skill row") end
     local name, header, _, rank = env.GetSkillLineInfo(index)
@@ -76,6 +84,10 @@ end
 compat.ExpandAllSkillHeaders = function()
     collapsed, secondaryCollapsed = false, false
     if failExpand then error("Partial expansion failure") end
+end
+env.ExpandSkillHeader = function(index)
+    assert(index == 0, "The native expand-all entry requires index zero")
+    compat.ExpandAllSkillHeaders()
 end
 env.CollapseSkillHeader = function(index)
     local name = env.GetSkillLineInfo(index)

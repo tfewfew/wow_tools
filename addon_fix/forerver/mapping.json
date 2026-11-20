@@ -116,6 +116,21 @@
               }
             ],
             "checkedAt": "2026-11-19T00:13:28+00:00"
+          },
+          {
+            "version": "2.1.118",
+            "reason": "核对 2.1.118 的 TOC、Hui.lua 及已安装 DungeonsForever 系列 Lua/XML 引用。Hui.lua 指纹与已核实的 2.1.117 相同，TOC 继续加载该文件，ExtTipSkin、CollectForeign、SkinGameTooltip、RefreshGameTooltipSkin 及原提示框 OnUpdate 轮询链均未恢复，沿用 2.1.99 停止边界。",
+            "files": [
+              {
+                "path": "DungeonsForever/Core/Hui.lua",
+                "sha256": "ea8160197623527a467e48503aeb56a46bf78189adb4f9c5154b6de016fa1118"
+              },
+              {
+                "path": "DungeonsForever/DungeonsForever.toc",
+                "sha256": "ded68a2759a047ee89e0269f8f68a09a310ab92030c4023f4f13992cc490700c"
+              }
+            ],
+            "checkedAt": "2026-11-20T04:52:20+00:00"
           }
         ]
       }
@@ -153,7 +168,8 @@
           "background-scans/2.0.3-20261116/manifest.json",
           "background-scans/2.0.3-20261117/manifest.json",
           "background-scans/2.0.3-20261118/manifest.json",
-          "background-scans/2.0.3-20261119/manifest.json"
+          "background-scans/2.0.3-20261119/manifest.json",
+          "background-scans/2.0.3-20261120/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
@@ -195,8 +211,36 @@
           "zone-proximity-sort/12.9.0/manifest.json",
           "zone-proximity-sort/12.10.0/manifest.json"
         ],
-        "skipFromVersion": null,
-        "fixedEvidence": []
+        "skipFromVersion": "12.11.1",
+        "fixedEvidence": [
+          {
+            "version": "12.11.1",
+            "reason": "Questie 12.11.1 的构建标签 bundle/curse/v12.11.1+v1.1.3（0a737719fb04496d9e004f0516fd6c747c4d3def）中 TrackerUtils.lua 与安装文件 SHA256 完全一致。两种区域距离排序在取组内最小距离前刷新 TrackerQuestTimers 并过滤未追踪或隐藏任务，DistanceUtils.GetNearestSpawnForQuest 继续使用未完成目标或交任务地点，区域比较按方向排序并将未知地点组置后。核对 Forever TOC、计时方法和 QuestSection 的显示条件后，从 12.11.1 停止应用该补丁。",
+            "files": [
+              {
+                "path": "Questie/Modules/Tracker/TrackerUtils.lua",
+                "sha256": "b5c5edd65bdfd76bbe76fc0d6afa7295246d3c8648175c408b34fa435837f03f"
+              },
+              {
+                "path": "Questie/Modules/Tracker/TrackerQuestTimers.lua",
+                "sha256": "0ff14c74dbe10a7d27974ee33e38b63eb4842be840d12e08e0e5795cdbc39f54"
+              },
+              {
+                "path": "Questie/Modules/Tracker/Sections/QuestSection.lua",
+                "sha256": "e00e753dab2976cb80aff33a17ff13c15cdc2e6ad7aabb70c7a44a0d0b72a82c"
+              },
+              {
+                "path": "Questie/Modules/Libs/DistanceUtils.lua",
+                "sha256": "ec1d24b3340caa09f2d189a851ac1490dded2b3c27658940cd1c373874dd5141"
+              },
+              {
+                "path": "Questie/Questie_Forever.toc",
+                "sha256": "0f1455a7baba92c27295e44374768ae6a355eb44054601af9ab395e327762adb"
+              }
+            ],
+            "checkedAt": "2026-11-20T04:52:20+00:00"
+          }
+        ]
       },
       {
         "id": "profession-panel-close",

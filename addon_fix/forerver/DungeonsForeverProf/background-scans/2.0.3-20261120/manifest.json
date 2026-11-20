@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "plugin": "DungeonsForeverProf",
+  "id": "background-scans",
+  "version": "2.0.3",
+  "patch": "fix.patch",
+  "patchSha256": "6e5ad2905fb757fc21630fc69930cf625cc7f3cfca0cc1a5dba18b8788cd7203",
+  "files": [
+    {
+      "path": "DungeonsForeverProf/Core/ProfFollow.lua",
+      "originalSha256": "240ee20ca7c020055805320fb92f86ff24b4fe1a9158c85c5710a1628ec05712",
+      "patchedSha256": "dbbc099af2e9375c1949cbf2ea9876494d4fbdcf2ddbc8f161e20c492e8975db"
+    },
+    {
+      "path": "DungeonsForeverProf/Core/ProfessionUI.lua",
+      "originalSha256": "931f6c8c1f919f65c4defce2ce147d31da1a2640e9a57428c1f001cc6faeb620",
+      "patchedSha256": "aa52e9bd26e83cda102814ca0cf109a1a8ad6a90c04e13e2b67691bd2340245a"
+    }
+  ],
+  "loadOrder": [
+    "Core/ProfessionUI.lua",
+    "Core/ProfFollow.lua"
+  ]
+}

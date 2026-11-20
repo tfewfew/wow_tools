@@ -1,0 +1,174 @@
+--- a/Questie/Modules/QuestieProfessions.lua
++++ b/Questie/Modules/QuestieProfessions.lua
+@@ -21,7 +21,7 @@
+ local alternativeProfessionNames = {}
+ 
+ -- Fast local references
+-local ExpandSkillHeader, GetNumSkillLines, GetSkillLineInfo, IsSpellKnown = ExpandSkillHeader, GetNumSkillLines, GetSkillLineInfo, QuestieCompat.IsSpellKnown
++local IsSpellKnown = QuestieCompat.IsSpellKnown
+ 
+ -- Modern clients may omit this legacy API. A missing hook target must not abort the profession definitions below.
+ if AbandonSkill then
+@@ -60,6 +60,72 @@
+     QuestieProfessions.professionTable = professionTable
+ end
+ 
++local function ReadPlayerProfessions()
++    local professions = {}
++    local getCount = C_SkillInfo and C_SkillInfo.GetNumSkillLines or GetNumSkillLines
++    if C_SkillInfo and type(C_SkillInfo.GetSkillLineInfoByID) == "function" then
++        local count = getCount and getCount()
++        if not count or count <= 0 then return nil end
++        for _, professionId in pairs(QuestieProfessions.professionKeys) do
++            local info = C_SkillInfo.GetSkillLineInfoByID(professionId)
++            if issecretvalue and issecretvalue(info) then return nil end
++            if info then
++                if issecretvalue and (issecretvalue(info.name) or issecretvalue(info.rank)
++                    or issecretvalue(info.maxRank)) then return nil end
++                if type(info.name) ~= "string" or type(info.rank) ~= "number"
++                    or type(info.maxRank) ~= "number" then return nil end
++                if info.maxRank > 0 then professions[professionId] = {info.name, info.rank} end
++            end
++        end
++        return professions
++    end
++
++    if not GetSkillLineInfo then
++        -- Profession indices can contain empty slots before learned secondary professions.
++        for _, index in pairs({GetProfessions()}) do
++            local name, _, rank, _, _, _, professionId = GetProfessionInfo(index)
++            if name and rank and professionId then professions[professionId] = {name, rank} end
++        end
++        return professions
++    end
++
++    if not ExpandSkillHeader or not CollapseSkillHeader then return nil end
++    local count = GetNumSkillLines()
++    if not count or count <= 0 then return nil end
++    local collapsed = {}
++    for index = 1, count do
++        local name, isHeader, isExpanded = GetSkillLineInfo(index)
++        if isHeader and not isExpanded then collapsed[name] = true end
++    end
++
++    local ok = pcall(function()
++        ExpandSkillHeader(0)
++        -- MoP's Ways of Cooking add skill lines before the weapon skills.
++        local maxSkillLineToCheck = Expansions.Current >= Expansions.MoP and 20 or 14
++        for index = 1, math.min(GetNumSkillLines(), maxSkillLineToCheck) do
++            local name, isHeader, _, rank = GetSkillLineInfo(index)
++            local professionId = professionTable[name]
++            if name and not isHeader and professionId then
++                if type(rank) ~= "number" then error("Profession rank unavailable") end
++                professions[professionId] = {name, rank}
++            end
++        end
++    end)
++
++    -- Restore the original collapsed categories even if expansion or a read failed.
++    local countOK, restoreCount = pcall(GetNumSkillLines)
++    if not countOK or type(restoreCount) ~= "number" then return nil end
++    for index = restoreCount, 1, -1 do
++        local readable, name, isHeader, isExpanded = pcall(GetSkillLineInfo, index)
++        if not readable then
++            ok = false
++        elseif isHeader and isExpanded and collapsed[name] then
++            if not pcall(CollapseSkillHeader, index) then ok = false end
++        end
++    end
++    return ok and professions or nil
++end
++
+ ---Refreshes known professions and reports changes that can affect available quests.
+ ---@return boolean HasProfessionUpdate @True for a skill threshold increase, a new profession, or an unlearned profession.
+ ---@return boolean HasNewProfession @Returns true if the player has learned a new profession
+@@ -68,31 +134,8 @@
+     local hasProfessionUpdate = false
+     local hasNewProfession = false
+ 
+-    --- Used to compare to be able to detect if a profession has been learned
+-    local temporaryPlayerProfessions = {}
+-
+-    if GetSkillLineInfo then
+-        ExpandSkillHeader(0)
+-        -- MoP's "Ways of Cooking" add skill lines before the weapon skills.
+-        local maxSkillLineToCheck = Expansions.Current >= Expansions.MoP and 20 or 14
+-        for i = 1, GetNumSkillLines() do
+-            if i > maxSkillLineToCheck then break end
+-
+-            local skillName, isHeader, _, skillRank = GetSkillLineInfo(i)
+-            if (not isHeader) and professionTable[skillName] then
+-                temporaryPlayerProfessions[professionTable[skillName]] = {skillName, skillRank}
+-            end
+-        end
+-    else
+-        -- Modern APIs return profession indices, with nil slots for unknown professions.
+-        -- pairs preserves secondary professions even when a primary-profession slot is empty.
+-        for _, professionIndex in pairs({GetProfessions()}) do
+-            local skillName, _, skillRank, _, _, _, professionId = GetProfessionInfo(professionIndex)
+-            if skillName and skillRank and professionId then
+-                temporaryPlayerProfessions[professionId] = {skillName, skillRank}
+-            end
+-        end
+-    end
++    local ok, temporaryPlayerProfessions = pcall(ReadPlayerProfessions)
++    if not ok or not temporaryPlayerProfessions then return false, false end
+ 
+     for professionId, _ in pairs(temporaryPlayerProfessions) do
+         if not playerProfessions[professionId] then
+@@ -112,7 +155,7 @@
+             end
+         end
+     end
+-    -- Modern clients have no AbandonSkill hook. The skill-change event supplies the new snapshot.
++    -- Modern clients have no AbandonSkill hook. The next panel-close refresh supplies the new snapshot.
+     for professionId, profession in pairs(playerProfessions) do
+         if not temporaryPlayerProfessions[professionId] then
+             Questie.Debug(Questie.DEBUG_DEVELOP, "Unlearned profession: " .. profession[1] .. "(" .. professionId .. ")")
+--- a/Questie/Modules/EventHandler/EventHandler.lua
++++ b/Questie/Modules/EventHandler/EventHandler.lua
+@@ -4,6 +4,16 @@
+ ---@class EventHandler
+ local EventHandler = QuestieLoader:CreateModule("EventHandler")
+ local _EventHandler = {}
++
++local skillCloseHooked = false
++local function HookSkillPanelClose()
++    if skillCloseHooked then return true end
++    local panel = SkillFrame
++    if not panel then return false end
++    panel:HookScript("OnHide", _EventHandler.ChatMsgSkill)
++    skillCloseHooked = true
++    return true
++end
+ 
+ -------------------------
+ --Import modules.
+@@ -109,11 +119,13 @@
+         QuestieTracker.HandleZoneChanged()
+     end)
+ 
+-    -- Events to update a players professions and reputations
+-    Questie:RegisterBucketEvent("CHAT_MSG_SKILL", 2, _EventHandler.ChatMsgSkill)
+-    if not GetSkillLineInfo then
+-        -- Modern unlearning need not print CHAT_MSG_SKILL and has no legacy AbandonSkill hook.
+-        Questie:RegisterBucketEvent("SKILL_LINES_CHANGED", 2, _EventHandler.ChatMsgSkill)
++    -- Profession refreshes run once when the character skills panel closes.
++    if not HookSkillPanelClose() then
++        local loader = CreateFrame("Frame")
++        loader:RegisterEvent("ADDON_LOADED")
++        loader:SetScript("OnEvent", function(self)
++            if HookSkillPanelClose() then self:UnregisterEvent("ADDON_LOADED") end
++        end)
+     end
+     Questie:RegisterBucketEvent("CHAT_MSG_COMBAT_FACTION_CHANGE", 2, function()
+         QuestEventHandler.ReputationChange()
+@@ -540,7 +552,7 @@
+     end
+ end
+ 
+----Refreshes skill-gated quests after skill chat or modern skill-line changes.
++---Refreshes skill-gated quests after the character skills panel closes.
+ function _EventHandler:ChatMsgSkill()
+     Questie.Debug(Questie.DEBUG_DEVELOP, "[EVENT] Profession skills changed")
+ 
