@@ -1087,20 +1087,19 @@ do
 
         local createFrame = CreateFrame
         local unitExists, unitVisible, unitReady, getTime = UnitExists, UnitIsVisible, IsUnitModelReadyForUI, GetTime
-        local model, cameraConfigured
+        local model, cameraConfigured, modelAlpha
         CreateFrame = function(kind, ...)
             local frame = createFrame(kind, ...)
             if kind == "PlayerModel" then
                 model = frame
                 frame.ClearModel = function() end
                 frame.GetModelFileID = function() return 0 end
+                frame.SetModelAlpha = function(_, alpha) modelAlpha = alpha end
                 frame.SetCamDistanceScale = function(_, value) assert(type(value) == "number") end
                 frame.SetPosition = function(_, x, y, z) assert(x == 0 and y == 0 and z == 0) end
                 frame.SetPortraitZoom = function(_, zoom) cameraConfigured = zoom == 1 end
-                frame.SetUnit = function(self, unit, blend, ...)
+                frame.SetUnit = function(_, unit, blend, ...)
                     assert(unit == "targettarget" and blend == false and select("#", ...) == 0)
-                    self:GetScript("OnModelLoaded")(self)
-                    assert(cameraConfigured, "The native model-loaded callback must accept a portrait with no file ID")
                     return true
                 end
             end
@@ -1119,6 +1118,9 @@ do
         unitFrame.portrait.GetSize = function() return 36, 36 end
         unitPortraitHook(unitFrame)
         assert(model and cameraConfigured, "Target-of-target PlayerModel contract failed")
+        assert(modelAlpha == nil, "SetUnit success is not a model-loaded signal")
+        model:GetScript("OnModelLoaded")(model)
+        assert(modelAlpha == 1, "The native model-loaded callback must configure the portrait with no file ID")
         CreateFrame, UnitGUID, GetTime = createFrame, originalGUID, getTime
         UnitExists, UnitIsVisible, IsUnitModelReadyForUI = unitExists, unitVisible, unitReady
     end

@@ -188,11 +188,12 @@ local function SetPortraitCamera(e)
 	e.model:SetPosition(0, 0, 0)
 end
 
-local function ModelLoaded(e)
+local function ModelLoaded(e, signal)
 	e.loaded = true
-	-- Apply the portrait camera once the async model is ready.
 	if IsTargetOfTarget(e.unit) then
+		e.loadSignal = signal
 		if ModelFileReady(e.model) == true then e.hadModelFile = true end
+		if e.model.SetModelAlpha then e.model:SetModelAlpha(1) end
 		SetPortraitCamera(e)
 	end
 	ns.style.Animate(e)
@@ -321,7 +322,7 @@ local function Build(texture, e)
 	model:SetScript("OnModelLoaded", function()
 		local entry = entries[texture]
 		if not entry or not entry.unit or entry.dirty then return end
-		ModelLoaded(entry)
+		ModelLoaded(entry, "OnModelLoaded")
 		if Wanted(texture, entry) then Show3D(texture) end
 	end)
 	-- Hidden with its frame (a party frame put away, the interface hidden) the
@@ -487,13 +488,15 @@ local function Refresh(texture, force)
 		Layout(texture, e)
 	end
 	local model = e.model
-	-- Clear the previous unit before Show, which may fire OnModelLoaded.
+	-- Clear a previous unit or an instance that has actually lost its model.
+	-- Keep the load marked dirty through ClearModel and Show.
 	local fresh = e.dirty and not e.shown
-	if fresh then model:ClearModel() end
+	local missing = e.dirty and e.reloadMissing and ModelFileReady(model) == false
+	if fresh or missing then model:ClearModel() end
 	if not model:IsShown() then model:Show() end
 	if e.dirty then
-		e.dirty = false
-		e.loaded = false
+		e.dirty, e.loaded = false, false
+		e.checking, e.loadSignal, e.reloadMissing = nil, nil, nil
 		local ok, set = ns.style.Load(model, e.unit)
 		if not ok or (not Secret(set) and set == false) then
 			e.modelError = not ok and tostring(set) or "客户端拒绝加载该单位模型"
@@ -517,11 +520,8 @@ local function Refresh(texture, force)
 		-- a load under way is given its time before Recheck tries again
 		e.tried = e.loadedAt
 		SetPortraitCamera(e)
-		-- A ready unit can bind successfully from cache without a callback or
-		-- a file ID for the assembled portrait.
-		if not e.loaded and unitReady and not Secret(set) and set == true then
-			ModelLoaded(e)
-		end
+		-- SetUnit accepts a binding before the model is drawn. Wait for
+		-- OnModelLoaded or a populated model file even when it returns true.
 	end
 
 	-- a model already on screen stays while the same unit loads again
@@ -529,15 +529,14 @@ local function Refresh(texture, force)
 	if not e.loaded and not e.checking and (not e.shown or IsTargetOfTarget(e.unit)) then
 		-- A cached model can skip OnModelLoaded. Check even an already shown
 		-- target-chain portrait so the new model gets its portrait camera.
-		e.checking = true
 		local tries = 0
 		local function Check()
 			local entry = entries[texture]
-			if not entry then return end
+			if not entry or entry.checking ~= Check then return end
 			tries = tries + 1
 			if entry.unit and not entry.loaded and not entry.dirty
 				and ModelFileReady(entry.model) == true then
-				ModelLoaded(entry)
+				ModelLoaded(entry, "GetModelFileID")
 			end
 			if not entry.loaded and not entry.dirty and tries < RETRIES then
 				C_Timer.After(LOAD_CHECK * tries * 2, Check)
@@ -546,6 +545,7 @@ local function Refresh(texture, force)
 			entry.checking = nil
 			if entry.loaded and Wanted(texture, entry) then Show3D(texture) end
 		end
+		e.checking = Check
 		C_Timer.After(LOAD_CHECK, Check)
 	end
 end
@@ -587,7 +587,8 @@ local function Recheck()
 			-- in combat a failed load waits for its end
 			if not (combat and (e.blocked or pending[texture])) then
 				if not combat then e.blocked, e.retries = nil, nil end
-				e.dirty = true
+				-- A shown entry only reaches this branch after losing its model.
+				e.dirty, e.reloadMissing = true, e.shown or nil
 				Refresh(texture)
 			end
 		end
@@ -704,7 +705,7 @@ local function OnPortrait(texture, unit)
 	if e.unit ~= unit or e.guid ~= guid then
 		Flat(texture)
 		e.unit, e.guid, e.events = unit, guid, nil
-		e.retryUnitAt = nil
+		e.retryUnitAt, e.reloadMissing = nil, nil
 		e.dirty, e.blocked, e.retries = true, nil, nil
 	end
 	-- a party frame can draw its portrait before it is set up as a unit frame
@@ -775,8 +776,14 @@ function ns.Debug()
 					tostring(e.loaded), tostring(e.dirty), tostring(e.blocked), e.loads or 0,
 					e.loadedAt and (GetTime() - e.loadedAt) or -1, tostring(file), tostring(Is(UnitIsVisible, e.unit))))
 				if IsTargetOfTarget(e.unit) then
-					ns.Print(("  unit model ready=%s, status=%s"):format(
-						tostring(Is(IsUnitModelReadyForUI, e.unit)), e.modelError or "-"))
+					local alpha = e.model.GetModelAlpha and e.model:GetModelAlpha()
+					local display = e.model.GetDisplayInfo and e.model:GetDisplayInfo()
+					if Secret(alpha) then alpha = "secret" end
+					if Secret(display) then display = "secret" end
+					ns.Print(("  unit model ready=%s, status=%s, confirmed by=%s"):format(
+						tostring(Is(IsUnitModelReadyForUI, e.unit)), e.modelError or "-", e.loadSignal or "-"))
+					ns.Print(("  model visible=%s, model alpha=%s, display ID=%s"):format(
+						tostring(e.model:IsVisible()), tostring(alpha), tostring(display)))
 				end
 			end
 		end
