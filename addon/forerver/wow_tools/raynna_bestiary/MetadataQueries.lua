@@ -55,4 +55,16 @@ for _, entityName in ipairs({ 'Npc', 'Item', 'Quest' }) do
         end,
     }
 end
+function Addon.Relation(entity, id, field)
+    if not id then return nil end
+    local provider = newerInstalledProvider()
+    local api = provider and provider[entity]
+    if api and type(api.Get) == 'function' then
+        local ok, value = pcall(api.Get, id, field)
+        if ok and value ~= nil then return value end
+    end
+    local records = entity == 'Quest' and Addon.QuestDetails or entity == 'Object' and Addon.Objects or Addon.ExtraItems
+    local record = records[id]
+    return record and record[field]
+end
 end)

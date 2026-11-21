@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.3.2
+
+### Fixed
+- **Item IDs that don't exist** (a typo in `/bvu wl`, or an item removed from the game) no longer make the lists refresh over and over. They show as "Unknown item" and can be removed. `/bvu wl` and `/bvu bl` now say so when an ID doesn't exist or isn't an item.
+- **Escape after closing a vendor** with the Filters panel open opens the game menu right away again. The panel now starts closed at every vendor.
+- **Vendors that swap their items while the window is open** (the class filter): search and filters use the items shown, not the previous ones.
+- An item that was still loading when the vendor opened no longer stays hidden by a category filter.
+- The lists button no longer depends on the Sell Junk button being there.
+- **Leatrix Plus:** copying Never Sell items stops at the size limit of Leatrix's exclusions box instead of cutting an item ID short.
+
+### Improved
+- Opening a vendor does less work with Leatrix Plus installed and its "Sell junk automatically" off.
+- Dragging a slider in the settings only redraws the vendor window when the value changes.
+- Filters do less work per vendor item.
+
 ## 1.3.1
 
 ### Fixed

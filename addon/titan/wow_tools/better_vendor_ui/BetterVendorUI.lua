@@ -58,6 +58,7 @@ function ns.Initialize()
 
     function ns.Set(key, value)
         if not ns.DB then return end
+        if ns.Get(key) == value then return end
         ns.DB.settings[key] = value
         ns.ApplySettings(key)
     end
@@ -123,8 +124,14 @@ function ns.Initialize()
         end
     end
 
+    -- [itemID] = true for list items the game says don't exist (a mistyped ID, or an item
+    -- removed from the game). This session only. Asking for them again would just bring the
+    -- same answer back, and every answer redraws the lists.
+    ns.failedItems = {}
+
     -- Asks the game to load an item's details; GET_ITEM_INFO_RECEIVED fires when they arrive
     function ns.RequestItem(itemID)
+        if ns.failedItems[itemID] then return end
         if C_Item and C_Item.RequestLoadItemDataByID then C_Item.RequestLoadItemDataByID(itemID) end
     end
 
@@ -155,9 +162,10 @@ function ns.Initialize()
     -- Leatrix gives its panels random names, so find the panel by what it does: it's the
     -- MERCHANT_SHOW listener with a scrolling editbox child. Leatrix's other editbox panels
     -- don't listen to that event.
-    local leatrixBox
+    local leatrixBox      -- nil = not found yet, false = looked after login: it isn't there
+    local loginDone = false  -- set a frame after PLAYER_LOGIN, when every addon has handled it
     local function GetLeatrixExcludeBox()
-        if leatrixBox then return leatrixBox end
+        if leatrixBox ~= nil then return leatrixBox or nil end
         if not GetFramesRegisteredForEvent or not IsAddOnLoadedSafe("Leatrix_Plus") then return end
         for _, listener in ipairs({ GetFramesRegisteredForEvent("MERCHANT_SHOW") }) do
             if not (listener.IsForbidden and listener:IsForbidden()) then
@@ -170,6 +178,9 @@ function ns.Initialize()
                 end
             end
         end
+        -- Leatrix builds the panel at login and needs a reload to switch the feature on, so
+        -- after login a miss is final. Without this, every call walks all those frames again.
+        if loginDone then leatrixBox = false end
     end
 
     -- "none" = Leatrix not loaded, "off" = loaded but auto-sell disabled, "on" = auto-sell active
@@ -207,15 +218,27 @@ function ns.Initialize()
             end
         end
         if enabled then
+            -- Leatrix's box holds a limited number of characters. Text past the limit is cut
+            -- off, and an ID cut short is another item's ID, so stop adding at the limit.
+            -- An ID left out isn't marked as added: it gets in once there's room.
+            local maxLetters = box.GetMaxLetters and box:GetMaxLetters() or 0  -- 0 = no limit
+            local used = 0  -- length of the joined text, counting a comma after every ID
+            for _, id in ipairs(ids) do
+                if present[id] then used = used + #tostring(id) + 1 end
+            end
             for id in pairs(DB.blacklist) do
                 if not present[id] then
                     local _, _, quality = GetItemInfoSafe(id)
                     -- Only greys: Leatrix treats white items in its exclusions as "sell"
                     if quality == 0 then
-                        present[id] = true
-                        DB.leatrixAdded[id] = true
-                        table.insert(ids, id)
-                        changed = true
+                        local digits = #tostring(id)
+                        if maxLetters == 0 or used + digits <= maxLetters then
+                            present[id] = true
+                            DB.leatrixAdded[id] = true
+                            table.insert(ids, id)
+                            changed = true
+                            used = used + digits + 1
+                        end
                     elseif quality == nil then
                         ns.RequestItem(id)  -- synced again once its details arrive
                     end
@@ -260,7 +283,7 @@ function ns.Initialize()
         local origIsJunk = cats.IsJunk
         cats.IsJunk = function(self, itemID, quality)
             local DB = ns.DB
-            if DB and itemID and self:IsJunkMarkerEnabled() then
+            if DB and itemID and self.IsJunkMarkerEnabled and self:IsJunkMarkerEnabled() then
                 if DB.blacklist[itemID] and ns.Get("ellesmereNeverSell") then return false end
                 if DB.whitelist[itemID] and ns.Get("sellAlwaysList") and ns.Get("ellesmereAlwaysSell") then
                     return true
@@ -507,11 +530,13 @@ function ns.Initialize()
                     origSellClick(self, ...)
                 end
             end)
-            -- Next to the search box: the bottom area is shared with the buyback item name,
-            -- repair buttons and the sell junk button, so nothing there is reliably free.
-            configBtn = CreateHeaderButton("BetterVendorUIConfigBtn", "Interface\\Icons\\INV_Misc_Note_02",
-                "售卖名单", function() ns.ToggleConfig() end)
         end
+
+        -- Next to the search box: the bottom area is shared with the buyback item name,
+        -- repair buttons and the sell junk button, so nothing there is reliably free.
+        -- Not tied to the Sell Junk button: auto-sell uses the lists without it.
+        configBtn = CreateHeaderButton("BetterVendorUIConfigBtn", "Interface\\Icons\\INV_Misc_Note_02",
+            "售卖名单", function() ns.ToggleConfig() end)
 
         optionsBtn = CreateHeaderButton("BetterVendorUIOptionsBtn", "Interface\\Icons\\INV_Misc_Gear_01",
             "商人增强设置", function() ns.OpenSettings() end)
@@ -1335,8 +1360,10 @@ function ns.Initialize()
             -- EllesmereUI's settings are only loaded now. Runs before its merchant skin is
             -- built (we registered PLAYER_LOGIN first), so its list gets the right size.
             ns.ApplyLayout()
+            C_Timer.After(0, function() loginDone = true end)
         elseif event == "MERCHANT_CLOSED" then
             FinishSelling()
+            ns.HideFilterPanel()
             -- Blizzard draws the next vendor before our MERCHANT_SHOW runs: don't let that
             -- draw read this vendor's items
             ns.ResetItemCache()
@@ -1349,12 +1376,23 @@ function ns.Initialize()
             -- An item on one of our lists finished loading: refresh the lists window and
             -- Leatrix sync. Batched, since many of these can arrive at once.
             local DB = ns.DB
-            if DB and arg1 and (DB.whitelist[arg1] or DB.blacklist[arg1]) and not listRefreshPending then
-                listRefreshPending = true
-                C_Timer.After(0.2, function()
-                    listRefreshPending = false
-                    ns.UpdateConfigLists()
-                end)
+            if DB and arg1 and (DB.whitelist[arg1] or DB.blacklist[arg1]) then
+                -- arg2 is false or nil when the game has no such item. The refresh below asks
+                -- for missing items again, so refreshing on every such answer would never end:
+                -- remember the item, refresh once to show it as unknown, then ignore it.
+                local knownFailed = ns.failedItems[arg1]
+                if arg2 then
+                    ns.failedItems[arg1] = nil
+                elseif not knownFailed and not GetItemInfoSafe(arg1) then
+                    ns.failedItems[arg1] = true
+                end
+                if (arg2 or not knownFailed) and not listRefreshPending then
+                    listRefreshPending = true
+                    C_Timer.After(0.2, function()
+                        listRefreshPending = false
+                        ns.UpdateConfigLists()
+                    end)
+                end
             end
         end
     end)
@@ -1363,8 +1401,28 @@ function ns.Initialize()
     -- Slash commands
     ---------------------------------------------------------------------------
 
+    local GetItemInfoInstantSafe = GetItemInfoInstant or (C_Item and C_Item.GetItemInfoInstant)
+
+    -- An item link or a bare item ID
     local function ParseItemID(arg)
-        return tonumber(arg:match('item:(%d+)') or arg)
+        return tonumber(arg:match('item:(%d+)') or arg:match('^%s*(%d+)%s*$'))
+    end
+
+    -- The item ID to toggle on a list, or nil after saying what's wrong with `arg`.
+    -- An ID that's on a list already always passes, so it can be taken off again.
+    local function ItemIDFromArg(arg)
+        local id = ParseItemID(arg)
+        local DB = ns.DB
+        if not id then
+            print(ns.ChatPrefix() .. '请输入有效的物品链接或物品 ID：' .. arg)
+        elseif DB.whitelist[id] or DB.blacklist[id] then
+            return id
+        elseif GetItemInfoInstantSafe and not GetItemInfoInstantSafe(id) then
+            -- Answered from the client's own item data, so it works for items not loaded yet
+            print(ns.ChatPrefix() .. '找不到物品 ID ' .. id .. '。')
+        else
+            return id
+        end
     end
 
     SLASH_BETTERVENDOR1 = '/bvu'
@@ -1426,13 +1484,13 @@ function ns.Initialize()
             end
             return
         elseif cmd == 'wl' and arg then
-            local id = ParseItemID(arg)
+            local id = ItemIDFromArg(arg)
             if not id then return end
             DB.whitelist[id] = not DB.whitelist[id] or nil
             if DB.whitelist[id] then DB.blacklist[id] = nil end
             print(ns.ChatPrefix() .. "已切换物品的必卖状态，物品 ID 为 " .. id .. ' -> ' .. (DB.whitelist[id] and "已开启" or "已关闭"))
         elseif cmd == 'bl' and arg then
-            local id = ParseItemID(arg)
+            local id = ItemIDFromArg(arg)
             if not id then return end
             DB.blacklist[id] = not DB.blacklist[id] or nil
             if DB.blacklist[id] then DB.whitelist[id] = nil end

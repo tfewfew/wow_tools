@@ -164,6 +164,7 @@ function ns.InitializeConfig()
         local entries = {}
         for itemID in pairs(dbList) do
             local itemName, itemLink, _, _, _, _, _, _, _, itemIcon = GetItemInfoSafe(itemID)
+            if itemName then ns.failedItems[itemID] = nil end
             table.insert(entries, { id = itemID, name = itemName, link = itemLink, icon = itemIcon })
         end
         table.sort(entries, CompareEntries)
@@ -174,6 +175,10 @@ function ns.InitializeConfig()
             if entry.name then
                 btn.icon:SetTexture(entry.icon)
                 btn.nameText:SetText(entry.link)
+            elseif ns.failedItems[entry.id] then
+                -- The game has no such item; it stays listed so it can be removed
+                btn.icon:SetTexture('Interface\\Icons\\INV_Misc_QuestionMark')
+                btn.nameText:SetText('|cff808080未知物品 ' .. entry.id .. '|r')
             else
                 btn.icon:SetTexture('Interface\\Icons\\INV_Misc_QuestionMark')
                 btn.nameText:SetText("正在加载 " .. entry.id .. '...')

@@ -1,11 +1,11 @@
 WoWTools.raynnaBestiary.RegisterSource(function(...)
--- Generated metadata snapshot from QuestieDB 1.1.1 (Forever).
+-- Generated metadata snapshot from QuestieDB 1.1.3 (Forever).
 -- Attribution and upstream terms: LICENSE-QuestieDB.txt; GPL-3.0.txt.
--- Source TOC SHA-256: 8834c37e077a36bfc0c6d70dc5e7db743b8029cb211faf512610f86ce22fced9
+-- Source TOC SHA-256: ace910659975d6bf089372c96535dda44b2ec1c4281bb9efb4b9f188b7321f26
 local _, Addon = ...
 Addon.BundledMetadata = {Npc={}, Item={}, Quest={}, factions={}}
 local data = Addon.BundledMetadata
-data.sourceVersion="1.1.1"
+data.sourceVersion="1.1.3"
 data.Npc[1]={["name"]="Waypoint (Only GM can see it)",["minLevel"]=1,["maxLevel"]=1}
 data.Npc[2]={["name"]="Spawn Point (Only GM can see it)",["minLevel"]=1,["maxLevel"]=1}
 data.Npc[3]={["name"]="Flesh Eater",["minLevel"]=24,["maxLevel"]=25,["spawns"]={[10]=true},["zoneID"]=10}
@@ -3254,9 +3254,9 @@ data.Npc[3894]={["name"]="Pelturas Whitemoon",["minLevel"]=21,["maxLevel"]=21,["
 data.Npc[3895]={["name"]="Captain Noteo",["minLevel"]=1,["maxLevel"]=1}
 data.Npc[3896]={["name"]="Captain Hart",["minLevel"]=1,["maxLevel"]=1}
 data.Npc[3897]={["name"]="Krolg",["minLevel"]=9,["maxLevel"]=9,["spawns"]={[331]=true},["zoneID"]=331}
-data.Npc[3898]={["name"]="Aligar the Tormentor",["minLevel"]=24,["maxLevel"]=24,["spawns"]={[148]=true},["zoneID"]=148}
-data.Npc[3899]={["name"]="Balizar the Umbrage",["minLevel"]=24,["maxLevel"]=24,["spawns"]={[148]=true},["zoneID"]=148}
-data.Npc[3900]={["name"]="Caedakar the Vicious",["minLevel"]=24,["maxLevel"]=24,["spawns"]={[148]=true},["zoneID"]=148}
+data.Npc[3898]={["name"]="Aligar the Tormentor",["minLevel"]=24,["maxLevel"]=24,["zoneID"]=148}
+data.Npc[3899]={["name"]="Balizar the Umbrage",["minLevel"]=24,["maxLevel"]=24,["zoneID"]=148}
+data.Npc[3900]={["name"]="Caedakar the Vicious",["minLevel"]=24,["maxLevel"]=24,["zoneID"]=148}
 data.Npc[3901]={["name"]="Illiyana",["minLevel"]=26,["maxLevel"]=26,["spawns"]={[331]=true},["zoneID"]=331}
 data.Npc[3902]={["name"]="Searing Totem II",["minLevel"]=20,["maxLevel"]=20}
 data.Npc[3903]={["name"]="Searing Totem III",["minLevel"]=37,["maxLevel"]=37}
@@ -8502,7 +8502,7 @@ data.Npc[14235]={["name"]="The Rot",["minLevel"]=43,["maxLevel"]=43}
 data.Npc[14236]={["name"]="Lord Angler",["minLevel"]=44,["maxLevel"]=44,["spawns"]={[15]=true},["zoneID"]=15}
 data.Npc[14237]={["name"]="Oozeworm",["minLevel"]=42,["maxLevel"]=42,["spawns"]={[15]=true},["zoneID"]=15}
 data.Npc[14241]={["name"]="Ironbark the Redeemed",["minLevel"]=58,["maxLevel"]=58}
-data.Npc[14242]={["name"]="Sulhasa"}
+data.Npc[14242]={["name"]="Sulhasa",["spawns"]={[17]=true},["zoneID"]=17}
 data.Npc[14261]={["name"]="Blue Drakonid",["minLevel"]=60,["maxLevel"]=60}
 data.Npc[14262]={["name"]="Green Drakonid",["minLevel"]=60,["maxLevel"]=60}
 data.Npc[14263]={["name"]="Bronze Drakonid",["minLevel"]=60,["maxLevel"]=60}
@@ -10150,9 +10150,9 @@ data.Npc[29547]={["name"]="Applebough",["minLevel"]=35,["maxLevel"]=35,["spawns"
 data.Npc[29568]={["name"]="\"Techs\" Rickard Rustbolt",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[29660]={["name"]="Sai",["minLevel"]=35,["maxLevel"]=35,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[30027]={["name"]="Plague Zombie"}
-data.Npc[30028]={["name"]="Plague Zombie",["minLevel"]=50,["maxLevel"]=50,["spawns"]={{{48.58,41.99},{50.16,40.73},{51.17,39.92},{51.61,37.75},{52.84,35.4}}},["zoneID"]=1}
-data.Npc[30029]={["name"]="Plague Zombie",["minLevel"]=40,["maxLevel"]=40,["spawns"]={{{50.23,40.71},{50.89,40.24},{51.35,39.97},{51.43,39.38},{51.64,36.99},{51.66,38.12}}},["zoneID"]=1}
-data.Npc[30030]={["name"]="Plague Zombie",["spawns"]={{{50.04,51.3}}},["zoneID"]=1}
+data.Npc[30028]={["name"]="Plague Zombie",["minLevel"]=50,["maxLevel"]=50,["spawns"]={{{50.13,40.74},{50.81,40.39},{51.25,39.81},{52.84,35.4}}},["zoneID"]=1}
+data.Npc[30029]={["name"]="Plague Zombie",["minLevel"]=40,["maxLevel"]=40,["spawns"]={{{50.87,40.28},{51.35,39.97},{51.64,36.99},{51.68,37.99}}},["zoneID"]=1}
+data.Npc[30030]={["name"]="Plague Zombie"}
 data.Npc[30031]={["name"]="Plague Zombie"}
 data.Npc[30032]={["name"]="Plague Zombie"}
 data.Npc[30033]={["name"]="Plague Zombie"}
@@ -10206,7 +10206,7 @@ data.Npc[35826]={["name"]="Kaye Toogie",["minLevel"]=35,["maxLevel"]=35,["spawns
 data.Npc[36856]={["name"]="Shandy Glossgleam",["minLevel"]=28,["maxLevel"]=28,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[40833]={["name"]="Tiala Whitemane",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[41861]={["name"]="Fayran Elthas",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[616]=true},["zoneID"]=616}
-data.Npc[41938]={["name"]="Tremor Totem",["minLevel"]=5,["maxLevel"]=5,["spawns"]={{{28.76,67.93},{28.81,66.27},{28.82,66.93},{28.84,68.82},{29.07,67.39}}},["zoneID"]=1}
+data.Npc[41938]={["name"]="Tremor Totem",["minLevel"]=5,["maxLevel"]=5,["spawns"]={{{28.79,67.98},{28.8,67.08},{28.83,66.24},{28.86,68.63}}},["zoneID"]=1}
 data.Npc[41940]={["name"]="Windfury Totem"}
 data.Npc[42604]={["name"]="Elemental Resistance Totem"}
 data.Npc[42605]={["name"]="Flametongue Totem"}
@@ -10217,7 +10217,7 @@ data.Npc[55571]={["name"]="Lunar Lantern"}
 data.Npc[55574]={["name"]="Festival Lantern"}
 data.Npc[71488]={["name"]="Blossoming Ancient"}
 data.Npc[162539]={["name"]="World Talent Master"}
-data.Npc[165189]={["name"]="Cat",["minLevel"]=7,["maxLevel"]=30,["spawns"]={[1]=true,[3]=true,[8]=true,[10]=true,[11]=true,[12]=true,[14]=true,[15]=true,[17]=true,[33]=true,[36]=true,[38]=true,[40]=true,[41]=true,[44]=true,[45]=true,[85]=true,[130]=true,[141]=true,[148]=true,[215]=true,[267]=true,[331]=true,[400]=true,[405]=true,[406]=true,[1497]=true,[1519]=true,[1537]=true,[1637]=true,[1638]=true,[1657]=true,[16591]=true,[16593]=true},["zoneID"]=17}
+data.Npc[165189]={["name"]="Generic Hunter Pet",["spawns"]={[12]=true,[17]=true},["zoneID"]=17}
 data.Npc[167875]={["name"]="RTC Player Dummy"}
 data.Npc[169106]={["name"]="Shea Dorrisist"}
 data.Npc[176552]={["name"]="Orgrimmar"}
@@ -10229,7 +10229,7 @@ data.Npc[183713]={["name"]="Season 02 Controller - Fresh Start"}
 data.Npc[184157]={["name"]="Apprentice Watcher",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[1537]=true,[1657]=true}}
 data.Npc[184314]={["name"]="Beta Vendor and Raid Teleporter"}
 data.Npc[184383]={["name"]="Sulfuron Harbinger"}
-data.Npc[185317]={["name"]="Incubus",["minLevel"]=20,["maxLevel"]=30,["spawns"]={[10]=true,[11]=true,[14]=true,[17]=true,[44]=true,[85]=true,[130]=true,[148]=true,[267]=true,[331]=true,[405]=true,[406]=true,[1497]=true,[1519]=true,[1537]=true,[1637]=true,[1657]=true},["zoneID"]=1519}
+data.Npc[185317]={["name"]="Incubus",["spawns"]={[11]=true,[14]=true,[36]=true,[40]=true,[85]=true,[148]=true,[1637]=true},["zoneID"]=85}
 data.Npc[185320]={["name"]="Unstable Chromatic Drake",["minLevel"]=9999,["maxLevel"]=9999,["zoneID"]=2677}
 data.Npc[185331]={["name"]="Avelina Lilly Projection"}
 data.Npc[185332]={["name"]="Isaac Pearson Projection"}
@@ -10326,7 +10326,7 @@ data.Npc[204960]={["name"]="Chomp"}
 data.Npc[204961]={["name"]="Snarly"}
 data.Npc[204962]={["name"]="Tidelurker Mrrglrlr"}
 data.Npc[204989]={["name"]="Wounded Adventurer",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[12]=true},["zoneID"]=12}
-data.Npc[205153]={["name"]="Ada Gelhardt",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[10]=true,[12]=true,[40]=true},["zoneID"]=10}
+data.Npc[205153]={["name"]="Ada Gelhardt",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[10]=true},["zoneID"]=10}
 data.Npc[205278]={["name"]="Brother Romulus",["minLevel"]=30,["maxLevel"]=30,["spawns"]={[1519]=true},["zoneID"]=1519}
 data.Npc[205382]={["name"]="Mokwa",["minLevel"]=7,["maxLevel"]=7,["zoneID"]=215}
 data.Npc[205383]={["name"]="Hunter's Vision"}
@@ -10482,17 +10482,17 @@ data.Npc[211765]={["name"]="Gemela",["minLevel"]=21,["maxLevel"]=22,["zoneID"]=2
 data.Npc[211875]={["name"]="Decayed Elemental",["minLevel"]=15,["maxLevel"]=15,["spawns"]={[130]=true,[1637]=true}}
 data.Npc[211941]={["name"]="Dream Stalker"}
 data.Npc[211951]={["name"]="Koartul",["minLevel"]=25,["maxLevel"]=25,["spawns"]={[267]=true},["zoneID"]=267}
-data.Npc[211952]={["name"]="Omni Diffusion Armor",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[12]=true,[40]=true,[85]=true}}
-data.Npc[211953]={["name"]="Bulky Protective Ironweave",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[40]=true,[85]=true}}
-data.Npc[211954]={["name"]="Electrostatic Discharge Shielding",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[40]=true},["zoneID"]=40}
-data.Npc[211955]={["name"]="Auxiliary Anti-Tamper Mechanism",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[40]=true,[85]=true}}
+data.Npc[211952]={["name"]="Omni Diffusion Armor",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[40]=true},["zoneID"]=40}
+data.Npc[211953]={["name"]="Bulky Protective Ironweave",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[40]=true},["zoneID"]=40}
+data.Npc[211954]={["name"]="Electrostatic Discharge Shielding",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[40]=true,[85]=true},["zoneID"]=40}
+data.Npc[211955]={["name"]="Auxiliary Anti-Tamper Mechanism",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[40]=true},["zoneID"]=40}
 data.Npc[211956]={["name"]="Scarimous the Wandering",["minLevel"]=9999,["maxLevel"]=9999,["spawns"]={[331]=true,[357]=true}}
 data.Npc[211965]={["name"]="Carrodin",["minLevel"]=25,["maxLevel"]=25,["spawns"]={[11]=true},["zoneID"]=11}
 data.Npc[211967]={["name"]="Leech Stalker Corpse"}
 data.Npc[212159]={["name"]="Old Serra'kis",["minLevel"]=9999,["maxLevel"]=9999,["zoneID"]=719}
 data.Npc[212186]={["name"]="Grugimdern",["minLevel"]=20,["maxLevel"]=20,["spawns"]={[11]=true},["zoneID"]=11}
 data.Npc[212209]={["name"]="Vodyanoi",["minLevel"]=25,["maxLevel"]=25,["spawns"]={[11]=true},["zoneID"]=11}
-data.Npc[212252]={["name"]="Harvest Golem V000-A",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[40]=true},["zoneID"]=40}
+data.Npc[212252]={["name"]="Harvest Golem V000-A",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[40]=true,[85]=true},["zoneID"]=40}
 data.Npc[212261]={["name"]="Awakened Lich",["minLevel"]=25,["maxLevel"]=25,["spawns"]={[10]=true},["zoneID"]=10}
 data.Npc[212330]={["name"]="Explrgl"}
 data.Npc[212333]={["name"]="Blackfathom Tendril"}
@@ -10655,9 +10655,9 @@ data.Npc[217590]={["name"]="Flesh Picker",["minLevel"]=1,["maxLevel"]=1,["spawns
 data.Npc[217605]={["name"]="Void Seeker",["minLevel"]=36,["maxLevel"]=36,["spawns"]={[45]=true},["zoneID"]=45}
 data.Npc[217620]={["name"]="Reckless Warlock",["minLevel"]=35,["maxLevel"]=35,["spawns"]={[33]=true,[36]=true,[400]=true,[405]=true}}
 data.Npc[217669]={["name"]="Scorched Screeching Roguefeather",["minLevel"]=29,["maxLevel"]=30,["spawns"]={[400]=true},["zoneID"]=400}
-data.Npc[217683]={["name"]="Altar of the Wind Spirit"}
+data.Npc[217683]={["name"]="Altar of the Wind Spirit",["minLevel"]=30,["maxLevel"]=30}
 data.Npc[217689]={["name"]="Ziri \"The Wrench\" Littlesprocket",["minLevel"]=40,["maxLevel"]=40,["zoneID"]=721}
-data.Npc[217703]={["name"]="Singed Highperch Consort",["minLevel"]=28,["maxLevel"]=28,["spawns"]={[400]=true},["zoneID"]=400}
+data.Npc[217703]={["name"]="Singed Highperch Consort",["minLevel"]=28,["maxLevel"]=29,["spawns"]={[400]=true},["zoneID"]=400}
 data.Npc[217706]={["name"]="Kazragore",["minLevel"]=9999,["maxLevel"]=9999,["spawns"]={[331]=true},["zoneID"]=331}
 data.Npc[217707]={["name"]="Felore Moonray",["minLevel"]=9999,["maxLevel"]=9999,["spawns"]={[331]=true},["zoneID"]=331}
 data.Npc[217711]={["name"]="Seared Needles Cougar",["minLevel"]=27,["maxLevel"]=28,["spawns"]={[400]=true},["zoneID"]=400}
@@ -10924,9 +10924,9 @@ data.Npc[221837]={["name"]="Zul'Lor",["minLevel"]=9999,["maxLevel"]=9999,["zoneI
 data.Npc[221838]={["name"]="Josh's Kill Credit Creature P3"}
 data.Npc[221916]={["name"]="Stalker"}
 data.Npc[221924]={["name"]="Kazkaz the Unholy",["minLevel"]=48,["maxLevel"]=48}
-data.Npc[221928]={["name"]="Hippogryph Avatar",["minLevel"]=46,["maxLevel"]=50,["spawns"]={[16]=true},["zoneID"]=16}
-data.Npc[221933]={["name"]="Moonkin Avatar",["minLevel"]=46,["maxLevel"]=50,["spawns"]={[47]=true},["zoneID"]=47}
-data.Npc[221935]={["name"]="Treant Avatar",["minLevel"]=50,["maxLevel"]=50,["spawns"]={[357]=true},["zoneID"]=357}
+data.Npc[221928]={["name"]="Hippogryph Avatar",["minLevel"]=48,["maxLevel"]=50,["spawns"]={[16]=true},["zoneID"]=16}
+data.Npc[221933]={["name"]="Moonkin Avatar",["minLevel"]=47,["maxLevel"]=50,["spawns"]={[47]=true},["zoneID"]=47}
+data.Npc[221935]={["name"]="Treant Avatar",["minLevel"]=44,["maxLevel"]=50,["spawns"]={[357]=true},["zoneID"]=357}
 data.Npc[221942]={["name"]="Morphaz",["minLevel"]=9999,["maxLevel"]=9999,["zoneID"]=1477}
 data.Npc[221943]={["name"]="Hazzas",["minLevel"]=9999,["maxLevel"]=9999,["zoneID"]=1477}
 data.Npc[221981]={["name"]="[DNT] Sleeping Copy"}
@@ -11155,7 +11155,7 @@ data.Npc[228203]={["name"]="T0"}
 data.Npc[228204]={["name"]="T0.5"}
 data.Npc[228206]={["name"]="T1"}
 data.Npc[228209]={["name"]="PvP T1"}
-data.Npc[228216]={["name"]="Nami",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[618]=true},["zoneID"]=618}
+data.Npc[228216]={["name"]="Nami",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[616]=true,[618]=true},["zoneID"]=618}
 data.Npc[228230]={["name"]="Harrigen",["minLevel"]=58,["maxLevel"]=60,["spawns"]={[46]=true},["zoneID"]=46}
 data.Npc[228231]={["name"]="Montrose",["minLevel"]=58,["maxLevel"]=60,["spawns"]={[46]=true},["zoneID"]=46}
 data.Npc[228232]={["name"]="Plio",["minLevel"]=58,["maxLevel"]=60,["spawns"]={[46]=true},["zoneID"]=46}
@@ -11193,7 +11193,7 @@ data.Npc[228618]={["name"]="Kill Credit Creature"}
 data.Npc[228619]={["name"]="Orthas",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[139]=true},["zoneID"]=139}
 data.Npc[228620]={["name"]="Slack-Jawed Ghoul",["minLevel"]=56,["maxLevel"]=57,["spawns"]={[139]=true},["zoneID"]=139}
 data.Npc[228621]={["name"]="[DNT] Challenge"}
-data.Npc[228622]={["name"]="Orthas",["minLevel"]=56,["maxLevel"]=57,["zoneID"]=139}
+data.Npc[228622]={["name"]="Orthas",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[139]=true},["zoneID"]=139}
 data.Npc[228673]={["name"]="Wandering Swordsman",["minLevel"]=57,["maxLevel"]=60}
 data.Npc[228676]={["name"]="Kill Credit Creature"}
 data.Npc[228677]={["name"]="Rift"}
@@ -11254,20 +11254,20 @@ data.Npc[228929]={["name"]="Baj'ura",["spawns"]={[41]=true},["zoneID"]=41}
 data.Npc[228930]={["name"]="Syrnoya",["spawns"]={[41]=true},["zoneID"]=41}
 data.Npc[228931]={["name"]="Father Lazarus",["spawns"]={[41]=true},["zoneID"]=41}
 data.Npc[228932]={["name"]="Divine Apprehension"}
-data.Npc[228934]={["name"]="Thane Korth'azz",["minLevel"]=9999,["maxLevel"]=9999,["zoneID"]=139}
+data.Npc[228934]={["name"]="Thane Korth'azz",["minLevel"]=9999,["maxLevel"]=9999,["spawns"]={[139]=true},["zoneID"]=139}
 data.Npc[228935]={["name"]="Enraged Spirit",["minLevel"]=60,["maxLevel"]=60,["zoneID"]=139}
 data.Npc[228936]={["name"]="Lingering Blessing",["spawns"]={[41]=true},["zoneID"]=41}
 data.Npc[228944]={["name"]="Electromantic Resonance Transducer",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[85]=true},["zoneID"]=85}
 data.Npc[228945]={["name"]="[DNT] Challenge"}
-data.Npc[228956]={["name"]="Sebastian Jurgens",["minLevel"]=61,["maxLevel"]=61}
+data.Npc[228956]={["name"]="Sebastian Jurgens",["minLevel"]=61,["maxLevel"]=61,["spawns"]={[440]=true},["zoneID"]=440}
 data.Npc[228969]={["name"]="Lord Gazzran",["minLevel"]=62,["maxLevel"]=62,["spawns"]={[51]=true},["zoneID"]=51}
 data.Npc[228970]={["name"]="Galenges",["minLevel"]=62,["maxLevel"]=62,["spawns"]={[51]=true},["zoneID"]=51}
 data.Npc[228973]={["name"]="[DNT]"}
 data.Npc[228976]={["name"]="Altruist Ward",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[3]=true,[41]=true,[45]=true,[1377]=true,[1637]=true}}
 data.Npc[229001]={["name"]="Core Hound"}
 data.Npc[229009]={["name"]="Spirit of Magmadar"}
-data.Npc[229016]={["name"]="Orthas",["spawns"]={[139]=true},["zoneID"]=139}
-data.Npc[229018]={["name"]="Rotting Dwarf Corpse",["minLevel"]=57,["maxLevel"]=57,["spawns"]={[139]=true},["zoneID"]=139}
+data.Npc[229016]={["name"]="Orthas",["minLevel"]=57,["maxLevel"]=57,["spawns"]={[139]=true},["zoneID"]=139}
+data.Npc[229018]={["name"]="Rotting Dwarf Corpse",["minLevel"]=56,["maxLevel"]=57,["spawns"]={[139]=true},["zoneID"]=139}
 data.Npc[229035]={["name"]="Korth'azz's Chest"}
 data.Npc[229037]={["name"]="[DNT]"}
 data.Npc[229047]={["name"]="Goblin Friend"}
@@ -11308,14 +11308,14 @@ data.Npc[230088]={["name"]="Onyxia Items"}
 data.Npc[230146]={["name"]="Fel Interloper",["minLevel"]=55,["maxLevel"]=58,["spawns"]={[46]=true}}
 data.Npc[230302]={["name"]="Lord Kazzak",["minLevel"]=9999,["maxLevel"]=9999,["zoneID"]=15531}
 data.Npc[230317]={["name"]="Mokvar",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[1637]=true},["zoneID"]=1637}
-data.Npc[230319]={["name"]="Deliana",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[1537]=true},["zoneID"]=1537}
+data.Npc[230319]={["name"]="Deliana",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[1]=true,[1537]=true},["zoneID"]=1537}
 data.Npc[230481]={["name"]="Earth Elemental Fragment",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[493]=true},["zoneID"]=493}
 data.Npc[230513]={["name"]="Siopi",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[493]=true},["zoneID"]=493}
 data.Npc[230558]={["name"]="Territorial Terran",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[493]=true},["zoneID"]=493}
 data.Npc[230565]={["name"]="Ironforge Guard",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[1537]=true},["zoneID"]=1537}
 data.Npc[230566]={["name"]="Kor'kron Elite",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[1637]=true},["zoneID"]=1637}
 data.Npc[230775]={["name"]="Rage Talon Quartermaster",["minLevel"]=60,["maxLevel"]=60,["zoneID"]=1583}
-data.Npc[230834]={["name"]="Gill'el"}
+data.Npc[230834]={["name"]="Gill'el",["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[230859]={["name"]="Snowfang"}
 data.Npc[231050]={["name"]="Syndicate Infiltrator",["minLevel"]=60,["maxLevel"]=60,["zoneID"]=1583}
 data.Npc[231178]={["name"]="Duke Hydraxis",["minLevel"]=60,["maxLevel"]=60,["zoneID"]=2717}
@@ -11596,11 +11596,11 @@ data.Npc[235825]={["name"]="Horde Druid"}
 data.Npc[235826]={["name"]="Horde Hunter"}
 data.Npc[235827]={["name"]="Horde Mage"}
 data.Npc[235828]={["name"]="Horde Priest"}
-data.Npc[235843]={["name"]="Balnazzar"}
-data.Npc[235844]={["name"]="Grand Crusader Dathrohan"}
+data.Npc[235843]={["name"]="Balnazzar",["spawns"]={[139]=true},["zoneID"]=139}
+data.Npc[235844]={["name"]="Grand Crusader Dathrohan",["spawns"]={[139]=true},["zoneID"]=139}
 data.Npc[235880]={["name"]="Blood-Caked Raptor"}
 data.Npc[235881]={["name"]="Blood-Caked Tiger"}
-data.Npc[235892]={["name"]="Prince Halanox"}
+data.Npc[235892]={["name"]="Prince Halanox",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[16]=true},["zoneID"]=16}
 data.Npc[235903]={["name"]="Ekkal",["minLevel"]=50,["maxLevel"]=50,["spawns"]={[16]=true},["zoneID"]=16}
 data.Npc[235906]={["name"]="Elder Bramblesnap",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[16]=true},["zoneID"]=16}
 data.Npc[235909]={["name"]="Furze",["minLevel"]=50,["maxLevel"]=50,["spawns"]={[16]=true},["zoneID"]=16}
@@ -11629,8 +11629,8 @@ data.Npc[236876]={["name"]="Legashi Blackguard",["minLevel"]=53,["maxLevel"]=54,
 data.Npc[236971]={["name"]="Skeletal Torch"}
 data.Npc[236979]={["name"]="Floating Firebrand"}
 data.Npc[236987]={["name"]="Satyrweed Quest Dummy"}
-data.Npc[236991]={["name"]="Timbermaw Ally"}
-data.Npc[237007]={["name"]="Graal",["spawns"]={[16]=true},["zoneID"]=16}
+data.Npc[236991]={["name"]="Timbermaw Ally",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[16]=true},["zoneID"]=16}
+data.Npc[237007]={["name"]="Graal",["minLevel"]=53,["maxLevel"]=53,["spawns"]={[16]=true},["zoneID"]=16}
 data.Npc[237196]={["name"]="Runes - Druid [DNT]"}
 data.Npc[237246]={["name"]="(DNT) Mimic Stalker"}
 data.Npc[237318]={["name"]="Firewater Cauldron"}
@@ -11643,12 +11643,12 @@ data.Npc[237439]={["name"]="Kharon",["minLevel"]=9999,["maxLevel"]=9999,["zoneID
 data.Npc[237460]={["name"]="Furious Firebrand"}
 data.Npc[237604]={["name"]="(DNT) Torch Manager Stalker"}
 data.Npc[237612]={["name"]="Legashi Cauldron"}
-data.Npc[237614]={["name"]="Cauldron Imp",["spawns"]={[16]=true},["zoneID"]=16}
+data.Npc[237614]={["name"]="Cauldron Imp",["minLevel"]=52,["maxLevel"]=52,["spawns"]={[16]=true},["zoneID"]=16}
 data.Npc[237615]={["name"]="Stalker"}
 data.Npc[237657]={["name"]="Glacial Fetters",["minLevel"]=62,["maxLevel"]=62,["zoneID"]=16074}
 data.Npc[237732]={["name"]="Blackmaw Warrior",["minLevel"]=47,["maxLevel"]=48,["spawns"]={[16]=true},["zoneID"]=16}
 data.Npc[237733]={["name"]="Blackmaw Den Watcher",["minLevel"]=49,["maxLevel"]=50,["spawns"]={[16]=true},["zoneID"]=16}
-data.Npc[237734]={["name"]="Blackmaw Totemic",["minLevel"]=48,["maxLevel"]=48,["spawns"]={[16]=true},["zoneID"]=16}
+data.Npc[237734]={["name"]="Blackmaw Totemic",["minLevel"]=48,["maxLevel"]=49,["spawns"]={[16]=true},["zoneID"]=16}
 data.Npc[237735]={["name"]="Blackmaw Pathfinder",["minLevel"]=46,["maxLevel"]=47,["spawns"]={[16]=true},["zoneID"]=16}
 data.Npc[237736]={["name"]="Blackmaw Shaman",["minLevel"]=50,["maxLevel"]=51,["spawns"]={[16]=true},["zoneID"]=16}
 data.Npc[237738]={["name"]="Blackmaw Ursa",["minLevel"]=51,["maxLevel"]=52,["spawns"]={[16]=true},["zoneID"]=16}
@@ -11678,7 +11678,7 @@ data.Npc[238093]={["name"]="Unknown Phantasm"}
 data.Npc[238100]={["name"]="Blizzard"}
 data.Npc[238111]={["name"]="Floating Firebrand"}
 data.Npc[238126]={["name"]="Ridolus"}
-data.Npc[238134]={["name"]="Timbermaw Ally"}
+data.Npc[238134]={["name"]="Timbermaw Ally",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[16]=true},["zoneID"]=16}
 data.Npc[238160]={["name"]="T3"}
 data.Npc[238161]={["name"]="T3 Tokens"}
 data.Npc[238191]={["name"]="Risen Warrior",["minLevel"]=61,["maxLevel"]=62,["zoneID"]=16074}
@@ -12494,7 +12494,7 @@ data.Npc[247001]={["name"]="Saturated Remnant",["spawns"]={[36]=true},["zoneID"]
 data.Npc[247003]={["name"]="Seeking Remnant"}
 data.Npc[247006]={["name"]="Lieutenant Suncrest",["minLevel"]=53,["maxLevel"]=53,["spawns"]={[16]=true},["zoneID"]=16}
 data.Npc[247013]={["name"]="Ranger Lydrea",["minLevel"]=53,["maxLevel"]=53,["spawns"]={[16]=true},["zoneID"]=16}
-data.Npc[247015]={["name"]="Vek'zol",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[4]=true},["zoneID"]=4}
+data.Npc[247015]={["name"]="Vek'zol",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[4]=true,[8]=true},["zoneID"]=4}
 data.Npc[247016]={["name"]="Suffused Treant"}
 data.Npc[247017]={["name"]="Suffused Treant"}
 data.Npc[247032]={["name"]="Lyn the Ignored",["spawns"]={[36]=true},["zoneID"]=36}
@@ -12559,7 +12559,7 @@ data.Npc[248197]={["name"]="Gor'mak",["minLevel"]=60,["maxLevel"]=60,["spawns"]=
 data.Npc[248198]={["name"]="Aza'bek",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[17]=true},["zoneID"]=17}
 data.Npc[248199]={["name"]="Beneris",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[17]=true},["zoneID"]=17}
 data.Npc[248200]={["name"]="Fizzlefuse",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[17]=true},["zoneID"]=17}
-data.Npc[248201]={["name"]="Pawani",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[17]=true,[1637]=true},["zoneID"]=17}
+data.Npc[248201]={["name"]="Pawani",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[17]=true},["zoneID"]=17}
 data.Npc[248202]={["name"]="Jim'bek",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[17]=true},["zoneID"]=17}
 data.Npc[248216]={["name"]="Feral Spirit"}
 data.Npc[248217]={["name"]="Feral Spirit"}
@@ -12595,7 +12595,7 @@ data.Npc[248764]={["name"]="High Magistrate Vel"}
 data.Npc[248765]={["name"]="Elder Bramblesnap"}
 data.Npc[248779]={["name"]="Garreth Stills",["minLevel"]=30,["maxLevel"]=30,["spawns"]={[130]=true},["zoneID"]=130}
 data.Npc[248781]={["name"]="Profane Totem"}
-data.Npc[248809]={["name"]="Jenna",["minLevel"]=42,["maxLevel"]=42,["spawns"]={[33]=true,[1537]=true},["zoneID"]=33}
+data.Npc[248809]={["name"]="Jenna",["minLevel"]=42,["maxLevel"]=42,["spawns"]={[33]=true},["zoneID"]=33}
 data.Npc[248813]={["name"]="Biggs Gearwedge"}
 data.Npc[248821]={["name"]="Trade Authority"}
 data.Npc[248822]={["name"]="Some Guy"}
@@ -12658,12 +12658,12 @@ data.Npc[249490]={["name"]="Wildbreath Chimaerok",["minLevel"]=58,["maxLevel"]=5
 data.Npc[249491]={["name"]="Mountain Squallclimber",["minLevel"]=58,["maxLevel"]=59,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[249493]={["name"]="Nightsaber Guardian",["minLevel"]=57,["maxLevel"]=59,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[249494]={["name"]="Ghost"}
-data.Npc[249518]={["name"]="Morqhan Arkanev",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[616]=true},["zoneID"]=616}
+data.Npc[249518]={["name"]="Morqhan Arkanev",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[616]=true,[618]=true},["zoneID"]=616}
 data.Npc[249543]={["name"]="Poacher's Den Testing"}
 data.Npc[249544]={["name"]="Stalker"}
 data.Npc[249545]={["name"]="Goldrinn"}
 data.Npc[249549]={["name"]="Fenwick Togglespring",["minLevel"]=57,["maxLevel"]=57,["spawns"]={[616]=true},["zoneID"]=616}
-data.Npc[249550]={["name"]="Wennzut Togglespring",["spawns"]={[618]=true},["zoneID"]=618}
+data.Npc[249550]={["name"]="Wennzut Togglespring",["minLevel"]=57,["maxLevel"]=57,["spawns"]={[618]=true},["zoneID"]=618}
 data.Npc[249551]={["name"]="Blackthorne Cultist",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[249561]={["name"]="Riding Wolf"}
 data.Npc[249562]={["name"]="Duz'zt Ghuswerx"}
@@ -12682,10 +12682,10 @@ data.Npc[249763]={["name"]="Loot Share Test"}
 data.Npc[249779]={["name"]="Barkskin Cub",["minLevel"]=57,["maxLevel"]=57,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[249845]={["name"]="Credit"}
 data.Npc[249853]={["name"]="Lorekeeper Nok",["minLevel"]=50,["maxLevel"]=50,["spawns"]={[16]=true},["zoneID"]=16}
-data.Npc[249855]={["name"]="Unele"}
+data.Npc[249855]={["name"]="Unele",["minLevel"]=50,["maxLevel"]=50,["spawns"]={[16]=true},["zoneID"]=16}
 data.Npc[249968]={["name"]="Hnaz Blunderflame",["minLevel"]=58,["maxLevel"]=58,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[249974]={["name"]="Battlescarred Steelbeak",["minLevel"]=57,["maxLevel"]=58,["spawns"]={[616]=true},["zoneID"]=616}
-data.Npc[250023]={["name"]="Blackmaw Thrall",["minLevel"]=55,["maxLevel"]=57,["spawns"]={[16]=true},["zoneID"]=16}
+data.Npc[250023]={["name"]="Blackmaw Thrall",["minLevel"]=55,["maxLevel"]=57,["spawns"]={[16]=true,[331]=true},["zoneID"]=16}
 data.Npc[250027]={["name"]="Blackmaw Headhunter",["minLevel"]=55,["maxLevel"]=57,["spawns"]={[16]=true},["zoneID"]=16}
 data.Npc[250034]={["name"]="Tunnelweb Matriarch"}
 data.Npc[250036]={["name"]="Tunnelweb Stalker"}
@@ -12978,7 +12978,7 @@ data.Npc[252357]={["name"]="Chicken",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[
 data.Npc[252359]={["name"]="Lotheluum Starbreeze",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[16593]=true},["zoneID"]=16593}
 data.Npc[252360]={["name"]="Alley",["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[252362]={["name"]="Toby",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[36]=true},["zoneID"]=36}
-data.Npc[252363]={["name"]="Merry",["spawns"]={[36]=true},["zoneID"]=36}
+data.Npc[252363]={["name"]="Merry",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[252364]={["name"]="Pancakes",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[252373]={["name"]="Anathamaas Aetherwind",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[16593]=true},["zoneID"]=16593}
 data.Npc[252374]={["name"]="Lalaa Lunarbreeze"}
@@ -13008,7 +13008,7 @@ data.Npc[252428]={["name"]="Munchies",["minLevel"]=5,["maxLevel"]=5,["spawns"]={
 data.Npc[252429]={["name"]="Prairie Dog",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[252432]={["name"]="Sprout",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[252435]={["name"]="Nori",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[36]=true},["zoneID"]=36}
-data.Npc[252437]={["name"]="Momo",["spawns"]={[36]=true},["zoneID"]=36}
+data.Npc[252437]={["name"]="Momo",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[252438]={["name"]="Mister Tibbs",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[252439]={["name"]="Beepo",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[252440]={["name"]="Niko",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[36]=true},["zoneID"]=36}
@@ -13028,8 +13028,8 @@ data.Npc[252478]={["name"]="Xy'aaria Streamrunner",["minLevel"]=10,["maxLevel"]=
 data.Npc[252479]={["name"]="Daeann Steelwind",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[16593]=true},["zoneID"]=16593}
 data.Npc[252481]={["name"]="Wind Sprite",["minLevel"]=7,["maxLevel"]=8,["spawns"]={[16593]=true},["zoneID"]=16593}
 data.Npc[252482]={["name"]="Malevolent Zephyr"}
-data.Npc[252489]={["name"]="Tiger",["spawns"]={[36]=true},["zoneID"]=36}
-data.Npc[252492]={["name"]="Chloe",["spawns"]={[36]=true},["zoneID"]=36}
+data.Npc[252489]={["name"]="Tiger",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[36]=true},["zoneID"]=36}
+data.Npc[252492]={["name"]="Chloe",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[252501]={["name"]="Sunny",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[252502]={["name"]="Butterscotch",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[252503]={["name"]="Solus",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[36]=true},["zoneID"]=36}
@@ -13039,7 +13039,7 @@ data.Npc[252506]={["name"]="Honey",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[36
 data.Npc[252530]={["name"]="Haido",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[252532]={["name"]="Princess Nana",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[252533]={["name"]="Kocha",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[36]=true},["zoneID"]=36}
-data.Npc[252534]={["name"]="Arya"}
+data.Npc[252534]={["name"]="Arya",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[252535]={["name"]="Zara",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[252536]={["name"]="Lulu",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[252537]={["name"]="Misifus",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[36]=true},["zoneID"]=36}
@@ -13101,7 +13101,7 @@ data.Npc[253215]={["name"]="Ravasaur Matriarch"}
 data.Npc[253218]={["name"]="Izha'Rel"}
 data.Npc[253226]={["name"]="DNT"}
 data.Npc[253272]={["name"]="Magram Necromancer",["minLevel"]=42,["maxLevel"]=43,["spawns"]={[405]=true,[16651]=true},["zoneID"]=16651}
-data.Npc[253274]={["name"]="Magram Necrokhan",["minLevel"]=45,["maxLevel"]=45,["spawns"]={[405]=true,[16651]=true},["zoneID"]=16651}
+data.Npc[253274]={["name"]="Magram Necrokhan",["minLevel"]=45,["maxLevel"]=45,["spawns"]={[16651]=true},["zoneID"]=16651}
 data.Npc[253275]={["name"]="Outcast Necrokhan",["minLevel"]=45,["maxLevel"]=45,["spawns"]={[16651]=true},["zoneID"]=16651}
 data.Npc[253277]={["name"]="Griswold"}
 data.Npc[253279]={["name"]="Alba Fairmoon",["minLevel"]=24,["maxLevel"]=24,["spawns"]={[40]=true},["zoneID"]=40}
@@ -13124,7 +13124,7 @@ data.Npc[253357]={["name"]="Tower Watchman"}
 data.Npc[253360]={["name"]="Nascent Undead Ravager",["minLevel"]=40,["maxLevel"]=41,["spawns"]={[405]=true},["zoneID"]=405}
 data.Npc[253370]={["name"]="[DNT] Kill Credit: Place Explosives",["spawns"]={[1581]=true},["zoneID"]=1581}
 data.Npc[253372]={["name"]="Dead Cultist",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[16593]=true},["zoneID"]=16593}
-data.Npc[253394]={["name"]="Corpsefeeder",["minLevel"]=45,["maxLevel"]=45,["spawns"]={[215]=true,[405]=true,[16651]=true},["zoneID"]=16651}
+data.Npc[253394]={["name"]="Corpsefeeder",["minLevel"]=45,["maxLevel"]=45,["spawns"]={[16651]=true},["zoneID"]=16651}
 data.Npc[253395]={["name"]="Ozwin Ironsprocket",["minLevel"]=15,["maxLevel"]=15,["spawns"]={[40]=true},["zoneID"]=40}
 data.Npc[253431]={["name"]="Gelkis Captive",["minLevel"]=39,["maxLevel"]=42,["spawns"]={[16651]=true},["zoneID"]=16651}
 data.Npc[253446]={["name"]="Haggard Bones",["minLevel"]=39,["maxLevel"]=41,["spawns"]={[16651]=true},["zoneID"]=16651}
@@ -13132,7 +13132,7 @@ data.Npc[253471]={["name"]="Mordent Evenshade",["minLevel"]=60,["maxLevel"]=60,[
 data.Npc[253474]={["name"]="Peacekeeper",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[16593]=true},["zoneID"]=16593}
 data.Npc[253479]={["name"]="Nyliaris",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[16651]=true},["zoneID"]=16651}
 data.Npc[253511]={["name"]="Al'Aketh Pillager",["minLevel"]=8,["maxLevel"]=9,["spawns"]={[16593]=true},["zoneID"]=16593}
-data.Npc[253524]={["name"]="Bristleback Nomad",["minLevel"]=42,["maxLevel"]=43,["spawns"]={[16651]=true},["zoneID"]=16651}
+data.Npc[253524]={["name"]="Bristleback Nomad",["minLevel"]=42,["maxLevel"]=43,["spawns"]={[215]=true,[16651]=true},["zoneID"]=16651}
 data.Npc[253525]={["name"]="Bristleback Thornweaver",["minLevel"]=42,["maxLevel"]=43,["spawns"]={[16651]=true},["zoneID"]=16651}
 data.Npc[253526]={["name"]="Bristleback Skullcrusher",["minLevel"]=42,["maxLevel"]=43,["spawns"]={[405]=true,[16651]=true},["zoneID"]=16651}
 data.Npc[253527]={["name"]="Kog'thug the Brave",["minLevel"]=43,["maxLevel"]=43,["spawns"]={[16651]=true},["zoneID"]=16651}
@@ -13204,7 +13204,7 @@ data.Npc[254411]={["name"]="Quel'dora Quickgale",["minLevel"]=10,["maxLevel"]=10
 data.Npc[254444]={["name"]="Stalker"}
 data.Npc[254490]={["name"]="Desolace Bone Worm",["minLevel"]=37,["maxLevel"]=38,["spawns"]={[16651]=true},["zoneID"]=16651}
 data.Npc[254501]={["name"]="Tree Branch",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[616]=true},["zoneID"]=616}
-data.Npc[254508]={["name"]="Personal Survival Pack",["spawns"]={[616]=true},["zoneID"]=616}
+data.Npc[254508]={["name"]="Personal Survival Pack",["minLevel"]=57,["maxLevel"]=57,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[254529]={["name"]="Trilliax <3<3"}
 data.Npc[254530]={["name"]="Trilliax <3<3"}
 data.Npc[254560]={["name"]="Twilight Shadowmancer",["minLevel"]=39,["maxLevel"]=40,["spawns"]={[16591]=true},["zoneID"]=16591}
@@ -13218,13 +13218,13 @@ data.Npc[254588]={["name"]="Windsong Crawler",["minLevel"]=8,["maxLevel"]=9,["sp
 data.Npc[254589]={["name"]="Vulgara the Insatiable",["minLevel"]=8,["maxLevel"]=8,["spawns"]={[16593]=true},["zoneID"]=16593}
 data.Npc[254596]={["name"]="Al'Aketh Healer",["minLevel"]=9,["maxLevel"]=10,["spawns"]={[16593]=true},["zoneID"]=16593}
 data.Npc[254607]={["name"]="Peacekeeper Scout"}
-data.Npc[254613]={["name"]="Bristleback Looter"}
-data.Npc[254614]={["name"]="Outcast Centaur"}
+data.Npc[254613]={["name"]="Bristleback Looter",["minLevel"]=40,["maxLevel"]=40}
+data.Npc[254614]={["name"]="Outcast Centaur",["minLevel"]=40,["maxLevel"]=40}
 data.Npc[254626]={["name"]="Al'Aketh Assassin",["minLevel"]=9,["maxLevel"]=10,["spawns"]={[16593]=true},["zoneID"]=16593}
 data.Npc[254644]={["name"]="Personal Survival Pack",["minLevel"]=57,["maxLevel"]=57,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[254656]={["name"]="Magister Kirandis",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[16651]=true},["zoneID"]=16651}
 data.Npc[254674]={["name"]="Woodwyrd",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[16651]=true},["zoneID"]=16651}
-data.Npc[254695]={["name"]="Repair Bot",["minLevel"]=25,["maxLevel"]=25,["zoneID"]=11}
+data.Npc[254695]={["name"]="Repair Bot",["minLevel"]=25,["maxLevel"]=25,["zoneID"]=85}
 data.Npc[254717]={["name"]="Vindael",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[16651]=true},["zoneID"]=16651}
 data.Npc[254762]={["name"]="Ball and Chain",["minLevel"]=39,["maxLevel"]=42,["spawns"]={[16651]=true},["zoneID"]=16651}
 data.Npc[254770]={["name"]="Pelluk",["minLevel"]=42,["maxLevel"]=42,["spawns"]={[8]=true},["zoneID"]=8}
@@ -13252,12 +13252,12 @@ data.Npc[255071]={["name"]="Sewer Fiend"}
 data.Npc[255072]={["name"]="Dark Caster"}
 data.Npc[255109]={["name"]="Flesh Golem",["spawns"]={[16611]=true},["zoneID"]=16611}
 data.Npc[255113]={["name"]="Tobin Wheeldon",["minLevel"]=40,["maxLevel"]=40,["spawns"]={[400]=true},["zoneID"]=400}
-data.Npc[255115]={["name"]="Jaston Valarias",["spawns"]={[400]=true},["zoneID"]=400}
+data.Npc[255115]={["name"]="Jaston Valarias",["minLevel"]=40,["maxLevel"]=40,["spawns"]={[400]=true},["zoneID"]=400}
 data.Npc[255151]={["name"]="Rhylin Stonethorn",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[255159]={["name"]="Stalker"}
-data.Npc[255165]={["name"]="Brown Horse"}
-data.Npc[255166]={["name"]="Pinto"}
-data.Npc[255174]={["name"]="Blind Screecher",["minLevel"]=41,["maxLevel"]=42,["spawns"]={[405]=true,[16651]=true},["zoneID"]=16651}
+data.Npc[255165]={["name"]="Brown Horse",["minLevel"]=2,["maxLevel"]=2,["spawns"]={[400]=true},["zoneID"]=400}
+data.Npc[255166]={["name"]="Pinto",["minLevel"]=2,["maxLevel"]=2,["spawns"]={[400]=true},["zoneID"]=400}
+data.Npc[255174]={["name"]="Blind Screecher",["minLevel"]=41,["maxLevel"]=42,["spawns"]={[16651]=true},["zoneID"]=16651}
 data.Npc[255183]={["name"]="Jezerelle the Swaying",["minLevel"]=61,["maxLevel"]=61,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[255191]={["name"]="Veteran of the Third War",["minLevel"]=61,["maxLevel"]=61,["spawns"]={[400]=true},["zoneID"]=400}
 data.Npc[255201]={["name"]="Eddard Heartweaver"}
@@ -13329,7 +13329,7 @@ data.Npc[255523]={["name"]="Collector of Suffering"}
 data.Npc[255534]={["name"]="\"Badwind\" Bennic",["minLevel"]=7,["maxLevel"]=7,["spawns"]={[16593]=true},["zoneID"]=16593}
 data.Npc[255536]={["name"]="Faladiel"}
 data.Npc[255538]={["name"]="Constable Aonda"}
-data.Npc[255560]={["name"]="Magram Guardian",["minLevel"]=39,["maxLevel"]=41,["spawns"]={[405]=true,[16651]=true},["zoneID"]=405}
+data.Npc[255560]={["name"]="Magram Guardian",["minLevel"]=39,["maxLevel"]=41,["spawns"]={[405]=true},["zoneID"]=405}
 data.Npc[255561]={["name"]="Gelkis Guardian",["minLevel"]=39,["maxLevel"]=41,["spawns"]={[405]=true},["zoneID"]=405}
 data.Npc[255587]={["name"]="Bothered Bone Worm",["minLevel"]=37,["maxLevel"]=38,["spawns"]={[16651]=true},["zoneID"]=16651}
 data.Npc[255597]={["name"]="Father Tuttle",["minLevel"]=34,["maxLevel"]=34,["spawns"]={[8]=true},["zoneID"]=8}
@@ -13405,7 +13405,7 @@ data.Npc[256097]={["name"]="Bjork"}
 data.Npc[256102]={["name"]="Crest of Lordaeron"}
 data.Npc[256108]={["name"]="Shadowgale Shrieker",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[16593]=true},["zoneID"]=16593}
 data.Npc[256121]={["name"]="Broken Construct Parts"}
-data.Npc[256222]={["name"]="Ketharas",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[493]=true,[616]=true},["zoneID"]=616}
+data.Npc[256222]={["name"]="Ketharas",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[256236]={["name"]="The Questioner"}
 data.Npc[256247]={["name"]="Belathaan Brightwish",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[16593]=true},["zoneID"]=16593}
 data.Npc[256249]={["name"]="High Priestess Lorthuna",["minLevel"]=9999,["maxLevel"]=9999,["spawns"]={[16593]=true},["zoneID"]=16593}
@@ -13496,7 +13496,7 @@ data.Npc[256657]={["name"]="Kreza Darkthorn",["minLevel"]=40,["maxLevel"]=40,["s
 data.Npc[256658]={["name"]="Gur'dok",["minLevel"]=25,["maxLevel"]=25,["spawns"]={[16591]=true},["zoneID"]=16591}
 data.Npc[256660]={["name"]="Thobon Sapclaw",["minLevel"]=61,["maxLevel"]=61,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[256672]={["name"]="Kurvelk Shadowhoof",["minLevel"]=30,["maxLevel"]=30,["spawns"]={[17]=true},["zoneID"]=17}
-data.Npc[256673]={["name"]="Grik",["minLevel"]=38,["maxLevel"]=38,["spawns"]={[10]=true,[267]=true,[16591]=true},["zoneID"]=16591}
+data.Npc[256673]={["name"]="Grik",["minLevel"]=38,["maxLevel"]=38,["spawns"]={[16591]=true},["zoneID"]=16591}
 data.Npc[256675]={["name"]="Innkeeper Toka",["minLevel"]=38,["maxLevel"]=38,["spawns"]={[16591]=true},["zoneID"]=16591}
 data.Npc[256678]={["name"]="Tainted Vilethorn"}
 data.Npc[256710]={["name"]="Tran'gul",["minLevel"]=39,["maxLevel"]=39,["spawns"]={[16591]=true},["zoneID"]=16591}
@@ -13799,7 +13799,7 @@ data.Npc[259054]={["name"]="Wildplains Patriarch",["minLevel"]=38,["maxLevel"]=3
 data.Npc[259055]={["name"]="Wildplains Huntress",["minLevel"]=38,["maxLevel"]=39,["spawns"]={[16591]=true},["zoneID"]=16591}
 data.Npc[259056]={["name"]="Komuk",["minLevel"]=45,["maxLevel"]=45,["spawns"]={[16591]=true},["zoneID"]=16591}
 data.Npc[259057]={["name"]="Dunston Willis",["minLevel"]=44,["maxLevel"]=44,["spawns"]={[16591]=true},["zoneID"]=16591}
-data.Npc[259058]={["name"]="Windshaper Shaman",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[215]=true,[1638]=true,[16593]=true},["zoneID"]=16593}
+data.Npc[259058]={["name"]="Windshaper Shaman",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[215]=true,[16593]=true},["zoneID"]=16593}
 data.Npc[259060]={["name"]="High Order Mage",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[16593]=true},["zoneID"]=16593}
 data.Npc[259084]={["name"]="Denaaris Stargale",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[259093]={["name"]="Hallin"}
@@ -13831,7 +13831,7 @@ data.Npc[259224]={["name"]="Rock Garden"}
 data.Npc[259232]={["name"]="Slumbering Druid",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[493]=true},["zoneID"]=493}
 data.Npc[259233]={["name"]="Slumbering Druid",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[493]=true},["zoneID"]=493}
 data.Npc[259234]={["name"]="Slumbering Druid",["spawns"]={[493]=true},["zoneID"]=493}
-data.Npc[259235]={["name"]="Slumbering Druid"}
+data.Npc[259235]={["name"]="Slumbering Druid",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[493]=true},["zoneID"]=493}
 data.Npc[259236]={["name"]="Slumbering Druid",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[493]=true},["zoneID"]=493}
 data.Npc[259250]={["name"]="Alphonse Dumas",["minLevel"]=25,["maxLevel"]=25,["spawns"]={[16591]=true},["zoneID"]=16591}
 data.Npc[259251]={["name"]="Emerald Dreamer"}
@@ -13851,7 +13851,7 @@ data.Npc[259287]={["name"]="Melanie Sable",["minLevel"]=41,["maxLevel"]=41,["spa
 data.Npc[259288]={["name"]="Hyjal Dryad"}
 data.Npc[259352]={["name"]="Watcher Cornelius",["minLevel"]=38,["maxLevel"]=38,["spawns"]={[16591]=true},["zoneID"]=16591}
 data.Npc[259353]={["name"]="Cedric Dalton",["minLevel"]=40,["maxLevel"]=40,["spawns"]={[16591]=true},["zoneID"]=16591}
-data.Npc[259358]={["name"]="Treant",["minLevel"]=55,["maxLevel"]=57,["spawns"]={[616]=true},["zoneID"]=616}
+data.Npc[259358]={["name"]="Treant",["minLevel"]=55,["maxLevel"]=60,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[259363]={["name"]="Sapling"}
 data.Npc[259377]={["name"]="Injured Deathguard",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[85]=true},["zoneID"]=85}
 data.Npc[259385]={["name"]="Tel'daeor the Stormspeaker",["minLevel"]=13,["maxLevel"]=13,["spawns"]={[16593]=true},["zoneID"]=16593}
@@ -13878,7 +13878,7 @@ data.Npc[259776]={["name"]="Emerald Dreamer"}
 data.Npc[259782]={["name"]="Trip Vine"}
 data.Npc[259801]={["name"]="Mosh'gra",["minLevel"]=41,["maxLevel"]=41,["spawns"]={[16591]=true},["zoneID"]=16591}
 data.Npc[259818]={["name"]="Ivory Galestrider",["minLevel"]=1,["maxLevel"]=2,["spawns"]={[16593]=true},["zoneID"]=16593}
-data.Npc[259842]={["name"]="Unknown",["minLevel"]=1,["maxLevel"]=30,["spawns"]={[11]=true,[12]=true,[14]=true,[17]=true,[38]=true,[44]=true,[130]=true,[148]=true,[267]=true,[406]=true,[1519]=true,[1537]=true,[1637]=true,[16593]=true},["zoneID"]=16593}
+data.Npc[259842]={["name"]="Unknown",["spawns"]={[14]=true,[130]=true,[1537]=true,[1637]=true,[16593]=true},["zoneID"]=1637}
 data.Npc[259843]={["name"]="Musical Gustjumper",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[16593]=true},["zoneID"]=16593}
 data.Npc[259852]={["name"]="Nightmare Fiend"}
 data.Npc[259857]={["name"]="Farholde Sentry"}
@@ -13895,8 +13895,8 @@ data.Npc[259887]={["name"]="[DNT] Kill Credit: Mycelium network calibrated"}
 data.Npc[259897]={["name"]="Old Fire-Eye",["minLevel"]=25,["maxLevel"]=25,["spawns"]={[130]=true},["zoneID"]=130}
 data.Npc[259900]={["name"]="Hadurk Mendelsen"}
 data.Npc[259901]={["name"]="Igthar Forgefury",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[46]=true},["zoneID"]=46}
-data.Npc[259908]={["name"]="Naia Moonsong"}
-data.Npc[259909]={["name"]="Or'kug",["spawns"]={[46]=true},["zoneID"]=46}
+data.Npc[259908]={["name"]="Naia Moonsong",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[618]=true},["zoneID"]=618}
+data.Npc[259909]={["name"]="Or'kug",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[46]=true},["zoneID"]=46}
 data.Npc[259944]={["name"]="Jereman",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[259957]={["name"]="Dummy"}
 data.Npc[259961]={["name"]="Wharfmaster Whizzbuzz",["minLevel"]=45,["maxLevel"]=45,["spawns"]={[16591]=true},["zoneID"]=16591}
@@ -13946,7 +13946,7 @@ data.Npc[260093]={["name"]="Garen Largo",["minLevel"]=20,["maxLevel"]=20,["spawn
 data.Npc[260096]={["name"]="Brinescale Priestess"}
 data.Npc[260101]={["name"]="Paladin Trainee",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[85]=true},["zoneID"]=85}
 data.Npc[260102]={["name"]="Bandarion Keep Paladin",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[85]=true},["zoneID"]=85}
-data.Npc[260105]={["name"]="Seed Hybridizer"}
+data.Npc[260105]={["name"]="Seed Hybridizer",["spawns"]={[14]=true},["zoneID"]=14}
 data.Npc[260107]={["name"]="Illusion"}
 data.Npc[260114]={["name"]="Azka Bloodsnout"}
 data.Npc[260117]={["name"]="Liferoot"}
@@ -13971,7 +13971,7 @@ data.Npc[260138]={["name"]="Prisoner"}
 data.Npc[260146]={["name"]="Sully McCleary",["minLevel"]=50,["maxLevel"]=50,["spawns"]={[15]=true},["zoneID"]=15}
 data.Npc[260148]={["name"]="Scourge Reanimator",["minLevel"]=59,["maxLevel"]=60,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[260150]={["name"]="Abyssal Bubble"}
-data.Npc[260157]={["name"]="Elder Snow Leopard",["minLevel"]=9,["maxLevel"]=10,["spawns"]={{{64.84,58.43},{68.86,51.68},{69.03,54.25},{69.75,52.45},{70.27,53.07},{70.65,51.38},{70.7,50.72},{70.73,52.74},{70.91,52.19},{70.91,53.45},{71.34,51.91},{71.48,54.07},{71.5,53.3},{71.5,62.3},{71.6,61.72},{71.81,52.82},{71.94,54.58},{72.1,52.29},{72.1,61.21},{72.14,57.67},{72.19,58.23},{72.23,54.05},{72.23,57.09},{72.23,62.67},{72.24,55.06},{72.24,58.81},{72.26,59.43},{72.26,60.54},{72.29,61.95},{72.34,59.99},{72.36,55.56},{72.41,56.19},{72.74,54.74},{72.83,57.18},{72.88,60.07},{72.91,60.91},{72.95,56.4},{73.03,59.58},{73.08,55.29},{73.1,50.22},{73.21,54.44},{73.24,61.96},{73.37,53.84},{73.46,53.24},{73.67,49.78},{73.68,52.69},{73.68,62.59},{73.69,51.21},{73.69,55},{73.74,60.98},{73.76,51.93},{73.86,55.54},{73.87,54.49},{73.98,53.4},{74,50.64},{74.26,52.56},{74.29,54.97},{74.32,51.15},{74.32,54.13},{74.42,55.67},{74.43,50.3},{74.48,61.11},{74.83,53.06},{74.85,62.95},{74.93,52.52},{74.96,53.7},{74.99,51.02},{74.99,59.31},{75.01,54.4},{75.05,56.42},{75.07,51.9},{75.09,61.36},{75.1,55.78},{75.12,55.23},{75.27,58.3},{75.4,50.54},{75.52,53.11},{75.52,53.94},{75.63,61.16},{75.64,57.1},{75.67,52.2},{75.67,55.12},{75.7,56.43},{75.74,61.84},{75.81,55.81},{75.86,54.44},{75.88,51},{75.91,52.71},{76.01,62.41},{76.05,60.85},{76.16,60.11},{76.23,59.33},{76.29,57.34},{76.29,57.85},{76.38,56.48},{76.4,61.62},{76.44,55.63},{76.48,58.48},{76.49,62.57},{76.66,60.93},{76.67,54.96},{76.79,59.98},{76.81,63.22},{76.85,59.02},{77,56.49},{77,57.9},{77.06,57.21},{77.15,61.53},{77.19,58.62},{77.26,54.62},{77.26,62.4},{77.3,59.38},{77.35,55.42},{77.37,56.06},{77.71,60.56},{77.72,57.2},{77.8,61.2},{77.84,60.04},{77.89,58.19},{77.97,59.5},{77.97,62.07},{78.18,58.98},{78.33,53.21},{78.34,56.58},{78.39,59.96},{78.43,54.61},{78.47,55.96},{78.48,58.31},{78.48,60.69},{78.52,55.31},{78.58,57.14},{78.59,54.05},{78.59,57.75},{78.64,52.4},{78.65,59.49},{78.74,61.54},{78.86,58.89},{78.95,60.12},{79,53.46},{79.15,52.13},{79.18,55.51},{79.21,58},{79.22,56.65},{79.23,57.22},{79.23,59.44},{79.39,54.85},{79.4,56.06},{79.49,54.24},{79.51,58.65},{79.69,53.64},{79.75,52.93},{79.9,56.76},{79.96,57.31},{80.11,55.85},{80.24,59.09},{80.25,57.76},{80.62,53.27},{80.73,58.58},{80.76,55.23},{80.88,57.59},{81.1,56.74},{81.19,54.79},{81.33,52.44},{81.33,57.32},{81.37,55.79},{81.47,54.15},{81.77,56.99},{81.84,53.48},{81.86,56.38},{81.88,55.33},{82.3,55.74},{82.42,53.28},{82.58,57.18}}},["zoneID"]=1}
+data.Npc[260157]={["name"]="Elder Snow Leopard",["minLevel"]=9,["maxLevel"]=10,["spawns"]={{{64.84,58.43},{69.82,52.47},{70.07,53.02},{70.66,50.76},{70.72,52.75},{70.79,51.4},{70.8,53.22},{70.87,52.15},{71.06,53.69},{71.32,52.06},{71.47,53.2},{71.49,54.06},{71.55,62.24},{71.63,61.67},{72.02,54.03},{72.06,54.6},{72.07,61.03},{72.13,57.58},{72.15,52.58},{72.16,58.1},{72.19,53.15},{72.21,57.11},{72.22,58.69},{72.25,59.39},{72.28,55.15},{72.28,61.47},{72.3,60.48},{72.32,59.94},{72.37,61.97},{72.46,56.24},{72.46,62.59},{72.58,55.56},{72.84,54.63},{72.84,57.12},{72.84,60.04},{72.9,60.88},{72.94,56.35},{73.1,50.24},{73.2,55.31},{73.21,61.93},{73.36,53.91},{73.42,49.78},{73.54,53.21},{73.61,54.63},{73.63,51.2},{73.66,62.58},{73.67,60.97},{73.71,52.57},{73.76,51.86},{73.91,53.63},{73.92,55.58},{73.97,50.24},{74.01,55.12},{74.1,50.85},{74.11,52.87},{74.2,52.39},{74.31,49.57},{74.42,61.09},{74.44,55.72},{74.48,54.45},{74.55,50.35},{74.64,52.74},{74.79,53.24},{74.89,62.93},{74.96,61.35},{74.97,59.37},{74.99,53.93},{75,56.24},{75.01,55.44},{75.02,51},{75.07,52.4},{75.11,51.66},{75.44,53.22},{75.44,54.76},{75.46,50.61},{75.5,56.92},{75.54,56.3},{75.54,61.17},{75.58,54.19},{75.74,52.64},{75.74,61.76},{75.77,52.05},{75.84,55.42},{76.03,60.87},{76.05,56.99},{76.12,54.27},{76.16,57.65},{76.16,60},{76.19,62.32},{76.21,54.8},{76.24,61.63},{76.29,56.48},{76.36,59.08},{76.41,55.92},{76.44,58.33},{76.56,60.57},{76.58,61.18},{76.76,55.46},{76.76,59.7},{76.76,61.76},{76.91,57.97},{76.93,56.86},{76.96,58.76},{77.1,56.36},{77.14,57.49},{77.28,60.34},{77.3,55.1},{77.38,62.5},{77.43,59.18},{77.56,55.96},{77.72,61.33},{77.73,54.61},{77.76,57.13},{77.82,59.94},{77.87,60.62},{77.96,58.28},{78.1,61.9},{78.17,59.46},{78.36,58.92},{78.37,59.92},{78.45,56.6},{78.46,53.38},{78.51,60.58},{78.52,54.25},{78.52,57.96},{78.55,56.03},{78.56,57.19},{78.63,54.99},{78.77,55.52},{78.77,59.57},{78.8,58.43},{78.82,61.31},{78.86,52.02},{79,59.01},{79,59.99},{79.01,53.6},{79.1,57.06},{79.18,57.65},{79.31,56.34},{79.32,55.69},{79.36,54.18},{79.37,54.97},{79.5,58.44},{79.67,53.62},{79.75,56.82},{79.79,52.89},{80.01,55.98},{80.05,55.52},{80.28,57.47},{80.56,57.13},{80.64,55.33},{80.67,53.33},{80.88,54.85},{81,57.74},{81.18,55.39},{81.22,57.27},{81.29,55.88},{81.37,54.49},{81.41,56.77},{81.61,53.83},{81.72,55.36},{81.83,57.15},{81.89,56.34},{82.07,55.78},{82.16,53.54}}},["zoneID"]=1}
 data.Npc[260202]={["name"]="Deathless Marrow"}
 data.Npc[260205]={["name"]="Deathless Watcher"}
 data.Npc[260211]={["name"]="Scoutmaster Vargas",["minLevel"]=42,["maxLevel"]=42,["spawns"]={[16591]=true},["zoneID"]=16591}
@@ -13990,7 +13990,7 @@ data.Npc[260271]={["name"]="Sully McCleary",["minLevel"]=50,["maxLevel"]=50,["sp
 data.Npc[260274]={["name"]="Min'loth the Serpent"}
 data.Npc[260300]={["name"]="Campfire Marker"}
 data.Npc[260322]={["name"]="Saltspine"}
-data.Npc[260325]={["name"]="Shadetooth",["zoneID"]=16732}
+data.Npc[260325]={["name"]="Shadetooth",["spawns"]={[16732]=true},["zoneID"]=16732}
 data.Npc[260326]={["name"]="Relic Guardian"}
 data.Npc[260343]={["name"]="Maka",["minLevel"]=38,["maxLevel"]=38,["spawns"]={[16591]=true},["zoneID"]=16591}
 data.Npc[260353]={["name"]="Saltseer Coroner"}
@@ -14024,10 +14024,10 @@ data.Npc[260466]={["name"]="Grubbub",["minLevel"]=60,["maxLevel"]=60,["spawns"]=
 data.Npc[260468]={["name"]="\"Pyromancer\" Braxton"}
 data.Npc[260471]={["name"]="Thrash",["minLevel"]=39,["maxLevel"]=39,["spawns"]={[16591]=true},["zoneID"]=16591}
 data.Npc[260478]={["name"]="(DNT) Saltseer Pyromancer Stalker"}
-data.Npc[260481]={["name"]="Om'kug",["spawns"]={[46]=true},["zoneID"]=46}
+data.Npc[260481]={["name"]="Om'kug",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[46]=true},["zoneID"]=46}
 data.Npc[260487]={["name"]="Gritta Chumwater",["minLevel"]=44,["maxLevel"]=44,["spawns"]={[16591]=true},["zoneID"]=16591}
 data.Npc[260494]={["name"]="Farholde Sentry",["minLevel"]=40,["maxLevel"]=40,["spawns"]={[16591]=true},["zoneID"]=16591}
-data.Npc[260525]={["name"]="Tallow Sparksocket",["minLevel"]=42,["maxLevel"]=42,["spawns"]={[1519]=true,[16591]=true},["zoneID"]=16591}
+data.Npc[260525]={["name"]="Tallow Sparksocket",["minLevel"]=42,["maxLevel"]=42,["spawns"]={[16591]=true},["zoneID"]=16591}
 data.Npc[260540]={["name"]="Jasper Geartoggle",["minLevel"]=39,["maxLevel"]=39,["spawns"]={[16591]=true},["zoneID"]=16591}
 data.Npc[260543]={["name"]="Mizzy",["minLevel"]=50,["maxLevel"]=50,["spawns"]={[16591]=true},["zoneID"]=16591}
 data.Npc[260558]={["name"]="Krix",["minLevel"]=43,["maxLevel"]=43,["spawns"]={[16591]=true},["zoneID"]=16591}
@@ -14053,8 +14053,8 @@ data.Npc[260796]={["name"]="Marsh Crocolisk",["minLevel"]=26,["maxLevel"]=26,["s
 data.Npc[260797]={["name"]="Elder Crocolisk",["minLevel"]=27,["maxLevel"]=27,["spawns"]={[11]=true},["zoneID"]=11}
 data.Npc[260798]={["name"]="Young Crocolisk"}
 data.Npc[260799]={["name"]="Young Riptooth"}
-data.Npc[260800]={["name"]="Thicket Lurker",["zoneID"]=16732}
-data.Npc[260801]={["name"]="Thicket Hunter"}
+data.Npc[260800]={["name"]="Thicket Lurker",["spawns"]={[16732]=true},["zoneID"]=16732}
+data.Npc[260801]={["name"]="Thicket Hunter",["spawns"]={[16732]=true},["zoneID"]=16732}
 data.Npc[260802]={["name"]="Thicket Matriarch"}
 data.Npc[260803]={["name"]="Highland Spider",["minLevel"]=27,["maxLevel"]=28,["spawns"]={[11]=true},["zoneID"]=11}
 data.Npc[260804]={["name"]="Highland Lurker",["minLevel"]=28,["maxLevel"]=29,["spawns"]={[11]=true},["zoneID"]=11}
@@ -14222,7 +14222,7 @@ data.Npc[262306]={["name"]="Mukomonji",["minLevel"]=62,["maxLevel"]=62,["spawns"
 data.Npc[262379]={["name"]="Bullets Bigblast",["minLevel"]=53,["maxLevel"]=53,["spawns"]={[8]=true},["zoneID"]=8}
 data.Npc[262383]={["name"]="Darkspear Shark"}
 data.Npc[262388]={["name"]="Juo",["minLevel"]=49,["maxLevel"]=49,["spawns"]={[47]=true},["zoneID"]=47}
-data.Npc[262397]={["name"]="Brinescale Skirmisher",["minLevel"]=36,["maxLevel"]=38,["spawns"]={[33]=true,[40]=true},["zoneID"]=33}
+data.Npc[262397]={["name"]="Brinescale Skirmisher",["minLevel"]=36,["maxLevel"]=38,["spawns"]={[33]=true},["zoneID"]=33}
 data.Npc[262399]={["name"]="Gelinda Coppergleam",["minLevel"]=40,["maxLevel"]=40,["spawns"]={[16591]=true},["zoneID"]=16591}
 data.Npc[262420]={["name"]="Redridge Prisoner"}
 data.Npc[262465]={["name"]="Daewyn Songblade"}
@@ -14233,7 +14233,7 @@ data.Npc[262473]={["name"]="Cinderscale Whelp",["minLevel"]=39,["maxLevel"]=40,[
 data.Npc[262477]={["name"]="Cinderscale Warrior",["minLevel"]=41,["maxLevel"]=42,["spawns"]={[16591]=true},["zoneID"]=16591}
 data.Npc[262492]={["name"]="Rimblat Earthshatter",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[215]=true},["zoneID"]=215}
 data.Npc[262502]={["name"]="Brix Xizzix",["minLevel"]=20,["maxLevel"]=20,["spawns"]={[215]=true},["zoneID"]=215}
-data.Npc[262504]={["name"]="Earthen Ring Shaman",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[215]=true,[405]=true,[406]=true,[1638]=true},["zoneID"]=215}
+data.Npc[262504]={["name"]="Earthen Ring Shaman",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[215]=true,[405]=true,[406]=true},["zoneID"]=215}
 data.Npc[262520]={["name"]="Pack Kodo"}
 data.Npc[262523]={["name"]="Galestrider",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[215]=true},["zoneID"]=215}
 data.Npc[262539]={["name"]="Forlorn Ghost"}
@@ -14338,7 +14338,7 @@ data.Npc[263645]={["name"]="Gruga Bloodblade",["minLevel"]=61,["maxLevel"]=61,["
 data.Npc[263646]={["name"]="Rugbul Boomfirst",["minLevel"]=61,["maxLevel"]=61,["spawns"]={[1497]=true},["zoneID"]=1497}
 data.Npc[263647]={["name"]="Borook Gallfist",["minLevel"]=61,["maxLevel"]=61,["spawns"]={[1638]=true},["zoneID"]=1638}
 data.Npc[263664]={["name"]="Raan Wildwind",["minLevel"]=12,["maxLevel"]=12,["spawns"]={[16593]=true},["zoneID"]=16593}
-data.Npc[263681]={["name"]="Bear",["minLevel"]=41,["maxLevel"]=42,["spawns"]={[405]=true,[16651]=true},["zoneID"]=16651}
+data.Npc[263681]={["name"]="Bear",["minLevel"]=41,["maxLevel"]=42,["spawns"]={[16651]=true},["zoneID"]=16651}
 data.Npc[263718]={["name"]="Bristleback Bodyguard",["minLevel"]=42,["maxLevel"]=43,["spawns"]={[16651]=true},["zoneID"]=16651}
 data.Npc[263742]={["name"]="Zin'aka"}
 data.Npc[263749]={["name"]="Gronok the Butcher",["minLevel"]=44,["maxLevel"]=44,["spawns"]={[16591]=true},["zoneID"]=16591}
@@ -14358,19 +14358,19 @@ data.Npc[263918]={["name"]="Thalanaar Hippogryph"}
 data.Npc[263919]={["name"]="Searshrike Wormwing"}
 data.Npc[263922]={["name"]="[DNT] Kill Credit: Bones thrown into the Sime Pit"}
 data.Npc[263930]={["name"]="Peacekeeper",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[16593]=true},["zoneID"]=16593}
-data.Npc[263935]={["name"]="Old Rusthowl",["spawns"]={[616]=true},["zoneID"]=616}
+data.Npc[263935]={["name"]="Old Rusthowl",["minLevel"]=57,["maxLevel"]=57,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[263980]={["name"]="Seaforium Blasting Powder"}
 data.Npc[263981]={["name"]="Bloodhound Runt"}
 data.Npc[264041]={["name"]="Burning Bunny"}
 data.Npc[264072]={["name"]="Yorn Grimtotem",["minLevel"]=30,["maxLevel"]=30,["spawns"]={[215]=true},["zoneID"]=215}
 data.Npc[264074]={["name"]="Mazu'kon",["minLevel"]=35,["maxLevel"]=35,["spawns"]={[215]=true},["zoneID"]=215}
 data.Npc[264078]={["name"]="Sutara Plainstalker",["minLevel"]=30,["maxLevel"]=30,["spawns"]={[215]=true},["zoneID"]=215}
-data.Npc[264079]={["name"]="Gloomrise Hatchling",["minLevel"]=27,["maxLevel"]=28,["spawns"]={[215]=true,[405]=true,[406]=true},["zoneID"]=215}
+data.Npc[264079]={["name"]="Gloomrise Hatchling",["minLevel"]=27,["maxLevel"]=28,["spawns"]={[215]=true,[406]=true},["zoneID"]=215}
 data.Npc[264081]={["name"]="Gloomrise Spinner",["minLevel"]=28,["maxLevel"]=28,["spawns"]={[215]=true,[405]=true,[406]=true},["zoneID"]=215}
-data.Npc[264082]={["name"]="Broodmother Valraxx",["minLevel"]=30,["maxLevel"]=30,["spawns"]={[215]=true,[406]=true},["zoneID"]=215}
-data.Npc[264083]={["name"]="Gloomrise Soldier",["minLevel"]=28,["maxLevel"]=29,["spawns"]={[215]=true,[405]=true,[406]=true,[1638]=true},["zoneID"]=215}
+data.Npc[264082]={["name"]="Broodmother Valraxx",["minLevel"]=30,["maxLevel"]=30,["spawns"]={[215]=true},["zoneID"]=215}
+data.Npc[264083]={["name"]="Gloomrise Soldier",["minLevel"]=28,["maxLevel"]=29,["spawns"]={[215]=true,[405]=true,[406]=true},["zoneID"]=215}
 data.Npc[264089]={["name"]="Eluneth",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[616]=true},["zoneID"]=616}
-data.Npc[264096]={["name"]="Gnawed Corpse",["minLevel"]=28,["maxLevel"]=29,["spawns"]={[215]=true,[406]=true,[1638]=true},["zoneID"]=215}
+data.Npc[264096]={["name"]="Gnawed Corpse",["minLevel"]=28,["maxLevel"]=29,["spawns"]={[215]=true},["zoneID"]=215}
 data.Npc[264139]={["name"]="Stalker"}
 data.Npc[264149]={["name"]="Unstable Mana Rift",["minLevel"]=40,["maxLevel"]=40,["spawns"]={[16651]=true},["zoneID"]=16651}
 data.Npc[264172]={["name"]="Umbra"}
@@ -14415,16 +14415,16 @@ data.Npc[264795]={["name"]="Marn Euhorn",["minLevel"]=60,["maxLevel"]=60,["spawn
 data.Npc[264797]={["name"]="Aisarra Nightmeadow",["minLevel"]=63,["maxLevel"]=63,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[264839]={["name"]="[DNT] Kill Credit: Armor slot selected for study"}
 data.Npc[264845]={["name"]="Mason Connery"}
-data.Npc[264850]={["name"]="Unknown",["minLevel"]=20,["maxLevel"]=30,["spawns"]={[10]=true,[11]=true,[12]=true,[17]=true,[33]=true,[36]=true,[44]=true,[45]=true,[85]=true,[148]=true,[215]=true,[267]=true,[331]=true,[400]=true,[406]=true,[1519]=true},["zoneID"]=11}
+data.Npc[264850]={["name"]="Unknown",["spawns"]={[11]=true,[33]=true,[85]=true,[361]=true,[1497]=true},["zoneID"]=85}
 data.Npc[264861]={["name"]="KC Creature"}
 data.Npc[264867]={["name"]="Ghansurok",["minLevel"]=61,["maxLevel"]=61,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[264881]={["name"]="[DNT] Kill Credit"}
 data.Npc[264936]={["name"]="Earthseer Farsen",["minLevel"]=13,["maxLevel"]=13,["spawns"]={{{64.87,58.47}}},["zoneID"]=1}
-data.Npc[264937]={["name"]="Farsen's Totem",["minLevel"]=10,["maxLevel"]=10,["spawns"]={{{63.72,59.14},{64.64,59.42},{64.75,58.43},{65.12,59.15},{65.29,58.41},{65.47,57.31},{65.52,59.69},{66.07,59.49}}},["zoneID"]=1}
-data.Npc[264943]={["name"]="Afadra Dunwall",["minLevel"]=13,["maxLevel"]=13,["spawns"]={[1537]=true},["zoneID"]=1537}
+data.Npc[264937]={["name"]="Farsen's Totem",["minLevel"]=10,["maxLevel"]=10,["spawns"]={{{64.32,58.6},{64.69,59.44},{64.81,58.43},{65.12,59.14},{65.27,58.33},{65.47,57.28},{65.52,59.69}}},["zoneID"]=1}
+data.Npc[264943]={["name"]="Afadra Dunwall",["minLevel"]=13,["maxLevel"]=13,["spawns"]={{{34.58,51.65}}},["zoneID"]=1}
 data.Npc[265002]={["name"]="Ghostly Attendant",["spawns"]={[16919]=true},["zoneID"]=16919}
 data.Npc[265003]={["name"]="Thom Filch",["minLevel"]=13,["maxLevel"]=13,["spawns"]={[1537]=true},["zoneID"]=1537}
-data.Npc[265026]={["name"]="Murkborn Elemental"}
+data.Npc[265026]={["name"]="Murkborn Elemental",["minLevel"]=59,["maxLevel"]=59,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[265143]={["name"]="[DNT] Kill Credit: "}
 data.Npc[265148]={["name"]="[DNT] Kill Credit: "}
 data.Npc[265155]={["name"]="Barkskin Ancestor"}
@@ -14464,7 +14464,7 @@ data.Npc[265760]={["name"]="Swift Umber Galestrider",["minLevel"]=60,["maxLevel"
 data.Npc[265761]={["name"]="Swift Stormy Galestrider",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[16593]=true},["zoneID"]=16593}
 data.Npc[265762]={["name"]="Swift Empyrean Galestrider",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[16593]=true},["zoneID"]=16593}
 data.Npc[265788]={["name"]="Kal'tinzan",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[616]=true},["zoneID"]=616}
-data.Npc[265796]={["name"]="Wild Chicken"}
+data.Npc[265796]={["name"]="Wild Chicken",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[265797]={["name"]="Wild Chicken"}
 data.Npc[265804]={["name"]="Elaadrin Evengale"}
 data.Npc[265809]={["name"]="Brakk",["minLevel"]=12,["maxLevel"]=12,["spawns"]={[14]=true},["zoneID"]=14}
@@ -14474,7 +14474,7 @@ data.Npc[265812]={["name"]="Eleanor Shackleton",["minLevel"]=12,["maxLevel"]=12,
 data.Npc[265813]={["name"]="Eric Brighthammer",["minLevel"]=12,["maxLevel"]=12,["spawns"]={{{46.65,53.88}}},["zoneID"]=1}
 data.Npc[265841]={["name"]="An'zalam the Keeper"}
 data.Npc[265862]={["name"]="Enho Runehoof",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[616]=true},["zoneID"]=616}
-data.Npc[265866]={["name"]="Trigg Ironhand",["minLevel"]=57,["maxLevel"]=60,["spawns"]={[616]=true},["zoneID"]=616}
+data.Npc[265866]={["name"]="Trigg Ironhand",["minLevel"]=56,["maxLevel"]=60,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[265883]={["name"]="Chagrak Hammerstrike",["minLevel"]=56,["maxLevel"]=60,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[265892]={["name"]="Shok'tara",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[265893]={["name"]="Dendarro",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[616]=true},["zoneID"]=616}
@@ -14488,7 +14488,7 @@ data.Npc[265987]={["name"]="Spell Resistant Dummy"}
 data.Npc[265988]={["name"]="[DNT] Kill Credit: Escaped Sheep"}
 data.Npc[266014]={["name"]="[DNT] Kill Credit: Escaped Sheep"}
 data.Npc[266016]={["name"]="[DNT] Kill Credit: Escaped Sheep"}
-data.Npc[266025]={["name"]="Unknown",["minLevel"]=7,["maxLevel"]=21,["spawns"]={[1]=true,[12]=true,[14]=true,[17]=true,[38]=true,[40]=true,[44]=true,[85]=true,[130]=true,[148]=true,[1497]=true,[1519]=true,[1537]=true,[1637]=true,[16593]=true},["zoneID"]=16593}
+data.Npc[266025]={["name"]="Unknown",["spawns"]={[85]=true,[1497]=true,[1537]=true},["zoneID"]=1497}
 data.Npc[266216]={["name"]="Lord Tomas",["minLevel"]=24,["maxLevel"]=24,["spawns"]={[267]=true},["zoneID"]=267}
 data.Npc[266310]={["name"]="Falric Fellhollow"}
 data.Npc[266345]={["name"]="Spider"}
@@ -14500,7 +14500,7 @@ data.Npc[266508]={["name"]="Sergeant Danneth",["minLevel"]=52,["maxLevel"]=52,["
 data.Npc[266513]={["name"]="[DNT] Kill Credit: Warlock Bones Thrown on Slime Altar"}
 data.Npc[266524]={["name"]="Lieutenant Connar",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[4]=true},["zoneID"]=4}
 data.Npc[266593]={["name"]="Sergeant Danneth",["minLevel"]=52,["maxLevel"]=52,["spawns"]={[4]=true},["zoneID"]=4}
-data.Npc[266735]={["name"]="Unknown",["minLevel"]=1,["maxLevel"]=30,["spawns"]={[10]=true,[11]=true,[14]=true,[17]=true,[33]=true,[40]=true,[44]=true,[45]=true,[85]=true,[130]=true,[148]=true,[215]=true,[267]=true,[406]=true,[1497]=true,[1519]=true,[1537]=true,[1637]=true,[1638]=true,[16593]=true},["zoneID"]=85}
+data.Npc[266735]={["name"]="Unknown",["spawns"]={[14]=true,[17]=true,[33]=true,[36]=true,[45]=true,[85]=true,[130]=true,[406]=true,[1497]=true,[1637]=true,[16591]=true},["zoneID"]=85}
 data.Npc[266802]={["name"]="Thark Gorax",["minLevel"]=57,["maxLevel"]=57,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[266803]={["name"]="Quintus Wainworth",["minLevel"]=54,["maxLevel"]=54,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[266847]={["name"]="Anastasia Miller",["minLevel"]=36,["maxLevel"]=36,["spawns"]={[45]=true},["zoneID"]=45}
@@ -14519,7 +14519,7 @@ data.Npc[266886]={["name"]="Ruined Flying Machine"}
 data.Npc[266887]={["name"]="Ruined Catapult"}
 data.Npc[266889]={["name"]="Eddie"}
 data.Npc[266890]={["name"]="Max"}
-data.Npc[266892]={["name"]="Ofalo Stonesnow"}
+data.Npc[266892]={["name"]="Ofalo Stonesnow",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[618]=true},["zoneID"]=618}
 data.Npc[266901]={["name"]="Pexmit",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[266912]={["name"]="Pinky"}
 data.Npc[266940]={["name"]="Turroc",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[14]=true},["zoneID"]=14}
@@ -14529,20 +14529,20 @@ data.Npc[267000]={["name"]="Paige",["minLevel"]=28,["maxLevel"]=28,["spawns"]={[
 data.Npc[267001]={["name"]="Cody",["minLevel"]=26,["maxLevel"]=28,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[267002]={["name"]="Luna",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[267004]={["name"]="Dock Worker (Bag)"}
-data.Npc[267006]={["name"]="Dark Neophyte",["minLevel"]=11,["maxLevel"]=12,["spawns"]={[85]=true,[1497]=true},["zoneID"]=85}
+data.Npc[267006]={["name"]="Dark Neophyte",["minLevel"]=11,["maxLevel"]=12,["spawns"]={[85]=true},["zoneID"]=85}
 data.Npc[267007]={["name"]="Stormwind Harbor Guard",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[1519]=true},["zoneID"]=1519}
 data.Npc[267008]={["name"]="Leonid Barthalomew the Revered",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[85]=true},["zoneID"]=85}
 data.Npc[267009]={["name"]="Hadric Harlson",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[85]=true},["zoneID"]=85}
 data.Npc[267064]={["name"]="Stormwind Cannoneer",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[1519]=true},["zoneID"]=1519}
 data.Npc[267065]={["name"]="Syndicate Smuggler",["minLevel"]=35,["maxLevel"]=35,["spawns"]={[45]=true},["zoneID"]=45}
-data.Npc[267072]={["name"]="Ravenous Shark",["minLevel"]=63,["maxLevel"]=63}
+data.Npc[267072]={["name"]="Ravenous Shark",["minLevel"]=63,["maxLevel"]=63,["spawns"]={[130]=true,[267]=true},["zoneID"]=267}
 data.Npc[267081]={["name"]="Menacing Ravager",["minLevel"]=63,["maxLevel"]=63}
 data.Npc[267097]={["name"]="Maerion Thaelemaches",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[267109]={["name"]="Galvinquam Leafsyre",["minLevel"]=58,["maxLevel"]=58,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[267113]={["name"]="Marrosis",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[267118]={["name"]="Gilbert Gray",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[1519]=true},["zoneID"]=1519}
 data.Npc[267121]={["name"]="Yashiro",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[616]=true},["zoneID"]=616}
-data.Npc[267125]={["name"]="Fleshflayer Ravener",["spawns"]={[616]=true},["zoneID"]=616}
+data.Npc[267125]={["name"]="Fleshflayer Ravener",["minLevel"]=57,["maxLevel"]=58,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[267158]={["name"]="Jereman",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[267182]={["name"]="Ve'han Talongrasp",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[267183]={["name"]="Outfoxed Demon"}
@@ -14552,7 +14552,7 @@ data.Npc[267214]={["name"]="Va'xug Firefure",["minLevel"]=28,["maxLevel"]=28,["s
 data.Npc[267216]={["name"]="White Riding Kodo",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[215]=true},["zoneID"]=215}
 data.Npc[267226]={["name"]="Grey Riding Kodo",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[215]=true},["zoneID"]=215}
 data.Npc[267227]={["name"]="Brown Riding Kodo",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[215]=true},["zoneID"]=215}
-data.Npc[267279]={["name"]="Cadoc Winterheart",["minLevel"]=5,["maxLevel"]=5,["spawns"]={{{28.24,71.87},{28.29,71.06},{28.97,72.27},{29.01,70.51},{29.22,71.75},{29.24,70.05},{29.88,69.58}}},["zoneID"]=1}
+data.Npc[267279]={["name"]="Cadoc Winterheart",["minLevel"]=5,["maxLevel"]=5,["spawns"]={{{29.41,70.09}}},["zoneID"]=1}
 data.Npc[267287]={["name"]="Sylassa Moonglow",["minLevel"]=8,["maxLevel"]=8,["spawns"]={[141]=true},["zoneID"]=141}
 data.Npc[267291]={["name"]="Emerald Riding Raptor",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[14]=true},["zoneID"]=14}
 data.Npc[267297]={["name"]="Turquoise Riding Raptor",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[14]=true},["zoneID"]=14}
@@ -14593,18 +14593,18 @@ data.Npc[267358]={["name"]="Blue Skeletal Horse",["minLevel"]=1,["maxLevel"]=1,[
 data.Npc[267364]={["name"]="Brown Skeletal Horse",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[85]=true},["zoneID"]=85}
 data.Npc[267439]={["name"]="Doomguard Xarkul",["minLevel"]=61,["maxLevel"]=61,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[267462]={["name"]="[DNT] Kill Credit"}
-data.Npc[267473]={["name"]="Brown Ram",["minLevel"]=1,["maxLevel"]=1,["spawns"]={{{62.5,49.51},{62.68,50.35},{62.77,51.35},{63.04,49.88},{63.1,50.96},{64.04,50.27},{64.84,50.58},{65.38,50.86}}},["zoneID"]=1}
-data.Npc[267474]={["name"]="White Ram",["minLevel"]=1,["maxLevel"]=1,["spawns"]={{{62.51,49.53},{62.87,51.17},{63.05,49.89},{64.15,49.58},{64.23,50.24},{64.76,51.26},{65.02,50.35},{65.58,49.5},{65.62,50.59},{66.1,50.88}}},["zoneID"]=1}
-data.Npc[267475]={["name"]="Gray Ram",["minLevel"]=1,["maxLevel"]=1,["spawns"]={{{62.66,51.52},{62.82,49.82},{63.17,51},{63.93,50.46},{64.58,50.46},{65.24,50.29}}},["zoneID"]=1}
+data.Npc[267473]={["name"]="Brown Ram",["minLevel"]=1,["maxLevel"]=1,["spawns"]={{{64.07,50.24}}},["zoneID"]=1}
+data.Npc[267474]={["name"]="White Ram",["minLevel"]=1,["maxLevel"]=1,["spawns"]={{{64.27,50.22}}},["zoneID"]=1}
+data.Npc[267475]={["name"]="Gray Ram",["minLevel"]=1,["maxLevel"]=1,["spawns"]={{{63.96,50.45}}},["zoneID"]=1}
 data.Npc[267525]={["name"]="Wizzik Dustfizz",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[440]=true},["zoneID"]=440}
 data.Npc[267599]={["name"]="Energizing Vortex"}
 data.Npc[267674]={["name"]="Brown Horse",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[12]=true},["zoneID"]=12}
 data.Npc[267677]={["name"]="Chestnut Mare",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[12]=true},["zoneID"]=12}
 data.Npc[267678]={["name"]="Pinto",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[12]=true},["zoneID"]=12}
-data.Npc[267683]={["name"]="Red Mechanostrider",["minLevel"]=1,["maxLevel"]=1,["spawns"]={{{48.39,50.26},{48.48,48.01},{48.48,49.71},{48.7,49.22},{48.8,46.39},{48.98,48.74},{49.2,48.23},{49.46,49.61},{49.47,47.14},{49.76,48},{49.86,46.51},{49.86,48.59},{51.07,48.1}}},["zoneID"]=1}
-data.Npc[267684]={["name"]="Green Mechanostrider",["minLevel"]=1,["maxLevel"]=1,["spawns"]={{{48.36,50.21},{48.44,47.93},{48.52,49.6},{48.71,49.1},{49.1,48.23},{49.36,47.3},{49.64,48.29},{50.24,46.27}}},["zoneID"]=1}
-data.Npc[267687]={["name"]="Blue Mechanostrider",["minLevel"]=1,["maxLevel"]=1,["spawns"]={{{48.44,48.03},{48.44,50.33},{48.57,49.62},{48.67,49.04},{49.08,48.16},{49.43,47.33},{49.66,48.45},{50.03,49.96},{50.28,48.15},{50.56,46.8},{50.64,47.65}}},["zoneID"]=1}
-data.Npc[267688]={["name"]="Unpainted Mechanostrider",["minLevel"]=1,["maxLevel"]=1,["spawns"]={{{48.34,49.68},{48.7,49.06},{49.01,48.07},{49.54,47.51},{49.72,48.51},{50,46.66},{50.02,48.03}}},["zoneID"]=1}
+data.Npc[267683]={["name"]="Red Mechanostrider",["minLevel"]=1,["maxLevel"]=1,["spawns"]={{{49.17,48.2}}},["zoneID"]=1}
+data.Npc[267684]={["name"]="Green Mechanostrider",["minLevel"]=1,["maxLevel"]=1,["spawns"]={{{49.12,48.16}}},["zoneID"]=1}
+data.Npc[267687]={["name"]="Blue Mechanostrider",["minLevel"]=1,["maxLevel"]=1,["spawns"]={{{49.09,48.12}}},["zoneID"]=1}
+data.Npc[267688]={["name"]="Unpainted Mechanostrider",["minLevel"]=1,["maxLevel"]=1,["spawns"]={{{49.08,48.08}}},["zoneID"]=1}
 data.Npc[267745]={["name"]="PTR Fishing Tournament Vendor"}
 data.Npc[267806]={["name"]="\"Flipfin\"",["minLevel"]=50,["maxLevel"]=50,["spawns"]={[33]=true},["zoneID"]=33}
 data.Npc[267842]={["name"]="Bitter Baitling"}
@@ -14614,8 +14614,8 @@ data.Npc[267917]={["name"]="Stalker"}
 data.Npc[267936]={["name"]="Refugee Child",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[16593]=true},["zoneID"]=16593}
 data.Npc[267963]={["name"]="Quadcopter",["minLevel"]=62,["maxLevel"]=62,["spawns"]={[440]=true},["zoneID"]=440}
 data.Npc[268044]={["name"]="Loren Ravenlock",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[616]=true},["zoneID"]=616}
-data.Npc[268047]={["name"]="Theramore Emissary",["minLevel"]=22,["maxLevel"]=23,["spawns"]={[1519]=true,[1537]=true,[1657]=true},["zoneID"]=1519}
-data.Npc[268048]={["name"]="Darkspear Emissary",["minLevel"]=30,["maxLevel"]=30,["spawns"]={[1497]=true,[1637]=true,[1638]=true},["zoneID"]=1497}
+data.Npc[268047]={["name"]="Theramore Emissary",["spawns"]={[1657]=true},["zoneID"]=1657}
+data.Npc[268048]={["name"]="Darkspear Emissary"}
 data.Npc[268079]={["name"]="Dummy Beast"}
 data.Npc[268080]={["name"]="Dummy Demon"}
 data.Npc[268081]={["name"]="Dummy Dragonkin"}
@@ -14669,8 +14669,8 @@ data.Npc[268592]={["name"]="Olariaan Swiftburn",["minLevel"]=12,["maxLevel"]=12,
 data.Npc[268602]={["name"]="Skypriest Faladiel",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[16593]=true},["zoneID"]=16593}
 data.Npc[268605]={["name"]="Kuramaa",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[16593]=true},["zoneID"]=16593}
 data.Npc[268606]={["name"]="Thera Duskwhisper",["minLevel"]=63,["maxLevel"]=63,["spawns"]={[618]=true},["zoneID"]=618}
-data.Npc[268614]={["name"]="Ghost of Olgra",["minLevel"]=16,["maxLevel"]=16,["spawns"]={[17]=true},["zoneID"]=17}
-data.Npc[268622]={["name"]="Encroaching Soldier",["minLevel"]=22,["maxLevel"]=23,["spawns"]={[15]=true,[17]=true},["zoneID"]=17}
+data.Npc[268614]={["name"]="Ghost of Olgra",["spawns"]={[17]=true},["zoneID"]=17}
+data.Npc[268622]={["name"]="Encroaching Soldier",["minLevel"]=22,["maxLevel"]=23,["spawns"]={[17]=true},["zoneID"]=17}
 data.Npc[268623]={["name"]="Outraged Pillager",["minLevel"]=23,["maxLevel"]=23,["spawns"]={[17]=true},["zoneID"]=17}
 data.Npc[268624]={["name"]="Razormane Raider",["minLevel"]=16,["maxLevel"]=19,["spawns"]={[17]=true},["zoneID"]=17}
 data.Npc[268663]={["name"]="Penny Pinderton",["minLevel"]=35,["maxLevel"]=35,["spawns"]={[16591]=true},["zoneID"]=16591}
@@ -14685,10 +14685,10 @@ data.Npc[268690]={["name"]="Electrified Vortex"}
 data.Npc[268700]={["name"]="Tycho",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[268701]={["name"]="Thatog",["minLevel"]=25,["maxLevel"]=25,["spawns"]={[1637]=true},["zoneID"]=1637}
 data.Npc[268705]={["name"]="Aka'rai",["minLevel"]=34,["maxLevel"]=34,["spawns"]={[405]=true},["zoneID"]=405}
-data.Npc[268707]={["name"]="Unknown",["minLevel"]=1,["maxLevel"]=20,["spawns"]={[14]=true,[17]=true,[85]=true,[130]=true,[406]=true,[1497]=true,[1637]=true},["zoneID"]=1637}
+data.Npc[268707]={["name"]="Unknown",["spawns"]={[14]=true,[85]=true,[267]=true,[1497]=true,[1637]=true,[16591]=true},["zoneID"]=14}
 data.Npc[268731]={["name"]="Jacko Boie"}
 data.Npc[268743]={["name"]="Rexxie Copperclutch"}
-data.Npc[268744]={["name"]="Unknown",["minLevel"]=20,["maxLevel"]=28,["spawns"]={[11]=true,[17]=true,[148]=true,[267]=true,[400]=true,[406]=true},["zoneID"]=17}
+data.Npc[268744]={["name"]="Unknown",["spawns"]={[11]=true,[33]=true,[36]=true,[406]=true},["zoneID"]=406}
 data.Npc[268745]={["name"]="Mayhoa Skyhoof",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[1637]=true},["zoneID"]=1637}
 data.Npc[268761]={["name"]="Randal",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[268762]={["name"]="Brazier of Offering",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[16593]=true},["zoneID"]=16593}
@@ -14698,12 +14698,12 @@ data.Npc[268787]={["name"]="Savage Felhound"}
 data.Npc[268825]={["name"]="(DNT) Water Geyser Stalker Stalker"}
 data.Npc[268831]={["name"]="Plains Prowler",["minLevel"]=39,["maxLevel"]=40,["spawns"]={[16591]=true},["zoneID"]=16591}
 data.Npc[268834]={["name"]="Bloodstarved Frenzy"}
-data.Npc[268840]={["name"]="Spectral Bear Cub",["minLevel"]=30,["maxLevel"]=30,["spawns"]={[36]=true,[85]=true,[1497]=true,[1519]=true,[1638]=true},["zoneID"]=1519}
+data.Npc[268840]={["name"]="Spectral Bear Cub"}
 data.Npc[268864]={["name"]="Legashi Plaguebringer"}
 data.Npc[268865]={["name"]="Festering Swarmer"}
 data.Npc[268878]={["name"]="Flesh Maggot"}
 data.Npc[268900]={["name"]="Dron"}
-data.Npc[268907]={["name"]="Bock"}
+data.Npc[268907]={["name"]="Bock",["spawns"]={[618]=true},["zoneID"]=618}
 data.Npc[268915]={["name"]="Meat"}
 data.Npc[268924]={["name"]="Pretty Flower"}
 data.Npc[268925]={["name"]="Night Elf Courier",["minLevel"]=15,["maxLevel"]=15,["spawns"]={[406]=true},["zoneID"]=406}
@@ -14717,7 +14717,7 @@ data.Npc[269075]={["name"]="Snow Leopard Prowler",["minLevel"]=6,["maxLevel"]=6,
 data.Npc[269077]={["name"]="Reuse"}
 data.Npc[269104]={["name"]="Moontouched Wanderer"}
 data.Npc[269111]={["name"]="Gortek the Apprentice"}
-data.Npc[269127]={["name"]="Image of Archmage Modera",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[36]=true,[130]=true,[267]=true},["zoneID"]=130}
+data.Npc[269127]={["name"]="Image of Archmage Modera",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[130]=true},["zoneID"]=130}
 data.Npc[269133]={["name"]="Skeleton"}
 data.Npc[269134]={["name"]="Kirin Tor Necromancer"}
 data.Npc[269138]={["name"]="White Riding Kodo",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[406]=true},["zoneID"]=406}
@@ -14809,7 +14809,7 @@ data.Npc[270422]={["name"]="Sentinel Owl"}
 data.Npc[270424]={["name"]="Credit"}
 data.Npc[270426]={["name"]="Credit"}
 data.Npc[270438]={["name"]="Deathstalker Masoj",["minLevel"]=30,["maxLevel"]=30,["spawns"]={[267]=true},["zoneID"]=267}
-data.Npc[270451]={["name"]="Executor Asharell"}
+data.Npc[270451]={["name"]="Executor Asharell",["spawns"]={[46]=true},["zoneID"]=46}
 data.Npc[270459]={["name"]="Alfina Nightgaze",["minLevel"]=28,["maxLevel"]=28,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[270513]={["name"]="Spellweaver Thaldris",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[270532]={["name"]="Redridge Prisoner"}
@@ -14865,7 +14865,7 @@ data.Npc[271035]={["name"]="Nalrekk Fizzlewrench",["minLevel"]=55,["maxLevel"]=5
 data.Npc[271036]={["name"]="Rorschak",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[1637]=true},["zoneID"]=1637}
 data.Npc[271080]={["name"]="Blightsculler",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[85]=true},["zoneID"]=85}
 data.Npc[271167]={["name"]="Guard Jameson",["minLevel"]=40,["maxLevel"]=40,["spawns"]={[15]=true},["zoneID"]=15}
-data.Npc[271181]={["name"]="Eye of Kilrogg",["minLevel"]=24,["maxLevel"]=27,["spawns"]={[331]=true},["zoneID"]=331}
+data.Npc[271181]={["name"]="Eye of Kilrogg",["spawns"]={[331]=true}}
 data.Npc[271182]={["name"]="Credit"}
 data.Npc[271293]={["name"]="[DNT] Kill Credit: Twilight Thrall"}
 data.Npc[271301]={["name"]="Power Crystal"}
@@ -14880,7 +14880,7 @@ data.Npc[271339]={["name"]="Ent"}
 data.Npc[271346]={["name"]="Dragonmaw Infiltrator",["minLevel"]=29,["maxLevel"]=30,["spawns"]={[11]=true},["zoneID"]=11}
 data.Npc[271348]={["name"]="Dragonmaw Soulbinder",["minLevel"]=29,["maxLevel"]=30,["spawns"]={[11]=true},["zoneID"]=11}
 data.Npc[271351]={["name"]="Dragonmaw Reclaimer",["minLevel"]=29,["maxLevel"]=30,["spawns"]={[11]=true},["zoneID"]=11}
-data.Npc[271368]={["name"]="Shadowgale Squirrel",["minLevel"]=1,["maxLevel"]=22,["spawns"]={[10]=true,[130]=true,[148]=true,[1519]=true,[16593]=true},["zoneID"]=16593}
+data.Npc[271368]={["name"]="Unknown"}
 data.Npc[271373]={["name"]="Subdued Dragonspawn",["minLevel"]=34,["maxLevel"]=34,["spawns"]={[11]=true},["zoneID"]=11}
 data.Npc[271437]={["name"]="Portal"}
 data.Npc[271446]={["name"]="Red Drake",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[11]=true},["zoneID"]=11}
@@ -14893,13 +14893,13 @@ data.Npc[271478]={["name"]="Elaria Anvilwind",["minLevel"]=5,["maxLevel"]=5,["sp
 data.Npc[271480]={["name"]="Taliaa Brightsky",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[16593]=true},["zoneID"]=16593}
 data.Npc[271481]={["name"]="Captive Fire Elemental",["minLevel"]=28,["maxLevel"]=28,["spawns"]={[11]=true},["zoneID"]=11}
 data.Npc[271483]={["name"]="Ergaan Eastwind",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[16593]=true},["zoneID"]=16593}
-data.Npc[271486]={["name"]="Wendigo Shaman",["minLevel"]=6,["maxLevel"]=8,["spawns"]={{{38.93,47.7},{39.03,48.32},{39.16,49.04},{39.35,47.3},{39.38,49.53},{39.74,48.85},{40.05,46.19},{40.05,47.6},{40.08,48.32},{40.4,47.17},{40.46,46.64},{40.66,45.62},{40.97,47.09},{41.14,49.83},{41.15,50.55},{41.2,49.31},{41.47,51.13},{41.64,45.32},{41.73,49.15},{41.87,45.83},{41.94,54.13},{42.06,47.98},{42.06,51.56},{42.1,48.58},{42.11,46.28},{42.18,53.23},{42.2,47.43},{42.21,46.92},{42.27,52.64},{42.32,54.47},{42.43,49.24},{42.45,55.85},{42.48,51.97},{42.51,50.51},{42.84,46.49},{42.85,55.53},{42.87,49.71},{43.26,55.14},{43.28,49.24},{43.34,54.61},{43.44,50.4},{43.5,49.71},{43.62,50.88},{43.86,48.57},{43.94,49.97}}},["zoneID"]=1}
+data.Npc[271486]={["name"]="Wendigo Shaman",["minLevel"]=6,["maxLevel"]=8,["spawns"]={{{38.96,47.7},{38.98,48.73},{39.28,49.31},{39.33,47.33},{39.72,48.76},{39.92,46.16},{40.04,47.57},{40.15,48.29},{40.39,46.35},{40.4,47.06},{40.66,45.52},{40.96,47.09},{41.13,49.76},{41.14,50.42},{41.19,49.3},{41.32,50.91},{41.67,45.34},{41.76,49.16},{41.86,45.85},{41.88,51.45},{41.94,54.09},{42.06,47.97},{42.08,46.29},{42.09,48.6},{42.15,53.06},{42.17,46.93},{42.18,47.42},{42.36,54.7},{42.45,51.85},{42.5,49.29},{42.54,46.1},{42.56,50.4},{43.02,49.68},{43.21,55.07},{43.27,49.13},{43.44,50.39},{43.62,50.9},{43.8,48.64},{43.94,49.97}}},["zoneID"]=1}
 data.Npc[271511]={["name"]="Renegade Fire Elemental"}
-data.Npc[271530]={["name"]="Elder Wendigo",["minLevel"]=7,["maxLevel"]=8,["spawns"]={{{38.93,48.49},{39,47.81},{39.35,49.04},{39.38,47.31},{39.53,46.22},{39.56,49.61},{39.88,48.56},{39.94,47.96},{40.01,47.46},{40.36,47.08},{40.38,46.31},{40.8,45.6},{40.95,47.08},{41.12,50.47},{41.14,49.79},{41.17,49.26},{41.39,51.02},{41.62,49.02},{41.63,45.37},{41.85,51.45},{41.89,48.27},{42.04,46.14},{42.18,46.81},{42.18,52.65},{42.23,47.46},{42.23,54.6},{42.28,48.7},{42.29,53.63},{42.34,51.86},{42.47,45.84},{42.47,50.58},{42.48,49.29},{42.61,46.49},{42.65,47.09},{42.7,55.03},{42.85,49.84},{43.14,55.6},{43.14,56.25},{43.24,49.37},{43.34,48.84},{43.45,49.85},{43.48,50.5},{43.5,53.91},{43.66,51.05},{43.85,48.58}}},["zoneID"]=1}
+data.Npc[271530]={["name"]="Elder Wendigo",["minLevel"]=7,["maxLevel"]=8,["spawns"]={{{38.89,48.42},{38.99,47.79},{39.37,48.98},{39.42,47.32},{39.45,49.63},{39.52,46.19},{39.9,48.5},{39.92,47.95},{39.99,47.46},{40.37,46.29},{40.38,47.06},{40.8,45.59},{40.96,47.09},{41.12,50.47},{41.13,49.74},{41.16,49.27},{41.38,51.04},{41.66,49.03},{41.67,45.36},{41.89,51.43},{41.92,48.3},{42,54.37},{42.03,46.15},{42.17,46.83},{42.2,52.83},{42.21,47.48},{42.26,48.67},{42.26,51.91},{42.3,53.64},{42.44,54.86},{42.49,45.91},{42.49,50.52},{42.59,49.36},{42.61,46.53},{42.64,47.1},{42.81,49.95},{42.9,55.71},{43.02,55.08},{43.17,48.68},{43.26,49.41},{43.38,49.87},{43.46,50.48},{43.66,51.04},{43.75,48.69}}},["zoneID"]=1}
 data.Npc[271546]={["name"]="Mountaineer Gretchen",["minLevel"]=7,["maxLevel"]=7,["spawns"]={{{44.1,57.07}}},["zoneID"]=1}
 data.Npc[271587]={["name"]="Frosthowl",["minLevel"]=9,["maxLevel"]=9,["spawns"]={{{39.33,48.79}}},["zoneID"]=1}
 data.Npc[271613]={["name"]="Unfinished Abomination",["minLevel"]=35,["maxLevel"]=35,["spawns"]={[1497]=true},["zoneID"]=1497}
-data.Npc[271636]={["name"]="Weevil K. Neevil",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[8]=true,[10]=true},["zoneID"]=10}
+data.Npc[271636]={["name"]="Unknown",["spawns"]={[14]=true},["zoneID"]=14}
 data.Npc[271637]={["name"]="Vigilantes Active"}
 data.Npc[271638]={["name"]="Here!"}
 data.Npc[271639]={["name"]="Watchful Eyes"}
@@ -14917,7 +14917,7 @@ data.Npc[271698]={["name"]="Restless Spirit",["minLevel"]=23,["maxLevel"]=23,["s
 data.Npc[271707]={["name"]="Juvenile Cloudrunner",["minLevel"]=8,["maxLevel"]=8,["spawns"]={[16593]=true},["zoneID"]=16593}
 data.Npc[271710]={["name"]="Cloudrunner Matriarch",["minLevel"]=9,["maxLevel"]=9,["spawns"]={[16593]=true},["zoneID"]=16593}
 data.Npc[271712]={["name"]="Cloudrunner",["minLevel"]=6,["maxLevel"]=6,["spawns"]={[16593]=true},["zoneID"]=16593}
-data.Npc[271732]={["name"]="Thicket Stalker"}
+data.Npc[271732]={["name"]="Thicket Stalker",["spawns"]={[16732]=true},["zoneID"]=16732}
 data.Npc[271736]={["name"]="Josh",["minLevel"]=4,["maxLevel"]=4,["spawns"]={[16591]=true},["zoneID"]=16591}
 data.Npc[271742]={["name"]="Abbot Schuncke",["minLevel"]=53,["maxLevel"]=53,["spawns"]={[16591]=true},["zoneID"]=16591}
 data.Npc[271746]={["name"]="Corporal Twohig",["minLevel"]=40,["maxLevel"]=40,["spawns"]={[16591]=true},["zoneID"]=16591}
@@ -14942,7 +14942,7 @@ data.Npc[271857]={["name"]="Green Druid Moose Mount"}
 data.Npc[271858]={["name"]="Gray Druid Moose Mount"}
 data.Npc[271863]={["name"]="Veteran Adventurer's Loyal Companion"}
 data.Npc[271866]={["name"]="Night Watch Guard",["minLevel"]=25,["maxLevel"]=25,["spawns"]={[10]=true},["zoneID"]=10}
-data.Npc[271867]={["name"]="Unknown",["spawns"]={[11]=true,[14]=true,[33]=true,[85]=true,[148]=true,[267]=true,[406]=true,[1497]=true,[1519]=true,[1537]=true,[1638]=true},["zoneID"]=85}
+data.Npc[271867]={["name"]="Unknown",["spawns"]={[11]=true,[14]=true,[33]=true,[36]=true,[85]=true,[148]=true,[267]=true,[406]=true,[440]=true,[493]=true,[1497]=true,[1519]=true,[1537]=true,[1637]=true,[1638]=true},["zoneID"]=85}
 data.Npc[271870]={["name"]="Galestrider Chick"}
 data.Npc[271874]={["name"]="Black Furbolg Pet"}
 data.Npc[271875]={["name"]="Brown Furbolg Pet"}
@@ -14960,20 +14960,20 @@ data.Npc[271898]={["name"]="Greater Tarantula",["minLevel"]=18,["maxLevel"]=19,[
 data.Npc[271903]={["name"]="Stormscale Beastmistress",["minLevel"]=19,["maxLevel"]=20,["spawns"]={[148]=true},["zoneID"]=148}
 data.Npc[271904]={["name"]="Skeleton"}
 data.Npc[271912]={["name"]="[DNT] Kill Credit: Tarantula Egg"}
-data.Npc[271913]={["name"]="Plagued Cockroach",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[17]=true,[85]=true,[1497]=true},["zoneID"]=1497}
-data.Npc[271914]={["name"]="Undercity Cockroach",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[36]=true,[85]=true,[1497]=true},["zoneID"]=1497}
-data.Npc[271915]={["name"]="Jungle Boa",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[331]=true,[1637]=true},["zoneID"]=1637}
+data.Npc[271913]={["name"]="Plagued Cockroach",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[1497]=true},["zoneID"]=1497}
+data.Npc[271914]={["name"]="Undercity Cockroach",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[1497]=true},["zoneID"]=1497}
+data.Npc[271915]={["name"]="Jungle Boa",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[11]=true,[130]=true,[1637]=true},["zoneID"]=1637}
 data.Npc[271918]={["name"]="Valaquenia",["minLevel"]=50,["maxLevel"]=50,["spawns"]={[1519]=true},["zoneID"]=1519}
 data.Npc[271919]={["name"]="Aeigelyges",["minLevel"]=50,["maxLevel"]=50,["spawns"]={[1637]=true},["zoneID"]=1637}
-data.Npc[271929]={["name"]="Shen'dorei Windwell",["minLevel"]=1,["maxLevel"]=2,["spawns"]={[1]=true,[3]=true,[8]=true,[10]=true,[11]=true,[12]=true,[14]=true,[15]=true,[16]=true,[17]=true,[33]=true,[36]=true,[38]=true,[40]=true,[44]=true,[45]=true,[85]=true,[130]=true,[141]=true,[148]=true,[215]=true,[267]=true,[331]=true,[357]=true,[400]=true,[405]=true,[406]=true,[440]=true,[490]=true,[493]=true,[1497]=true,[1519]=true,[1537]=true,[1637]=true,[1638]=true,[1657]=true,[16591]=true,[16593]=true},["zoneID"]=85}
+data.Npc[271929]={["name"]="Shen'dorei Windwell",["minLevel"]=1,["maxLevel"]=2,["spawns"]={[1]=true,[8]=true,[10]=true,[11]=true,[12]=true,[14]=true,[15]=true,[17]=true,[33]=true,[38]=true,[40]=true,[44]=true,[45]=true,[85]=true,[130]=true,[141]=true,[148]=true,[215]=true,[267]=true,[331]=true,[400]=true,[405]=true,[406]=true,[440]=true,[493]=true,[1497]=true,[1519]=true,[1537]=true,[1637]=true,[1638]=true,[1657]=true,[16591]=true,[16593]=true},["zoneID"]=16593}
 data.Npc[271961]={["name"]="Webbed Forsaken",["minLevel"]=2,["maxLevel"]=3,["spawns"]={[85]=true},["zoneID"]=85}
-data.Npc[271968]={["name"]="Forsaken Adventurer",["minLevel"]=2,["maxLevel"]=3,["spawns"]={[85]=true},["zoneID"]=85}
+data.Npc[271968]={["name"]="Unknown",["minLevel"]=2,["maxLevel"]=3,["spawns"]={[85]=true},["zoneID"]=85}
 data.Npc[271972]={["name"]="Brown Prairie Dog"}
 data.Npc[271979]={["name"]="Brown Ground Squirrel"}
 data.Npc[271980]={["name"]="Red Ground Squirrel"}
 data.Npc[271988]={["name"]="Greater Tarantula"}
 data.Npc[271993]={["name"]="Brown Rabbit"}
-data.Npc[272012]={["name"]="Unknown",["spawns"]={[1637]=true,[16591]=true},["zoneID"]=16591}
+data.Npc[272012]={["name"]="Unknown",["spawns"]={[36]=true,[1637]=true,[16591]=true},["zoneID"]=16591}
 data.Npc[272020]={["name"]="Steam Tonk"}
 data.Npc[272034]={["name"]="Hatescreech",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[141]=true},["zoneID"]=141}
 data.Npc[272044]={["name"]="Windmistress Gaedress",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[141]=true},["zoneID"]=141}
@@ -15012,7 +15012,7 @@ data.Npc[272251]={["name"]="Dwarf Paladin"}
 data.Npc[272252]={["name"]="Undead Warlock"}
 data.Npc[272260]={["name"]="Lost Stalker",["minLevel"]=24,["maxLevel"]=24,["spawns"]={[10]=true},["zoneID"]=10}
 data.Npc[272273]={["name"]="Lost Watcher",["minLevel"]=24,["maxLevel"]=24,["spawns"]={[10]=true},["zoneID"]=10}
-data.Npc[272279]={["name"]="Swiftwind",["spawns"]={[47]=true},["zoneID"]=47}
+data.Npc[272279]={["name"]="Swiftwind",["minLevel"]=44,["maxLevel"]=44,["spawns"]={[47]=true},["zoneID"]=47}
 data.Npc[272280]={["name"]="Keenclaw",["minLevel"]=44,["maxLevel"]=44,["spawns"]={[47]=true},["zoneID"]=47}
 data.Npc[272282]={["name"]="Unknown",["spawns"]={[47]=true},["zoneID"]=47}
 data.Npc[272284]={["name"]="Lost Defender",["minLevel"]=24,["maxLevel"]=24,["spawns"]={[10]=true},["zoneID"]=10}
@@ -15020,16 +15020,16 @@ data.Npc[272291]={["name"]="Lost Knight",["minLevel"]=25,["maxLevel"]=25,["spawn
 data.Npc[272307]={["name"]="Legashi Satyr",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[16]=true},["zoneID"]=16}
 data.Npc[272309]={["name"]="Tux",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[40]=true},["zoneID"]=40}
 data.Npc[272310]={["name"]="Mocha",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[40]=true},["zoneID"]=40}
-data.Npc[272313]={["name"]="Brineshell Clacker",["minLevel"]=39,["maxLevel"]=40,["spawns"]={[8]=true,[16591]=true},["zoneID"]=16591}
+data.Npc[272313]={["name"]="Brineshell Clacker",["minLevel"]=39,["maxLevel"]=40,["spawns"]={[16591]=true},["zoneID"]=16591}
 data.Npc[272315]={["name"]="Brineshell Snapper",["minLevel"]=42,["maxLevel"]=43,["spawns"]={[16591]=true},["zoneID"]=16591}
 data.Npc[272317]={["name"]="Stone Guardian"}
 data.Npc[272318]={["name"]="Living Blaze"}
 data.Npc[272319]={["name"]="Scorching Elemental"}
 data.Npc[272320]={["name"]="Purified Horror"}
 data.Npc[272321]={["name"]="Noxious Flayer"}
-data.Npc[272328]={["name"]="Unknown",["spawns"]={[14]=true,[17]=true,[33]=true,[36]=true,[40]=true,[47]=true,[85]=true,[130]=true,[215]=true,[1497]=true,[1519]=true,[1537]=true},["zoneID"]=1537}
-data.Npc[272329]={["name"]="Unknown",["spawns"]={[11]=true,[14]=true,[85]=true,[130]=true,[148]=true,[331]=true,[1497]=true,[1519]=true,[1637]=true},["zoneID"]=14}
-data.Npc[272330]={["name"]="Unknown",["spawns"]={[3]=true,[14]=true,[36]=true,[40]=true,[85]=true,[148]=true,[406]=true,[1497]=true,[1519]=true,[1537]=true,[1637]=true,[16593]=true},["zoneID"]=14}
+data.Npc[272328]={["name"]="Unknown",["spawns"]={[11]=true,[14]=true,[17]=true,[33]=true,[36]=true,[40]=true,[47]=true,[85]=true,[130]=true,[215]=true,[1497]=true,[1519]=true,[1537]=true},["zoneID"]=14}
+data.Npc[272329]={["name"]="Unknown",["spawns"]={[3]=true,[11]=true,[14]=true,[36]=true,[85]=true,[130]=true,[148]=true,[267]=true,[331]=true,[1497]=true,[1519]=true,[1537]=true,[1637]=true},["zoneID"]=14}
+data.Npc[272330]={["name"]="Unknown",["spawns"]={[3]=true,[11]=true,[14]=true,[15]=true,[36]=true,[40]=true,[85]=true,[130]=true,[148]=true,[406]=true,[1497]=true,[1519]=true,[1537]=true,[1637]=true,[16591]=true,[16593]=true},["zoneID"]=14}
 data.Npc[272342]={["name"]="Gargantuan Plaguebat",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[28]=true,[139]=true},["zoneID"]=139}
 data.Npc[272346]={["name"]="[DNT] Loot Scarab"}
 data.Npc[272374]={["name"]="Enormous Crustacean",["minLevel"]=53,["maxLevel"]=54,["spawns"]={[16]=true},["zoneID"]=16}
@@ -15094,7 +15094,7 @@ data.Npc[272957]={["name"]="Adelbert Edmunds",["minLevel"]=45,["maxLevel"]=45,["
 data.Npc[272958]={["name"]="Rickard Hardee",["minLevel"]=45,["maxLevel"]=45,["spawns"]={[85]=true},["zoneID"]=85}
 data.Npc[272963]={["name"]="Charred Ghoul"}
 data.Npc[272996]={["name"]="Scarlet Invoker"}
-data.Npc[273002]={["name"]="Traveling Adventurer",["spawns"]={[11]=true},["zoneID"]=11}
+data.Npc[273002]={["name"]="Traveling Adventurer",["minLevel"]=52,["maxLevel"]=52,["spawns"]={[11]=true},["zoneID"]=11}
 data.Npc[273003]={["name"]="Worg Pup",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[1637]=true},["zoneID"]=1637}
 data.Npc[273004]={["name"]="Cat",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[1637]=true},["zoneID"]=1637}
 data.Npc[273006]={["name"]="Ironforge Guard"}
@@ -15113,7 +15113,7 @@ data.Npc[273258]={["name"]="Faith Duggins",["minLevel"]=37,["maxLevel"]=37,["spa
 data.Npc[273264]={["name"]="Talisara Valewind",["minLevel"]=12,["maxLevel"]=12,["spawns"]={[16593]=true},["zoneID"]=16593}
 data.Npc[273286]={["name"]="Crimeon",["minLevel"]=28,["maxLevel"]=28,["spawns"]={[267]=true},["zoneID"]=267}
 data.Npc[273287]={["name"]="Tyler Samuels",["minLevel"]=56,["maxLevel"]=56,["spawns"]={[618]=true},["zoneID"]=618}
-data.Npc[273391]={["name"]="Unknown",["spawns"]={[141]=true},["zoneID"]=141}
+data.Npc[273391]={["name"]="Unknown"}
 data.Npc[273437]={["name"]="Turlethion Moonrage",["minLevel"]=44,["maxLevel"]=44,["spawns"]={[1537]=true},["zoneID"]=1537}
 data.Npc[273458]={["name"]="Wisp"}
 data.Npc[273459]={["name"]="Haal",["minLevel"]=1,["maxLevel"]=2,["spawns"]={[16593]=true},["zoneID"]=16593}
@@ -15143,7 +15143,7 @@ data.Npc[273926]={["name"]="Gnome Warlock"}
 data.Npc[273927]={["name"]="Night Elf Rogue"}
 data.Npc[273928]={["name"]="Human Priest"}
 data.Npc[273946]={["name"]="Armor Debuffed Dummy"}
-data.Npc[273956]={["name"]="Unknown"}
+data.Npc[273956]={["name"]="Unknown",["spawns"]={[1519]=true},["zoneID"]=1519}
 data.Npc[273967]={["name"]="High Order Messenger",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[16593]=true},["zoneID"]=16593}
 data.Npc[273968]={["name"]="High Order Messenger",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[16593]=true},["zoneID"]=16593}
 data.Npc[273972]={["name"]="Credit"}
@@ -15153,14 +15153,14 @@ data.Npc[274081]={["name"]="Princess",["minLevel"]=1,["maxLevel"]=1,["spawns"]={
 data.Npc[274131]={["name"]="Ancient Hilt"}
 data.Npc[274144]={["name"]="Tavern Regular",["minLevel"]=50,["maxLevel"]=50,["spawns"]={[11]=true},["zoneID"]=11}
 data.Npc[274203]={["name"]="Shen'dorei Wisp"}
-data.Npc[274257]={["name"]="Ice Elemental",["spawns"]={[618]=true},["zoneID"]=618}
+data.Npc[274257]={["name"]="Ice Elemental",["minLevel"]=62,["maxLevel"]=62,["spawns"]={[618]=true},["zoneID"]=618}
 data.Npc[274258]={["name"]="Deepscar Brute",["minLevel"]=62,["maxLevel"]=62,["spawns"]={[618]=true},["zoneID"]=618}
 data.Npc[274259]={["name"]="Deepscar Yeti",["minLevel"]=62,["maxLevel"]=62,["spawns"]={[618]=true},["zoneID"]=618}
 data.Npc[274262]={["name"]="Milo",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[274297]={["name"]="Black Dragon Whelp"}
 data.Npc[274298]={["name"]="Rhahk'Zor"}
 data.Npc[274300]={["name"]="Coldrasp",["minLevel"]=12,["maxLevel"]=12,["spawns"]={[85]=true},["zoneID"]=85}
-data.Npc[274334]={["name"]="Unknown",["spawns"]={[148]=true},["zoneID"]=148}
+data.Npc[274334]={["name"]="Unknown",["spawns"]={[33]=true,[148]=true},["zoneID"]=33}
 data.Npc[274340]={["name"]="Umber Galestrider"}
 data.Npc[274403]={["name"]="Furious Hyjal Sentinel"}
 data.Npc[274405]={["name"]="Hyjal Protector",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[616]=true},["zoneID"]=616}
@@ -15204,7 +15204,7 @@ data.Npc[274873]={["name"]="Battlesmith Vaelgrim",["minLevel"]=53,["maxLevel"]=5
 data.Npc[274876]={["name"]="Erenayeth Mossbrook",["minLevel"]=53,["maxLevel"]=53}
 data.Npc[274883]={["name"]="Deluxe Banker"}
 data.Npc[274902]={["name"]="Stormwind City Defender",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[12]=true,[1519]=true},["zoneID"]=1519}
-data.Npc[274903]={["name"]="Stormwind Harbor Defender",["spawns"]={[1519]=true},["zoneID"]=1519}
+data.Npc[274903]={["name"]="Stormwind Harbor Defender",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[1519]=true},["zoneID"]=1519}
 data.Npc[274904]={["name"]="Larkin Smokethorn",["minLevel"]=53,["maxLevel"]=53,["spawns"]={[1657]=true},["zoneID"]=1657}
 data.Npc[274905]={["name"]="Seajay the Oar-Fetcher",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[1519]=true},["zoneID"]=1519}
 data.Npc[274906]={["name"]="Elyquen Starwatch",["minLevel"]=20,["maxLevel"]=20,["spawns"]={[1519]=true},["zoneID"]=1519}
@@ -15222,7 +15222,7 @@ data.Npc[274927]={["name"]="Faluris",["minLevel"]=20,["maxLevel"]=20,["spawns"]=
 data.Npc[274930]={["name"]="Lyvia Stormsinger",["minLevel"]=12,["maxLevel"]=12,["spawns"]={[16593]=true},["zoneID"]=16593}
 data.Npc[274931]={["name"]="Elril Everlight",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[33]=true},["zoneID"]=33}
 data.Npc[274934]={["name"]="Amandriel",["minLevel"]=12,["maxLevel"]=12,["spawns"]={[16593]=true},["zoneID"]=16593}
-data.Npc[274935]={["name"]="Ironforge Protector",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[1]=true,[1537]=true},["zoneID"]=1537}
+data.Npc[274935]={["name"]="Ironforge Protector",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[1]=true,[1537]=true},["zoneID"]=1}
 data.Npc[274938]={["name"]="Waylaid Supply Guy"}
 data.Npc[274940]={["name"]="Annabella Junelight",["minLevel"]=16,["maxLevel"]=16,["spawns"]={[1519]=true},["zoneID"]=1519}
 data.Npc[274941]={["name"]="Rayla",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[17]=true},["zoneID"]=17}
@@ -15235,7 +15235,7 @@ data.Npc[274962]={["name"]="Xaya",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[493
 data.Npc[274963]={["name"]="Roach",["spawns"]={[493]=true},["zoneID"]=493}
 data.Npc[274965]={["name"]="Elderwild Alliance Defender",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[274966]={["name"]="Elderwild Horde Grunt"}
-data.Npc[274974]={["name"]="Enraged Orgrimmar Grunt",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[1637]=true},["zoneID"]=1637}
+data.Npc[274974]={["name"]="Enraged Orgrimmar Grunt",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[14]=true,[1637]=true},["zoneID"]=1637}
 data.Npc[274978]={["name"]="Vengeful Guard",["minLevel"]=40,["maxLevel"]=40,["spawns"]={[17]=true},["zoneID"]=17}
 data.Npc[274983]={["name"]="Mist Howler's Packmate"}
 data.Npc[274985]={["name"]="Trula Verpon"}
@@ -15251,37 +15251,37 @@ data.Npc[275023]={["name"]="Furious Auberdine Sentinel",["minLevel"]=40,["maxLev
 data.Npc[275027]={["name"]="Furious Darnassus Sentinel",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[141]=true,[1657]=true},["zoneID"]=1657}
 data.Npc[275030]={["name"]="Archivist Delv Fortuz",["minLevel"]=28,["maxLevel"]=28,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[275031]={["name"]="Dalaran Adept",["minLevel"]=28,["maxLevel"]=28,["spawns"]={[36]=true},["zoneID"]=36}
-data.Npc[275033]={["name"]="Bluffbruiser"}
+data.Npc[275033]={["name"]="Bluffbruiser",["spawns"]={[1638]=true},["zoneID"]=1638}
 data.Npc[275035]={["name"]="Booty Bay Enforcer",["minLevel"]=57,["maxLevel"]=57,["spawns"]={[33]=true},["zoneID"]=33}
 data.Npc[275038]={["name"]="Brackenwall Smasher",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[15]=true},["zoneID"]=15}
-data.Npc[275042]={["name"]="Furious Brave",["spawns"]={[357]=true},["zoneID"]=357}
+data.Npc[275042]={["name"]="Furious Brave",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[357]=true},["zoneID"]=357}
 data.Npc[275044]={["name"]="Dragonmaw Warder"}
 data.Npc[275045]={["name"]="Dragonmaw Saboteur"}
 data.Npc[275046]={["name"]="Dragonmaw Thaumaturgist"}
-data.Npc[275047]={["name"]="Furious Dolanaar Sentinel"}
-data.Npc[275048]={["name"]="Furious Feathermoon Sentinel"}
+data.Npc[275047]={["name"]="Furious Dolanaar Sentinel",["spawns"]={[141]=true},["zoneID"]=141}
+data.Npc[275048]={["name"]="Furious Feathermoon Sentinel",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[357]=true},["zoneID"]=357}
 data.Npc[275049]={["name"]="Captive Fire Elemental"}
 data.Npc[275052]={["name"]="Furious Moonglade Warden"}
 data.Npc[275055]={["name"]="Everlook Enforcer",["minLevel"]=57,["maxLevel"]=57,["spawns"]={[618]=true},["zoneID"]=618}
 data.Npc[275062]={["name"]="Freewind Enforcer"}
 data.Npc[275067]={["name"]="Gadgetzan Enforcer",["minLevel"]=57,["maxLevel"]=57,["spawns"]={[440]=true},["zoneID"]=440}
 data.Npc[275073]={["name"]="Grom'gol Ravager",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[33]=true},["zoneID"]=33}
-data.Npc[275074]={["name"]="Enraged Kargath Grunt",["spawns"]={[3]=true},["zoneID"]=3}
+data.Npc[275074]={["name"]="Enraged Kargath Grunt",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[3]=true},["zoneID"]=3}
 data.Npc[275075]={["name"]="Lakeshire Protector",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[44]=true},["zoneID"]=44}
 data.Npc[275076]={["name"]="Powderfuse Enforcer"}
 data.Npc[275077]={["name"]="Ratchet Enforcer",["minLevel"]=57,["maxLevel"]=57,["spawns"]={[17]=true},["zoneID"]=17}
-data.Npc[275078]={["name"]="Rallied Defender",["spawns"]={[45]=true},["zoneID"]=45}
-data.Npc[275079]={["name"]="Revantusk Hunter"}
+data.Npc[275078]={["name"]="Rallied Defender",["minLevel"]=41,["maxLevel"]=43,["spawns"]={[45]=true},["zoneID"]=45}
+data.Npc[275079]={["name"]="Revantusk Hunter",["spawns"]={[47]=true},["zoneID"]=47}
 data.Npc[275080]={["name"]="Enraged Rog'mar Grunt",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[16591]=true},["zoneID"]=16591}
 data.Npc[275086]={["name"]="Southshore Defender",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[267]=true},["zoneID"]=267}
-data.Npc[275087]={["name"]="Steamwheedle Enforcer"}
+data.Npc[275087]={["name"]="Steamwheedle Enforcer",["spawns"]={[14]=true},["zoneID"]=14}
 data.Npc[275088]={["name"]="Enraged Stonard Grunt",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[8]=true},["zoneID"]=8}
 data.Npc[275089]={["name"]="Tarren Mill Elite",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[267]=true},["zoneID"]=267}
 data.Npc[275090]={["name"]="Theramore Defender",["minLevel"]=53,["maxLevel"]=57,["spawns"]={[15]=true},["zoneID"]=15}
 data.Npc[275095]={["name"]="Tavern Regular"}
 data.Npc[275097]={["name"]="Vigilant Deathguard"}
 data.Npc[275098]={["name"]="Deathguard Elite"}
-data.Npc[275100]={["name"]="Wildhammer Avenger"}
+data.Npc[275100]={["name"]="Wildhammer Avenger",["spawns"]={[47]=true},["zoneID"]=47}
 data.Npc[275101]={["name"]="Den Grunt"}
 data.Npc[275102]={["name"]="Mesa Brave",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[215]=true},["zoneID"]=215}
 data.Npc[275103]={["name"]="Deathguard Veteran",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[85]=true},["zoneID"]=85}
@@ -15324,7 +15324,7 @@ data.Npc[275404]={["name"]="Shadow Operative"}
 data.Npc[275430]={["name"]="Investigator Kath'leen",["minLevel"]=50,["maxLevel"]=50,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[275432]={["name"]="Investigator Silva",["minLevel"]=50,["maxLevel"]=50,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[275437]={["name"]="Dark Enforcer",["minLevel"]=10,["maxLevel"]=12,["spawns"]={[85]=true},["zoneID"]=85}
-data.Npc[275487]={["name"]="Unknown",["spawns"]={[33]=true,[36]=true,[40]=true,[85]=true,[130]=true,[148]=true,[1497]=true,[1519]=true,[1537]=true,[1637]=true,[16593]=true},["zoneID"]=33}
+data.Npc[275487]={["name"]="Unknown",["spawns"]={[3]=true,[14]=true,[33]=true,[36]=true,[40]=true,[85]=true,[130]=true,[148]=true,[440]=true,[1497]=true,[1519]=true,[1537]=true,[1637]=true,[16593]=true},["zoneID"]=33}
 data.Npc[275491]={["name"]="Randal Emerson",["minLevel"]=40,["maxLevel"]=40,["spawns"]={[1519]=true},["zoneID"]=1519}
 data.Npc[275596]={["name"]="Rafael Langrom",["minLevel"]=26,["maxLevel"]=28,["spawns"]={[36]=true},["zoneID"]=36}
 data.Npc[275598]={["name"]="Valerie Langrom",["minLevel"]=26,["maxLevel"]=28,["spawns"]={[36]=true},["zoneID"]=36}
@@ -15351,15 +15351,15 @@ data.Npc[275847]={["name"]="Loren Ravenlock"}
 data.Npc[275929]={["name"]="Treant"}
 data.Npc[275954]={["name"]="Bareth Dawnstone",["minLevel"]=8,["maxLevel"]=8,["spawns"]={[85]=true},["zoneID"]=85}
 data.Npc[275980]={["name"]="Farholde Miner",["minLevel"]=35,["maxLevel"]=36,["spawns"]={[16591]=true},["zoneID"]=16591}
-data.Npc[276003]={["name"]="Minor Ice Elemental",["minLevel"]=7,["maxLevel"]=8,["spawns"]={{{47.82,42.38},{48.11,41.63},{49.35,46.23},{50.12,44.51},{50.35,43.26},{50.4,45.7},{50.47,42.57},{50.49,41.39},{50.62,43.86},{50.72,48.9},{50.95,51.15},{51.11,44.58},{51.12,42.82},{51.22,45.62},{51.38,49.07},{51.39,48.46},{51.47,46.52},{51.62,43.29},{51.77,42.69},{51.79,41.97},{51.94,46.24},{51.96,45.25},{52.03,43.81},{52.07,47.43},{52.21,44.29},{52.79,41.16},{52.8,48.08},{52.81,44.07},{52.85,45.41},{52.86,41.95},{52.94,44.87},{53.04,43.3},{53.05,42.79},{53.1,46.79},{53.26,46.12},{53.35,48.27},{53.41,47.51},{53.44,42.02},{53.48,44.05},{53.63,43.16},{53.79,44.51},{53.88,46.1},{53.94,45.02},{54.04,46.73},{54.19,45.61},{54.19,47.59},{54.28,43.68},{54.43,43.19},{54.54,44.84},{54.62,42.45},{54.83,45.98},{54.94,47.03},{54.98,44.36},{55.04,42.01},{55.16,44.94},{55.22,46.5},{55.64,44.03},{55.8,44.57},{55.81,45.9},{55.92,42.81},{55.95,47.74},{55.97,47.22},{55.98,43.61},{55.99,45.19},{56.03,46.56},{56.17,48.44},{56.44,44.54},{56.53,45.86},{56.53,49.02},{56.6,42.06},{56.72,47.64},{56.73,43.96},{56.77,45.21},{56.77,52.64},{56.87,46.53},{57,51.38},{57.02,48.33},{57.18,44.68},{57.19,45.74},{57.25,43.35},{57.29,49.51},{57.35,47.23},{57.36,48.7},{57.37,44.16},{57.4,50.27},{57.4,52.28},{57.45,47.83},{57.51,46.5},{57.59,45.11},{57.6,42.53},{57.77,48.36},{57.82,45.82},{57.87,47.27},{57.89,43.85},{57.92,44.38},{58.03,41.99},{58.07,42.83},{58.13,51.33},{58.14,50.48},{58.37,45.88},{58.41,45.24},{58.64,51.83},{59.37,45.47},{61.97,55.04},{62.02,52.39}}},["zoneID"]=1}
+data.Npc[276003]={["name"]="Minor Ice Elemental",["minLevel"]=7,["maxLevel"]=8,["spawns"]={{{49.9,42.6},{50.06,45.56},{50.35,43.26},{50.72,48.9},{51.01,44.55},{51.03,42.68},{51.25,45.71},{51.43,45.21},{51.58,42.15},{51.66,43.26},{51.85,46.52},{52.05,47.43},{52.07,43.87},{52.21,44.34},{52.69,43.94},{52.78,41.22},{52.82,44.4},{52.84,41.87},{52.86,45},{52.91,46.99},{53,42.55},{53.12,43.2},{53.22,45.85},{53.28,43.96},{53.43,46.36},{53.44,47.45},{53.6,43.18},{53.76,44.48},{53.9,47.9},{53.96,46.69},{54.03,44.99},{54.1,45.81},{54.11,43.6},{54.44,42.66},{54.56,47.33},{54.61,45.47},{54.81,44.8},{54.91,46.15},{54.94,44.27},{55.37,46.71},{55.42,44.79},{55.44,43.8},{55.44,47.4},{55.45,42.69},{55.66,46.13},{55.85,45.39},{55.85,48.16},{55.87,44.31},{55.99,42.5},{56.1,43.67},{56.13,46.84},{56.16,47.61},{56.26,48.63},{56.33,44.84},{56.33,46.1},{56.45,49.1},{56.58,41.94},{56.59,45.48},{56.71,47.79},{56.75,44.16},{56.94,46.55},{57.05,45.07},{57.11,45.8},{57.13,51.27},{57.19,49.3},{57.22,48.49},{57.28,43.45},{57.32,47.28},{57.34,44.58},{57.36,50.49},{57.39,52.26},{57.42,49.84},{57.48,47.91},{57.49,44.07},{57.53,46.47},{57.59,42.51},{57.64,45.11},{57.75,48.36},{57.76,45.78},{57.87,47.27},{58.03,42.04},{58.12,42.71},{58.12,50.41},{58.34,45.02},{58.45,45.39},{59.17,45.39}}},["zoneID"]=1}
 data.Npc[276009]={["name"]="Avala",["minLevel"]=8,["maxLevel"]=8,["spawns"]={{{58.34,42.06}}},["zoneID"]=1}
 data.Npc[276020]={["name"]="Riptear",["minLevel"]=13,["maxLevel"]=13,["spawns"]={[85]=true},["zoneID"]=85}
 data.Npc[276061]={["name"]="Decrepit Harvester",["minLevel"]=8,["maxLevel"]=8,["spawns"]={[85]=true},["zoneID"]=85}
 data.Npc[276067]={["name"]="Angus Hammerhand",["minLevel"]=12,["maxLevel"]=12,["spawns"]={[85]=true},["zoneID"]=85}
 data.Npc[276078]={["name"]="Twilight Laborer",["minLevel"]=47,["maxLevel"]=48,["spawns"]={[51]=true},["zoneID"]=51}
-data.Npc[276080]={["name"]="Mountaineer Coalbeard",["minLevel"]=30,["maxLevel"]=30,["spawns"]={{{50.62,42.63},{51.54,42.11},{51.64,42.85},{51.68,41.6},{51.89,43.48},{52.1,44.05},{52.43,43.14},{52.48,44.61},{52.76,44.15}}},["zoneID"]=1}
-data.Npc[276082]={["name"]="Mountaineer Sunhammer",["minLevel"]=30,["maxLevel"]=30,["spawns"]={{{58.64,50.99},{58.83,51.46},{59.27,50.54},{59.78,50.13},{59.84,51.46},{59.97,49.41},{60.18,48.5}}},["zoneID"]=1}
-data.Npc[276083]={["name"]="Mountaineer Stoneanvil",["minLevel"]=30,["maxLevel"]=30,["spawns"]={{{52.03,58.87},{53.1,58.75},{53.25,59.26},{53.59,58.45},{53.88,57.94},{53.9,57.38},{54.13,58.74},{54.44,57.74},{54.5,56.98}}},["zoneID"]=1}
+data.Npc[276080]={["name"]="Mountaineer Coalbeard",["minLevel"]=30,["maxLevel"]=30,["spawns"]={{{51.72,42.88},{52.1,44.02},{52.4,44.59},{52.43,43.14},{52.93,44.31}}},["zoneID"]=1}
+data.Npc[276082]={["name"]="Mountaineer Sunhammer",["minLevel"]=30,["maxLevel"]=30,["spawns"]={{{58.6,51.06},{58.94,51.4},{59.18,50.54},{59.8,50.15},{59.97,49.41}}},["zoneID"]=1}
+data.Npc[276083]={["name"]="Mountaineer Stoneanvil",["minLevel"]=30,["maxLevel"]=30,["spawns"]={{{52.45,58.8},{53.15,58.75},{53.65,58},{54.04,58.72},{54.06,57.62},{54.35,58.04},{54.47,56.98}}},["zoneID"]=1}
 data.Npc[276089]={["name"]="The Condemned One",["minLevel"]=11,["maxLevel"]=11,["spawns"]={[85]=true},["zoneID"]=85}
 data.Npc[276099]={["name"]="Wrathvine",["minLevel"]=8,["maxLevel"]=8,["spawns"]={[141]=true},["zoneID"]=141}
 data.Npc[276101]={["name"]="Nightscreech",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[141]=true},["zoneID"]=141}
@@ -15367,7 +15367,7 @@ data.Npc[276105]={["name"]="Stormherald Ukta",["minLevel"]=12,["maxLevel"]=12,["
 data.Npc[276108]={["name"]="Thornstarter Igleg",["minLevel"]=12,["maxLevel"]=12,["spawns"]={[215]=true},["zoneID"]=215}
 data.Npc[276109]={["name"]="Snarlsnout",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[215]=true},["zoneID"]=215}
 data.Npc[276110]={["name"]="Knight of Mourning",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[85]=true},["zoneID"]=85}
-data.Npc[276111]={["name"]="Ghostfang",["minLevel"]=10,["maxLevel"]=10,["spawns"]={{{73.29,62.01},{74.09,60.96},{74.13,63.11},{74.65,62.44},{74.71,63.13},{74.78,61.69},{74.81,61.09},{74.81,63.74},{74.97,60.52},{75.09,62.72},{75.17,62.15},{75.59,61.33},{76.15,62.51},{79.05,44.21},{79.4,42.95},{79.44,47.35},{79.5,48.62},{79.65,47.93},{79.73,40.87},{79.75,46.6},{79.82,42.18},{79.98,42.92},{79.98,43.54},{80.34,46.25},{80.35,47.75},{80.37,55.96},{80.42,44.49},{80.51,46.91},{80.67,43.01},{80.83,43.63},{80.97,57.82},{81.03,45.41},{81.22,42.69},{81.31,54.95},{81.42,45.98},{81.47,53.31},{81.47,55.46},{81.58,54.38},{81.61,46.67},{81.78,56.57},{81.94,53.93},{82,55.65},{82.24,54.84}}},["zoneID"]=1}
+data.Npc[276111]={["name"]="Ghostfang",["minLevel"]=10,["maxLevel"]=10,["spawns"]={{{74.19,63.1},{74.67,62.29},{74.69,63.04},{74.82,61.17},{74.84,61.69},{75.17,62.13},{75.6,61.26},{79.37,42.95},{79.51,47.35},{79.52,48.57},{79.68,47.94},{79.74,46.74},{79.82,42.01},{79.95,42.92},{79.98,43.48},{80.19,46.47},{80.24,47.78},{80.41,44.21},{80.47,45.96},{80.61,46.91},{80.65,43},{81.08,45.33},{81.13,42.73},{81.38,54.94},{81.39,46.01},{81.56,46.85},{81.56,53.32},{81.56,55.5},{81.58,54.23},{81.75,56.65},{82.02,55.64},{82.19,54.78}}},["zoneID"]=1}
 data.Npc[276138]={["name"]="Subjugated Assistant",["minLevel"]=56,["maxLevel"]=57,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[276151]={["name"]="Tim's Test Creature"}
 data.Npc[276170]={["name"]="Belanaa Windveil",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[36]=true},["zoneID"]=36}
@@ -15379,7 +15379,7 @@ data.Npc[276194]={["name"]="Dustwind Eggtender",["minLevel"]=12,["maxLevel"]=12,
 data.Npc[276198]={["name"]="Shal'ma",["minLevel"]=9,["maxLevel"]=9,["spawns"]={[14]=true},["zoneID"]=14}
 data.Npc[276215]={["name"]="Kirin Tor Enforcer",["minLevel"]=55,["maxLevel"]=55,["spawns"]={[36]=true,[267]=true},["zoneID"]=36}
 data.Npc[276235]={["name"]="Archmage Modera",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[36]=true},["zoneID"]=36}
-data.Npc[276246]={["name"]="Mistmantle Prowler",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[10]=true,[41]=true},["zoneID"]=10}
+data.Npc[276246]={["name"]="Mistmantle Prowler",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[10]=true},["zoneID"]=10}
 data.Npc[276247]={["name"]="Lightning"}
 data.Npc[276249]={["name"]="Credit"}
 data.Npc[276250]={["name"]="Credit"}
@@ -15396,16 +15396,16 @@ data.Npc[276642]={["name"]="Spectral Wolf"}
 data.Npc[276730]={["name"]="Swift Stormsaber",["minLevel"]=1,["maxLevel"]=2,["spawns"]={[1657]=true},["zoneID"]=1657}
 data.Npc[276731]={["name"]="Swift Mistsaber",["minLevel"]=1,["maxLevel"]=2,["spawns"]={[1657]=true},["zoneID"]=1657}
 data.Npc[276732]={["name"]="Swift Frostsaber",["minLevel"]=1,["maxLevel"]=2,["spawns"]={[1657]=true},["zoneID"]=1657}
-data.Npc[276734]={["name"]="Swift White Mechanostrider",["minLevel"]=1,["maxLevel"]=2,["spawns"]={{{47.93,47.02},{48.11,50.47},{48.59,45.58},{48.65,49.21},{48.71,47.58},{48.72,46.27},{48.91,49.98},{49.01,48.01},{49.05,48.64},{49.62,48.39},{50.02,49.65},{50.07,48.96},{50.55,49.9},{50.95,47.23}}},["zoneID"]=1}
-data.Npc[276735]={["name"]="Swift Yellow Mechanostrider",["minLevel"]=1,["maxLevel"]=2,["spawns"]={{{48.19,46.66},{48.34,50.02},{48.73,47.13},{48.81,46.53},{48.81,49.66},{48.92,45.96},{49.17,47.87},{49.5,48.26},{49.55,46.84},{49.55,47.41},{49.76,46.38},{50.02,48.2},{50.1,48.78},{50.63,47.58}}},["zoneID"]=1}
-data.Npc[276736]={["name"]="Swift Green Mechanostrider",["minLevel"]=1,["maxLevel"]=2,["spawns"]={{{48.19,46.86},{48.64,47.4},{48.78,46.05},{48.86,46.82},{48.86,49.02},{49.09,47.94},{49.63,46.49},{50.03,48.61},{50.3,49.07}}},["zoneID"]=1}
-data.Npc[276737]={["name"]="Swift Gray Ram",["minLevel"]=1,["maxLevel"]=2,["spawns"]={{{62.61,49.82},{62.72,51.39},{63.56,50.67},{64.15,50.42},{64.34,49.7},{65.23,50.6},{65.5,49.54},{65.82,50.64},{66.07,50.11}}},["zoneID"]=1}
+data.Npc[276734]={["name"]="Swift White Mechanostrider",["minLevel"]=1,["maxLevel"]=2,["spawns"]={{{49.07,47.99}}},["zoneID"]=1}
+data.Npc[276735]={["name"]="Swift Yellow Mechanostrider",["minLevel"]=1,["maxLevel"]=2,["spawns"]={{{49.14,47.9}}},["zoneID"]=1}
+data.Npc[276736]={["name"]="Swift Green Mechanostrider",["minLevel"]=1,["maxLevel"]=2,["spawns"]={{{49.1,47.93}}},["zoneID"]=1}
+data.Npc[276737]={["name"]="Swift Gray Ram",["minLevel"]=1,["maxLevel"]=2,["spawns"]={{{64.18,50.4}}},["zoneID"]=1}
 data.Npc[276740]={["name"]="Cedrik Stonequest",["minLevel"]=20,["maxLevel"]=20,["spawns"]={[1537]=true},["zoneID"]=1537}
 data.Npc[276752]={["name"]="Animated Hammer"}
 data.Npc[276756]={["name"]="Solluna",["minLevel"]=24,["maxLevel"]=24,["spawns"]={[1657]=true},["zoneID"]=1657}
-data.Npc[276779]={["name"]="Swift Brown Ram",["minLevel"]=1,["maxLevel"]=2,["spawns"]={{{62.56,49.73},{62.96,51},{63.4,50.19},{64.39,50.36},{64.74,50.89},{64.88,51.5},{65.14,50.45},{65.88,50.83},{66.1,50.21}}},["zoneID"]=1}
+data.Npc[276779]={["name"]="Swift Brown Ram",["minLevel"]=1,["maxLevel"]=2,["spawns"]={{{64.45,50.33}}},["zoneID"]=1}
 data.Npc[276781]={["name"]="Abomination"}
-data.Npc[276783]={["name"]="Swift White Ram",["minLevel"]=1,["maxLevel"]=2,["spawns"]={{{62.25,49.69},{62.47,49.07},{62.55,51.61},{62.94,48.65},{63.01,51.1},{63.14,49.99},{63.67,50.53},{63.68,51.27},{64.29,50.48},{64.85,50.58},{64.87,51.76}}},["zoneID"]=1}
+data.Npc[276783]={["name"]="Swift White Ram",["minLevel"]=1,["maxLevel"]=2,["spawns"]={{{63.73,50.54}}},["zoneID"]=1}
 data.Npc[276784]={["name"]="Gargoyle"}
 data.Npc[276785]={["name"]="Swift Brown Steed",["minLevel"]=1,["maxLevel"]=2,["spawns"]={[12]=true},["zoneID"]=12}
 data.Npc[276786]={["name"]="Swift Palomino",["minLevel"]=1,["maxLevel"]=2,["spawns"]={[12]=true},["zoneID"]=12}
@@ -15427,7 +15427,7 @@ data.Npc[276804]={["name"]="Deelio",["minLevel"]=36,["maxLevel"]=36,["spawns"]={
 data.Npc[276805]={["name"]="Swift Gray Wolf",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[1637]=true},["zoneID"]=1637}
 data.Npc[276806]={["name"]="Giant Infernal"}
 data.Npc[276807]={["name"]="Giant Infernal"}
-data.Npc[276808]={["name"]="Traveling Adventurer",["spawns"]={[11]=true},["zoneID"]=11}
+data.Npc[276808]={["name"]="Traveling Adventurer",["minLevel"]=52,["maxLevel"]=52,["spawns"]={[11]=true},["zoneID"]=11}
 data.Npc[276809]={["name"]="Red Crystal"}
 data.Npc[276810]={["name"]="Hungry Patron"}
 data.Npc[276832]={["name"]="Swift Timber Wolf",["minLevel"]=10,["maxLevel"]=10,["spawns"]={[1637]=true},["zoneID"]=1637}
@@ -15493,16 +15493,16 @@ data.Npc[277730]={["name"]="Rabid Forest Wolf",["minLevel"]=8,["maxLevel"]=9,["s
 data.Npc[277765]={["name"]="Botika Montes",["minLevel"]=21,["maxLevel"]=21,["spawns"]={[1519]=true},["zoneID"]=1519}
 data.Npc[277766]={["name"]="Angie Cilas",["minLevel"]=12,["maxLevel"]=12,["spawns"]={[85]=true},["zoneID"]=85}
 data.Npc[277769]={["name"]="Rown Leaftender",["minLevel"]=28,["maxLevel"]=28,["spawns"]={[1638]=true},["zoneID"]=1638}
-data.Npc[277818]={["name"]="Wormhole"}
-data.Npc[277849]={["name"]="Portable Repair Bot",["minLevel"]=50,["maxLevel"]=50,["zoneID"]=11}
+data.Npc[277818]={["name"]="Wormhole",["spawns"]={[33]=true,[361]=true},["zoneID"]=33}
+data.Npc[277849]={["name"]="Portable Repair Bot",["minLevel"]=50,["maxLevel"]=50,["zoneID"]=33}
 data.Npc[277860]={["name"]="Ancient Crocolisk"}
 data.Npc[277864]={["name"]="\"Reliable\" Mike",["minLevel"]=30,["maxLevel"]=30,["spawns"]={[400]=true},["zoneID"]=400}
 data.Npc[277865]={["name"]="Wind"}
 data.Npc[277868]={["name"]="Plague Spreader",["minLevel"]=27,["maxLevel"]=28,["spawns"]={[10]=true,[33]=true},["zoneID"]=33}
 data.Npc[277881]={["name"]="Bloodwing Bat",["minLevel"]=24,["maxLevel"]=26,["spawns"]={[130]=true,[267]=true},["zoneID"]=267}
-data.Npc[277882]={["name"]="Foothills Duskbat",["minLevel"]=12,["maxLevel"]=13,["spawns"]={[85]=true,[130]=true,[1497]=true},["zoneID"]=130}
-data.Npc[277945]={["name"]="Happy Camper",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[1]=true,[14]=true},["zoneID"]=14}
-data.Npc[277968]={["name"]="Adventurer's Tent",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[1]=true,[3]=true,[8]=true,[10]=true,[11]=true,[12]=true,[14]=true,[15]=true,[16]=true,[17]=true,[28]=true,[33]=true,[36]=true,[38]=true,[40]=true,[44]=true,[45]=true,[46]=true,[47]=true,[51]=true,[85]=true,[130]=true,[139]=true,[141]=true,[148]=true,[215]=true,[267]=true,[331]=true,[357]=true,[361]=true,[400]=true,[405]=true,[406]=true,[440]=true,[490]=true,[493]=true,[618]=true,[1497]=true,[1519]=true,[1537]=true,[1637]=true,[16591]=true,[16593]=true,[16651]=true},["zoneID"]=85}
+data.Npc[277882]={["name"]="Foothills Duskbat",["minLevel"]=12,["maxLevel"]=13,["spawns"]={[85]=true,[130]=true},["zoneID"]=130}
+data.Npc[277945]={["name"]="Happy Camper",["minLevel"]=60,["maxLevel"]=60}
+data.Npc[277968]={["name"]="Adventurer's Tent",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[1]=true,[3]=true,[8]=true,[10]=true,[11]=true,[12]=true,[14]=true,[15]=true,[17]=true,[28]=true,[33]=true,[38]=true,[40]=true,[44]=true,[45]=true,[47]=true,[51]=true,[85]=true,[130]=true,[141]=true,[148]=true,[215]=true,[267]=true,[331]=true,[361]=true,[400]=true,[405]=true,[406]=true,[440]=true,[490]=true,[493]=true,[1497]=true,[1519]=true,[1637]=true,[16591]=true,[16593]=true},["zoneID"]=12}
 data.Npc[277981]={["name"]="Aidan's Test Creature DNT"}
 data.Npc[277985]={["name"]="Spectral Wolf"}
 data.Npc[277993]={["name"]="Mana Tide Totem IV"}
@@ -15514,7 +15514,7 @@ data.Npc[278105]={["name"]="Morty",["minLevel"]=5,["maxLevel"]=5,["spawns"]={[36
 data.Npc[278116]={["name"]="Adem Spiresong",["minLevel"]=9,["maxLevel"]=9,["spawns"]={[16593]=true},["zoneID"]=16593}
 data.Npc[278137]={["name"]="Fungal Bloom",["minLevel"]=55,["maxLevel"]=56,["spawns"]={[616]=true},["zoneID"]=616}
 data.Npc[278143]={["name"]="Ironforge Mountaineer",["spawns"]={[11]=true},["zoneID"]=11}
-data.Npc[278146]={["name"]="Dun Morogh Mountaineer"}
+data.Npc[278146]={["name"]="Dun Morogh Mountaineer",["spawns"]={[11]=true},["zoneID"]=11}
 data.Npc[278147]={["name"]="Thelsamar Mountaineer",["spawns"]={[11]=true},["zoneID"]=11}
 data.Npc[278166]={["name"]="Mountaineer Cornelius",["minLevel"]=6,["maxLevel"]=6,["spawns"]={{{43.03,49.62}}},["zoneID"]=1}
 data.Npc[278184]={["name"]="Jank"}
@@ -15534,7 +15534,7 @@ data.Npc[278241]={["name"]="Samuro"}
 data.Npc[278242]={["name"]="Mai'Kyl"}
 data.Npc[278243]={["name"]="Bergrisst"}
 data.Npc[278245]={["name"]="Chief Thunder-Skins"}
-data.Npc[278256]={["name"]="Super Hogger",["spawns"]={[12]=true,[14]=true,[141]=true},["zoneID"]=141}
+data.Npc[278256]={["name"]="Super Hogger",["spawns"]={[12]=true,[141]=true},["zoneID"]=141}
 data.Npc[278268]={["name"]="Credit: Sapta"}
 data.Npc[278271]={["name"]="Beta Teleporter"}
 data.Npc[278305]={["name"]="Velician",["spawns"]={[616]=true},["zoneID"]=616}
@@ -15551,15 +15551,15 @@ data.Npc[278384]={["name"]="Ravaging Flood Elemental",["minLevel"]=38,["maxLevel
 data.Npc[278388]={["name"]="Ravaging Drought Elemental",["minLevel"]=38,["maxLevel"]=38,["spawns"]={[400]=true},["zoneID"]=400}
 data.Npc[278395]={["name"]="Pumpkin",["minLevel"]=1,["maxLevel"]=1,["spawns"]={[16591]=true},["zoneID"]=16591}
 data.Npc[278644]={["name"]="Warbringer Construct"}
-data.Npc[278677]={["name"]="Lord Kazzak",["spawns"]={[14]=true,[141]=true},["zoneID"]=14}
-data.Npc[278680]={["name"]="Gabbi Goodwhistle",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[12]=true,[14]=true,[141]=true,[1637]=true,[1638]=true},["zoneID"]=14}
-data.Npc[278779]={["name"]="Azuregos",["spawns"]={[12]=true},["zoneID"]=12}
+data.Npc[278677]={["name"]="Lord Kazzak",["spawns"]={[141]=true},["zoneID"]=141}
+data.Npc[278680]={["name"]="Gabbi Goodwhistle",["minLevel"]=60,["maxLevel"]=60,["spawns"]={[12]=true,[141]=true},["zoneID"]=141}
+data.Npc[278779]={["name"]="Azuregos"}
 data.Npc[278796]={["name"]="Woodpaw Alpha"}
 data.Npc[278798]={["name"]="Woodpaw Mystic"}
-data.Npc[278799]={["name"]="Woodpaw Mongrel",["spawns"]={[14]=true},["zoneID"]=14}
+data.Npc[278799]={["name"]="Woodpaw Mongrel"}
 data.Npc[278857]={["name"]="Thunderaan",["spawns"]={[141]=true},["zoneID"]=141}
-data.Npc[278858]={["name"]="Unknown",["minLevel"]=33,["maxLevel"]=33,["spawns"]={[12]=true,[14]=true,[16593]=true},["zoneID"]=16593}
-data.Npc[278863]={["name"]="Infernal",["minLevel"]=30,["maxLevel"]=30,["spawns"]={[12]=true,[14]=true,[141]=true,[215]=true,[1519]=true,[1638]=true,[16593]=true},["zoneID"]=12}
+data.Npc[278858]={["name"]="Unknown",["spawns"]={[12]=true},["zoneID"]=12}
+data.Npc[278863]={["name"]="Infernal",["minLevel"]=30,["maxLevel"]=30,["spawns"]={[12]=true,[141]=true},["zoneID"]=12}
 data.Npc[278875]={["name"]="Spirit Healer",["spawns"]={[12]=true},["zoneID"]=12}
 data.Npc[278978]={["name"]="Violet Flames"}
 data.Npc[279118]={["name"]="(DNT) Invisible Stalker"}
@@ -26557,7 +26557,7 @@ data.Item[16972]={["name"]="Karang's Banner"}
 data.Item[16973]={["name"]="Vial of Dire Water",["relatedQuests"]={5247}}
 data.Item[16974]={["name"]="Empty Water Vial",["relatedQuests"]={5247}}
 data.Item[16975]={["name"]="Warsong Sash",["questRewards"]={6571}}
-data.Item[16976]={["name"]="Murgut's Totem",["npcDrops"]={12918}}
+data.Item[16976]={["name"]="Murgut's Totem"}
 data.Item[16977]={["name"]="Warsong Boots",["questRewards"]={6571}}
 data.Item[16978]={["name"]="Warsong Gauntlets",["questRewards"]={6571}}
 data.Item[16979]={["name"]="Flarecore Gloves"}
@@ -30908,8 +30908,8 @@ data.Item[210178]={["name"]="Schematic: Shredder Autosalvage Unit",["npcDrops"]=
 data.Item[210179]={["name"]="Spell Notes: ILMEGAI SARRBES"}
 data.Item[210183]={["name"]="Horn of Xelthos",["relatedQuests"]={78261}}
 data.Item[210186]={["name"]="Breaching Charge",["questRewards"]={78270}}
-data.Item[210187]={["name"]="Venture Co. Work Order",["npcDrops"]={3991,3988,3989,5931},["relatedQuests"]={78270}}
-data.Item[210188]={["name"]="Shredded Work Order",["npcDrops"]={3988,3992,3989,3993,4070,4202,5931}}
+data.Item[210187]={["name"]="Venture Co. Work Order",["npcDrops"]={3991,3988,3989,3993,5931},["relatedQuests"]={78270}}
+data.Item[210188]={["name"]="Shredded Work Order",["npcDrops"]={3988,3992,3989,3993,4070,4202,5931,5932}}
 data.Item[210195]={["name"]="Unbalanced Idol",["npcDrops"]={1769,1770,1924}}
 data.Item[210209]={["name"]="Twin Key"}
 data.Item[210210]={["name"]="Grizzwerks Defense Industries Founder's Certificate"}
@@ -31026,11 +31026,11 @@ data.Item[211534]={["name"]="Primal Insight",["npcDrops"]={3748,3750,3922,3924}}
 data.Item[211691]={["name"]="Spell Notes: Arcane Blast",["vendors"]={233335,233428}}
 data.Item[211777]={["name"]="Naga Manuscript",["npcDrops"]={3715,3717}}
 data.Item[211779]={["name"]="Comprehension Charm",["questRewards"]={78124,78127,78142,78143,78145,78146,78147,78148,78149,79091,79092,79093,79094,79095,79097,79535,79947,79948,79949,79950,79951,79952,81947,81949,81952,81953,81954,81955,81956,84395,84396,84397,84398,84399,84400,84401,84402},["vendors"]={958,983,1257,1275,1307,1308,1351,1463,1673,2805,3323,3335,3351,3490,3500,3542,3562,3700,3970,4083,4220,4562,4575,4878,5110,5139,5151,8361,10364,12096,12097,12784,12795,13476,14739,15175,16015}}
-data.Item[211780]={["name"]="Scroll: KWYJIBO",["npcDrops"]={36,40,43,46,60,61,95,97,100,114,116,117,118,119,121,123,124,126,157,171,199,285,327,330,390,423,442,448,454,456,471,473,474,476,478,480,481,500,501,502,504,513,515,524,550,583,589,590,594,619,712,732,735,822,824,830,831,833,834,846,880,881,1109,1115,1116,1117,1118,1119,1120,1121,1122,1123,1124,1126,1127,1130,1131,1132,1133,1135,1137,1138,1161,1162,1163,1164,1166,1172,1173,1174,1175,1176,1177,1184,1186,1188,1190,1191,1193,1194,1195,1196,1197,1201,1202,1211,1236,1260,1271,1380,1388,1397,1425,1426,1520,1522,1523,1526,1527,1528,1529,1530,1531,1532,1533,1534,1535,1536,1537,1538,1539,1540,1543,1544,1545,1548,1549,1553,1554,1555,1654,1655,1656,1657,1658,1660,1662,1664,1665,1674,1675,1689,1693,1753,1765,1766,1767,1768,1769,1770,1772,1773,1778,1779,1780,1781,1782,1797,1865,1866,1867,1868,1869,1870,1891,1892,1893,1894,1895,1896,1910,1912,1914,1922,1924,1934,1936,1941,1953,1961,1971,1972,1983,1996,1997,1999,2000,2001,2004,2005,2008,2009,2010,2011,2012,2013,2015,2017,2018,2019,2020,2021,2025,2027,2029,2030,2033,2034,2038,2039,2043,2060,2061,2062,2063,2064,2065,2066,2067,2068,2069,2070,2149,2152,2162,2163,2164,2166,2167,2173,2176,2177,2178,2179,2185,2189,2190,2191,2201,2202,2203,2204,2205,2212,2231,2232,2234,2235,2321,2322,2324,2950,2951,2956,2957,2959,2960,2962,2963,2964,2965,2967,2968,2970,2971,2972,2973,2974,2976,2977,2978,2979,2989,2990,3035,3051,3056,3058,3068,3099,3100,3103,3104,3105,3107,3108,3110,3111,3112,3113,3114,3115,3116,3117,3118,3119,3120,3121,3122,3123,3126,3127,3129,3130,3131,3192,3195,3196,3197,3198,3199,3203,3204,3205,3206,3207,3225,3226,3227,3228,3232,3234,3241,3242,3243,3244,3246,3248,3254,3255,3265,3266,3267,3268,3269,3270,3271,3272,3273,3274,3275,3276,3277,3282,3284,3285,3379,3380,3381,3382,3383,3384,3385,3397,3415,3425,3438,3461,3470,3528,3530,3532,3533,3535,3566,3577,3630,3632,3634,4008,4127,4263,4316,5787,5822,5824,5837,5865,6093,6123,6124,6128,6133,6466,6494,6497,6789,6846,6866,6909,6927,7234,7235,7318,7319,8503,9523,10157,10158,10159,10160,10358,11318,11319,11320,11321,11322,11323,11324,11910,11911,11912,11913,12138,12320,12321,12433,14431,210107,248278,248299,248464,248474,250282,250283,250484,250618,250619,250622,250623,250625,250626,250651,250654,250927,250928,251245,251261,251284,251291,251622,251661,251662,251676,251707,251918,251966,252068,252664,252665,252666,252762,252763,252764,252765,252767,252802,252820,253195,253282,253283,253511,253622,254588,254589,254596,254626,255109,255534,255964,256040,256092,256966,256996,257196,257521,257532,258443,259433,259434,260157,260428,260430,260431,260432,263389,263390,263396,263397,263438,263466,263470,266851,266852,267006,268530,269075,270196,270201,270298,270693,271080,271486,271530,271587,271712,272034,272044,272046,272096,272116,275437,275703,275708,275767,276020,276061,276089,276099,276105,276108,276111,276180,276189,276194,276198,276415,276416,277730}}
-data.Item[211784]={["name"]="Scroll: WUBBA WUBBA",["npcDrops"]={3,48,98,115,121,122,124,127,154,171,202,203,205,206,210,212,213,215,217,218,232,300,334,335,345,391,397,422,423,424,426,428,429,430,431,432,433,434,435,436,437,440,441,442,445,446,449,452,453,458,485,486,505,506,511,517,518,531,533,539,544,545,547,548,565,568,569,570,573,574,578,579,580,584,594,596,598,599,604,615,619,622,623,624,625,626,628,634,636,639,641,642,643,644,645,646,647,657,681,683,703,711,785,787,819,824,831,832,855,889,892,898,909,910,920,923,930,948,949,1007,1008,1009,1010,1011,1012,1013,1014,1015,1016,1017,1018,1019,1020,1021,1022,1023,1024,1025,1026,1027,1028,1030,1031,1032,1033,1034,1035,1036,1038,1039,1040,1042,1043,1044,1051,1052,1053,1054,1057,1069,1083,1110,1111,1150,1157,1158,1159,1160,1164,1165,1167,1169,1178,1179,1180,1181,1183,1185,1189,1192,1194,1197,1205,1206,1207,1210,1216,1222,1224,1225,1251,1258,1259,1270,1353,1393,1399,1400,1417,1418,1663,1666,1696,1706,1707,1708,1711,1715,1716,1717,1725,1726,1727,1729,1731,1732,1755,1763,1870,1888,1889,1908,1909,1913,1914,1915,1923,1924,1939,1940,1942,1943,1944,1947,1948,1953,1954,1955,1956,1957,1958,1973,1974,2053,2054,2071,2089,2102,2103,2106,2108,2120,2156,2157,2158,2159,2160,2165,2168,2169,2170,2171,2172,2179,2180,2181,2182,2183,2187,2205,2206,2207,2208,2233,2235,2236,2237,2244,2248,2260,2261,2264,2265,2266,2267,2268,2269,2270,2305,2322,2323,2332,2335,2336,2337,2338,2339,2344,2345,2346,2348,2349,2350,2351,2354,2356,2360,2368,2369,2370,2372,2373,2374,2375,2376,2384,2385,2387,2403,2404,2408,2427,2428,2448,2449,2450,2451,2503,2529,2552,2559,2582,2586,3235,3236,3237,3238,3239,3240,3241,3245,3247,3248,3249,3250,3251,3252,3253,3256,3257,3258,3260,3261,3263,3275,3277,3278,3279,3280,3282,3283,3286,3295,3374,3375,3376,3377,3378,3385,3386,3392,3393,3394,3395,3396,3398,3414,3416,3424,3426,3434,3435,3436,3445,3452,3454,3455,3456,3457,3458,3459,3461,3463,3466,3467,3471,3472,3473,3474,3475,3476,3503,3577,3578,3586,3619,3630,3631,3632,3633,3634,3636,3637,3638,3640,3641,3653,3654,3655,3662,3664,3667,3669,3670,3671,3673,3674,3711,3712,3713,3715,3717,3721,3725,3727,3728,3730,3732,3733,3734,3737,3739,3740,3742,3743,3745,3746,3748,3749,3750,3752,3754,3755,3757,3758,3759,3762,3763,3765,3767,3770,3771,3772,3774,3780,3781,3782,3783,3784,3789,3791,3797,3799,3801,3803,3804,3806,3807,3809,3810,3812,3814,3816,3817,3818,3819,3820,3823,3824,3825,3833,3834,3840,3850,3851,3853,3854,3855,3857,3859,3861,3862,3863,3864,3865,3866,3868,3872,3873,3875,3877,3879,3887,3893,3900,3914,3917,3919,3921,3922,3923,3924,3925,3926,3927,3928,3932,3943,3944,3947,3987,3988,3989,3991,3992,3993,3999,4003,4004,4005,4006,4007,4008,4009,4011,4012,4013,4014,4015,4016,4017,4018,4019,4020,4021,4022,4023,4024,4025,4026,4027,4028,4029,4031,4032,4035,4036,4037,4038,4040,4041,4042,4044,4050,4051,4052,4053,4054,4056,4057,4061,4062,4064,4065,4067,4070,4073,4074,4093,4094,4095,4096,4097,4099,4100,4101,4104,4107,4109,4110,4111,4113,4114,4116,4117,4118,4119,4120,4124,4126,4127,4128,4129,4142,4147,4154,4202,4248,4249,4264,4273,4274,4275,4278,4279,4280,4281,4282,4283,4284,4293,4306,4409,4416,4417,4418,4424,4428,4435,4436,4437,4438,4440,4442,4462,4463,4464,4499,4511,4512,4514,4515,4516,4517,4518,4519,4520,4522,4523,4530,4531,4532,4538,4541,4548,4623,4627,4632,4633,4663,4664,4696,4788,4789,4798,4799,4802,4803,4805,4807,4809,4810,4811,4812,4813,4814,4815,4818,4819,4820,4821,4823,4824,4825,4827,4829,4830,4831,4832,4887,4969,4978,5048,5053,5056,5682,5755,5756,5761,5762,5763,5775,5797,5798,5799,5800,5832,5836,5838,5841,5847,5848,5859,5863,5928,6020,6035,6071,6073,6132,6167,6168,6180,6206,6207,6208,6210,6211,6213,6215,6218,6219,6220,6221,6222,6223,6224,6225,6226,6230,6233,6243,6329,6392,6523,6547,6570,6575,6606,6668,6788,7079,7404,7603,8518,8886,9336,9456,9523,9524,10323,10373,10617,10639,10756,10757,10758,10759,10760,10761,10896,10992,11517,11518,11519,11520,11656,11680,11682,11683,11697,11714,11858,11912,11913,11915,11917,11918,11921,12347,12579,12677,12678,12759,12856,12896,12897,12902,12940,14268,14269,14270,14271,14272,14276,14278,14279,14425,209797,214519,246600,246664,246888,246990,246992,246993,247001,247003,247016,250484,250488,250618,250619,250620,250622,250623,250624,250627,250629,250630,250650,250656,250689,250735,255066,255068,255069,255070,255072,255109,255699,255964,256040,259897,260796,260797,260798,260799,260800,260801,260802,260803,260804,260809,260810,261368,262119,263396,264079,264081,264082,264083,266216,267307,267308,267314,268622,268623,268624,269134,270094,271334,271336,271346,271348,271351,271732,271898,274715,275044,275045,275046,277645}}
-data.Item[211785]={["name"]="Scroll: CWAL",["npcDrops"]={36,40,43,46,60,79,95,97,99,100,114,116,117,118,119,121,123,124,126,157,171,199,285,327,330,390,423,442,448,454,456,471,473,474,476,478,480,481,500,501,502,504,513,515,524,550,589,590,594,619,712,732,735,822,824,830,831,833,834,846,880,881,1065,1109,1115,1116,1117,1118,1119,1120,1121,1122,1123,1124,1126,1127,1130,1131,1133,1135,1137,1138,1161,1162,1163,1164,1166,1172,1173,1174,1175,1176,1177,1184,1186,1188,1190,1191,1194,1195,1196,1197,1201,1202,1211,1236,1260,1271,1380,1388,1397,1424,1426,1520,1522,1523,1526,1527,1528,1529,1530,1531,1532,1533,1534,1535,1536,1537,1538,1539,1540,1543,1544,1545,1548,1549,1553,1554,1555,1654,1655,1656,1657,1658,1660,1662,1664,1665,1674,1675,1689,1693,1753,1765,1766,1767,1768,1769,1770,1772,1773,1778,1779,1780,1781,1782,1797,1865,1866,1867,1868,1869,1870,1891,1892,1893,1894,1895,1896,1910,1912,1914,1922,1924,1934,1941,1953,1961,1971,1972,1983,1993,1996,1997,1999,2000,2001,2004,2005,2008,2009,2010,2011,2012,2013,2015,2017,2018,2019,2020,2021,2025,2027,2029,2030,2033,2034,2038,2043,2060,2061,2062,2063,2064,2065,2066,2067,2068,2069,2070,2149,2152,2163,2164,2166,2167,2173,2176,2177,2178,2179,2185,2189,2190,2201,2202,2203,2204,2205,2212,2231,2232,2234,2235,2321,2322,2324,2950,2951,2956,2957,2959,2960,2962,2963,2964,2965,2967,2968,2970,2971,2972,2973,2974,2976,2977,2978,2979,2989,2990,3035,3051,3058,3068,3099,3100,3103,3104,3105,3107,3108,3110,3111,3112,3113,3114,3115,3116,3117,3118,3119,3120,3121,3122,3123,3126,3127,3129,3130,3131,3141,3192,3195,3196,3197,3198,3199,3203,3204,3205,3206,3207,3225,3226,3227,3228,3231,3232,3234,3241,3242,3243,3244,3246,3248,3254,3255,3265,3266,3267,3268,3269,3270,3271,3272,3273,3274,3275,3276,3277,3282,3284,3285,3379,3380,3381,3382,3383,3384,3385,3397,3415,3425,3438,3461,3470,3528,3529,3530,3531,3532,3535,3566,3630,3632,3634,4008,4127,4263,4316,5808,5809,5826,5837,5865,6093,6123,6124,6466,6494,6789,6846,6866,6909,6911,6927,7234,7235,7318,7319,8503,9523,10157,10158,10159,10160,10356,10358,11318,11319,11320,11321,11322,11323,11324,11910,11911,11912,11913,12138,12319,12320,12431,12432,14428,14431,14432,248278,248299,248464,248474,250282,250283,250484,250618,250619,250622,250623,250625,250626,250651,250652,250654,250928,250936,251245,251261,251284,251291,251622,251661,251662,251676,251707,251918,251966,252068,252664,252665,252666,252762,252763,252764,252765,252767,252802,252820,253195,253282,253283,253511,253622,254588,254589,254596,254626,255109,255534,255964,256040,256092,256966,256996,257521,257532,258443,259385,259433,259434,260157,260428,260430,260431,260432,263389,263390,263396,263397,263438,263466,263470,266851,266852,267006,268530,269075,270196,270201,270298,270693,271080,271486,271530,271587,271712,272034,272044,272046,272096,272116,272173,274300,275437,275703,275708,275767,276020,276061,276089,276099,276111,276180,276194,276198,276415,276416,277730}}
-data.Item[211786]={["name"]="Scroll: CHAP BALK WELLES",["npcDrops"]={36,40,43,46,60,61,79,95,97,99,100,114,116,117,118,119,121,123,124,126,157,171,199,285,327,330,390,423,442,448,454,456,471,473,474,476,478,480,481,500,501,502,504,513,515,524,550,589,590,594,619,712,732,735,822,824,830,831,833,834,846,880,881,1109,1115,1116,1117,1118,1119,1120,1121,1122,1123,1124,1126,1127,1131,1135,1137,1138,1161,1162,1163,1164,1166,1172,1173,1174,1175,1176,1177,1184,1186,1188,1190,1191,1194,1195,1196,1197,1201,1202,1211,1236,1380,1388,1397,1424,1425,1426,1520,1522,1523,1526,1527,1528,1529,1530,1531,1532,1533,1534,1535,1536,1537,1538,1539,1540,1543,1544,1545,1548,1549,1553,1554,1555,1654,1655,1656,1657,1658,1660,1662,1664,1665,1674,1675,1689,1693,1753,1765,1766,1767,1768,1769,1770,1772,1773,1778,1779,1780,1781,1782,1797,1865,1866,1867,1868,1869,1870,1891,1892,1893,1894,1895,1896,1912,1914,1922,1924,1934,1936,1941,1953,1961,1971,1972,1983,1996,1997,1999,2000,2001,2004,2005,2008,2009,2010,2011,2012,2013,2015,2017,2018,2019,2020,2021,2025,2027,2029,2030,2033,2034,2038,2039,2043,2060,2061,2062,2063,2064,2065,2066,2067,2068,2069,2070,2149,2152,2162,2163,2164,2166,2167,2173,2174,2176,2177,2178,2179,2185,2189,2190,2191,2201,2202,2203,2204,2205,2212,2231,2232,2234,2235,2321,2322,2324,2950,2951,2956,2957,2959,2960,2962,2963,2964,2965,2967,2968,2970,2971,2972,2973,2974,2976,2977,2978,2979,2989,2990,3035,3051,3058,3099,3100,3103,3104,3105,3107,3108,3110,3111,3112,3113,3114,3115,3116,3117,3118,3119,3120,3121,3122,3123,3126,3127,3129,3130,3131,3141,3192,3195,3196,3197,3198,3199,3203,3204,3205,3206,3207,3225,3226,3227,3228,3231,3232,3234,3241,3242,3243,3244,3246,3248,3254,3255,3265,3266,3267,3268,3269,3270,3271,3272,3273,3274,3275,3276,3277,3282,3284,3285,3379,3380,3381,3382,3383,3384,3385,3397,3415,3425,3438,3461,3470,3528,3529,3530,3532,3533,3566,3577,3578,3630,3632,3634,4008,4127,4263,4316,5787,5809,5822,5826,5837,5865,6093,6113,6123,6124,6128,6466,6494,6497,6789,6846,6866,6909,6911,6927,7234,7235,7318,7319,8503,9523,10158,10159,10160,10356,10357,10358,10359,11318,11319,11320,11321,11322,11323,11324,11910,11911,11912,11913,12319,12320,12321,12431,12433,14429,14432,248278,248299,248464,248474,250282,250283,250484,250618,250622,250623,250625,250626,250652,250654,250927,250928,251245,251261,251284,251291,251622,251661,251662,251676,251707,251918,251966,252068,252664,252665,252666,252762,252763,252764,252765,252767,252802,252820,253195,253282,253283,253511,253622,254588,254589,254596,254626,255109,255534,255964,256040,256092,256966,256996,257196,257521,257532,258443,259433,259434,260157,260428,260430,260431,260432,263389,263390,263396,263397,263438,263466,263470,266851,266852,267006,268530,269075,270196,270201,270298,270693,271080,271486,271530,271587,271712,272034,272044,272046,272096,272116,274300,275437,275703,275708,275767,276020,276089,276099,276180,276189,276194,276198,276415,276416,277730}}
-data.Item[211787]={["name"]="Scroll: LOWER PING WHOMEVER",["npcDrops"]={36,40,43,46,79,95,97,99,100,114,116,117,118,119,121,123,124,126,157,171,199,285,327,330,390,423,442,448,454,456,471,472,473,474,476,478,480,481,500,501,502,504,513,515,519,524,550,583,589,590,594,619,712,732,735,822,824,830,833,834,846,880,881,1065,1109,1115,1116,1117,1118,1119,1120,1121,1122,1123,1124,1126,1127,1131,1132,1133,1135,1137,1138,1161,1162,1163,1164,1166,1172,1173,1174,1175,1176,1177,1184,1186,1188,1190,1191,1193,1194,1195,1196,1197,1201,1202,1211,1236,1260,1271,1380,1388,1397,1424,1425,1426,1520,1522,1523,1526,1527,1528,1529,1530,1531,1532,1533,1534,1535,1536,1537,1538,1539,1540,1543,1544,1545,1548,1549,1553,1554,1555,1654,1655,1656,1657,1658,1660,1662,1664,1665,1674,1675,1689,1693,1753,1765,1766,1767,1768,1769,1770,1772,1773,1778,1779,1780,1781,1782,1797,1865,1866,1867,1868,1869,1870,1891,1892,1893,1894,1895,1896,1910,1911,1912,1914,1922,1924,1934,1936,1941,1953,1961,1971,1972,1983,1993,1996,1997,1999,2000,2001,2004,2005,2008,2009,2010,2011,2012,2013,2014,2015,2017,2018,2019,2020,2021,2025,2027,2029,2030,2033,2034,2038,2039,2043,2060,2061,2062,2063,2064,2065,2066,2067,2068,2069,2070,2149,2152,2163,2164,2166,2167,2173,2174,2175,2176,2177,2178,2179,2185,2189,2190,2201,2202,2203,2204,2205,2212,2231,2232,2234,2235,2321,2322,2324,2950,2951,2956,2957,2959,2960,2962,2963,2964,2965,2967,2968,2970,2971,2972,2974,2976,2978,2979,2989,2990,3035,3051,3056,3058,3099,3100,3103,3104,3107,3108,3110,3111,3112,3113,3114,3115,3116,3117,3118,3119,3120,3121,3122,3123,3126,3127,3129,3130,3131,3192,3195,3196,3197,3198,3199,3203,3204,3205,3206,3207,3225,3226,3227,3228,3231,3232,3234,3241,3242,3243,3244,3246,3248,3254,3255,3265,3266,3267,3268,3269,3270,3271,3272,3273,3274,3275,3276,3277,3282,3284,3285,3379,3380,3381,3382,3383,3384,3385,3397,3415,3425,3438,3461,3470,3528,3529,3530,3531,3532,3533,3535,3566,3630,3632,3634,4008,4127,4263,4316,5785,5787,5808,5822,5824,5826,5837,5865,6093,6113,6123,6124,6466,6494,6497,6789,6846,6866,6909,6927,7234,7235,7318,7319,8503,9523,10157,10158,10159,10160,10358,10359,11318,11319,11320,11321,11322,11323,11324,11910,11911,11912,11913,12138,12320,12321,12433,14428,14429,14430,14432,248278,248299,248464,248474,250282,250283,250484,250618,250619,250622,250623,250625,250626,250654,250927,250928,251245,251261,251284,251291,251622,251661,251662,251676,251707,251918,251966,252068,252664,252665,252666,252762,252763,252764,252765,252767,252802,252820,253195,253282,253283,253511,253622,254588,254589,254596,254626,255109,255534,255964,256040,256092,256966,256996,257196,257521,257532,258443,259398,259433,259434,260157,260428,260430,260431,260432,263389,263390,263396,263397,263438,263466,263470,266851,266852,267006,268530,269075,270196,270201,270298,270693,271080,271486,271530,271587,271707,271712,272034,272044,272046,272096,272116,272173,274300,275437,275703,275708,275767,276020,276061,276089,276099,276105,276108,276111,276180,276189,276194,276198,276415,276416,277730}}
+data.Item[211780]={["name"]="Scroll: KWYJIBO",["npcDrops"]={36,40,43,46,60,61,79,95,97,100,114,116,117,118,119,121,123,124,126,157,171,199,285,327,330,390,423,442,448,454,456,471,472,473,474,476,478,480,481,500,501,502,504,513,515,524,550,583,589,590,594,619,712,732,735,822,824,830,831,833,834,846,880,881,1109,1115,1116,1117,1118,1119,1120,1121,1122,1123,1124,1126,1127,1130,1131,1132,1133,1135,1138,1161,1162,1163,1164,1166,1172,1173,1174,1175,1176,1177,1184,1186,1188,1190,1191,1193,1194,1195,1196,1197,1201,1202,1211,1236,1260,1271,1380,1388,1397,1424,1425,1426,1520,1522,1523,1526,1527,1528,1529,1530,1531,1532,1533,1534,1535,1536,1537,1538,1539,1540,1543,1544,1545,1548,1549,1553,1554,1555,1654,1655,1656,1657,1658,1660,1662,1664,1665,1674,1675,1689,1693,1753,1765,1766,1767,1768,1769,1770,1772,1773,1778,1779,1780,1781,1782,1797,1865,1866,1867,1868,1869,1870,1891,1892,1893,1894,1895,1896,1910,1912,1914,1922,1924,1934,1936,1941,1953,1961,1971,1972,1983,1993,1996,1997,1999,2000,2001,2004,2005,2008,2009,2010,2011,2012,2013,2014,2015,2017,2018,2019,2020,2021,2025,2027,2029,2030,2033,2034,2038,2039,2043,2060,2061,2062,2063,2064,2065,2066,2067,2068,2069,2070,2149,2152,2162,2163,2164,2166,2167,2173,2176,2177,2178,2179,2185,2189,2190,2191,2201,2202,2203,2204,2205,2212,2231,2232,2234,2235,2321,2322,2324,2950,2951,2956,2957,2959,2960,2962,2963,2964,2965,2967,2968,2970,2971,2972,2973,2974,2976,2977,2978,2979,2989,2990,3035,3051,3056,3058,3099,3100,3103,3104,3105,3107,3108,3110,3111,3112,3113,3114,3115,3116,3117,3118,3119,3120,3121,3122,3123,3126,3127,3129,3130,3131,3141,3192,3195,3196,3197,3198,3199,3203,3204,3205,3206,3207,3225,3226,3227,3228,3231,3232,3234,3241,3242,3243,3244,3246,3248,3254,3255,3265,3266,3267,3268,3269,3271,3272,3273,3274,3275,3276,3277,3282,3284,3285,3379,3380,3381,3382,3383,3384,3385,3397,3415,3425,3438,3461,3470,3528,3530,3532,3533,3535,3566,3577,3630,3632,3634,4008,4127,4263,4316,5807,5808,5822,5824,5837,5865,6033,6093,6123,6124,6128,6133,6466,6494,6497,6789,6846,6866,6909,6911,6927,7234,7235,7318,7319,8503,9523,10157,10158,10159,10160,10356,10358,11318,11319,11320,11321,11322,11323,11324,11910,11911,11912,11913,12320,12321,12431,12432,12433,14428,14431,210107,248278,248299,248464,248474,250282,250283,250484,250618,250619,250622,250623,250625,250626,250651,250654,250927,250928,251245,251261,251284,251291,251622,251661,251662,251676,251707,251918,251966,252068,252664,252665,252666,252762,252763,252764,252765,252767,252802,252820,253195,253282,253283,253511,253622,254588,254589,254596,254626,255109,255534,255964,256040,256092,256966,256996,257196,257521,257532,258443,259433,259434,260157,260428,260430,260431,260432,263389,263390,263396,263397,263438,263466,263470,266851,266852,267006,268530,269075,270196,270201,270298,270693,271080,271486,271530,271587,271712,272034,272044,272046,272096,272116,272173,275437,275703,275708,275767,276020,276061,276089,276099,276105,276108,276111,276180,276189,276194,276198,276415,276416,277730}}
+data.Item[211784]={["name"]="Scroll: WUBBA WUBBA",["npcDrops"]={3,48,98,115,121,122,124,127,154,171,202,203,205,206,210,212,213,215,217,218,232,300,334,335,345,391,397,422,423,424,426,428,429,430,431,432,433,434,435,436,437,440,441,442,445,446,449,450,452,453,458,485,486,505,506,511,517,518,521,531,533,539,544,545,547,548,565,568,569,570,573,574,578,579,580,584,594,596,598,599,604,615,619,622,623,624,625,626,628,634,636,639,641,642,643,644,645,646,647,657,681,683,703,711,785,787,819,824,831,832,855,889,891,892,898,909,910,920,923,930,948,949,1007,1008,1009,1010,1011,1012,1013,1014,1015,1016,1017,1018,1019,1020,1021,1022,1023,1024,1025,1026,1027,1028,1029,1030,1031,1032,1033,1034,1035,1036,1038,1039,1040,1041,1042,1043,1044,1051,1052,1053,1054,1057,1069,1083,1110,1111,1150,1157,1158,1159,1160,1164,1165,1167,1169,1178,1179,1180,1181,1183,1185,1189,1192,1194,1197,1205,1206,1207,1210,1216,1222,1224,1225,1251,1258,1259,1270,1353,1393,1399,1400,1417,1418,1487,1663,1666,1696,1706,1707,1708,1711,1715,1716,1717,1720,1725,1726,1727,1729,1731,1732,1755,1763,1870,1888,1889,1908,1909,1913,1914,1915,1920,1923,1924,1939,1940,1942,1943,1944,1947,1948,1953,1954,1955,1956,1957,1958,1973,1974,2053,2054,2071,2089,2102,2103,2106,2108,2120,2156,2157,2158,2159,2160,2165,2168,2169,2170,2171,2172,2179,2180,2181,2182,2183,2184,2187,2205,2206,2207,2208,2233,2235,2236,2237,2244,2248,2260,2261,2264,2265,2266,2267,2268,2269,2270,2305,2322,2323,2332,2335,2336,2337,2338,2339,2344,2345,2346,2348,2349,2350,2351,2354,2356,2360,2368,2369,2370,2372,2373,2374,2375,2376,2384,2385,2387,2403,2404,2408,2427,2428,2448,2449,2450,2451,2503,2529,2552,2559,2582,2586,3235,3236,3237,3238,3239,3240,3241,3245,3247,3248,3249,3250,3251,3252,3253,3256,3257,3258,3260,3261,3263,3275,3277,3278,3279,3280,3282,3283,3286,3295,3374,3375,3376,3377,3378,3385,3386,3392,3393,3394,3395,3396,3398,3414,3416,3424,3426,3434,3435,3436,3445,3452,3454,3455,3456,3457,3458,3459,3461,3463,3466,3467,3471,3472,3473,3474,3475,3476,3503,3577,3578,3586,3619,3630,3631,3632,3633,3634,3636,3637,3638,3640,3641,3653,3654,3655,3662,3664,3667,3669,3670,3671,3673,3674,3696,3711,3712,3713,3715,3717,3721,3725,3727,3728,3730,3732,3733,3734,3737,3739,3740,3742,3743,3745,3746,3748,3749,3750,3752,3754,3755,3757,3758,3759,3762,3763,3765,3767,3770,3771,3772,3774,3780,3781,3782,3783,3784,3789,3791,3797,3799,3801,3802,3803,3804,3806,3807,3808,3809,3810,3811,3812,3814,3816,3817,3818,3819,3820,3821,3823,3824,3825,3833,3834,3840,3850,3851,3853,3854,3855,3857,3859,3861,3862,3863,3864,3865,3866,3868,3872,3873,3875,3877,3879,3886,3887,3893,3898,3900,3914,3917,3919,3921,3922,3923,3924,3925,3926,3927,3928,3932,3943,3944,3947,3987,3988,3989,3991,3992,3993,3999,4003,4004,4005,4006,4007,4008,4009,4012,4013,4014,4015,4016,4017,4018,4019,4020,4021,4022,4023,4024,4025,4026,4027,4028,4029,4031,4032,4034,4035,4036,4037,4038,4040,4041,4042,4044,4050,4051,4052,4053,4054,4056,4057,4061,4062,4064,4065,4067,4070,4073,4074,4093,4094,4095,4096,4097,4099,4100,4101,4104,4107,4109,4110,4111,4113,4114,4116,4117,4118,4119,4120,4124,4126,4127,4128,4129,4142,4147,4154,4202,4248,4249,4264,4273,4274,4275,4278,4279,4280,4281,4282,4283,4284,4293,4306,4409,4416,4417,4418,4424,4428,4435,4436,4437,4438,4440,4442,4462,4463,4464,4499,4511,4512,4514,4515,4516,4517,4518,4519,4520,4522,4523,4525,4530,4531,4532,4538,4541,4548,4623,4627,4632,4633,4663,4664,4689,4696,4788,4789,4798,4799,4802,4803,4805,4807,4809,4810,4811,4812,4813,4814,4815,4818,4819,4820,4821,4822,4823,4824,4825,4827,4829,4830,4831,4832,4887,4969,4978,5048,5053,5056,5682,5755,5756,5761,5762,5763,5775,5797,5798,5799,5800,5830,5831,5832,5834,5836,5838,5841,5847,5848,5859,5863,5864,5928,5931,6020,6035,6071,6073,6115,6132,6167,6168,6180,6206,6207,6208,6210,6211,6213,6215,6218,6219,6220,6221,6222,6223,6224,6225,6226,6230,6231,6233,6243,6329,6391,6392,6407,6523,6547,6570,6575,6606,6668,6788,7015,7079,7404,7603,8518,8886,9336,9456,9523,9524,10323,10373,10617,10639,10756,10757,10758,10759,10760,10761,10882,10896,10992,11517,11518,11519,11520,11656,11680,11681,11682,11683,11697,11714,11858,11912,11913,11915,11917,11918,11921,12347,12579,12677,12678,12759,12856,12860,12876,12896,12897,12902,12918,12940,14266,14268,14269,14270,14271,14272,14275,14276,14278,14279,14280,14357,14425,203139,209797,214456,214519,246600,246664,246888,246990,246992,246993,247001,247003,247016,250484,250488,250618,250619,250620,250622,250623,250624,250627,250629,250630,250650,250656,250689,250735,255066,255068,255069,255070,255072,255109,255699,255964,256040,259897,260796,260797,260798,260799,260800,260801,260802,260803,260804,260808,260809,260810,261368,262119,263396,264081,264082,264083,266216,267307,267308,267314,268622,268623,268624,269134,270094,271334,271336,271346,271348,271351,271732,271750,271898,271903,274715,275044,275045,275046,277645,277881}}
+data.Item[211785]={["name"]="Scroll: CWAL",["npcDrops"]={36,40,43,46,60,79,95,97,100,114,116,117,118,119,121,123,124,126,157,171,199,285,327,330,390,423,442,448,454,456,471,473,474,476,478,480,481,500,501,502,504,513,515,524,550,589,590,594,619,712,732,735,822,824,830,831,833,834,846,880,881,1065,1109,1115,1116,1117,1118,1119,1120,1121,1122,1123,1124,1126,1127,1130,1131,1133,1135,1137,1138,1161,1162,1163,1164,1166,1172,1173,1174,1175,1176,1177,1184,1186,1188,1190,1191,1194,1195,1196,1197,1201,1202,1211,1236,1260,1271,1380,1388,1397,1424,1426,1520,1522,1523,1526,1527,1528,1529,1530,1531,1532,1533,1534,1535,1536,1537,1538,1539,1540,1543,1544,1545,1548,1549,1553,1554,1555,1654,1655,1656,1657,1658,1660,1662,1664,1665,1674,1675,1689,1693,1753,1765,1766,1767,1768,1769,1770,1772,1773,1778,1779,1780,1781,1782,1797,1865,1866,1867,1868,1869,1870,1891,1892,1893,1894,1895,1896,1910,1912,1914,1922,1924,1934,1941,1953,1961,1971,1972,1983,1993,1996,1997,1999,2000,2001,2004,2005,2008,2009,2010,2011,2012,2013,2015,2017,2018,2019,2020,2021,2025,2027,2029,2030,2033,2034,2038,2039,2043,2060,2061,2062,2063,2064,2065,2066,2067,2068,2069,2070,2149,2152,2162,2163,2164,2166,2167,2173,2174,2176,2177,2178,2179,2185,2189,2190,2191,2201,2202,2203,2204,2205,2212,2231,2232,2234,2235,2321,2322,2324,2950,2951,2956,2957,2959,2960,2962,2963,2964,2965,2967,2968,2970,2971,2972,2973,2974,2976,2977,2978,2979,2989,2990,3035,3051,3058,3068,3099,3100,3103,3104,3107,3108,3110,3111,3112,3113,3114,3115,3116,3117,3118,3119,3120,3121,3122,3123,3126,3127,3129,3130,3131,3141,3192,3195,3196,3197,3198,3199,3203,3204,3205,3206,3207,3225,3226,3227,3228,3231,3232,3234,3241,3242,3243,3244,3246,3248,3254,3255,3265,3266,3267,3268,3269,3270,3271,3272,3273,3274,3275,3276,3277,3282,3284,3285,3379,3380,3381,3382,3383,3384,3385,3397,3415,3425,3438,3461,3470,3528,3529,3530,3531,3532,3535,3566,3630,3632,3634,4008,4127,4263,4316,5808,5809,5826,5837,5865,6093,6123,6124,6128,6466,6494,6789,6846,6866,6909,6911,6927,7234,7235,7318,7319,8503,9523,10157,10158,10159,10160,10356,10358,11318,11319,11320,11321,11322,11323,11324,11910,11911,11912,11913,12138,12319,12320,12431,12432,14428,14431,14432,210107,248278,248299,248464,248474,250282,250283,250484,250618,250619,250622,250623,250625,250626,250651,250652,250654,250927,250928,250936,251245,251261,251284,251291,251622,251661,251662,251676,251707,251918,251966,252068,252664,252665,252666,252762,252763,252764,252765,252767,252802,252820,253195,253282,253283,253511,253622,254588,254589,254596,254626,255109,255534,255964,256040,256092,256966,256996,257521,257532,258443,259385,259433,259434,260157,260428,260430,260431,260432,263389,263390,263396,263397,263438,263466,263470,266851,266852,267006,268530,269075,270196,270201,270298,270693,271080,271486,271530,271587,271712,272034,272044,272046,272096,272116,275437,275703,275708,275767,276020,276061,276089,276099,276111,276180,276189,276194,276198,276415,276416,277730}}
+data.Item[211786]={["name"]="Scroll: CHAP BALK WELLES",["npcDrops"]={36,40,43,46,60,61,79,95,97,99,100,114,116,117,118,119,121,123,124,126,157,171,199,285,327,330,390,423,442,448,454,456,471,473,474,476,478,480,481,500,501,502,504,513,515,524,550,589,590,594,619,712,732,735,822,824,830,831,833,834,846,880,881,1109,1115,1116,1117,1118,1119,1120,1121,1122,1123,1124,1126,1127,1131,1132,1133,1135,1137,1138,1161,1162,1163,1164,1166,1172,1173,1174,1175,1176,1177,1184,1186,1188,1190,1191,1193,1194,1195,1196,1197,1201,1202,1211,1236,1271,1380,1388,1397,1424,1425,1426,1520,1522,1523,1526,1527,1528,1529,1530,1531,1532,1533,1534,1535,1536,1537,1538,1539,1540,1543,1544,1545,1548,1549,1553,1554,1555,1654,1655,1656,1657,1658,1660,1662,1664,1665,1674,1675,1689,1693,1753,1765,1766,1767,1768,1769,1770,1772,1773,1778,1779,1780,1781,1782,1797,1865,1866,1867,1868,1869,1870,1891,1892,1893,1894,1895,1896,1912,1914,1922,1924,1934,1936,1941,1953,1961,1971,1972,1983,1993,1996,1997,1999,2000,2001,2004,2005,2008,2009,2010,2011,2012,2013,2015,2017,2018,2019,2020,2021,2025,2027,2029,2030,2033,2034,2038,2039,2043,2060,2061,2062,2063,2064,2065,2066,2067,2068,2069,2070,2149,2152,2162,2163,2164,2166,2167,2173,2174,2176,2177,2178,2179,2185,2189,2190,2191,2201,2202,2203,2204,2205,2212,2231,2232,2234,2235,2321,2322,2324,2950,2951,2956,2957,2959,2960,2962,2963,2964,2965,2967,2968,2970,2971,2972,2973,2974,2976,2977,2978,2979,2989,2990,3035,3051,3058,3099,3100,3103,3104,3105,3107,3108,3110,3111,3112,3113,3114,3115,3116,3117,3118,3119,3120,3121,3122,3123,3126,3127,3129,3130,3131,3141,3192,3195,3196,3197,3198,3199,3203,3204,3205,3206,3207,3225,3226,3227,3228,3231,3232,3234,3241,3242,3243,3244,3246,3248,3254,3255,3265,3266,3267,3268,3269,3270,3271,3272,3273,3274,3275,3276,3277,3282,3284,3285,3379,3380,3381,3382,3383,3384,3385,3397,3415,3425,3438,3461,3470,3528,3529,3530,3532,3533,3535,3566,3577,3578,3630,3632,3634,4008,4127,4263,4316,5787,5809,5822,5826,5837,5865,6093,6113,6123,6124,6128,6466,6494,6497,6789,6846,6866,6909,6911,6927,7234,7235,7318,7319,8503,9523,10158,10159,10160,10356,10357,10358,10359,11318,11319,11320,11321,11322,11323,11324,11910,11911,11912,11913,12138,12319,12320,12321,12431,12432,12433,14429,14432,248278,248299,248464,248474,250282,250283,250484,250618,250619,250622,250623,250625,250626,250652,250654,250927,250928,251245,251261,251284,251291,251622,251661,251662,251676,251707,251918,251966,252068,252664,252665,252666,252762,252763,252764,252765,252767,252802,252820,253195,253282,253283,253511,253622,254588,254589,254596,254626,255109,255534,255964,256040,256092,256966,256996,257196,257521,257532,258443,259433,259434,260157,260428,260430,260431,260432,263389,263390,263396,263397,263438,263466,263470,266851,266852,267006,268530,269075,270196,270201,270298,270693,271080,271486,271530,271587,271712,272034,272044,272046,272096,272116,274300,275437,275703,275708,275767,276020,276061,276089,276099,276180,276189,276194,276198,276415,276416,277730}}
+data.Item[211787]={["name"]="Scroll: LOWER PING WHOMEVER",["npcDrops"]={36,40,43,46,79,95,97,99,100,114,116,117,118,119,121,123,124,126,157,171,199,285,327,330,390,423,442,448,454,456,471,472,473,474,476,478,480,481,500,501,502,504,513,515,519,524,550,583,589,590,594,619,712,732,735,822,824,830,831,833,834,846,880,881,1065,1109,1115,1116,1117,1118,1119,1120,1121,1122,1123,1124,1126,1127,1131,1132,1133,1135,1137,1138,1161,1162,1163,1164,1166,1172,1173,1174,1175,1176,1177,1184,1186,1188,1190,1191,1193,1194,1195,1196,1197,1201,1202,1211,1236,1260,1271,1380,1388,1397,1424,1425,1426,1520,1522,1523,1526,1527,1528,1529,1530,1531,1532,1533,1534,1535,1536,1537,1538,1539,1540,1543,1544,1545,1548,1549,1553,1554,1555,1654,1655,1656,1657,1658,1660,1662,1664,1665,1674,1675,1689,1693,1753,1765,1766,1767,1768,1769,1770,1772,1773,1778,1779,1780,1781,1782,1797,1865,1866,1867,1868,1869,1870,1891,1892,1893,1894,1895,1896,1910,1911,1912,1914,1922,1924,1934,1936,1941,1953,1961,1971,1972,1983,1993,1996,1997,1999,2000,2001,2004,2005,2008,2009,2010,2011,2012,2013,2014,2015,2017,2018,2019,2020,2021,2025,2027,2029,2030,2033,2034,2038,2039,2043,2060,2061,2062,2063,2064,2065,2066,2067,2068,2069,2070,2149,2152,2162,2163,2164,2166,2167,2173,2174,2175,2176,2177,2178,2179,2185,2189,2190,2201,2202,2203,2204,2205,2212,2231,2232,2234,2235,2321,2322,2324,2950,2951,2956,2957,2959,2960,2962,2963,2964,2965,2967,2968,2970,2971,2972,2973,2974,2976,2977,2978,2979,2989,2990,3035,3051,3056,3058,3099,3100,3103,3104,3107,3108,3110,3111,3112,3113,3114,3115,3116,3117,3118,3119,3120,3121,3122,3123,3126,3127,3129,3130,3131,3192,3195,3196,3197,3198,3199,3203,3204,3205,3206,3207,3225,3226,3227,3228,3231,3232,3234,3241,3242,3243,3244,3246,3248,3254,3255,3265,3266,3267,3268,3269,3270,3271,3272,3273,3274,3275,3276,3277,3282,3284,3285,3379,3380,3381,3382,3383,3384,3385,3397,3415,3425,3438,3461,3470,3528,3529,3530,3531,3532,3533,3535,3566,3630,3632,3634,4008,4127,4263,4316,5785,5787,5808,5822,5824,5826,5837,5865,6093,6113,6123,6124,6466,6494,6497,6789,6846,6866,6909,6911,6927,7234,7235,7318,7319,8503,9523,10157,10158,10159,10160,10357,10358,11318,11319,11320,11321,11322,11323,11324,11910,11911,11912,11913,12138,12320,12321,12432,12433,14429,14432,248278,248299,248464,248474,250282,250283,250484,250618,250619,250622,250623,250625,250626,250651,250654,250927,250928,250936,251245,251261,251284,251291,251622,251661,251662,251676,251707,251918,251966,252068,252664,252665,252666,252762,252763,252764,252765,252767,252802,252820,253195,253282,253283,253511,253622,254588,254589,254596,254626,255109,255534,255964,256040,256092,256966,256996,257521,257532,258443,259398,259433,259434,260157,260428,260430,260431,260432,263389,263390,263396,263397,263438,263466,263470,266851,266852,267006,268530,269075,270196,270201,270298,270693,271080,271486,271530,271587,271707,271712,272034,272044,272046,272096,272116,272173,275437,275703,275708,275767,276020,276061,276089,276099,276105,276108,276109,276111,276180,276189,276194,276198,276415,276416,277730}}
 data.Item[211799]={["name"]="Sack of Stolen Goods"}
 data.Item[211800]={["name"]="Scroll of Reintegration"}
 data.Item[211809]={["name"]="Comprehension Primer"}
@@ -31062,9 +31062,9 @@ data.Item[211839]={["name"]="Supply Shipment"}
 data.Item[211840]={["name"]="Supply Shipment"}
 data.Item[211841]={["name"]="Supply Shipment"}
 data.Item[211845]={["name"]="Blackfathom Sharpening Stone"}
-data.Item[211853]={["name"]="Scroll: VOCE WELL",["npcDrops"]={3,48,98,115,121,122,124,125,127,154,171,202,203,205,206,210,212,213,215,217,218,232,300,334,335,345,391,397,422,423,424,426,428,429,430,431,432,433,434,435,436,437,440,441,442,445,446,449,452,453,458,485,486,505,511,517,518,520,531,533,539,544,545,547,548,565,568,569,570,573,578,579,580,594,598,599,604,615,616,619,622,623,624,625,626,628,634,636,639,641,642,643,644,645,646,647,657,681,683,703,711,785,787,819,824,831,832,889,891,892,898,909,910,920,923,930,948,949,1007,1008,1009,1010,1011,1012,1013,1015,1016,1017,1018,1019,1020,1021,1022,1023,1024,1025,1026,1027,1028,1029,1030,1031,1032,1033,1034,1035,1036,1038,1039,1040,1041,1042,1043,1044,1051,1052,1053,1054,1057,1069,1083,1110,1111,1150,1157,1158,1159,1160,1164,1165,1167,1169,1178,1179,1180,1181,1183,1185,1189,1192,1194,1197,1205,1206,1207,1210,1216,1222,1224,1225,1251,1258,1259,1270,1353,1393,1400,1417,1418,1487,1663,1666,1696,1706,1707,1708,1711,1715,1716,1725,1726,1727,1729,1731,1732,1755,1763,1870,1888,1889,1908,1909,1913,1914,1915,1923,1924,1939,1940,1942,1943,1947,1953,1954,1955,1956,1957,1958,1973,1974,2053,2054,2071,2089,2102,2103,2106,2108,2120,2156,2157,2158,2159,2160,2165,2168,2169,2170,2171,2172,2179,2180,2181,2182,2183,2187,2192,2205,2206,2207,2208,2233,2235,2236,2237,2244,2248,2260,2261,2264,2265,2266,2267,2268,2269,2270,2305,2322,2323,2332,2335,2336,2337,2338,2339,2344,2345,2346,2348,2349,2350,2351,2354,2356,2360,2368,2369,2370,2372,2373,2374,2375,2376,2384,2385,2387,2403,2404,2408,2427,2428,2448,2449,2450,2451,2503,2529,2552,2559,2582,2586,3235,3236,3237,3238,3239,3240,3241,3245,3247,3248,3249,3250,3251,3252,3256,3257,3258,3260,3261,3263,3275,3277,3278,3279,3280,3282,3283,3286,3295,3374,3375,3376,3377,3378,3385,3386,3392,3393,3394,3395,3396,3414,3416,3424,3426,3434,3435,3436,3445,3452,3454,3455,3456,3457,3458,3459,3461,3463,3466,3467,3471,3472,3473,3474,3475,3476,3503,3577,3619,3630,3631,3632,3633,3634,3636,3637,3638,3640,3641,3653,3654,3655,3662,3664,3667,3669,3670,3671,3673,3674,3711,3712,3713,3715,3717,3721,3725,3727,3728,3730,3732,3733,3734,3737,3739,3740,3742,3743,3745,3746,3748,3749,3750,3752,3754,3755,3757,3758,3759,3762,3763,3765,3767,3770,3771,3772,3774,3780,3781,3782,3783,3784,3791,3797,3799,3801,3802,3803,3804,3806,3808,3809,3810,3811,3812,3814,3816,3817,3818,3819,3820,3821,3823,3824,3825,3833,3834,3840,3850,3851,3853,3855,3857,3859,3861,3862,3863,3864,3865,3866,3868,3872,3873,3875,3877,3879,3886,3887,3900,3914,3917,3919,3921,3922,3923,3924,3925,3926,3927,3928,3932,3944,3947,3987,3988,3989,3991,3992,3993,3999,4003,4004,4005,4006,4007,4008,4009,4011,4012,4013,4014,4015,4016,4017,4018,4019,4020,4021,4022,4023,4024,4025,4026,4027,4028,4029,4031,4032,4034,4036,4037,4038,4040,4041,4042,4044,4050,4051,4052,4053,4054,4056,4057,4061,4062,4064,4065,4067,4070,4073,4074,4093,4094,4095,4096,4097,4099,4100,4101,4104,4107,4109,4110,4111,4112,4113,4114,4116,4117,4118,4119,4120,4124,4126,4127,4128,4129,4142,4147,4154,4202,4248,4249,4250,4264,4274,4275,4278,4279,4281,4283,4284,4285,4293,4306,4409,4416,4417,4418,4424,4428,4435,4436,4437,4438,4440,4442,4462,4463,4464,4499,4511,4512,4514,4515,4516,4517,4518,4519,4520,4522,4523,4525,4530,4531,4532,4538,4541,4548,4623,4627,4632,4633,4663,4664,4696,4788,4789,4798,4799,4802,4803,4805,4807,4809,4810,4811,4812,4813,4814,4815,4818,4819,4820,4821,4822,4823,4824,4825,4827,4829,4830,4831,4832,4887,4969,5048,5053,5056,5682,5755,5756,5761,5762,5763,5775,5797,5798,5828,5829,5830,5831,5836,5838,5841,5848,5851,5863,5864,5912,5932,6020,6033,6035,6073,6115,6132,6168,6180,6206,6207,6208,6210,6211,6213,6215,6218,6219,6220,6221,6222,6223,6224,6225,6226,6230,6231,6233,6243,6329,6391,6407,6523,6547,6570,6575,6606,6668,6788,7016,7079,7603,8518,8886,9336,9456,9523,9524,10323,10373,10617,10639,10756,10757,10758,10759,10760,10761,10882,10896,10992,11318,11517,11518,11519,11520,11680,11681,11682,11683,11697,11714,11858,11912,11913,11915,11917,11918,11921,12347,12579,12677,12678,12759,12856,12860,12876,12896,12897,12902,12940,14280,14357,203139,209797,214456,214519,246600,246664,246888,246990,246992,246993,247001,247003,247016,250484,250488,250618,250619,250620,250622,250623,250624,250627,250629,250630,250650,250656,250689,250735,255066,255068,255069,255070,255072,255109,255964,256040,260796,260797,260798,260799,260800,260801,260802,260803,260804,260808,260809,260810,261368,262119,263466,264081,264082,264083,266216,267307,267308,267314,268622,268623,268624,269134,270094,271334,271336,271346,271348,271351,271749,271750,271898,274715,275044,275045,275046,277645}}
-data.Item[211854]={["name"]="Scroll: OMIT KESA",["npcDrops"]={3,48,98,115,121,122,124,127,154,171,202,203,205,206,210,212,213,215,217,218,232,300,334,345,391,397,422,423,424,426,428,429,430,431,432,433,434,435,436,437,440,441,442,445,446,449,450,452,453,458,485,486,505,511,517,518,521,531,533,539,544,545,547,548,565,568,569,570,572,573,578,579,580,594,598,599,604,615,622,623,624,625,626,628,634,636,639,641,642,643,644,646,647,657,681,683,703,711,785,787,819,824,831,832,855,889,891,892,898,909,910,920,923,930,948,949,1007,1008,1009,1010,1011,1012,1013,1014,1015,1016,1017,1018,1019,1020,1021,1022,1023,1024,1025,1026,1027,1028,1029,1030,1031,1032,1033,1034,1035,1036,1038,1039,1040,1042,1043,1044,1051,1052,1053,1054,1057,1069,1083,1110,1111,1150,1157,1158,1159,1160,1164,1165,1167,1169,1178,1179,1180,1181,1183,1185,1189,1192,1194,1197,1205,1206,1207,1210,1216,1222,1224,1225,1251,1258,1259,1270,1353,1393,1400,1417,1418,1663,1666,1696,1706,1707,1708,1711,1715,1716,1717,1725,1726,1727,1729,1731,1732,1763,1870,1888,1889,1908,1909,1913,1914,1915,1923,1924,1939,1940,1942,1943,1947,1953,1954,1955,1956,1957,1958,1973,1974,2053,2054,2071,2089,2102,2103,2106,2108,2120,2156,2157,2158,2159,2160,2165,2168,2169,2170,2171,2174,2179,2180,2181,2182,2183,2187,2205,2206,2207,2208,2233,2235,2236,2237,2244,2248,2260,2261,2264,2265,2266,2267,2268,2269,2270,2283,2305,2322,2323,2332,2335,2336,2337,2338,2339,2344,2345,2346,2348,2349,2350,2351,2354,2356,2360,2368,2369,2370,2372,2373,2374,2375,2376,2384,2385,2387,2403,2404,2408,2427,2428,2448,2449,2450,2451,2476,2503,2529,2552,2559,2582,2586,3235,3238,3239,3240,3241,3245,3247,3248,3249,3250,3251,3252,3256,3257,3258,3260,3261,3263,3275,3277,3278,3279,3280,3282,3283,3286,3374,3375,3376,3377,3378,3385,3386,3392,3393,3394,3395,3396,3398,3414,3416,3424,3426,3434,3435,3436,3445,3452,3454,3455,3456,3457,3458,3459,3461,3463,3466,3467,3471,3472,3473,3474,3475,3476,3503,3577,3578,3630,3631,3632,3633,3634,3636,3637,3638,3640,3641,3653,3654,3655,3662,3664,3667,3669,3670,3671,3673,3674,3696,3711,3712,3713,3715,3717,3721,3725,3727,3728,3730,3732,3733,3734,3737,3739,3740,3742,3743,3745,3746,3748,3749,3750,3752,3754,3755,3757,3758,3759,3762,3763,3765,3767,3770,3771,3772,3774,3780,3781,3782,3783,3784,3789,3791,3797,3799,3801,3802,3803,3804,3806,3807,3808,3809,3810,3812,3814,3815,3816,3817,3818,3819,3820,3821,3823,3824,3825,3834,3840,3850,3851,3853,3854,3855,3857,3859,3861,3862,3863,3864,3865,3866,3868,3872,3873,3875,3877,3879,3886,3887,3899,3900,3914,3917,3919,3921,3922,3923,3924,3925,3926,3927,3928,3932,3943,3944,3947,3987,3988,3989,3991,3992,3993,3999,4003,4004,4005,4006,4007,4008,4009,4011,4012,4013,4014,4015,4016,4017,4018,4019,4020,4021,4022,4023,4024,4025,4026,4027,4028,4029,4031,4032,4034,4036,4037,4038,4040,4041,4042,4044,4050,4051,4052,4053,4054,4056,4057,4061,4062,4064,4065,4067,4070,4073,4074,4093,4094,4095,4096,4097,4099,4100,4101,4104,4107,4109,4110,4111,4112,4113,4114,4117,4118,4119,4120,4124,4126,4127,4128,4129,4142,4147,4154,4202,4248,4249,4250,4264,4273,4274,4275,4278,4279,4280,4281,4282,4283,4293,4306,4416,4417,4418,4424,4435,4436,4437,4438,4440,4442,4462,4463,4464,4499,4511,4512,4514,4515,4516,4517,4518,4519,4520,4522,4523,4530,4531,4532,4538,4541,4548,4623,4627,4632,4633,4663,4664,4696,4788,4789,4798,4799,4802,4803,4805,4807,4809,4810,4811,4812,4813,4814,4815,4818,4819,4820,4821,4822,4823,4824,4825,4827,4829,4830,4831,4832,4887,4969,4978,5048,5053,5056,5682,5755,5756,5761,5762,5763,5775,5797,5800,5827,5829,5830,5831,5832,5834,5836,5838,5848,5849,5851,5928,5931,6020,6035,6073,6115,6132,6167,6168,6180,6206,6207,6208,6210,6211,6213,6215,6218,6219,6220,6221,6222,6223,6224,6225,6226,6230,6233,6243,6329,6391,6392,6407,6523,6547,6570,6575,6606,6668,6788,7079,7603,8886,9336,9456,9523,9524,10323,10617,10756,10757,10758,10759,10760,10761,10882,10896,10992,11517,11518,11519,11520,11656,11680,11681,11682,11683,11858,11912,11913,11915,11917,11918,11921,12347,12579,12677,12678,12759,12856,12860,12896,12897,12902,12940,14266,14272,14275,185333,209797,214519,246600,246664,246888,246990,246992,246993,247001,247003,247016,250484,250488,250618,250619,250620,250622,250623,250624,250627,250629,250630,250650,250656,250689,250735,255066,255068,255069,255070,255072,255109,255964,256040,260796,260797,260798,260799,260800,260801,260802,260803,260804,260808,260809,260810,261368,262119,263396,264081,264082,264083,266216,267307,267308,267314,268622,268623,268624,269134,270094,271334,271336,271346,271348,271351,271732,271749,271898,271903,274715,275044,275045,275046,277645}}
-data.Item[211855]={["name"]="Scroll: STHENIC LUNATE",["npcDrops"]={3,48,98,115,121,122,124,127,154,171,202,203,205,206,210,212,213,215,217,218,232,300,334,335,345,391,397,422,423,424,426,428,429,430,431,432,433,434,435,436,437,440,441,442,445,446,449,450,452,453,458,485,486,505,511,517,518,531,533,539,544,545,547,548,565,568,569,570,573,578,579,580,594,598,599,604,615,616,619,622,623,624,625,626,628,634,636,639,641,642,643,644,645,646,647,657,681,683,703,785,787,819,824,831,832,855,889,891,892,898,909,910,920,923,930,948,949,1007,1008,1009,1010,1011,1012,1013,1014,1015,1016,1017,1018,1019,1020,1021,1022,1023,1024,1025,1026,1027,1028,1030,1031,1032,1033,1034,1035,1036,1037,1038,1039,1040,1042,1043,1044,1051,1052,1053,1054,1057,1069,1083,1110,1111,1150,1157,1158,1159,1160,1164,1165,1167,1169,1178,1179,1180,1181,1183,1185,1189,1192,1194,1197,1205,1206,1207,1210,1216,1222,1224,1225,1251,1258,1259,1270,1353,1393,1400,1417,1418,1487,1663,1666,1696,1706,1707,1708,1711,1715,1716,1717,1720,1725,1726,1727,1729,1731,1732,1755,1763,1870,1888,1889,1908,1909,1913,1914,1915,1923,1924,1939,1940,1942,1943,1947,1948,1953,1954,1955,1956,1957,1958,1973,1974,2053,2054,2071,2089,2102,2103,2106,2120,2156,2157,2158,2160,2165,2168,2169,2170,2171,2179,2180,2181,2182,2183,2187,2205,2206,2207,2208,2233,2235,2236,2237,2244,2248,2260,2261,2264,2265,2266,2267,2268,2269,2270,2305,2322,2323,2332,2335,2336,2338,2339,2344,2345,2346,2348,2349,2350,2351,2354,2356,2360,2368,2369,2370,2372,2373,2374,2375,2376,2384,2385,2387,2403,2404,2408,2427,2428,2448,2449,2450,2451,2477,2503,2529,2559,2582,2586,3236,3238,3239,3240,3241,3245,3247,3248,3249,3250,3251,3252,3256,3257,3258,3260,3261,3263,3275,3277,3278,3279,3280,3282,3283,3286,3295,3374,3375,3376,3377,3378,3385,3386,3392,3393,3394,3395,3396,3414,3416,3424,3426,3434,3435,3436,3445,3452,3454,3455,3456,3457,3458,3459,3461,3463,3466,3467,3471,3472,3473,3474,3475,3476,3503,3577,3586,3619,3630,3631,3632,3633,3634,3636,3637,3638,3640,3641,3653,3654,3655,3662,3664,3667,3669,3670,3671,3673,3674,3711,3712,3713,3715,3717,3721,3725,3727,3728,3730,3732,3733,3734,3737,3739,3740,3742,3743,3745,3746,3748,3749,3750,3752,3755,3757,3758,3759,3762,3763,3765,3767,3770,3771,3772,3774,3780,3781,3782,3783,3784,3797,3799,3801,3802,3803,3804,3807,3808,3809,3810,3812,3814,3816,3817,3818,3819,3820,3821,3823,3824,3825,3833,3834,3840,3851,3853,3854,3855,3857,3859,3861,3862,3863,3864,3865,3866,3868,3872,3873,3875,3877,3879,3886,3887,3893,3899,3900,3914,3917,3919,3921,3922,3923,3924,3925,3926,3927,3928,3931,3932,3943,3944,3947,3987,3988,3989,3991,3992,3993,3999,4003,4004,4005,4006,4007,4008,4009,4011,4012,4013,4014,4015,4016,4018,4019,4020,4021,4022,4023,4024,4025,4026,4027,4028,4029,4031,4032,4034,4035,4036,4037,4038,4040,4041,4042,4044,4050,4051,4052,4053,4054,4056,4057,4061,4062,4064,4065,4066,4067,4070,4073,4074,4093,4094,4095,4096,4097,4099,4100,4101,4104,4107,4109,4111,4113,4114,4116,4117,4118,4119,4120,4124,4126,4127,4128,4129,4142,4147,4154,4202,4248,4249,4264,4274,4275,4278,4279,4280,4281,4283,4285,4293,4306,4409,4416,4417,4418,4424,4428,4435,4436,4437,4438,4440,4442,4462,4463,4464,4511,4512,4514,4515,4516,4517,4518,4519,4520,4522,4523,4525,4531,4532,4538,4541,4548,4623,4627,4633,4663,4664,4696,4788,4789,4798,4799,4802,4803,4805,4807,4809,4810,4811,4812,4813,4814,4815,4818,4819,4820,4821,4822,4823,4824,4825,4827,4829,4830,4831,4832,4887,4969,4978,5048,5053,5056,5682,5755,5756,5761,5762,5763,5775,5797,5800,5830,5832,5835,5836,5838,5841,5849,5859,5915,5930,6020,6035,6132,6167,6168,6180,6206,6207,6208,6210,6211,6213,6215,6218,6219,6220,6221,6222,6223,6224,6225,6226,6230,6231,6233,6329,6391,6392,6523,6547,6570,6575,6606,6668,6788,7170,7404,7603,8886,9336,9456,9523,9524,10323,10373,10617,10756,10757,10758,10759,10760,10761,10896,10992,11322,11324,11517,11518,11519,11520,11656,11680,11682,11683,11714,11858,11912,11913,11915,11917,11918,11921,12347,12579,12677,12678,12759,12856,12860,12876,12896,12897,12902,12918,12940,14266,14268,14425,14426,14433,203139,209797,214456,214519,246600,246664,246888,246990,246992,246993,247001,247003,247016,250484,250618,250620,250622,250623,250624,250627,250629,250630,250650,250656,250689,250735,255066,255068,255069,255070,255072,255109,255964,256040,260796,260797,260798,260799,260800,260801,260802,260803,260804,260808,260809,260810,261368,262119,263397,264081,264082,264083,266216,267307,267308,267314,268622,268623,268624,269134,270094,271334,271336,271346,271348,271351,271749,271898,271903,274715,275044,275045,275046,277645}}
+data.Item[211853]={["name"]="Scroll: VOCE WELL",["npcDrops"]={3,48,98,115,121,122,124,125,127,154,171,202,203,205,206,210,212,213,215,217,218,232,300,334,335,345,391,397,422,423,424,426,428,429,430,431,432,433,434,435,436,437,440,441,442,445,446,449,450,452,453,458,485,486,505,511,517,518,520,531,533,539,544,545,547,548,565,568,569,570,573,578,579,580,594,598,599,604,615,616,619,622,623,624,625,626,628,634,636,639,641,642,643,644,645,646,647,657,681,683,703,711,785,787,819,824,831,832,855,889,891,892,898,909,910,920,923,930,948,949,1007,1008,1009,1010,1011,1012,1013,1014,1015,1016,1017,1018,1019,1020,1021,1022,1023,1024,1025,1026,1027,1028,1029,1030,1031,1032,1033,1034,1035,1036,1038,1039,1040,1041,1042,1043,1044,1051,1052,1053,1054,1057,1069,1083,1110,1111,1150,1157,1158,1159,1160,1164,1165,1167,1169,1178,1179,1180,1181,1183,1185,1189,1192,1194,1197,1205,1206,1207,1210,1216,1222,1224,1225,1251,1258,1259,1270,1353,1393,1400,1417,1418,1487,1663,1666,1696,1706,1707,1708,1711,1715,1716,1717,1720,1725,1726,1727,1729,1731,1732,1755,1763,1870,1888,1889,1908,1909,1913,1914,1915,1923,1924,1939,1940,1942,1943,1947,1953,1954,1955,1956,1957,1958,1973,1974,2053,2054,2071,2089,2102,2103,2106,2108,2120,2156,2157,2158,2159,2160,2165,2168,2169,2170,2171,2172,2179,2180,2181,2182,2183,2187,2192,2205,2206,2207,2208,2233,2235,2236,2237,2244,2248,2260,2261,2264,2265,2266,2267,2268,2269,2270,2283,2305,2322,2323,2332,2335,2336,2337,2338,2339,2344,2345,2346,2348,2349,2350,2351,2354,2356,2360,2368,2369,2370,2372,2373,2374,2375,2376,2384,2385,2387,2403,2404,2408,2427,2428,2448,2449,2450,2451,2503,2529,2552,2559,2582,2586,3235,3236,3237,3238,3239,3240,3241,3245,3247,3248,3249,3250,3251,3252,3256,3257,3258,3260,3261,3263,3275,3277,3278,3279,3280,3282,3283,3286,3295,3374,3375,3376,3377,3378,3385,3386,3392,3393,3394,3395,3396,3414,3416,3424,3426,3434,3435,3436,3445,3452,3454,3455,3456,3457,3458,3459,3461,3463,3466,3467,3471,3472,3473,3474,3475,3476,3503,3577,3586,3619,3630,3631,3632,3633,3634,3636,3637,3638,3640,3641,3653,3654,3655,3662,3664,3667,3669,3670,3671,3673,3674,3711,3712,3713,3715,3717,3721,3725,3727,3728,3730,3732,3733,3734,3737,3739,3740,3742,3743,3745,3746,3748,3749,3750,3752,3754,3755,3757,3758,3759,3762,3763,3765,3767,3770,3771,3772,3774,3780,3781,3782,3783,3784,3789,3791,3797,3799,3801,3802,3803,3804,3806,3807,3808,3809,3810,3811,3812,3814,3815,3816,3817,3818,3819,3820,3821,3823,3824,3825,3833,3834,3840,3850,3851,3853,3854,3855,3857,3859,3861,3862,3863,3864,3865,3866,3868,3872,3873,3875,3877,3879,3886,3887,3893,3900,3914,3917,3919,3921,3922,3923,3924,3925,3926,3927,3928,3931,3932,3943,3944,3947,3987,3988,3989,3991,3992,3993,3999,4003,4004,4005,4006,4007,4008,4009,4011,4012,4013,4014,4015,4016,4017,4018,4019,4020,4021,4022,4023,4024,4025,4026,4027,4028,4029,4030,4031,4032,4034,4035,4036,4037,4038,4040,4041,4042,4044,4050,4051,4052,4053,4054,4056,4057,4061,4062,4064,4065,4067,4070,4073,4074,4093,4094,4095,4096,4097,4099,4100,4101,4104,4107,4109,4110,4111,4112,4113,4114,4116,4117,4118,4119,4120,4124,4126,4127,4128,4129,4142,4147,4154,4202,4248,4249,4250,4264,4273,4274,4275,4278,4279,4281,4282,4283,4284,4285,4293,4306,4409,4416,4417,4418,4424,4428,4435,4436,4437,4438,4440,4442,4462,4463,4464,4499,4511,4512,4514,4515,4516,4517,4518,4519,4520,4522,4523,4525,4530,4531,4532,4538,4541,4548,4623,4627,4632,4633,4663,4664,4696,4788,4789,4798,4799,4802,4803,4805,4807,4809,4810,4811,4812,4813,4814,4815,4818,4819,4820,4821,4823,4824,4825,4827,4829,4830,4831,4832,4887,4969,4978,5048,5053,5056,5682,5755,5756,5761,5762,5763,5775,5797,5798,5828,5829,5830,5831,5834,5835,5836,5838,5841,5848,5851,5863,5864,5912,5932,6020,6033,6035,6073,6115,6132,6167,6168,6180,6206,6207,6208,6210,6211,6213,6215,6218,6219,6220,6221,6222,6223,6224,6225,6226,6230,6231,6233,6243,6329,6391,6407,6523,6547,6570,6575,6606,6668,6788,7016,7079,7404,7603,8518,8886,9336,9456,9523,9524,10323,10373,10617,10639,10756,10757,10758,10759,10760,10761,10882,10896,10992,11318,11517,11518,11519,11520,11656,11680,11681,11682,11683,11697,11714,11858,11912,11913,11915,11917,11918,11921,12347,12579,12677,12678,12759,12856,12860,12876,12896,12897,12902,12918,12940,14268,14271,14272,14273,14280,14357,14424,185334,203139,209797,214456,214519,246600,246664,246888,246990,246992,246993,247001,247003,247016,250484,250488,250618,250619,250620,250622,250623,250624,250627,250629,250630,250650,250656,250689,250735,255066,255068,255069,255070,255072,255109,255964,256040,259897,260796,260797,260798,260799,260800,260801,260802,260803,260804,260808,260809,260810,261368,262119,263438,263466,264081,264082,264083,266216,267307,267308,267314,268622,268623,268624,269134,270094,271334,271336,271346,271348,271351,271732,271749,271750,271898,274715,275044,275045,275046,277645}}
+data.Item[211854]={["name"]="Scroll: OMIT KESA",["npcDrops"]={3,48,98,115,121,122,124,127,154,171,202,203,205,206,210,212,213,215,217,218,232,300,334,335,345,391,397,422,423,424,426,428,429,430,431,432,433,434,435,436,437,440,441,442,445,446,449,450,452,453,458,485,486,505,511,517,518,521,531,533,539,544,545,547,548,565,568,569,570,572,573,578,579,580,594,598,599,604,615,616,619,622,623,624,625,626,628,634,636,639,641,642,643,644,645,646,647,657,681,683,703,711,785,787,819,824,831,832,855,889,891,892,898,909,910,920,923,930,947,948,949,1007,1008,1009,1010,1011,1012,1013,1014,1015,1016,1017,1018,1019,1020,1021,1022,1023,1024,1025,1026,1027,1028,1029,1030,1031,1032,1033,1034,1035,1036,1037,1038,1039,1040,1041,1042,1043,1044,1051,1052,1053,1054,1057,1069,1083,1110,1111,1150,1157,1158,1159,1160,1164,1165,1167,1169,1178,1179,1180,1181,1183,1185,1189,1192,1194,1197,1205,1206,1207,1210,1216,1222,1224,1225,1251,1258,1259,1270,1353,1393,1400,1417,1418,1663,1666,1696,1706,1707,1708,1711,1715,1716,1717,1720,1725,1726,1727,1729,1731,1732,1755,1763,1870,1888,1889,1908,1909,1913,1914,1915,1920,1923,1924,1939,1940,1942,1943,1947,1953,1954,1955,1956,1957,1958,1973,1974,2053,2054,2071,2089,2102,2103,2106,2108,2120,2156,2157,2158,2159,2160,2165,2168,2169,2170,2171,2174,2179,2180,2181,2182,2183,2187,2205,2206,2207,2208,2233,2235,2236,2237,2244,2248,2260,2261,2264,2265,2266,2267,2268,2269,2270,2283,2305,2322,2323,2332,2335,2336,2337,2338,2339,2344,2345,2346,2348,2349,2350,2351,2354,2356,2360,2368,2369,2370,2372,2373,2374,2375,2376,2384,2385,2387,2403,2404,2408,2427,2428,2448,2449,2450,2451,2476,2503,2529,2552,2559,2582,2586,3235,3236,3237,3238,3239,3240,3241,3245,3247,3248,3249,3250,3251,3252,3256,3257,3258,3260,3261,3263,3275,3277,3278,3279,3280,3282,3283,3286,3374,3375,3376,3377,3378,3385,3386,3392,3393,3394,3395,3396,3398,3414,3416,3424,3426,3434,3435,3436,3445,3452,3454,3455,3456,3457,3458,3459,3461,3463,3466,3467,3471,3472,3473,3474,3475,3476,3503,3577,3578,3586,3630,3631,3632,3633,3634,3636,3637,3638,3640,3641,3653,3654,3655,3662,3664,3667,3669,3670,3671,3673,3674,3696,3711,3712,3713,3715,3717,3721,3725,3727,3728,3730,3732,3733,3734,3737,3739,3740,3742,3743,3745,3746,3748,3749,3750,3752,3754,3755,3757,3758,3759,3762,3763,3765,3767,3770,3771,3772,3774,3780,3781,3782,3783,3784,3789,3791,3797,3799,3801,3802,3803,3804,3806,3807,3808,3809,3810,3811,3812,3814,3815,3816,3817,3818,3819,3820,3821,3823,3824,3825,3833,3834,3840,3850,3851,3853,3854,3855,3857,3859,3861,3862,3863,3864,3865,3866,3868,3872,3873,3875,3877,3879,3886,3887,3893,3898,3899,3900,3914,3917,3919,3921,3922,3923,3924,3925,3926,3927,3928,3931,3932,3943,3944,3947,3987,3988,3989,3991,3992,3993,3999,4003,4004,4005,4006,4007,4008,4009,4011,4012,4013,4014,4015,4016,4017,4018,4019,4020,4021,4022,4023,4024,4025,4026,4027,4028,4029,4031,4032,4034,4035,4036,4037,4038,4040,4041,4042,4044,4050,4051,4052,4053,4054,4056,4057,4061,4062,4064,4065,4067,4070,4073,4074,4093,4094,4095,4096,4097,4099,4100,4101,4104,4107,4109,4110,4111,4112,4113,4114,4116,4117,4118,4119,4120,4124,4126,4127,4128,4129,4142,4147,4154,4202,4248,4249,4250,4264,4273,4274,4275,4278,4279,4280,4281,4282,4283,4293,4306,4409,4416,4417,4418,4424,4428,4435,4436,4437,4438,4440,4442,4462,4463,4464,4499,4511,4512,4514,4515,4516,4517,4518,4519,4520,4522,4523,4525,4530,4531,4532,4538,4541,4548,4623,4627,4632,4633,4663,4664,4696,4788,4789,4798,4799,4802,4803,4805,4807,4809,4810,4811,4812,4813,4814,4815,4818,4819,4820,4821,4822,4823,4824,4825,4827,4829,4830,4831,4832,4887,4969,4978,5048,5053,5056,5682,5755,5756,5761,5762,5763,5775,5797,5798,5800,5827,5829,5830,5831,5832,5834,5835,5836,5838,5841,5848,5849,5851,5859,5863,5928,5931,6020,6035,6073,6115,6132,6167,6168,6180,6206,6207,6208,6210,6211,6213,6215,6218,6219,6220,6221,6222,6223,6224,6225,6226,6230,6231,6233,6243,6329,6391,6392,6407,6523,6547,6570,6575,6606,6668,6788,7016,7017,7079,7404,7603,8518,8886,9336,9456,9523,9524,10323,10373,10617,10756,10757,10758,10759,10760,10761,10882,10896,10992,11517,11518,11519,11520,11656,11680,11681,11682,11683,11684,11697,11714,11858,11912,11913,11915,11917,11918,11921,12347,12579,12677,12678,12759,12856,12860,12876,12896,12897,12902,12918,12940,14266,14268,14269,14270,14272,14275,14280,14357,14424,185333,185334,203139,209797,214519,246600,246664,246888,246990,246992,246993,247001,247003,247016,250484,250488,250618,250619,250620,250622,250623,250624,250627,250629,250630,250650,250656,250689,250735,255066,255068,255069,255070,255072,255109,255964,256040,260796,260797,260798,260799,260800,260801,260802,260803,260804,260808,260809,260810,261368,262119,263396,264081,264082,264083,266216,267307,267308,267314,268622,268623,268624,269134,270094,271334,271336,271346,271348,271351,271732,271749,271898,271903,274715,275044,275045,275046,277645}}
+data.Item[211855]={["name"]="Scroll: STHENIC LUNATE",["npcDrops"]={3,48,98,115,121,122,124,127,154,171,202,203,205,206,210,212,213,215,217,218,232,300,334,335,345,391,397,422,423,424,426,428,429,430,431,432,433,434,435,436,437,440,441,442,445,446,449,450,452,453,458,485,486,505,511,517,518,531,533,539,544,545,547,548,565,568,569,570,573,578,579,580,594,598,599,604,615,616,619,622,623,624,625,626,628,634,636,639,641,642,643,644,645,646,647,657,681,683,703,711,785,787,819,824,831,832,855,889,891,892,898,909,910,920,923,930,948,949,1007,1008,1009,1010,1011,1012,1013,1014,1015,1016,1017,1018,1019,1020,1021,1022,1023,1024,1025,1026,1027,1028,1030,1031,1032,1033,1034,1035,1036,1037,1038,1039,1040,1042,1043,1044,1051,1052,1053,1054,1057,1069,1083,1110,1111,1150,1157,1158,1159,1160,1164,1165,1167,1169,1178,1179,1180,1181,1183,1185,1189,1192,1194,1197,1205,1206,1207,1210,1216,1222,1224,1225,1251,1258,1259,1270,1353,1393,1400,1417,1418,1487,1663,1666,1696,1706,1707,1708,1711,1715,1716,1717,1720,1725,1726,1727,1729,1731,1732,1755,1763,1870,1888,1889,1908,1909,1913,1914,1915,1920,1923,1924,1939,1940,1942,1943,1947,1948,1953,1954,1955,1956,1957,1958,1973,1974,2053,2054,2071,2089,2090,2102,2103,2106,2120,2156,2157,2158,2160,2165,2168,2169,2170,2171,2174,2179,2180,2181,2182,2183,2187,2205,2206,2207,2208,2233,2235,2236,2237,2244,2248,2260,2261,2264,2265,2266,2267,2268,2269,2270,2305,2322,2323,2332,2335,2336,2337,2338,2339,2344,2345,2346,2348,2349,2350,2351,2354,2356,2360,2368,2369,2370,2372,2373,2374,2375,2376,2384,2385,2387,2403,2404,2408,2427,2428,2448,2449,2450,2451,2477,2503,2529,2559,2582,2586,3235,3236,3238,3239,3240,3241,3245,3247,3248,3249,3250,3251,3252,3256,3257,3258,3260,3261,3263,3275,3277,3278,3279,3280,3282,3283,3286,3295,3374,3375,3376,3377,3378,3385,3386,3392,3393,3394,3395,3396,3414,3416,3424,3426,3434,3435,3436,3445,3452,3454,3455,3456,3457,3458,3459,3461,3463,3466,3467,3471,3472,3473,3474,3475,3476,3503,3577,3586,3619,3630,3631,3632,3633,3634,3636,3637,3638,3640,3641,3653,3654,3655,3662,3664,3667,3669,3670,3671,3673,3674,3711,3712,3713,3715,3717,3721,3725,3727,3728,3730,3732,3733,3734,3737,3739,3740,3742,3743,3745,3746,3748,3749,3750,3752,3754,3755,3757,3758,3759,3762,3763,3765,3767,3770,3771,3772,3774,3780,3781,3782,3783,3784,3789,3791,3797,3799,3801,3802,3803,3804,3806,3807,3808,3809,3810,3812,3814,3815,3816,3817,3818,3819,3820,3821,3823,3824,3825,3833,3834,3840,3849,3851,3853,3854,3855,3857,3859,3861,3862,3863,3864,3865,3866,3868,3872,3873,3875,3877,3879,3886,3887,3893,3899,3900,3914,3917,3919,3921,3922,3923,3924,3925,3926,3927,3928,3931,3932,3943,3944,3947,3987,3988,3989,3991,3992,3993,3999,4003,4004,4005,4006,4007,4008,4009,4011,4012,4013,4014,4015,4016,4017,4018,4019,4020,4021,4022,4023,4024,4025,4026,4027,4028,4029,4031,4032,4034,4035,4036,4037,4038,4040,4041,4042,4044,4050,4051,4052,4053,4054,4056,4057,4061,4062,4064,4065,4066,4067,4070,4073,4074,4093,4094,4095,4096,4097,4099,4100,4101,4104,4107,4109,4111,4112,4113,4114,4116,4117,4118,4119,4120,4124,4126,4127,4128,4129,4142,4147,4154,4202,4248,4249,4250,4264,4273,4274,4275,4278,4279,4280,4281,4283,4284,4285,4293,4306,4409,4416,4417,4418,4424,4428,4435,4436,4437,4438,4440,4442,4462,4463,4464,4499,4511,4512,4514,4515,4516,4517,4518,4519,4520,4522,4523,4525,4530,4531,4532,4538,4541,4548,4623,4627,4632,4633,4663,4664,4689,4696,4788,4789,4798,4799,4802,4803,4805,4807,4809,4810,4811,4812,4813,4814,4815,4818,4819,4820,4821,4822,4823,4824,4825,4827,4829,4830,4831,4832,4887,4969,4978,5048,5053,5056,5682,5755,5756,5761,5762,5763,5775,5797,5799,5800,5829,5830,5832,5834,5835,5836,5838,5841,5849,5859,5863,5912,5915,5930,6020,6035,6073,6115,6132,6167,6168,6180,6206,6207,6208,6210,6211,6213,6215,6218,6219,6220,6221,6222,6223,6224,6225,6226,6230,6231,6233,6243,6329,6391,6392,6523,6547,6570,6575,6606,6668,6788,7079,7170,7404,7603,8518,8886,9336,9456,9523,9524,10323,10373,10559,10617,10756,10757,10758,10759,10760,10761,10882,10896,10992,11322,11324,11517,11518,11519,11520,11656,11680,11681,11682,11683,11697,11714,11858,11912,11913,11914,11915,11917,11918,11921,12347,12579,12677,12678,12759,12856,12860,12876,12896,12897,12902,12918,12940,14266,14268,14270,14278,14425,14426,14433,203139,209797,214456,214519,246600,246664,246888,246990,246992,246993,247001,247003,247016,250484,250488,250618,250620,250622,250623,250624,250627,250629,250630,250650,250656,250689,250735,255066,255068,255069,255070,255072,255109,255964,256040,260796,260797,260798,260799,260800,260801,260802,260803,260804,260808,260809,260810,261368,262119,263397,263470,264081,264082,264083,266216,267307,267308,267314,268622,268623,268624,269134,270094,271334,271336,271346,271348,271351,271732,271749,271898,271903,274715,275044,275045,275046,277645}}
 data.Item[211856]={["name"]="Resilient Mail Coif",["vendors"]={14753,14754}}
 data.Item[211857]={["name"]="Resilient Leather Mask",["vendors"]={14753,14754}}
 data.Item[211933]={["name"]="Waylaid Supplies: Rough Stone"}
@@ -31168,11 +31168,11 @@ data.Item[213526]={["name"]="Hybrid Haunch",["npcDrops"]={2347,2473,2474}}
 data.Item[213527]={["name"]="Smuggler's Spice Blend",["relatedQuests"]={79677}}
 data.Item[213528]={["name"]="Balmy Brew"}
 data.Item[213529]={["name"]="Viscous Venom",["npcDrops"]={769}}
-data.Item[213543]={["name"]="Scroll: UPDOG",["npcDrops"]={92,314,412,503,522,587,588,595,597,660,667,669,670,671,672,674,675,676,677,678,679,681,682,683,684,685,686,687,688,689,690,691,694,696,697,699,701,702,709,710,729,730,736,740,741,742,745,750,751,752,755,757,759,760,762,764,766,767,768,772,780,781,782,783,784,854,855,856,858,871,873,875,877,879,920,921,937,938,939,940,941,942,943,976,977,978,979,1054,1061,1062,1081,1082,1084,1085,1087,1094,1096,1108,1114,1142,1144,1150,1151,1152,1200,1364,1421,1488,1489,1490,1491,1492,1550,1551,1557,1561,1562,1563,1564,1565,1653,1713,1754,1907,2240,2241,2242,2243,2245,2246,2247,2248,2249,2250,2251,2252,2253,2254,2255,2256,2258,2271,2272,2287,2304,2306,2318,2319,2320,2358,2359,2369,2371,2376,2377,2406,2407,2408,2411,2412,2413,2414,2415,2416,2417,2431,2440,2505,2536,2537,2541,2552,2553,2554,2555,2556,2557,2558,2559,2560,2561,2562,2563,2564,2565,2566,2567,2569,2570,2571,2572,2573,2574,2578,2579,2580,2581,2582,2584,2585,2586,2587,2588,2589,2590,2592,2595,2596,2603,2612,2618,2619,2628,2635,2640,2641,2643,2644,2645,2646,2647,2648,2649,2651,2652,2653,2654,2655,2656,2657,2658,2686,2691,2692,2693,2694,2701,2716,2717,2718,2725,2726,2727,2728,2729,2732,2735,2736,2739,2740,2742,2743,2745,2760,2761,2762,2765,2791,2829,2830,2831,2893,2894,2906,2907,2919,2923,2925,2926,2928,2929,2932,2945,3660,3942,3974,3975,3977,3983,3984,3985,4110,4130,4131,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4260,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4304,4306,4308,4323,4324,4328,4329,4331,4334,4341,4342,4343,4351,4352,4355,4356,4357,4358,4359,4360,4361,4362,4363,4376,4377,4378,4379,4386,4392,4393,4396,4397,4400,4402,4404,4405,4411,4412,4413,4414,4420,4421,4422,4427,4458,4461,4465,4466,4467,4479,4481,4490,4505,4506,4525,4532,4538,4539,4540,4623,4633,4634,4635,4636,4637,4638,4639,4640,4641,4642,4644,4645,4646,4647,4648,4649,4651,4654,4655,4656,4657,4659,4662,4663,4664,4665,4666,4667,4668,4670,4671,4672,4673,4674,4675,4676,4677,4679,4680,4681,4682,4684,4685,4686,4689,4692,4693,4695,4696,4700,4701,4705,4711,4712,4713,4714,4715,4718,4719,4723,4726,4727,4728,4834,4844,4845,4846,4847,4850,4851,4852,4853,4855,4856,4857,4860,4872,5046,5184,5229,5232,5234,5236,5237,5238,5239,5240,5244,5245,5246,5247,5249,5251,5253,5254,5255,5258,5260,5268,5272,5278,5292,5293,5295,5299,5300,5304,5305,5331,5332,5333,5334,5335,5336,5337,5359,5360,5361,5362,5364,5419,5420,5422,5423,5425,5426,5428,5429,5431,5452,5454,5455,5456,5457,5458,5459,5460,5461,5462,5472,5473,5474,5481,5485,5490,5615,5616,5617,5618,5623,5646,5648,5649,5650,5839,5840,5844,5846,5854,5856,5858,5862,5982,5990,6068,6069,6125,6126,6127,6170,6190,6193,6194,6196,6212,6226,6227,6229,6230,6232,6234,6235,6238,6426,6427,6487,6488,6505,6509,6733,6910,7011,7012,7022,7023,7030,7033,7078,7091,7153,7155,7175,7228,7246,7247,7268,7269,7272,7273,7286,7320,7321,7327,7328,7329,7332,7333,7334,7335,7337,7341,7344,7346,7347,7348,7349,7351,7352,7358,7361,7396,7397,7405,7584,7604,7608,7725,7726,7727,7797,7847,7855,7856,7857,7858,7872,7873,7874,7996,8095,8136,8311,8318,8319,8337,8438,8566,8567,8637,8675,8759,8921,8958,8959,8960,9165,9166,9377,10081,11559,11561,11562,11563,11576,11577,11687,11777,11783,11784,11788,11791,11937,12203,12206,12217,12218,12219,12220,12221,12222,12225,12239,12347,12369,12676,12865,12976,12977,13019,13141,13142,13323,13601,13718,14123,217305,218029,222286,236028,250187,252711,253272,253526,254284,254560,255238,255262,255276,255309,255373,255377,255560,255561,255769,255770,255772,255774,255849,255850,255851,255898,255901,255995,256383,256433,256434,256749,256795,256797,256798,256799,256801,256807,256899,256952,257001,257017,257885,257888,257900,257901,257910,257915,257916,257926,258038,258042,258100,258102,258104,258331,258522,258573,258574,258687,258792,258797,258799,258804,258818,258897,259046,259052,259054,259055,259263,259267,259269,259979,259981,259987,260235,260244,260419,260931,260968,260969,260973,260995,260996,261497,261710,261711,262037,262065,262169,262397,262473,262477,263071,263196,263307,263343,263348,263380,263681,263749,263899,266357,266862,268321,268831,269175,270589,270664,270667,271373,271458,271462,272228,272313,272315,272389}}
-data.Item[213544]={["name"]="Scroll: TOPAZ YORAK",["npcDrops"]={92,314,315,507,522,587,588,595,597,660,667,669,670,671,672,674,675,676,677,681,682,683,684,685,686,687,688,689,690,691,694,696,697,699,701,702,709,710,729,731,736,740,741,742,743,745,746,750,751,755,757,759,760,764,765,767,772,780,781,782,783,784,854,855,856,858,871,873,875,879,920,921,922,937,938,939,940,941,942,976,978,979,1054,1061,1082,1084,1085,1087,1094,1095,1096,1097,1108,1114,1142,1144,1150,1151,1152,1200,1364,1421,1487,1488,1489,1490,1491,1550,1551,1557,1558,1561,1562,1563,1564,1565,1653,1754,1791,1907,2240,2241,2242,2243,2245,2246,2247,2248,2249,2250,2251,2252,2253,2254,2255,2256,2271,2272,2287,2304,2306,2318,2319,2320,2358,2359,2369,2371,2376,2377,2406,2407,2408,2411,2412,2413,2414,2415,2420,2505,2537,2546,2548,2553,2554,2555,2556,2557,2558,2559,2560,2561,2562,2563,2564,2565,2566,2567,2569,2570,2572,2573,2574,2577,2578,2580,2581,2582,2583,2584,2585,2586,2587,2588,2589,2590,2591,2592,2595,2596,2611,2618,2619,2628,2635,2642,2643,2644,2645,2646,2649,2650,2651,2653,2655,2656,2657,2680,2686,2691,2692,2693,2694,2701,2714,2715,2716,2717,2718,2725,2726,2727,2728,2729,2732,2733,2734,2735,2736,2739,2740,2742,2743,2745,2760,2761,2762,2763,2764,2765,2773,2791,2829,2830,2831,2893,2894,2906,2907,2923,2924,2925,2926,2927,2928,2929,2944,2945,3660,3940,3974,3975,3976,3983,3984,3985,4062,4110,4130,4131,4132,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4260,4283,4284,4286,4287,4288,4289,4290,4291,4292,4293,4295,4296,4297,4298,4299,4300,4301,4302,4303,4304,4306,4308,4323,4324,4328,4329,4331,4341,4342,4343,4351,4352,4356,4357,4358,4359,4360,4361,4362,4363,4376,4377,4378,4379,4386,4389,4392,4396,4397,4401,4404,4405,4411,4413,4414,4420,4421,4427,4458,4461,4466,4467,4479,4481,4490,4506,4525,4532,4538,4539,4540,4543,4623,4632,4633,4634,4635,4636,4637,4638,4639,4640,4641,4642,4643,4644,4645,4646,4647,4648,4649,4651,4654,4655,4656,4657,4658,4659,4662,4663,4664,4665,4666,4667,4670,4671,4672,4673,4674,4675,4676,4677,4678,4679,4681,4682,4684,4685,4689,4692,4693,4695,4696,4697,4699,4700,4705,4711,4712,4713,4714,4715,4716,4718,4719,4723,4725,4726,4727,4728,4729,4834,4844,4845,4846,4847,4850,4851,4852,4853,4855,4856,4857,4860,4863,4872,5044,5045,5046,5184,5226,5229,5232,5234,5236,5238,5239,5240,5241,5244,5245,5246,5249,5251,5253,5254,5255,5258,5262,5268,5278,5286,5291,5292,5293,5295,5297,5299,5300,5304,5305,5306,5307,5308,5331,5333,5335,5336,5337,5357,5358,5359,5360,5361,5364,5366,5419,5420,5422,5423,5424,5425,5426,5428,5429,5430,5441,5452,5453,5455,5456,5457,5461,5462,5472,5473,5474,5481,5485,5490,5600,5601,5615,5616,5617,5618,5623,5648,5649,5650,5771,5839,5840,5843,5844,5846,5853,5854,5856,5858,5860,5861,5982,5984,5990,6068,6069,6116,6126,6170,6190,6212,6226,6227,6229,6230,6232,6234,6235,6238,6426,6427,6487,6505,6506,6507,6511,7011,7012,7030,7078,7086,7091,7097,7105,7153,7154,7155,7175,7228,7246,7268,7269,7272,7274,7286,7320,7321,7327,7328,7329,7332,7333,7334,7335,7337,7341,7342,7344,7345,7346,7347,7348,7351,7352,7353,7355,7356,7361,7396,7397,7405,7725,7726,7800,7803,7808,7848,7855,7856,7857,7858,7872,7873,7874,7883,8095,8120,8127,8311,8318,8319,8504,8566,8759,8890,8956,8959,9165,9318,9377,9396,9547,10082,11559,11561,11562,11563,11576,11577,11578,11686,11687,11777,11778,11783,11785,11787,11788,11789,11791,11792,11793,11937,12206,12216,12218,12219,12220,12221,12222,12239,12241,12347,12369,12676,12976,12977,13019,13141,13142,13323,14123,14228,14661,236028,250187,252711,253272,253524,253526,254560,255174,255262,255271,255276,255309,255364,255373,255377,255560,255561,255769,255770,255772,255774,255850,255851,255898,255901,255906,255995,256383,256433,256434,256749,256795,256797,256798,256799,256800,256801,256807,256952,257017,257885,257900,257901,257910,257915,257916,257926,258038,258040,258042,258100,258102,258104,258331,258573,258574,258687,258792,258797,258799,258804,258818,258897,259046,259052,259054,259055,259258,259263,259267,259269,259801,259979,259981,259987,260211,260235,260244,260353,260429,260931,260968,260969,260973,260995,260996,261497,261710,261711,262037,262065,262169,262397,262473,262477,263071,263196,263307,263343,263348,263615,263681,263749,263899,266862,267065,268321,268831,269175,270589,270664,270667,270892,271458,271460,271462,271784,272228,272313,272315,272389}}
-data.Item[213545]={["name"]="Scroll: PEATCHY ATTAX",["npcDrops"]={92,314,315,522,587,588,595,597,660,667,669,670,671,672,674,675,676,677,678,680,681,682,683,684,685,686,687,688,689,690,691,694,696,697,699,701,702,709,729,730,731,736,740,741,743,744,745,746,747,750,751,752,755,757,759,760,761,762,764,765,766,767,769,772,775,780,781,782,814,854,856,858,871,873,875,877,879,905,920,921,922,937,938,939,940,941,942,978,979,1054,1061,1062,1082,1084,1085,1087,1088,1094,1096,1097,1108,1114,1142,1144,1150,1151,1152,1200,1364,1487,1488,1489,1490,1491,1550,1551,1557,1561,1562,1563,1564,1565,1653,1754,1783,1907,2091,2240,2241,2242,2243,2245,2246,2247,2248,2249,2250,2251,2252,2253,2254,2255,2256,2271,2272,2287,2304,2318,2319,2358,2359,2369,2371,2376,2377,2406,2407,2408,2411,2412,2413,2415,2417,2423,2440,2505,2522,2536,2537,2545,2553,2554,2555,2556,2557,2559,2560,2561,2562,2563,2564,2565,2566,2567,2569,2570,2571,2572,2573,2574,2575,2578,2579,2580,2581,2582,2584,2585,2586,2587,2588,2589,2590,2591,2595,2596,2611,2618,2619,2628,2635,2640,2641,2643,2644,2645,2646,2648,2649,2650,2651,2653,2656,2680,2681,2686,2691,2692,2693,2694,2701,2715,2716,2717,2718,2721,2723,2725,2727,2728,2729,2731,2732,2733,2734,2735,2736,2739,2740,2742,2743,2749,2760,2761,2762,2764,2783,2791,2793,2829,2830,2831,2893,2894,2907,2924,2925,2926,2927,2929,2945,3976,3983,3984,4062,4063,4110,4130,4131,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4260,4283,4284,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4304,4306,4308,4323,4324,4328,4329,4331,4342,4345,4351,4352,4355,4356,4357,4358,4359,4360,4361,4362,4363,4376,4377,4378,4379,4386,4387,4391,4396,4397,4401,4404,4405,4411,4412,4413,4414,4415,4421,4427,4466,4467,4479,4480,4481,4504,4505,4525,4532,4538,4539,4540,4623,4632,4633,4634,4635,4636,4637,4638,4639,4640,4641,4642,4643,4644,4645,4646,4647,4648,4649,4651,4652,4654,4655,4656,4657,4660,4662,4663,4664,4665,4666,4667,4668,4670,4671,4672,4673,4674,4675,4676,4677,4679,4680,4681,4682,4684,4685,4689,4692,4693,4695,4696,4697,4699,4700,4705,4711,4712,4713,4714,4715,4716,4718,4719,4723,4725,4726,4728,4834,4844,4845,4846,4850,4851,4852,4853,4855,4856,4857,4860,4861,5046,5229,5232,5234,5236,5237,5238,5239,5240,5244,5245,5246,5247,5251,5253,5254,5255,5258,5267,5268,5270,5271,5278,5286,5291,5292,5293,5295,5300,5304,5305,5307,5308,5331,5332,5333,5335,5336,5337,5357,5359,5360,5361,5364,5419,5420,5423,5424,5425,5426,5428,5429,5452,5453,5455,5456,5459,5460,5461,5462,5471,5472,5474,5481,5485,5490,5615,5616,5617,5618,5623,5643,5646,5648,5649,5650,5760,5771,5833,5843,5844,5846,5850,5853,5854,5858,5935,5982,5984,5988,5990,6068,6116,6125,6126,6127,6170,6193,6194,6196,6212,6226,6227,6229,6230,6232,6234,6377,6426,6427,6505,6509,6517,7011,7012,7022,7030,7078,7086,7105,7153,7155,7175,7246,7247,7267,7268,7269,7273,7274,7275,7276,7286,7320,7327,7328,7329,7332,7333,7334,7335,7337,7341,7342,7344,7345,7346,7347,7348,7351,7353,7357,7361,7396,7397,7405,7605,7725,7726,7727,7800,7803,7847,7855,7856,7857,7858,7872,7873,7874,7883,7996,8075,8095,8127,8319,8337,8566,8567,8759,8891,8921,8956,8958,8959,8960,9162,9377,11559,11561,11562,11563,11576,11577,11685,11777,11781,11782,11783,11784,11786,11791,11793,11937,12046,12206,12216,12217,12218,12220,12225,12239,12258,12347,12369,12676,12865,13142,14123,14281,217836,218029,250187,252711,253272,253524,253526,254560,255174,255238,255271,255276,255309,255373,255377,255560,255561,255769,255770,255772,255774,255849,255850,255851,255898,255901,255906,255995,256383,256433,256434,256749,256795,256797,256798,256799,256800,256801,256807,256952,257001,257017,257861,257885,257888,257900,257901,257910,257915,257916,257926,258038,258040,258042,258100,258102,258104,258331,258573,258574,258687,258792,258797,258799,258804,258818,258897,258963,259046,259052,259054,259055,259263,259267,259269,259979,259981,259987,260211,260225,260235,260968,260969,260995,260996,261497,261710,261711,262037,262065,262169,262397,262473,262477,262838,263071,263196,263307,263343,263348,263380,263899,266862,268423,268831,269175,270664,270667,270892,271338,271458,271784,272228,272313,272315,272389}}
-data.Item[213546]={["name"]="Scroll: SHOOBEEDOOP",["npcDrops"]={92,314,315,507,522,587,588,595,597,660,667,669,670,671,672,674,675,676,677,678,681,682,683,684,685,686,687,688,689,690,691,694,696,697,699,701,702,710,729,730,731,736,740,741,742,743,745,746,750,751,755,757,759,760,761,762,764,765,766,767,768,772,780,781,782,783,784,813,854,855,856,858,871,873,875,877,879,905,920,921,937,938,939,940,941,942,943,950,976,977,978,979,1054,1061,1081,1082,1084,1085,1087,1088,1094,1096,1097,1108,1114,1142,1144,1150,1152,1200,1364,1488,1489,1490,1491,1550,1551,1557,1558,1561,1562,1563,1564,1565,1653,1754,1783,1791,1907,2240,2241,2242,2243,2245,2246,2247,2248,2249,2250,2251,2252,2253,2254,2255,2256,2257,2271,2272,2287,2304,2306,2318,2319,2320,2358,2359,2369,2371,2376,2377,2406,2407,2408,2411,2412,2413,2414,2415,2416,2431,2505,2530,2535,2537,2545,2546,2550,2553,2554,2555,2556,2557,2559,2560,2561,2562,2563,2564,2565,2566,2567,2569,2570,2571,2572,2573,2574,2575,2577,2578,2579,2580,2581,2582,2584,2585,2586,2587,2588,2589,2590,2591,2592,2595,2596,2599,2618,2619,2635,2640,2641,2644,2646,2647,2648,2649,2650,2651,2652,2653,2654,2655,2656,2658,2659,2686,2691,2692,2693,2694,2701,2714,2715,2716,2717,2718,2719,2721,2725,2727,2728,2729,2732,2735,2736,2739,2740,2742,2743,2754,2760,2761,2762,2791,2829,2830,2831,2893,2894,2906,2923,2924,2926,2927,2928,2929,2945,3940,3976,3983,3985,4110,4130,4131,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4260,4283,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4304,4306,4308,4323,4324,4328,4329,4331,4341,4342,4343,4351,4352,4355,4356,4357,4358,4359,4360,4361,4362,4363,4376,4377,4378,4379,4391,4393,4396,4397,4411,4412,4413,4414,4421,4422,4427,4460,4465,4466,4467,4479,4480,4490,4504,4505,4506,4525,4532,4538,4539,4540,4542,4543,4619,4623,4632,4633,4634,4635,4636,4637,4638,4639,4640,4641,4642,4643,4644,4645,4646,4647,4648,4649,4651,4654,4656,4657,4659,4660,4662,4663,4664,4665,4666,4667,4668,4670,4671,4672,4673,4674,4675,4676,4680,4681,4685,4689,4692,4693,4695,4696,4697,4700,4701,4702,4705,4711,4712,4713,4714,4715,4716,4718,4719,4723,4726,4727,4728,4729,4834,4841,4844,4845,4846,4847,4848,4850,4851,4852,4853,4854,4855,4856,4857,4860,4861,5229,5232,5234,5236,5237,5239,5240,5245,5246,5247,5249,5251,5253,5254,5255,5259,5260,5267,5268,5270,5271,5276,5278,5283,5286,5287,5292,5293,5295,5297,5299,5300,5304,5305,5306,5307,5331,5332,5333,5334,5335,5336,5337,5356,5357,5359,5363,5366,5419,5420,5422,5423,5425,5426,5429,5441,5450,5452,5455,5456,5457,5459,5461,5462,5471,5472,5473,5474,5475,5477,5481,5485,5490,5600,5601,5615,5616,5617,5618,5623,5647,5648,5649,5650,5760,5839,5840,5843,5844,5846,5850,5854,5855,5858,5861,5862,5982,5988,5992,6068,6116,6117,6125,6126,6127,6170,6190,6193,6212,6226,6227,6228,6230,6232,6234,6426,6427,6487,6505,6506,6509,6511,6514,6556,7011,7012,7022,7023,7030,7078,7086,7106,7109,7153,7155,7175,7246,7267,7268,7269,7286,7320,7321,7327,7328,7329,7332,7333,7334,7335,7337,7341,7342,7344,7346,7347,7348,7349,7351,7352,7355,7358,7396,7397,7405,7584,7606,7725,7726,7727,7800,7855,7856,7857,7858,7872,7873,7874,7883,8095,8207,8319,8337,8384,8566,8667,8921,8927,8958,9162,9165,9377,11559,11561,11562,11563,11576,11578,11686,11777,11781,11782,11783,11784,11787,11790,11791,11792,11794,11937,12046,12206,12218,12219,12220,12221,12225,12240,12241,12242,12347,12369,12676,13142,13323,13718,14123,14277,14661,217305,218032,246992,250187,252711,253272,253524,253525,254283,254560,255174,255267,255271,255309,255373,255377,255560,255769,255770,255772,255774,255849,255850,255851,255898,255901,255995,256383,256433,256434,256749,256795,256797,256798,256799,256801,256807,256899,256952,257001,257017,257861,257885,257900,257901,257910,257915,257916,257926,258038,258042,258100,258102,258104,258331,258573,258574,258687,258792,258797,258799,258804,258818,258897,258963,259046,259052,259054,259055,259258,259263,259267,259269,259979,259981,259987,260211,260225,260235,260244,260353,260419,260429,260801,260931,260968,260969,260973,260995,260996,261497,261710,261711,262037,262169,262397,262473,262477,263071,263196,263307,263343,263348,263380,263615,263899,266862,268321,268423,268831,269175,270664,270667,271458,271460,271462,272228,272313,272315,272389}}
-data.Item[213547]={["name"]="Scroll: THAW WORDS",["npcDrops"]={92,314,315,507,522,587,588,595,597,660,667,669,670,671,672,674,675,676,677,679,681,682,683,684,685,686,687,688,689,690,691,694,696,697,699,701,702,709,710,729,730,736,740,741,744,745,747,750,751,755,757,759,760,762,764,765,766,767,768,771,772,780,781,782,783,784,813,855,856,858,871,877,879,920,922,937,938,939,940,941,942,943,978,979,1054,1059,1082,1084,1085,1087,1088,1094,1096,1097,1108,1114,1142,1144,1150,1151,1152,1200,1364,1487,1488,1489,1490,1491,1550,1551,1557,1561,1562,1563,1564,1565,1653,1754,1907,2240,2241,2242,2243,2245,2246,2247,2248,2249,2250,2251,2252,2253,2254,2255,2256,2271,2272,2287,2304,2318,2319,2320,2358,2359,2369,2371,2376,2377,2406,2407,2408,2411,2413,2414,2415,2416,2420,2423,2431,2440,2505,2536,2544,2545,2550,2554,2555,2556,2557,2558,2559,2560,2561,2562,2563,2564,2565,2566,2567,2570,2571,2572,2573,2574,2578,2579,2580,2581,2582,2583,2584,2585,2586,2587,2588,2589,2590,2591,2592,2595,2611,2618,2619,2628,2635,2640,2642,2643,2644,2645,2646,2647,2648,2649,2650,2651,2652,2655,2656,2658,2680,2686,2691,2692,2693,2694,2701,2714,2715,2717,2718,2721,2723,2725,2726,2727,2728,2729,2732,2733,2734,2735,2736,2739,2740,2742,2743,2748,2749,2760,2761,2762,2763,2791,2793,2829,2830,2831,2893,2894,2906,2907,2923,2924,2925,2926,2927,2928,2929,2945,3974,3976,3983,3985,4062,4110,4130,4131,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4260,4283,4285,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4304,4306,4308,4323,4324,4329,4331,4334,4341,4342,4343,4344,4351,4352,4357,4358,4359,4360,4361,4362,4363,4374,4376,4377,4378,4387,4392,4396,4397,4398,4404,4411,4413,4414,4415,4420,4421,4427,4461,4466,4467,4479,4480,4490,4504,4505,4506,4525,4532,4538,4539,4540,4543,4619,4623,4632,4633,4634,4635,4636,4637,4638,4639,4640,4641,4642,4643,4644,4645,4646,4647,4648,4649,4651,4652,4653,4654,4655,4656,4657,4660,4662,4663,4664,4665,4666,4667,4668,4670,4671,4672,4673,4674,4675,4676,4677,4679,4680,4681,4684,4685,4689,4692,4695,4696,4697,4699,4700,4705,4711,4712,4713,4714,4715,4716,4718,4719,4723,4725,4726,4728,4729,4834,4844,4845,4846,4847,4849,4850,4851,4852,4853,4854,4855,4857,4860,4861,4863,4872,5225,5229,5232,5234,5235,5236,5237,5238,5239,5240,5241,5244,5245,5246,5247,5249,5251,5253,5254,5255,5256,5258,5260,5268,5271,5278,5280,5286,5291,5292,5293,5295,5296,5299,5300,5304,5305,5306,5307,5331,5333,5335,5336,5360,5364,5419,5420,5422,5423,5424,5425,5426,5427,5428,5429,5430,5441,5452,5453,5456,5457,5458,5460,5461,5472,5473,5474,5481,5485,5490,5600,5601,5615,5616,5617,5618,5623,5648,5649,5650,5771,5839,5840,5843,5844,5846,5853,5854,5856,5858,5861,5862,5935,5982,6068,6070,6116,6117,6125,6126,6127,6170,6194,6212,6226,6227,6228,6230,6232,6234,6235,6239,6426,6427,6487,6506,6507,6508,6511,6514,6556,6733,7011,7012,7078,7109,7153,7154,7155,7175,7246,7268,7269,7271,7274,7276,7286,7320,7321,7327,7328,7329,7332,7333,7334,7335,7337,7341,7342,7344,7346,7347,7348,7349,7352,7353,7355,7356,7357,7361,7396,7405,7584,7604,7725,7726,7727,7797,7800,7803,7809,7855,7856,7857,7858,7872,7873,7874,7883,7977,8095,8384,8504,8567,8637,8759,8912,8921,8956,8958,8959,8960,9162,9165,9377,11559,11561,11562,11563,11577,11578,11687,11777,11778,11783,11784,11786,11787,11788,11791,11792,11937,12046,12206,12216,12218,12220,12221,12222,12347,12369,12676,12865,12976,13141,13142,13323,13696,14123,14221,217305,236028,250187,253272,253524,253525,254560,255174,255262,255267,255271,255276,255364,255769,255770,255772,255774,255849,255850,255851,255898,255901,255906,256383,256433,256434,256749,256795,256797,256798,256799,256800,256801,256807,256892,256899,256952,257017,257861,257885,257888,257900,257901,257910,257915,257916,257926,258038,258040,258042,258100,258102,258104,258331,258522,258573,258574,258687,258792,258797,258799,258804,258818,258897,259046,259052,259054,259055,259056,259263,259267,259269,259979,259981,259987,260211,260225,260235,260244,260353,260419,260968,260969,260995,260996,261497,261710,261711,262037,262065,262169,262397,262473,262477,263071,263196,263307,263343,263348,263380,263899,266862,267065,268831,269175,269254,270589,270664,270667,270892,271458,271460,271462,272228,272313,272389,276401}}
+data.Item[213543]={["name"]="Scroll: UPDOG",["npcDrops"]={92,314,315,412,503,522,587,588,595,597,660,667,669,670,671,672,674,675,676,677,678,679,681,682,683,684,685,686,687,688,689,690,691,694,696,697,699,701,702,709,710,728,729,730,731,736,740,741,742,744,745,746,747,750,751,752,755,757,759,760,762,764,765,766,767,768,771,772,775,780,781,782,783,784,854,855,856,858,871,873,875,877,879,905,920,921,922,937,938,939,940,941,942,943,976,977,978,979,1054,1061,1062,1081,1082,1084,1085,1087,1088,1094,1096,1097,1108,1114,1142,1144,1150,1151,1152,1200,1364,1421,1488,1489,1490,1491,1492,1550,1551,1557,1558,1561,1562,1563,1564,1565,1653,1713,1754,1783,1791,1907,2091,2240,2241,2242,2243,2245,2246,2247,2248,2249,2250,2251,2252,2253,2254,2255,2256,2258,2271,2272,2287,2304,2306,2318,2319,2320,2347,2358,2359,2369,2371,2376,2377,2406,2407,2408,2411,2412,2413,2414,2415,2416,2417,2421,2423,2431,2440,2505,2522,2530,2534,2535,2536,2537,2541,2545,2547,2548,2549,2550,2552,2553,2554,2555,2556,2557,2558,2559,2560,2561,2562,2563,2564,2565,2566,2567,2569,2570,2571,2572,2573,2574,2577,2578,2579,2580,2581,2582,2583,2584,2585,2586,2587,2588,2589,2590,2591,2592,2595,2596,2599,2603,2611,2612,2618,2619,2628,2635,2639,2640,2641,2642,2643,2644,2645,2646,2647,2648,2649,2650,2651,2652,2653,2654,2655,2656,2657,2658,2659,2680,2681,2686,2691,2692,2693,2694,2701,2715,2716,2717,2718,2721,2723,2725,2726,2727,2728,2729,2731,2732,2733,2734,2735,2736,2738,2739,2740,2742,2743,2745,2748,2749,2760,2761,2762,2765,2773,2791,2793,2829,2830,2831,2893,2894,2906,2907,2919,2923,2925,2926,2927,2928,2929,2932,2945,3660,3941,3942,3974,3975,3976,3977,3983,3984,3985,4062,4063,4110,4130,4131,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4260,4283,4284,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4304,4306,4308,4323,4324,4328,4329,4331,4334,4341,4342,4343,4344,4345,4351,4352,4355,4356,4357,4358,4359,4360,4361,4362,4363,4376,4377,4378,4379,4386,4388,4391,4392,4393,4396,4397,4398,4400,4401,4402,4404,4405,4411,4412,4413,4414,4415,4420,4421,4422,4427,4457,4458,4461,4465,4466,4467,4468,4479,4480,4481,4490,4504,4505,4506,4525,4532,4538,4539,4540,4542,4543,4623,4632,4633,4634,4635,4636,4637,4638,4639,4640,4641,4642,4643,4644,4645,4646,4647,4648,4649,4651,4654,4655,4656,4657,4659,4662,4663,4664,4665,4666,4667,4668,4670,4671,4672,4673,4674,4675,4676,4677,4678,4679,4680,4681,4682,4684,4685,4686,4689,4692,4693,4694,4695,4696,4697,4699,4700,4701,4705,4711,4712,4713,4714,4715,4716,4718,4719,4723,4725,4726,4727,4728,4729,4834,4844,4845,4846,4847,4848,4849,4850,4851,4852,4853,4854,4855,4856,4857,4860,4861,4863,4872,5044,5045,5046,5184,5226,5228,5229,5232,5234,5236,5237,5238,5239,5240,5241,5243,5244,5245,5246,5247,5249,5251,5253,5254,5255,5256,5258,5259,5260,5262,5267,5268,5271,5272,5274,5278,5280,5283,5286,5288,5291,5292,5293,5295,5296,5297,5299,5300,5304,5305,5306,5307,5308,5331,5332,5333,5334,5335,5336,5337,5357,5358,5359,5360,5361,5362,5363,5364,5366,5419,5420,5422,5423,5424,5425,5426,5427,5428,5429,5431,5441,5450,5452,5453,5454,5455,5456,5457,5458,5459,5460,5461,5462,5465,5471,5472,5473,5474,5475,5477,5481,5485,5490,5600,5601,5615,5616,5617,5618,5623,5646,5648,5649,5650,5771,5839,5840,5843,5844,5846,5852,5853,5854,5855,5856,5858,5860,5861,5862,5934,5935,5979,5982,5984,5988,5990,5992,6068,6069,6116,6117,6125,6126,6127,6170,6190,6193,6194,6196,6212,6226,6227,6229,6230,6232,6234,6235,6238,6239,6375,6426,6427,6487,6488,6505,6506,6509,6511,6514,6517,6556,6557,6733,6910,7011,7012,7022,7023,7030,7033,7078,7086,7091,7105,7106,7113,7125,7153,7154,7155,7175,7206,7228,7246,7247,7267,7268,7269,7271,7272,7273,7274,7275,7276,7286,7290,7320,7321,7327,7328,7329,7332,7333,7334,7335,7337,7341,7342,7344,7345,7346,7347,7348,7349,7351,7352,7353,7354,7356,7357,7358,7361,7396,7397,7405,7584,7604,7608,7725,7726,7727,7795,7796,7797,7800,7803,7805,7808,7809,7847,7848,7855,7856,7857,7858,7864,7872,7873,7874,7883,7977,7996,8095,8120,8127,8136,8311,8318,8319,8336,8337,8384,8419,8438,8442,8497,8504,8566,8567,8636,8637,8675,8759,8889,8890,8891,8912,8921,8956,8958,8959,8960,9162,9165,9166,9318,9377,9683,10081,11559,11561,11562,11563,11576,11577,11578,11685,11686,11687,11777,11778,11782,11783,11784,11785,11786,11787,11788,11789,11790,11791,11792,11793,11794,11937,12046,12203,12206,12207,12216,12217,12218,12219,12220,12221,12222,12223,12225,12236,12239,12240,12347,12369,12676,12865,12976,12977,13019,13141,13142,13323,13596,13601,13696,13718,14123,14222,14235,14277,14661,203138,213795,217305,217836,218029,222233,222286,236028,250187,252711,253272,253275,253524,253525,253526,254283,254284,254560,255174,255207,255238,255262,255267,255271,255276,255309,255364,255373,255377,255560,255561,255769,255770,255772,255774,255849,255850,255851,255898,255901,255906,255995,256383,256433,256434,256749,256795,256797,256798,256799,256800,256801,256807,256899,256952,257001,257017,257079,257861,257885,257888,257900,257901,257910,257915,257916,257926,258038,258040,258042,258100,258102,258104,258331,258522,258573,258574,258687,258792,258797,258799,258804,258818,258897,259046,259052,259054,259055,259258,259263,259267,259269,259979,259981,259987,260211,260225,260235,260244,260353,260419,260429,260931,260968,260969,260973,260995,260996,261497,261710,261711,262037,262065,262169,262397,262473,262477,262838,263071,263141,263196,263307,263343,263348,263380,263681,263749,263899,266357,266862,267065,268321,268831,269175,269254,270310,270589,270664,270667,270892,271338,271373,271458,271462,271780,271784,272228,272313,272315,272389,276401}}
+data.Item[213544]={["name"]="Scroll: TOPAZ YORAK",["npcDrops"]={92,314,315,507,522,587,588,595,597,660,667,669,670,671,672,674,675,676,677,678,679,681,682,683,684,685,686,687,688,689,690,691,694,696,697,699,701,702,709,710,729,730,731,736,740,741,742,743,744,745,746,747,750,751,752,755,757,759,760,762,764,765,766,767,768,769,772,775,780,781,782,783,784,815,854,855,856,858,871,873,875,877,879,920,921,922,937,938,939,940,941,942,976,978,979,1054,1060,1061,1062,1082,1084,1085,1087,1088,1094,1095,1096,1097,1108,1114,1142,1144,1150,1151,1152,1200,1364,1421,1487,1488,1489,1490,1491,1550,1551,1557,1558,1561,1562,1563,1564,1565,1653,1713,1754,1783,1791,1907,2091,2240,2241,2242,2243,2245,2246,2247,2248,2249,2250,2251,2252,2253,2254,2255,2256,2257,2271,2272,2287,2304,2306,2318,2319,2320,2347,2358,2359,2369,2371,2376,2377,2406,2407,2408,2411,2412,2413,2414,2415,2420,2421,2423,2431,2473,2474,2505,2521,2522,2534,2535,2537,2545,2546,2547,2548,2550,2552,2553,2554,2555,2556,2557,2558,2559,2560,2561,2562,2563,2564,2565,2566,2567,2569,2570,2571,2572,2573,2574,2577,2578,2579,2580,2581,2582,2583,2584,2585,2586,2587,2588,2589,2590,2591,2592,2595,2596,2599,2611,2618,2619,2628,2635,2639,2640,2641,2642,2643,2644,2645,2646,2647,2648,2649,2650,2651,2652,2653,2654,2655,2656,2657,2658,2680,2681,2686,2691,2692,2693,2694,2701,2714,2715,2716,2717,2718,2719,2720,2721,2723,2725,2726,2727,2728,2729,2731,2732,2733,2734,2735,2736,2739,2740,2742,2743,2745,2748,2760,2761,2762,2763,2764,2765,2773,2783,2791,2829,2830,2831,2893,2894,2906,2907,2923,2924,2925,2926,2927,2928,2929,2944,2945,3660,3940,3942,3974,3975,3976,3977,3983,3984,3985,4062,4110,4130,4131,4132,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4260,4283,4284,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4304,4306,4308,4323,4324,4328,4329,4331,4341,4342,4343,4344,4351,4352,4355,4356,4357,4358,4359,4360,4361,4362,4363,4376,4377,4378,4379,4386,4388,4389,4392,4393,4396,4397,4400,4401,4402,4404,4405,4411,4413,4414,4415,4420,4421,4422,4427,4457,4458,4461,4465,4466,4467,4469,4479,4480,4481,4490,4504,4505,4506,4525,4532,4538,4539,4540,4542,4543,4619,4623,4632,4633,4634,4635,4636,4637,4638,4639,4640,4641,4642,4643,4644,4645,4646,4647,4648,4649,4651,4653,4654,4655,4656,4657,4658,4659,4660,4662,4663,4664,4665,4666,4667,4668,4670,4671,4672,4673,4674,4675,4676,4677,4678,4679,4680,4681,4682,4684,4685,4689,4692,4693,4695,4696,4697,4699,4700,4701,4705,4711,4712,4713,4714,4715,4716,4718,4719,4723,4725,4726,4727,4728,4729,4834,4841,4842,4844,4845,4846,4847,4848,4849,4850,4851,4852,4853,4854,4855,4856,4857,4860,4861,4863,4872,5044,5045,5046,5184,5226,5228,5229,5232,5234,5235,5236,5237,5238,5239,5240,5241,5243,5244,5245,5246,5247,5249,5251,5253,5254,5255,5256,5258,5259,5260,5261,5262,5263,5267,5268,5270,5271,5272,5274,5277,5278,5280,5283,5286,5288,5291,5292,5293,5295,5296,5297,5299,5300,5304,5305,5306,5307,5308,5328,5331,5332,5333,5334,5335,5336,5337,5357,5358,5359,5360,5361,5362,5363,5364,5366,5419,5420,5421,5422,5423,5424,5425,5426,5428,5429,5430,5431,5441,5451,5452,5453,5454,5455,5456,5457,5459,5460,5461,5462,5471,5472,5473,5474,5475,5477,5481,5485,5490,5600,5601,5615,5616,5617,5618,5622,5623,5643,5648,5649,5650,5760,5771,5833,5839,5840,5843,5844,5846,5850,5852,5853,5854,5855,5856,5858,5860,5861,5862,5974,5982,5984,5988,5990,5992,6068,6069,6116,6117,6125,6126,6127,6170,6190,6193,6194,6196,6212,6226,6227,6229,6230,6232,6234,6235,6238,6239,6375,6377,6426,6427,6487,6488,6505,6506,6507,6508,6509,6511,6517,6556,6557,6910,7011,7012,7022,7030,7078,7086,7091,7097,7105,7106,7109,7113,7125,7153,7154,7155,7175,7206,7228,7246,7247,7267,7268,7269,7271,7272,7273,7274,7275,7276,7286,7290,7320,7321,7327,7328,7329,7332,7333,7334,7335,7337,7341,7342,7344,7345,7346,7347,7348,7349,7351,7352,7353,7355,7356,7357,7358,7361,7396,7397,7405,7584,7608,7725,7726,7727,7795,7796,7797,7800,7803,7808,7809,7847,7848,7855,7856,7857,7858,7872,7873,7874,7883,7996,7997,8095,8120,8127,8207,8311,8318,8319,8337,8384,8438,8442,8497,8504,8566,8567,8636,8667,8759,8762,8889,8890,8891,8909,8921,8956,8958,8959,8960,9162,9165,9166,9318,9377,9396,9547,9683,10082,11559,11561,11562,11563,11576,11577,11578,11685,11686,11687,11777,11778,11782,11783,11784,11785,11786,11787,11788,11789,11790,11791,11792,11793,11794,11937,12046,12203,12206,12207,12216,12217,12218,12219,12220,12221,12222,12223,12225,12236,12237,12239,12241,12243,12258,12347,12369,12676,12865,12976,12977,13019,13141,13142,13323,13696,13718,14123,14221,14225,14228,14235,14236,14661,203138,213795,217305,218029,222286,236028,247470,250187,252711,253272,253524,253525,253526,254283,254284,254560,255174,255262,255267,255271,255276,255309,255364,255373,255377,255560,255561,255769,255770,255772,255774,255849,255850,255851,255898,255901,255906,255995,256383,256410,256433,256434,256749,256795,256797,256798,256799,256800,256801,256807,256952,257001,257017,257861,257885,257888,257900,257901,257910,257915,257916,257926,258038,258040,258042,258100,258102,258104,258331,258522,258573,258574,258687,258792,258797,258799,258804,258818,258897,258963,259046,259052,259054,259055,259258,259263,259267,259269,259758,259801,259979,259981,259987,260211,260225,260235,260244,260353,260419,260429,260931,260968,260969,260973,260995,260996,261497,261710,261711,262037,262065,262169,262397,262473,262477,262838,263071,263196,263307,263343,263348,263380,263615,263681,263749,263899,266357,266862,267065,268321,268423,268462,268831,269175,270589,270664,270667,270892,271338,271458,271460,271462,271784,272228,272313,272315,272389}}
+data.Item[213545]={["name"]="Scroll: PEATCHY ATTAX",["npcDrops"]={92,314,315,522,587,588,595,597,660,667,669,670,671,672,674,675,676,677,678,679,680,681,682,683,684,685,686,687,688,689,690,691,694,696,697,699,701,702,709,710,729,730,731,736,740,741,742,743,744,745,746,747,750,751,752,755,757,759,760,761,762,764,765,766,767,769,772,775,780,781,782,783,784,814,818,854,855,856,858,871,873,875,877,879,905,920,921,922,937,938,939,940,941,942,976,977,978,979,1054,1061,1062,1081,1082,1084,1085,1087,1088,1094,1096,1097,1108,1114,1140,1142,1144,1150,1151,1152,1200,1364,1487,1488,1489,1490,1491,1492,1493,1550,1551,1557,1558,1561,1562,1563,1564,1565,1653,1713,1754,1783,1791,1822,1907,2091,2240,2241,2242,2243,2245,2246,2247,2248,2249,2250,2251,2252,2253,2254,2255,2256,2271,2272,2287,2304,2306,2318,2319,2320,2347,2358,2359,2369,2371,2376,2377,2406,2407,2408,2411,2412,2413,2414,2415,2416,2417,2420,2422,2423,2431,2440,2505,2522,2534,2535,2536,2537,2544,2545,2550,2552,2553,2554,2555,2556,2557,2558,2559,2560,2561,2562,2563,2564,2565,2566,2567,2569,2570,2571,2572,2573,2574,2575,2578,2579,2580,2581,2582,2583,2584,2585,2586,2587,2588,2589,2590,2591,2592,2595,2596,2597,2599,2603,2611,2618,2619,2628,2635,2639,2640,2641,2642,2643,2644,2645,2646,2647,2648,2649,2650,2651,2652,2653,2654,2655,2656,2658,2659,2680,2681,2686,2691,2692,2693,2694,2701,2715,2716,2717,2718,2720,2721,2723,2725,2726,2727,2728,2729,2731,2732,2733,2734,2735,2736,2739,2740,2742,2743,2748,2749,2760,2761,2762,2763,2764,2783,2791,2793,2829,2830,2831,2892,2893,2894,2906,2907,2919,2923,2924,2925,2926,2927,2928,2929,2945,3940,3974,3975,3976,3977,3983,3984,4062,4063,4110,4130,4131,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4260,4283,4284,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4304,4306,4308,4323,4324,4328,4329,4331,4334,4341,4342,4343,4344,4345,4351,4352,4355,4356,4357,4358,4359,4360,4361,4362,4363,4374,4376,4377,4378,4379,4386,4387,4390,4391,4392,4393,4396,4397,4398,4400,4401,4402,4404,4405,4411,4412,4413,4414,4415,4420,4421,4422,4425,4427,4457,4458,4461,4465,4466,4467,4468,4469,4479,4480,4481,4504,4505,4506,4525,4532,4538,4539,4540,4542,4543,4619,4623,4632,4633,4634,4635,4636,4637,4638,4639,4640,4641,4642,4643,4644,4645,4646,4647,4648,4649,4651,4652,4654,4655,4656,4657,4658,4660,4662,4663,4664,4665,4666,4667,4668,4670,4671,4672,4673,4674,4675,4676,4677,4679,4680,4681,4682,4684,4685,4689,4692,4693,4695,4696,4697,4699,4700,4705,4711,4712,4713,4714,4715,4716,4718,4719,4723,4725,4726,4728,4729,4834,4844,4845,4846,4847,4848,4849,4850,4851,4852,4853,4854,4855,4856,4857,4860,4861,4863,4872,5044,5046,5057,5184,5225,5226,5229,5232,5234,5236,5237,5238,5239,5240,5244,5245,5246,5247,5249,5251,5253,5254,5255,5256,5258,5259,5260,5261,5262,5263,5267,5268,5269,5270,5271,5277,5278,5280,5283,5286,5287,5291,5292,5293,5295,5296,5297,5299,5300,5304,5305,5306,5307,5308,5331,5332,5333,5335,5336,5337,5347,5357,5358,5359,5360,5361,5363,5364,5366,5402,5419,5420,5421,5422,5423,5424,5425,5426,5427,5428,5429,5431,5451,5452,5453,5454,5455,5456,5457,5458,5459,5460,5461,5462,5471,5472,5473,5474,5475,5481,5485,5490,5602,5615,5616,5617,5618,5623,5643,5646,5648,5649,5650,5760,5771,5833,5839,5840,5843,5844,5846,5850,5852,5853,5854,5855,5856,5858,5860,5861,5862,5935,5979,5982,5984,5988,5990,6068,6070,6116,6117,6125,6126,6127,6170,6190,6193,6194,6196,6212,6226,6227,6228,6229,6230,6232,6234,6235,6238,6239,6377,6426,6427,6487,6505,6506,6507,6508,6509,6511,6514,6517,6556,6910,7011,7012,7022,7023,7030,7033,7044,7078,7086,7091,7097,7105,7106,7109,7113,7125,7153,7154,7155,7175,7228,7246,7247,7267,7268,7269,7271,7272,7273,7274,7275,7276,7286,7290,7291,7320,7321,7327,7328,7329,7332,7333,7334,7335,7337,7341,7342,7344,7345,7346,7347,7348,7349,7351,7352,7353,7355,7357,7358,7361,7396,7397,7405,7584,7605,7606,7608,7725,7726,7727,7795,7796,7800,7803,7805,7808,7809,7847,7848,7855,7856,7857,7858,7864,7872,7873,7874,7883,7977,7996,8075,8095,8120,8127,8136,8311,8318,8319,8337,8384,8438,8497,8504,8566,8567,8636,8637,8759,8889,8890,8891,8912,8917,8921,8932,8956,8958,8959,8960,9162,9165,9166,9318,9377,9477,9545,9683,10082,11559,11561,11562,11563,11576,11577,11685,11686,11687,11777,11778,11781,11782,11783,11784,11785,11786,11787,11788,11789,11790,11791,11792,11793,11794,11937,12046,12203,12206,12216,12217,12218,12219,12220,12221,12222,12223,12225,12239,12240,12241,12242,12243,12258,12347,12369,12676,12865,12977,13019,13141,13142,13282,13323,13596,13696,13718,14123,14281,14447,14448,14661,213795,217305,217836,218029,222286,236028,247470,250187,252711,253272,253524,253525,253526,254284,254560,255174,255238,255262,255267,255271,255276,255309,255364,255373,255377,255560,255561,255769,255770,255772,255774,255849,255850,255851,255898,255901,255906,255995,256383,256433,256434,256749,256795,256797,256798,256799,256800,256801,256807,256952,257001,257017,257861,257885,257888,257900,257901,257910,257915,257916,257926,258038,258040,258042,258100,258102,258104,258331,258522,258573,258574,258687,258792,258797,258799,258804,258818,258897,258963,259046,259052,259054,259055,259258,259263,259267,259269,259801,259979,259981,259987,260211,260225,260235,260353,260419,260429,260968,260969,260973,260995,260996,261497,261710,261711,262037,262065,262169,262397,262473,262477,262838,263071,263196,263307,263343,263348,263380,263615,263681,263749,263899,266357,266862,268321,268423,268831,269175,269254,270310,270664,270667,270892,271338,271373,271458,271460,271462,271780,271784,272228,272313,272315,272389}}
+data.Item[213546]={["name"]="Scroll: SHOOBEEDOOP",["npcDrops"]={92,314,315,507,522,587,588,595,597,660,667,669,670,671,672,674,675,676,677,678,679,681,682,683,684,685,686,687,688,689,690,691,694,696,697,699,701,702,709,710,728,729,730,731,736,740,741,742,743,744,745,746,747,750,751,752,755,757,759,760,761,762,764,765,766,767,768,769,771,772,780,781,782,783,784,813,854,855,856,858,871,873,875,877,879,905,920,921,922,937,938,939,940,941,942,943,950,976,977,978,979,1054,1061,1062,1081,1082,1084,1085,1087,1088,1094,1095,1096,1097,1108,1114,1140,1142,1144,1150,1151,1152,1200,1364,1487,1488,1489,1490,1491,1550,1551,1557,1558,1561,1562,1563,1564,1565,1653,1713,1754,1783,1791,1822,1907,2091,2240,2241,2242,2243,2245,2246,2247,2248,2249,2250,2251,2252,2253,2254,2255,2256,2257,2258,2271,2272,2287,2304,2306,2318,2319,2320,2347,2358,2359,2369,2371,2376,2377,2406,2407,2408,2411,2412,2413,2414,2415,2416,2417,2423,2431,2440,2505,2521,2530,2535,2536,2537,2545,2546,2547,2548,2550,2553,2554,2555,2556,2557,2558,2559,2560,2561,2562,2563,2564,2565,2566,2567,2569,2570,2571,2572,2573,2574,2575,2577,2578,2579,2580,2581,2582,2583,2584,2585,2586,2587,2588,2589,2590,2591,2592,2595,2596,2597,2599,2611,2615,2618,2619,2628,2635,2639,2640,2641,2642,2643,2644,2645,2646,2647,2648,2649,2650,2651,2652,2653,2654,2655,2656,2657,2658,2659,2680,2681,2686,2691,2692,2693,2694,2701,2714,2715,2716,2717,2718,2719,2720,2721,2725,2726,2727,2728,2729,2732,2733,2735,2736,2739,2740,2742,2743,2748,2754,2760,2761,2762,2765,2773,2783,2791,2829,2830,2831,2893,2894,2906,2907,2923,2924,2925,2926,2927,2928,2929,2932,2945,3940,3974,3975,3976,3977,3983,3984,3985,4062,4110,4130,4131,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4260,4283,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4304,4306,4308,4323,4324,4328,4329,4331,4334,4341,4342,4343,4344,4351,4352,4355,4356,4357,4358,4359,4360,4361,4362,4363,4374,4376,4377,4378,4379,4382,4386,4390,4391,4392,4393,4396,4397,4398,4401,4405,4411,4412,4413,4414,4415,4421,4422,4425,4427,4457,4458,4460,4461,4465,4466,4467,4468,4479,4480,4481,4490,4504,4505,4506,4525,4532,4538,4539,4540,4542,4543,4619,4623,4632,4633,4634,4635,4636,4637,4638,4639,4640,4641,4642,4643,4644,4645,4646,4647,4648,4649,4651,4653,4654,4655,4656,4657,4658,4659,4660,4662,4663,4664,4665,4666,4667,4668,4670,4671,4672,4673,4674,4675,4676,4677,4680,4681,4682,4684,4685,4687,4689,4690,4692,4693,4695,4696,4697,4699,4700,4701,4702,4705,4711,4712,4713,4714,4715,4716,4718,4719,4723,4726,4727,4728,4729,4834,4841,4844,4845,4846,4847,4848,4850,4851,4852,4853,4854,4855,4856,4857,4860,4861,4863,5044,5045,5046,5184,5226,5228,5229,5232,5234,5236,5237,5238,5239,5240,5241,5243,5244,5245,5246,5247,5249,5251,5253,5254,5255,5256,5258,5259,5260,5261,5262,5263,5267,5268,5270,5271,5272,5274,5276,5277,5278,5280,5283,5286,5287,5292,5293,5295,5296,5297,5299,5300,5304,5305,5306,5307,5308,5331,5332,5333,5334,5335,5336,5337,5356,5357,5359,5360,5361,5362,5363,5364,5366,5401,5419,5420,5421,5422,5423,5424,5425,5426,5428,5429,5441,5450,5451,5452,5453,5455,5456,5457,5458,5459,5461,5462,5471,5472,5473,5474,5475,5477,5481,5485,5490,5600,5601,5615,5616,5617,5618,5623,5647,5648,5649,5650,5760,5771,5839,5840,5843,5844,5846,5850,5852,5853,5854,5855,5856,5858,5860,5861,5862,5881,5976,5982,5984,5988,5990,5992,6068,6070,6116,6117,6125,6126,6127,6170,6190,6193,6194,6196,6212,6226,6227,6228,6229,6230,6232,6234,6235,6375,6426,6427,6487,6505,6506,6508,6509,6511,6514,6517,6556,6733,7011,7012,7022,7023,7030,7033,7078,7086,7091,7097,7105,7106,7109,7113,7153,7154,7155,7175,7228,7246,7247,7267,7268,7269,7271,7272,7273,7274,7275,7276,7286,7290,7291,7320,7321,7327,7328,7329,7332,7333,7334,7335,7337,7341,7342,7344,7345,7346,7347,7348,7349,7351,7352,7353,7355,7356,7357,7358,7396,7397,7405,7584,7604,7605,7606,7725,7726,7727,7795,7796,7797,7800,7808,7809,7847,7848,7855,7856,7857,7858,7872,7873,7874,7883,7977,8095,8120,8127,8136,8207,8210,8311,8318,8319,8336,8337,8384,8419,8438,8504,8566,8567,8636,8667,8759,8889,8890,8891,8909,8912,8921,8927,8956,8958,8959,8960,9162,9165,9166,9318,9377,9683,10082,11559,11561,11562,11563,11576,11577,11578,11686,11687,11688,11777,11778,11781,11782,11783,11784,11786,11787,11788,11789,11790,11791,11792,11793,11794,11937,12046,12203,12206,12207,12216,12217,12218,12219,12220,12221,12222,12223,12224,12225,12240,12241,12242,12243,12347,12369,12676,12976,12977,13019,13141,13142,13323,13596,13718,14123,14228,14277,14661,213795,217305,218032,236028,246992,247470,250187,252711,253272,253524,253525,253526,254283,254284,254560,255174,255238,255262,255267,255271,255276,255309,255364,255373,255377,255560,255561,255769,255770,255772,255774,255849,255850,255851,255898,255901,255906,255995,256383,256410,256433,256434,256749,256795,256797,256798,256799,256800,256801,256807,256899,256952,257001,257017,257861,257885,257888,257900,257901,257910,257915,257916,257926,258038,258040,258042,258100,258102,258104,258331,258522,258573,258574,258687,258792,258797,258799,258804,258818,258897,258963,259046,259052,259054,259055,259258,259263,259267,259269,259979,259981,259987,260211,260225,260235,260244,260353,260419,260429,260801,260931,260968,260969,260973,260995,260996,261497,261710,261711,262037,262065,262169,262397,262473,262477,262838,263071,263196,263307,263343,263348,263380,263615,263681,263749,263899,266357,266862,267065,268321,268423,268831,269175,269254,270664,270667,271338,271373,271458,271460,271462,271784,272228,272313,272315,272389,276401}}
+data.Item[213547]={["name"]="Scroll: THAW WORDS",["npcDrops"]={92,314,315,503,507,522,587,588,595,597,660,667,669,670,671,672,674,675,676,677,679,680,681,682,683,684,685,686,687,688,689,690,691,694,696,697,699,701,702,709,710,723,728,729,730,731,736,740,741,742,743,744,745,746,747,750,751,752,755,757,759,760,762,764,765,766,767,768,771,772,780,781,782,783,784,813,855,856,858,862,871,873,877,879,905,920,921,922,937,938,939,940,941,942,943,950,976,978,979,1054,1059,1061,1062,1082,1084,1085,1087,1088,1094,1095,1096,1097,1108,1114,1142,1144,1150,1151,1152,1200,1364,1487,1488,1489,1490,1491,1493,1550,1551,1557,1558,1561,1562,1563,1564,1565,1653,1706,1713,1754,1783,1791,1907,2091,2240,2241,2242,2243,2245,2246,2247,2248,2249,2250,2251,2252,2253,2254,2255,2256,2258,2271,2272,2287,2304,2318,2319,2320,2358,2359,2369,2371,2376,2377,2406,2407,2408,2411,2412,2413,2414,2415,2416,2417,2420,2421,2423,2431,2440,2474,2505,2521,2530,2534,2535,2536,2544,2545,2546,2547,2549,2550,2552,2553,2554,2555,2556,2557,2558,2559,2560,2561,2562,2563,2564,2565,2566,2567,2569,2570,2571,2572,2573,2574,2577,2578,2579,2580,2581,2582,2583,2584,2585,2586,2587,2588,2589,2590,2591,2592,2595,2596,2599,2611,2618,2619,2624,2628,2635,2639,2640,2641,2642,2643,2644,2645,2646,2647,2648,2649,2650,2651,2652,2653,2655,2656,2657,2658,2659,2680,2681,2686,2691,2692,2693,2694,2701,2714,2715,2716,2717,2718,2721,2723,2725,2726,2727,2728,2729,2732,2733,2734,2735,2736,2738,2739,2740,2742,2743,2748,2749,2760,2761,2762,2763,2791,2793,2829,2830,2831,2893,2894,2906,2907,2923,2924,2925,2926,2927,2928,2929,2932,2945,3940,3941,3942,3974,3975,3976,3977,3983,3984,3985,4062,4063,4110,4130,4131,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4260,4283,4285,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4304,4306,4308,4323,4324,4328,4329,4331,4334,4341,4342,4343,4344,4345,4351,4352,4355,4356,4357,4358,4359,4360,4361,4362,4363,4374,4376,4377,4378,4385,4386,4387,4391,4392,4393,4396,4397,4398,4401,4404,4405,4411,4412,4413,4414,4415,4420,4421,4427,4457,4458,4460,4461,4465,4466,4467,4479,4480,4481,4490,4504,4505,4506,4525,4532,4538,4539,4540,4543,4619,4623,4632,4633,4634,4635,4636,4637,4638,4639,4640,4641,4642,4643,4644,4645,4646,4647,4648,4649,4651,4652,4653,4654,4655,4656,4657,4658,4659,4660,4662,4663,4664,4665,4666,4667,4668,4670,4671,4672,4673,4674,4675,4676,4677,4678,4679,4680,4681,4682,4684,4685,4687,4689,4692,4695,4696,4697,4699,4700,4701,4705,4711,4712,4713,4714,4715,4716,4718,4719,4723,4725,4726,4727,4728,4729,4834,4844,4845,4846,4847,4849,4850,4851,4852,4853,4854,4855,4856,4857,4860,4861,4863,4872,5044,5045,5225,5226,5228,5229,5232,5234,5235,5236,5237,5238,5239,5240,5241,5243,5244,5245,5246,5247,5249,5251,5253,5254,5255,5256,5258,5259,5260,5261,5262,5267,5268,5269,5270,5271,5272,5274,5277,5278,5280,5283,5286,5287,5288,5291,5292,5293,5295,5296,5299,5300,5304,5305,5306,5307,5308,5331,5332,5333,5335,5336,5337,5349,5356,5357,5358,5360,5361,5362,5363,5364,5366,5401,5419,5420,5422,5423,5424,5425,5426,5427,5428,5429,5430,5441,5451,5452,5453,5455,5456,5457,5458,5459,5460,5461,5462,5471,5472,5473,5474,5475,5481,5485,5490,5600,5601,5615,5616,5617,5618,5623,5643,5648,5649,5650,5771,5839,5840,5843,5844,5846,5850,5852,5853,5854,5855,5856,5858,5860,5861,5862,5933,5935,5979,5982,5984,5985,5988,5990,5992,6068,6069,6070,6116,6117,6125,6126,6127,6170,6190,6193,6194,6196,6212,6226,6227,6228,6229,6230,6232,6234,6235,6238,6239,6375,6426,6427,6487,6489,6505,6506,6507,6508,6509,6511,6514,6517,6556,6557,6733,6910,7011,7012,7030,7033,7078,7086,7105,7106,7109,7113,7125,7153,7154,7155,7175,7228,7246,7247,7267,7268,7269,7271,7273,7274,7275,7276,7286,7290,7291,7320,7321,7327,7328,7329,7332,7333,7334,7335,7337,7341,7342,7344,7346,7347,7348,7349,7351,7352,7353,7355,7356,7357,7358,7361,7396,7397,7405,7584,7604,7606,7608,7725,7726,7727,7795,7797,7800,7803,7805,7808,7809,7847,7855,7856,7857,7858,7864,7872,7873,7874,7883,7977,8095,8120,8136,8311,8318,8319,8337,8384,8438,8497,8504,8566,8567,8580,8636,8637,8759,8889,8890,8891,8909,8912,8921,8956,8958,8959,8960,9162,9165,9166,9318,9377,9396,9545,9683,10080,10082,11559,11561,11562,11563,11576,11577,11578,11685,11686,11687,11777,11778,11781,11783,11784,11785,11786,11787,11788,11789,11790,11791,11792,11794,11937,12046,12206,12207,12216,12217,12218,12219,12220,12221,12222,12223,12224,12225,12236,12237,12243,12258,12347,12369,12676,12865,12976,13019,13141,13142,13323,13599,13696,13718,14123,14221,14231,14235,14277,213795,217305,217836,218029,218032,222233,236028,247470,250187,252711,253272,253524,253525,253526,254283,254284,254560,255174,255207,255238,255262,255267,255271,255276,255309,255364,255373,255377,255560,255561,255769,255770,255772,255774,255849,255850,255851,255898,255901,255906,255995,256383,256433,256434,256749,256795,256797,256798,256799,256800,256801,256807,256892,256899,256952,257001,257017,257861,257885,257888,257900,257901,257910,257915,257916,257926,258038,258040,258042,258100,258102,258104,258331,258522,258573,258574,258687,258792,258797,258799,258804,258818,258897,258963,259046,259052,259054,259055,259056,259258,259263,259267,259269,259979,259981,259987,260211,260225,260235,260244,260353,260419,260429,260968,260969,260973,260995,260996,261497,261710,261711,262037,262065,262169,262397,262473,262477,262838,263071,263196,263307,263343,263348,263380,263681,263749,263899,266862,267065,268321,268423,268831,269175,269254,270310,270589,270664,270667,270892,271338,271373,271458,271460,271462,271784,272228,272313,272315,272389,276401}}
 data.Item[213548]={["name"]="Scroll of Liminal Passage"}
 data.Item[213549]={["name"]="Scroll of Arcane Angling"}
 data.Item[213550]={["name"]="Scroll of Polymorph: Odd Melon"}
@@ -31218,9 +31218,9 @@ data.Item[215368]={["name"]="Pattern: Hyperconductive Arcano-Filament",["vendors
 data.Item[215369]={["name"]="Pattern: Invoker's Cord",["npcDrops"]={531},["vendors"]={3364,4168}}
 data.Item[215370]={["name"]="Pattern: Invoker's Mantle",["npcDrops"]={429},["vendors"]={3364,4168}}
 data.Item[215373]={["name"]="Silver Hand Training Hammer",["npcDrops"]={4283,4286,4287,4288,4290,4292,4296,4298,4299,4306,4540,4280,4281,4282,4285,4289,4291,4293,4294,4295,4297,4300,4301,4302,4303}}
-data.Item[215374]={["name"]="Ancestral Sword",["npcDrops"]={4283,4284,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4306,4540,4280,4281}}
-data.Item[215375]={["name"]="Tactician's Staff",["npcDrops"]={4283,4285,4287,4288,4293,4298,4299,4306,4281,4282,4284,4286,4289,4290,4291,4292,4294,4295,4296,4297,4300,4301,4302,4303,4540}}
-data.Item[215376]={["name"]="Crusader's Mace",["npcDrops"]={4281,4282,4283,4284,4285,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4306,4540}}
+data.Item[215374]={["name"]="Ancestral Sword",["npcDrops"]={4283,4284,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4306,4540,4280,4281,4282,4285}}
+data.Item[215375]={["name"]="Tactician's Staff",["npcDrops"]={4283,4285,4287,4288,4293,4298,4299,4306,4280,4281,4282,4284,4286,4289,4290,4291,4292,4294,4295,4296,4297,4300,4301,4302,4303,4540}}
+data.Item[215376]={["name"]="Crusader's Mace",["npcDrops"]={4281,4282,4283,4284,4285,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4306,4540,4280}}
 data.Item[215383]={["name"]="Plans: Reflective Truesilver Braincage",["vendors"]={217689}}
 data.Item[215384]={["name"]="Plans: Low-Background Truesilver Plates",["vendors"]={217689}}
 data.Item[215385]={["name"]="Waylaid Supplies: Gold Bars",["npcDrops"]={92,587,588,595,667,682,683,684,685,686,689,691,696,697,699,701,736,740,741,755,757,764,765,772,780,858,920,937,940,941,942,1082,1085,1096,1150,1151,1557,1562,2240,2241,2242,2245,2246,2248,2249,2251,2252,2253,2271,2272,2319,2358,2359,2369,2371,2376,2377,2406,2407,2408,2554,2555,2556,2559,2562,2564,2572,2574,2575,2586,2589,2618,2619,2628,2727,2729,2731,2739,2743,4130,4133,4139,4140,4142,4147,4150,4151,4154,4308,4329,4357,4359,4361,4376,4396,4411,4479,4490,4633,4634,4635,4636,4637,4638,4640,4641,4642,4644,4648,4666,4670,4673,4696,4702,4711,4712,4714,4728,4729,5229,5232,5253,5335,5616,6222,6224,7078,7175,7333,7344,7346,7603,11561,11562,11563,221282,221283}}
@@ -31355,11 +31355,13 @@ data.Item[217496]={["name"]="Scroll of the Blade"}
 data.Item[217497]={["name"]="Narpas Sword"}
 data.Item[217609]={["name"]="Talisman of Kazdor"}
 data.Item[217693]={["name"]="Invisibility Potion"}
+data.Item[217716]={["name"]="Vile Concoction"}
 data.Item[217717]={["name"]="Hollow Emblem"}
 data.Item[217718]={["name"]="Emblem of Blood Magic"}
 data.Item[217719]={["name"]="Blood Magic Essence"}
 data.Item[217720]={["name"]="Offering of Flesh"}
 data.Item[217721]={["name"]="Offering of Bone"}
+data.Item[217727]={["name"]="Ward of the Dead"}
 data.Item[217736]={["name"]="Rune of the Coterie",["vendors"]={233335,233428}}
 data.Item[217737]={["name"]="Modified Talisman"}
 data.Item[219147]={["name"]="Rune of Grace",["vendors"]={214954,233335}}
@@ -33216,7 +33218,7 @@ data.Item[242363]={["name"]="Who, What, Where, When, and Die! Five Keys to a Goo
 data.Item[242709]={["name"]="Character Bank Tab Bag (DNT)"}
 data.Item[242710]={["name"]="Monster Weapon [DNT]"}
 data.Item[243177]={["name"]="Ingenious Toy",["npcDrops"]={212252}}
-data.Item[243203]={["name"]="Humongous Crystal",["npcDrops"]={6146,6148}}
+data.Item[243203]={["name"]="Humongous Crystal",["npcDrops"]={6146,6147,6148}}
 data.Item[243266]={["name"]="Fel-Tainted Giblets",["npcDrops"]={244530,248042}}
 data.Item[243299]={["name"]="Big Bag o' Gold"}
 data.Item[244228]={["name"]="Sash of the Tipsy Sage"}
@@ -33241,7 +33243,7 @@ data.Item[246770]={["name"]="Sin'dorei Tome of Summoning"}
 data.Item[246778]={["name"]="Sin'dorei Tome of Summoning"}
 data.Item[246780]={["name"]="Heart of Vek'zol",["npcDrops"]={247015}}
 data.Item[246885]={["name"]="Soft Cow Doll",["npcDrops"]={255523}}
-data.Item[246888]={["name"]="Humongous Crystal",["npcDrops"]={6146,6148}}
+data.Item[246888]={["name"]="Humongous Crystal",["npcDrops"]={6146,6147,6148}}
 data.Item[246938]={["name"]="Tear of Mennar",["npcDrops"]={247972}}
 data.Item[246948]={["name"]="Distilled Firewater",["relatedQuests"]={94324}}
 data.Item[247000]={["name"]="Fel-Tainted Rock"}
@@ -33293,36 +33295,36 @@ data.Item[248206]={["name"]="Sealed Craftsman's Writ"}
 data.Item[248549]={["name"]="Waylaid Crate"}
 data.Item[248584]={["name"]="Monster - Sword, 2h - Kirin Tor"}
 data.Item[248613]={["name"]="Lightning in a Bottle",["vendors"]={248809}}
-data.Item[248682]={["name"]="Waylaid Crate: Apprentice Herbs",["npcDrops"]={3,48,97,98,114,115,121,122,123,124,127,154,157,171,202,203,213,217,232,335,345,391,422,423,424,426,428,430,432,433,434,435,436,437,440,441,442,445,446,449,450,452,454,456,458,474,485,501,502,505,513,517,520,531,539,544,545,547,548,550,565,568,569,573,578,579,580,589,590,594,598,615,619,622,623,624,625,626,628,634,636,639,641,642,643,644,645,646,647,657,712,824,830,832,923,930,1007,1008,1009,1010,1011,1012,1015,1020,1021,1024,1025,1026,1028,1030,1031,1032,1039,1040,1042,1043,1083,1109,1111,1163,1164,1165,1166,1167,1169,1177,1178,1179,1180,1181,1183,1184,1185,1188,1189,1191,1192,1194,1197,1205,1206,1207,1210,1216,1222,1224,1225,1259,1393,1400,1417,1425,1426,1693,1696,1706,1707,1708,1711,1725,1726,1727,1729,1731,1732,1763,1768,1781,1782,1867,1868,1869,1870,1888,1889,1891,1892,1893,1894,1895,1896,1908,1909,1912,1913,1914,1915,1923,1924,1939,1940,1942,1943,1948,1953,1954,1955,1956,1957,1958,1972,1973,1974,1983,2053,2054,2068,2069,2071,2102,2103,2106,2120,2149,2156,2157,2158,2159,2160,2164,2165,2168,2169,2170,2171,2179,2180,2181,2182,2183,2185,2187,2203,2204,2205,2206,2207,2208,2232,2233,2235,2236,2237,2244,2260,2261,2266,2267,2322,2323,2324,2332,2336,2338,2339,2349,2350,2351,2354,2360,2384,2427,2428,2529,3204,3234,3238,3239,3240,3241,3242,3244,3245,3247,3248,3249,3250,3251,3252,3255,3256,3257,3258,3260,3261,3263,3270,3271,3273,3274,3275,3276,3277,3278,3279,3280,3282,3283,3284,3285,3286,3295,3374,3375,3376,3377,3382,3383,3384,3385,3386,3393,3394,3395,3396,3397,3416,3424,3425,3426,3434,3436,3438,3445,3452,3454,3455,3456,3457,3458,3459,3461,3463,3466,3467,3470,3471,3473,3474,3475,3503,3528,3529,3530,3531,3577,3630,3631,3632,3633,3634,3636,3637,3638,3640,3641,3653,3654,3655,3662,3667,3669,3670,3671,3673,3674,3711,3712,3713,3715,3717,3721,3725,3727,3728,3730,3732,3733,3734,3737,3739,3740,3742,3743,3745,3750,3772,3774,3780,3781,3809,3812,3814,3816,3817,3819,3820,3823,3824,3840,3849,3850,3851,3853,3854,3855,3857,3859,3861,3862,3864,3865,3866,3868,3873,3875,3877,3879,3886,3900,3914,3917,3921,3922,3923,3924,3925,3926,3928,3943,3944,3947,3988,3989,3991,3992,3993,3999,4003,4004,4005,4006,4007,4008,4009,4011,4012,4014,4018,4019,4020,4022,4025,4026,4032,4036,4037,4040,4044,4051,4053,4064,4065,4067,4070,4073,4074,4094,4096,4127,4128,4129,4263,4264,4279,4416,4417,4418,4462,4463,4464,4511,4627,4788,4789,4798,4799,4802,4803,4805,4807,4809,4815,4818,4824,5048,5053,5056,5682,5755,5756,5761,5762,5763,5775,5829,5830,5836,5841,5863,6020,6033,6180,6213,6570,6606,6788,8886,9523,9524,10160,10323,11318,11319,11320,11321,11322,11323,11324,11517,11518,11519,11520,11714,11858,11910,11911,11912,11913,11915,11917,11918,11921,12432,12433,12856,12896,12897,12940,14268,14271,14272,209797,210107,250484,250488,250618,250619,250620,250622,250623,250624,250625,250626,250627,250629,250630,250650,250651,250654,250656,250689,250735,255109,255964,256040,261368,262119,263389,263390,263396,263397,263438,263466,263470,267307,267308,267314,268623,268624,270693,271898,271903,277645}}
-data.Item[248683]={["name"]="Waylaid Crate: Apprentice Ore",["npcDrops"]={3,48,98,114,115,121,122,123,124,127,154,157,171,202,203,213,215,217,218,232,345,391,422,423,424,426,428,430,432,433,434,435,436,437,440,441,442,445,446,449,450,452,453,456,458,485,501,502,505,513,517,531,539,544,545,547,548,550,565,568,569,573,578,579,580,589,590,594,598,615,616,619,622,623,624,625,626,628,634,636,639,641,642,643,644,645,646,647,657,712,819,824,830,831,832,923,930,1007,1008,1009,1010,1011,1012,1015,1020,1021,1024,1025,1026,1030,1032,1039,1040,1042,1043,1083,1109,1111,1163,1164,1165,1166,1167,1169,1177,1178,1179,1180,1181,1183,1184,1185,1188,1189,1191,1192,1194,1197,1205,1206,1207,1210,1216,1222,1224,1225,1259,1393,1399,1400,1417,1424,1425,1426,1693,1696,1706,1707,1708,1711,1725,1726,1727,1729,1731,1732,1763,1768,1781,1782,1867,1868,1869,1870,1888,1889,1891,1892,1893,1894,1895,1896,1908,1909,1912,1913,1914,1915,1923,1924,1939,1940,1942,1943,1947,1953,1954,1955,1956,1957,1958,1972,1973,1974,1983,2053,2054,2068,2069,2071,2102,2103,2106,2120,2149,2156,2157,2158,2159,2160,2164,2165,2168,2169,2170,2171,2172,2179,2180,2181,2182,2183,2185,2187,2191,2203,2204,2205,2206,2207,2208,2232,2233,2235,2236,2237,2244,2260,2261,2265,2266,2267,2322,2323,2324,2332,2336,2338,2339,2349,2350,2351,2354,2360,2384,2428,2477,2529,3204,3234,3236,3238,3239,3240,3241,3242,3245,3247,3248,3249,3250,3251,3252,3255,3256,3257,3258,3260,3261,3263,3271,3273,3274,3275,3276,3277,3278,3279,3280,3282,3283,3284,3285,3286,3374,3375,3376,3377,3382,3383,3384,3385,3386,3392,3393,3394,3395,3396,3397,3416,3424,3425,3426,3434,3436,3438,3445,3452,3454,3455,3456,3457,3458,3459,3461,3463,3466,3467,3471,3473,3474,3475,3503,3528,3530,3532,3533,3586,3630,3631,3632,3633,3634,3636,3637,3638,3640,3641,3653,3654,3655,3664,3667,3669,3670,3671,3673,3674,3711,3712,3713,3715,3717,3721,3725,3727,3728,3730,3732,3733,3734,3737,3739,3740,3742,3743,3745,3746,3749,3750,3772,3783,3809,3812,3814,3816,3817,3819,3823,3840,3851,3853,3854,3855,3857,3859,3861,3862,3863,3864,3865,3873,3875,3877,3879,3886,3887,3893,3914,3917,3921,3922,3923,3924,3925,3928,3943,3944,3947,3988,3989,3991,3992,3993,3999,4003,4004,4005,4006,4007,4008,4009,4011,4012,4013,4014,4018,4020,4021,4022,4025,4026,4032,4037,4040,4044,4051,4053,4054,4057,4064,4065,4067,4070,4073,4074,4094,4127,4128,4129,4263,4264,4416,4417,4418,4462,4463,4464,4627,4788,4789,4798,4799,4802,4803,4805,4807,4809,4812,4815,4818,4822,4824,5048,5053,5056,5682,5683,5755,5756,5761,5762,5763,5775,5830,5835,5836,5837,5838,5841,5847,5863,5912,6020,6033,6180,6210,6221,6570,6606,6668,8886,9336,9456,9523,9524,10157,10160,10373,11318,11319,11320,11321,11322,11323,11324,11517,11518,11519,11520,11714,11858,11910,11911,11912,11913,11914,11915,11917,11918,11921,12856,12896,12897,12940,14267,14269,14272,185334,209797,210107,214519,250484,250488,250618,250619,250620,250622,250623,250624,250625,250626,250627,250629,250630,250650,250654,250656,250689,250735,255109,255964,256040,261368,262119,263389,263390,263396,263397,263438,263466,263470,266216,267307,267308,267314,268622,268623,268624,270693,271898,271903,277645}}
-data.Item[248684]={["name"]="Waylaid Crate: Apprentice Textiles",["npcDrops"]={3,48,98,114,115,118,121,122,123,124,127,154,157,171,202,203,213,215,217,232,345,391,422,423,424,426,428,430,432,433,434,435,436,437,440,441,442,445,446,449,450,452,453,456,458,485,486,501,502,505,506,513,517,519,531,539,544,545,547,548,550,565,568,569,573,578,580,589,590,594,598,615,619,622,623,624,625,626,628,634,636,639,641,642,644,645,646,647,657,712,824,830,831,832,923,930,1007,1008,1009,1010,1011,1016,1020,1021,1024,1025,1026,1027,1028,1030,1032,1039,1040,1042,1083,1109,1111,1163,1164,1165,1166,1167,1169,1177,1178,1179,1180,1181,1183,1184,1185,1188,1189,1191,1192,1194,1197,1205,1206,1207,1216,1222,1225,1259,1393,1400,1417,1424,1425,1426,1693,1696,1706,1707,1708,1711,1725,1726,1727,1729,1731,1732,1763,1768,1781,1782,1867,1868,1869,1870,1888,1889,1891,1892,1893,1894,1895,1896,1908,1909,1912,1913,1914,1915,1923,1924,1939,1940,1942,1943,1947,1953,1954,1955,1956,1957,1958,1973,1974,1983,2053,2054,2068,2069,2071,2102,2103,2106,2120,2149,2156,2157,2158,2159,2160,2164,2165,2168,2169,2170,2171,2172,2179,2180,2181,2182,2183,2185,2187,2191,2203,2204,2205,2206,2207,2208,2233,2235,2236,2237,2244,2260,2261,2265,2266,2267,2322,2323,2324,2332,2336,2338,2339,2349,2350,2351,2354,2360,2384,2428,2529,3204,3234,3236,3238,3239,3240,3241,3242,3245,3246,3247,3248,3249,3250,3251,3252,3255,3256,3257,3258,3260,3261,3263,3270,3271,3273,3274,3275,3276,3277,3278,3279,3280,3282,3283,3284,3285,3286,3374,3375,3376,3377,3382,3383,3384,3385,3386,3393,3394,3395,3396,3397,3416,3424,3425,3426,3434,3436,3438,3445,3452,3454,3455,3456,3457,3458,3459,3461,3463,3466,3467,3470,3471,3473,3474,3475,3503,3528,3530,3531,3532,3533,3577,3630,3631,3632,3633,3634,3636,3637,3638,3640,3641,3653,3654,3655,3662,3667,3670,3671,3673,3674,3711,3712,3713,3715,3717,3721,3725,3727,3728,3730,3732,3733,3734,3737,3739,3740,3742,3743,3746,3750,3772,3780,3783,3809,3812,3814,3816,3817,3819,3820,3823,3824,3840,3850,3851,3853,3854,3855,3857,3859,3861,3862,3863,3864,3865,3866,3873,3875,3877,3879,3887,3914,3917,3921,3922,3923,3924,3925,3926,3928,3944,3947,3988,3989,3991,3992,3993,3999,4003,4004,4005,4006,4007,4008,4009,4011,4012,4013,4014,4018,4020,4021,4022,4025,4032,4036,4037,4040,4044,4051,4053,4054,4064,4065,4067,4070,4073,4074,4094,4096,4127,4128,4129,4263,4264,4278,4416,4417,4418,4435,4462,4463,4511,4627,4788,4789,4798,4799,4802,4803,4805,4807,4809,4812,4815,4818,4827,5048,5053,5056,5682,5755,5756,5761,5762,5763,5775,5800,5830,5832,5837,5838,5841,5864,6020,6033,6132,6180,6210,6213,6570,6606,6668,6788,7170,8886,9336,9456,9523,9524,10160,11318,11319,11320,11321,11322,11323,11324,11517,11518,11519,11520,11714,11858,11910,11911,11912,11913,11914,11915,11917,11918,11921,12319,12856,12860,12896,12897,12940,14266,14268,14269,14270,14271,209797,214519,250484,250488,250618,250619,250620,250622,250623,250624,250625,250626,250627,250629,250630,250650,250654,250656,250689,250735,255109,255964,256040,261368,262119,263389,263390,263396,263397,263438,263466,263470,266216,267307,267308,267314,268622,268623,268624,270693,271898,277645}}
-data.Item[248685]={["name"]="Waylaid Crate: Apprentice Curiosities",["npcDrops"]={3,48,98,114,115,121,122,123,124,127,154,157,171,202,203,213,217,218,335,345,391,422,423,424,426,428,430,432,433,434,435,436,437,440,441,442,445,446,449,450,452,453,456,458,485,501,502,505,513,517,531,539,544,545,547,548,550,565,568,569,578,579,580,589,590,594,598,599,615,619,622,623,624,625,626,628,634,636,639,641,643,644,645,646,657,712,824,830,831,832,923,930,1007,1008,1009,1010,1011,1012,1015,1020,1021,1024,1025,1027,1028,1030,1032,1039,1040,1042,1043,1083,1109,1111,1163,1164,1165,1166,1167,1169,1177,1178,1179,1180,1181,1183,1184,1185,1188,1189,1191,1192,1194,1197,1205,1206,1207,1210,1216,1222,1224,1225,1259,1393,1400,1417,1424,1425,1426,1693,1706,1707,1708,1711,1725,1726,1727,1729,1731,1732,1763,1768,1781,1782,1867,1868,1869,1870,1888,1889,1891,1892,1893,1894,1895,1896,1908,1909,1912,1913,1914,1915,1923,1924,1939,1940,1942,1943,1953,1954,1955,1956,1957,1958,1972,1973,1974,1983,2012,2053,2054,2068,2069,2071,2102,2103,2106,2120,2149,2156,2157,2158,2159,2160,2164,2165,2168,2169,2170,2171,2173,2174,2179,2180,2181,2182,2183,2185,2187,2192,2203,2204,2205,2206,2207,2208,2232,2233,2235,2236,2237,2244,2260,2261,2265,2266,2267,2322,2323,2324,2332,2336,2338,2339,2349,2350,2351,2354,2360,2384,2427,2428,2476,2477,2529,3204,3234,3236,3238,3239,3240,3241,3242,3245,3247,3248,3249,3250,3251,3252,3255,3256,3257,3258,3260,3261,3263,3271,3273,3274,3275,3276,3277,3278,3279,3280,3282,3283,3284,3285,3286,3374,3375,3376,3377,3382,3383,3384,3385,3386,3392,3393,3394,3395,3396,3397,3398,3416,3424,3425,3426,3434,3436,3438,3445,3452,3454,3455,3456,3457,3458,3459,3461,3463,3466,3467,3470,3471,3473,3474,3475,3503,3528,3529,3531,3532,3577,3630,3631,3632,3633,3634,3636,3637,3638,3640,3641,3653,3654,3655,3662,3667,3669,3670,3671,3673,3674,3711,3712,3713,3715,3717,3721,3725,3727,3728,3730,3732,3733,3734,3737,3739,3740,3742,3743,3745,3746,3750,3772,3781,3783,3809,3812,3816,3817,3819,3823,3824,3840,3851,3853,3854,3855,3857,3859,3861,3862,3863,3864,3865,3866,3868,3873,3875,3877,3879,3886,3893,3914,3917,3921,3922,3923,3924,3925,3926,3928,3943,3944,3947,3988,3989,3991,3992,3993,3999,4003,4004,4005,4006,4007,4009,4011,4012,4013,4014,4018,4020,4022,4025,4026,4036,4040,4044,4051,4053,4054,4064,4065,4067,4070,4073,4074,4094,4096,4127,4128,4129,4263,4264,4275,4416,4417,4418,4462,4463,4511,4788,4789,4798,4799,4802,4803,4805,4807,4809,4815,4818,4821,5048,5053,5056,5682,5683,5755,5756,5761,5762,5763,5829,5830,5831,5835,5836,5837,5841,5863,5864,5912,6020,6033,6132,6180,6213,6221,6570,6606,6668,6788,8886,9456,9523,9524,10157,10160,10323,10373,11318,11319,11320,11321,11322,11323,11324,11517,11518,11519,11520,11714,11858,11910,11911,11912,11913,11915,11917,11918,11921,12319,12432,12856,12860,12896,12897,12940,14268,185334,209797,210107,214519,250484,250618,250620,250622,250623,250624,250625,250626,250627,250629,250630,250650,250654,250656,250689,250735,255109,255964,256040,261368,262119,263389,263390,263396,263397,263438,263466,263470,266216,267006,267307,267308,267314,268622,268623,268624,270693,271898,277645}}
-data.Item[248686]={["name"]="Waylaid Crate: Journeyman Herbs",["npcDrops"]={3,48,202,203,205,206,210,212,215,218,300,314,334,335,345,397,429,431,432,433,434,435,436,437,445,485,486,511,518,531,533,544,565,568,569,570,579,580,587,588,595,604,615,628,639,681,682,683,685,688,694,697,699,701,702,703,711,736,775,785,787,819,855,856,889,891,892,898,905,909,910,920,923,930,937,938,940,941,948,949,976,1007,1008,1009,1010,1011,1012,1013,1014,1015,1016,1017,1018,1019,1020,1021,1022,1023,1024,1025,1027,1028,1031,1032,1034,1035,1036,1038,1040,1042,1043,1044,1051,1052,1053,1054,1057,1069,1085,1110,1111,1150,1157,1158,1159,1200,1210,1251,1258,1259,1270,1353,1400,1417,1418,1487,1663,1666,1706,1707,1708,1711,1715,1716,1717,1754,1947,1973,2089,2102,2120,2183,2236,2240,2241,2244,2248,2249,2250,2251,2252,2260,2261,2264,2265,2266,2267,2268,2269,2270,2271,2272,2304,2305,2319,2335,2337,2344,2345,2346,2348,2349,2350,2351,2354,2356,2358,2359,2360,2368,2369,2370,2371,2372,2373,2374,2375,2376,2377,2384,2385,2387,2403,2404,2406,2407,2408,2413,2427,2428,2448,2449,2450,2451,2503,2529,2552,2553,2554,2555,2559,2560,2562,2563,2564,2578,2581,2582,2586,2587,2589,2618,2619,3235,3237,3238,3239,3249,3250,3252,3374,3375,3376,3377,3378,3392,3414,3424,3434,3435,3436,3456,3457,3458,3459,3472,3473,3474,3476,3640,3654,3664,3670,3674,3696,3711,3727,3736,3743,3745,3746,3748,3749,3750,3752,3754,3755,3757,3758,3759,3762,3763,3765,3767,3770,3771,3772,3774,3780,3781,3782,3784,3789,3791,3797,3799,3802,3804,3806,3807,3808,3809,3810,3817,3818,3819,3820,3821,3824,3825,3834,3857,3859,3863,3868,3872,3873,3875,3877,3879,3887,3893,3917,3919,3921,3922,3923,3924,3925,3926,3927,3928,3984,3987,3992,3999,4004,4012,4013,4014,4015,4016,4017,4018,4019,4020,4021,4022,4023,4024,4025,4026,4027,4028,4029,4031,4032,4036,4037,4038,4040,4041,4042,4044,4050,4051,4052,4053,4054,4056,4057,4061,4062,4064,4065,4067,4073,4074,4093,4094,4095,4096,4097,4099,4100,4101,4104,4107,4109,4111,4112,4113,4117,4118,4119,4120,4124,4126,4128,4130,4131,4133,4139,4140,4142,4143,4144,4147,4151,4154,4158,4202,4248,4249,4264,4273,4275,4278,4279,4281,4282,4283,4284,4287,4291,4293,4299,4304,4306,4308,4409,4420,4422,4424,4435,4436,4437,4438,4440,4442,4462,4463,4464,4479,4490,4499,4511,4512,4514,4515,4516,4517,4518,4519,4520,4522,4523,4525,4530,4531,4532,4538,4539,4541,4543,4548,4619,4623,4627,4632,4633,4634,4635,4637,4638,4639,4640,4641,4642,4647,4648,4649,4651,4663,4664,4665,4666,4667,4670,4671,4672,4673,4674,4675,4692,4696,4711,4713,4714,4718,4726,4728,4788,4789,4798,4799,4803,4805,4807,4809,4810,4811,4812,4813,4814,4815,4818,4819,4820,4823,4824,4825,4827,4829,4830,4831,4832,4887,4969,4978,5056,5762,5763,5775,5799,5800,5832,5847,5851,6035,6115,6132,6167,6168,6170,6206,6207,6208,6210,6211,6212,6213,6218,6219,6220,6221,6222,6223,6224,6225,6226,6227,6229,6230,6232,6233,6234,6243,6329,6391,6392,6407,6426,6427,6523,6575,6668,7079,7332,7333,7404,7603,7873,7874,8518,10617,10639,10756,10757,10758,10759,10760,10761,10882,10896,10992,11562,11563,11576,11656,11680,11681,11682,11683,11697,12347,12579,12676,12677,12678,12759,12856,12860,12896,12897,12902,12918,14357,14424,185334,203139,214519,246600,246664,246888,246992,246993,247001,247003,247016,250626,255066,255068,255069,255070,255072,259897,260796,260797,260798,260799,260800,260801,260802,260803,260804,260809,260810,264081,264082,264083,266216,266862,268622,268623,269134,270094,270589,271334,271336,271346,271348,271351,271458,271462,271749,274715,275044,275045,275046,277645,277881}}
-data.Item[248687]={["name"]="Waylaid Crate: Journeyman Ore",["npcDrops"]={3,48,202,203,205,206,210,212,215,218,300,314,334,335,345,397,429,431,432,433,434,435,436,437,445,485,486,511,518,531,533,565,568,569,570,579,580,587,588,590,595,604,615,628,681,682,683,685,688,694,697,699,701,702,703,711,736,755,785,787,819,855,889,891,892,898,905,909,910,920,923,930,937,940,941,948,949,976,1007,1008,1009,1010,1011,1012,1013,1014,1015,1016,1017,1018,1019,1020,1021,1022,1023,1024,1025,1026,1027,1028,1030,1031,1032,1033,1034,1035,1036,1038,1040,1042,1043,1044,1051,1052,1053,1054,1057,1069,1108,1110,1111,1150,1157,1158,1160,1200,1210,1251,1258,1259,1270,1353,1399,1400,1417,1418,1658,1663,1666,1696,1706,1707,1708,1711,1715,1716,1717,1725,1947,1973,2089,2091,2102,2120,2236,2240,2241,2244,2248,2249,2250,2251,2252,2260,2261,2264,2265,2266,2267,2268,2269,2270,2271,2272,2304,2305,2319,2335,2337,2344,2345,2346,2348,2349,2350,2351,2354,2356,2358,2359,2360,2368,2369,2370,2371,2372,2373,2374,2375,2376,2377,2384,2385,2387,2403,2404,2406,2407,2408,2411,2413,2415,2427,2428,2440,2448,2449,2450,2451,2503,2529,2552,2553,2554,2555,2556,2559,2560,2562,2563,2564,2581,2582,2586,2587,2589,2618,2628,3238,3239,3249,3250,3252,3253,3272,3374,3375,3376,3377,3378,3392,3414,3424,3434,3435,3436,3456,3457,3458,3459,3472,3473,3474,3476,3654,3664,3674,3711,3727,3743,3746,3749,3750,3752,3754,3755,3757,3758,3759,3762,3763,3765,3767,3770,3771,3772,3774,3780,3781,3782,3784,3789,3791,3797,3802,3803,3804,3806,3807,3808,3809,3810,3811,3814,3817,3818,3819,3820,3821,3824,3825,3834,3855,3857,3859,3863,3866,3868,3873,3875,3877,3879,3887,3898,3917,3919,3921,3922,3923,3924,3925,3927,3928,3932,3941,3942,3943,3974,3983,3987,3993,3999,4003,4004,4012,4013,4014,4015,4016,4017,4018,4019,4020,4021,4022,4023,4024,4025,4026,4027,4028,4029,4031,4032,4034,4036,4037,4038,4040,4041,4042,4044,4050,4051,4052,4053,4054,4056,4057,4061,4062,4064,4065,4067,4073,4093,4094,4095,4096,4097,4099,4100,4101,4104,4107,4109,4110,4111,4112,4113,4114,4116,4117,4118,4119,4120,4124,4126,4128,4130,4133,4139,4140,4142,4144,4147,4150,4151,4154,4158,4202,4248,4249,4264,4273,4274,4275,4279,4280,4281,4282,4283,4287,4288,4291,4293,4296,4304,4306,4308,4420,4421,4422,4424,4427,4435,4436,4437,4438,4440,4442,4462,4463,4464,4479,4490,4499,4511,4512,4514,4515,4516,4517,4518,4519,4520,4522,4523,4525,4530,4531,4532,4538,4539,4541,4548,4623,4627,4632,4633,4634,4635,4636,4637,4638,4639,4640,4641,4648,4649,4663,4664,4665,4666,4667,4670,4671,4672,4673,4674,4675,4689,4692,4696,4711,4712,4713,4714,4726,4728,4798,4799,4802,4803,4805,4807,4809,4810,4811,4812,4813,4814,4815,4818,4819,4820,4823,4825,4827,4829,4830,4831,4887,4969,4978,5056,5756,5762,5763,5797,5800,5848,5849,5928,5931,6035,6073,6115,6167,6168,6170,6206,6207,6208,6210,6211,6212,6213,6215,6218,6219,6220,6221,6222,6223,6224,6225,6226,6227,6228,6229,6230,6231,6232,6233,6234,6235,6243,6329,6391,6392,6426,6427,6523,6575,6668,7079,7332,7333,7361,7603,7872,7873,7874,8518,9377,10617,10756,10757,10758,10759,10760,10761,10882,10896,10992,11562,11563,11576,11680,11681,11682,11683,11921,12347,12579,12676,12677,12678,12759,12856,12876,12896,12897,12918,14278,203139,214456,214519,246600,246664,246888,246990,246992,246993,247001,247003,247016,255066,255068,255069,255070,255072,256433,260796,260797,260798,260799,260800,260801,260802,260803,260804,260808,260809,260810,264081,264082,264083,268622,268623,269134,270094,270589,270892,271334,271336,271338,271346,271348,271351,271460,274715,275044,275045,275046,277645}}
-data.Item[248688]={["name"]="Waylaid Crate: Journeyman Textiles",["npcDrops"]={3,48,122,202,203,205,206,210,212,215,218,232,300,334,335,345,429,431,432,433,434,435,436,437,445,485,486,503,511,518,521,531,533,544,565,568,569,570,579,584,587,588,595,604,615,628,681,682,683,685,688,689,694,697,701,702,703,711,736,740,755,785,787,819,855,889,891,892,898,905,909,910,920,923,930,937,938,940,948,949,1007,1008,1009,1010,1011,1012,1013,1014,1015,1016,1017,1018,1019,1020,1021,1022,1023,1024,1025,1026,1027,1028,1030,1031,1032,1034,1035,1036,1038,1040,1041,1042,1043,1044,1051,1052,1053,1054,1057,1069,1085,1094,1110,1111,1150,1157,1158,1159,1160,1200,1210,1251,1258,1259,1270,1353,1400,1417,1418,1663,1666,1696,1706,1707,1708,1711,1715,1716,1717,1754,1947,1948,1973,2089,2091,2102,2160,2183,2236,2240,2241,2244,2248,2249,2250,2251,2252,2260,2261,2264,2265,2266,2267,2268,2269,2270,2271,2272,2305,2332,2335,2337,2344,2345,2346,2348,2349,2350,2351,2354,2356,2358,2359,2360,2368,2369,2370,2371,2372,2373,2374,2375,2376,2377,2384,2385,2387,2403,2404,2406,2407,2408,2411,2413,2414,2427,2428,2448,2449,2450,2451,2503,2529,2553,2554,2555,2556,2559,2560,2562,2563,2564,2577,2578,2581,2582,2586,2587,2589,3237,3238,3239,3249,3250,3252,3253,3374,3375,3376,3377,3378,3392,3414,3424,3434,3435,3436,3456,3457,3458,3459,3466,3472,3473,3474,3476,3654,3664,3670,3673,3711,3742,3743,3745,3746,3748,3749,3750,3752,3754,3755,3757,3758,3759,3762,3763,3765,3767,3770,3771,3772,3774,3782,3783,3784,3789,3791,3797,3801,3802,3803,3804,3806,3807,3808,3809,3810,3811,3817,3818,3819,3820,3821,3824,3825,3833,3834,3855,3857,3859,3863,3866,3873,3875,3877,3886,3887,3893,3899,3900,3917,3919,3921,3922,3923,3924,3925,3926,3927,3928,3931,3932,3943,3944,3984,3986,3987,3992,3993,3999,4004,4012,4013,4014,4015,4016,4017,4018,4019,4020,4021,4022,4023,4024,4025,4026,4027,4028,4029,4031,4032,4034,4035,4036,4037,4038,4040,4041,4042,4044,4050,4051,4052,4053,4054,4056,4057,4061,4062,4064,4065,4067,4073,4074,4093,4094,4095,4096,4097,4099,4100,4101,4104,4107,4109,4110,4111,4112,4113,4114,4116,4117,4118,4119,4120,4124,4126,4128,4130,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4202,4248,4249,4250,4264,4273,4274,4275,4278,4279,4280,4281,4283,4284,4285,4287,4293,4296,4304,4306,4308,4409,4422,4424,4427,4428,4435,4436,4437,4438,4440,4442,4462,4463,4464,4479,4490,4499,4511,4512,4514,4515,4516,4517,4518,4519,4520,4522,4523,4525,4530,4531,4532,4538,4539,4541,4543,4548,4623,4627,4632,4633,4634,4635,4636,4637,4638,4639,4640,4641,4646,4647,4648,4649,4663,4664,4665,4666,4670,4671,4672,4673,4674,4675,4692,4696,4711,4712,4726,4728,4788,4789,4798,4799,4803,4805,4807,4809,4810,4811,4812,4813,4814,4815,4818,4819,4820,4823,4824,4825,4827,4829,4831,4832,4887,4969,4978,5056,5756,5762,5800,5859,6035,6073,6115,6132,6167,6170,6206,6207,6208,6210,6211,6212,6213,6215,6218,6219,6220,6221,6222,6223,6224,6225,6226,6227,6229,6230,6231,6232,6233,6234,6235,6243,6329,6391,6407,6426,6427,6523,6547,6575,6668,7079,7332,7404,7603,7872,7873,7874,8518,10617,10756,10757,10758,10759,10760,10761,10882,10896,10992,11562,11576,11656,11680,11681,11682,11683,11921,12347,12579,12676,12677,12759,12856,12860,12876,12896,12897,12902,12918,12940,12976,14273,14275,14279,14280,14424,203139,214519,246600,246664,246888,246990,246992,246993,247001,247003,247016,255066,255068,255069,255070,255072,256433,260796,260797,260798,260799,260800,260801,260802,260803,260804,260808,260809,260810,264081,264082,264083,266216,266862,268622,268623,269134,270094,270589,270892,271334,271336,271338,271346,271348,271351,271458,271460,271462,271732,272389,274715,275044,275045,275046,277645}}
-data.Item[248689]={["name"]="Waylaid Crate: Journeyman Curiosities",["npcDrops"]={3,48,202,203,205,206,210,212,215,218,232,300,314,315,334,335,345,429,430,431,432,433,434,435,436,437,441,445,485,486,511,518,531,533,544,565,568,569,570,580,587,588,595,604,615,628,639,681,682,683,685,688,689,694,697,701,702,703,711,736,740,771,785,787,819,855,889,891,892,898,909,910,920,923,930,937,940,948,949,977,1007,1008,1009,1010,1011,1012,1013,1015,1016,1017,1018,1019,1020,1021,1022,1023,1024,1025,1027,1028,1030,1031,1032,1034,1035,1036,1038,1040,1042,1043,1044,1051,1052,1053,1054,1057,1069,1085,1110,1111,1150,1157,1158,1159,1160,1200,1210,1251,1258,1270,1353,1400,1417,1418,1487,1663,1666,1696,1706,1707,1708,1711,1715,1716,1717,1755,1947,1973,2089,2090,2102,2183,2240,2241,2244,2248,2249,2250,2251,2252,2260,2261,2264,2265,2266,2267,2268,2269,2270,2271,2272,2283,2305,2319,2335,2337,2344,2345,2346,2348,2349,2350,2351,2354,2356,2358,2359,2360,2368,2369,2370,2371,2372,2373,2374,2375,2376,2377,2384,2385,2387,2403,2404,2406,2407,2408,2412,2413,2414,2415,2427,2428,2448,2449,2450,2451,2503,2529,2552,2554,2555,2556,2559,2560,2562,2563,2564,2575,2577,2578,2581,2582,2586,2587,2589,2618,3238,3239,3249,3250,3252,3374,3375,3376,3377,3378,3392,3414,3424,3434,3435,3436,3456,3457,3458,3459,3466,3472,3473,3474,3476,3633,3654,3664,3673,3742,3743,3745,3746,3748,3749,3750,3752,3754,3755,3757,3758,3759,3762,3763,3765,3767,3770,3771,3772,3774,3781,3782,3783,3784,3791,3792,3797,3801,3802,3803,3804,3806,3807,3809,3810,3811,3814,3815,3817,3818,3819,3820,3821,3824,3825,3833,3834,3855,3857,3859,3863,3865,3868,3873,3875,3877,3879,3887,3893,3899,3917,3919,3921,3922,3923,3924,3925,3926,3927,3928,3931,3932,3944,3987,3992,3993,3999,4004,4012,4013,4014,4016,4018,4019,4020,4021,4022,4023,4024,4025,4026,4027,4028,4029,4030,4031,4032,4034,4035,4036,4037,4038,4040,4041,4042,4044,4050,4051,4052,4053,4054,4056,4057,4061,4065,4067,4070,4073,4074,4093,4094,4095,4096,4097,4099,4100,4101,4104,4107,4109,4110,4112,4113,4114,4117,4119,4120,4124,4126,4128,4130,4133,4139,4140,4142,4144,4147,4150,4151,4154,4158,4202,4248,4249,4274,4275,4278,4279,4280,4281,4282,4283,4284,4285,4287,4288,4291,4293,4296,4304,4306,4308,4409,4422,4427,4428,4435,4436,4437,4438,4440,4442,4462,4463,4499,4511,4512,4514,4515,4516,4517,4518,4519,4520,4522,4523,4530,4531,4532,4538,4539,4541,4548,4619,4623,4627,4632,4633,4634,4635,4636,4637,4638,4640,4641,4642,4646,4647,4648,4649,4663,4664,4665,4666,4667,4670,4671,4672,4673,4674,4675,4689,4692,4696,4711,4713,4714,4726,4728,4788,4789,4798,4799,4802,4803,4805,4807,4809,4810,4811,4812,4813,4814,4815,4818,4819,4820,4822,4823,4824,4825,4827,4829,4830,4831,4832,4887,4969,4978,5056,5762,5763,5797,5798,5800,5834,5848,5851,6035,6073,6115,6132,6170,6206,6207,6208,6210,6211,6212,6213,6218,6219,6220,6221,6222,6223,6224,6225,6226,6227,6230,6232,6233,6234,6235,6238,6243,6329,6391,6407,6426,6427,6523,6575,6668,7079,7327,7333,7404,7603,7800,7872,7873,7874,8518,10617,10756,10757,10758,10759,10760,10882,10896,10992,11563,11578,11680,11681,11682,11697,11921,12347,12579,12676,12677,12678,12759,12856,12876,12896,12897,12902,12918,14279,14280,14424,14425,214519,246600,246664,246888,246990,246992,246993,247001,247003,247016,255066,255068,255069,255070,255072,256433,260796,260797,260798,260799,260800,260801,260802,260803,260804,260808,260809,264081,264082,264083,266216,268622,268623,269134,270094,270589,271334,271336,271338,271346,271348,271351,271458,271462,271732,271749,274715,275044,275045,275046,277645}}
-data.Item[248690]={["name"]="Waylaid Crate: Earthly Expert Herbs",["npcDrops"]={736,741,762,1160,2358,2375,2414,4308,4639,4642,4651,4728,11561,271338,92,206,212,522,587,588,595,597,660,667,669,670,671,672,674,675,676,677,678,679,680,681,682,683,684,685,686,687,688,689,690,691,694,696,697,699,701,702,709,710,728,729,730,731,740,742,745,747,750,751,757,759,760,761,764,766,767,772,780,781,782,783,784,856,858,871,873,875,877,879,920,921,922,937,938,939,940,941,942,976,978,979,1053,1054,1061,1062,1081,1082,1084,1085,1087,1088,1094,1095,1096,1097,1114,1142,1144,1150,1151,1152,1270,1364,1487,1488,1489,1490,1491,1550,1551,1557,1561,1562,1563,1564,1565,1653,1907,2091,2240,2241,2242,2243,2245,2246,2247,2248,2249,2250,2251,2252,2253,2254,2255,2256,2271,2272,2287,2304,2306,2318,2319,2335,2345,2346,2347,2359,2369,2371,2376,2377,2406,2407,2408,2412,2413,2416,2420,2422,2431,2440,2536,2537,2544,2547,2549,2550,2554,2555,2556,2557,2558,2559,2560,2561,2562,2563,2564,2565,2566,2567,2569,2570,2571,2572,2573,2574,2578,2579,2580,2583,2584,2585,2586,2587,2588,2589,2590,2591,2592,2595,2611,2618,2619,2628,2635,2639,2643,2645,2649,2650,2651,2653,2655,2656,2657,2686,2691,2692,2693,2701,2715,2716,2718,2720,2721,2723,2725,2726,2727,2728,2729,2731,2732,2733,2734,2735,2736,2739,2740,2742,2743,2760,2761,2762,2763,2791,2829,2830,2831,2893,2894,2907,2925,2926,2927,2928,2929,2932,2937,3802,3940,3941,3975,3977,4063,4104,4116,4130,4131,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4260,4283,4284,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4304,4306,4323,4324,4328,4329,4331,4341,4342,4344,4351,4352,4355,4356,4357,4358,4359,4360,4361,4362,4363,4376,4377,4378,4379,4382,4385,4393,4396,4397,4398,4401,4402,4405,4411,4413,4414,4415,4421,4422,4427,4461,4466,4467,4481,4490,4504,4505,4506,4518,4538,4539,4540,4542,4543,4548,4623,4633,4634,4635,4636,4637,4638,4640,4641,4643,4644,4645,4646,4647,4648,4649,4652,4654,4655,4657,4658,4659,4662,4663,4664,4665,4666,4668,4670,4671,4672,4673,4674,4675,4676,4677,4679,4680,4681,4682,4684,4685,4692,4693,4695,4696,4697,4699,4700,4705,4711,4713,4714,4715,4716,4718,4719,4723,4725,4726,4727,4834,4841,4844,4845,4846,4848,4849,4850,4851,4852,4853,4854,4855,4856,4857,4860,4861,4863,4872,5044,5046,5184,5226,5229,5234,5236,5237,5239,5240,5241,5244,5245,5246,5247,5249,5251,5253,5254,5255,5258,5260,5278,5286,5287,5292,5293,5295,5296,5300,5304,5306,5307,5308,5331,5332,5333,5334,5335,5336,5337,5361,5419,5420,5422,5423,5425,5426,5427,5428,5429,5471,5472,5473,5481,5490,5615,5616,5617,5618,5623,5646,5648,5649,5650,5760,5771,5840,5843,5844,5846,5855,5860,5984,6068,6125,6170,6212,6226,6227,6229,6230,6232,6234,6426,6427,6487,6575,7011,7012,7078,7091,7153,7175,7228,7246,7247,7269,7272,7275,7286,7320,7327,7328,7329,7332,7333,7334,7335,7337,7341,7342,7344,7345,7346,7347,7348,7349,7352,7353,7356,7357,7396,7397,7405,7584,7604,7605,7725,7726,7727,7800,7803,7808,7855,7856,7857,7858,7872,7873,7874,8095,8311,8566,8637,8759,11559,11562,11563,11576,11577,11578,11777,11782,11783,11785,11787,11788,11793,11937,12216,12217,12220,12221,12222,12241,12369,12865,13141,13142,13323,14123,14230,222286,246664,250187,252711,253272,253524,253526,254283,254284,254560,255174,255207,255238,255267,255309,255560,255769,255770,255772,255774,255849,255850,255851,255898,255901,255906,256383,256433,256434,256749,256795,256797,256798,256799,256800,256801,256807,256892,256899,256952,257001,257017,257861,257885,257888,257900,257901,257910,257915,257916,257926,258038,258040,258042,258100,258102,258104,258331,258522,258573,258574,258687,258792,258797,258799,258804,258818,258897,258963,259046,259052,259054,259055,259263,259267,259269,259979,259981,259987,260211,260244,260353,260419,260968,260969,260973,260995,260996,261497,261710,261711,262037,262065,262169,262397,262473,262477,262838,263071,263196,263307,263343,263348,263380,263681,263742,263899,266862,267065,268321,268831,269175,270664,270667,271346,271351,271373,271460,272228,272315,272389}}
-data.Item[248691]={["name"]="Waylaid Crate: Flowering Expert Herbs",["npcDrops"]={92,206,212,314,522,587,588,595,597,660,667,669,670,671,672,674,675,676,677,678,679,681,682,683,684,685,686,687,689,690,691,694,696,697,699,701,702,709,728,729,730,731,736,740,741,747,750,751,752,755,757,759,760,761,762,764,765,766,767,772,780,781,782,783,814,818,854,858,862,871,873,877,879,920,921,937,938,939,940,941,942,978,979,1053,1054,1061,1062,1082,1084,1085,1087,1094,1095,1096,1097,1108,1114,1142,1144,1150,1151,1152,1270,1488,1489,1490,1491,1550,1551,1557,1561,1562,1563,1564,1565,1653,1713,1907,2091,2240,2241,2242,2243,2245,2246,2247,2248,2249,2250,2251,2252,2253,2254,2255,2256,2258,2271,2272,2287,2304,2318,2319,2320,2335,2345,2358,2359,2369,2371,2375,2376,2377,2406,2407,2408,2411,2412,2413,2414,2415,2417,2421,2431,2536,2537,2545,2549,2553,2554,2555,2556,2557,2558,2559,2560,2561,2562,2563,2564,2565,2566,2567,2569,2570,2571,2572,2573,2574,2579,2581,2582,2583,2584,2585,2586,2587,2588,2589,2590,2591,2592,2595,2596,2599,2611,2618,2619,2624,2628,2635,2639,2643,2645,2649,2650,2651,2655,2656,2657,2658,2686,2691,2692,2694,2701,2715,2716,2720,2721,2723,2725,2727,2728,2729,2731,2732,2734,2735,2736,2738,2739,2740,2742,2743,2760,2761,2762,2763,2791,2829,2830,2831,2893,2894,2906,2919,2923,2924,2925,2926,2927,2928,2929,2937,3752,3757,3975,3983,3984,4101,4104,4110,4130,4131,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4260,4280,4281,4283,4285,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4298,4299,4300,4301,4302,4303,4304,4306,4308,4323,4324,4328,4329,4331,4334,4341,4342,4343,4344,4351,4352,4355,4357,4358,4359,4360,4361,4362,4363,4376,4377,4378,4379,4387,4392,4393,4396,4397,4399,4402,4405,4411,4412,4413,4414,4415,4421,4427,4458,4459,4466,4467,4480,4481,4499,4504,4505,4506,4518,4525,4532,4538,4539,4540,4542,4543,4623,4632,4633,4634,4635,4636,4637,4638,4639,4640,4641,4642,4644,4645,4646,4647,4648,4649,4651,4654,4655,4656,4657,4660,4662,4663,4664,4666,4668,4670,4671,4672,4673,4674,4675,4676,4677,4679,4680,4682,4684,4685,4692,4695,4696,4697,4699,4700,4701,4702,4711,4712,4713,4714,4715,4716,4718,4719,4725,4728,4834,4844,4845,4846,4848,4849,4850,4851,4852,4853,4854,4855,4856,4857,4860,4861,4863,5044,5045,5046,5224,5229,5232,5234,5236,5237,5238,5239,5240,5245,5246,5247,5249,5251,5253,5255,5258,5268,5272,5278,5286,5292,5293,5295,5296,5299,5300,5304,5305,5306,5308,5331,5333,5334,5335,5336,5337,5419,5422,5423,5425,5426,5428,5429,5459,5472,5473,5481,5615,5616,5617,5618,5623,5643,5645,5648,5649,5650,5839,5843,5844,5854,5856,5860,5934,5982,6068,6125,6170,6193,6212,6224,6226,6227,6229,6230,6232,6234,6235,6426,6427,6487,6489,6575,6910,7011,7030,7078,7097,7175,7246,7268,7269,7271,7272,7273,7286,7320,7321,7327,7328,7329,7332,7333,7334,7335,7337,7341,7342,7344,7345,7346,7347,7348,7349,7351,7352,7355,7356,7358,7361,7396,7606,7725,7726,7727,7808,7855,7856,7857,7858,7872,7873,7874,8095,8136,8311,8337,8566,8567,11559,11561,11562,11563,11777,11778,11783,11785,11787,11789,11791,11792,11937,12207,12216,12218,12219,12220,12222,12223,12236,12239,12347,12369,12676,12865,12977,13019,13141,13323,14123,14221,14277,236028,246664,247001,250187,252711,253525,253526,254284,254560,255174,255207,255238,255377,255560,255769,255770,255772,255774,255849,255850,255851,255898,255901,255906,256383,256433,256434,256749,256795,256797,256798,256799,256800,256801,256807,256899,256952,257001,257017,257861,257885,257888,257900,257901,257910,257915,257916,257926,258038,258040,258042,258100,258102,258104,258331,258573,258574,258687,258792,258797,258799,258804,258818,258897,258963,259046,259052,259054,259055,259258,259263,259267,259269,259979,259981,259987,260211,260235,260244,260353,260419,260429,260931,260968,260969,260973,260995,260996,261497,261710,261711,262037,262065,262169,262397,262473,262477,262838,263071,263196,263307,263343,263348,263380,263615,263899,266357,268321,268423,268831,269175,270094,270310,270664,270667,270892,271338,271346,271373,271458,271460,272228,272313,272315,272389,276401}}
-data.Item[248692]={["name"]="Waylaid Crate: Expert Ore",["npcDrops"]={1150,2248,2358,2566,2893,4154,4640,4664,92,206,212,300,314,522,587,588,595,597,660,667,669,670,671,672,674,675,676,677,679,681,682,683,684,685,686,687,688,689,690,691,694,696,697,699,701,702,710,728,729,730,731,736,740,741,742,745,746,747,750,751,752,757,759,760,761,762,764,765,766,767,768,772,780,781,782,783,784,854,856,858,871,873,875,877,879,920,921,922,937,938,939,940,941,942,943,978,979,1053,1054,1060,1061,1082,1084,1085,1087,1088,1094,1095,1096,1097,1108,1114,1142,1144,1151,1152,1364,1488,1489,1490,1491,1550,1551,1557,1561,1562,1563,1564,1565,1653,1907,2091,2240,2241,2242,2243,2245,2246,2247,2249,2250,2251,2252,2253,2254,2255,2256,2258,2271,2272,2287,2305,2318,2319,2320,2345,2359,2369,2371,2375,2376,2377,2406,2407,2408,2411,2413,2414,2415,2417,2423,2431,2440,2536,2550,2551,2554,2555,2556,2557,2558,2559,2560,2561,2562,2563,2564,2565,2567,2569,2570,2571,2572,2573,2574,2577,2579,2582,2583,2584,2585,2586,2587,2588,2589,2590,2592,2595,2618,2619,2624,2628,2635,2639,2642,2649,2650,2651,2653,2656,2658,2686,2691,2692,2693,2694,2701,2715,2716,2720,2721,2723,2725,2727,2728,2729,2730,2732,2733,2735,2736,2738,2739,2740,2742,2743,2745,2760,2761,2762,2765,2783,2791,2829,2830,2831,2894,2906,2907,2919,2924,2925,2927,2928,2945,3414,3807,3940,3974,3977,3984,4101,4104,4110,4116,4130,4131,4133,4139,4140,4142,4143,4144,4147,4150,4151,4158,4260,4283,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4304,4306,4308,4323,4324,4328,4329,4331,4339,4341,4342,4343,4344,4345,4351,4352,4355,4356,4357,4358,4359,4360,4361,4362,4363,4376,4377,4378,4379,4382,4391,4392,4396,4397,4399,4402,4404,4405,4411,4412,4413,4414,4421,4422,4427,4458,4461,4465,4466,4467,4479,4481,4490,4499,4504,4505,4506,4518,4525,4532,4538,4539,4540,4542,4548,4623,4632,4634,4635,4636,4638,4639,4641,4642,4644,4645,4646,4647,4648,4649,4651,4653,4654,4655,4656,4657,4662,4663,4665,4666,4667,4668,4670,4671,4672,4673,4674,4675,4676,4679,4680,4681,4682,4684,4692,4695,4696,4697,4700,4702,4711,4712,4713,4714,4715,4716,4718,4719,4723,4725,4726,4728,4729,4834,4844,4845,4846,4847,4848,4849,4850,4851,4852,4853,4855,4856,4857,4860,4861,4863,5044,5184,5226,5228,5232,5234,5236,5237,5238,5239,5240,5245,5246,5247,5249,5251,5253,5254,5255,5260,5261,5267,5268,5278,5286,5292,5293,5295,5299,5300,5304,5305,5306,5308,5331,5333,5334,5335,5336,5337,5360,5419,5420,5422,5423,5424,5425,5426,5429,5452,5453,5461,5471,5472,5473,5474,5475,5600,5615,5616,5617,5618,5623,5643,5648,5649,5650,5760,5839,5840,5843,5844,5854,5855,5856,5858,5979,6068,6126,6127,6170,6206,6208,6212,6215,6225,6227,6229,6230,6232,6234,6238,6391,6426,6427,6575,6733,6910,7011,7012,7078,7079,7175,7246,7247,7269,7273,7286,7320,7321,7327,7328,7329,7332,7333,7334,7335,7337,7342,7344,7345,7346,7347,7348,7351,7352,7353,7356,7357,7396,7397,7405,7604,7605,7606,7725,7726,7727,7800,7803,7855,7856,7857,7858,7872,7873,7874,7883,8095,8120,8311,8337,8566,8959,9377,10992,11559,11561,11562,11563,11577,11685,11777,11783,11785,11786,11787,11788,11792,11793,11937,12216,12218,12220,12221,12222,12224,12347,12369,12676,13019,13141,13142,13323,13696,13718,14123,14222,217305,218029,218032,222286,236028,246600,246664,250187,252711,253272,253524,253525,253526,254283,254560,255174,255560,255769,255770,255772,255774,255849,255850,255851,255898,255901,255906,256383,256433,256434,256749,256795,256797,256798,256799,256800,256801,256807,256899,256952,257001,257017,257885,257900,257901,257910,257915,257916,257926,258032,258038,258040,258042,258100,258102,258104,258331,258522,258573,258574,258687,258792,258797,258799,258804,258818,258897,258963,259046,259052,259054,259055,259267,259269,259801,259979,259981,259987,260211,260235,260244,260353,260429,260968,260969,260973,260995,260996,261497,261710,261711,262037,262065,262169,262397,262473,262477,263071,263196,263307,263343,263348,263380,263615,263681,263749,263899,264082,266357,266862,268321,268831,269175,270094,270589,270664,270667,270892,271336,271338,271346,271348,271351,271373,272228,272313,272315,272389,276401}}
-data.Item[248693]={["name"]="Waylaid Crate: Expert Textiles",["npcDrops"]={697,736,1270,2240,2251,2359,2893,4140,4378,92,206,212,300,522,587,588,595,597,660,667,669,670,671,672,674,675,677,678,679,681,682,683,684,685,686,687,688,689,690,691,694,696,699,701,702,709,728,729,730,731,740,741,742,743,744,745,751,755,759,760,762,764,765,766,767,768,772,775,780,781,782,783,784,855,856,858,871,873,875,877,920,921,922,937,938,939,940,941,942,943,978,979,1053,1062,1082,1084,1085,1087,1088,1094,1095,1096,1097,1108,1114,1142,1144,1150,1151,1152,1364,1488,1489,1490,1491,1492,1550,1551,1557,1558,1561,1562,1563,1564,1565,1653,1907,2241,2242,2243,2245,2246,2247,2248,2249,2250,2252,2253,2254,2255,2256,2271,2272,2287,2304,2318,2319,2320,2335,2345,2346,2358,2369,2371,2375,2376,2377,2406,2407,2408,2411,2412,2413,2414,2431,2536,2537,2544,2545,2549,2550,2553,2554,2555,2556,2557,2558,2559,2560,2561,2562,2563,2564,2565,2566,2567,2569,2570,2571,2572,2573,2574,2575,2578,2579,2580,2581,2582,2583,2584,2585,2586,2587,2588,2589,2590,2591,2592,2595,2596,2611,2618,2619,2628,2639,2642,2643,2644,2649,2650,2651,2652,2653,2655,2656,2657,2680,2686,2691,2692,2701,2715,2716,2717,2720,2725,2726,2727,2728,2729,2731,2732,2734,2735,2736,2739,2740,2742,2743,2760,2761,2762,2765,2773,2791,2793,2829,2830,2831,2894,2906,2907,2919,2923,2924,2925,2926,2928,2929,3974,3975,3976,3983,3984,4101,4104,4110,4130,4131,4133,4139,4142,4143,4144,4147,4150,4151,4154,4158,4260,4283,4285,4286,4287,4288,4289,4290,4291,4292,4294,4295,4296,4298,4299,4300,4301,4302,4303,4304,4306,4308,4323,4324,4328,4329,4331,4334,4341,4342,4343,4344,4345,4351,4352,4355,4356,4357,4358,4359,4361,4362,4363,4376,4377,4379,4391,4392,4393,4396,4397,4405,4411,4413,4414,4415,4420,4421,4422,4461,4479,4480,4490,4499,4504,4505,4506,4518,4525,4532,4538,4540,4548,4619,4623,4633,4634,4635,4636,4637,4638,4639,4640,4641,4642,4643,4644,4645,4646,4647,4648,4649,4651,4652,4653,4654,4655,4656,4657,4662,4663,4664,4665,4666,4667,4668,4670,4671,4672,4673,4674,4675,4676,4677,4679,4680,4681,4682,4684,4685,4690,4692,4695,4696,4697,4699,4700,4701,4705,4711,4712,4713,4714,4716,4724,4726,4728,4834,4844,4845,4846,4847,4848,4850,4851,4852,4853,4855,4856,4857,4860,4861,4863,5044,5229,5232,5234,5236,5237,5240,5241,5244,5245,5246,5249,5251,5253,5254,5255,5258,5260,5268,5278,5287,5292,5293,5295,5300,5304,5305,5308,5331,5332,5333,5335,5336,5337,5361,5419,5420,5422,5423,5424,5425,5429,5452,5455,5456,5458,5462,5472,5473,5474,5477,5481,5490,5600,5615,5616,5617,5618,5622,5623,5648,5649,5650,5760,5833,5839,5840,5843,5844,5846,5855,5856,5858,5934,6068,6070,6116,6117,6125,6126,6127,6168,6170,6193,6194,6212,6222,6224,6227,6230,6232,6234,6235,6239,6426,6427,6487,6490,6509,6575,7011,7012,7023,7030,7078,7091,7175,7206,7246,7269,7273,7274,7276,7286,7290,7327,7328,7329,7332,7333,7334,7335,7337,7341,7342,7344,7345,7346,7347,7348,7349,7351,7352,7353,7355,7396,7397,7405,7605,7608,7725,7726,7727,7800,7848,7855,7856,7857,7858,7872,7873,7874,7883,7895,8095,8504,8566,8637,8759,8959,9377,11559,11561,11562,11563,11576,11682,11686,11687,11777,11778,11782,11783,11787,11788,11791,11792,11937,12216,12217,12218,12219,12220,12222,12243,12347,12369,12676,12865,13019,13141,13142,14221,14222,213795,246664,246993,250187,252711,253272,253524,253525,253526,254560,255174,255207,255267,255276,255560,255561,255769,255770,255772,255774,255850,255851,255898,255901,255906,255995,256383,256433,256434,256749,256795,256797,256798,256799,256800,256801,256807,256899,256952,257001,257017,257885,257888,257901,257910,257915,257916,257926,258032,258038,258040,258042,258100,258102,258104,258331,258573,258574,258687,258792,258797,258799,258804,258818,258897,259046,259052,259054,259055,259258,259263,259267,259269,259979,259981,259987,260353,260419,260968,260969,260995,260996,261497,261710,261711,262037,262169,262397,262473,262477,262838,263071,263196,263307,263343,263348,263380,263615,263681,263899,266862,268321,268462,268831,269175,270589,270664,270667,270892,271348,271351,271373,271458,271460,271462,272228,272313,272315,272389}}
-data.Item[248694]={["name"]="Waylaid Crate: Expert Curiosities",["npcDrops"]={2271,2369,2377,2411,2587,4308,4656,92,206,212,300,315,522,587,588,595,597,660,667,669,670,671,674,675,677,678,679,681,682,683,684,685,686,687,688,689,690,691,694,696,697,699,701,702,709,710,728,729,730,731,736,740,741,745,747,750,751,752,755,757,759,760,761,762,764,765,766,767,768,772,780,781,782,783,784,815,854,855,856,858,871,873,875,877,879,920,921,937,938,939,940,941,942,978,979,1054,1059,1061,1062,1082,1084,1085,1087,1088,1094,1096,1097,1114,1142,1144,1150,1151,1152,1160,1200,1270,1364,1488,1489,1490,1491,1550,1557,1558,1561,1562,1563,1564,1565,1653,1754,1907,2091,2240,2241,2242,2243,2245,2246,2247,2248,2249,2250,2251,2252,2253,2254,2255,2256,2272,2287,2304,2305,2318,2319,2345,2346,2347,2358,2359,2371,2375,2376,2406,2407,2408,2412,2414,2415,2416,2417,2421,2422,2423,2431,2534,2535,2536,2537,2554,2555,2556,2557,2559,2560,2561,2562,2563,2564,2565,2566,2567,2569,2570,2571,2572,2573,2574,2582,2584,2585,2586,2588,2589,2590,2591,2592,2595,2596,2599,2618,2619,2635,2639,2649,2650,2651,2652,2653,2655,2656,2657,2686,2692,2693,2694,2701,2714,2715,2716,2718,2719,2721,2723,2725,2726,2727,2728,2729,2731,2732,2733,2734,2735,2736,2739,2740,2742,2743,2760,2761,2762,2773,2783,2791,2793,2829,2830,2831,2893,2894,2907,2923,2925,2927,2928,2929,2932,2944,3806,3975,3977,3984,3985,4101,4104,4130,4131,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4260,4280,4281,4283,4285,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4304,4306,4323,4324,4328,4329,4331,4334,4341,4342,4343,4344,4351,4352,4357,4358,4359,4360,4361,4362,4363,4376,4377,4378,4379,4387,4392,4393,4396,4397,4398,4401,4411,4413,4414,4422,4427,4457,4458,4466,4467,4480,4481,4490,4504,4505,4506,4525,4532,4538,4539,4540,4623,4632,4633,4634,4635,4636,4637,4638,4639,4640,4641,4642,4645,4646,4647,4648,4649,4652,4653,4654,4655,4657,4662,4663,4664,4665,4666,4667,4668,4670,4671,4672,4673,4674,4675,4676,4679,4681,4684,4685,4692,4693,4694,4695,4696,4697,4700,4711,4712,4713,4714,4715,4716,4718,4719,4725,4726,4727,4728,4729,4834,4841,4844,4845,4846,4847,4848,4850,4851,4852,4853,4854,4855,4856,4857,4860,4872,5044,5224,5229,5232,5234,5236,5237,5238,5239,5240,5245,5246,5247,5249,5251,5253,5254,5255,5258,5260,5263,5268,5272,5278,5286,5292,5293,5295,5300,5304,5305,5306,5307,5308,5331,5332,5333,5334,5335,5336,5337,5402,5419,5420,5422,5423,5424,5425,5426,5428,5429,5455,5459,5462,5471,5472,5473,5474,5477,5481,5601,5615,5616,5617,5618,5623,5648,5649,5650,5760,5839,5843,5844,5846,5854,5856,5858,5860,5982,5992,6068,6116,6170,6190,6194,6212,6222,6224,6226,6227,6230,6232,6233,6234,6235,6426,6427,6509,6575,7011,7012,7078,7079,7246,7247,7269,7286,7320,7321,7327,7328,7329,7332,7333,7335,7337,7341,7342,7344,7346,7347,7348,7349,7351,7352,7353,7355,7356,7396,7397,7605,7725,7726,7727,7795,7796,7800,7855,7856,7857,7858,7872,7873,7874,8095,8203,8311,8337,8384,8566,8567,8759,8959,10081,10992,11559,11561,11562,11563,11576,11577,11578,11687,11777,11778,11786,11787,11788,11790,11792,11937,12216,12217,12219,12220,12221,12222,12223,12241,12242,12347,12865,12976,12977,13019,13141,13142,13323,13696,13718,14123,14448,218029,218032,222233,222286,246600,246664,250187,252711,253272,253524,253526,254284,254560,255174,255207,255238,255364,255560,255769,255770,255772,255774,255849,255850,255851,255898,255901,255906,256383,256433,256434,256749,256795,256797,256798,256799,256801,256807,256892,256899,256952,257001,257017,257885,257888,257901,257910,257915,257916,257926,258038,258040,258042,258100,258102,258104,258331,258573,258574,258687,258792,258797,258799,258804,258818,258897,258963,259046,259052,259054,259055,259263,259267,259269,259979,259981,259987,260225,260235,260244,260353,260968,260969,260973,260995,260996,261497,261710,261711,262037,262065,262169,262397,262473,262477,262838,263071,263196,263307,263343,263348,263380,263615,263681,263749,263899,266357,268321,268462,268831,269175,269756,270664,270667,270892,271336,271348,271351,272228,272313,272389,276401}}
-data.Item[248695]={["name"]="Waylaid Crate: Earthly Artisan Herbs",["npcDrops"]={752,1783,1791,1815,1821,1822,2505,2522,2546,2644,2646,2647,2648,2655,2656,2680,2681,2694,2707,2929,4466,4469,4474,4475,4857,5238,5247,5256,5262,5274,5278,5295,5296,5297,5299,5304,5305,5308,5333,5358,5363,5424,5427,5429,5451,5452,5453,5454,5456,5459,5461,5462,5472,5473,5474,5481,5485,5490,5650,5711,5833,5840,5852,5854,5855,5858,5860,5861,5982,5985,5988,5991,5992,6005,6006,6116,6117,6125,6148,6190,6195,6196,6199,6200,6201,6202,6505,6506,6509,6510,6511,6513,6514,6519,6520,6521,6553,7028,7034,7035,7041,7044,7047,7086,7106,7107,7108,7109,7111,7112,7115,7126,7139,7153,7156,7158,7246,7269,7440,7447,7450,7458,7524,7808,7809,7855,7856,7857,7858,7886,8095,8127,8311,8318,8319,8438,8497,8566,8581,8596,8761,8766,8892,8900,8906,8913,8915,8920,8921,8956,8957,9041,9045,9162,9163,9165,9166,9167,9257,9261,9318,9445,9545,9693,9819,9879,9956,10374,10381,10717,10742,10816,11257,11455,12203,12206,12207,12218,12220,12221,12222,12223,13196,13323,14661,243509,246920,246991,247006,248041,248395,249053,249221,249474,249493,255247,255267,255271,255276,255309,255373,255377,257915,269254}}
-data.Item[248696]={["name"]="Waylaid Crate: Flowering Artisan Herbs",["npcDrops"]={818,950,1493,1783,1784,1787,1791,1794,1817,1822,2505,2522,2643,2644,2645,2646,2647,2648,2656,2659,2680,2681,2686,2692,2693,2694,2748,2925,2926,2929,4465,4466,4467,5236,5239,5241,5259,5261,5267,5270,5274,5277,5278,5297,5299,5305,5306,5333,5359,5360,5362,5363,5364,5431,5441,5452,5453,5455,5456,5458,5459,5461,5462,5472,5473,5474,5475,5481,5485,5490,5649,5713,5840,5843,5846,5853,5854,5855,5858,5861,5862,5982,5988,6005,6009,6116,6117,6126,6137,6144,6190,6194,6195,6196,6198,6199,6201,6377,6498,6499,6506,6509,6510,6511,6512,6518,6519,6520,6527,6551,6553,6555,7033,7034,7039,7040,7047,7092,7100,7101,7106,7107,7108,7109,7110,7115,7120,7132,7153,7154,7155,7157,7246,7268,7275,7276,7320,7321,7440,7442,7447,7451,7456,7458,7459,7885,7886,8095,8319,8419,8504,8524,8566,8596,8600,8603,8636,8759,8761,8890,8891,8893,8904,8911,8912,8914,8957,8958,8960,8961,9162,9165,9167,9240,9259,9269,9445,9518,9683,9716,9862,10040,10464,10508,10648,10678,10717,11783,11789,12203,12206,12218,12221,13323,236028,248041,249053,249228,249230,255262,255267,255373,255995,257915,258032,278644}}
-data.Item[248697]={["name"]="Waylaid Crate: Artisan Ore",["npcDrops"]={746,1492,1653,1783,1784,1785,1787,1789,1791,1796,1816,1822,1831,2505,2522,2534,2641,2643,2644,2645,2646,2647,2648,2655,2656,2659,2681,2693,2748,2925,2926,2929,4466,4467,4475,4857,5226,5236,5246,5256,5259,5262,5271,5274,5283,5304,5305,5306,5308,5362,5364,5421,5424,5451,5454,5455,5456,5457,5458,5461,5462,5472,5473,5474,5481,5485,5490,5649,5720,5840,5843,5846,5854,5855,5860,5861,5862,5982,5988,5990,5992,5993,6004,6005,6117,6190,6193,6195,6196,6198,6199,6200,6201,6378,6505,6508,6509,6510,6511,6512,6513,6514,6518,6519,6520,6552,6553,6555,6556,7035,7037,7040,7041,7047,7086,7092,7100,7101,7106,7107,7108,7109,7110,7112,7113,7120,7126,7149,7153,7155,7246,7267,7269,7320,7440,7451,7453,7795,7855,7858,7864,7885,7977,8120,8311,8319,8384,8532,8561,8566,8581,8597,8598,8603,8761,8890,8891,8892,8895,8896,8911,8921,8959,9162,9164,9165,9166,9167,9258,9260,9464,9693,9696,9878,9879,10366,10502,10605,11613,11783,11784,11789,11793,12046,12203,12206,12218,12221,12236,12258,13601,14661,236028,248395,249228,249230,249236,250023,255262,255271,255309,255364,255373,255377,255995,257915,258264,268864,271780}}
-data.Item[248698]={["name"]="Waylaid Crate: Artisan Textiles",["npcDrops"]={818,1492,1565,1783,1784,1791,1815,1826,2505,2546,2642,2643,2644,2645,2646,2647,2648,2653,2656,2681,2692,2694,2748,2925,2926,2929,4465,4466,4467,4475,5239,5245,5247,5259,5267,5271,5283,5293,5295,5296,5299,5308,5358,5359,5361,5362,5420,5424,5426,5450,5451,5452,5453,5456,5457,5459,5461,5462,5471,5472,5473,5474,5481,5485,5490,5623,5649,5650,5709,5846,5852,5854,5856,5858,5860,5861,5862,5988,5990,5992,6006,6116,6117,6126,6127,6194,6195,6199,6200,6348,6498,6505,6506,6509,6510,6511,6512,6514,6516,6518,6520,6521,6551,6553,6555,7025,7027,7033,7034,7035,7041,7047,7086,7093,7100,7101,7106,7107,7108,7110,7113,7114,7115,7153,7154,7157,7246,7269,7275,7320,7321,7396,7441,7442,7445,7448,7451,7452,7454,7458,7459,7808,7809,7848,7855,7856,7857,7883,8095,8120,8127,8319,8384,8438,8566,8600,8759,8761,8891,8892,8894,8895,8897,8903,8909,8910,8912,8921,8956,8957,8959,8960,8961,9162,9163,9164,9165,9166,9167,9239,9240,9258,9267,9268,9454,9683,10318,10463,10717,10916,11462,11783,11784,11789,12046,12206,12218,12220,12221,13323,14661,236028,236876,246920,248041,249228,249230,255247,255267,255276,255309,255373,255377,255995,257915,260823,261934,271780,278644}}
-data.Item[248699]={["name"]="Waylaid Crate: Artisan Curiosities",["npcDrops"]={752,1559,1783,1787,1791,1794,1815,2505,2522,2641,2642,2644,2645,2646,2647,2648,2655,2656,2659,2681,2694,2925,2926,2929,4466,4467,4474,4475,5236,5238,5239,5241,5244,5259,5271,5280,5293,5296,5299,5305,5306,5358,5359,5360,5361,5363,5366,5424,5427,5431,5452,5455,5456,5457,5459,5461,5462,5471,5472,5474,5481,5485,5490,5623,5649,5713,5720,5722,5833,5843,5844,5846,5854,5858,5860,5861,5862,5976,5988,5990,5991,5992,5993,6005,6006,6116,6125,6127,6193,6194,6195,6196,6498,6505,6506,6509,6511,6512,6513,6514,6516,6518,6519,6583,7033,7038,7039,7040,7047,7086,7092,7101,7106,7108,7109,7110,7112,7113,7115,7118,7120,7126,7132,7153,7154,7155,7156,7157,7158,7246,7269,7272,7439,7441,7442,7443,7444,7449,7450,7451,7453,7460,7855,7856,7857,7885,7886,7996,8311,8318,8319,8336,8384,8419,8438,8523,8566,8596,8598,8603,8675,8759,8761,8764,8890,8893,8894,8904,8909,8910,8912,8913,8921,8956,8957,8958,8959,8960,9096,9162,9163,9164,9165,9166,9167,9477,9684,9862,9879,10040,10177,11784,11789,11791,12203,12206,12207,12218,12220,12222,13323,13596,236028,248041,249221,249230,250023,255262,255267,255271,255309,255364,255995,256809,257861,257915}}
-data.Item[248702]={["name"]="Waylaid Crate: Apprentice Fabrics",["npcDrops"]={46,114,118,124,157,474,478,505,539,569,589,590,732,824,1030,1115,1117,1163,1190,1197,1538,1544,1549,1689,1768,1769,1778,1867,1940,1942,1943,1958,2012,2164,2208,2324,2965,2979,2990,3114,3130,3238,3244,3245,3252,3255,3256,3260,3268,3273,3278,3279,3283,3285,3385,3386,3395,3397,3415,3425,3461,3566,4127,6123,6124,209797,260157,267006,267308,268624,48,98,115,121,122,123,127,154,171,202,203,213,217,232,391,422,423,424,426,428,430,432,433,434,435,436,437,440,441,442,445,446,449,450,452,456,458,485,501,502,513,517,531,545,547,548,550,565,568,573,578,579,580,594,598,615,619,622,623,624,625,626,634,636,639,641,642,643,644,645,647,657,712,832,923,930,1007,1008,1009,1010,1011,1012,1020,1021,1024,1025,1028,1032,1042,1083,1109,1111,1164,1165,1166,1167,1169,1177,1178,1179,1180,1181,1183,1185,1188,1189,1191,1192,1194,1205,1206,1207,1210,1216,1224,1225,1259,1393,1400,1417,1426,1554,1693,1696,1706,1707,1708,1711,1725,1726,1727,1729,1731,1732,1763,1781,1782,1868,1870,1888,1889,1891,1892,1893,1894,1895,1896,1909,1912,1913,1914,1915,1923,1924,1939,1944,1953,1954,1955,1956,1957,1972,1973,1974,1983,2053,2054,2068,2069,2071,2102,2103,2106,2120,2149,2156,2157,2158,2165,2168,2169,2170,2179,2180,2181,2182,2183,2185,2203,2204,2205,2206,2207,2233,2235,2236,2237,2244,2260,2261,2265,2266,2267,2322,2323,2332,2336,2338,2339,2349,2350,2351,2354,2360,2384,2529,3204,3234,3239,3240,3241,3242,3247,3248,3249,3250,3251,3257,3258,3261,3263,3271,3274,3275,3276,3277,3280,3282,3284,3286,3295,3374,3375,3376,3382,3383,3384,3393,3394,3396,3398,3416,3424,3426,3436,3438,3445,3452,3456,3457,3458,3459,3463,3466,3467,3470,3471,3474,3475,3503,3528,3530,3532,3533,3577,3630,3631,3632,3633,3634,3636,3637,3638,3640,3641,3653,3654,3655,3667,3669,3670,3671,3673,3711,3712,3713,3715,3717,3721,3725,3727,3728,3730,3732,3737,3739,3740,3742,3743,3745,3748,3750,3774,3780,3781,3783,3809,3814,3816,3817,3819,3820,3823,3840,3849,3851,3853,3854,3855,3857,3859,3861,3862,3864,3865,3866,3873,3875,3877,3879,3886,3887,3893,3914,3917,3921,3922,3924,3925,3926,3928,3947,3988,3989,3991,3992,3993,3999,4003,4004,4005,4006,4007,4008,4009,4012,4013,4014,4018,4020,4022,4025,4026,4032,4040,4044,4053,4054,4064,4065,4067,4070,4073,4074,4094,4096,4128,4129,4263,4416,4417,4418,4462,4463,4464,4511,4788,4789,4798,4799,4802,4803,4805,4807,4809,4812,4815,4818,4821,4824,5048,5053,5056,5755,5756,5761,5762,5763,5775,5836,5841,5864,5912,6020,6180,6221,6668,8886,9336,9456,9523,9524,10160,10323,11318,11319,11320,11321,11322,11323,11324,11517,11518,11519,11520,11858,11910,11911,11912,11913,11915,11917,11918,11921,12856,12896,12897,14269,214456,214519,250484,250488,250618,250619,250620,250622,250623,250624,250625,250626,250627,250629,250630,250650,250654,250656,250689,250735,255109,255964,256040,261368,262119,263389,263390,263396,263397,263438,263466,263470,267307,267314,268622,268623,270693,271898,271903}}
-data.Item[248703]={["name"]="Waylaid Crate: Apprentice Ingots",["npcDrops"]={46,98,114,121,124,157,171,199,440,485,505,513,539,547,589,590,822,830,834,1008,1011,1109,1123,1163,1165,1173,1184,1397,1426,1528,1534,1537,1544,1554,1654,1658,1689,1693,1753,1766,1866,1889,1909,1912,1940,1974,2030,2164,2181,2185,2204,2206,2231,2336,2960,2967,2978,3110,3127,3198,3206,3234,3240,3241,3242,3251,3255,3256,3258,3276,3277,3278,3283,3381,3382,3385,3386,3397,3438,3445,3461,3467,3715,3823,4127,4129,4316,6123,9524,250282,259433,260428,267308,272096,275767,3,48,115,117,122,123,127,154,202,203,213,217,391,422,423,424,426,428,430,432,433,434,435,436,437,441,442,445,446,449,452,453,456,458,486,501,502,517,531,545,548,550,565,568,569,573,578,579,580,594,598,615,619,622,623,624,625,626,628,634,636,639,641,642,643,644,645,646,647,657,712,819,824,831,832,923,930,1007,1010,1012,1015,1020,1021,1024,1025,1030,1032,1039,1040,1042,1043,1083,1111,1164,1166,1167,1169,1178,1179,1180,1181,1183,1185,1188,1189,1191,1192,1194,1197,1205,1206,1207,1210,1216,1393,1400,1417,1424,1523,1532,1706,1707,1708,1711,1725,1726,1727,1729,1731,1732,1763,1768,1781,1782,1867,1868,1870,1888,1891,1892,1893,1894,1895,1896,1913,1914,1915,1923,1924,1939,1942,1943,1953,1954,1955,1956,1957,1958,1973,1983,2053,2054,2068,2069,2071,2102,2103,2106,2120,2149,2156,2157,2158,2165,2168,2169,2170,2171,2174,2179,2180,2182,2183,2187,2203,2205,2207,2208,2233,2235,2236,2237,2244,2260,2261,2266,2267,2322,2323,2324,2332,2338,2339,2350,2351,2354,2360,2384,2403,2529,3204,3238,3239,3245,3247,3248,3249,3250,3252,3257,3260,3261,3263,3271,3273,3274,3275,3279,3280,3282,3284,3285,3286,3374,3375,3376,3377,3383,3384,3393,3394,3395,3396,3416,3424,3425,3426,3436,3452,3455,3456,3457,3458,3459,3466,3471,3474,3475,3503,3528,3630,3631,3632,3633,3634,3636,3637,3638,3640,3641,3653,3654,3655,3667,3669,3670,3671,3673,3674,3711,3712,3713,3717,3721,3725,3727,3728,3730,3733,3734,3737,3739,3740,3742,3743,3749,3750,3774,3780,3781,3783,3809,3812,3816,3817,3819,3820,3824,3840,3849,3851,3853,3854,3855,3857,3859,3861,3862,3863,3864,3865,3866,3873,3875,3877,3886,3914,3917,3921,3922,3924,3925,3928,3944,3947,3988,3989,3991,3992,3999,4003,4004,4005,4006,4007,4008,4009,4011,4012,4013,4014,4016,4018,4020,4022,4025,4040,4044,4051,4053,4064,4065,4067,4070,4074,4094,4096,4128,4263,4275,4416,4417,4418,4462,4463,4511,4627,4788,4789,4798,4799,4802,4803,4805,4807,4809,4812,4815,4818,4821,4824,5048,5053,5056,5755,5756,5761,5762,5763,5864,5912,6020,6180,6210,6213,6606,8886,9336,9456,9523,10160,10323,10373,11318,11319,11320,11321,11322,11323,11324,11517,11518,11519,11520,11714,11858,11910,11911,11912,11913,11915,11917,11918,11921,12856,12896,12897,12940,14267,14268,14271,209797,214519,250484,250488,250618,250620,250622,250623,250624,250625,250626,250627,250629,250630,250650,250654,250656,250689,250735,255109,255964,256040,261368,262119,263389,263390,263396,263397,263438,263466,263470,266216,267307,267314,268622,268623,268624,270693,271898,271903}}
-data.Item[248704]={["name"]="Waylaid Crate: Apprentice Parts",["npcDrops"]={3,48,98,114,115,121,122,123,124,127,154,157,171,202,203,213,217,391,422,423,424,426,428,430,432,433,434,435,436,437,440,441,442,445,446,449,450,452,456,458,485,501,502,505,506,513,517,520,531,539,544,545,547,548,550,565,568,569,573,578,579,580,589,590,594,598,615,619,622,623,624,625,626,634,636,639,641,642,643,644,646,647,657,712,819,824,832,923,930,1007,1008,1009,1010,1011,1020,1021,1024,1025,1030,1032,1042,1043,1083,1109,1111,1112,1163,1164,1165,1166,1167,1169,1177,1178,1179,1180,1181,1183,1184,1185,1188,1189,1191,1192,1194,1197,1205,1206,1210,1216,1222,1225,1393,1399,1400,1417,1426,1693,1706,1707,1708,1711,1725,1727,1729,1731,1732,1763,1768,1781,1782,1867,1868,1869,1870,1888,1889,1891,1892,1893,1894,1895,1896,1908,1909,1912,1913,1914,1915,1920,1923,1924,1939,1940,1942,1943,1953,1954,1955,1956,1957,1958,1972,1973,1974,1983,2053,2054,2068,2069,2071,2102,2103,2106,2120,2156,2157,2158,2164,2165,2168,2169,2170,2171,2174,2179,2180,2181,2182,2183,2185,2187,2203,2204,2205,2206,2207,2208,2233,2235,2236,2237,2244,2260,2261,2265,2266,2267,2322,2323,2324,2336,2338,2339,2350,2351,2354,2360,2384,2427,2428,2529,3234,3236,3238,3239,3240,3241,3242,3245,3247,3248,3249,3250,3251,3252,3255,3256,3257,3258,3260,3261,3263,3271,3273,3274,3275,3276,3277,3278,3279,3280,3282,3283,3284,3285,3286,3374,3375,3376,3377,3382,3383,3384,3385,3386,3393,3394,3395,3396,3397,3416,3424,3425,3426,3436,3438,3445,3452,3454,3456,3457,3458,3461,3466,3467,3473,3475,3503,3528,3529,3532,3577,3586,3630,3631,3632,3633,3634,3636,3637,3638,3640,3641,3653,3654,3655,3667,3669,3670,3671,3673,3674,3711,3712,3713,3715,3717,3721,3725,3727,3728,3732,3733,3734,3737,3739,3740,3742,3743,3745,3746,3750,3774,3780,3781,3809,3812,3814,3816,3817,3819,3823,3824,3840,3850,3851,3853,3854,3855,3857,3859,3861,3862,3863,3865,3868,3873,3875,3877,3886,3887,3893,3914,3917,3921,3922,3924,3925,3928,3943,3944,3947,3988,3989,3991,3993,3999,4003,4004,4005,4006,4007,4008,4009,4011,4012,4013,4014,4016,4018,4020,4022,4025,4026,4032,4036,4040,4044,4053,4054,4064,4065,4067,4070,4074,4094,4096,4127,4128,4129,4263,4416,4417,4418,4462,4463,4464,4511,4788,4798,4802,4803,4805,4807,4809,4812,4815,4818,4824,5048,5053,5056,5755,5756,5761,5762,5763,5775,5829,5830,5838,5841,6020,6180,6221,6606,6668,6788,8886,9456,9523,9524,10160,10323,11318,11319,11320,11321,11322,11323,11324,11517,11518,11519,11520,11858,11910,11911,11912,11913,11914,11915,11917,11918,11921,12856,12897,14269,14271,209797,214456,214519,250484,250618,250619,250620,250622,250623,250624,250625,250626,250627,250629,250630,250650,250651,250652,250654,250656,250689,250735,255109,255964,256040,261368,263389,263390,263396,263397,263438,263466,263470,267307,267308,267314,268624,271898}}
-data.Item[248705]={["name"]="Waylaid Crate: Journeyman Fabrics",["npcDrops"]={121,122,157,202,205,210,431,434,435,504,579,589,615,711,930,1010,1012,1018,1020,1022,1034,1036,1110,1167,1175,1202,1417,1418,1663,1797,1924,1939,2062,2164,2244,2261,2266,2268,2269,2271,2321,2322,2349,2354,2356,2360,2370,2375,2384,2451,3238,3239,3242,3273,3276,3277,3278,3283,3376,3377,3456,3743,3759,3763,3767,3809,3820,3917,3921,3922,3924,3925,3988,4028,4029,4037,4040,4093,4101,4112,4124,4127,4316,4627,6219,6222,7603,10758,10761,261368,264081,264083,267308,267314,3,48,203,206,212,215,300,314,334,335,345,429,432,433,436,437,445,486,511,518,531,533,565,568,569,570,580,584,587,588,595,604,628,639,681,682,683,685,688,694,697,699,701,702,703,736,740,755,785,787,819,855,889,891,892,898,905,909,910,920,923,937,938,940,948,949,1008,1009,1011,1013,1015,1016,1017,1019,1021,1023,1024,1025,1027,1028,1031,1032,1035,1038,1040,1042,1043,1044,1051,1052,1053,1054,1057,1069,1111,1150,1157,1158,1159,1160,1200,1210,1251,1259,1270,1353,1364,1400,1487,1666,1696,1706,1707,1708,1711,1715,1716,1717,1754,1947,1973,2089,2108,2240,2241,2248,2249,2250,2251,2260,2264,2265,2267,2270,2272,2305,2335,2337,2344,2345,2346,2348,2350,2351,2358,2359,2368,2369,2371,2372,2373,2374,2376,2377,2385,2387,2406,2408,2411,2414,2415,2427,2428,2448,2449,2450,2503,2529,2554,2555,2556,2559,2560,2562,2563,2582,2586,2587,2589,3235,3249,3252,3374,3375,3378,3392,3414,3434,3435,3436,3457,3458,3459,3472,3473,3476,3654,3673,3674,3745,3748,3749,3750,3752,3754,3755,3757,3758,3762,3765,3770,3771,3772,3774,3780,3781,3782,3783,3784,3789,3791,3797,3799,3801,3802,3804,3807,3810,3811,3817,3818,3825,3834,3857,3859,3863,3866,3868,3873,3877,3887,3926,3927,3931,3932,3992,3999,4012,4013,4014,4015,4016,4018,4020,4021,4022,4023,4024,4025,4026,4027,4031,4032,4034,4036,4038,4041,4042,4044,4050,4051,4052,4053,4054,4056,4057,4061,4064,4065,4067,4073,4074,4094,4095,4096,4097,4099,4100,4104,4107,4109,4114,4117,4118,4119,4126,4128,4133,4139,4140,4142,4143,4144,4147,4151,4154,4202,4248,4249,4264,4278,4279,4283,4285,4287,4291,4293,4296,4299,4304,4306,4308,4409,4420,4424,4427,4428,4435,4436,4437,4438,4440,4442,4462,4463,4464,4481,4499,4511,4512,4514,4515,4516,4517,4518,4519,4520,4522,4523,4525,4530,4531,4532,4538,4541,4543,4548,4623,4633,4634,4635,4637,4638,4639,4640,4641,4646,4647,4648,4663,4664,4665,4666,4670,4671,4672,4673,4674,4675,4692,4696,4711,4712,4714,4726,4728,4789,4798,4799,4802,4803,4805,4807,4809,4810,4811,4812,4813,4814,4815,4818,4819,4820,4821,4822,4823,4824,4825,4827,4829,4830,4831,4887,4978,5056,5756,5762,5834,5851,6035,6073,6132,6168,6206,6207,6208,6210,6211,6212,6213,6218,6220,6221,6223,6224,6225,6226,6227,6230,6232,6233,6234,6235,6238,6243,6329,6391,6407,6426,6427,6523,6575,7079,7332,7361,7872,7873,7874,10756,10757,10759,10760,10882,10896,10992,11562,11563,11656,11680,11682,11921,12347,12676,12677,12678,12759,12856,12860,12876,12896,12897,12902,12940,12977,14275,203139,214519,246600,246664,246888,246990,246992,246993,247001,247003,247016,255066,255068,255069,255070,255072,256433,260797,260798,260799,260800,260801,260802,260803,260804,260808,260809,260810,264082,268622,268623,269134,270094,271334,271336,271346,271348,271351,271458,271462,271732,274715,275044,275045,275046}}
-data.Item[248706]={["name"]="Waylaid Crate: Journeyman Ingots",["npcDrops"]={95,202,205,210,423,428,430,432,433,435,441,533,550,568,570,580,615,891,923,1018,1019,1021,1034,1110,1118,1157,1158,1400,1417,1418,1663,1797,1939,2089,2149,2156,2183,2233,2260,2266,2269,2349,2350,2354,2368,2384,3256,3260,3266,3273,3280,3375,3376,3377,3455,3458,3459,3762,3763,3765,3767,3922,3925,4005,4012,4023,4024,4026,4030,4038,4111,4140,4147,4308,4627,6221,6224,6494,7603,10758,10759,10896,264079,264083,267314,3,48,203,206,212,215,218,232,300,334,345,397,429,431,434,436,437,445,485,511,518,521,531,565,569,579,584,587,588,595,604,628,639,681,682,683,685,688,701,703,736,785,787,819,892,898,909,910,920,930,937,938,940,948,949,1007,1008,1009,1010,1011,1012,1013,1015,1017,1020,1022,1023,1024,1025,1026,1027,1031,1032,1035,1036,1038,1039,1040,1042,1043,1044,1051,1052,1053,1054,1057,1069,1085,1111,1150,1159,1251,1258,1270,1353,1487,1666,1696,1706,1707,1708,1711,1715,1716,1717,1754,1755,1920,1947,1973,2091,2120,2240,2244,2248,2249,2250,2251,2252,2261,2264,2265,2267,2268,2270,2271,2272,2304,2305,2337,2344,2345,2346,2348,2351,2356,2358,2359,2360,2369,2371,2372,2373,2374,2375,2376,2377,2385,2387,2403,2404,2406,2407,2408,2411,2413,2414,2415,2427,2428,2448,2449,2450,2451,2503,2529,2554,2555,2556,2559,2560,2562,2563,2564,2575,2578,2581,2582,2586,2589,3238,3239,3249,3252,3374,3378,3392,3434,3436,3457,3476,3654,3664,3670,3673,3743,3746,3748,3749,3750,3752,3754,3755,3757,3758,3759,3770,3771,3780,3781,3784,3797,3799,3803,3806,3809,3810,3817,3818,3819,3820,3821,3824,3825,3833,3834,3855,3857,3859,3863,3866,3873,3875,3877,3887,3900,3917,3919,3921,3923,3924,3926,3927,3932,3943,3987,3999,4004,4013,4014,4015,4016,4018,4020,4021,4022,4025,4027,4028,4031,4034,4035,4036,4037,4040,4041,4042,4044,4050,4051,4052,4053,4054,4056,4057,4061,4062,4064,4065,4067,4070,4073,4074,4093,4094,4095,4096,4097,4099,4100,4101,4104,4107,4109,4114,4117,4118,4119,4124,4126,4128,4130,4142,4144,4151,4154,4248,4249,4264,4273,4274,4275,4278,4279,4282,4283,4287,4291,4293,4296,4299,4304,4306,4420,4424,4427,4428,4435,4436,4437,4438,4440,4442,4462,4463,4464,4481,4490,4499,4511,4512,4514,4515,4516,4517,4518,4519,4520,4522,4523,4525,4530,4531,4532,4538,4539,4541,4548,4623,4632,4633,4635,4636,4637,4639,4640,4648,4663,4664,4665,4666,4667,4670,4671,4672,4673,4675,4692,4696,4711,4712,4798,4799,4803,4805,4807,4809,4810,4811,4812,4813,4814,4815,4818,4819,4820,4822,4823,4824,4825,4827,4829,4830,4831,4832,4887,4969,4978,5056,5756,5762,5763,5797,5799,5800,5832,5849,5930,6035,6073,6115,6167,6168,6170,6206,6207,6208,6211,6212,6213,6215,6218,6219,6220,6222,6223,6225,6226,6227,6230,6231,6232,6233,6234,6235,6243,6329,6391,6392,6407,6426,6523,6575,6668,7079,7327,7332,7873,8518,9377,10756,10757,10760,10761,10882,11562,11682,12347,12677,12856,12860,12896,13019,203139,214519,246600,246664,246888,246990,246992,246993,247001,247003,247016,255066,255068,255069,255070,255072,260796,260797,260798,260799,260800,260801,260802,260803,260804,260808,260809,260810,264081,264082,266216,268623,269134,270094,270892,271334,271336,271346,271348,271351,271458,271460,271732,271749,271750,274715,275044,275045,275046,277645}}
-data.Item[248707]={["name"]="Waylaid Crate: Journeyman Parts",["npcDrops"]={114,171,202,203,205,210,432,433,435,454,504,511,513,517,533,578,580,590,604,785,787,930,949,1009,1015,1017,1018,1020,1021,1023,1025,1032,1034,1035,1040,1042,1043,1044,1110,1111,1157,1158,1418,1665,1768,1867,2103,2188,2235,2260,2266,2268,2349,2354,2360,2408,2428,3238,3245,3249,3277,3377,3385,3434,3454,3455,3459,3476,3755,3759,3774,3818,3917,3923,4014,4022,4023,4026,4028,4029,4053,4057,4097,4127,4308,4463,4541,4627,6221,7603,264079,275044,275046,3,48,206,212,215,218,232,300,314,334,335,345,429,431,434,436,437,485,486,518,531,568,569,570,579,587,615,628,681,682,683,685,689,694,697,703,736,819,889,892,898,909,910,920,923,937,938,940,941,948,976,1008,1010,1011,1012,1013,1019,1022,1026,1027,1030,1036,1038,1041,1051,1052,1053,1054,1057,1069,1085,1150,1160,1210,1258,1259,1270,1353,1400,1417,1487,1663,1666,1696,1706,1707,1708,1711,1715,1716,1717,1755,2089,2102,2120,2183,2240,2241,2244,2248,2249,2250,2251,2261,2264,2265,2267,2269,2270,2271,2272,2304,2305,2335,2344,2345,2346,2348,2350,2351,2356,2358,2359,2368,2369,2371,2372,2373,2374,2375,2376,2377,2384,2385,2387,2403,2404,2406,2411,2427,2448,2449,2450,2451,2503,2529,2552,2554,2555,2556,2559,2560,2563,2564,2581,2582,2586,2587,2589,2628,3237,3239,3250,3252,3374,3375,3376,3378,3392,3414,3456,3457,3458,3472,3473,3474,3654,3670,3674,3727,3743,3745,3746,3749,3750,3752,3758,3762,3763,3765,3767,3770,3771,3772,3781,3782,3784,3797,3801,3802,3806,3808,3809,3810,3817,3819,3820,3824,3825,3857,3859,3863,3866,3873,3875,3877,3886,3898,3921,3922,3924,3925,3927,3928,3932,3987,3999,4004,4012,4013,4015,4016,4017,4018,4019,4020,4021,4024,4025,4027,4034,4035,4036,4037,4038,4040,4041,4044,4050,4051,4052,4054,4056,4061,4062,4065,4067,4073,4074,4093,4094,4095,4096,4099,4100,4101,4104,4107,4109,4113,4117,4118,4119,4120,4124,4126,4128,4131,4133,4139,4140,4142,4143,4147,4150,4151,4154,4158,4248,4249,4264,4274,4278,4279,4281,4282,4283,4284,4285,4287,4291,4293,4296,4299,4304,4306,4409,4422,4424,4427,4428,4435,4436,4437,4438,4440,4442,4462,4464,4499,4511,4512,4514,4515,4516,4517,4518,4519,4520,4522,4523,4525,4530,4531,4532,4538,4539,4543,4548,4623,4633,4634,4637,4638,4639,4640,4646,4649,4663,4664,4665,4666,4670,4671,4672,4673,4675,4689,4696,4711,4712,4713,4789,4798,4799,4802,4805,4807,4809,4810,4811,4812,4813,4814,4815,4818,4819,4820,4822,4823,4824,4825,4827,4829,4830,4831,4887,4969,4978,5056,5762,5763,5797,5834,6035,6115,6167,6168,6206,6207,6208,6210,6211,6212,6213,6218,6219,6220,6222,6223,6224,6225,6226,6227,6229,6232,6233,6234,6243,6329,6391,6392,6407,6426,6427,6523,6547,6575,6668,7079,7327,7800,7872,7873,7874,10617,10756,10757,10758,10759,10760,10761,10882,10896,10992,11562,11680,12347,12579,12677,12678,12759,12856,12860,12896,12897,12902,12918,14278,14427,214519,246600,246664,246888,246990,246992,246993,247001,247003,247016,255066,255068,255069,255070,255072,256433,259897,260796,260797,260799,260800,260801,260802,260803,260804,260808,260809,260810,264081,264082,264083,266862,268622,268623,269134,270094,270589,270892,271334,271336,271346,271348,271351,271462,271749,271750,274715,275045}}
-data.Item[248708]={["name"]="Waylaid Crate: Expert Fabrics",["npcDrops"]={92,206,212,314,587,588,595,597,660,667,669,670,671,672,674,677,679,681,682,683,684,685,686,687,689,690,691,694,696,697,699,701,702,709,729,736,741,747,750,751,755,757,759,762,764,765,766,767,772,780,781,782,783,813,818,858,871,873,875,877,879,920,922,937,938,939,940,941,942,978,979,1053,1054,1082,1084,1085,1087,1094,1096,1097,1142,1144,1150,1151,1152,1200,1364,1488,1489,1490,1491,1492,1550,1557,1561,1562,1564,1565,1653,1907,2240,2241,2242,2243,2246,2247,2248,2249,2250,2252,2253,2254,2255,2256,2271,2272,2287,2304,2319,2335,2345,2358,2359,2369,2370,2371,2375,2376,2377,2406,2407,2408,2412,2413,2417,2421,2534,2535,2544,2549,2553,2554,2555,2556,2557,2559,2560,2561,2562,2563,2564,2565,2566,2567,2569,2570,2572,2573,2574,2578,2579,2583,2584,2585,2586,2587,2588,2589,2590,2591,2595,2599,2611,2612,2642,2643,2645,2650,2651,2686,2691,2692,2693,2701,2715,2716,2717,2720,2721,2725,2727,2728,2729,2731,2735,2736,2743,2748,2760,2762,2781,2830,2831,2892,2893,2919,2927,2932,3940,3974,3975,3976,4104,4110,4130,4131,4133,4139,4140,4142,4143,4144,4147,4150,4151,4158,4281,4283,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4304,4306,4308,4323,4324,4328,4331,4341,4344,4351,4352,4357,4360,4361,4362,4363,4376,4377,4378,4387,4392,4396,4397,4404,4405,4411,4413,4421,4422,4438,4465,4466,4467,4490,4505,4506,4525,4532,4538,4539,4540,4542,4543,4619,4623,4634,4635,4638,4640,4641,4642,4644,4645,4647,4648,4649,4656,4657,4660,4663,4665,4666,4668,4670,4671,4672,4673,4674,4675,4677,4681,4685,4689,4693,4695,4696,4711,4712,4713,4714,4715,4716,4718,4719,4726,4728,4834,4844,4845,4846,4847,4850,4851,4852,4853,4855,4856,4857,4860,4861,4872,5044,5184,5229,5232,5234,5236,5237,5240,5244,5251,5253,5268,5278,5286,5292,5295,5300,5305,5306,5307,5308,5331,5333,5336,5419,5422,5423,5426,5455,5472,5474,5481,5600,5615,5616,5617,5618,5623,5648,5649,5650,5839,5844,5846,6068,6212,6222,6226,6227,6228,6229,6230,6232,6234,6235,6426,6427,6487,6575,7011,7012,7022,7030,7078,7206,7246,7247,7269,7271,7286,7321,7327,7328,7329,7332,7333,7334,7335,7337,7341,7344,7345,7346,7347,7348,7349,7351,7352,7353,7356,7357,7396,7405,7725,7726,7795,7855,7856,7857,7858,7872,7873,7874,7883,8637,11559,11561,11562,11563,11777,11778,11783,11787,11788,11789,11791,11937,12216,12218,12220,12221,12222,12224,12241,12865,13019,13141,13142,246664,246993,250187,253272,254560,255267,255377,255560,255769,255770,255772,255774,255849,255850,255851,255898,255901,255906,255995,256383,256434,256749,256795,256797,256798,256799,256801,256807,256899,256952,257017,257885,257888,257900,257901,257910,257915,257916,257926,258038,258040,258042,258100,258104,258331,258573,258574,258687,258792,258797,258799,258804,258818,258897,258963,259046,259052,259054,259055,259267,259269,259979,259981,259987,260225,260353,260968,260969,260995,260996,261497,261710,261711,262037,262065,262169,262397,262473,262477,263071,263196,263307,263343,263348,263380,263749,263899,264082,268321,268462,269175,270310,270589,270664,270667,270892,271336,271351,271373,271458,272228,272315}}
-data.Item[248709]={["name"]="Waylaid Crate: Expert Ingots",["npcDrops"]={2376,2893,92,300,522,587,588,595,597,660,667,669,671,674,675,677,678,679,681,682,683,684,685,686,687,688,689,690,691,694,696,697,699,701,702,709,710,729,730,736,740,741,742,744,750,751,757,760,761,764,766,767,772,780,782,783,873,877,879,921,937,938,939,940,941,942,978,979,1053,1062,1082,1084,1085,1087,1088,1094,1096,1097,1142,1144,1150,1151,1152,1200,1364,1488,1489,1491,1492,1550,1557,1561,1562,1563,1564,1653,1907,2240,2241,2242,2243,2245,2246,2247,2248,2249,2250,2251,2252,2253,2254,2255,2256,2271,2272,2287,2304,2318,2319,2345,2358,2359,2369,2371,2377,2406,2407,2408,2411,2412,2416,2421,2422,2534,2553,2554,2555,2556,2557,2558,2559,2560,2561,2562,2563,2564,2565,2566,2567,2569,2570,2572,2573,2574,2581,2583,2584,2586,2587,2588,2589,2590,2591,2592,2595,2596,2597,2612,2619,2635,2643,2651,2659,2691,2693,2715,2720,2721,2725,2726,2728,2729,2732,2734,2735,2736,2738,2739,2740,2742,2760,2762,2783,2791,2831,2906,2907,2926,2927,2928,2944,2945,3757,3974,3975,3976,3977,3984,4062,4101,4116,4130,4131,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4285,4286,4287,4288,4289,4290,4291,4292,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4304,4306,4308,4323,4324,4331,4342,4343,4352,4358,4359,4360,4361,4362,4363,4376,4377,4378,4397,4413,4420,4427,4428,4466,4467,4480,4481,4505,4525,4532,4538,4539,4540,4623,4634,4636,4638,4640,4641,4642,4644,4645,4647,4648,4649,4651,4655,4656,4662,4664,4665,4666,4670,4671,4672,4673,4675,4678,4680,4681,4684,4692,4693,4695,4696,4697,4699,4700,4701,4711,4712,4713,4714,4715,4716,4718,4719,4724,4728,4834,4844,4845,4846,4847,4849,4850,4851,4852,4853,4855,4856,4860,4861,4863,4872,5184,5225,5232,5237,5238,5240,5245,5246,5247,5249,5253,5258,5268,5278,5286,5292,5295,5304,5305,5306,5307,5308,5331,5332,5333,5335,5336,5419,5420,5422,5423,5425,5428,5429,5461,5462,5473,5481,5601,5615,5616,5617,5618,5623,5647,5648,5649,5650,5844,5858,5860,5861,5990,6068,6132,6170,6212,6223,6225,6226,6227,6232,6234,6235,6426,6427,6575,6910,7011,7022,7023,7078,7079,7091,7175,7246,7247,7267,7269,7286,7291,7320,7327,7328,7329,7332,7333,7334,7335,7337,7341,7342,7344,7345,7346,7347,7348,7349,7351,7352,7355,7356,7361,7396,7397,7404,7405,7725,7726,7847,7855,7856,7857,7858,7872,7873,7874,7883,8095,8120,8384,8567,8959,9377,11559,11561,11563,11686,11687,11777,11781,11783,11784,11785,11786,11787,11788,11790,11791,11793,11937,12216,12217,12218,12219,12220,12222,12239,12240,12347,12369,12676,12865,13141,13323,14221,217305,246664,250187,252711,253272,254560,255003,255262,255309,255560,255769,255770,255772,255774,255850,255851,255898,255901,255906,256383,256433,256434,256749,256795,256797,256798,256799,256800,256801,256807,256899,256952,257017,257885,257888,257900,257901,257910,257915,257916,257926,258038,258040,258042,258100,258102,258104,258331,258573,258574,258687,258792,258797,258799,258804,258818,258897,259046,259052,259054,259055,259258,259263,259267,259269,259979,259981,259987,260235,260353,260419,260800,260968,260969,260995,261497,261710,261711,262037,262065,262169,262397,262473,262477,263071,263196,263307,263343,263348,263615,263749,263899,266862,268321,268831,270094,270667,271338,271348,271351,271458,271460,272228,272389}}
-data.Item[248710]={["name"]="Waylaid Crate: Expert Parts",["npcDrops"]={92,522,587,588,595,597,660,667,669,670,671,672,674,675,677,678,679,681,682,683,684,685,686,687,688,689,690,691,694,696,697,699,701,702,709,710,728,731,736,740,741,747,750,752,757,759,760,767,768,772,780,781,782,783,813,854,856,871,877,879,937,938,939,940,941,942,978,979,1053,1054,1061,1082,1085,1087,1096,1114,1142,1144,1150,1151,1152,1270,1364,1487,1489,1490,1491,1550,1551,1557,1561,1562,1563,1564,1713,1907,2091,2240,2241,2242,2243,2246,2248,2249,2250,2251,2252,2253,2254,2255,2271,2272,2287,2304,2318,2319,2346,2358,2359,2369,2371,2375,2376,2377,2406,2407,2408,2411,2412,2415,2417,2421,2534,2554,2555,2556,2557,2558,2559,2560,2561,2562,2563,2564,2565,2566,2567,2569,2570,2571,2572,2574,2580,2583,2584,2585,2586,2587,2588,2589,2590,2591,2595,2618,2640,2643,2650,2652,2686,2693,2701,2714,2717,2725,2726,2727,2728,2729,2731,2732,2734,2735,2736,2740,2742,2743,2760,2761,2762,2829,2831,2893,2894,2906,2924,2925,2927,2928,2932,3974,3975,3976,3984,4104,4116,4130,4131,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4260,4282,4283,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4298,4299,4300,4301,4302,4303,4304,4306,4308,4323,4324,4328,4329,4343,4351,4352,4355,4357,4359,4361,4362,4363,4376,4378,4396,4397,4399,4402,4411,4422,4427,4467,4479,4481,4504,4505,4506,4518,4525,4538,4540,4543,4548,4623,4636,4637,4638,4639,4641,4642,4643,4644,4645,4647,4648,4649,4654,4655,4656,4662,4663,4664,4666,4667,4668,4670,4671,4672,4673,4674,4675,4678,4679,4682,4686,4689,4692,4694,4695,4697,4705,4711,4712,4713,4714,4715,4716,4718,4719,4723,4725,4728,4834,4844,4845,4846,4850,4851,4852,4853,4855,4856,4857,4860,4861,5045,5229,5232,5237,5245,5246,5249,5251,5253,5254,5255,5278,5286,5292,5295,5304,5305,5306,5331,5333,5334,5336,5337,5419,5422,5423,5425,5426,5428,5429,5459,5462,5472,5473,5615,5616,5617,5623,5643,5648,5649,5650,5840,5844,5846,5856,5935,5982,5984,6068,6117,6126,6208,6212,6223,6226,6227,6232,6234,6239,6426,6487,6575,6733,7011,7012,7022,7023,7030,7078,7246,7268,7269,7271,7286,7320,7328,7329,7332,7333,7334,7335,7337,7341,7342,7344,7345,7346,7347,7348,7349,7351,7352,7353,7355,7356,7361,7396,7397,7604,7606,7725,7726,7797,7800,7855,7856,7857,7858,7872,7873,7874,8095,8311,8318,8956,8959,9318,9377,11559,11561,11562,11563,11687,11777,11778,11783,11785,11787,11789,11790,11791,11793,12216,12217,12218,12219,12220,12221,12222,12347,12369,12676,12865,13141,13323,222233,246664,247001,250187,253526,254284,254560,255207,255560,255769,255770,255772,255774,255851,255898,255901,255995,256383,256410,256434,256749,256795,256797,256798,256799,256800,256801,256807,256952,257017,257034,257861,257885,257900,257901,257910,257915,257916,257926,258038,258042,258100,258102,258104,258331,258573,258574,258687,258792,258797,258799,258804,258818,258897,259046,259052,259054,259055,259258,259263,259267,259269,259801,259979,259981,259987,260235,260244,260353,260968,260969,260995,260996,261497,261710,261711,262037,262065,262169,262397,262473,262477,262838,263196,263307,263343,263348,263380,263749,266357,268321,268462,268831,269175,270094,270664,270667,270892,271346,271348,271351,271458,271460,272228,276401}}
-data.Item[248711]={["name"]="Waylaid Crate: Artisan Fabrics",["npcDrops"]={1787,1791,1831,2505,2642,2644,2645,2646,2647,2648,2655,2656,2926,2929,4466,5238,5247,5271,5278,5280,5283,5293,5299,5359,5362,5427,5453,5455,5456,5460,5461,5472,5474,5481,5490,5650,5846,5852,5858,5861,5862,5992,6196,6198,6199,6347,6509,6511,6513,6553,7034,7039,7041,7047,7101,7110,7112,7113,7125,7126,7139,7155,7157,7246,7247,7268,7269,7272,7291,7440,7442,7455,7457,7523,7796,7857,7858,7885,7977,7996,8095,8311,8319,8384,8497,8556,8566,8636,8890,8891,8892,8899,8921,8959,8960,8961,9033,9167,9259,9262,11444,11783,11784,11789,12203,12206,12218,12220,12222,13323,13596,13696,247470,249228,249230,249237,255247,255262,255276,255309,255364,255373,255377,255995,268864,277474}}
-data.Item[248712]={["name"]="Waylaid Crate: Artisan Ingots",["npcDrops"]={1492,1783,1816,1824,2505,2546,2643,2644,2645,2646,2647,2648,2655,2656,2925,2926,4466,4469,5226,5243,5259,5267,5270,5271,5272,5283,5305,5308,5357,5364,5453,5456,5458,5460,5461,5462,5474,5475,5485,5490,5649,5650,5844,5854,5855,5858,5861,5977,6005,6117,6195,6199,6509,6510,6511,6514,6516,6527,7038,7039,7092,7100,7108,7109,7111,7132,7153,7154,7156,7158,7246,7267,7268,7269,7271,7439,7458,7460,7857,7864,7886,7977,7995,8095,8120,8319,8566,8636,8890,8891,8899,8909,8910,8914,8921,8960,8961,9163,9167,9200,9259,9262,9269,10495,11459,11784,11794,12206,12207,12218,12220,13323,236028,247470,248395,255267,255271,255276,255377,255995,262299}}
-data.Item[248713]={["name"]="Waylaid Crate: Artisan Parts",["npcDrops"]={1653,1783,1787,1791,1793,1824,2521,2644,2645,2646,2647,2648,2655,2681,2694,2719,2748,2925,2926,4467,4468,4857,5259,5267,5277,5297,5299,5306,5420,5426,5454,5459,5462,5472,5481,5490,5709,5843,5846,5854,5988,5992,6196,6198,6498,6507,6510,6511,6514,6516,6552,6554,7028,7035,7041,7047,7107,7111,7112,7113,7114,7115,7118,7120,7153,7155,7156,7246,7247,7268,7269,7271,7320,7438,7452,7457,7459,7858,7995,8120,8127,8319,8384,8497,8504,8528,8555,8603,8606,8761,8890,8892,8905,8910,8921,8959,8960,9019,9166,9259,9261,9318,9376,9517,9690,9879,10040,10406,10418,10816,11793,12203,12206,12220,12243,13021,13142,13323,248395,249220,255262,255271,255309,255377,255995,256809,278644}}
+data.Item[248682]={["name"]="Waylaid Crate: Apprentice Herbs",["npcDrops"]={3,48,98,114,115,121,122,123,124,127,154,157,171,202,203,213,215,217,218,232,335,345,391,422,423,424,426,428,430,432,433,434,435,436,437,440,441,442,445,446,449,450,452,453,456,458,485,501,502,505,513,517,520,531,539,544,545,547,548,550,565,568,569,573,578,579,580,589,590,594,598,615,619,622,623,624,625,626,628,634,636,639,641,642,643,644,645,646,647,657,712,819,824,830,831,832,923,930,1007,1008,1009,1010,1011,1012,1015,1020,1021,1024,1025,1026,1028,1030,1031,1032,1039,1040,1042,1043,1083,1109,1111,1163,1164,1165,1166,1167,1169,1177,1178,1179,1180,1181,1183,1184,1185,1188,1189,1191,1192,1194,1197,1205,1206,1207,1210,1216,1222,1224,1225,1259,1393,1400,1417,1425,1426,1693,1696,1706,1707,1708,1711,1725,1726,1727,1729,1731,1732,1763,1768,1781,1782,1867,1868,1869,1870,1888,1889,1891,1892,1893,1894,1895,1896,1908,1909,1912,1913,1914,1915,1923,1924,1939,1940,1942,1943,1948,1953,1954,1955,1956,1957,1958,1972,1973,1974,1983,2053,2054,2068,2069,2071,2102,2103,2106,2120,2149,2156,2157,2158,2159,2160,2164,2165,2168,2169,2170,2171,2179,2180,2181,2182,2183,2185,2187,2203,2204,2205,2206,2207,2208,2232,2233,2235,2236,2237,2244,2260,2261,2266,2267,2322,2323,2324,2332,2336,2338,2339,2349,2350,2351,2354,2360,2384,2403,2427,2428,2529,3204,3234,3236,3238,3239,3240,3241,3242,3245,3247,3248,3249,3250,3251,3252,3255,3256,3257,3258,3260,3261,3263,3270,3271,3273,3274,3275,3276,3277,3278,3279,3280,3282,3283,3284,3285,3286,3295,3374,3375,3376,3377,3382,3383,3384,3385,3386,3392,3393,3394,3395,3396,3397,3398,3416,3424,3425,3426,3434,3436,3438,3445,3452,3454,3455,3456,3457,3458,3459,3461,3463,3466,3467,3471,3473,3474,3475,3503,3528,3529,3530,3531,3577,3619,3630,3631,3632,3633,3634,3636,3637,3638,3640,3641,3653,3654,3655,3662,3667,3669,3670,3671,3673,3674,3711,3712,3713,3715,3717,3721,3725,3727,3728,3730,3732,3733,3734,3737,3739,3740,3742,3743,3745,3746,3750,3772,3774,3780,3781,3783,3809,3812,3814,3816,3817,3819,3820,3823,3824,3840,3849,3850,3851,3853,3854,3855,3857,3859,3861,3862,3863,3864,3865,3866,3868,3873,3875,3877,3879,3886,3887,3893,3900,3914,3917,3921,3922,3923,3924,3925,3926,3928,3943,3944,3947,3988,3989,3991,3992,3993,3999,4003,4004,4005,4006,4007,4008,4009,4011,4012,4013,4014,4018,4019,4020,4021,4022,4025,4026,4032,4036,4037,4040,4044,4051,4053,4054,4057,4064,4065,4067,4070,4073,4074,4094,4096,4127,4128,4129,4263,4264,4279,4416,4417,4418,4462,4463,4464,4511,4627,4788,4789,4798,4799,4802,4803,4805,4807,4809,4812,4815,4818,4821,4822,4824,5048,5053,5056,5682,5755,5756,5761,5762,5763,5775,5829,5830,5835,5836,5838,5841,5863,5912,6020,6033,6132,6180,6210,6213,6570,6606,6668,6788,7017,8886,9336,9456,9523,9524,10160,10323,11318,11319,11320,11321,11322,11323,11324,11517,11518,11519,11520,11714,11858,11910,11911,11912,11913,11915,11917,11918,11921,12321,12432,12433,12856,12896,12897,12940,14266,14267,14268,14269,14271,14272,209797,210107,214519,250484,250488,250618,250619,250620,250622,250623,250624,250625,250626,250627,250629,250630,250650,250651,250654,250656,250689,250735,255109,255964,256040,261368,262119,263389,263390,263396,263397,263438,263466,263470,267307,267308,267314,268622,268623,268624,270693,271898,271903,277645}}
+data.Item[248683]={["name"]="Waylaid Crate: Apprentice Ore",["npcDrops"]={3,48,98,114,115,121,122,123,124,125,127,154,157,171,202,203,213,215,217,218,232,345,391,422,423,424,426,428,430,432,433,434,435,436,437,440,441,442,445,446,449,450,452,453,456,458,485,501,502,505,506,513,517,531,539,544,545,547,548,550,565,568,569,573,578,579,580,589,590,594,598,615,616,619,622,623,624,625,626,628,634,636,639,641,642,643,644,645,646,647,657,712,819,824,830,831,832,923,930,1007,1008,1009,1010,1011,1012,1015,1020,1021,1024,1025,1026,1028,1030,1032,1039,1040,1042,1043,1083,1109,1111,1163,1164,1165,1166,1167,1169,1177,1178,1179,1180,1181,1183,1184,1185,1188,1189,1191,1192,1194,1197,1205,1206,1207,1210,1216,1222,1224,1225,1259,1393,1399,1400,1417,1424,1425,1426,1693,1696,1706,1707,1708,1711,1725,1726,1727,1729,1731,1732,1763,1768,1781,1782,1867,1868,1869,1870,1888,1889,1891,1892,1893,1894,1895,1896,1908,1909,1912,1913,1914,1915,1923,1924,1939,1940,1942,1943,1947,1953,1954,1955,1956,1957,1958,1972,1973,1974,1983,2053,2054,2068,2069,2071,2102,2103,2106,2120,2149,2156,2157,2158,2159,2160,2164,2165,2168,2169,2170,2171,2172,2174,2179,2180,2181,2182,2183,2185,2187,2191,2203,2204,2205,2206,2207,2208,2232,2233,2235,2236,2237,2244,2260,2261,2264,2265,2266,2267,2322,2323,2324,2332,2336,2338,2339,2349,2350,2351,2354,2360,2384,2427,2428,2477,2529,3204,3234,3235,3236,3238,3239,3240,3241,3242,3245,3247,3248,3249,3250,3251,3252,3255,3256,3257,3258,3260,3261,3263,3271,3273,3274,3275,3276,3277,3278,3279,3280,3282,3283,3284,3285,3286,3295,3374,3375,3376,3377,3382,3383,3384,3385,3386,3392,3393,3394,3395,3396,3397,3398,3416,3424,3425,3426,3434,3436,3438,3445,3452,3454,3455,3456,3457,3458,3459,3461,3463,3466,3467,3470,3471,3473,3474,3475,3503,3528,3530,3531,3532,3533,3577,3586,3630,3631,3632,3633,3634,3636,3637,3638,3640,3641,3653,3654,3655,3664,3667,3669,3670,3671,3673,3674,3711,3712,3713,3715,3717,3721,3725,3727,3728,3730,3732,3733,3734,3737,3739,3740,3742,3743,3745,3746,3749,3750,3772,3774,3780,3783,3809,3812,3814,3816,3817,3819,3820,3823,3824,3840,3851,3853,3854,3855,3857,3859,3861,3862,3863,3864,3865,3868,3873,3875,3877,3879,3886,3887,3893,3898,3914,3917,3921,3922,3923,3924,3925,3926,3928,3943,3944,3947,3988,3989,3991,3992,3993,3999,4003,4004,4005,4006,4007,4008,4009,4011,4012,4013,4014,4018,4020,4021,4022,4025,4026,4032,4034,4036,4037,4040,4044,4051,4053,4054,4057,4064,4065,4067,4070,4073,4074,4094,4096,4127,4128,4129,4263,4264,4278,4279,4416,4417,4418,4435,4462,4463,4464,4511,4627,4788,4789,4798,4799,4802,4803,4805,4807,4809,4812,4815,4818,4821,4822,4824,5048,5053,5056,5682,5683,5755,5756,5761,5762,5763,5775,5829,5830,5835,5836,5837,5838,5841,5847,5863,5912,6020,6033,6132,6180,6210,6213,6221,6570,6606,6668,6788,8886,9336,9456,9523,9524,10157,10160,10323,10373,11318,11319,11320,11321,11322,11323,11324,11517,11518,11519,11520,11714,11858,11910,11911,11912,11913,11914,11915,11917,11918,11921,12321,12432,12856,12896,12897,12940,14267,14269,14270,14271,14272,185334,203139,209797,210107,214519,250484,250488,250618,250619,250620,250622,250623,250624,250625,250626,250627,250629,250630,250650,250652,250654,250656,250689,250735,255109,255964,256040,261368,262119,263389,263390,263396,263397,263438,263466,263470,266216,267307,267308,267314,268622,268623,268624,270693,271898,271903,277645}}
+data.Item[248684]={["name"]="Waylaid Crate: Apprentice Textiles",["npcDrops"]={3,48,98,114,115,121,122,123,124,127,154,157,171,202,203,213,215,217,218,232,335,345,391,422,423,424,426,428,430,432,433,434,435,436,437,440,441,442,445,446,449,450,452,453,456,458,485,486,501,502,505,506,513,517,519,531,539,544,545,547,548,550,565,568,569,573,578,579,580,589,590,594,598,599,615,619,622,623,624,625,626,628,634,636,639,641,642,643,644,645,646,647,657,712,819,824,830,831,832,923,930,1007,1008,1009,1010,1011,1012,1015,1016,1020,1021,1024,1025,1026,1027,1028,1030,1032,1039,1040,1042,1043,1083,1109,1111,1163,1164,1165,1166,1167,1169,1177,1178,1179,1180,1181,1183,1184,1185,1188,1189,1191,1192,1194,1197,1205,1206,1207,1210,1216,1222,1225,1259,1393,1400,1417,1424,1425,1426,1693,1696,1706,1707,1708,1711,1725,1726,1727,1729,1731,1732,1763,1768,1781,1782,1867,1868,1869,1870,1888,1889,1891,1892,1893,1894,1895,1896,1908,1909,1912,1913,1914,1915,1923,1924,1939,1940,1942,1943,1947,1953,1954,1955,1956,1957,1958,1972,1973,1974,1983,2053,2054,2068,2069,2071,2102,2103,2106,2120,2149,2156,2157,2158,2159,2160,2164,2165,2168,2169,2170,2171,2172,2174,2179,2180,2181,2182,2183,2185,2187,2191,2203,2204,2205,2206,2207,2208,2233,2235,2236,2237,2244,2260,2261,2265,2266,2267,2322,2323,2324,2332,2336,2338,2339,2349,2350,2351,2354,2360,2384,2403,2428,2476,2529,3204,3234,3236,3238,3239,3240,3241,3242,3245,3247,3248,3249,3250,3251,3252,3255,3256,3257,3258,3260,3261,3263,3270,3271,3273,3274,3275,3276,3277,3278,3279,3280,3282,3283,3284,3285,3286,3295,3374,3375,3376,3377,3382,3383,3384,3385,3386,3392,3393,3394,3395,3396,3397,3398,3416,3424,3425,3426,3434,3436,3438,3445,3452,3454,3455,3456,3457,3458,3459,3461,3463,3466,3467,3470,3471,3473,3474,3475,3503,3528,3530,3531,3532,3533,3577,3586,3630,3631,3632,3633,3634,3636,3637,3638,3640,3641,3653,3654,3655,3662,3667,3669,3670,3671,3673,3674,3711,3712,3713,3715,3717,3721,3725,3727,3728,3730,3732,3733,3734,3737,3739,3740,3742,3743,3745,3746,3749,3750,3772,3774,3780,3781,3783,3809,3812,3814,3816,3817,3819,3820,3823,3824,3840,3850,3851,3853,3854,3855,3857,3859,3861,3862,3863,3864,3865,3866,3873,3875,3877,3879,3886,3887,3893,3914,3917,3921,3922,3923,3924,3925,3926,3928,3944,3947,3988,3989,3991,3992,3993,3999,4003,4004,4005,4006,4007,4008,4009,4011,4012,4013,4014,4018,4020,4021,4022,4025,4032,4036,4037,4040,4044,4051,4053,4054,4064,4065,4067,4070,4073,4074,4094,4096,4127,4128,4129,4263,4264,4278,4279,4416,4417,4418,4435,4462,4463,4464,4511,4627,4788,4789,4798,4799,4802,4803,4805,4807,4809,4812,4815,4818,4824,4827,5048,5053,5056,5682,5755,5756,5761,5762,5763,5775,5800,5830,5832,5835,5837,5838,5841,5864,6020,6033,6132,6180,6210,6213,6221,6570,6606,6668,6788,7017,7170,8886,9336,9456,9523,9524,10157,10160,10323,10373,11318,11319,11320,11321,11322,11323,11324,11517,11518,11519,11520,11714,11858,11910,11911,11912,11913,11914,11915,11917,11918,11921,12319,12856,12860,12896,12897,12940,14266,14268,14269,14270,14271,14272,203139,209797,210107,214519,250484,250488,250618,250619,250620,250622,250623,250624,250625,250626,250627,250629,250630,250650,250651,250654,250656,250689,250735,255109,255964,256040,261368,262119,263389,263390,263396,263397,263438,263466,263470,266216,267307,267308,267314,268622,268623,268624,270693,271898,271903,277645}}
+data.Item[248685]={["name"]="Waylaid Crate: Apprentice Curiosities",["npcDrops"]={3,48,98,114,115,121,122,123,124,127,154,157,171,202,203,213,215,217,218,232,335,345,391,422,423,424,426,428,430,432,433,434,435,436,437,440,441,442,445,446,449,450,452,453,456,458,485,486,501,502,505,513,517,519,531,539,544,545,547,548,550,565,568,569,578,579,580,589,590,594,598,599,615,619,622,623,624,625,626,628,634,636,639,641,642,643,644,645,646,647,657,712,824,830,831,832,923,930,1007,1008,1009,1010,1011,1012,1015,1020,1021,1024,1025,1026,1027,1028,1030,1032,1039,1040,1042,1043,1083,1109,1111,1163,1164,1165,1166,1167,1169,1177,1178,1179,1180,1181,1183,1184,1185,1188,1189,1191,1192,1194,1197,1205,1206,1207,1210,1216,1222,1224,1225,1259,1393,1400,1417,1424,1425,1426,1693,1706,1707,1708,1711,1725,1726,1727,1729,1731,1732,1763,1768,1781,1782,1867,1868,1869,1870,1888,1889,1891,1892,1893,1894,1895,1896,1908,1909,1912,1913,1914,1915,1923,1924,1939,1940,1942,1943,1953,1954,1955,1956,1957,1958,1972,1973,1974,1983,2053,2054,2068,2069,2071,2102,2103,2106,2120,2149,2156,2157,2158,2159,2160,2164,2165,2168,2169,2170,2171,2173,2174,2179,2180,2181,2182,2183,2185,2187,2192,2203,2204,2205,2206,2207,2208,2232,2233,2235,2236,2237,2244,2260,2261,2265,2266,2267,2322,2323,2324,2332,2336,2338,2339,2349,2350,2351,2354,2360,2384,2403,2427,2428,2476,2477,2529,3204,3234,3236,3238,3239,3240,3241,3242,3245,3247,3248,3249,3250,3251,3252,3255,3256,3257,3258,3260,3261,3263,3270,3271,3273,3274,3275,3276,3277,3278,3279,3280,3282,3283,3284,3285,3286,3374,3375,3376,3377,3382,3383,3384,3385,3386,3392,3393,3394,3395,3396,3397,3398,3416,3424,3425,3426,3434,3436,3438,3445,3452,3454,3455,3456,3457,3458,3459,3461,3463,3466,3467,3470,3471,3473,3474,3475,3503,3528,3529,3530,3531,3532,3577,3630,3631,3632,3633,3634,3636,3637,3638,3640,3641,3653,3654,3655,3662,3667,3669,3670,3671,3673,3674,3711,3712,3713,3715,3717,3721,3725,3727,3728,3730,3732,3733,3734,3737,3739,3740,3742,3743,3745,3746,3749,3750,3772,3774,3780,3781,3783,3809,3812,3814,3816,3817,3819,3820,3823,3824,3840,3850,3851,3853,3854,3855,3857,3859,3861,3862,3863,3864,3865,3866,3868,3873,3875,3877,3879,3886,3893,3900,3914,3917,3921,3922,3923,3924,3925,3926,3928,3943,3944,3947,3988,3989,3991,3992,3993,3999,4003,4004,4005,4006,4007,4008,4009,4011,4012,4013,4014,4018,4020,4022,4025,4026,4036,4037,4040,4044,4051,4053,4054,4057,4064,4065,4067,4070,4073,4074,4094,4096,4127,4128,4129,4263,4264,4275,4278,4279,4416,4417,4418,4462,4463,4511,4627,4788,4789,4798,4799,4802,4803,4805,4807,4809,4812,4815,4818,4821,4824,5048,5053,5056,5682,5683,5755,5756,5761,5762,5763,5800,5829,5830,5831,5835,5836,5837,5841,5863,5864,5912,6020,6033,6132,6180,6210,6213,6221,6570,6606,6668,6788,8886,9336,9456,9523,9524,10157,10160,10323,10373,11318,11319,11320,11321,11322,11323,11324,11517,11518,11519,11520,11714,11858,11910,11911,11912,11913,11915,11917,11918,11921,12319,12321,12432,12856,12860,12896,12897,12940,14268,185334,203139,209797,210107,214456,214519,250484,250488,250618,250619,250620,250622,250623,250624,250625,250626,250627,250629,250630,250650,250654,250656,250689,250735,255109,255964,256040,261368,262119,263389,263390,263396,263397,263438,263466,263470,266216,267307,267308,267314,268622,268623,268624,270693,271898,271903,277645}}
+data.Item[248686]={["name"]="Waylaid Crate: Journeyman Herbs",["npcDrops"]={3,48,202,203,205,206,210,212,215,218,232,300,314,315,334,335,345,397,429,431,432,433,434,435,436,437,445,485,486,511,518,531,533,544,565,568,569,570,579,580,587,588,595,604,615,628,639,681,682,683,685,688,689,694,697,699,701,702,703,711,736,775,785,787,819,855,856,889,891,892,898,905,909,910,920,923,930,937,938,940,941,948,949,976,1007,1008,1009,1010,1011,1012,1013,1014,1015,1016,1017,1018,1019,1020,1021,1022,1023,1024,1025,1026,1027,1028,1029,1031,1032,1033,1034,1035,1036,1038,1040,1042,1043,1044,1051,1052,1053,1054,1057,1069,1085,1097,1110,1111,1140,1150,1157,1158,1159,1160,1200,1210,1251,1258,1259,1270,1353,1400,1417,1418,1487,1663,1666,1696,1706,1707,1708,1711,1715,1716,1717,1754,1755,1944,1947,1973,2089,2090,2102,2108,2120,2183,2236,2240,2241,2244,2248,2249,2250,2251,2252,2260,2261,2264,2265,2266,2267,2268,2269,2270,2271,2272,2304,2305,2319,2335,2337,2344,2345,2346,2348,2349,2350,2351,2354,2356,2358,2359,2360,2368,2369,2370,2371,2372,2373,2374,2375,2376,2377,2384,2385,2387,2403,2404,2406,2407,2408,2411,2412,2413,2415,2427,2428,2448,2449,2450,2451,2503,2529,2552,2553,2554,2555,2556,2559,2560,2562,2563,2564,2578,2581,2582,2586,2587,2589,2618,2619,2628,3235,3237,3238,3239,3249,3250,3252,3253,3374,3375,3376,3377,3378,3392,3414,3424,3434,3435,3456,3457,3458,3459,3472,3473,3474,3476,3640,3654,3664,3670,3674,3696,3711,3727,3736,3743,3745,3746,3748,3749,3750,3752,3754,3755,3757,3758,3759,3762,3763,3765,3767,3770,3771,3772,3774,3780,3781,3782,3783,3784,3789,3791,3792,3797,3799,3801,3802,3803,3804,3806,3807,3808,3809,3810,3811,3815,3817,3818,3819,3820,3821,3824,3825,3833,3834,3855,3857,3859,3863,3866,3868,3872,3873,3875,3877,3879,3886,3887,3893,3898,3917,3919,3921,3922,3923,3924,3925,3926,3927,3928,3932,3941,3943,3944,3974,3983,3984,3987,3992,3999,4003,4004,4012,4013,4014,4015,4016,4017,4018,4019,4020,4021,4022,4023,4024,4025,4026,4027,4028,4029,4031,4032,4034,4036,4037,4038,4040,4041,4042,4044,4050,4051,4052,4053,4054,4056,4057,4061,4062,4064,4065,4067,4073,4074,4093,4094,4095,4096,4097,4099,4100,4101,4104,4107,4109,4110,4111,4112,4113,4114,4116,4117,4118,4119,4120,4124,4126,4128,4130,4131,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4202,4248,4249,4264,4273,4274,4275,4278,4279,4280,4281,4282,4283,4284,4287,4288,4291,4293,4296,4299,4304,4306,4308,4409,4420,4421,4422,4424,4427,4428,4435,4436,4437,4438,4440,4442,4462,4463,4464,4479,4490,4499,4511,4512,4514,4515,4516,4517,4518,4519,4520,4522,4523,4525,4530,4531,4532,4538,4539,4541,4543,4548,4619,4623,4627,4632,4633,4634,4635,4636,4637,4638,4639,4640,4641,4642,4643,4646,4647,4648,4649,4651,4663,4664,4665,4666,4667,4670,4671,4672,4673,4674,4675,4689,4692,4696,4711,4712,4713,4714,4718,4726,4728,4788,4789,4798,4799,4803,4805,4807,4809,4810,4811,4812,4813,4814,4815,4818,4819,4820,4821,4822,4823,4824,4825,4827,4829,4830,4831,4832,4887,4969,4978,5056,5756,5762,5763,5775,5798,5799,5800,5832,5847,5851,5864,5928,5931,5933,6035,6073,6115,6132,6167,6168,6170,6206,6207,6208,6210,6211,6212,6213,6215,6218,6219,6220,6221,6222,6223,6224,6225,6226,6227,6229,6230,6231,6232,6233,6234,6238,6243,6329,6391,6392,6407,6426,6427,6523,6575,6668,7079,7327,7332,7333,7361,7404,7603,7872,7873,7874,8518,10617,10639,10756,10757,10758,10759,10760,10761,10882,10896,10992,11562,11563,11576,11578,11656,11680,11681,11682,11683,11697,11921,12347,12579,12676,12677,12678,12759,12856,12860,12876,12896,12897,12902,12918,13019,14278,14357,14424,14427,185334,203139,214519,246600,246664,246888,246990,246992,246993,247001,247003,247016,250626,255066,255068,255069,255070,255072,256433,259897,260796,260797,260798,260799,260800,260801,260802,260803,260804,260808,260809,260810,264081,264082,264083,266216,266862,268622,268623,269134,270094,270589,270892,271334,271336,271338,271346,271348,271351,271458,271460,271462,271749,274715,275044,275045,275046,277645,277881}}
+data.Item[248687]={["name"]="Waylaid Crate: Journeyman Ore",["npcDrops"]={3,48,202,203,205,206,210,212,215,218,232,300,314,315,334,335,345,397,429,431,432,433,434,435,436,437,445,485,486,511,518,531,533,565,568,569,570,579,580,587,588,595,604,615,628,639,681,682,683,685,688,689,694,697,699,701,702,703,711,736,740,755,775,785,787,819,855,856,889,891,892,898,905,909,910,920,923,930,937,940,941,947,948,949,976,977,1007,1008,1009,1010,1011,1012,1013,1014,1015,1016,1017,1018,1019,1020,1021,1022,1023,1024,1025,1026,1027,1028,1030,1031,1032,1033,1034,1035,1036,1038,1039,1040,1042,1043,1044,1051,1052,1053,1054,1057,1069,1085,1097,1108,1110,1111,1150,1157,1158,1159,1160,1200,1210,1251,1258,1259,1270,1353,1399,1400,1417,1418,1663,1666,1696,1706,1707,1708,1711,1715,1716,1717,1725,1754,1755,1947,1973,2089,2091,2102,2120,2183,2236,2240,2241,2244,2248,2249,2250,2251,2252,2260,2261,2264,2265,2266,2267,2268,2269,2270,2271,2272,2304,2305,2319,2332,2335,2337,2344,2345,2346,2348,2349,2350,2351,2354,2356,2358,2359,2360,2368,2369,2370,2371,2372,2373,2374,2375,2376,2377,2384,2385,2387,2403,2404,2406,2407,2408,2411,2412,2413,2414,2415,2427,2428,2440,2448,2449,2450,2451,2503,2529,2552,2553,2554,2555,2556,2559,2560,2562,2563,2564,2575,2578,2579,2581,2582,2586,2587,2589,2618,2619,2628,3238,3239,3249,3250,3252,3253,3374,3375,3376,3377,3378,3392,3414,3424,3434,3435,3436,3456,3457,3458,3459,3472,3473,3474,3476,3654,3664,3670,3673,3674,3711,3727,3740,3743,3745,3746,3748,3749,3750,3752,3754,3755,3757,3758,3759,3762,3763,3765,3767,3770,3771,3772,3774,3780,3781,3782,3783,3784,3789,3791,3797,3801,3802,3803,3804,3806,3807,3808,3809,3810,3811,3814,3817,3818,3819,3820,3821,3824,3825,3833,3834,3855,3857,3859,3863,3865,3866,3868,3872,3873,3875,3877,3879,3887,3893,3898,3917,3919,3921,3922,3923,3924,3925,3926,3927,3928,3931,3932,3940,3941,3942,3943,3974,3983,3984,3986,3987,3992,3993,3999,4003,4004,4012,4013,4014,4015,4016,4017,4018,4019,4020,4021,4022,4023,4024,4025,4026,4027,4028,4029,4031,4032,4034,4035,4036,4037,4038,4040,4041,4042,4044,4050,4051,4052,4053,4054,4056,4057,4061,4062,4064,4065,4067,4073,4074,4093,4094,4095,4096,4097,4099,4100,4101,4104,4107,4109,4110,4111,4112,4113,4114,4116,4117,4118,4119,4120,4124,4126,4128,4130,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4202,4248,4249,4264,4273,4274,4275,4278,4279,4280,4281,4282,4283,4287,4288,4291,4293,4296,4299,4304,4306,4308,4409,4420,4421,4422,4424,4427,4428,4435,4436,4437,4438,4440,4442,4462,4463,4464,4479,4490,4499,4511,4512,4514,4515,4516,4517,4518,4519,4520,4522,4523,4525,4530,4531,4532,4538,4539,4541,4548,4623,4627,4632,4633,4634,4635,4636,4637,4638,4639,4640,4641,4642,4646,4647,4648,4649,4663,4664,4665,4666,4667,4670,4671,4672,4673,4674,4675,4689,4692,4696,4697,4711,4712,4713,4714,4726,4728,4788,4789,4798,4799,4802,4803,4805,4807,4809,4810,4811,4812,4813,4814,4815,4818,4819,4820,4821,4822,4823,4824,4825,4827,4829,4830,4831,4832,4887,4969,4978,5056,5683,5756,5761,5762,5763,5797,5799,5800,5831,5848,5849,5851,5928,5931,6035,6073,6115,6132,6167,6168,6170,6206,6207,6208,6210,6211,6212,6213,6215,6218,6219,6220,6221,6222,6223,6224,6225,6226,6227,6228,6229,6230,6231,6232,6233,6234,6235,6243,6329,6391,6392,6426,6427,6523,6575,6668,7053,7079,7332,7333,7361,7404,7603,7872,7873,7874,8518,9377,10617,10756,10757,10758,10759,10760,10761,10882,10896,10992,11562,11563,11576,11578,11656,11680,11681,11682,11683,11697,11921,12347,12579,12676,12677,12678,12759,12856,12860,12876,12896,12897,12902,12918,14273,14275,14278,14425,14426,203139,214456,214519,246600,246664,246888,246990,246992,246993,247001,247003,247016,255066,255068,255069,255070,255072,256433,259897,260796,260797,260798,260799,260800,260801,260802,260803,260804,260808,260809,260810,264081,264082,264083,266216,266862,268622,268623,269134,270094,270589,270892,271334,271336,271338,271346,271348,271351,271460,271462,274715,275044,275045,275046,277645}}
+data.Item[248688]={["name"]="Waylaid Crate: Journeyman Textiles",["npcDrops"]={3,48,202,203,205,206,210,212,215,218,232,300,314,315,334,335,345,429,431,432,433,434,435,436,437,445,485,486,503,511,518,521,531,533,544,565,568,569,570,579,580,584,587,588,595,604,615,628,639,681,682,683,685,688,689,694,697,699,701,702,703,711,736,740,755,785,787,819,855,856,889,891,892,898,905,909,910,920,923,930,937,938,940,948,949,977,1007,1008,1009,1010,1011,1012,1013,1014,1015,1016,1017,1018,1019,1020,1021,1022,1023,1024,1025,1026,1027,1028,1029,1030,1031,1032,1033,1034,1035,1036,1038,1040,1041,1042,1043,1044,1051,1052,1053,1054,1057,1069,1085,1094,1108,1110,1111,1150,1157,1158,1159,1160,1200,1210,1251,1258,1259,1270,1353,1400,1417,1418,1663,1666,1696,1706,1707,1708,1711,1715,1716,1717,1720,1754,1755,1947,1948,1973,2089,2091,2102,2120,2160,2183,2236,2240,2241,2244,2248,2249,2250,2251,2252,2260,2261,2264,2265,2266,2267,2268,2269,2270,2271,2272,2304,2305,2332,2335,2337,2344,2345,2346,2348,2349,2350,2351,2354,2356,2358,2359,2360,2368,2369,2370,2371,2372,2373,2374,2375,2376,2377,2384,2385,2387,2403,2404,2406,2407,2408,2411,2412,2413,2414,2415,2427,2428,2448,2449,2450,2451,2503,2529,2553,2554,2555,2556,2559,2560,2562,2563,2564,2577,2578,2581,2582,2586,2587,2589,2619,3235,3237,3238,3239,3249,3250,3252,3253,3374,3375,3376,3377,3378,3392,3414,3424,3434,3435,3436,3456,3457,3458,3459,3466,3472,3473,3474,3476,3654,3664,3670,3673,3674,3711,3742,3743,3745,3746,3748,3749,3750,3752,3754,3755,3757,3758,3759,3762,3763,3765,3767,3770,3771,3772,3774,3780,3781,3782,3783,3784,3789,3791,3797,3799,3801,3802,3803,3804,3806,3807,3808,3809,3810,3811,3817,3818,3819,3820,3821,3824,3825,3833,3834,3855,3857,3859,3863,3866,3868,3873,3875,3877,3886,3887,3893,3898,3899,3900,3917,3919,3921,3922,3923,3924,3925,3926,3927,3928,3931,3932,3943,3944,3983,3984,3985,3986,3987,3992,3993,3999,4004,4012,4013,4014,4015,4016,4017,4018,4019,4020,4021,4022,4023,4024,4025,4026,4027,4028,4029,4031,4032,4034,4035,4036,4037,4038,4040,4041,4042,4044,4050,4051,4052,4053,4054,4056,4057,4061,4062,4064,4065,4067,4073,4074,4093,4094,4095,4096,4097,4099,4100,4101,4104,4107,4109,4110,4111,4112,4113,4114,4116,4117,4118,4119,4120,4124,4126,4128,4130,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4202,4248,4249,4250,4264,4273,4274,4275,4278,4279,4280,4281,4282,4283,4284,4285,4287,4291,4293,4296,4299,4304,4306,4308,4409,4421,4422,4424,4427,4428,4435,4436,4437,4438,4440,4442,4462,4463,4464,4479,4490,4499,4511,4512,4514,4515,4516,4517,4518,4519,4520,4522,4523,4525,4530,4531,4532,4538,4539,4541,4543,4548,4619,4623,4627,4632,4633,4634,4635,4636,4637,4638,4639,4640,4641,4642,4646,4647,4648,4649,4663,4664,4665,4666,4667,4670,4671,4672,4673,4674,4675,4692,4696,4711,4712,4713,4714,4726,4728,4788,4789,4798,4799,4802,4803,4805,4807,4809,4810,4811,4812,4813,4814,4815,4818,4819,4820,4821,4822,4823,4824,4825,4827,4829,4830,4831,4832,4887,4969,4978,5056,5756,5762,5763,5775,5798,5799,5800,5859,5930,6035,6073,6115,6132,6167,6168,6170,6206,6207,6208,6210,6211,6212,6213,6215,6218,6219,6220,6221,6222,6223,6224,6225,6226,6227,6229,6230,6231,6232,6233,6234,6235,6238,6243,6329,6391,6392,6407,6426,6427,6523,6547,6575,6668,7079,7332,7333,7361,7404,7603,7872,7873,7874,8518,9377,10617,10756,10757,10758,10759,10760,10761,10882,10896,10992,11562,11576,11578,11656,11680,11681,11682,11683,11921,12347,12579,12676,12677,12678,12759,12856,12860,12876,12896,12897,12902,12918,12940,12976,14273,14275,14279,14280,14424,14426,14427,203139,214456,214519,217305,246600,246664,246888,246990,246992,246993,247001,247003,247016,255066,255068,255069,255070,255072,256433,259897,260796,260797,260798,260799,260800,260801,260802,260803,260804,260808,260809,260810,264081,264082,264083,266216,266862,268622,268623,269134,270094,270589,270892,271334,271336,271338,271346,271348,271351,271458,271460,271462,271732,271749,272389,274715,275044,275045,275046,277645}}
+data.Item[248689]={["name"]="Waylaid Crate: Journeyman Curiosities",["npcDrops"]={3,48,202,203,205,206,210,212,215,218,232,300,314,315,334,335,345,397,429,431,432,433,434,435,436,437,445,485,486,511,518,531,533,544,565,568,569,570,579,580,584,587,588,595,604,615,616,628,639,681,682,683,685,688,689,694,697,699,701,702,703,711,736,740,755,771,785,787,819,855,889,891,892,898,909,910,920,923,930,937,938,940,948,949,977,1007,1008,1009,1010,1011,1012,1013,1014,1015,1016,1017,1018,1019,1020,1021,1022,1023,1024,1025,1026,1027,1028,1029,1030,1031,1032,1033,1034,1035,1036,1038,1040,1042,1043,1044,1051,1052,1053,1054,1057,1069,1085,1094,1097,1110,1111,1150,1157,1158,1159,1160,1200,1210,1251,1258,1259,1270,1353,1400,1417,1418,1421,1487,1663,1666,1696,1706,1707,1708,1711,1715,1716,1717,1755,1947,1973,2089,2090,2091,2102,2108,2183,2236,2240,2241,2244,2248,2249,2250,2251,2252,2260,2261,2264,2265,2266,2267,2268,2269,2270,2271,2272,2283,2304,2305,2319,2335,2337,2344,2345,2346,2348,2349,2350,2351,2354,2356,2358,2359,2360,2368,2369,2370,2371,2372,2373,2374,2375,2376,2377,2384,2385,2387,2403,2404,2406,2407,2408,2411,2412,2413,2414,2415,2427,2428,2448,2449,2450,2451,2503,2529,2552,2553,2554,2555,2556,2559,2560,2562,2563,2564,2575,2577,2578,2579,2581,2582,2586,2587,2589,2618,2619,2628,3235,3237,3238,3239,3249,3250,3252,3253,3374,3375,3376,3377,3378,3392,3414,3424,3434,3435,3436,3456,3457,3458,3459,3466,3472,3473,3474,3476,3633,3636,3654,3664,3673,3674,3742,3743,3745,3746,3748,3749,3750,3752,3754,3755,3757,3758,3759,3762,3763,3765,3767,3770,3771,3772,3774,3781,3782,3783,3784,3789,3791,3792,3797,3799,3801,3802,3803,3804,3806,3807,3808,3809,3810,3811,3814,3815,3817,3818,3819,3820,3821,3824,3825,3833,3834,3855,3857,3859,3863,3865,3868,3873,3875,3877,3879,3886,3887,3893,3899,3917,3919,3921,3922,3923,3924,3925,3926,3927,3928,3931,3932,3941,3944,3983,3986,3987,3992,3993,3999,4003,4004,4012,4013,4014,4016,4017,4018,4019,4020,4021,4022,4023,4024,4025,4026,4027,4028,4029,4030,4031,4032,4034,4035,4036,4037,4038,4040,4041,4042,4044,4050,4051,4052,4053,4054,4056,4057,4061,4062,4064,4065,4067,4070,4073,4074,4093,4094,4095,4096,4097,4099,4100,4101,4104,4107,4109,4110,4111,4112,4113,4114,4116,4117,4118,4119,4120,4124,4126,4128,4130,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4202,4248,4249,4264,4274,4275,4278,4279,4280,4281,4282,4283,4284,4285,4287,4288,4291,4293,4296,4299,4304,4306,4308,4409,4420,4421,4422,4424,4427,4428,4435,4436,4437,4438,4440,4442,4462,4463,4464,4490,4499,4511,4512,4514,4515,4516,4517,4518,4519,4520,4522,4523,4525,4530,4531,4532,4538,4539,4541,4543,4548,4619,4623,4627,4632,4633,4634,4635,4636,4637,4638,4639,4640,4641,4642,4643,4646,4647,4648,4649,4663,4664,4665,4666,4667,4670,4671,4672,4673,4674,4675,4689,4692,4696,4711,4712,4713,4714,4726,4728,4788,4789,4798,4799,4802,4803,4805,4807,4809,4810,4811,4812,4813,4814,4815,4818,4819,4820,4822,4823,4824,4825,4827,4829,4830,4831,4832,4887,4969,4978,5056,5756,5762,5763,5775,5797,5798,5799,5800,5834,5848,5849,5851,5915,5928,5930,5933,6035,6073,6115,6132,6168,6170,6206,6207,6208,6210,6211,6212,6213,6215,6218,6219,6220,6221,6222,6223,6224,6225,6226,6227,6229,6230,6231,6232,6233,6234,6235,6238,6243,6329,6391,6407,6426,6427,6488,6523,6547,6575,6668,7079,7327,7332,7333,7361,7404,7603,7800,7843,7872,7873,7874,8518,9377,10617,10643,10756,10757,10758,10759,10760,10761,10882,10896,10992,11562,11563,11576,11578,11680,11681,11682,11683,11697,11921,12347,12579,12676,12677,12678,12759,12856,12876,12896,12897,12902,12918,13019,14275,14278,14279,14280,14424,14425,214519,217305,246600,246664,246888,246990,246992,246993,247001,247003,247016,255066,255068,255069,255070,255072,256433,260796,260797,260798,260799,260800,260801,260802,260803,260804,260808,260809,260810,264081,264082,264083,266216,266862,268622,268623,269134,270094,270589,270892,271334,271336,271338,271346,271348,271351,271458,271460,271462,271732,271749,274715,275044,275045,275046,277645,277881}}
+data.Item[248690]={["name"]="Waylaid Crate: Earthly Expert Herbs",["npcDrops"]={736,741,762,1160,2358,2375,2414,4308,4639,4642,4651,4728,11561,271338,92,206,212,315,412,522,587,588,595,597,660,667,669,670,671,672,674,675,676,677,678,679,680,681,682,683,684,685,686,687,688,689,690,691,694,696,697,699,701,702,709,710,728,729,730,731,740,742,743,744,745,747,750,751,755,757,759,760,761,764,765,766,767,768,772,780,781,782,783,784,813,854,856,858,861,871,873,875,877,879,920,921,922,937,938,939,940,941,942,943,976,978,979,1053,1054,1061,1062,1081,1082,1084,1085,1087,1088,1094,1095,1096,1097,1108,1114,1142,1144,1150,1151,1152,1200,1270,1364,1487,1488,1489,1490,1491,1550,1551,1557,1558,1561,1562,1563,1564,1565,1653,1713,1907,2091,2240,2241,2242,2243,2245,2246,2247,2248,2249,2250,2251,2252,2253,2254,2255,2256,2257,2271,2272,2287,2304,2306,2318,2319,2320,2335,2345,2346,2347,2359,2369,2371,2376,2377,2406,2407,2408,2411,2412,2413,2415,2416,2417,2420,2421,2422,2431,2440,2453,2530,2536,2537,2544,2545,2547,2549,2550,2552,2553,2554,2555,2556,2557,2558,2559,2560,2561,2562,2563,2564,2565,2566,2567,2569,2570,2571,2572,2573,2574,2578,2579,2580,2581,2582,2583,2584,2585,2586,2587,2588,2589,2590,2591,2592,2595,2596,2597,2611,2615,2618,2619,2628,2635,2639,2641,2643,2645,2649,2650,2651,2652,2653,2654,2655,2656,2657,2680,2686,2691,2692,2693,2694,2701,2715,2716,2717,2718,2719,2720,2721,2723,2725,2726,2727,2728,2729,2730,2731,2732,2733,2734,2735,2736,2738,2739,2740,2742,2743,2745,2754,2760,2761,2762,2763,2764,2765,2773,2791,2829,2830,2831,2892,2893,2894,2906,2907,2923,2924,2925,2926,2927,2928,2929,2932,2937,2944,2945,3660,3752,3802,3806,3940,3941,3975,3976,3977,3983,3985,4062,4063,4101,4104,4110,4116,4130,4131,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4260,4283,4284,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4304,4306,4323,4324,4328,4329,4331,4334,4341,4342,4343,4344,4345,4351,4352,4355,4356,4357,4358,4359,4360,4361,4362,4363,4376,4377,4378,4379,4382,4385,4386,4391,4392,4393,4396,4397,4398,4401,4402,4404,4405,4411,4412,4413,4414,4415,4420,4421,4422,4427,4428,4457,4458,4461,4466,4467,4479,4480,4481,4490,4504,4505,4506,4518,4525,4532,4538,4539,4540,4542,4543,4548,4623,4632,4633,4634,4635,4636,4637,4638,4640,4641,4643,4644,4645,4646,4647,4648,4649,4652,4653,4654,4655,4657,4658,4659,4660,4662,4663,4664,4665,4666,4667,4668,4670,4671,4672,4673,4674,4675,4676,4677,4678,4679,4680,4681,4682,4684,4685,4687,4692,4693,4695,4696,4697,4699,4700,4701,4705,4711,4712,4713,4714,4715,4716,4718,4719,4723,4725,4726,4727,4729,4834,4841,4844,4845,4846,4847,4848,4849,4850,4851,4852,4853,4854,4855,4856,4857,4860,4861,4863,4872,5044,5046,5057,5184,5226,5228,5229,5232,5234,5235,5236,5237,5238,5239,5240,5241,5243,5244,5245,5246,5247,5249,5251,5253,5254,5255,5256,5258,5260,5263,5267,5268,5269,5272,5278,5286,5287,5292,5293,5295,5296,5297,5300,5304,5305,5306,5307,5308,5331,5332,5333,5334,5335,5336,5337,5357,5360,5361,5419,5420,5422,5423,5424,5425,5426,5427,5428,5429,5452,5455,5456,5459,5461,5462,5471,5472,5473,5474,5477,5481,5490,5600,5602,5615,5616,5617,5618,5623,5643,5646,5648,5649,5650,5760,5771,5839,5840,5843,5844,5846,5853,5854,5855,5856,5858,5860,5976,5982,5984,6068,6069,6116,6117,6125,6126,6127,6170,6190,6194,6212,6222,6223,6224,6226,6227,6229,6230,6232,6234,6239,6375,6391,6426,6427,6487,6575,6733,6910,7011,7012,7022,7023,7030,7078,7091,7153,7175,7206,7228,7246,7247,7268,7269,7271,7272,7273,7275,7286,7291,7320,7321,7327,7328,7329,7332,7333,7334,7335,7337,7341,7342,7344,7345,7346,7347,7348,7349,7351,7352,7353,7355,7356,7357,7358,7361,7396,7397,7405,7584,7604,7605,7606,7725,7726,7727,7796,7797,7800,7803,7808,7847,7848,7855,7856,7857,7858,7872,7873,7874,7883,8095,8136,8210,8311,8318,8337,8384,8566,8567,8637,8667,8759,8837,8956,8959,9165,9916,10992,11559,11562,11563,11576,11577,11578,11687,11777,11778,11782,11783,11784,11785,11786,11787,11788,11789,11790,11791,11792,11793,11794,11937,12207,12216,12217,12218,12219,12220,12221,12222,12223,12240,12241,12242,12347,12369,12865,12977,13019,13141,13142,13323,13696,13718,14123,14222,14230,14276,203138,213795,217305,222286,236028,246600,246664,250187,252711,253272,253524,253526,254283,254284,254560,255174,255207,255238,255267,255271,255309,255373,255377,255560,255769,255770,255772,255774,255849,255850,255851,255898,255901,255906,255995,256383,256433,256434,256749,256795,256797,256798,256799,256800,256801,256807,256892,256899,256952,257001,257017,257861,257885,257888,257900,257901,257910,257915,257916,257926,258038,258040,258042,258100,258102,258104,258331,258522,258573,258574,258687,258792,258797,258799,258804,258818,258897,258963,259046,259052,259054,259055,259258,259263,259267,259269,259979,259981,259987,260211,260225,260235,260244,260353,260419,260429,260968,260969,260973,260995,260996,261497,261710,261711,262037,262065,262169,262397,262473,262477,262838,263071,263196,263307,263343,263348,263380,263681,263742,263749,263899,266357,266862,267065,268321,268423,268831,269175,269254,269756,270094,270664,270667,271346,271348,271351,271373,271458,271460,271462,272228,272313,272315,272389,276401}}
+data.Item[248691]={["name"]="Waylaid Crate: Flowering Expert Herbs",["npcDrops"]={92,206,212,314,412,522,534,587,588,595,597,660,667,669,670,671,672,674,675,676,677,678,679,680,681,682,683,684,685,686,687,688,689,690,691,694,696,697,699,701,702,709,710,728,729,730,731,736,740,741,742,744,745,746,747,750,751,752,755,757,759,760,761,762,764,765,766,767,768,772,775,780,781,782,783,784,813,814,818,854,855,858,862,871,873,875,877,879,905,920,921,922,937,938,939,940,941,942,978,979,1053,1054,1060,1061,1062,1082,1084,1085,1087,1088,1094,1095,1096,1097,1108,1114,1142,1144,1150,1151,1152,1270,1364,1488,1489,1490,1491,1550,1551,1557,1558,1561,1562,1563,1564,1565,1653,1713,1755,1907,2091,2240,2241,2242,2243,2245,2246,2247,2248,2249,2250,2251,2252,2253,2254,2255,2256,2258,2271,2272,2287,2304,2305,2306,2318,2319,2320,2335,2345,2347,2358,2359,2369,2371,2375,2376,2377,2406,2407,2408,2411,2412,2413,2414,2415,2417,2420,2421,2422,2423,2431,2474,2530,2535,2536,2537,2545,2549,2552,2553,2554,2555,2556,2557,2558,2559,2560,2561,2562,2563,2564,2565,2566,2567,2569,2570,2571,2572,2573,2574,2575,2578,2579,2580,2581,2582,2583,2584,2585,2586,2587,2588,2589,2590,2591,2592,2595,2596,2599,2611,2612,2618,2619,2624,2628,2635,2639,2640,2641,2643,2644,2645,2649,2650,2651,2652,2653,2655,2656,2657,2658,2686,2691,2692,2693,2694,2701,2715,2716,2717,2718,2719,2720,2721,2723,2725,2726,2727,2728,2729,2731,2732,2734,2735,2736,2738,2739,2740,2742,2743,2745,2748,2760,2761,2762,2763,2764,2765,2783,2791,2829,2830,2831,2893,2894,2906,2907,2919,2923,2924,2925,2926,2927,2928,2929,2932,2937,2944,2945,3414,3752,3757,3791,3802,3940,3942,3974,3975,3976,3977,3983,3984,4101,4104,4110,4130,4131,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4260,4280,4281,4283,4285,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4304,4306,4308,4323,4324,4328,4329,4331,4334,4341,4342,4343,4344,4345,4351,4352,4355,4356,4357,4358,4359,4360,4361,4362,4363,4376,4377,4378,4379,4387,4392,4393,4396,4397,4398,4399,4400,4401,4402,4404,4405,4411,4412,4413,4414,4415,4420,4421,4427,4457,4458,4459,4461,4465,4466,4467,4468,4469,4479,4480,4481,4499,4504,4505,4506,4518,4525,4532,4538,4539,4540,4542,4543,4619,4623,4632,4633,4634,4635,4636,4637,4638,4639,4640,4641,4642,4643,4644,4645,4646,4647,4648,4649,4651,4654,4655,4656,4657,4659,4660,4662,4663,4664,4665,4666,4667,4668,4670,4671,4672,4673,4674,4675,4676,4677,4679,4680,4681,4682,4684,4685,4690,4692,4693,4694,4695,4696,4697,4699,4700,4701,4702,4705,4711,4712,4713,4714,4715,4716,4718,4719,4723,4725,4726,4727,4728,4729,4834,4844,4845,4846,4847,4848,4849,4850,4851,4852,4853,4854,4855,4856,4857,4860,4861,4863,4872,5044,5045,5046,5224,5225,5226,5228,5229,5232,5234,5236,5237,5238,5239,5240,5241,5243,5244,5245,5246,5247,5249,5251,5253,5254,5255,5258,5260,5261,5268,5272,5278,5286,5287,5292,5293,5295,5296,5299,5300,5304,5305,5306,5307,5308,5331,5333,5334,5335,5336,5337,5343,5361,5363,5419,5420,5422,5423,5424,5425,5426,5428,5429,5430,5441,5452,5455,5458,5459,5461,5462,5465,5471,5472,5473,5474,5477,5481,5490,5600,5615,5616,5617,5618,5623,5643,5645,5648,5649,5650,5760,5839,5840,5843,5844,5846,5850,5852,5853,5854,5855,5856,5858,5860,5881,5934,5982,5984,6068,6069,6116,6117,6125,6126,6127,6170,6190,6193,6212,6224,6225,6226,6227,6229,6230,6232,6234,6235,6239,6375,6426,6427,6487,6489,6505,6509,6575,6733,6910,7011,7012,7022,7030,7078,7097,7153,7175,7206,7228,7246,7247,7267,7268,7269,7271,7272,7273,7274,7276,7286,7290,7291,7320,7321,7327,7328,7329,7332,7333,7334,7335,7337,7341,7342,7344,7345,7346,7347,7348,7349,7351,7352,7353,7355,7356,7357,7358,7361,7396,7397,7405,7606,7608,7725,7726,7727,7797,7800,7803,7808,7848,7855,7856,7857,7858,7872,7873,7874,7883,7977,7997,8095,8120,8127,8136,8311,8318,8337,8384,8504,8566,8567,8637,8759,8956,8959,9318,9396,10043,11559,11561,11562,11563,11576,11577,11685,11686,11687,11777,11778,11783,11784,11785,11786,11787,11788,11789,11790,11791,11792,11793,11937,12207,12216,12217,12218,12219,12220,12221,12222,12223,12236,12239,12240,12241,12242,12243,12347,12369,12676,12865,12976,12977,13019,13141,13142,13323,13696,13718,14123,14221,14277,217305,222286,236028,246664,247001,250187,252711,253272,253524,253525,253526,254283,254284,254560,255174,255207,255238,255267,255276,255309,255377,255560,255561,255769,255770,255772,255774,255849,255850,255851,255898,255901,255906,255995,256383,256410,256433,256434,256749,256795,256797,256798,256799,256800,256801,256807,256899,256952,257001,257017,257861,257885,257888,257900,257901,257910,257915,257916,257926,258038,258040,258042,258100,258102,258104,258331,258522,258573,258574,258687,258792,258797,258799,258804,258818,258897,258963,259046,259052,259054,259055,259258,259263,259267,259269,259979,259981,259987,260211,260225,260235,260244,260353,260419,260429,260931,260968,260969,260973,260995,260996,261497,261710,261711,262037,262065,262169,262397,262473,262477,262838,263071,263141,263196,263307,263343,263348,263380,263615,263681,263899,266357,268321,268423,268831,269175,269756,270094,270310,270664,270667,270892,271336,271338,271346,271348,271351,271373,271458,271460,271462,272228,272313,272315,272389,276401}}
+data.Item[248692]={["name"]="Waylaid Crate: Expert Ore",["npcDrops"]={1150,2248,2358,2566,2893,4154,4640,4664,92,206,212,300,314,315,522,587,588,595,597,660,667,669,670,671,672,674,675,676,677,678,679,681,682,683,684,685,686,687,688,689,690,691,694,696,697,699,701,702,709,710,728,729,730,731,736,740,741,742,744,745,746,747,750,751,752,755,757,759,760,761,762,764,765,766,767,768,772,775,780,781,782,783,784,818,854,856,858,871,873,875,877,879,905,920,921,922,937,938,939,940,941,942,943,976,977,978,979,1053,1054,1059,1060,1061,1062,1081,1082,1084,1085,1087,1088,1094,1095,1096,1097,1108,1114,1142,1144,1151,1152,1200,1270,1364,1488,1489,1490,1491,1550,1551,1552,1557,1558,1561,1562,1563,1564,1565,1653,1713,1754,1907,2091,2240,2241,2242,2243,2245,2246,2247,2249,2250,2251,2252,2253,2254,2255,2256,2258,2271,2272,2287,2305,2306,2318,2319,2320,2345,2346,2347,2359,2369,2370,2371,2375,2376,2377,2406,2407,2408,2411,2412,2413,2414,2415,2417,2421,2423,2431,2434,2440,2535,2536,2537,2544,2550,2551,2553,2554,2555,2556,2557,2558,2559,2560,2561,2562,2563,2564,2565,2567,2569,2570,2571,2572,2573,2574,2577,2579,2580,2581,2582,2583,2584,2585,2586,2587,2588,2589,2590,2591,2592,2595,2596,2597,2599,2611,2615,2618,2619,2624,2628,2635,2639,2642,2643,2644,2649,2650,2651,2652,2653,2654,2655,2656,2657,2658,2680,2686,2691,2692,2693,2694,2701,2714,2715,2716,2717,2718,2720,2721,2723,2725,2726,2727,2728,2729,2730,2731,2732,2733,2734,2735,2736,2738,2739,2740,2742,2743,2745,2760,2761,2762,2765,2782,2783,2791,2829,2830,2831,2894,2906,2907,2919,2923,2924,2925,2926,2927,2928,2929,2932,2945,3414,3752,3807,3931,3940,3974,3975,3977,3984,3985,4062,4101,4104,4110,4116,4130,4131,4132,4133,4139,4140,4142,4143,4144,4147,4150,4151,4158,4260,4280,4281,4283,4285,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4304,4306,4308,4323,4324,4328,4329,4331,4334,4339,4341,4342,4343,4344,4345,4351,4352,4355,4356,4357,4358,4359,4360,4361,4362,4363,4376,4377,4378,4379,4382,4386,4387,4388,4391,4392,4393,4396,4397,4399,4402,4404,4405,4411,4412,4413,4414,4421,4422,4427,4438,4457,4458,4461,4465,4466,4467,4468,4479,4480,4481,4490,4499,4504,4505,4506,4518,4525,4532,4538,4539,4540,4542,4543,4548,4623,4632,4633,4634,4635,4636,4637,4638,4639,4641,4642,4643,4644,4645,4646,4647,4648,4649,4651,4653,4654,4655,4656,4657,4658,4659,4660,4662,4663,4665,4666,4667,4668,4670,4671,4672,4673,4674,4675,4676,4677,4679,4680,4681,4682,4684,4685,4692,4693,4694,4695,4696,4697,4699,4700,4702,4705,4711,4712,4713,4714,4715,4716,4718,4719,4723,4725,4726,4727,4728,4729,4834,4841,4844,4845,4846,4847,4848,4849,4850,4851,4852,4853,4855,4856,4857,4860,4861,4863,4872,5044,5184,5225,5226,5228,5229,5232,5234,5236,5237,5238,5239,5240,5241,5245,5246,5247,5249,5251,5253,5254,5255,5258,5260,5261,5263,5267,5268,5269,5272,5278,5286,5288,5292,5293,5295,5299,5300,5304,5305,5306,5307,5308,5331,5332,5333,5334,5335,5336,5337,5360,5361,5402,5419,5420,5422,5423,5424,5425,5426,5428,5429,5441,5452,5453,5455,5461,5462,5471,5472,5473,5474,5475,5481,5490,5600,5615,5616,5617,5618,5622,5623,5643,5646,5648,5649,5650,5760,5833,5839,5840,5843,5844,5846,5850,5854,5855,5856,5858,5860,5861,5979,5982,5984,6068,6116,6117,6125,6126,6127,6170,6190,6193,6194,6206,6208,6212,6215,6222,6223,6225,6226,6227,6229,6230,6232,6234,6235,6238,6391,6426,6427,6487,6490,6575,6733,6910,7011,7012,7022,7023,7030,7078,7079,7091,7154,7175,7206,7228,7246,7247,7268,7269,7271,7273,7276,7286,7290,7291,7320,7321,7327,7328,7329,7332,7333,7334,7335,7337,7341,7342,7344,7345,7346,7347,7348,7349,7351,7352,7353,7355,7356,7357,7358,7361,7396,7397,7405,7584,7604,7605,7606,7608,7725,7726,7727,7795,7796,7797,7800,7803,7805,7808,7809,7847,7848,7855,7856,7857,7858,7864,7872,7873,7874,7883,8095,8120,8210,8311,8318,8337,8384,8504,8566,8567,8637,8759,8956,8959,9165,9318,9377,10082,10992,11559,11561,11562,11563,11576,11577,11578,11685,11686,11687,11688,11777,11778,11781,11783,11784,11785,11786,11787,11788,11789,11790,11791,11792,11793,11794,11937,12206,12216,12217,12218,12219,12220,12221,12222,12223,12224,12240,12243,12347,12369,12676,12865,12976,12977,13019,13141,13142,13323,13696,13718,14123,14222,14276,14661,217305,217836,218029,218032,222233,222243,222286,236028,246600,246664,246993,247001,250187,252711,253272,253524,253525,253526,254283,254560,255003,255174,255207,255238,255267,255271,255276,255364,255560,255561,255769,255770,255772,255774,255849,255850,255851,255898,255901,255906,256383,256433,256434,256749,256795,256797,256798,256799,256800,256801,256807,256899,256952,257001,257017,257885,257888,257900,257901,257910,257915,257916,257926,258032,258038,258040,258042,258100,258102,258104,258331,258522,258573,258574,258687,258792,258797,258799,258804,258818,258897,258963,259046,259052,259054,259055,259258,259263,259267,259269,259801,259979,259981,259987,260211,260235,260244,260353,260429,260968,260969,260973,260995,260996,261497,261710,261711,262037,262065,262169,262397,262473,262477,263071,263196,263307,263343,263348,263380,263615,263681,263749,263899,264082,266357,266862,268321,268831,269175,270094,270310,270589,270664,270667,270892,271336,271338,271346,271348,271351,271373,271458,271460,271784,272228,272313,272315,272389,276401}}
+data.Item[248693]={["name"]="Waylaid Crate: Expert Textiles",["npcDrops"]={697,736,1270,2240,2251,2359,2893,4140,4378,92,206,212,300,314,315,412,522,587,588,595,597,660,667,669,670,671,672,674,675,676,677,678,679,681,682,683,684,685,686,687,688,689,690,691,694,696,699,701,702,709,710,728,729,730,731,740,741,742,743,744,745,746,747,750,751,755,759,760,761,762,764,765,766,767,768,772,775,780,781,782,783,784,855,856,858,861,871,873,875,877,879,905,920,921,922,937,938,939,940,941,942,943,977,978,979,1053,1054,1059,1060,1061,1062,1082,1084,1085,1087,1088,1094,1095,1096,1097,1108,1114,1142,1144,1150,1151,1152,1200,1364,1488,1489,1490,1491,1492,1550,1551,1557,1558,1561,1562,1563,1564,1565,1653,1754,1907,2241,2242,2243,2245,2246,2247,2248,2249,2250,2252,2253,2254,2255,2256,2271,2272,2287,2304,2305,2306,2318,2319,2320,2335,2345,2346,2347,2358,2369,2371,2375,2376,2377,2406,2407,2408,2411,2412,2413,2414,2415,2417,2420,2421,2422,2431,2434,2440,2534,2536,2537,2544,2545,2547,2549,2550,2552,2553,2554,2555,2556,2557,2558,2559,2560,2561,2562,2563,2564,2565,2566,2567,2569,2570,2571,2572,2573,2574,2575,2578,2579,2580,2581,2582,2583,2584,2585,2586,2587,2588,2589,2590,2591,2592,2595,2596,2611,2612,2618,2619,2624,2628,2635,2639,2640,2641,2642,2643,2644,2645,2649,2650,2651,2652,2653,2655,2656,2657,2659,2680,2686,2691,2692,2693,2694,2701,2714,2715,2716,2717,2718,2720,2721,2725,2726,2727,2728,2729,2731,2732,2733,2734,2735,2736,2739,2740,2742,2743,2745,2748,2755,2760,2761,2762,2763,2765,2773,2781,2783,2791,2793,2829,2830,2831,2892,2894,2906,2907,2919,2923,2924,2925,2926,2927,2928,2929,2932,2945,3752,3806,3974,3975,3976,3977,3983,3984,4063,4101,4104,4110,4130,4131,4133,4139,4142,4143,4144,4147,4150,4151,4154,4158,4260,4281,4283,4285,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4304,4306,4308,4323,4324,4328,4329,4331,4334,4341,4342,4343,4344,4345,4351,4352,4355,4356,4357,4358,4359,4360,4361,4362,4363,4376,4377,4379,4391,4392,4393,4396,4397,4400,4401,4402,4404,4405,4411,4412,4413,4414,4415,4420,4421,4422,4424,4427,4428,4438,4458,4459,4460,4461,4465,4466,4467,4469,4479,4480,4481,4490,4499,4504,4505,4506,4518,4525,4532,4538,4539,4540,4542,4543,4548,4619,4623,4632,4633,4634,4635,4636,4637,4638,4639,4640,4641,4642,4643,4644,4645,4646,4647,4648,4649,4651,4652,4653,4654,4655,4656,4657,4659,4662,4663,4664,4665,4666,4667,4668,4670,4671,4672,4673,4674,4675,4676,4677,4678,4679,4680,4681,4682,4684,4685,4690,4692,4693,4694,4695,4696,4697,4699,4700,4701,4702,4705,4711,4712,4713,4714,4715,4716,4718,4719,4723,4724,4725,4726,4727,4728,4729,4834,4841,4844,4845,4846,4847,4848,4849,4850,4851,4852,4853,4854,4855,4856,4857,4860,4861,4863,4872,5044,5045,5046,5057,5226,5228,5229,5232,5234,5235,5236,5237,5238,5240,5241,5244,5245,5246,5247,5249,5251,5253,5254,5255,5256,5258,5260,5263,5268,5272,5274,5278,5286,5287,5292,5293,5295,5296,5299,5300,5304,5305,5306,5307,5308,5331,5332,5333,5334,5335,5336,5337,5360,5361,5419,5420,5422,5423,5424,5425,5426,5427,5428,5429,5431,5452,5455,5456,5458,5461,5462,5472,5473,5474,5477,5481,5490,5600,5601,5615,5616,5617,5618,5622,5623,5645,5646,5648,5649,5650,5760,5833,5839,5840,5843,5844,5846,5850,5853,5854,5855,5856,5858,5860,5861,5934,5974,5982,5984,5990,5992,6068,6070,6116,6117,6125,6126,6127,6168,6170,6193,6194,6212,6222,6224,6227,6229,6230,6232,6234,6235,6239,6426,6427,6487,6490,6505,6509,6575,6733,6910,7011,7012,7022,7023,7030,7078,7079,7091,7175,7206,7246,7247,7267,7268,7269,7272,7273,7274,7275,7276,7286,7290,7291,7320,7321,7327,7328,7329,7332,7333,7334,7335,7337,7341,7342,7344,7345,7346,7347,7348,7349,7351,7352,7353,7355,7356,7357,7361,7396,7397,7405,7584,7604,7605,7606,7608,7725,7726,7727,7795,7797,7800,7803,7805,7808,7809,7847,7848,7855,7856,7857,7858,7872,7873,7874,7883,7895,8095,8120,8127,8311,8318,8337,8384,8447,8504,8566,8567,8637,8759,8762,8956,8959,9377,10992,11559,11561,11562,11563,11576,11577,11682,11685,11686,11687,11777,11778,11782,11783,11784,11785,11786,11787,11788,11789,11790,11791,11792,11794,11937,12206,12207,12216,12217,12218,12219,12220,12221,12222,12223,12240,12241,12243,12347,12369,12676,12865,12976,12977,13019,13141,13142,13323,13696,13718,14123,14221,14222,213795,217305,218029,218032,222233,222286,236028,246600,246664,246993,247001,250187,252711,253272,253274,253524,253525,253526,254283,254284,254560,255174,255207,255262,255267,255276,255373,255377,255560,255561,255769,255770,255772,255774,255849,255850,255851,255898,255901,255906,255995,256383,256433,256434,256749,256795,256797,256798,256799,256800,256801,256807,256892,256899,256952,257001,257017,257861,257885,257888,257900,257901,257910,257915,257916,257926,258032,258038,258040,258042,258100,258102,258104,258331,258522,258573,258574,258687,258792,258797,258799,258804,258818,258897,259046,259052,259054,259055,259258,259263,259267,259269,259979,259981,259987,260211,260225,260244,260353,260419,260429,260800,260931,260968,260969,260973,260995,260996,261497,261710,261711,262037,262065,262169,262397,262473,262477,262838,263071,263141,263196,263307,263343,263348,263380,263615,263681,263899,266357,266862,268321,268423,268462,268831,269175,269756,270094,270589,270664,270667,270892,271338,271346,271348,271351,271373,271458,271460,271462,272228,272313,272315,272389,276401}}
+data.Item[248694]={["name"]="Waylaid Crate: Expert Curiosities",["npcDrops"]={2271,2369,2377,2411,2587,4308,4656,92,206,212,300,315,522,587,588,595,597,660,667,669,670,671,672,674,675,676,677,678,679,680,681,682,683,684,685,686,687,688,689,690,691,694,696,697,699,701,702,709,710,728,729,730,731,736,740,741,742,743,744,745,747,750,751,752,755,757,759,760,761,762,764,765,766,767,768,771,772,780,781,782,783,784,813,815,854,855,856,858,861,871,873,875,877,879,920,921,922,937,938,939,940,941,942,976,977,978,979,1053,1054,1059,1060,1061,1062,1081,1082,1084,1085,1087,1088,1094,1096,1097,1108,1114,1142,1144,1150,1151,1152,1160,1200,1270,1364,1488,1489,1490,1491,1492,1550,1551,1557,1558,1561,1562,1563,1564,1565,1653,1713,1754,1907,2091,2240,2241,2242,2243,2245,2246,2247,2248,2249,2250,2251,2252,2253,2254,2255,2256,2257,2272,2287,2304,2305,2318,2319,2335,2345,2346,2347,2358,2359,2371,2375,2376,2406,2407,2408,2412,2413,2414,2415,2416,2417,2421,2422,2423,2431,2440,2453,2530,2534,2535,2536,2537,2544,2545,2549,2551,2554,2555,2556,2557,2558,2559,2560,2561,2562,2563,2564,2565,2566,2567,2569,2570,2571,2572,2573,2574,2575,2578,2579,2580,2581,2582,2583,2584,2585,2586,2588,2589,2590,2591,2592,2595,2596,2597,2599,2615,2618,2619,2624,2635,2639,2640,2641,2642,2643,2644,2645,2649,2650,2651,2652,2653,2654,2655,2656,2657,2658,2680,2686,2691,2692,2693,2694,2701,2714,2715,2716,2717,2718,2719,2720,2721,2723,2725,2726,2727,2728,2729,2731,2732,2733,2734,2735,2736,2738,2739,2740,2742,2743,2745,2760,2761,2762,2764,2773,2782,2783,2791,2793,2829,2830,2831,2893,2894,2906,2907,2919,2923,2924,2925,2926,2927,2928,2929,2932,2944,2945,3414,3791,3806,3974,3975,3976,3977,3983,3984,3985,4062,4063,4101,4104,4130,4131,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4260,4280,4281,4283,4285,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4304,4306,4323,4324,4328,4329,4331,4334,4341,4342,4343,4344,4351,4352,4355,4356,4357,4358,4359,4360,4361,4362,4363,4376,4377,4378,4379,4382,4387,4392,4393,4396,4397,4398,4399,4400,4401,4402,4405,4411,4412,4413,4414,4415,4420,4421,4422,4427,4428,4457,4458,4461,4465,4466,4467,4469,4479,4480,4481,4490,4499,4504,4505,4506,4516,4525,4532,4538,4539,4540,4542,4543,4548,4623,4632,4633,4634,4635,4636,4637,4638,4639,4640,4641,4642,4643,4644,4645,4646,4647,4648,4649,4651,4652,4653,4654,4655,4657,4659,4660,4662,4663,4664,4665,4666,4667,4668,4670,4671,4672,4673,4674,4675,4676,4677,4679,4680,4681,4682,4684,4685,4690,4692,4693,4694,4695,4696,4697,4699,4700,4702,4705,4711,4712,4713,4714,4715,4716,4718,4719,4723,4725,4726,4727,4728,4729,4834,4841,4844,4845,4846,4847,4848,4849,4850,4851,4852,4853,4854,4855,4856,4857,4860,4861,4863,4872,5044,5045,5057,5224,5226,5228,5229,5232,5234,5235,5236,5237,5238,5239,5240,5243,5244,5245,5246,5247,5249,5251,5253,5254,5255,5258,5260,5261,5263,5267,5268,5272,5278,5286,5287,5292,5293,5295,5296,5297,5299,5300,5304,5305,5306,5307,5308,5331,5332,5333,5334,5335,5336,5337,5402,5419,5420,5422,5423,5424,5425,5426,5428,5429,5431,5452,5455,5459,5462,5471,5472,5473,5474,5475,5477,5481,5490,5600,5601,5615,5616,5617,5618,5622,5623,5643,5646,5648,5649,5650,5760,5839,5840,5843,5844,5846,5850,5853,5854,5855,5856,5858,5860,5861,5934,5974,5982,5984,5990,5992,6068,6069,6116,6117,6125,6126,6127,6170,6190,6193,6194,6212,6215,6222,6223,6224,6225,6226,6227,6230,6232,6233,6234,6235,6426,6427,6487,6489,6509,6575,6733,6910,7011,7012,7022,7023,7030,7078,7079,7154,7175,7206,7228,7246,7247,7268,7269,7271,7272,7273,7275,7286,7320,7321,7327,7328,7329,7332,7333,7334,7335,7337,7341,7342,7344,7345,7346,7347,7348,7349,7351,7352,7353,7355,7356,7357,7358,7396,7397,7405,7584,7604,7605,7606,7608,7725,7726,7727,7795,7796,7797,7800,7805,7808,7847,7855,7856,7857,7858,7872,7873,7874,7883,7997,8095,8120,8127,8203,8311,8318,8337,8384,8504,8566,8567,8637,8759,8956,8959,9377,10081,10082,10992,11559,11561,11562,11563,11576,11577,11578,11685,11686,11687,11777,11778,11781,11782,11783,11784,11785,11786,11787,11788,11789,11790,11791,11792,11793,11794,11937,12206,12207,12216,12217,12218,12219,12220,12221,12222,12223,12239,12241,12242,12243,12347,12369,12676,12865,12976,12977,13019,13141,13142,13282,13323,13696,13718,14123,14222,14230,14448,14492,218029,218032,222233,222286,246600,246664,246993,247001,250187,252711,253272,253394,253524,253525,253526,254283,254284,254560,255003,255174,255207,255238,255262,255267,255364,255560,255561,255769,255770,255772,255774,255849,255850,255851,255898,255901,255906,256383,256433,256434,256749,256795,256797,256798,256799,256800,256801,256807,256892,256899,256952,257001,257017,257861,257885,257888,257900,257901,257910,257915,257916,257926,258038,258040,258042,258100,258102,258104,258331,258522,258573,258574,258687,258792,258797,258799,258804,258818,258897,258963,259046,259052,259054,259055,259263,259267,259269,259979,259981,259987,260211,260225,260235,260244,260353,260419,260429,260968,260969,260973,260995,260996,261497,261710,261711,262037,262065,262169,262397,262473,262477,262838,263071,263196,263307,263343,263348,263380,263615,263681,263749,263899,266357,268321,268462,268831,269175,269756,270094,270310,270664,270667,270892,271336,271338,271346,271348,271351,271373,271458,271462,271780,272228,272313,272315,272389,276401}}
+data.Item[248695]={["name"]="Waylaid Crate: Earthly Artisan Herbs",["npcDrops"]={746,752,1783,1784,1785,1787,1788,1789,1791,1794,1795,1796,1809,1815,1816,1817,1821,1822,1824,1827,1835,1883,1884,2505,2521,2522,2546,2639,2641,2643,2644,2645,2646,2647,2648,2655,2656,2659,2680,2681,2693,2694,2707,2748,2925,2926,2928,2929,4374,4466,4467,4468,4469,4474,4475,4494,4857,5225,5226,5228,5238,5239,5243,5245,5246,5247,5256,5259,5262,5263,5267,5270,5271,5273,5274,5277,5278,5280,5283,5288,5291,5293,5295,5296,5297,5299,5304,5305,5306,5308,5333,5358,5359,5360,5362,5363,5364,5366,5420,5424,5427,5429,5430,5441,5450,5451,5452,5453,5454,5455,5456,5457,5459,5461,5462,5469,5472,5473,5474,5475,5481,5485,5490,5623,5649,5650,5708,5709,5711,5713,5717,5833,5840,5843,5844,5846,5852,5853,5854,5855,5858,5860,5861,5862,5982,5984,5985,5988,5991,5992,5993,6004,6005,6006,6011,6116,6117,6125,6126,6127,6147,6148,6190,6193,6194,6195,6196,6198,6199,6200,6201,6202,6375,6378,6505,6506,6507,6508,6509,6510,6511,6512,6513,6514,6516,6517,6518,6519,6520,6521,6527,6551,6552,6553,6554,6555,6556,6557,6559,7027,7028,7032,7033,7034,7035,7036,7037,7039,7040,7041,7043,7044,7047,7048,7086,7092,7099,7100,7101,7105,7106,7107,7108,7109,7110,7111,7112,7113,7115,7118,7120,7125,7126,7132,7139,7149,7153,7154,7155,7156,7157,7158,7246,7268,7269,7271,7272,7320,7321,7396,7428,7434,7438,7439,7440,7441,7442,7443,7447,7448,7449,7450,7451,7452,7453,7454,7457,7458,7459,7523,7524,7604,7805,7808,7809,7855,7856,7857,7858,7864,7883,7886,7977,7995,7996,8075,8095,8127,8136,8205,8311,8318,8319,8384,8408,8419,8438,8447,8497,8504,8523,8530,8532,8543,8561,8563,8565,8566,8578,8581,8596,8598,8600,8601,8603,8605,8675,8759,8761,8766,8889,8890,8891,8892,8893,8894,8895,8896,8897,8898,8899,8900,8902,8904,8905,8906,8907,8908,8909,8910,8911,8912,8913,8914,8915,8920,8921,8956,8957,8958,8959,8960,8961,8977,9016,9025,9041,9042,9045,9097,9098,9162,9163,9164,9165,9166,9167,9198,9199,9239,9240,9257,9259,9261,9265,9266,9318,9319,9416,9445,9454,9462,9517,9541,9545,9583,9622,9678,9683,9684,9690,9692,9693,9717,9817,9819,9862,9878,9879,9956,10040,10043,10316,10318,10366,10372,10374,10375,10381,10382,10390,10391,10400,10405,10406,10408,10417,10418,10424,10425,10426,10447,10463,10470,10480,10485,10487,10491,10678,10717,10737,10738,10742,10802,10812,10816,11043,11257,11290,11291,11441,11445,11454,11455,11462,11465,11477,11480,11483,11551,11582,11611,11698,11738,11741,11746,11783,11784,11789,11791,11794,11881,12046,12201,12203,12206,12207,12218,12220,12221,12222,12223,12258,13021,13036,13196,13282,13323,14327,14399,14661,203138,222525,236028,236874,237736,239939,243509,246920,246991,247006,247235,247237,247248,247470,248041,248395,249053,249220,249221,249222,249228,249229,249230,249237,249247,249474,249490,249491,249493,250023,250027,253214,255247,255262,255267,255271,255276,255309,255347,255364,255373,255377,255394,255995,256800,256809,257861,257915,258329,262689,269254,271780,278644}}
+data.Item[248696]={["name"]="Waylaid Crate: Flowering Artisan Herbs",["npcDrops"]={818,950,1492,1493,1565,1653,1783,1784,1787,1789,1791,1794,1795,1811,1815,1816,1817,1821,1822,1826,1833,1835,2505,2522,2534,2548,2639,2641,2642,2643,2644,2645,2646,2647,2648,2654,2655,2656,2659,2680,2681,2686,2692,2693,2694,2748,2925,2926,2928,2929,4374,4465,4466,4467,4468,4472,4474,4475,4841,4857,5226,5228,5235,5236,5239,5241,5244,5247,5256,5259,5261,5263,5267,5270,5271,5273,5274,5277,5278,5280,5283,5291,5293,5295,5296,5297,5299,5304,5305,5306,5308,5333,5357,5359,5360,5361,5362,5363,5364,5366,5420,5421,5424,5426,5427,5431,5441,5450,5451,5452,5453,5455,5456,5457,5458,5459,5460,5461,5462,5465,5472,5473,5474,5475,5481,5485,5490,5623,5649,5650,5713,5720,5721,5840,5843,5844,5846,5852,5853,5854,5855,5858,5860,5861,5862,5982,5984,5988,5990,5991,5993,6004,6005,6006,6009,6116,6117,6126,6127,6135,6137,6144,6148,6190,6193,6194,6195,6196,6198,6199,6200,6201,6202,6347,6375,6377,6378,6498,6499,6500,6505,6506,6507,6508,6509,6510,6511,6512,6513,6514,6516,6517,6518,6519,6520,6521,6527,6551,6552,6553,6554,6555,6556,6557,6559,7025,7027,7032,7033,7034,7035,7039,7040,7041,7047,7048,7086,7092,7097,7100,7101,7105,7106,7107,7108,7109,7110,7111,7112,7113,7114,7115,7118,7120,7125,7126,7132,7139,7153,7154,7155,7156,7157,7158,7246,7247,7268,7269,7271,7272,7274,7275,7276,7291,7320,7321,7397,7438,7440,7441,7442,7443,7445,7447,7449,7450,7451,7453,7454,7455,7456,7457,7458,7459,7460,7523,7668,7669,7796,7803,7809,7847,7848,7855,7856,7857,7858,7864,7885,7886,7977,7995,7996,8095,8120,8127,8311,8318,8319,8336,8384,8419,8447,8504,8524,8534,8562,8566,8580,8581,8596,8597,8600,8603,8605,8636,8675,8759,8761,8766,8890,8891,8892,8893,8894,8895,8896,8897,8898,8899,8903,8904,8905,8907,8908,8909,8910,8911,8912,8913,8914,8915,8920,8921,8956,8957,8958,8959,8960,8961,9025,9097,9098,9156,9162,9163,9164,9165,9166,9167,9197,9198,9199,9201,9239,9240,9241,9257,9258,9259,9261,9262,9267,9268,9269,9318,9319,9416,9445,9518,9537,9583,9622,9683,9684,9690,9691,9693,9696,9716,9717,9817,9818,9819,9862,9878,9879,10040,10177,10221,10375,10381,10382,10390,10391,10394,10398,10399,10400,10405,10406,10407,10409,10412,10417,10418,10420,10422,10424,10442,10464,10469,10476,10477,10481,10485,10489,10491,10495,10508,10605,10648,10678,10717,10801,10899,10916,11290,11291,11441,11448,11450,11462,11473,11516,11582,11611,11735,11736,11740,11741,11744,11746,11783,11784,11789,11791,11794,11880,12046,12179,12201,12203,12206,12207,12218,12220,12221,12222,12223,12236,12258,12322,13021,13022,13197,13276,13323,14564,203138,236028,239939,239966,243509,244525,246920,246991,247006,247013,247470,247972,248041,248042,248395,249053,249222,249228,249229,249230,249247,249474,249490,249491,249493,250023,250027,251199,253394,255247,255262,255267,255271,255276,255309,255347,255364,255373,255377,255995,256800,256809,257861,257915,258032,258264,258329,258508,258516,258668,260148,261779,268834,269254,271780,271784,277474,278644}}
+data.Item[248697]={["name"]="Waylaid Crate: Artisan Ore",["npcDrops"]={746,1492,1559,1565,1653,1783,1784,1785,1787,1789,1791,1794,1795,1796,1802,1815,1816,1817,1821,1822,1824,1831,1853,2505,2522,2534,2639,2641,2642,2643,2644,2645,2646,2647,2648,2655,2656,2659,2680,2681,2693,2694,2748,2925,2926,2929,4374,4466,4467,4468,4474,4475,4854,4857,5224,5226,5228,5236,5239,5244,5246,5247,5256,5259,5262,5263,5267,5270,5271,5274,5277,5280,5283,5291,5293,5296,5297,5299,5304,5305,5306,5308,5358,5359,5360,5361,5362,5363,5364,5366,5420,5421,5424,5426,5427,5430,5431,5451,5452,5453,5454,5455,5456,5457,5458,5459,5461,5462,5466,5471,5472,5473,5474,5475,5481,5485,5490,5649,5650,5708,5710,5712,5713,5714,5716,5717,5719,5720,5722,5833,5840,5843,5844,5846,5850,5852,5853,5854,5855,5856,5858,5860,5861,5862,5982,5985,5988,5990,5991,5992,5993,6004,6005,6006,6007,6008,6011,6117,6125,6127,6190,6193,6194,6195,6196,6198,6199,6200,6201,6202,6351,6371,6377,6378,6498,6499,6500,6505,6506,6507,6508,6509,6510,6511,6512,6513,6514,6516,6517,6518,6519,6520,6521,6527,6552,6553,6554,6555,6556,6557,6559,7026,7027,7028,7029,7033,7034,7035,7037,7038,7039,7040,7041,7047,7048,7055,7086,7092,7099,7100,7101,7105,7106,7107,7108,7109,7110,7111,7112,7113,7114,7115,7118,7120,7125,7126,7132,7138,7139,7149,7153,7154,7155,7156,7157,7158,7246,7247,7267,7268,7269,7272,7320,7428,7434,7438,7439,7440,7442,7445,7447,7448,7449,7450,7451,7453,7454,7455,7456,7457,7458,7459,7584,7670,7795,7797,7803,7808,7809,7848,7855,7856,7857,7858,7864,7885,7977,7995,7996,8095,8120,8199,8311,8318,8319,8336,8384,8419,8497,8504,8530,8532,8534,8542,8561,8563,8566,8578,8580,8581,8596,8597,8598,8600,8601,8602,8603,8605,8675,8759,8761,8766,8890,8891,8892,8893,8894,8895,8896,8897,8898,8899,8900,8903,8904,8905,8906,8907,8909,8910,8911,8912,8913,8914,8915,8920,8921,8922,8956,8957,8958,8959,8960,8961,8983,9017,9019,9025,9045,9097,9162,9163,9164,9165,9166,9167,9197,9198,9201,9239,9240,9241,9258,9259,9260,9264,9266,9269,9319,9416,9462,9464,9476,9477,9541,9545,9583,9683,9690,9693,9696,9701,9716,9717,9817,9819,9860,9861,9862,9878,9879,9916,10040,10041,10043,10082,10319,10366,10372,10375,10381,10390,10391,10398,10405,10406,10412,10418,10419,10420,10423,10424,10469,10471,10476,10477,10480,10488,10499,10502,10605,10648,10678,10717,10802,10916,11043,11291,11441,11443,11459,11462,11473,11475,11476,11480,11551,11613,11728,11735,11739,11746,11783,11784,11789,11791,11793,11794,12046,12201,12203,12206,12207,12218,12220,12221,12222,12223,12236,12242,12258,13022,13036,13136,13282,13323,13601,13696,14342,14354,14455,14564,14661,203138,221740,222580,236028,243509,244525,247235,248041,248395,249053,249221,249222,249228,249229,249230,249236,249237,249247,249474,249490,249491,250023,250027,255262,255267,255271,255276,255309,255347,255364,255373,255377,255394,255995,256809,257915,258264,258329,260822,261914,262689,268864,269213,271780,271784,277474}}
+data.Item[248698]={["name"]="Waylaid Crate: Artisan Textiles",["npcDrops"]={818,950,1492,1493,1565,1783,1784,1785,1787,1789,1791,1796,1804,1809,1815,1817,1821,1822,1824,1826,1833,1835,2505,2522,2534,2546,2548,2639,2641,2642,2643,2644,2645,2646,2647,2648,2653,2655,2656,2680,2681,2692,2693,2694,2748,2925,2926,2928,2929,4465,4466,4467,4468,4474,4475,4493,4494,4857,5226,5228,5238,5239,5244,5245,5247,5256,5259,5262,5263,5267,5269,5270,5271,5274,5277,5280,5283,5291,5293,5295,5296,5297,5299,5304,5305,5306,5308,5358,5359,5360,5361,5362,5363,5364,5366,5401,5420,5424,5426,5427,5429,5430,5431,5441,5450,5451,5452,5453,5454,5455,5456,5457,5458,5459,5461,5462,5471,5472,5473,5474,5475,5481,5485,5490,5623,5649,5650,5709,5719,5720,5833,5840,5843,5844,5846,5852,5853,5854,5855,5856,5858,5860,5861,5862,5982,5988,5990,5991,5992,5993,6004,6005,6006,6116,6117,6125,6126,6127,6131,6136,6147,6148,6190,6193,6194,6195,6196,6198,6199,6200,6201,6202,6347,6348,6350,6377,6378,6380,6498,6499,6500,6505,6506,6507,6508,6509,6510,6511,6512,6513,6514,6516,6517,6518,6519,6520,6521,6527,6551,6552,6553,6554,6555,6556,6557,6559,7025,7026,7027,7033,7034,7035,7039,7040,7041,7044,7047,7048,7055,7086,7092,7093,7097,7100,7101,7106,7107,7108,7109,7110,7111,7112,7113,7114,7115,7118,7120,7125,7126,7132,7139,7153,7154,7155,7156,7157,7158,7246,7247,7267,7269,7272,7275,7320,7321,7396,7435,7437,7438,7439,7440,7441,7442,7445,7447,7448,7449,7450,7451,7452,7453,7454,7455,7457,7458,7459,7460,7523,7796,7797,7803,7805,7808,7809,7848,7855,7856,7857,7858,7864,7883,7885,7977,7996,8075,8095,8120,8127,8311,8318,8319,8384,8438,8442,8447,8497,8504,8525,8532,8543,8564,8565,8566,8578,8581,8596,8597,8598,8600,8601,8603,8605,8637,8759,8761,8766,8889,8890,8891,8892,8893,8894,8895,8896,8897,8898,8899,8902,8903,8904,8905,8906,8907,8908,8909,8910,8911,8912,8913,8915,8920,8921,8922,8932,8956,8957,8958,8959,8960,8961,9026,9027,9033,9096,9097,9162,9163,9164,9165,9166,9167,9176,9197,9201,9239,9240,9257,9258,9259,9265,9267,9268,9269,9318,9319,9376,9416,9439,9445,9454,9464,9476,9522,9541,9683,9684,9692,9694,9696,9716,9879,9956,10040,10043,10220,10318,10363,10371,10374,10375,10381,10390,10391,10398,10400,10405,10406,10407,10412,10419,10423,10425,10432,10463,10464,10469,10470,10478,10481,10487,10489,10498,10503,10648,10717,10801,10826,10916,11043,11257,11290,11291,11450,11454,11456,11462,11483,11733,11736,11738,11740,11783,11784,11789,11793,11794,12046,12178,12201,12203,12206,12218,12220,12221,12222,12223,12225,12258,12380,13022,13036,13136,13197,13301,13323,13596,13601,14564,14661,236028,236874,236876,237736,239939,243509,244525,246920,247235,247237,247470,248041,248395,249053,249220,249221,249222,249224,249228,249229,249230,249236,249237,249247,249490,249491,249493,250023,250027,253214,253215,255247,255262,255267,255271,255276,255309,255347,255364,255373,255377,255995,257861,257915,258032,259758,260823,260826,261779,261898,261914,261934,262300,263394,271780,271784,277474,278644}}
+data.Item[248699]={["name"]="Waylaid Crate: Artisan Curiosities",["npcDrops"]={752,1059,1492,1559,1653,1783,1784,1785,1787,1789,1791,1793,1794,1795,1796,1809,1815,1816,1821,1822,1824,1827,1833,1835,1884,2505,2521,2522,2546,2639,2640,2641,2642,2643,2644,2645,2646,2647,2648,2655,2656,2659,2680,2681,2694,2707,2925,2926,2929,4374,4465,4466,4467,4468,4469,4472,4474,4475,4857,5226,5228,5236,5238,5239,5241,5244,5247,5256,5259,5262,5267,5269,5270,5271,5273,5274,5277,5280,5283,5291,5293,5295,5296,5297,5299,5305,5306,5357,5358,5359,5360,5361,5362,5363,5364,5366,5420,5424,5426,5427,5431,5441,5450,5451,5452,5453,5455,5456,5457,5458,5459,5461,5462,5471,5472,5473,5474,5481,5485,5490,5623,5649,5650,5708,5711,5713,5714,5720,5721,5722,5833,5840,5843,5844,5846,5850,5852,5853,5854,5855,5858,5860,5861,5862,5976,5982,5984,5988,5990,5991,5992,5993,6004,6005,6006,6007,6009,6116,6117,6125,6126,6127,6148,6190,6193,6194,6195,6196,6198,6199,6200,6202,6348,6349,6370,6371,6375,6378,6380,6498,6499,6500,6505,6506,6507,6508,6509,6510,6511,6512,6513,6514,6516,6517,6518,6519,6520,6521,6527,6551,6552,6553,6554,6555,6556,6557,6559,6583,7025,7028,7033,7034,7035,7037,7038,7039,7040,7041,7047,7086,7092,7093,7100,7101,7105,7106,7107,7108,7109,7110,7111,7112,7113,7114,7115,7118,7120,7125,7126,7132,7136,7139,7153,7154,7155,7156,7157,7158,7246,7268,7269,7271,7272,7273,7320,7438,7439,7440,7441,7442,7443,7444,7445,7447,7448,7449,7450,7451,7453,7454,7455,7456,7457,7458,7459,7460,7524,7604,7795,7803,7808,7848,7855,7856,7857,7858,7864,7885,7886,7977,7995,7996,8095,8120,8203,8311,8318,8319,8336,8384,8391,8419,8438,8440,8442,8497,8523,8530,8531,8540,8543,8566,8578,8580,8581,8596,8598,8600,8601,8603,8636,8637,8675,8759,8761,8762,8764,8766,8889,8890,8891,8892,8893,8894,8895,8896,8897,8898,8900,8903,8904,8905,8906,8908,8909,8910,8911,8912,8913,8915,8920,8921,8922,8927,8928,8933,8956,8957,8958,8959,8960,8983,9017,9018,9045,9096,9097,9098,9162,9163,9164,9165,9166,9167,9176,9197,9200,9201,9216,9240,9241,9257,9258,9259,9261,9262,9263,9264,9318,9439,9445,9449,9477,9545,9622,9677,9683,9684,9692,9693,9694,9701,9716,9862,9878,9879,9956,10040,10177,10268,10317,10318,10319,10374,10375,10381,10382,10390,10400,10405,10411,10418,10419,10421,10424,10425,10426,10447,10463,10469,10470,10472,10480,10485,10486,10489,10495,10499,10507,10516,10605,10648,10678,10717,10802,10806,10807,10814,10916,10997,11257,11290,11291,11451,11461,11472,11473,11480,11483,11490,11492,11501,11553,11611,11735,11736,11737,11739,11740,11741,11744,11783,11784,11789,11791,12046,12125,12178,12201,12203,12206,12207,12218,12219,12220,12221,12222,12223,12225,13021,13022,13036,13280,13282,13285,13323,13596,13696,14327,236028,236874,236876,243509,244525,246920,247013,247248,248041,248395,249053,249220,249221,249223,249228,249229,249230,249247,249474,249490,249491,249493,250023,250027,255247,255262,255267,255271,255276,255309,255347,255364,255373,255377,255995,256800,256809,257861,257915,258042,258264,258508,261914,262696,271784,272307,277474}}
+data.Item[248702]={["name"]="Waylaid Crate: Apprentice Fabrics",["npcDrops"]={46,114,118,124,157,474,478,505,539,569,589,590,732,824,1030,1115,1117,1163,1190,1197,1538,1544,1549,1689,1768,1769,1778,1867,1940,1942,1943,1958,2012,2164,2208,2324,2965,2979,2990,3114,3130,3238,3244,3245,3252,3255,3256,3260,3268,3273,3278,3279,3283,3285,3385,3386,3395,3397,3415,3425,3461,3566,4127,6123,6124,209797,260157,267006,267308,268624,3,48,98,115,121,122,123,127,154,171,202,203,213,217,232,391,422,423,424,426,428,430,432,433,434,435,436,437,440,441,442,445,446,449,450,452,456,458,485,501,502,513,517,531,545,547,548,550,565,568,573,578,579,580,594,598,615,619,622,623,624,625,626,628,634,636,639,641,642,643,644,645,646,647,657,712,831,832,923,930,1007,1008,1009,1010,1011,1012,1020,1021,1024,1025,1028,1032,1040,1042,1043,1083,1109,1111,1164,1165,1166,1167,1169,1177,1178,1179,1180,1181,1183,1184,1185,1188,1189,1191,1192,1194,1205,1206,1207,1210,1216,1222,1224,1225,1259,1393,1400,1417,1424,1426,1693,1696,1706,1707,1708,1711,1725,1726,1727,1729,1731,1732,1763,1781,1782,1868,1869,1870,1888,1889,1891,1892,1893,1894,1895,1896,1909,1912,1913,1914,1915,1923,1924,1939,1944,1948,1953,1954,1955,1956,1957,1972,1973,1974,1983,2053,2054,2068,2069,2071,2102,2103,2106,2120,2149,2156,2157,2158,2165,2168,2169,2170,2171,2179,2180,2181,2182,2183,2185,2187,2203,2204,2205,2206,2207,2232,2233,2235,2236,2237,2244,2260,2261,2265,2266,2267,2322,2323,2332,2336,2338,2339,2349,2350,2351,2354,2360,2384,2427,2529,3204,3234,3236,3239,3240,3241,3242,3247,3248,3249,3250,3251,3257,3258,3261,3263,3271,3274,3275,3276,3277,3280,3282,3284,3286,3295,3374,3375,3376,3377,3382,3383,3384,3392,3393,3394,3396,3398,3416,3424,3426,3436,3438,3445,3452,3454,3455,3456,3457,3458,3459,3463,3466,3467,3470,3471,3474,3475,3503,3528,3530,3532,3533,3577,3630,3631,3632,3633,3634,3636,3637,3638,3640,3641,3653,3654,3655,3667,3669,3670,3671,3673,3711,3712,3713,3715,3717,3721,3725,3727,3728,3730,3732,3737,3739,3740,3742,3743,3745,3748,3750,3774,3780,3781,3783,3809,3814,3816,3817,3819,3820,3823,3840,3849,3850,3851,3853,3854,3855,3857,3859,3861,3862,3863,3864,3865,3866,3868,3873,3875,3877,3879,3886,3887,3893,3898,3914,3917,3921,3922,3924,3925,3926,3928,3947,3988,3989,3991,3992,3993,3999,4003,4004,4005,4006,4007,4008,4009,4012,4013,4014,4018,4020,4022,4025,4026,4032,4034,4036,4040,4044,4053,4054,4064,4065,4067,4070,4073,4074,4094,4096,4128,4129,4263,4264,4275,4416,4417,4418,4435,4462,4463,4464,4511,4627,4788,4789,4798,4799,4802,4803,4805,4807,4809,4812,4815,4818,4821,4822,4824,5048,5053,5056,5755,5756,5761,5762,5763,5775,5836,5838,5841,5864,5912,6020,6132,6180,6213,6221,6606,6668,6788,8886,9336,9456,9523,9524,10160,10323,11318,11319,11320,11321,11322,11323,11324,11517,11518,11519,11520,11858,11910,11911,11912,11913,11915,11917,11918,11921,12319,12856,12896,12897,14269,214456,214519,250484,250488,250618,250619,250620,250622,250623,250624,250625,250626,250627,250629,250630,250650,250651,250654,250656,250689,250735,255109,255964,256040,261368,262119,263389,263390,263396,263397,263438,263466,263470,267307,267314,268622,268623,270693,271898}}
+data.Item[248703]={["name"]="Waylaid Crate: Apprentice Ingots",["npcDrops"]={46,98,114,121,124,157,171,199,440,485,505,513,539,547,589,590,822,830,834,1008,1011,1109,1123,1163,1165,1173,1184,1397,1426,1528,1534,1537,1544,1554,1654,1658,1689,1693,1753,1766,1866,1889,1909,1912,1940,1974,2030,2164,2181,2185,2204,2206,2231,2336,2960,2967,2978,3110,3127,3198,3206,3234,3240,3241,3242,3251,3255,3256,3258,3276,3277,3278,3283,3381,3382,3385,3386,3397,3438,3445,3461,3467,3715,3823,4127,4129,4316,6123,9524,250282,259433,260428,267308,272096,275767,3,48,115,122,123,127,154,202,203,213,217,335,345,391,422,423,424,426,428,430,432,433,434,435,436,437,441,442,445,446,449,452,453,456,458,486,501,502,517,531,545,548,550,565,568,569,573,578,579,580,594,598,615,619,622,623,624,625,626,628,634,636,639,641,642,643,644,645,646,647,657,712,819,824,831,832,923,930,1007,1009,1010,1012,1015,1020,1021,1024,1025,1026,1030,1032,1039,1040,1042,1043,1083,1111,1164,1166,1167,1169,1177,1178,1179,1180,1181,1183,1185,1188,1189,1191,1192,1194,1197,1205,1206,1207,1210,1216,1393,1400,1417,1424,1706,1707,1708,1711,1725,1726,1727,1729,1731,1732,1763,1768,1781,1782,1867,1868,1870,1888,1891,1892,1893,1894,1895,1896,1908,1913,1914,1915,1923,1924,1939,1942,1943,1947,1953,1954,1955,1956,1957,1958,1973,1983,2053,2054,2068,2069,2071,2102,2103,2106,2120,2149,2156,2157,2158,2165,2168,2169,2170,2171,2174,2179,2180,2182,2183,2187,2203,2205,2207,2208,2233,2235,2236,2237,2244,2260,2261,2266,2267,2322,2323,2324,2332,2338,2339,2349,2350,2351,2354,2360,2384,2403,2529,3204,3238,3239,3245,3247,3248,3249,3250,3252,3257,3260,3261,3263,3271,3273,3274,3275,3279,3280,3282,3284,3285,3286,3295,3374,3375,3376,3377,3383,3384,3393,3394,3395,3396,3416,3424,3425,3426,3434,3436,3452,3454,3455,3456,3457,3458,3459,3466,3471,3473,3474,3475,3503,3528,3531,3532,3630,3631,3632,3633,3634,3636,3637,3638,3640,3641,3653,3654,3655,3667,3669,3670,3671,3673,3674,3711,3712,3713,3717,3721,3725,3727,3728,3730,3733,3734,3737,3739,3740,3742,3743,3749,3750,3774,3780,3781,3783,3809,3812,3814,3816,3817,3819,3820,3824,3840,3849,3850,3851,3853,3854,3855,3857,3859,3861,3862,3863,3864,3865,3866,3868,3873,3875,3877,3886,3914,3917,3921,3922,3923,3924,3925,3926,3928,3944,3947,3988,3989,3991,3992,3993,3999,4003,4004,4005,4006,4007,4008,4009,4011,4012,4013,4014,4016,4018,4020,4021,4022,4025,4026,4036,4040,4044,4051,4053,4064,4065,4067,4070,4074,4094,4096,4128,4263,4264,4275,4279,4416,4417,4418,4462,4463,4511,4627,4788,4789,4798,4799,4802,4803,4805,4807,4809,4812,4815,4818,4821,4824,4827,5048,5053,5056,5755,5756,5761,5762,5763,5775,5799,5864,5912,6020,6033,6132,6180,6210,6213,6221,6606,6788,8886,9336,9456,9523,10157,10160,10323,10373,11318,11319,11320,11321,11322,11323,11324,11517,11518,11519,11520,11714,11858,11910,11911,11912,11913,11915,11917,11918,11921,12321,12856,12896,12897,12940,14267,14268,14271,209797,214456,214519,250484,250488,250618,250619,250620,250622,250623,250624,250625,250626,250627,250629,250630,250650,250651,250654,250656,250689,250735,255109,255964,256040,261368,262119,263389,263390,263396,263397,263438,263466,263470,266216,267307,267314,268622,268623,268624,270693,271898,271903}}
+data.Item[248704]={["name"]="Waylaid Crate: Apprentice Parts",["npcDrops"]={3,48,98,114,115,121,122,123,124,127,154,157,171,202,203,213,217,345,391,422,423,424,426,428,430,432,433,434,435,436,437,440,441,442,445,446,449,450,452,456,458,485,486,501,502,505,506,513,517,520,531,539,544,545,547,548,550,565,568,569,573,578,579,580,589,590,594,598,599,615,619,622,623,624,625,626,634,636,639,641,642,643,644,645,646,647,657,712,819,824,830,832,923,930,1007,1008,1009,1010,1011,1020,1021,1024,1025,1030,1032,1040,1042,1043,1083,1109,1111,1112,1163,1164,1165,1166,1167,1169,1177,1178,1179,1180,1181,1183,1184,1185,1188,1189,1191,1192,1194,1197,1205,1206,1210,1216,1222,1225,1393,1399,1400,1417,1426,1693,1706,1707,1708,1711,1725,1726,1727,1729,1731,1732,1763,1768,1781,1782,1867,1868,1869,1870,1888,1889,1891,1892,1893,1894,1895,1896,1908,1909,1912,1913,1914,1915,1920,1923,1924,1939,1940,1942,1943,1953,1954,1955,1956,1957,1958,1972,1973,1974,1983,2053,2054,2068,2069,2071,2102,2103,2106,2120,2156,2157,2158,2159,2164,2165,2168,2169,2170,2171,2174,2179,2180,2181,2182,2183,2185,2187,2203,2204,2205,2206,2207,2208,2233,2235,2236,2237,2244,2260,2261,2265,2266,2267,2322,2323,2324,2336,2338,2339,2349,2350,2351,2354,2360,2384,2427,2428,2529,3234,3236,3238,3239,3240,3241,3242,3245,3247,3248,3249,3250,3251,3252,3255,3256,3257,3258,3260,3261,3263,3270,3271,3273,3274,3275,3276,3277,3278,3279,3280,3282,3283,3284,3285,3286,3374,3375,3376,3377,3382,3383,3384,3385,3386,3393,3394,3395,3396,3397,3416,3424,3425,3426,3436,3438,3445,3452,3454,3455,3456,3457,3458,3459,3461,3463,3466,3467,3471,3473,3474,3475,3503,3528,3529,3532,3577,3586,3619,3630,3631,3632,3633,3634,3636,3637,3638,3640,3641,3653,3654,3655,3667,3669,3670,3671,3673,3674,3711,3712,3713,3715,3717,3721,3725,3727,3728,3732,3733,3734,3737,3739,3740,3742,3743,3745,3746,3750,3774,3780,3781,3783,3809,3812,3814,3816,3817,3819,3823,3824,3840,3850,3851,3853,3854,3855,3857,3859,3861,3862,3863,3864,3865,3866,3868,3873,3875,3877,3879,3886,3887,3893,3914,3917,3921,3922,3923,3924,3925,3928,3943,3944,3947,3988,3989,3991,3992,3993,3999,4003,4004,4005,4006,4007,4008,4009,4011,4012,4013,4014,4016,4018,4020,4022,4025,4026,4032,4036,4037,4040,4044,4053,4054,4064,4065,4067,4070,4074,4094,4096,4127,4128,4129,4263,4275,4278,4279,4416,4417,4418,4462,4463,4464,4511,4788,4789,4798,4799,4802,4803,4805,4807,4809,4812,4815,4818,4821,4824,4827,5048,5053,5056,5755,5756,5761,5762,5763,5775,5829,5830,5831,5838,5841,5912,6020,6180,6221,6606,6668,6788,7053,8886,9456,9523,9524,10157,10160,10323,11318,11319,11320,11321,11322,11323,11324,11517,11518,11519,11520,11858,11910,11911,11912,11913,11914,11915,11917,11918,11921,12856,12896,12897,14269,14270,14271,14272,209797,214456,214519,250484,250488,250618,250619,250620,250622,250623,250624,250625,250626,250627,250629,250630,250650,250651,250652,250654,250656,250689,250735,255109,255964,256040,261368,262119,263389,263390,263396,263397,263438,263466,263470,267307,267308,267314,268623,268624,270693,271898,277645}}
+data.Item[248705]={["name"]="Waylaid Crate: Journeyman Fabrics",["npcDrops"]={121,122,157,202,205,210,431,434,435,504,579,589,615,711,930,1010,1012,1018,1020,1022,1034,1036,1110,1167,1175,1202,1417,1418,1663,1797,1924,1939,2062,2164,2244,2261,2266,2268,2269,2271,2321,2322,2349,2354,2356,2360,2370,2375,2384,2451,3238,3239,3242,3273,3276,3277,3278,3283,3376,3377,3456,3743,3759,3763,3767,3809,3820,3917,3921,3922,3924,3925,3988,4028,4029,4037,4040,4093,4101,4112,4124,4127,4316,4627,6219,6222,7603,10758,10761,261368,264081,264083,267308,267314,3,48,203,206,212,215,232,300,314,334,335,345,429,432,433,436,437,445,485,486,511,518,531,533,565,568,569,570,580,584,587,588,595,604,616,628,639,681,682,683,685,688,694,697,699,701,702,703,736,740,755,785,787,819,855,889,891,892,898,905,909,910,920,923,937,938,940,941,943,948,949,1007,1008,1009,1011,1013,1015,1016,1017,1019,1021,1023,1024,1025,1027,1028,1031,1032,1033,1035,1038,1040,1041,1042,1043,1044,1051,1052,1053,1054,1057,1069,1085,1111,1150,1157,1158,1159,1160,1200,1210,1251,1258,1259,1270,1353,1364,1400,1487,1666,1696,1706,1707,1708,1711,1715,1716,1717,1754,1947,1973,2089,2102,2108,2236,2240,2241,2248,2249,2250,2251,2252,2260,2264,2265,2267,2270,2272,2305,2319,2335,2337,2344,2345,2346,2348,2350,2351,2358,2359,2368,2369,2371,2372,2373,2374,2376,2377,2385,2387,2403,2406,2407,2408,2411,2414,2415,2427,2428,2448,2449,2450,2503,2529,2554,2555,2556,2559,2560,2562,2563,2564,2582,2586,2587,2589,3235,3249,3250,3252,3374,3375,3378,3392,3414,3434,3435,3436,3457,3458,3459,3472,3473,3474,3476,3654,3664,3670,3673,3674,3745,3746,3748,3749,3750,3752,3754,3755,3757,3758,3762,3765,3770,3771,3772,3774,3780,3781,3782,3783,3784,3789,3791,3797,3799,3801,3802,3803,3804,3806,3807,3810,3811,3817,3818,3819,3821,3824,3825,3834,3855,3857,3859,3863,3865,3866,3868,3873,3875,3877,3887,3919,3923,3926,3927,3928,3931,3932,3974,3984,3986,3987,3992,3999,4003,4012,4013,4014,4015,4016,4018,4019,4020,4021,4022,4023,4024,4025,4026,4027,4031,4032,4034,4036,4038,4041,4042,4044,4050,4051,4052,4053,4054,4056,4057,4061,4062,4064,4065,4067,4073,4074,4094,4095,4096,4097,4099,4100,4104,4107,4109,4110,4111,4113,4114,4117,4118,4119,4120,4126,4128,4130,4133,4139,4140,4142,4143,4144,4147,4151,4154,4202,4248,4249,4264,4274,4275,4278,4279,4280,4283,4285,4287,4291,4293,4296,4299,4304,4306,4308,4409,4420,4421,4424,4427,4428,4435,4436,4437,4438,4440,4442,4462,4463,4464,4481,4490,4499,4511,4512,4514,4515,4516,4517,4518,4519,4520,4522,4523,4525,4530,4531,4532,4538,4539,4541,4543,4548,4623,4632,4633,4634,4635,4636,4637,4638,4639,4640,4641,4646,4647,4648,4649,4663,4664,4665,4666,4670,4671,4672,4673,4674,4675,4692,4696,4711,4712,4714,4726,4728,4788,4789,4798,4799,4802,4803,4805,4807,4809,4810,4811,4812,4813,4814,4815,4818,4819,4820,4821,4822,4823,4824,4825,4827,4829,4830,4831,4832,4842,4887,4969,4978,5056,5756,5762,5763,5775,5797,5800,5834,5851,5859,5928,5930,6035,6073,6115,6132,6168,6170,6206,6207,6208,6210,6211,6212,6213,6215,6218,6220,6221,6223,6224,6225,6226,6227,6230,6231,6232,6233,6234,6235,6238,6243,6329,6391,6407,6426,6427,6523,6575,6668,7079,7327,7332,7333,7361,7404,7800,7872,7873,7874,8518,10617,10756,10757,10759,10760,10882,10896,10992,11562,11563,11576,11656,11680,11681,11682,11683,11921,12347,12579,12676,12677,12678,12759,12856,12860,12876,12896,12897,12902,12918,12940,12977,13019,14275,14279,14425,203139,214519,246600,246664,246888,246990,246992,246993,247001,247003,247016,255066,255068,255069,255070,255072,256433,259897,260796,260797,260798,260799,260800,260801,260802,260803,260804,260808,260809,260810,264082,268622,268623,269134,270094,271334,271336,271338,271346,271348,271351,271373,271458,271460,271462,271732,271749,271750,274715,275044,275045,275046}}
+data.Item[248706]={["name"]="Waylaid Crate: Journeyman Ingots",["npcDrops"]={95,202,205,210,423,428,430,432,433,435,441,533,550,568,570,580,615,891,923,1018,1019,1021,1034,1110,1118,1157,1158,1400,1417,1418,1663,1797,1939,2089,2149,2156,2183,2233,2260,2266,2269,2349,2350,2354,2368,2384,3256,3260,3266,3273,3280,3375,3376,3377,3455,3458,3459,3762,3763,3765,3767,3922,3925,4005,4012,4023,4024,4026,4030,4038,4111,4140,4147,4308,4627,6221,6224,6494,7603,10758,10759,10896,264079,264083,267314,3,48,203,206,212,215,218,232,300,314,315,334,335,345,397,429,431,434,436,437,445,485,486,511,518,521,531,565,569,579,584,587,588,595,604,628,639,681,682,683,685,688,694,697,701,702,703,736,785,787,819,855,889,892,898,909,910,920,930,937,938,940,943,948,949,1007,1008,1009,1010,1011,1012,1013,1015,1016,1017,1020,1022,1023,1024,1025,1026,1027,1028,1031,1032,1033,1035,1036,1038,1039,1040,1042,1043,1044,1051,1052,1053,1054,1057,1069,1085,1111,1150,1159,1160,1251,1258,1259,1270,1353,1487,1666,1696,1706,1707,1708,1711,1715,1716,1717,1754,1755,1920,1947,1973,2091,2102,2120,2240,2241,2244,2248,2249,2250,2251,2252,2261,2264,2265,2267,2268,2270,2271,2272,2304,2305,2335,2337,2344,2345,2346,2348,2351,2356,2358,2359,2360,2369,2370,2371,2372,2373,2374,2375,2376,2377,2385,2387,2403,2404,2406,2407,2408,2411,2412,2413,2414,2415,2427,2428,2448,2449,2450,2451,2503,2529,2554,2555,2556,2559,2560,2562,2563,2564,2575,2578,2581,2582,2586,2587,2589,2628,3238,3239,3249,3252,3374,3378,3392,3414,3434,3436,3456,3457,3476,3654,3664,3670,3673,3674,3743,3745,3746,3748,3749,3750,3752,3754,3755,3757,3758,3759,3770,3771,3772,3780,3781,3782,3784,3791,3797,3799,3801,3803,3804,3806,3807,3808,3809,3810,3815,3817,3818,3819,3820,3821,3824,3825,3833,3834,3855,3857,3859,3863,3866,3868,3873,3875,3877,3887,3900,3917,3919,3921,3923,3924,3926,3927,3928,3932,3943,3983,3987,3999,4004,4013,4014,4015,4016,4018,4019,4020,4021,4022,4025,4027,4028,4031,4032,4034,4035,4036,4037,4040,4041,4042,4044,4050,4051,4052,4053,4054,4056,4057,4061,4062,4064,4065,4067,4070,4073,4074,4093,4094,4095,4096,4097,4099,4100,4101,4104,4107,4109,4112,4113,4114,4116,4117,4118,4119,4120,4124,4126,4128,4130,4133,4142,4143,4144,4151,4154,4202,4248,4249,4264,4273,4274,4275,4278,4279,4280,4281,4282,4283,4284,4287,4288,4291,4293,4296,4299,4304,4306,4420,4421,4424,4427,4428,4435,4436,4437,4438,4440,4442,4462,4463,4464,4481,4490,4499,4511,4512,4514,4515,4516,4517,4518,4519,4520,4522,4523,4525,4530,4531,4532,4538,4539,4541,4543,4548,4619,4623,4632,4633,4634,4635,4636,4637,4638,4639,4640,4641,4642,4647,4648,4663,4664,4665,4666,4667,4670,4671,4672,4673,4674,4675,4692,4696,4697,4711,4712,4714,4728,4789,4798,4799,4803,4805,4807,4809,4810,4811,4812,4813,4814,4815,4818,4819,4820,4822,4823,4824,4825,4827,4829,4830,4831,4832,4887,4969,4978,5056,5756,5762,5763,5775,5797,5799,5800,5832,5834,5849,5930,6035,6073,6115,6132,6167,6168,6170,6206,6207,6208,6210,6211,6212,6213,6215,6218,6219,6220,6222,6223,6225,6226,6227,6229,6230,6231,6232,6233,6234,6235,6243,6329,6391,6392,6407,6426,6427,6523,6575,6668,7016,7079,7327,7332,7333,7361,7404,7800,7872,7873,7874,8518,9377,10617,10756,10757,10760,10761,10882,10992,11562,11656,11680,11681,11682,11683,11697,11921,12347,12579,12677,12759,12856,12860,12876,12896,12902,13019,14357,203139,214519,246600,246664,246888,246990,246992,246993,247001,247003,247016,255066,255068,255069,255070,255072,260796,260797,260798,260799,260800,260801,260802,260803,260804,260808,260809,260810,264081,264082,266216,268623,269134,270094,270892,271334,271336,271338,271346,271348,271351,271458,271460,271462,271732,271749,271750,272389,274715,275044,275045,275046,277645}}
+data.Item[248707]={["name"]="Waylaid Crate: Journeyman Parts",["npcDrops"]={114,171,202,203,205,210,432,433,435,454,504,511,513,517,533,578,580,590,604,785,787,930,949,1009,1015,1017,1018,1020,1021,1023,1025,1032,1034,1035,1040,1042,1043,1044,1110,1111,1157,1158,1418,1665,1768,1867,2103,2188,2235,2260,2266,2268,2349,2354,2360,2408,2428,3238,3245,3249,3277,3377,3385,3434,3454,3455,3459,3476,3755,3759,3774,3818,3917,3923,4014,4022,4023,4026,4028,4029,4053,4057,4097,4127,4308,4463,4541,4627,6221,7603,264079,275044,275046,3,48,206,212,215,218,232,300,314,334,335,345,429,431,434,436,437,445,485,486,518,531,568,569,570,579,587,615,628,639,681,682,683,685,688,689,694,697,703,736,819,856,889,892,898,909,910,920,923,937,938,940,941,948,976,1008,1010,1011,1012,1013,1014,1016,1019,1022,1024,1026,1027,1029,1030,1031,1033,1036,1038,1041,1051,1052,1053,1054,1057,1069,1085,1150,1160,1210,1251,1258,1259,1270,1353,1400,1417,1487,1663,1666,1696,1706,1707,1708,1711,1715,1716,1717,1754,1755,1973,2089,2091,2102,2120,2160,2240,2241,2244,2248,2249,2250,2251,2252,2261,2264,2265,2267,2269,2270,2271,2272,2304,2305,2319,2335,2337,2344,2345,2346,2348,2350,2351,2356,2358,2359,2368,2369,2371,2372,2373,2374,2375,2376,2377,2384,2385,2387,2403,2404,2406,2407,2411,2415,2427,2440,2448,2449,2450,2451,2503,2529,2552,2553,2554,2555,2556,2559,2560,2562,2563,2564,2581,2582,2586,2587,2589,2628,3235,3237,3239,3250,3252,3374,3375,3376,3378,3392,3414,3435,3436,3456,3457,3458,3472,3473,3474,3654,3660,3670,3673,3674,3727,3743,3745,3746,3748,3749,3750,3752,3754,3757,3758,3762,3763,3765,3767,3770,3771,3772,3781,3782,3783,3784,3791,3797,3799,3801,3802,3803,3804,3806,3808,3809,3810,3815,3817,3819,3820,3824,3825,3854,3855,3857,3859,3861,3863,3866,3868,3873,3875,3877,3886,3887,3893,3898,3919,3921,3922,3924,3925,3926,3927,3928,3932,3943,3944,3974,3983,3984,3985,3986,3987,3992,3999,4004,4012,4013,4015,4016,4017,4018,4019,4020,4021,4024,4025,4027,4032,4034,4035,4036,4037,4038,4040,4041,4042,4044,4050,4051,4052,4054,4056,4061,4062,4065,4067,4073,4074,4093,4094,4095,4096,4099,4100,4101,4104,4107,4109,4113,4116,4117,4118,4119,4120,4124,4126,4128,4131,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4202,4248,4249,4264,4273,4274,4275,4278,4279,4281,4282,4283,4284,4285,4287,4288,4291,4293,4296,4299,4304,4306,4409,4420,4422,4424,4427,4428,4435,4436,4437,4438,4440,4442,4462,4464,4490,4499,4511,4512,4514,4515,4516,4517,4518,4519,4520,4522,4523,4525,4530,4531,4532,4538,4539,4543,4548,4623,4632,4633,4634,4635,4636,4637,4638,4639,4640,4641,4646,4647,4649,4663,4664,4665,4666,4670,4671,4672,4673,4674,4675,4689,4692,4696,4711,4712,4713,4728,4789,4798,4799,4802,4803,4805,4807,4809,4810,4811,4812,4813,4814,4815,4818,4819,4820,4821,4822,4823,4824,4825,4827,4829,4830,4831,4832,4887,4969,4978,5056,5756,5762,5763,5797,5799,5800,5834,6035,6115,6132,6167,6168,6170,6206,6207,6208,6210,6211,6212,6213,6215,6218,6219,6220,6222,6223,6224,6225,6226,6227,6229,6230,6231,6232,6233,6234,6235,6243,6329,6391,6392,6407,6426,6427,6523,6547,6575,6668,7079,7327,7332,7333,7361,7800,7872,7873,7874,8518,10617,10756,10757,10758,10759,10760,10761,10882,10896,10992,11562,11656,11680,11682,11683,11684,11697,12347,12579,12677,12678,12759,12856,12860,12876,12896,12897,12902,12918,14278,14427,214519,246600,246664,246888,246990,246992,246993,247001,247003,247016,255066,255068,255069,255070,255072,256433,259897,260796,260797,260799,260800,260801,260802,260803,260804,260808,260809,260810,264081,264082,264083,266216,266862,268622,268623,269134,270094,270589,270892,271334,271336,271338,271346,271348,271351,271460,271462,271732,271749,271750,274715,275045,277881}}
+data.Item[248708]={["name"]="Waylaid Crate: Expert Fabrics",["npcDrops"]={92,206,212,314,522,587,588,595,597,660,667,669,670,671,672,674,675,676,677,678,679,681,682,683,684,685,686,687,689,690,691,694,696,697,699,701,702,709,710,728,729,730,731,736,740,741,744,745,747,750,751,752,755,757,759,760,762,764,765,766,767,772,780,781,782,783,784,813,814,818,858,871,873,875,877,879,920,922,937,938,939,940,941,942,976,978,979,1053,1054,1060,1061,1062,1082,1084,1085,1087,1088,1094,1095,1096,1097,1114,1142,1144,1150,1151,1152,1200,1364,1487,1488,1489,1490,1491,1492,1550,1551,1557,1561,1562,1563,1564,1565,1653,1907,2091,2240,2241,2242,2243,2245,2246,2247,2248,2249,2250,2251,2252,2253,2254,2255,2256,2257,2271,2272,2287,2304,2318,2319,2320,2335,2345,2358,2359,2369,2370,2371,2375,2376,2377,2406,2407,2408,2412,2413,2415,2417,2421,2422,2431,2440,2534,2535,2544,2549,2553,2554,2555,2556,2557,2558,2559,2560,2561,2562,2563,2564,2565,2566,2567,2569,2570,2571,2572,2573,2574,2578,2579,2583,2584,2585,2586,2587,2588,2589,2590,2591,2595,2596,2597,2599,2611,2612,2618,2619,2640,2641,2642,2643,2645,2649,2650,2651,2652,2653,2655,2656,2657,2658,2686,2691,2692,2693,2701,2715,2716,2717,2718,2720,2721,2725,2726,2727,2728,2729,2731,2735,2736,2739,2740,2742,2743,2748,2760,2761,2762,2773,2781,2791,2829,2830,2831,2892,2893,2906,2907,2919,2926,2927,2928,2929,2932,2937,2944,2945,3414,3757,3940,3974,3975,3976,3977,3983,4062,4101,4104,4110,4130,4131,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4260,4281,4283,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4304,4306,4308,4323,4324,4328,4329,4331,4334,4341,4342,4343,4344,4351,4352,4357,4358,4359,4360,4361,4362,4363,4376,4377,4378,4379,4387,4391,4392,4396,4397,4401,4402,4404,4405,4411,4413,4414,4415,4420,4421,4422,4424,4427,4438,4457,4465,4466,4467,4479,4480,4490,4504,4505,4506,4518,4525,4532,4538,4539,4540,4542,4543,4619,4623,4632,4634,4635,4636,4637,4638,4639,4640,4641,4642,4644,4645,4646,4647,4648,4649,4652,4654,4655,4656,4657,4660,4662,4663,4664,4665,4666,4668,4670,4671,4672,4673,4674,4675,4676,4677,4679,4680,4681,4684,4685,4689,4692,4693,4695,4696,4697,4700,4705,4711,4712,4713,4714,4715,4716,4718,4719,4723,4725,4726,4727,4728,4834,4844,4845,4846,4847,4848,4849,4850,4851,4852,4853,4855,4856,4857,4860,4861,4863,4872,5044,5045,5184,5226,5228,5229,5232,5234,5236,5237,5238,5240,5244,5245,5246,5249,5251,5253,5254,5255,5260,5261,5263,5268,5269,5278,5286,5292,5293,5295,5296,5297,5300,5304,5305,5306,5307,5308,5331,5332,5333,5335,5336,5337,5361,5419,5420,5422,5423,5425,5426,5428,5429,5455,5461,5472,5473,5474,5475,5477,5481,5600,5615,5616,5617,5618,5623,5648,5649,5650,5771,5839,5844,5846,5853,5854,5856,5858,5860,5861,5982,5984,6068,6069,6116,6125,6126,6127,6190,6212,6215,6222,6223,6225,6226,6227,6228,6229,6230,6232,6234,6235,6426,6427,6487,6490,6575,6910,7011,7012,7022,7030,7078,7175,7206,7228,7246,7247,7267,7268,7269,7271,7272,7273,7274,7286,7290,7291,7320,7321,7327,7328,7329,7332,7333,7334,7335,7337,7341,7342,7344,7345,7346,7347,7348,7349,7351,7352,7353,7355,7356,7357,7358,7361,7396,7397,7404,7405,7605,7606,7608,7725,7726,7727,7795,7796,7800,7848,7855,7856,7857,7858,7872,7873,7874,7883,7997,8095,8120,8127,8311,8318,8337,8384,8504,8566,8637,8667,8759,8959,9377,11559,11561,11562,11563,11576,11577,11685,11686,11688,11777,11778,11782,11783,11784,11785,11786,11787,11788,11789,11790,11791,11792,11793,11794,11937,12206,12207,12216,12217,12218,12219,12220,12221,12222,12223,12224,12239,12240,12241,12369,12865,12977,13019,13141,13142,13282,13323,13599,13696,13718,14123,14221,222233,222286,246600,246664,246993,247001,250187,252711,253272,253524,253525,253526,254560,255262,255267,255271,255276,255309,255373,255377,255560,255561,255769,255770,255772,255774,255849,255850,255851,255898,255901,255906,255995,256383,256434,256749,256795,256797,256798,256799,256800,256801,256807,256899,256952,257001,257017,257885,257888,257900,257901,257910,257915,257916,257926,258038,258040,258042,258100,258102,258104,258331,258573,258574,258687,258792,258797,258799,258804,258818,258897,258963,259046,259052,259054,259055,259263,259267,259269,259979,259981,259987,260211,260225,260235,260244,260353,260968,260969,260973,260995,260996,261497,261710,261711,262037,262065,262169,262397,262473,262477,262838,263071,263141,263196,263307,263343,263348,263380,263681,263749,263899,264082,268321,268462,268831,269175,270094,270310,270589,270664,270667,270892,271336,271351,271373,271458,271460,271462,271784,272228,272313,272315,272389}}
+data.Item[248709]={["name"]="Waylaid Crate: Expert Ingots",["npcDrops"]={2376,2893,92,206,300,522,587,588,595,597,660,667,669,670,671,672,674,675,676,677,678,679,680,681,682,683,684,685,686,687,688,689,690,691,694,696,697,699,701,702,709,710,728,729,730,731,736,740,741,742,743,744,750,751,752,755,757,759,760,761,762,764,766,767,772,780,782,783,818,854,856,858,871,873,877,879,920,921,937,938,939,940,941,942,978,979,1053,1054,1060,1062,1082,1084,1085,1087,1088,1094,1095,1096,1097,1142,1144,1150,1151,1152,1200,1270,1364,1488,1489,1490,1491,1492,1550,1551,1557,1561,1562,1563,1564,1565,1653,1713,1907,2240,2241,2242,2243,2245,2246,2247,2248,2249,2250,2251,2252,2253,2254,2255,2256,2271,2272,2287,2304,2318,2319,2335,2345,2346,2358,2359,2369,2371,2375,2377,2406,2407,2408,2411,2412,2413,2416,2417,2420,2421,2422,2534,2535,2545,2552,2553,2554,2555,2556,2557,2558,2559,2560,2561,2562,2563,2564,2565,2566,2567,2569,2570,2571,2572,2573,2574,2579,2580,2581,2583,2584,2585,2586,2587,2588,2589,2590,2591,2592,2595,2596,2597,2611,2612,2618,2619,2628,2635,2640,2641,2643,2649,2650,2651,2652,2653,2656,2659,2686,2691,2692,2693,2694,2701,2715,2717,2718,2720,2721,2725,2726,2727,2728,2729,2731,2732,2734,2735,2736,2738,2739,2740,2742,2743,2760,2761,2762,2783,2791,2793,2829,2830,2831,2894,2906,2907,2923,2925,2926,2927,2928,2929,2932,2944,2945,3752,3757,3803,3807,3940,3942,3974,3975,3976,3977,3984,4062,4101,4116,4130,4131,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4260,4285,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4304,4306,4308,4323,4324,4328,4329,4331,4334,4342,4343,4344,4345,4351,4352,4355,4356,4357,4358,4359,4360,4361,4362,4363,4376,4377,4378,4379,4386,4390,4391,4392,4396,4397,4405,4411,4413,4414,4420,4421,4422,4427,4428,4457,4465,4466,4467,4480,4481,4490,4504,4505,4506,4525,4532,4538,4539,4540,4542,4543,4623,4632,4634,4635,4636,4638,4639,4640,4641,4642,4644,4645,4646,4647,4648,4649,4651,4653,4654,4655,4656,4657,4662,4663,4664,4665,4666,4667,4668,4670,4671,4672,4673,4675,4676,4678,4680,4681,4682,4684,4692,4693,4695,4696,4697,4699,4700,4701,4711,4712,4713,4714,4715,4716,4718,4719,4724,4727,4728,4834,4842,4844,4845,4846,4847,4848,4849,4850,4851,4852,4853,4854,4855,4856,4857,4860,4861,4863,4872,5184,5225,5226,5228,5229,5232,5234,5236,5237,5238,5239,5240,5243,5244,5245,5246,5247,5249,5253,5254,5255,5256,5258,5260,5261,5263,5268,5269,5278,5286,5292,5293,5295,5300,5304,5305,5306,5307,5308,5331,5332,5333,5335,5336,5337,5402,5419,5420,5422,5423,5424,5425,5426,5428,5429,5455,5461,5462,5471,5472,5473,5474,5481,5601,5615,5616,5617,5618,5623,5643,5645,5647,5648,5649,5650,5839,5840,5843,5844,5850,5854,5855,5856,5858,5860,5861,5984,5990,6068,6070,6116,6117,6125,6126,6127,6132,6170,6193,6194,6212,6222,6223,6224,6225,6226,6227,6229,6232,6234,6235,6375,6391,6426,6427,6487,6505,6575,6910,7011,7012,7022,7023,7030,7078,7079,7091,7153,7175,7206,7228,7246,7247,7267,7268,7269,7271,7272,7275,7276,7286,7291,7320,7321,7327,7328,7329,7332,7333,7334,7335,7337,7341,7342,7344,7345,7346,7347,7348,7349,7351,7352,7353,7355,7356,7357,7358,7361,7396,7397,7404,7405,7604,7605,7606,7608,7725,7726,7727,7796,7797,7800,7803,7808,7847,7855,7856,7857,7858,7872,7873,7874,7883,8095,8120,8127,8311,8318,8384,8566,8567,8637,8759,8956,8959,9377,10992,11559,11561,11563,11577,11685,11686,11687,11777,11778,11781,11782,11783,11784,11785,11786,11787,11788,11789,11790,11791,11792,11793,11794,11937,12207,12216,12217,12218,12219,12220,12221,12222,12223,12236,12239,12240,12347,12369,12676,12865,12976,13019,13141,13142,13323,13696,14123,14221,14222,14661,217305,218032,222286,246600,246664,246993,250187,252711,253272,253526,254283,254284,254560,255003,255262,255267,255309,255364,255373,255560,255561,255769,255770,255772,255774,255849,255850,255851,255898,255901,255906,255995,256383,256433,256434,256749,256795,256797,256798,256799,256800,256801,256807,256899,256952,257001,257017,257861,257885,257888,257900,257901,257910,257915,257916,257926,258038,258040,258042,258100,258102,258104,258331,258573,258574,258687,258792,258797,258799,258804,258818,258897,259046,259052,259054,259055,259258,259263,259267,259269,259979,259981,259987,260211,260225,260235,260244,260353,260419,260429,260800,260968,260969,260973,260995,260996,261497,261710,261711,262037,262065,262169,262397,262473,262477,263071,263196,263307,263343,263348,263380,263615,263681,263749,263899,266862,268321,268423,268462,268831,269175,269254,270094,270667,270892,271338,271346,271348,271351,271373,271458,271460,271784,272228,272313,272389}}
+data.Item[248710]={["name"]="Waylaid Crate: Expert Parts",["npcDrops"]={92,314,412,522,587,588,595,597,660,667,669,670,671,672,674,675,677,678,679,680,681,682,683,684,685,686,687,688,689,690,691,694,696,697,699,701,702,709,710,728,729,730,731,736,740,741,742,743,747,750,751,752,755,757,759,760,765,766,767,768,772,780,781,782,783,784,813,854,856,858,871,873,875,877,879,905,920,921,937,938,939,940,941,942,943,978,979,1053,1054,1059,1061,1082,1084,1085,1087,1094,1096,1097,1114,1142,1144,1150,1151,1152,1270,1364,1487,1488,1489,1490,1491,1550,1551,1557,1558,1561,1562,1563,1564,1565,1653,1713,1907,2091,2240,2241,2242,2243,2245,2246,2247,2248,2249,2250,2251,2252,2253,2254,2255,2256,2271,2272,2287,2304,2318,2319,2346,2358,2359,2369,2371,2375,2376,2377,2406,2407,2408,2411,2412,2413,2415,2417,2421,2423,2534,2536,2537,2550,2554,2555,2556,2557,2558,2559,2560,2561,2562,2563,2564,2565,2566,2567,2569,2570,2571,2572,2573,2574,2579,2580,2581,2582,2583,2584,2585,2586,2587,2588,2589,2590,2591,2592,2595,2596,2611,2618,2619,2639,2640,2641,2642,2643,2645,2649,2650,2651,2652,2655,2656,2658,2680,2686,2691,2692,2693,2701,2714,2715,2716,2717,2718,2719,2721,2725,2726,2727,2728,2729,2731,2732,2734,2735,2736,2739,2740,2742,2743,2760,2761,2762,2773,2783,2791,2829,2831,2893,2894,2906,2924,2925,2926,2927,2928,2929,2932,3791,3974,3975,3976,3983,3984,4101,4104,4116,4130,4131,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4260,4282,4283,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4304,4306,4308,4323,4324,4328,4329,4331,4343,4345,4351,4352,4355,4356,4357,4358,4359,4360,4361,4362,4363,4376,4377,4378,4379,4386,4392,4396,4397,4399,4402,4411,4414,4420,4421,4422,4424,4427,4428,4438,4458,4461,4465,4466,4467,4468,4479,4480,4481,4490,4504,4505,4506,4518,4525,4532,4538,4539,4540,4542,4543,4548,4623,4634,4635,4636,4637,4638,4639,4640,4641,4642,4643,4644,4645,4646,4647,4648,4649,4651,4654,4655,4656,4657,4662,4663,4664,4665,4666,4667,4668,4670,4671,4672,4673,4674,4675,4676,4677,4678,4679,4682,4686,4689,4692,4693,4694,4695,4696,4697,4700,4701,4702,4705,4711,4712,4713,4714,4715,4716,4718,4719,4723,4725,4726,4728,4729,4834,4844,4845,4846,4847,4848,4849,4850,4851,4852,4853,4854,4855,4856,4857,4860,4861,4863,4872,5044,5045,5184,5224,5225,5226,5228,5229,5232,5234,5236,5237,5239,5240,5243,5245,5246,5247,5249,5251,5253,5254,5255,5256,5258,5260,5278,5286,5292,5293,5295,5296,5299,5304,5305,5306,5308,5331,5333,5334,5335,5336,5337,5419,5420,5422,5423,5425,5426,5428,5429,5452,5455,5456,5459,5462,5472,5473,5474,5481,5600,5602,5615,5616,5617,5618,5623,5643,5648,5649,5650,5760,5840,5843,5844,5846,5852,5854,5856,5858,5861,5935,5982,5984,6068,6116,6117,6125,6126,6127,6168,6208,6212,6222,6223,6224,6226,6227,6229,6230,6232,6234,6235,6239,6426,6427,6487,6575,6733,6910,7011,7012,7022,7023,7030,7078,7091,7175,7228,7246,7247,7268,7269,7271,7272,7275,7286,7290,7291,7320,7321,7327,7328,7329,7332,7333,7334,7335,7337,7341,7342,7344,7345,7346,7347,7348,7349,7351,7352,7353,7355,7356,7358,7361,7396,7397,7405,7584,7604,7605,7606,7725,7726,7727,7795,7797,7800,7803,7808,7847,7848,7855,7856,7857,7858,7872,7873,7874,7883,8095,8311,8318,8384,8566,8637,8759,8762,8956,8959,9318,9377,9396,11559,11561,11562,11563,11578,11687,11777,11778,11782,11783,11784,11785,11786,11787,11788,11789,11790,11791,11792,11793,11794,11937,12206,12207,12216,12217,12218,12219,12220,12221,12222,12240,12347,12369,12676,12865,12977,13141,13142,13323,13696,13718,14123,218032,222233,222286,236028,246600,246664,246993,247001,250187,252711,253272,253526,254283,254284,254560,255174,255207,255238,255267,255373,255377,255560,255769,255770,255772,255774,255850,255851,255898,255901,255906,255995,256383,256410,256434,256749,256795,256797,256798,256799,256800,256801,256807,256899,256952,257001,257017,257034,257861,257885,257888,257900,257901,257910,257915,257916,257926,258038,258040,258042,258100,258102,258104,258331,258573,258574,258687,258792,258797,258799,258804,258818,258897,259046,259052,259054,259055,259258,259263,259267,259269,259801,259979,259981,259987,260211,260235,260244,260353,260419,260968,260969,260973,260995,260996,261497,261710,261711,262037,262065,262169,262397,262473,262477,262838,263071,263196,263307,263343,263348,263380,263615,263749,263899,266357,266862,267065,268321,268462,268831,269175,270094,270664,270667,270892,271346,271348,271351,271373,271458,271460,271462,271784,272228,272315,276401}}
+data.Item[248711]={["name"]="Waylaid Crate: Artisan Fabrics",["npcDrops"]={1559,1783,1787,1791,1794,1795,1816,1822,1824,1831,2505,2546,2641,2642,2643,2644,2645,2646,2647,2648,2653,2654,2655,2656,2659,2681,2686,2694,2925,2926,2929,4465,4466,4467,4468,4475,4854,5226,5228,5238,5239,5241,5243,5247,5256,5259,5263,5267,5269,5270,5271,5277,5278,5280,5283,5291,5293,5296,5297,5299,5357,5359,5360,5361,5362,5364,5420,5427,5429,5453,5454,5455,5456,5457,5459,5460,5461,5462,5471,5472,5474,5475,5481,5485,5490,5649,5650,5708,5710,5712,5714,5715,5717,5719,5722,5840,5843,5844,5846,5850,5852,5854,5858,5860,5861,5862,5988,5990,5991,5992,6004,6005,6006,6116,6117,6148,6193,6195,6196,6198,6199,6201,6202,6347,6371,6375,6377,6378,6505,6506,6507,6508,6509,6510,6511,6512,6513,6514,6516,6518,6519,6520,6551,6553,6554,6556,6557,7027,7034,7035,7039,7040,7041,7046,7047,7048,7092,7100,7101,7106,7107,7108,7109,7110,7112,7113,7115,7120,7125,7126,7132,7139,7153,7154,7155,7156,7157,7158,7246,7247,7267,7268,7269,7271,7272,7273,7274,7276,7291,7321,7397,7430,7432,7438,7440,7441,7442,7444,7447,7450,7451,7455,7457,7458,7460,7523,7604,7795,7796,7856,7857,7858,7864,7883,7885,7977,7995,7996,8095,8120,8311,8318,8319,8384,8438,8497,8504,8529,8531,8556,8566,8580,8581,8596,8600,8602,8603,8636,8759,8889,8890,8891,8892,8893,8894,8895,8896,8897,8899,8900,8904,8905,8907,8908,8909,8910,8911,8912,8913,8914,8915,8921,8922,8956,8958,8959,8960,8961,9017,9025,9033,9041,9042,9096,9097,9098,9162,9163,9164,9165,9166,9167,9197,9201,9216,9237,9239,9241,9258,9259,9261,9262,9263,9268,9269,9398,9416,9517,9541,9568,9583,9692,9696,9701,9862,9956,10040,10177,10220,10221,10317,10318,10375,10381,10382,10390,10398,10399,10406,10408,10409,10412,10413,10418,10420,10423,10424,10430,10438,10447,10464,10471,10472,10476,10477,10478,10480,10489,10495,10499,10678,10717,10742,10802,10806,10807,10916,11043,11444,11451,11462,11480,11487,11516,11734,11783,11784,11789,11791,11793,12203,12206,12207,12218,12220,12221,12222,12223,12224,12236,12242,13021,13022,13036,13197,13276,13282,13323,13596,13696,14351,222525,236874,236876,243509,247235,247237,247248,247470,248041,248395,249053,249220,249221,249228,249230,249237,249238,250023,250027,255247,255262,255267,255271,255276,255309,255347,255364,255373,255377,255995,257915,258152,258329,260148,262301,262689,263394,268864,271780,271784,277474}}
+data.Item[248712]={["name"]="Waylaid Crate: Artisan Ingots",["npcDrops"]={818,1492,1559,1565,1783,1784,1787,1788,1791,1793,1794,1812,1816,1817,1821,1822,1824,1831,1833,1883,2505,2522,2546,2550,2641,2642,2643,2644,2645,2646,2647,2648,2655,2656,2658,2680,2681,2694,2707,2925,2926,2928,2929,4465,4466,4467,4468,4469,4474,4493,4857,5225,5226,5228,5235,5236,5243,5247,5259,5261,5263,5267,5270,5271,5272,5273,5277,5278,5280,5283,5291,5293,5295,5296,5299,5304,5305,5308,5333,5357,5360,5362,5364,5424,5426,5452,5453,5455,5456,5457,5458,5459,5460,5461,5462,5472,5473,5474,5475,5481,5485,5490,5647,5649,5650,5708,5709,5710,5713,5714,5716,5717,5719,5720,5844,5846,5852,5854,5855,5858,5861,5862,5977,5982,5988,5990,5991,5993,6004,6005,6006,6116,6117,6126,6190,6193,6194,6195,6196,6198,6199,6200,6201,6375,6378,6506,6507,6509,6510,6511,6512,6513,6514,6516,6517,6519,6520,6521,6527,6551,6553,6554,6555,6557,6559,7026,7033,7034,7035,7037,7038,7039,7040,7041,7047,7055,7086,7092,7100,7101,7106,7107,7108,7109,7110,7111,7112,7113,7115,7118,7125,7126,7132,7139,7153,7154,7155,7156,7157,7158,7246,7247,7267,7268,7269,7271,7273,7276,7321,7396,7397,7428,7438,7439,7440,7442,7447,7451,7453,7455,7456,7458,7459,7460,7524,7796,7797,7808,7809,7855,7856,7857,7864,7886,7977,7995,8095,8120,8127,8318,8319,8336,8384,8497,8504,8524,8530,8531,8556,8566,8580,8600,8601,8603,8605,8636,8675,8761,8890,8891,8892,8893,8894,8895,8896,8897,8898,8899,8900,8902,8903,8904,8905,8906,8907,8909,8910,8911,8912,8913,8914,8920,8921,8956,8957,8958,8960,8961,9027,9045,9056,9097,9098,9162,9163,9166,9167,9198,9200,9201,9216,9236,9241,9257,9259,9261,9262,9268,9269,9318,9416,9445,9462,9554,9583,9683,9691,9693,9716,9717,9817,9818,9819,9956,10043,10319,10363,10375,10381,10382,10390,10400,10413,10416,10419,10424,10425,10426,10429,10436,10440,10442,10464,10472,10476,10477,10478,10480,10485,10486,10489,10495,10498,10717,10801,10802,10916,11043,11444,11448,11450,11452,11453,11455,11459,11462,11472,11473,11475,11480,11483,11489,11738,11741,11783,11784,11789,11794,12203,12206,12207,12218,12219,12220,12221,12222,12223,12236,12242,12258,12337,13022,13036,13142,13197,13276,13282,13323,13596,13601,14349,14399,14400,14861,236028,236876,243509,244525,244530,246920,247237,247248,247470,248041,248395,249053,249220,249223,249228,249229,249230,249474,249490,249493,249974,250023,250027,253215,255262,255267,255271,255276,255309,255347,255364,255373,255377,255995,256809,257915,258152,258508,261783,261914,261934,262197,262299,262684,271780,272318,277474,278644}}
+data.Item[248713]={["name"]="Waylaid Crate: Artisan Parts",["npcDrops"]={680,1492,1653,1783,1787,1789,1791,1793,1795,1816,1817,1821,1824,2505,2521,2641,2642,2643,2644,2645,2646,2647,2648,2655,2656,2681,2692,2694,2719,2748,2925,2926,4374,4465,4466,4467,4468,4469,4475,4846,4857,5226,5228,5236,5243,5256,5259,5263,5267,5270,5271,5277,5280,5283,5291,5293,5295,5296,5297,5299,5305,5306,5360,5362,5363,5364,5366,5420,5424,5426,5430,5431,5454,5456,5457,5458,5459,5461,5462,5472,5474,5475,5481,5485,5490,5623,5649,5650,5708,5709,5710,5713,5716,5719,5721,5722,5833,5840,5843,5844,5846,5854,5855,5858,5860,5861,5862,5982,5988,5990,5992,6004,6006,6127,6147,6193,6194,6195,6196,6198,6199,6200,6202,6375,6498,6505,6506,6507,6508,6509,6510,6511,6512,6514,6516,6517,6518,6519,6520,6521,6527,6551,6552,6554,7028,7035,7039,7040,7041,7047,7086,7092,7093,7101,7105,7107,7109,7110,7111,7112,7113,7114,7115,7118,7120,7125,7132,7153,7154,7155,7156,7157,7158,7246,7247,7268,7269,7271,7272,7273,7274,7320,7397,7429,7438,7440,7443,7447,7448,7449,7450,7451,7452,7453,7457,7458,7459,7460,7796,7803,7809,7848,7856,7858,7886,7977,7995,7996,8095,8120,8127,8296,8311,8318,8319,8337,8384,8438,8440,8497,8504,8524,8528,8529,8540,8555,8565,8566,8580,8581,8596,8600,8603,8605,8606,8759,8761,8889,8890,8891,8892,8893,8894,8895,8896,8897,8899,8900,8904,8905,8907,8908,8909,8910,8911,8912,8913,8915,8916,8920,8921,8927,8956,8957,8958,8959,8960,8961,8983,9017,9019,9056,9096,9097,9098,9162,9163,9164,9166,9167,9196,9199,9216,9259,9261,9264,9265,9267,9318,9376,9464,9476,9517,9583,9690,9693,9696,9817,9819,9862,9878,9879,9938,10040,10083,10177,10318,10319,10371,10374,10375,10381,10391,10398,10400,10405,10406,10409,10411,10412,10414,10418,10420,10438,10442,10447,10469,10476,10480,10481,10485,10488,10489,10648,10717,10762,10802,10816,11450,11455,11456,11459,11462,11469,11473,11477,11480,11483,11740,11783,11784,11789,11791,11793,12178,12201,12203,12206,12207,12218,12219,12220,12221,12222,12223,12242,12243,13021,13022,13142,13160,13276,13323,13601,14661,236028,246920,247235,247237,247248,248041,248395,249053,249220,249223,249228,249229,249230,249474,249491,250023,250027,252457,253214,255247,255262,255267,255271,255276,255309,255364,255373,255377,255394,255995,256809,257915,258264,262117,262299,271780,271784,272307,278644}}
 data.Item[248765]={["name"]="Sealed Apprentice Crate",["relatedQuests"]={91899}}
 data.Item[248766]={["name"]="Sealed Journeyman Crate",["relatedQuests"]={91900}}
 data.Item[248767]={["name"]="Sealed Expert Crate"}
@@ -33344,8 +33346,8 @@ data.Item[248820]={["name"]="Torbernite",["vendors"]={263384}}
 data.Item[248821]={["name"]="Demonsage"}
 data.Item[248822]={["name"]="Death Lotus"}
 data.Item[248823]={["name"]="Marefoil"}
-data.Item[248824]={["name"]="Fel Hide",["npcDrops"]={244525,248041,249474,249490,249491,251199,256809}}
-data.Item[248825]={["name"]="Fel Leather",["npcDrops"]={244525,244530,248041,248042,249224,249474,249490,249491,249493,249974,251199,256809}}
+data.Item[248824]={["name"]="Fel Hide",["npcDrops"]={244525,244530,248041,248042,249474,249490,249491,249493,249974,251199,256809}}
+data.Item[248825]={["name"]="Fel Leather",["npcDrops"]={244525,244530,248041,248042,249224,249225,249474,249490,249491,249493,249974,251199,256809,256830}}
 data.Item[248930]={["name"]="Quinn's Potion",["relatedQuests"]={91921}}
 data.Item[248975]={["name"]="Seed of the Ancients"}
 data.Item[249144]={["name"]="Twisted Nether Wand"}
@@ -33369,9 +33371,9 @@ data.Item[249410]={["name"]="Sulfuric Acid"}
 data.Item[249424]={["name"]="Rosecap"}
 data.Item[249425]={["name"]="Bauxite"}
 data.Item[249426]={["name"]="Pitchblende"}
-data.Item[249427]={["name"]="Pristine Leather",["npcDrops"]={157,213,441,454,547,565,819,833,923,1020,1186,1191,1192,1400,1417,1693,1766,1769,1770,1778,1779,1797,1893,1923,1924,2069,2163,2164,2165,2185,2237,2321,2322,2323,2351,2354,2384,2529,3234,3238,3239,3240,3242,3244,3245,3246,3248,3249,3255,3256,3415,3416,3424,3425,3426,3461,3473,3630,3631,3632,3633,3634,3636,3637,3641,3809,3816,3823,3851,3853,3855,3857,3859,3861,3862,3864,3865,3866,3868,4008,4012,4013,4018,4042,4067,4127,4128,4129,4316,4511,4887,5048,5053,5056,5755,5756,5762,8886,203139,263470,270693,335,345,628,1015,1016,1017,1021,1022,1042,1043,1069,1188,1189,1224,1225,1258,1782,1892,1894,1896,1972,2071,2089,2175,2187,2356,2974,3056,3058,3231,3235,3236,3237,3241,3243,3247,3252,3254,3257,3398,3463,3466,3472,3474,3475,3529,3533,3619,3653,3674,3721,3774,3810,3817,3824,3854,3886,3914,4009,4011,4014,4015,4016,4019,4031,4032,4044,4117,4126,4279,4514,4824,4827,5829,5831,5832,5834,5865,5912,6788,10357,12431,12432,12678,12940,14272,210107,259388,277645},["vendors"]={263384}}
-data.Item[249428]={["name"]="Pristine Hide",["npcDrops"]={920,4538,4539,4825,205,206,507,533,534,681,682,683,684,685,686,687,688,689,690,728,729,730,731,736,740,741,742,743,744,745,767,768,772,854,855,856,898,976,977,1018,1019,1023,1044,1082,1084,1085,1087,1108,1114,1150,1151,1152,1353,1511,1514,1550,1551,1557,1558,1559,1713,1815,1816,1817,2248,2249,2250,2251,2385,2406,2407,2408,2505,2521,2522,2559,2560,2561,2635,2657,2658,2659,2680,2681,2725,2726,2727,2728,2729,2731,2732,2734,2759,2923,2924,2925,2926,3476,3789,3791,3815,3818,3825,3927,4017,4041,4107,4109,4110,4118,4119,4124,4139,4140,4142,4143,4144,4147,4150,4151,4248,4249,4274,4304,4323,4324,4328,4329,4331,4341,4342,4343,4344,4351,4352,4355,4356,4357,4388,4396,4397,4400,4422,4504,4512,4548,4660,4662,4678,4681,4685,4688,4689,4696,4697,4699,4700,4701,4702,4726,4727,4728,4729,4829,4830,4861,5226,5260,5268,5272,5274,5278,5286,5288,5291,5292,5293,5295,5296,5297,5299,5300,5304,5305,5306,5307,5308,5419,5420,5422,5423,5425,5426,5427,5431,5827,5984,5990,5991,5992,5993,6167,6170,6215,6348,6349,6375,6377,6378,6505,6506,6507,6508,6513,6514,6516,7022,7078,7125,7126,7268,7273,7333,7334,7405,7457,7458,7459,7460,7848,7977,8095,8120,8211,8336,8438,8596,8597,8598,8600,8601,8675,8759,8761,8921,8922,8956,8957,8958,8959,8960,8961,9042,9162,9163,9164,9165,9166,9167,9318,9622,9683,9690,10268,10882,10992,11786,12676,12677,13323,14123,14280,244525,248041,249230,249490,249491,249493,255174,255267,255851,255901,256807,256809,257017,258331,258522,259046,259054,259055,259263,259267,259269,259897,260235,260244,260322,260325,260796,260797,260798,260799,260800,260801,260802,260809,260810,262037,262065,262300,262473,262477,263141,263307,263315,263343,263348,263380,263681,266862,268831,269275,270094,271334,271336,271732,274715}}
-data.Item[249429]={["name"]="Pristine Scale",["npcDrops"]={2505,5277,5280,5283,5424,5431,5720,5988,6498,7040,7041,7047,7448,7449,7803,8319}}
+data.Item[249427]={["name"]="Pristine Leather",["npcDrops"]={157,213,441,454,547,565,819,833,923,1020,1186,1191,1192,1400,1417,1693,1766,1769,1770,1778,1779,1797,1893,1923,1924,2069,2163,2164,2165,2185,2237,2321,2322,2323,2351,2354,2384,2529,3234,3238,3239,3240,3242,3244,3245,3246,3248,3249,3255,3256,3415,3416,3424,3425,3426,3461,3473,3630,3631,3632,3633,3634,3636,3637,3641,3809,3816,3823,3851,3853,3855,3857,3859,3861,3862,3864,3865,3866,3868,4008,4012,4013,4018,4042,4067,4127,4128,4129,4316,4511,4887,5048,5053,5056,5755,5756,5762,8886,203139,263470,270693,335,345,628,1015,1016,1017,1021,1022,1042,1043,1069,1188,1189,1224,1225,1258,1782,1892,1894,1896,1972,2071,2089,2175,2187,2356,2476,2974,3056,3058,3231,3235,3236,3237,3241,3243,3247,3252,3254,3257,3398,3463,3466,3472,3474,3475,3529,3533,3619,3653,3674,3721,3774,3810,3817,3824,3854,3886,3914,4009,4011,4014,4015,4016,4019,4031,4032,4044,4117,4126,4279,4514,4824,4827,5829,5831,5832,5834,5865,5912,6788,10357,12431,12432,12678,12940,14272,14357,210107,259388,277645},["vendors"]={263384}}
+data.Item[249428]={["name"]="Pristine Hide",["npcDrops"]={920,4538,4539,4825,205,206,507,533,534,681,682,683,684,685,686,687,688,689,690,728,729,730,731,736,740,741,742,743,744,745,746,767,768,772,854,855,856,898,976,977,1018,1019,1023,1044,1082,1084,1085,1087,1108,1114,1140,1150,1151,1152,1353,1511,1514,1550,1551,1557,1558,1559,1713,1815,1816,1817,2248,2249,2250,2251,2347,2385,2406,2407,2408,2474,2505,2521,2522,2559,2560,2561,2635,2657,2658,2659,2680,2681,2725,2726,2727,2728,2729,2731,2732,2734,2753,2759,2923,2924,2925,2926,3476,3789,3791,3811,3815,3818,3825,3927,4017,4041,4066,4107,4109,4110,4118,4119,4124,4139,4140,4142,4143,4144,4147,4150,4151,4248,4249,4274,4304,4323,4324,4328,4329,4331,4334,4341,4342,4343,4344,4345,4351,4352,4355,4356,4357,4374,4388,4389,4390,4396,4397,4398,4400,4422,4504,4512,4548,4660,4662,4678,4681,4685,4688,4689,4696,4697,4699,4700,4701,4702,4724,4725,4726,4727,4728,4729,4829,4830,4841,4861,4863,5224,5225,5226,5260,5262,5268,5272,5274,5278,5286,5287,5288,5291,5292,5293,5295,5296,5297,5299,5300,5304,5305,5306,5307,5308,5346,5419,5420,5421,5422,5423,5425,5426,5427,5431,5708,5827,5833,5928,5934,5984,5985,5990,5991,5992,5993,6010,6167,6170,6215,6347,6348,6349,6375,6377,6378,6379,6380,6505,6506,6507,6508,6513,6514,6516,6585,7022,7055,7078,7125,7126,7268,7273,7333,7334,7405,7430,7432,7433,7434,7443,7444,7445,7457,7458,7459,7460,7848,7977,7997,8095,8120,8211,8336,8438,8596,8597,8598,8600,8601,8602,8675,8759,8760,8761,8921,8922,8928,8956,8957,8958,8959,8960,8961,9042,9162,9163,9164,9165,9166,9167,9318,9416,9622,9683,9684,9690,9694,9696,10197,10221,10268,10806,10882,10990,10992,11785,11786,12207,12676,12677,13036,13323,13596,13599,14123,14280,14308,244525,244530,248041,249224,249225,249230,249474,249490,249491,249493,251199,253215,255174,255267,255851,255901,256807,256809,257017,258264,258329,258331,258522,259046,259054,259055,259263,259267,259269,259897,260235,260244,260322,260325,260796,260797,260798,260799,260800,260801,260802,260809,260810,261783,261786,261898,262037,262065,262117,262300,262473,262477,262696,263141,263307,263315,263343,263348,263380,263615,263681,266862,268831,268865,269057,269254,269275,270094,270310,271334,271336,271732,274715,279811}}
+data.Item[249429]={["name"]="Pristine Scale",["npcDrops"]={1756,2505,5276,5277,5280,5283,5424,5431,5719,5720,5721,5722,5988,6498,6499,6500,7040,7041,7043,7044,7047,7048,7447,7448,7449,7803,7977,8319,8497,8764,9096,9461,9691,9698,9701,10442,10678,10807,11735,11736,13136,13599,221651,247972}}
 data.Item[249430]={["name"]="Magenta Dye"}
 data.Item[249431]={["name"]="Viridian Dye"}
 data.Item[249432]={["name"]="Sandpaper"}
@@ -33422,9 +33424,9 @@ data.Item[249515]={["name"]="Formula: Lesser Eternal Wand",["npcDrops"]={6556}}
 data.Item[249516]={["name"]="Formula: Enchant Gloves - Advanced Skinning",["npcDrops"]={6196}}
 data.Item[249519]={["name"]="Formula: Frozen Heart of the Mountain"}
 data.Item[249520]={["name"]="Formula: Molten Heart of the Mountain",["npcDrops"]={9816}}
-data.Item[249521]={["name"]="Formula: Dormant Heart of the Mountain"}
-data.Item[249522]={["name"]="Formula: Greater Eternal Wand"}
-data.Item[249523]={["name"]="Formula: Enchant 2H Weapon - Strength"}
+data.Item[249521]={["name"]="Formula: Dormant Heart of the Mountain",["npcDrops"]={10596}}
+data.Item[249522]={["name"]="Formula: Greater Eternal Wand",["npcDrops"]={9778}}
+data.Item[249523]={["name"]="Formula: Enchant 2H Weapon - Strength",["npcDrops"]={10498}}
 data.Item[249524]={["name"]="Formula: Enchant Bracer - Superior Agility",["npcDrops"]={10399}}
 data.Item[249525]={["name"]="Formula: Enchant 2H Weapon - Mighty Spell Power",["vendors"]={248199,256732}}
 data.Item[249526]={["name"]="Formula: Enchant 2H Weapon - Mighty Healing Power",["vendors"]={248199,256732}}
@@ -33437,13 +33439,13 @@ data.Item[249536]={["name"]="Formula: Enchant Gloves - Holy Power",["vendors"]={
 data.Item[249537]={["name"]="Formula: Brilliant Wand",["vendors"]={248199,256732}}
 data.Item[249538]={["name"]="Formula: Enchant Bracer - Superior Intellect",["vendors"]={248199,256732}}
 data.Item[249539]={["name"]="Formula: Enchant Bracer - Superior Deflection",["vendors"]={248199,256732}}
-data.Item[249692]={["name"]="Head of Varrox Bleakhoof"}
+data.Item[249692]={["name"]="Head of Varrox Bleakhoof",["npcDrops"]={247234}}
 data.Item[249693]={["name"]="Totem of Ursol"}
 data.Item[249694]={["name"]="Totem of Ursoc"}
-data.Item[249695]={["name"]="Fel-Tainted Flesh",["npcDrops"]={247235,247237,250023,250027,250187,255247,255347,255394,258264,258668,268462,277474}}
+data.Item[249695]={["name"]="Fel-Tainted Flesh",["npcDrops"]={247235,247237,247248,247249,250023,250027,250187,255247,255347,255394,258152,258264,258329,258508,258516,258668,268462,268834,268864,272307,277474}}
 data.Item[249696]={["name"]="Tusks of the Unbroken",["npcDrops"]={247198}}
 data.Item[249697]={["name"]="Claws of the Great Bear",["npcDrops"]={247195}}
-data.Item[249698]={["name"]="Feathered Charm Necklace",["npcDrops"]={255247}}
+data.Item[249698]={["name"]="Feathered Charm Necklace",["npcDrops"]={247206,247234,247235,247248,247249,255247,255347,272307}}
 data.Item[249726]={["name"]="Azerothium Bar"}
 data.Item[249791]={["name"]="Shiny Green Apple"}
 data.Item[249792]={["name"]="Sweetsour Grapes"}
@@ -33504,14 +33506,14 @@ data.Item[250101]={["name"]="Summit Guardian Polearm"}
 data.Item[250173]={["name"]="Recipe: Savory Stag Sliders"}
 data.Item[250174]={["name"]="Recipe: Soaring Pamplona"}
 data.Item[250175]={["name"]="Recipe: Bat Hachee",["npcDrops"]={8602}}
-data.Item[250176]={["name"]="Recipe: Savory Turtle Stew"}
-data.Item[250177]={["name"]="Recipe: Flank au Poivre"}
+data.Item[250176]={["name"]="Recipe: Savory Turtle Stew",["npcDrops"]={249224}}
+data.Item[250177]={["name"]="Recipe: Flank au Poivre",["npcDrops"]={249225}}
 data.Item[250178]={["name"]="Recipe: Bear Bruscitti",["npcDrops"]={7446}}
 data.Item[250179]={["name"]="Recipe: Steaming Stag Steak"}
-data.Item[250180]={["name"]="Recipe: Swiftstrike Steak"}
+data.Item[250180]={["name"]="Recipe: Swiftstrike Steak",["npcDrops"]={7434}}
 data.Item[250181]={["name"]="Recipe: Raging Raptor Ribs",["npcDrops"]={6508}}
 data.Item[250182]={["name"]="Recipe: Bear Brisket",["npcDrops"]={3809}}
-data.Item[250183]={["name"]="Recipe: Prehistoric Pulled Raptor"}
+data.Item[250183]={["name"]="Recipe: Prehistoric Pulled Raptor",["npcDrops"]={253214,261786,261898,261934,262689,262696}}
 data.Item[250184]={["name"]="Recipe: Raptor Rouladen",["npcDrops"]={4357}}
 data.Item[250185]={["name"]="Recipe: Twice-Spiced Raptor Slice",["npcDrops"]={855}}
 data.Item[250186]={["name"]="Recipe: Giant Scrambled Eggs",["npcDrops"]={1106}}
@@ -33783,29 +33785,29 @@ data.Item[251338]={["name"]="Plans: Sterling Silver Shoulders",["npcDrops"]={433
 data.Item[251339]={["name"]="Plans: Sterling Silver Breastplate",["npcDrops"]={10758}}
 data.Item[251340]={["name"]="Plans: Veteran's Chain Shirt",["npcDrops"]={643,645,646,647,1763,3864,3865,11517,11518,11519,11520,644,3586,3653,3669,3671,3914,5912}}
 data.Item[251341]={["name"]="Plans: Guard's Chain Shirt",["npcDrops"]={643,644,645,646,647,1763,3586,3653,3669,3671,3864,3865,3914,5912,11517,11518,11519,11520}}
-data.Item[251342]={["name"]="Plans: Protector's Chain Shirt",["npcDrops"]={643,644,645,646,1763,3864,3865,11517,11518,11519,11520,647,3586,3653,3669,3671,3914,5912}}
+data.Item[251342]={["name"]="Plans: Protector's Chain Shirt",["npcDrops"]={643,644,645,646,1763,3864,3865,11517,11518,11519,11520,647,3586,3653,3669,3671,3914,5912,255699}}
 data.Item[251343]={["name"]="Plans: Acolyte's Chain Shirt",["npcDrops"]={643,644,645,646,647,1763,3864,3865,11517,11518,11519,11520,3586,3653,3669,3671,3914,5912,255699}}
-data.Item[251344]={["name"]="Plans: Crusader's Chain Shirt",["npcDrops"]={643,644,645,646,647,1763,3864,11517,11518,11519,11520,3586,3653,3669,3671,3865,3914,5912}}
+data.Item[251344]={["name"]="Plans: Crusader's Chain Shirt",["npcDrops"]={643,644,645,646,647,1763,3864,11517,11518,11519,11520,3586,3653,3669,3671,3865,3914,5912,255699}}
 data.Item[251345]={["name"]="Plans: Veteran's Chain Leggings",["npcDrops"]={639,1696,4887,3654,3670,3673,3674,3865,3872,3886,3887,3927,4274,4275,4278,4279,4831,5775}}
-data.Item[251346]={["name"]="Plans: Guard's Chain Leggings",["npcDrops"]={639,1696,3865,4831,4887,3654,3670,3673,3674,3886,3887,3927,4274,4275,4278,4279,5775}}
+data.Item[251346]={["name"]="Plans: Guard's Chain Leggings",["npcDrops"]={639,1696,3865,4831,4887,3654,3670,3673,3674,3872,3886,3887,3927,4274,4275,4278,4279,5775}}
 data.Item[251347]={["name"]="Plans: Protector's Chain Leggings",["npcDrops"]={639,1696,4831,4887,645,3654,3670,3673,3674,3865,3872,3886,3887,3927,4274,4275,4278,4279,5775}}
 data.Item[251348]={["name"]="Plans: Acolyte's Chain Leggings",["npcDrops"]={639,1696,3865,4831,3654,3670,3673,3674,3872,3886,3887,3927,4274,4275,4278,4279,4887,5775}}
-data.Item[251349]={["name"]="Plans: Crusader's Chain Leggings",["npcDrops"]={4831,4887,639,1696,3654,3670,3673,3674,3865,3886,3887,3927,4274,4275,4278,4279,5775}}
-data.Item[251350]={["name"]="Plans: Veteran's Chain Helm",["npcDrops"]={1663,1666,1717,4420,4829,4830,4832,6243,12876,1716,1720,3974,3983,4421,4422,4424,4428,4543,4842,6168,6229,6235,6488,6489,6490,7079,7361,7800,12902}}
+data.Item[251349]={["name"]="Plans: Crusader's Chain Leggings",["npcDrops"]={4831,4887,639,1696,3654,3670,3673,3674,3865,3872,3886,3887,3927,4274,4275,4278,4279,5775}}
+data.Item[251350]={["name"]="Plans: Veteran's Chain Helm",["npcDrops"]={1663,1666,1717,4420,4829,4830,4832,6243,12876,1716,1720,3974,3983,4421,4422,4424,4425,4428,4543,4842,6168,6228,6229,6235,6488,6489,6490,7079,7361,7800,12902}}
 data.Item[251351]={["name"]="Plans: Guard's Chain Helm",["npcDrops"]={1663,1666,1717,4829,4830,4832,12902,1716,1720,3974,3983,4420,4421,4422,4424,4425,4428,4543,4842,6168,6228,6229,6235,6243,6488,6489,6490,7079,7361,7800,12876}}
-data.Item[251352]={["name"]="Plans: Protector's Chain Helm",["npcDrops"]={1663,1717,4424,4829,4830,4832,6168,6243,6488,12876,12902,1666,1716,3974,3983,4420,4421,4422,4425,4428,4543,4842,6228,6229,6235,6489,7079,7361,7800}}
-data.Item[251353]={["name"]="Plans: Acolyte's Chain Helm",["npcDrops"]={1666,1716,4424,4832,6243,1663,1717,3974,3983,4420,4421,4422,4425,4428,4543,4829,4830,4842,6168,6228,6229,6235,6489,7079,7361,7800,12876,12902}}
-data.Item[251354]={["name"]="Plans: Crusader's Chain Helm",["npcDrops"]={1717,4420,4829,4830,4832,12876,1663,1666,1716,1720,3974,3983,4421,4422,4424,4425,4428,4543,4842,6168,6228,6229,6235,6243,6488,7079,7361,7800,12902}}
+data.Item[251352]={["name"]="Plans: Protector's Chain Helm",["npcDrops"]={1663,1717,4424,4829,4830,4832,6168,6243,6488,12876,12902,1666,1716,1720,3974,3983,4420,4421,4422,4425,4428,4543,4842,6228,6229,6235,6489,7079,7361,7800}}
+data.Item[251353]={["name"]="Plans: Acolyte's Chain Helm",["npcDrops"]={1666,1716,4424,4832,6243,1663,1717,1720,3974,3983,4420,4421,4422,4425,4428,4543,4829,4830,4842,6168,6228,6229,6235,6489,6490,7079,7361,7800,12876,12902}}
+data.Item[251354]={["name"]="Plans: Crusader's Chain Helm",["npcDrops"]={1717,4420,4829,4830,4832,12876,1663,1666,1716,1720,3974,3983,4421,4422,4424,4425,4428,4543,4842,6168,6228,6229,6235,6243,6488,6489,6490,7079,7361,7800,12902}}
 data.Item[251355]={["name"]="Plans: Veteran's Boots",["vendors"]={248197,256730}}
 data.Item[251356]={["name"]="Plans: Guard's Boots",["vendors"]={248197,256730}}
 data.Item[251357]={["name"]="Plans: Protector's Boots",["vendors"]={248197,256730}}
 data.Item[251358]={["name"]="Plans: Acolyte's Boots",["vendors"]={248197,256730}}
 data.Item[251359]={["name"]="Plans: Crusader's Boots",["vendors"]={248197,256730}}
-data.Item[251360]={["name"]="Plans: Veteran's Gloves",["npcDrops"]={643,644,3653,3669},["vendors"]={248197,256730}}
-data.Item[251361]={["name"]="Plans: Guard's Gloves",["npcDrops"]={3653,3864},["vendors"]={248197,256730}}
-data.Item[251362]={["name"]="Plans: Protector's Gloves",["npcDrops"]={3669,3865,11517},["vendors"]={248197,256730}}
-data.Item[251363]={["name"]="Plans: Acolyte's Gloves",["npcDrops"]={646},["vendors"]={248197,256730}}
-data.Item[251364]={["name"]="Plans: Crusader's Gloves",["npcDrops"]={645,3669,11520},["vendors"]={248197,256730}}
+data.Item[251360]={["name"]="Plans: Veteran's Gloves",["vendors"]={248197,256730}}
+data.Item[251361]={["name"]="Plans: Guard's Gloves",["vendors"]={248197,256730}}
+data.Item[251362]={["name"]="Plans: Protector's Gloves",["vendors"]={248197,256730}}
+data.Item[251363]={["name"]="Plans: Acolyte's Gloves",["vendors"]={248197,256730}}
+data.Item[251364]={["name"]="Plans: Crusader's Gloves",["vendors"]={248197,256730}}
 data.Item[251365]={["name"]="Plans: Veteran's Chain Belt",["vendors"]={248197,256730}}
 data.Item[251366]={["name"]="Plans: Guard's Chain Belt",["vendors"]={248197,256730}}
 data.Item[251367]={["name"]="Plans: Protector's Chain Belt",["vendors"]={248197,256730}}
@@ -33817,15 +33819,15 @@ data.Item[251372]={["name"]="Plans: Protector's Silvered Chain Shirt",["vendors"
 data.Item[251373]={["name"]="Plans: Acolyte's Silvered Chain Shirt",["vendors"]={248197,256730}}
 data.Item[251374]={["name"]="Plans: Crusader's Silvered Chain Shirt",["vendors"]={248197,256730}}
 data.Item[251375]={["name"]="Plans: Veteran's Silvered Chain Leggings",["vendors"]={248197,256730}}
-data.Item[251376]={["name"]="Plans: Guard's Silvered Chain Leggings",["npcDrops"]={4424,12902},["vendors"]={248197,256730}}
+data.Item[251376]={["name"]="Plans: Guard's Silvered Chain Leggings",["vendors"]={248197,256730}}
 data.Item[251377]={["name"]="Plans: Protector's Silvered Chain Leggings",["vendors"]={248197,256730}}
-data.Item[251378]={["name"]="Plans: Acolyte's Silvered Chain Leggings",["npcDrops"]={4829,4830},["vendors"]={248197,256730}}
-data.Item[251379]={["name"]="Plans: Crusader's Silvered Chain Leggings",["npcDrops"]={4832},["vendors"]={248197,256730}}
-data.Item[251380]={["name"]="Plans: Veteran's Silvered Chain Helm",["npcDrops"]={1696,3673,4831},["vendors"]={248197,256730}}
-data.Item[251381]={["name"]="Plans: Guard's Silvered Chain Helm",["npcDrops"]={3887,4274,4831},["vendors"]={248197,256730}}
-data.Item[251382]={["name"]="Plans: Protector's Silvered Chain Helm",["npcDrops"]={3927,4274},["vendors"]={248197,256730}}
-data.Item[251383]={["name"]="Plans: Acolyte's Silvered Chain Helm",["npcDrops"]={4278},["vendors"]={248197,256730}}
-data.Item[251384]={["name"]="Plans: Crusader's Silvered Chain Helm",["npcDrops"]={5775},["vendors"]={248197,256730}}
+data.Item[251378]={["name"]="Plans: Acolyte's Silvered Chain Leggings",["vendors"]={248197,256730}}
+data.Item[251379]={["name"]="Plans: Crusader's Silvered Chain Leggings",["vendors"]={248197,256730}}
+data.Item[251380]={["name"]="Plans: Veteran's Silvered Chain Helm",["vendors"]={248197,256730}}
+data.Item[251381]={["name"]="Plans: Guard's Silvered Chain Helm",["vendors"]={248197,256730}}
+data.Item[251382]={["name"]="Plans: Protector's Silvered Chain Helm",["vendors"]={248197,256730}}
+data.Item[251383]={["name"]="Plans: Acolyte's Silvered Chain Helm",["vendors"]={248197,256730}}
+data.Item[251384]={["name"]="Plans: Crusader's Silvered Chain Helm",["vendors"]={248197,256730}}
 data.Item[251385]={["name"]="Plans: Hard Gold Cuirass",["npcDrops"]={4101}}
 data.Item[251386]={["name"]="Plans: Hard Gold Boots",["npcDrops"]={2586,267065}}
 data.Item[251387]={["name"]="Plans: Hard Gold Bracers",["npcDrops"]={4711}}
@@ -33839,16 +33841,16 @@ data.Item[251394]={["name"]="Plans: Shining Mithril Boots",["npcDrops"]={2894}}
 data.Item[251395]={["name"]="Plans: Shining Mithril Helm",["npcDrops"]={1907}}
 data.Item[251396]={["name"]="Plans: Shining Mithril Pants",["npcDrops"]={2653}}
 data.Item[251397]={["name"]="Plans: Shining Mithril Gauntlet",["npcDrops"]={7855}}
-data.Item[251398]={["name"]="Plans: Officer's Boots",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,6907,6910,7023,7206,7228,7291,7354,7355,7356,7357,7358,7604,8567}}
-data.Item[251399]={["name"]="Plans: Sentinel's Boots",["npcDrops"]={3975,3976,3977,4542,4854,6487,6907,6910,7023,7206,7228,7291,7355,7356,7357,7358,7604,8567,10080,10082}}
-data.Item[251400]={["name"]="Plans: Warder's Boots",["npcDrops"]={3975,3976,3977,4542,4854,6487,6907,6910,7023,7228,7291,7355,7356,7357,7358,7796,8567,10080,10082}}
-data.Item[251401]={["name"]="Plans: Prefect's Boots",["npcDrops"]={3975,3976,3977,4542,6487,6906,6907,6910,7023,7206,7228,7272,7291,7355,7356,7357,7358,7604,8567,10080}}
-data.Item[251402]={["name"]="Plans: Justicar's Boots",["npcDrops"]={3975,3976,3977,4542,4854,6487,6907,6910,7023,7206,7228,7291,7355,7356,7357,7604,7796,8567,10082}}
-data.Item[251403]={["name"]="Plans: Officer's Gloves",["npcDrops"]={2748,5710,7267,7271,7272,7273,7275,7796,7797,8127,8580,9502,12201,12203,12225,12258,13596,13601}}
-data.Item[251404]={["name"]="Plans: Sentinel's Gloves",["npcDrops"]={2748,7267,7272,7273,7275,7797,8127,8580,9056,12203,12225,12236,12258,13596,13601}}
-data.Item[251405]={["name"]="Plans: Warder's Gloves",["npcDrops"]={2748,5715,7267,7271,7273,7275,7796,7797,8127,8440,9024,9537,12201,12203,12225,12236,12258}}
-data.Item[251406]={["name"]="Plans: Prefect's Gloves",["npcDrops"]={2748,5709,5715,5719,7267,7273,7275,7796,7797,8127,8440,9025,9319,9502,12201,12203,12225,12258,13282,13596,13601}}
-data.Item[251407]={["name"]="Plans: Justicar's Gloves",["npcDrops"]={2748,7267,7271,7272,7273,7275,7796,7797,8127,12201,12203,12225,12236,12237,13601}}
+data.Item[251398]={["name"]="Plans: Officer's Boots",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,6907,6910,7023,7206,7228,7272,7291,7354,7355,7356,7357,7358,7604,7796,8567,10080,10081,10082}}
+data.Item[251399]={["name"]="Plans: Sentinel's Boots",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,6907,6910,7023,7206,7228,7272,7291,7354,7355,7356,7357,7358,7604,7796,8567,10080,10082}}
+data.Item[251400]={["name"]="Plans: Warder's Boots",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,6907,6910,7023,7206,7228,7272,7291,7354,7355,7356,7357,7358,7604,7796,8567,10080,10082}}
+data.Item[251401]={["name"]="Plans: Prefect's Boots",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,6907,6910,7023,7206,7228,7272,7291,7354,7355,7356,7357,7358,7604,7796,8567,10080,10081,10082}}
+data.Item[251402]={["name"]="Plans: Justicar's Boots",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,6907,6910,7023,7206,7228,7272,7291,7354,7355,7356,7357,7358,7604,7796,8567,10080,10082}}
+data.Item[251403]={["name"]="Plans: Officer's Gloves",["npcDrops"]={2748,5709,5710,5715,5719,5721,7267,7271,7272,7273,7275,7796,7797,8127,8440,8580,9018,9024,9025,9319,9502,9537,9543,12201,12203,12225,12236,12258,13282,13596,13601}}
+data.Item[251404]={["name"]="Plans: Sentinel's Gloves",["npcDrops"]={2748,5709,5710,5715,5719,5721,7267,7271,7272,7273,7275,7796,7797,8127,8440,8580,9018,9024,9025,9056,9499,9502,9537,9543,12201,12203,12225,12236,12258,13282,13596,13601}}
+data.Item[251405]={["name"]="Plans: Warder's Gloves",["npcDrops"]={2748,5709,5710,5715,5719,5721,7267,7271,7272,7273,7275,7796,7797,8127,8440,8580,9024,9025,9056,9319,9537,12201,12203,12225,12236,12237,12258,13282,13596,13601}}
+data.Item[251406]={["name"]="Plans: Prefect's Gloves",["npcDrops"]={2748,5709,5710,5715,5719,5721,7267,7271,7272,7273,7275,7796,7797,8127,8440,8580,9018,9024,9025,9319,9502,9543,12201,12203,12225,12236,12258,13282,13596,13601}}
+data.Item[251407]={["name"]="Plans: Justicar's Gloves",["npcDrops"]={2748,5709,5710,5715,5719,5721,7267,7271,7272,7273,7275,7796,7797,8127,8440,8580,9018,9025,9056,9319,9502,9537,9543,12201,12203,12225,12236,12237,12258,13282,13596,13601}}
 data.Item[251408]={["name"]="Plans: Officer's Belt"}
 data.Item[251409]={["name"]="Plans: Sentinel's Belt"}
 data.Item[251410]={["name"]="Plans: Warder's Belt"}
@@ -33886,14 +33888,14 @@ data.Item[251441]={["name"]="Plans: Imperial Plate Gauntlets",["npcDrops"]={6199
 data.Item[251442]={["name"]="Plans: Blessed Plate Bracers",["npcDrops"]={7108}}
 data.Item[251443]={["name"]="Plans: Blessed Plate Leggings",["npcDrops"]={7451}}
 data.Item[251444]={["name"]="Plans: Blessed Plate Belt",["npcDrops"]={8600}}
-data.Item[251445]={["name"]="Plans: Blessed Plate Helm"}
+data.Item[251445]={["name"]="Plans: Blessed Plate Helm",["npcDrops"]={1834}}
 data.Item[251446]={["name"]="Plans: Blessed Plate Chest",["npcDrops"]={249220,249221,249222,260826}}
 data.Item[251447]={["name"]="Plans: Enriched Thorium Breastplate",["vendors"]={248197,256730}}
 data.Item[251448]={["name"]="Plans: Enriched Thorium Leggings",["vendors"]={248197,256730}}
 data.Item[251449]={["name"]="Plans: Enriched Thorium Helm",["vendors"]={248197,256730}}
 data.Item[251450]={["name"]="Plans: Champion's Legplates"}
 data.Item[251451]={["name"]="Plans: Stalwart Helm",["npcDrops"]={9583}}
-data.Item[251452]={["name"]="Plans: Martyr's Legplates"}
+data.Item[251452]={["name"]="Plans: Martyr's Legplates",["npcDrops"]={11441}}
 data.Item[251453]={["name"]="Plans: Breastplate of Salvation",["npcDrops"]={247248}}
 data.Item[251454]={["name"]="Plans: Brass Knuckles",["npcDrops"]={11915}}
 data.Item[251455]={["name"]="Plans: Bronze Dory",["npcDrops"]={3727}}
@@ -33920,7 +33922,7 @@ data.Item[251522]={["name"]="Blood-Stained Letter",["relatedQuests"]={92415,9516
 data.Item[251523]={["name"]="The Friends We Made Along the Way"}
 data.Item[251524]={["name"]="Whimsyfin"}
 data.Item[251525]={["name"]="Savory Whimsyfin Delight"}
-data.Item[251526]={["name"]="Recipe: Savory Whimsyfin Delight",["npcDrops"]={334,422,426,428,440,441,442,446,505,547,548,580,712,1083,4463,345,423,424,430,431,433,434,435,436,485,568,578,615,4064,4065,4462,4464,14269,271898}}
+data.Item[251526]={["name"]="Recipe: Savory Whimsyfin Delight",["npcDrops"]={334,422,426,428,440,441,442,446,505,547,548,580,712,1083,4463,335,345,423,424,430,431,433,434,435,436,485,568,578,579,615,819,4064,4065,4462,4464,14269,271898}}
 data.Item[251533]={["name"]="Forsaken Greataxe",["questRewards"]={92422}}
 data.Item[251534]={["name"]="Gnarled Necromancer's Staff",["questRewards"]={92422}}
 data.Item[251641]={["name"]="Hyjal Venison Cut",["npcDrops"]={248041,256809}}
@@ -33971,11 +33973,11 @@ data.Item[251962]={["name"]="Violet Sash",["questRewards"]={92489}}
 data.Item[251963]={["name"]="Gravewalker Boots",["questRewards"]={96986}}
 data.Item[251965]={["name"]="Undead Knight's Bracers",["questRewards"]={96986}}
 data.Item[251983]={["name"]="Fel Infused Blossom"}
-data.Item[252022]={["name"]="Galestrider Jerky",["npcDrops"]={251918,251966,252068,252664,252665,252762,252763,252764,252765,252767,252802,252820,253195,253511,253622,254596,254626,255534,256966,257196,259385,259398,270201,251145,251448,251451,252666,256935,256996,257521,257532,276415,276416}}
+data.Item[252022]={["name"]="Galestrider Jerky",["npcDrops"]={251918,251966,252068,252664,252665,252762,252763,252764,252765,252767,252802,252820,253195,253511,253622,254596,254626,255534,256966,257196,259385,259398,270201,251145,251448,251451,252666,257521,257532,276415,276416}}
 data.Item[252023]={["name"]="Zaalanarr Sharp"}
 data.Item[252026]={["name"]="Gustberry Pie",["vendors"]={254089,255940}}
 data.Item[252027]={["name"]="Gustberry Juice",["vendors"]={254089,255940}}
-data.Item[252028]={["name"]="Fresh Gustberry Bread",["npcDrops"]={251918,251966,252068,252664,252665,252762,252763,252764,252765,252767,252802,252820,253195,253511,253622,254596,254626,255534,256966,257196,257532,259385,270201,251145,251160,251448,251451,256935,257521,259398,276416}}
+data.Item[252028]={["name"]="Fresh Gustberry Bread",["npcDrops"]={251918,251966,252068,252664,252665,252762,252763,252764,252765,252767,252802,252820,253195,253511,253622,254596,254626,255534,256966,257196,257532,259385,270201,251145,251160,251448,251451,256935,256996,257521,259398,276416}}
 data.Item[252029]={["name"]="Hippogryph Flank",["vendors"]={254089,255940}}
 data.Item[252030]={["name"]="Pungent Skycheddar",["npcDrops"]={251918,251966,252068,252664,252665,252762,252763,252764,252765,252767,252802,252820,253195,253511,253622,254596,254626,255534,256966,257196,259385,270201,259398},["vendors"]={254089,255940}}
 data.Item[252031]={["name"]="Crisp Spring Water",["npcDrops"]={251918,251966,252068,252664,252665,252762,252763,252764,252765,252767,252802,252820,253195,253511,253622,254596,254626,255534,256966,257196,259385,259398,270201}}
@@ -34010,7 +34012,7 @@ data.Item[252450]={["name"]="Defender's Leather Tunic"}
 data.Item[252451]={["name"]="Totemic Leather Tunic"}
 data.Item[252452]={["name"]="Mystic Heavy Armor Kit"}
 data.Item[252453]={["name"]="Forceful Heavy Armor Kit"}
-data.Item[252455]={["name"]="Defender's Leather Helm",["npcDrops"]={1666,1716,1717,3983,4421,4422,4424,4428,4543,4829,4830,4832,4842,6168,6243,12902,1663}}
+data.Item[252455]={["name"]="Defender's Leather Helm",["npcDrops"]={1666,1716,1717,3983,4421,4422,4424,4428,4543,4829,4830,4832,4842,6168,6243,12902}}
 data.Item[252456]={["name"]="Totemic Leather Helm",["npcDrops"]={1663,1666,1716,3983,4421,4424,4829,4830,4832,6243,6488,6490,12876,12902}}
 data.Item[252457]={["name"]="Defender's Leather Kilt"}
 data.Item[252458]={["name"]="Totemic Leather Leggings"}
@@ -34067,8 +34069,8 @@ data.Item[252510]={["name"]="Stormrider's Leather Tunic"}
 data.Item[252511]={["name"]="Wisdom's Leather Tunic"}
 data.Item[252512]={["name"]="Brawler's Leather Helm",["npcDrops"]={1663,1666,1716,1717,3974,4421,4422,4424,4425,4428,4829,4832,6168,6243,6488,6489,6490,12902}}
 data.Item[252513]={["name"]="Trapper's Leather Helm"}
-data.Item[252514]={["name"]="Stormrider's Leather Helm",["npcDrops"]={1716,4428,4829,7361}}
-data.Item[252515]={["name"]="Wisdom's Leather Helm",["npcDrops"]={4832,7361}}
+data.Item[252514]={["name"]="Stormrider's Leather Helm"}
+data.Item[252515]={["name"]="Wisdom's Leather Helm"}
 data.Item[252516]={["name"]="Brawler's Leather Legguards"}
 data.Item[252517]={["name"]="Trapper's Leather Legguards"}
 data.Item[252518]={["name"]="Stormrider's Leather Kilt"}
@@ -34179,18 +34181,18 @@ data.Item[252767]={["name"]="Pattern: Defender's Leather Belt",["vendors"]={2482
 data.Item[252768]={["name"]="Pattern: Totemic Leather Belt",["vendors"]={248201,256734}}
 data.Item[252769]={["name"]="Pattern: Stormrider's Leather Belt",["vendors"]={248201,256734}}
 data.Item[252770]={["name"]="Pattern: Wisdom's Leather Belt",["vendors"]={248201,256734}}
-data.Item[252771]={["name"]="Pattern: Brawler's Leather Armor",["npcDrops"]={643,644,645,646,647,1763,3653,3864,3865,11517,11518,11519,11520,3586,3669,3671,3914,5912}}
-data.Item[252772]={["name"]="Pattern: Trapper's Leather Armor",["npcDrops"]={643,645,646,647,1763,3864,11517,11518,11519,11520,644,3586,3653,3669,3671,3865,3914,5912}}
+data.Item[252771]={["name"]="Pattern: Brawler's Leather Armor",["npcDrops"]={643,644,645,646,647,1763,3653,3864,3865,11517,11518,11519,11520,3586,3669,3671,3914,5912,255699}}
+data.Item[252772]={["name"]="Pattern: Trapper's Leather Armor",["npcDrops"]={643,645,646,647,1763,3864,11517,11518,11519,11520,644,3586,3653,3669,3671,3865,3914,5912,255699}}
 data.Item[252773]={["name"]="Pattern: Defender's Leather Armor",["npcDrops"]={643,644,646,647,1763,3864,11517,11518,11519,11520,645,3586,3653,3669,3671,3865,3914,5912,255699}}
 data.Item[252774]={["name"]="Pattern: Totemic Leather Armor",["npcDrops"]={643,644,645,646,647,1763,3864,3865,11517,11518,11519,11520,3586,3653,3669,3671,3914,5912}}
 data.Item[252775]={["name"]="Pattern: Stormrider's Leather Armor",["npcDrops"]={644,645,646,647,1763,3864,3865,11517,11518,11519,11520,643,3586,3653,3669,3671,3914,5912}}
 data.Item[252776]={["name"]="Pattern: Wisdom's Leather Armor",["npcDrops"]={643,644,645,646,647,1763,3864,3865,11517,11518,11519,11520,3586,3653,3669,3671,3914,5912,255699}}
-data.Item[252777]={["name"]="Pattern: Brawler's Leather Gloves",["npcDrops"]={647,11517},["vendors"]={248201,256734}}
-data.Item[252778]={["name"]="Pattern: Trapper's Leather Gloves",["npcDrops"]={645,647},["vendors"]={248201,256734}}
-data.Item[252779]={["name"]="Pattern: Defender's Leather Gloves",["npcDrops"]={643,646,3653},["vendors"]={248201,256734}}
-data.Item[252780]={["name"]="Pattern: Totemic Leather Gloves",["npcDrops"]={644,11519},["vendors"]={248201,256734}}
-data.Item[252781]={["name"]="Pattern: Stormrider's Leather Gloves",["npcDrops"]={645,3864},["vendors"]={248201,256734}}
-data.Item[252782]={["name"]="Pattern: Wisdom's Leather Gloves",["npcDrops"]={3669,3671},["vendors"]={248201,256734}}
+data.Item[252777]={["name"]="Pattern: Brawler's Leather Gloves",["vendors"]={248201,256734}}
+data.Item[252778]={["name"]="Pattern: Trapper's Leather Gloves",["vendors"]={248201,256734}}
+data.Item[252779]={["name"]="Pattern: Defender's Leather Gloves",["vendors"]={248201,256734}}
+data.Item[252780]={["name"]="Pattern: Totemic Leather Gloves",["vendors"]={248201,256734}}
+data.Item[252781]={["name"]="Pattern: Stormrider's Leather Gloves",["vendors"]={248201,256734}}
+data.Item[252782]={["name"]="Pattern: Wisdom's Leather Gloves",["vendors"]={248201,256734}}
 data.Item[252783]={["name"]="Pattern: Mystic Medium Armor Kit",["vendors"]={3005,3366,4225,4589,5128,5565,7854}}
 data.Item[252784]={["name"]="Pattern: Forceful Medium Armor Kit",["vendors"]={3005,3366,4225,4589,5128,5565,7854}}
 data.Item[252786]={["name"]="Pattern: Brawler's Leather Boots",["vendors"]={248201,256734}}
@@ -34205,12 +34207,12 @@ data.Item[252794]={["name"]="Pattern: Defender's Leather Pants",["npcDrops"]={63
 data.Item[252795]={["name"]="Pattern: Totemic Leather Pants",["npcDrops"]={639,1696,4831,4887,3654,3670,3673,3674,3865,3872,3886,3887,3927,4274,4275,4278,4279,5775}}
 data.Item[252796]={["name"]="Pattern: Stormrider's Leather Pants",["npcDrops"]={639,1696,3865,4887,3654,3670,3673,3674,3872,3886,3887,3927,4274,4275,4278,4279,4831,5775}}
 data.Item[252797]={["name"]="Pattern: Wisdom's Leather Pants",["npcDrops"]={639,1696,3865,4831,4887,3654,3670,3673,3674,3872,3886,3887,3927,4274,4275,4278,4279,5775}}
-data.Item[252798]={["name"]="Pattern: Brawler's Leather Hood",["npcDrops"]={3670,3674},["vendors"]={248201,256734}}
-data.Item[252799]={["name"]="Pattern: Trapper's Leather Hood",["npcDrops"]={639,3865,4831,3670,3887},["vendors"]={248201,256734}}
-data.Item[252800]={["name"]="Pattern: Defender's Leather Hood",["npcDrops"]={4887,5775},["vendors"]={248201,256734}}
-data.Item[252801]={["name"]="Pattern: Totemic Leather Hood",["npcDrops"]={3670,3872,3927,5775},["vendors"]={248201,256734}}
-data.Item[252802]={["name"]="Pattern: Stormrider's Leather Hood",["npcDrops"]={4887},["vendors"]={248201,256734}}
-data.Item[252803]={["name"]="Pattern: Wisdom's Leather Hood",["npcDrops"]={639,1696,3865,4831,4887,4275,4278,5775},["vendors"]={248201,256734}}
+data.Item[252798]={["name"]="Pattern: Brawler's Leather Hood",["vendors"]={248201,256734}}
+data.Item[252799]={["name"]="Pattern: Trapper's Leather Hood",["npcDrops"]={639,3865,4831},["vendors"]={248201,256734}}
+data.Item[252800]={["name"]="Pattern: Defender's Leather Hood",["vendors"]={248201,256734}}
+data.Item[252801]={["name"]="Pattern: Totemic Leather Hood",["vendors"]={248201,256734}}
+data.Item[252802]={["name"]="Pattern: Stormrider's Leather Hood",["vendors"]={248201,256734}}
+data.Item[252803]={["name"]="Pattern: Wisdom's Leather Hood",["npcDrops"]={639,1696,3865,4831,4887},["vendors"]={248201,256734}}
 data.Item[252804]={["name"]="Pattern: Hillman's Leather Boots",["npcDrops"]={3817}}
 data.Item[252805]={["name"]="Pattern: Brawler's Leather Tunic",["vendors"]={248201,256734}}
 data.Item[252806]={["name"]="Pattern: Trapper's Leather Tunic",["vendors"]={248201,256734}}
@@ -34220,18 +34222,18 @@ data.Item[252809]={["name"]="Pattern: Stormrider's Leather Tunic",["vendors"]={2
 data.Item[252810]={["name"]="Pattern: Wisdom's Leather Tunic",["vendors"]={248201,256734}}
 data.Item[252811]={["name"]="Pattern: Mystic Heavy Armor Kit",["vendors"]={3005,4225,7854}}
 data.Item[252812]={["name"]="Pattern: Forceful Heavy Armor Kit",["vendors"]={3005,4225,7854}}
-data.Item[252814]={["name"]="Pattern: Brawler's Leather Helm",["npcDrops"]={1663,1666,1716,1717,3983,4421,4424,4829,4830,4832,6243,12902,3974,4420,4422,4425,4428,4543,4842,6168,6228,6229,6235,7079,7361,7800,12876}}
-data.Item[252815]={["name"]="Pattern: Trapper's Leather Helm",["npcDrops"]={1663,1666,1716,4421,4424,4428,4829,12876,12902,1717,1720,3974,3983,4420,4422,4425,4543,4830,4832,4842,6168,6229,6235,6243,6488,7079,7361,7800}}
-data.Item[252816]={["name"]="Pattern: Defender's Leather Helm",["npcDrops"]={1663,1716,4428,4829,4830,6168,12902,1666,1717,1720,3974,3983,4420,4421,4422,4424,4425,4543,4832,4842,6228,6229,6235,6243,6489,6490,7079,7361,7800,12876}}
-data.Item[252817]={["name"]="Pattern: Totemic Leather Helm",["npcDrops"]={1663,1716,1717,4422,4829,4830,4832,6243,12902,1666,1720,3974,3983,4420,4421,4424,4425,4428,4543,4842,6168,6229,6235,6489,7079,7361,7800,12876}}
-data.Item[252818]={["name"]="Pattern: Stormrider's Leather Helm",["npcDrops"]={1663,1716,1717,4428,4829,4830,4832,6243,12902,1666,3974,3983,4420,4421,4422,4424,4425,4543,4842,6168,6229,6235,6488,7079,7361,7800,12876}}
-data.Item[252819]={["name"]="Pattern: Wisdom's Leather Helm",["npcDrops"]={1663,1666,1717,1720,4421,4424,4829,4830,4832,12876,12902,1716,3974,3983,4420,4422,4425,4428,4543,4842,6168,6228,6229,6235,6243,7079,7361,7800}}
-data.Item[252820]={["name"]="Pattern: Brawler's Leather Legguards",["npcDrops"]={1716,4830,4832,6243},["vendors"]={248201,256734}}
-data.Item[252821]={["name"]="Pattern: Trapper's Leather Legguards",["npcDrops"]={4832,12902},["vendors"]={248201,256734}}
-data.Item[252822]={["name"]="Pattern: Defender's Leather Kilt",["npcDrops"]={1716},["vendors"]={248201,256734}}
-data.Item[252823]={["name"]="Pattern: Totemic Leather Leggings",["npcDrops"]={4829,6243},["vendors"]={248201,256734}}
-data.Item[252824]={["name"]="Pattern: Stormrider's Leather Kilt",["npcDrops"]={4428,4832},["vendors"]={248201,256734}}
-data.Item[252825]={["name"]="Pattern: Wisdom's Leather Leggings",["npcDrops"]={1716,6243},["vendors"]={248201,256734}}
+data.Item[252814]={["name"]="Pattern: Brawler's Leather Helm",["npcDrops"]={1663,1666,1716,1717,3983,4421,4424,4829,4830,4832,6243,12902,1720,3974,4420,4422,4425,4428,4543,4842,6168,6228,6229,6235,6488,6489,6490,7079,7361,7800,12876}}
+data.Item[252815]={["name"]="Pattern: Trapper's Leather Helm",["npcDrops"]={1663,1666,1716,4421,4424,4428,4829,12876,12902,1717,1720,3974,3983,4420,4422,4425,4543,4830,4832,4842,6168,6228,6229,6235,6243,6488,6489,6490,7079,7361,7800}}
+data.Item[252816]={["name"]="Pattern: Defender's Leather Helm",["npcDrops"]={1663,1716,4428,4829,4830,6168,12902,1666,1717,1720,3974,3983,4420,4421,4422,4424,4425,4543,4832,4842,6228,6229,6235,6243,6488,6489,6490,7079,7361,7800,12876}}
+data.Item[252817]={["name"]="Pattern: Totemic Leather Helm",["npcDrops"]={1663,1716,1717,4422,4829,4830,4832,6243,12902,1666,1720,3974,3983,4420,4421,4424,4425,4428,4543,4842,6168,6228,6229,6235,6488,6489,6490,7079,7361,7800,12876}}
+data.Item[252818]={["name"]="Pattern: Stormrider's Leather Helm",["npcDrops"]={1663,1716,1717,4428,4829,4830,4832,6243,12902,1666,1720,3974,3983,4420,4421,4422,4424,4425,4543,4842,6168,6228,6229,6235,6488,6489,6490,7079,7361,7800,12876}}
+data.Item[252819]={["name"]="Pattern: Wisdom's Leather Helm",["npcDrops"]={1663,1666,1717,1720,4421,4424,4829,4830,4832,12876,12902,1716,3974,3983,4420,4422,4425,4428,4543,4842,6168,6228,6229,6235,6243,6488,6489,6490,7079,7361,7800}}
+data.Item[252820]={["name"]="Pattern: Brawler's Leather Legguards",["vendors"]={248201,256734}}
+data.Item[252821]={["name"]="Pattern: Trapper's Leather Legguards",["vendors"]={248201,256734}}
+data.Item[252822]={["name"]="Pattern: Defender's Leather Kilt",["vendors"]={248201,256734}}
+data.Item[252823]={["name"]="Pattern: Totemic Leather Leggings",["vendors"]={248201,256734}}
+data.Item[252824]={["name"]="Pattern: Stormrider's Leather Kilt",["vendors"]={248201,256734}}
+data.Item[252825]={["name"]="Pattern: Wisdom's Leather Leggings",["vendors"]={248201,256734}}
 data.Item[252826]={["name"]="Pattern: Prowler's Leather Belt",["vendors"]={258306}}
 data.Item[252827]={["name"]="Pattern: Skulker's Leather Belt",["vendors"]={258306}}
 data.Item[252828]={["name"]="Pattern: Stalker's Leather Belt",["vendors"]={258306}}
@@ -34248,11 +34250,11 @@ data.Item[252839]={["name"]="Pattern: Warden's Leather Gloves",["vendors"]={2482
 data.Item[252840]={["name"]="Pattern: Skirmisher's Leather Gloves",["vendors"]={248201,256734}}
 data.Item[252841]={["name"]="Pattern: Skycaller's Leather Gloves",["vendors"]={248201,256734}}
 data.Item[252842]={["name"]="Pattern: Mender's Leather Gloves",["vendors"]={248201,256734}}
-data.Item[252843]={["name"]="Pattern: Prowler's Leather Shoes",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,6907,7023,7206,7228,7272,7291,7354,7355,7357,7358,7604,7796,8567,10081}}
-data.Item[252844]={["name"]="Pattern: Skulker's Leather Shoes",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,6907,6910,7206,7228,7291,7354,7355,7356,7357,7358,7604,7796,8567,10082}}
-data.Item[252845]={["name"]="Pattern: Warden's Leather Shoes",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,6910,7023,7206,7228,7272,7291,7354,7355,7356,7357,7358,7604,8567,10082}}
-data.Item[252846]={["name"]="Pattern: Skycaller's Leather Shoes",["npcDrops"]={3975,3976,3977,4542,4854,6487,6910,7023,7272,7291,7355,7356,7357,7358,7604,8567,10080,10081,10082}}
-data.Item[252847]={["name"]="Pattern: Mender's Leather Shoes",["npcDrops"]={3975,3976,3977,4542,6487,6906,6907,6910,7023,7206,7272,7291,7354,7356,7357,7358,7604,8567}}
+data.Item[252843]={["name"]="Pattern: Prowler's Leather Shoes",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,6907,6910,7023,7206,7228,7272,7291,7354,7355,7356,7357,7358,7604,7796,8567,10081,10082}}
+data.Item[252844]={["name"]="Pattern: Skulker's Leather Shoes",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,6907,6910,7023,7206,7228,7272,7291,7354,7355,7356,7357,7358,7604,7796,8567,10082}}
+data.Item[252845]={["name"]="Pattern: Warden's Leather Shoes",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,6907,6910,7023,7206,7228,7272,7291,7354,7355,7356,7357,7358,7604,7796,8567,10082}}
+data.Item[252846]={["name"]="Pattern: Skycaller's Leather Shoes",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,6907,6910,7023,7206,7228,7272,7291,7354,7355,7356,7357,7358,7604,7796,8567,10080,10081,10082}}
+data.Item[252847]={["name"]="Pattern: Mender's Leather Shoes",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,6907,6910,7023,7206,7228,7272,7291,7354,7355,7356,7357,7358,7604,7796,8567,10082}}
 data.Item[252848]={["name"]="Pattern: Prowler's Leather Shoulders",["vendors"]={248201,256734}}
 data.Item[252849]={["name"]="Pattern: Skulker's Leather Shoulder",["vendors"]={248201,256734}}
 data.Item[252850]={["name"]="Pattern: Warden's Leather Shoulders",["vendors"]={248201,256734}}
@@ -34272,11 +34274,11 @@ data.Item[252863]={["name"]="Pattern: Skycaller's Leather Boots",["vendors"]={24
 data.Item[252864]={["name"]="Pattern: Mender's Leather Boots",["vendors"]={248201,256734}}
 data.Item[252865]={["name"]="Pattern: Tooled Leather Boots",["npcDrops"]={7158}}
 data.Item[252866]={["name"]="Pattern: Blue Suede Gloves",["npcDrops"]={7153}}
-data.Item[252867]={["name"]="Pattern: Prowler's Leather Gauntlets",["npcDrops"]={2748,5709,5710,7271,7272,7273,7796,7797,8127,9543,12201,12203,12258,13282,13596}}
-data.Item[252868]={["name"]="Pattern: Skulker's Leather Gauntlets",["npcDrops"]={2748,7267,7271,7272,7273,7275,7796,8127,8440,9502,9543,12201,12236,13282,13596,13601}}
-data.Item[252869]={["name"]="Pattern: Warden's Leather Gauntlets",["npcDrops"]={2748,5719,7267,7272,7273,7275,7796,7797,12201,12203,12236,12258,13282,13596}}
-data.Item[252870]={["name"]="Pattern: Skycaller's Leather Gauntlets",["npcDrops"]={2748,7267,7271,7272,7273,7796,7797,8127,9024,9502,12225,13282,13596,13601}}
-data.Item[252871]={["name"]="Pattern: Mender's Leather Gauntlets",["npcDrops"]={2748,5721,7271,7272,7275,8127,8440,9502,12201,12225,12258,13282,13596,13601}}
+data.Item[252867]={["name"]="Pattern: Prowler's Leather Gauntlets",["npcDrops"]={2748,5709,5710,5715,5719,5721,7267,7271,7272,7273,7275,7796,7797,8127,8440,8580,9018,9024,9025,9056,9319,9499,9502,9537,9543,12201,12203,12225,12236,12258,13282,13596,13601}}
+data.Item[252868]={["name"]="Pattern: Skulker's Leather Gauntlets",["npcDrops"]={2748,5709,5710,5715,5719,5721,7267,7271,7272,7273,7275,7796,7797,8127,8440,8580,9018,9024,9025,9056,9319,9499,9502,9543,12201,12203,12225,12236,12237,12258,13282,13596,13601}}
+data.Item[252869]={["name"]="Pattern: Warden's Leather Gauntlets",["npcDrops"]={2748,5709,5710,5715,5719,5721,7267,7271,7272,7273,7275,7796,7797,8127,8440,8580,9018,9024,9025,9319,9502,9537,9543,12201,12203,12225,12236,12237,12258,13282,13596,13601}}
+data.Item[252870]={["name"]="Pattern: Skycaller's Leather Gauntlets",["npcDrops"]={2748,5709,5715,5719,5721,7267,7271,7272,7273,7275,7796,7797,8127,8440,8580,9018,9024,9025,9056,9319,9502,9537,9543,12201,12203,12225,12236,12237,12258,13282,13596,13601}}
+data.Item[252871]={["name"]="Pattern: Mender's Leather Gauntlets",["npcDrops"]={2748,5709,5710,5715,5719,5721,7267,7271,7272,7273,7275,7796,7797,8127,8440,8580,9018,9024,9025,9056,9319,9499,9502,9537,9543,12201,12203,12225,12236,12237,12258,13282,13596,13601}}
 data.Item[252872]={["name"]="Pattern: Prowler's Leather Waistguard",["vendors"]={248201,256734}}
 data.Item[252873]={["name"]="Pattern: Skulker's Leather Waistguard",["vendors"]={248201,256734}}
 data.Item[252874]={["name"]="Pattern: Warden's Leather Waistguard",["vendors"]={248201,256734}}
@@ -34285,9 +34287,9 @@ data.Item[252876]={["name"]="Pattern: Mender's Leather Waistguard",["vendors"]={
 data.Item[252877]={["name"]="Pattern: Tooled Leather Armor",["vendors"]={266901}}
 data.Item[252878]={["name"]="Pattern: Blue Suede Pants",["npcDrops"]={6557}}
 data.Item[252879]={["name"]="Pattern: Wicked Leather Boots",["npcDrops"]={9878}}
-data.Item[252880]={["name"]="Pattern: Tooled Leather Gauntlets"}
+data.Item[252880]={["name"]="Pattern: Tooled Leather Gauntlets",["npcDrops"]={1809}}
 data.Item[252881]={["name"]="Pattern: Blue Suede Shoulders",["npcDrops"]={1831}}
-data.Item[252882]={["name"]="Pattern: Tooled Leather Crown",["npcDrops"]={6520}}
+data.Item[252882]={["name"]="Pattern: Tooled Leather Crown",["npcDrops"]={6520,272319}}
 data.Item[252883]={["name"]="Pattern: Blue Suede Armor",["npcDrops"]={6005}}
 data.Item[252884]={["name"]="Pattern: Wicked Leather Shoulders",["npcDrops"]={8523}}
 data.Item[252885]={["name"]="Pattern: Tooled Leather Bracers",["npcDrops"]={8534}}
@@ -34298,13 +34300,13 @@ data.Item[252889]={["name"]="Pattern: Tooled Leather Pants"}
 data.Item[252890]={["name"]="Pattern: Blue Suede Hat",["npcDrops"]={7440}}
 data.Item[252891]={["name"]="Pattern: Living Crown",["npcDrops"]={11462}}
 data.Item[252892]={["name"]="Pattern: Dawn Armor"}
-data.Item[252893]={["name"]="Pattern: Timbermaw Tunic"}
+data.Item[252893]={["name"]="Pattern: Timbermaw Tunic",["npcDrops"]={258516}}
 data.Item[252894]={["name"]="Pattern: Warbear Helm"}
 data.Item[252895]={["name"]="Pattern: Ironfeather Leggings",["npcDrops"]={9262}}
-data.Item[252896]={["name"]="Pattern: Stalker's Mail Boots",["npcDrops"]={3975,3976,3977,4542,4854,6487,6907,6910,7023,7206,7272,7291,7355,7356,7357,7358,7604,7796,8567}}
-data.Item[252897]={["name"]="Pattern: Skycaller's Mail Boots",["npcDrops"]={3975,3976,3977,4542,6487,6910,7023,7206,7228,7272,7291,7355,7356,7357,7358,7604,7796,8567}}
-data.Item[252898]={["name"]="Pattern: Skirmisher's Mail Boots",["npcDrops"]={3975,3976,3977,4542,6487,6910,7023,7206,7228,7272,7291,7355,7356,7357,7358,7604,8567,10081}}
-data.Item[252899]={["name"]="Pattern: Mender's Mail Boots",["npcDrops"]={3975,3976,3977,4542,4854,6487,7023,7206,7228,7272,7291,7355,7356,7357,7358,7796,10081}}
+data.Item[252896]={["name"]="Pattern: Stalker's Mail Boots",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,6907,6910,7023,7206,7228,7272,7291,7354,7355,7356,7357,7358,7604,7796,8567,10081,10082}}
+data.Item[252897]={["name"]="Pattern: Skycaller's Mail Boots",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,6907,6910,7023,7206,7228,7272,7291,7354,7355,7356,7357,7358,7604,7796,8567,10080,10081,10082}}
+data.Item[252898]={["name"]="Pattern: Skirmisher's Mail Boots",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,6907,6910,7023,7206,7228,7272,7291,7354,7355,7356,7357,7358,7604,7796,8567,10080,10081,10082}}
+data.Item[252899]={["name"]="Pattern: Mender's Mail Boots",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,6907,6910,7023,7206,7228,7272,7291,7354,7355,7356,7357,7358,7604,7796,8567,10080,10081,10082}}
 data.Item[252900]={["name"]="Pattern: Stalker's Mail Shoulders",["vendors"]={248201,256734}}
 data.Item[252901]={["name"]="Pattern: Skycaller's Mail Shoulders",["vendors"]={248201,256734}}
 data.Item[252902]={["name"]="Pattern: Skirmisher's Mail Shoulders",["vendors"]={248201,256734}}
@@ -34322,11 +34324,11 @@ data.Item[252913]={["name"]="Pattern: Mender's Mail Sabatons",["vendors"]={24820
 data.Item[252914]={["name"]="Pattern: Supple Scorpid Leggings",["npcDrops"]={6505}}
 data.Item[252915]={["name"]="Pattern: Charged Scorpid Helm",["npcDrops"]={9318}}
 data.Item[252916]={["name"]="Pattern: Supple Scorpid Bracers",["npcDrops"]={5262}}
-data.Item[252917]={["name"]="Pattern: Charged Scorpid Shoulders"}
-data.Item[252918]={["name"]="Pattern: Stalker's Mail Gauntlets",["npcDrops"]={2748,5709,5710,7267,7271,7275,7796,8127,9025,9543,12203,12225,13282,13596,13601}}
-data.Item[252919]={["name"]="Pattern: Skycaller's Mail Gauntlets",["npcDrops"]={2748,5719,7267,7271,7273,7275,7796,7797,8127,8440,9056,9543,12201,12203,12225,12236,13282,13596,13601}}
-data.Item[252920]={["name"]="Pattern: Skirmisher's Mail Gauntlets",["npcDrops"]={2748,5710,5719,7267,7271,7272,7273,7275,7797,8127,8440,9319,12203,12258,13282,13601}}
-data.Item[252921]={["name"]="Pattern: Mender's Mail Gauntlets",["npcDrops"]={2748,5709,7267,7271,7273,7275,7796,7797,8580,9018,9024,9025,12201,12203,12225,12236,13596}}
+data.Item[252917]={["name"]="Pattern: Charged Scorpid Shoulders",["npcDrops"]={950}}
+data.Item[252918]={["name"]="Pattern: Stalker's Mail Gauntlets",["npcDrops"]={2748,5709,5710,5715,5719,5721,7267,7271,7272,7273,7275,7796,7797,8127,8440,8580,9018,9024,9025,9056,9319,9502,9537,9543,12201,12203,12225,12236,12237,12258,13282,13596,13601}}
+data.Item[252919]={["name"]="Pattern: Skycaller's Mail Gauntlets",["npcDrops"]={2748,5709,5710,5715,5719,5721,7267,7271,7272,7273,7275,7796,7797,8127,8440,8580,9018,9025,9056,9319,9499,9502,9543,12201,12203,12225,12236,12258,13282,13596,13601}}
+data.Item[252920]={["name"]="Pattern: Skirmisher's Mail Gauntlets",["npcDrops"]={2748,5709,5710,5715,5719,5721,7267,7271,7272,7273,7275,7796,7797,8127,8440,8580,9018,9024,9025,9319,9499,9502,9537,9543,12201,12203,12225,12236,12258,13282,13596,13601}}
+data.Item[252921]={["name"]="Pattern: Mender's Mail Gauntlets",["npcDrops"]={2748,5709,5710,5715,5719,5721,7267,7271,7272,7273,7275,7796,7797,8127,8440,8580,9018,9024,9025,9056,9319,9499,9502,9537,9543,12201,12203,12225,12236,12237,12258,13282,13596,13601}}
 data.Item[252922]={["name"]="Pattern: Stalker's Mail Belt",["vendors"]={248201,256734}}
 data.Item[252923]={["name"]="Pattern: Skycaller's Mail Belt",["vendors"]={248201,256734}}
 data.Item[252924]={["name"]="Pattern: Skirmisher's Mail Belt",["vendors"]={248201,256734}}
@@ -34340,11 +34342,11 @@ data.Item[252931]={["name"]="Pattern: Supple Scorpid Helm",["npcDrops"]={6006}}
 data.Item[252932]={["name"]="Pattern: Charged Scorpid Vest",["npcDrops"]={6195}}
 data.Item[252933]={["name"]="Pattern: Supple Scorpid Vest",["vendors"]={266901}}
 data.Item[252934]={["name"]="Pattern: Charged Scorpid Leggings",["npcDrops"]={11291}}
-data.Item[252935]={["name"]="Pattern: Supple Scorpid Sabatons"}
+data.Item[252935]={["name"]="Pattern: Supple Scorpid Sabatons",["npcDrops"]={8597}}
 data.Item[252936]={["name"]="Pattern: Charged Scorpid Boots"}
-data.Item[252937]={["name"]="Pattern: Red Dragonscale Leggings"}
-data.Item[252938]={["name"]="Pattern: Blue Dragonscale Helm"}
-data.Item[252939]={["name"]="Pattern: Black Dragonscale Helm"}
+data.Item[252937]={["name"]="Pattern: Red Dragonscale Leggings",["npcDrops"]={10425}}
+data.Item[252938]={["name"]="Pattern: Blue Dragonscale Helm",["npcDrops"]={261968,262167,262197}}
+data.Item[252939]={["name"]="Pattern: Black Dragonscale Helm",["npcDrops"]={10318}}
 data.Item[252940]={["name"]="Pattern: Pristine Scorpid Leggings"}
 data.Item[252941]={["name"]="Pattern: Mystic Rugged Armor Kit",["vendors"]={248201,256734}}
 data.Item[252942]={["name"]="Pattern: Forceful Rugged Armor Kit",["vendors"]={7854}}
@@ -34357,7 +34359,7 @@ data.Item[253249]={["name"]="Horde Flag"}
 data.Item[253258]={["name"]="The Hum Gun"}
 data.Item[253259]={["name"]="Cool Heat"}
 data.Item[253260]={["name"]="Miniature Morphologic Mimic Encabulator"}
-data.Item[253341]={["name"]="Hyjal Owl Feather",["npcDrops"]={249053}}
+data.Item[253341]={["name"]="Hyjal Owl Feather",["npcDrops"]={249053,261914}}
 data.Item[253378]={["name"]="Tenn's Road-Worn Flute"}
 data.Item[253399]={["name"]="Sealed Letter"}
 data.Item[253400]={["name"]="Seal of True Sight"}
@@ -34390,15 +34392,15 @@ data.Item[253898]={["name"]="Pattern: Pearly Boots",["vendors"]={248202,256735}}
 data.Item[253899]={["name"]="Shining Boots"}
 data.Item[253900]={["name"]="Pattern: Shining Boots",["vendors"]={248202,256735}}
 data.Item[253901]={["name"]="Filigreed Pristine Gown"}
-data.Item[253902]={["name"]="Pattern: Filigreed Pristine Gown",["npcDrops"]={643,644,645,646,647,1763,3586,3653,3669,3671,3864,3865,3914,11517,11518,11519,11520}}
+data.Item[253902]={["name"]="Pattern: Filigreed Pristine Gown",["npcDrops"]={643,644,645,646,647,1763,3586,3653,3669,3671,3864,3865,3914,5912,11517,11518,11519,11520}}
 data.Item[253903]={["name"]="Filigreed Silky Gown"}
-data.Item[253904]={["name"]="Pattern: Filigreed Silky Gown",["npcDrops"]={643,644,645,646,647,1763,3653,3669,3671,3864,3865,3914,5912,11517,11518,11519,11520}}
+data.Item[253904]={["name"]="Pattern: Filigreed Silky Gown",["npcDrops"]={643,644,645,646,647,1763,3586,3653,3669,3671,3864,3865,3914,5912,11517,11518,11519,11520}}
 data.Item[253905]={["name"]="Filigreed Flame Gown"}
 data.Item[253906]={["name"]="Pattern: Filigreed Flame Gown",["npcDrops"]={643,644,645,646,647,1763,3586,3653,3669,3671,3864,3865,3914,5912,11517,11518,11519,11520}}
 data.Item[253907]={["name"]="Filigreed Shadow Gown"}
 data.Item[253908]={["name"]="Pattern: Filigreed Shadow Gown",["npcDrops"]={643,644,645,646,647,1763,3586,3653,3669,3671,3864,3865,3914,5912,11517,11518,11519,11520}}
 data.Item[253909]={["name"]="Filigreed Pearly Gown"}
-data.Item[253910]={["name"]="Pattern: Filigreed Pearly Gown",["npcDrops"]={643,644,645,646,647,1763,3653,3669,3671,3864,3865,3914,5912,11517,11518,11519,11520}}
+data.Item[253910]={["name"]="Pattern: Filigreed Pearly Gown",["npcDrops"]={643,644,645,646,647,1763,3586,3653,3669,3671,3864,3865,3914,5912,11517,11518,11519,11520}}
 data.Item[253911]={["name"]="Filigreed Shining Gown"}
 data.Item[253912]={["name"]="Pattern: Filigreed Shining Gown",["npcDrops"]={643,644,645,646,647,1763,3586,3653,3669,3671,3864,3865,3914,5912,11517,11518,11519,11520,255699}}
 data.Item[253913]={["name"]="Pristine Gloves"}
@@ -34432,7 +34434,7 @@ data.Item[253940]={["name"]="Pattern: Filigreed Silky Leggings",["npcDrops"]={63
 data.Item[253941]={["name"]="Filigreed Flame Leggings"}
 data.Item[253942]={["name"]="Pattern: Filigreed Flame Leggings",["npcDrops"]={639,1696,3654,3670,3673,3674,3865,3872,3886,3887,3927,4274,4275,4278,4279,4831,4887,5775}}
 data.Item[253943]={["name"]="Filigreed Shadow Leggings"}
-data.Item[253944]={["name"]="Pattern: Filigreed Shadow Leggings",["npcDrops"]={639,1696,3654,3670,3673,3674,3865,3872,3886,3887,3927,4274,4275,4278,4279,4831,4887,5775}}
+data.Item[253944]={["name"]="Pattern: Filigreed Shadow Leggings",["npcDrops"]={639,1696,3654,3670,3673,3674,3864,3865,3872,3886,3887,3927,4274,4275,4278,4279,4831,4887,5775}}
 data.Item[253945]={["name"]="Filigreed Pearly Leggings"}
 data.Item[253946]={["name"]="Pattern: Filigreed Pearly Leggings",["npcDrops"]={639,1696,3654,3670,3673,3674,3865,3872,3886,3887,3927,4274,4275,4278,4279,4831,4887,5775}}
 data.Item[253947]={["name"]="Filigreed Shining Leggings"}
@@ -34464,17 +34466,17 @@ data.Item[253972]={["name"]="Pattern: Shining Gown",["vendors"]={248202,256735}}
 data.Item[253973]={["name"]="Silk Reagent Bag"}
 data.Item[253974]={["name"]="Pattern: Silk Reagent Bag",["vendors"]={253139}}
 data.Item[253975]={["name"]="Filigreed Pristine Circlet"}
-data.Item[253976]={["name"]="Pattern: Filigreed Pristine Circlet",["npcDrops"]={1663,1666,1716,1717,1720,3974,3983,4420,4421,4422,4424,4428,4543,4829,4830,4832,4842,6168,6228,6229,6235,6243,6488,6489,7079,7361,7800,12876,12902}}
+data.Item[253976]={["name"]="Pattern: Filigreed Pristine Circlet",["npcDrops"]={1663,1666,1716,1717,1720,3974,3983,4420,4421,4422,4424,4425,4428,4543,4829,4830,4832,4842,6168,6228,6229,6235,6243,6488,6489,6490,7079,7361,7800,12876,12902}}
 data.Item[253977]={["name"]="Filigreed Silky Circlet"}
-data.Item[253978]={["name"]="Pattern: Filigreed Silky Circlet",["npcDrops"]={1663,1666,1716,1717,3974,3983,4420,4421,4422,4424,4425,4428,4543,4829,4830,4832,4842,6168,6228,6229,6235,6243,6490,7079,7361,7800,12876,12902}}
+data.Item[253978]={["name"]="Pattern: Filigreed Silky Circlet",["npcDrops"]={1663,1666,1716,1717,3974,3983,4420,4421,4422,4424,4425,4428,4543,4829,4830,4832,4842,6168,6228,6229,6235,6243,6488,6489,6490,7079,7361,7800,12876,12902}}
 data.Item[253979]={["name"]="Filigreed Flame Circlet"}
-data.Item[253980]={["name"]="Pattern: Filigreed Flame Circlet",["npcDrops"]={1663,1666,1716,1717,3974,3983,4420,4421,4422,4424,4425,4428,4543,4829,4830,4832,4842,6168,6228,6229,6235,6243,6489,7079,7361,7800,12876,12902}}
+data.Item[253980]={["name"]="Pattern: Filigreed Flame Circlet",["npcDrops"]={1663,1666,1716,1717,1720,3974,3983,4420,4421,4422,4424,4425,4428,4543,4829,4830,4832,4842,6168,6228,6229,6235,6243,6489,6490,7079,7361,7800,12876,12902}}
 data.Item[253981]={["name"]="Filigreed Shadow Circlet"}
-data.Item[253982]={["name"]="Pattern: Filigreed Shadow Circlet",["npcDrops"]={1663,1666,1716,1717,1720,3974,3983,4420,4421,4422,4424,4425,4428,4543,4829,4830,4832,6168,6228,6229,6235,6243,6488,6490,7079,7361,7800,12876,12902}}
+data.Item[253982]={["name"]="Pattern: Filigreed Shadow Circlet",["npcDrops"]={1663,1666,1716,1717,1720,3974,3983,4420,4421,4422,4424,4425,4428,4543,4829,4830,4832,4842,6168,6228,6229,6235,6243,6488,6489,6490,7079,7361,7800,12876,12902}}
 data.Item[253983]={["name"]="Filigreed Pearly Circlet"}
-data.Item[253984]={["name"]="Pattern: Filigreed Pearly Circlet",["npcDrops"]={1663,1666,1716,1717,1720,3974,3983,4420,4421,4422,4424,4425,4428,4543,4829,4830,4832,4842,6168,6228,6229,6235,6243,6490,7079,7361,7800,12876,12902}}
+data.Item[253984]={["name"]="Pattern: Filigreed Pearly Circlet",["npcDrops"]={1663,1666,1716,1717,1720,3974,3983,4420,4421,4422,4424,4425,4428,4543,4829,4830,4832,4842,6168,6228,6229,6235,6243,6488,6490,7079,7361,7800,12876,12902}}
 data.Item[253985]={["name"]="Filigreed Shining Circlet"}
-data.Item[253986]={["name"]="Pattern: Filigreed Shining Circlet",["npcDrops"]={1663,1666,1716,1717,1720,3974,3983,4420,4421,4422,4424,4428,4543,4829,4830,4832,4842,6168,6228,6229,6235,6243,6488,6489,6490,7079,7361,7800,12876,12902}}
+data.Item[253986]={["name"]="Pattern: Filigreed Shining Circlet",["npcDrops"]={1663,1666,1716,1717,1720,3974,3983,4420,4421,4422,4424,4425,4428,4543,4829,4830,4832,4842,6168,6228,6229,6235,6243,6488,6489,6490,7079,7361,7800,12876,12902}}
 data.Item[253987]={["name"]="Pristine Leggings"}
 data.Item[253988]={["name"]="Pattern: Pristine Leggings",["vendors"]={248202,256735}}
 data.Item[253989]={["name"]="Silky Leggings"}
@@ -34526,17 +34528,17 @@ data.Item[254034]={["name"]="Pattern: Earthen Silk Shoulders",["npcDrops"]={2907
 data.Item[254035]={["name"]="Mageweave Reagent Bag"}
 data.Item[254036]={["name"]="Pattern: Mageweave Reagent Bag",["vendors"]={248202,256735}}
 data.Item[254037]={["name"]="Gilded Cord"}
-data.Item[254038]={["name"]="Pattern: Gilded Cord",["npcDrops"]={3975,3976,3977,4542,4854,6487,6910,7023,7228,7291,7355,7356,7357,7358,7604}}
+data.Item[254038]={["name"]="Pattern: Gilded Cord",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,6907,6910,7023,7206,7228,7272,7291,7354,7355,7356,7357,7358,7604,7796,8567,10081,10082}}
 data.Item[254039]={["name"]="Frothing Cord"}
-data.Item[254040]={["name"]="Pattern: Frothing Cord",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,6910,7023,7206,7228,7272,7291,7355,7356,7357,7358,7604,7796,8567,10080}}
+data.Item[254040]={["name"]="Pattern: Frothing Cord",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,6907,6910,7023,7206,7228,7272,7291,7354,7355,7356,7357,7358,7604,7796,8567,10080,10082}}
 data.Item[254041]={["name"]="Fiery Cord"}
-data.Item[254042]={["name"]="Pattern: Fiery Cord",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,7023,7228,7291,7355,7356,7357,7358,7604,7796,8567,10080,10082}}
+data.Item[254042]={["name"]="Pattern: Fiery Cord",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,6907,6910,7023,7206,7228,7272,7291,7354,7355,7356,7357,7358,7604,7796,8567,10080,10082}}
 data.Item[254043]={["name"]="Black Cord"}
-data.Item[254044]={["name"]="Pattern: Black Cord",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,6907,6910,7023,7228,7272,7291,7355,7356,7357,7358,7796,8567}}
+data.Item[254044]={["name"]="Pattern: Black Cord",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,6907,6910,7023,7206,7228,7272,7291,7354,7355,7356,7357,7358,7604,7796,8567,10081,10082}}
 data.Item[254045]={["name"]="Golden Cord"}
-data.Item[254046]={["name"]="Pattern: Golden Cord",["npcDrops"]={3975,3976,3977,4542,4854,6487,6910,7023,7206,7228,7272,7291,7354,7355,7356,7357,7358,7604,7796,8567,10081,10082}}
+data.Item[254046]={["name"]="Pattern: Golden Cord",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,6907,6910,7023,7206,7228,7272,7291,7354,7355,7356,7357,7358,7604,7796,8567,10081,10082}}
 data.Item[254047]={["name"]="Radiant Cord"}
-data.Item[254048]={["name"]="Pattern: Radiant Cord",["npcDrops"]={3975,3976,3977,4542,4854,6487,6910,7206,7228,7291,7355,7356,7357,7358,7604,8567,10081}}
+data.Item[254048]={["name"]="Pattern: Radiant Cord",["npcDrops"]={3975,3976,3977,4542,4854,6487,6906,6907,6910,7023,7206,7228,7272,7291,7354,7355,7356,7357,7358,7604,7796,8567,10081,10082}}
 data.Item[254049]={["name"]="Nethergeld Shoulders"}
 data.Item[254050]={["name"]="Pattern: Nethergeld Shoulders",["vendors"]={248202,256735}}
 data.Item[254051]={["name"]="Netherfroth Shoulders"}
@@ -34584,17 +34586,17 @@ data.Item[254092]={["name"]="Pattern: Radiant Waistcord",["vendors"]={248202,256
 data.Item[254093]={["name"]="Earthenweave Boots"}
 data.Item[254094]={["name"]="Pattern: Earthenweave Boots",["npcDrops"]={5297}}
 data.Item[254095]={["name"]="Gilded Gloves"}
-data.Item[254096]={["name"]="Pattern: Gilded Gloves",["npcDrops"]={5719,5721,7267,7271,7272,7273,7275,7796,7797,8127,8440,8580,9018,9056,12201,12236,12237,12258,13601}}
+data.Item[254096]={["name"]="Pattern: Gilded Gloves",["npcDrops"]={2748,5709,5710,5715,5719,5721,7267,7271,7272,7273,7275,7796,7797,8127,8440,8580,9018,9056,9319,9499,9502,9537,9543,12201,12203,12225,12236,12237,12258,13282,13596,13601}}
 data.Item[254097]={["name"]="Frothing Gloves"}
-data.Item[254098]={["name"]="Pattern: Frothing Gloves",["npcDrops"]={2748,5709,5719,7267,7271,7273,7275,7796,7797,8127,9056,12201,12203,12225,12236,13282,13596,13601}}
+data.Item[254098]={["name"]="Pattern: Frothing Gloves",["npcDrops"]={2748,5709,5710,5715,5719,5721,7267,7271,7272,7273,7275,7796,7797,8127,8440,8580,9018,9024,9025,9056,9502,9537,9543,12201,12203,12225,12236,12258,13282,13596,13601}}
 data.Item[254099]={["name"]="Fiery Gloves"}
-data.Item[254100]={["name"]="Pattern: Fiery Gloves",["npcDrops"]={2748,5709,5710,5715,5719,5721,7267,7271,7272,7273,7796,7797,8127,8580,9537,12201,12203,12258,13282,13596}}
+data.Item[254100]={["name"]="Pattern: Fiery Gloves",["npcDrops"]={2748,5709,5710,5715,5719,5721,7267,7271,7272,7273,7275,7796,7797,8127,8440,8580,9018,9024,9025,9056,9319,9499,9502,9537,9543,12201,12203,12225,12236,12237,12258,13282,13596,13601}}
 data.Item[254101]={["name"]="Black Gloves"}
-data.Item[254102]={["name"]="Pattern: Black Gloves",["npcDrops"]={2748,5715,7267,7271,7272,7273,7275,7796,7797,12201,12225,12236,12258,13282,13601}}
+data.Item[254102]={["name"]="Pattern: Black Gloves",["npcDrops"]={2748,5709,5710,5715,5719,5721,7267,7271,7272,7273,7275,7796,7797,8127,8440,8580,9018,9024,9056,9319,9502,9537,12201,12203,12225,12236,12237,12258,13282,13596,13601}}
 data.Item[254103]={["name"]="Golden Gloves"}
-data.Item[254104]={["name"]="Pattern: Golden Gloves",["npcDrops"]={2748,5715,5719,7267,7271,7272,7273,7275,7797,8127,8440,9502,12203,12225,12236,12237,13282,13596}}
+data.Item[254104]={["name"]="Pattern: Golden Gloves",["npcDrops"]={2748,5710,5715,5719,5721,7267,7271,7272,7273,7275,7796,7797,8127,8440,8580,9018,9024,9025,9056,9319,9499,9502,9537,12201,12203,12225,12236,12237,12258,13282,13596,13601}}
 data.Item[254105]={["name"]="Radiant Gloves"}
-data.Item[254106]={["name"]="Pattern: Radiant Gloves",["npcDrops"]={2748,5710,5719,7267,7271,7272,7273,7275,8127,8440,8580,9018,9024,13596,13601}}
+data.Item[254106]={["name"]="Pattern: Radiant Gloves",["npcDrops"]={2748,5709,5710,5715,5719,5721,7267,7271,7272,7273,7275,7796,7797,8127,8440,8580,9018,9024,9025,9056,9319,9502,12201,12203,12225,12236,12237,12258,13282,13596,13601}}
 data.Item[254107]={["name"]="Gilded Sandals"}
 data.Item[254108]={["name"]="Pattern: Gilded Sandals",["vendors"]={248202,256735}}
 data.Item[254109]={["name"]="Frothing Sandals"}
@@ -34620,7 +34622,7 @@ data.Item[254128]={["name"]="Pattern: Ghostweave Mantle"}
 data.Item[254129]={["name"]="Ghostweave Boots"}
 data.Item[254130]={["name"]="Pattern: Ghostweave Boots"}
 data.Item[254131]={["name"]="Earthenweave Cuffs"}
-data.Item[254132]={["name"]="Pattern: Earthenweave Cuffs"}
+data.Item[254132]={["name"]="Pattern: Earthenweave Cuffs",["npcDrops"]={12178}}
 data.Item[254133]={["name"]="Mooncloth Reagent Bag"}
 data.Item[254134]={["name"]="Pattern: Mooncloth Reagent Bag"}
 data.Item[254135]={["name"]="Ghostweave Hood"}
@@ -34628,7 +34630,7 @@ data.Item[254136]={["name"]="Pattern: Ghostweave Hood"}
 data.Item[254137]={["name"]="Earthenweave Crown"}
 data.Item[254138]={["name"]="Pattern: Earthenweave Crown",["npcDrops"]={1795}}
 data.Item[254139]={["name"]="Bottomless Reagent Bag"}
-data.Item[254140]={["name"]="Pattern: Bottomless Reagent Bag"}
+data.Item[254140]={["name"]="Pattern: Bottomless Reagent Bag",["npcDrops"]={10417}}
 data.Item[254378]={["name"]="Shriekling Talons",["npcDrops"]={251247,256092},["relatedQuests"]={92741}}
 data.Item[254380]={["name"]="Arcane-Infused Net"}
 data.Item[254392]={["name"]="Conqueror's Helm"}
@@ -34699,8 +34701,8 @@ data.Item[255875]={["name"]="Necromantic Garb",["npcDrops"]={11559}}
 data.Item[255878]={["name"]="Tear of Theradras"}
 data.Item[255941]={["name"]="Gelkis Necromantic Garb"}
 data.Item[255945]={["name"]="Accursed Skull"}
-data.Item[256036]={["name"]="Handful of Dirt",["npcDrops"]={248395,254566,254567,269175}}
-data.Item[256037]={["name"]="Grass Clippings",["npcDrops"]={13196,248395,254566,254567,269175}}
+data.Item[256036]={["name"]="Handful of Dirt",["npcDrops"]={11459,13021,248395,254566,254567,269175}}
+data.Item[256037]={["name"]="Grass Clippings",["npcDrops"]={11459,11489,13196,13197,248395,254566,254567,269175}}
 data.Item[256038]={["name"]="Rage of the Sleeper"}
 data.Item[256039]={["name"]="Rake of the Sleeper"}
 data.Item[256044]={["name"]="Iridescent Insect Carapace"}
@@ -34832,12 +34834,12 @@ data.Item[260247]={["name"]="Forlorn Necklace"}
 data.Item[260307]={["name"]="Hyjal Postal Satchel"}
 data.Item[260308]={["name"]="Hyjal Postal Clasp"}
 data.Item[260347]={["name"]="Tattered Journal",["npcDrops"]={11559,253272}}
-data.Item[260348]={["name"]="Barely Legible Journal Entry, Page I",["npcDrops"]={252711,255174,263681,253272,254284,254566,254567,255207,255238,276401}}
-data.Item[260349]={["name"]="Barely Legible Journal Entry, Page II",["npcDrops"]={252711,253272,254283,254284,254566,254567,255174,255207,255238,263681,276401}}
-data.Item[260350]={["name"]="Barely Legible Journal Entry, Page III",["npcDrops"]={252711,253272,254566,254567,255174,255207,255238,263681,276401}}
-data.Item[260351]={["name"]="Barely Legible Journal Entry, Page IV",["npcDrops"]={252711,253272,254283,254566,254567,255174,255207,255238,263681,276401}}
-data.Item[260352]={["name"]="Barely Legible Journal Entry, Page V",["npcDrops"]={252711,253272,254284,254566,254567,255174,255207,255238,263681,276401}}
-data.Item[260353]={["name"]="Barely Legible Journal Entry, Page VI",["npcDrops"]={252711,253272,254283,254566,254567,255174,255207,255238,263681,276401}}
+data.Item[260348]={["name"]="Barely Legible Journal Entry, Page I",["npcDrops"]={252711,255174,263681,253272,254283,254284,254566,254567,255207,255238,276401}}
+data.Item[260349]={["name"]="Barely Legible Journal Entry, Page II",["npcDrops"]={252711,253272,253275,254283,254284,254566,254567,255174,255207,255238,263681,276401}}
+data.Item[260350]={["name"]="Barely Legible Journal Entry, Page III",["npcDrops"]={252711,253272,254283,254284,254566,254567,255174,255207,255238,263681,276401}}
+data.Item[260351]={["name"]="Barely Legible Journal Entry, Page IV",["npcDrops"]={252711,253272,254283,254284,254566,254567,255174,255207,255238,263681,276401}}
+data.Item[260352]={["name"]="Barely Legible Journal Entry, Page V",["npcDrops"]={252711,253272,254283,254284,254566,254567,255174,255207,255238,263681,276401}}
+data.Item[260353]={["name"]="Barely Legible Journal Entry, Page VI",["npcDrops"]={252711,253272,254283,254284,254566,254567,255174,255207,255238,263681,276401}}
 data.Item[260354]={["name"]="Barely Legible Journal Entry, Page VII",["npcDrops"]={252711,253272,254283,254284,254566,254567,255174,255207,255238,263681,276401}}
 data.Item[260356]={["name"]="Barely Legible Journal Entry, Page VIII"}
 data.Item[260357]={["name"]="Barely Legible Journal Entry, Page IX"}
@@ -34912,9 +34914,9 @@ data.Item[262803]={["name"]="Burrow Beetle Bits",["npcDrops"]={256714}}
 data.Item[262816]={["name"]="Intact Owl Body",["npcDrops"]={249053}}
 data.Item[262818]={["name"]="Bear Berries"}
 data.Item[262887]={["name"]="Sealed Apprentice's Writ"}
-data.Item[262888]={["name"]="Sealed Journeyman's Writ",["npcDrops"]={3,48,202,203,205,206,210,212,215,218,232,300,314,315,334,335,345,397,429,431,432,433,434,435,436,437,445,485,486,511,518,531,533,544,565,568,569,570,579,580,587,588,595,604,615,616,628,639,657,681,682,683,685,688,689,694,697,701,702,703,711,736,740,775,785,787,819,855,856,889,891,892,898,909,910,920,923,930,937,938,940,941,948,949,1007,1008,1009,1010,1011,1012,1013,1015,1016,1017,1018,1019,1020,1021,1022,1023,1024,1025,1026,1027,1028,1029,1030,1031,1032,1033,1034,1035,1036,1037,1038,1039,1040,1041,1042,1043,1044,1051,1052,1053,1054,1057,1069,1085,1094,1097,1110,1111,1140,1150,1157,1158,1159,1200,1210,1251,1258,1259,1270,1353,1400,1417,1418,1421,1487,1663,1666,1696,1706,1707,1708,1711,1715,1716,1717,1729,1754,1755,1947,1973,2089,2102,2120,2160,2183,2236,2240,2241,2244,2248,2249,2250,2251,2252,2260,2261,2264,2265,2266,2267,2268,2269,2270,2271,2272,2304,2305,2319,2335,2337,2344,2345,2346,2348,2349,2350,2351,2354,2356,2358,2359,2360,2368,2369,2370,2371,2372,2373,2374,2375,2376,2377,2384,2385,2387,2403,2404,2406,2407,2408,2411,2412,2413,2415,2427,2428,2448,2449,2450,2451,2503,2529,2553,2554,2555,2556,2559,2560,2562,2563,2564,2575,2577,2578,2581,2582,2586,2587,2589,2618,2619,3235,3237,3238,3239,3249,3250,3252,3253,3374,3375,3376,3377,3378,3392,3414,3424,3434,3435,3436,3456,3457,3458,3459,3466,3472,3473,3474,3476,3654,3664,3670,3673,3711,3736,3740,3742,3743,3745,3746,3748,3749,3750,3752,3754,3755,3757,3758,3759,3762,3763,3765,3767,3770,3771,3772,3774,3780,3781,3782,3783,3784,3789,3791,3797,3799,3801,3802,3803,3806,3807,3808,3809,3810,3814,3817,3818,3819,3820,3821,3824,3825,3833,3834,3855,3857,3859,3863,3866,3868,3873,3875,3877,3879,3887,3893,3917,3919,3921,3922,3923,3924,3925,3926,3927,3928,3932,3940,3943,3944,3974,3985,3986,3987,3992,3993,3999,4003,4004,4012,4013,4014,4015,4016,4017,4018,4019,4020,4021,4022,4023,4024,4025,4026,4027,4028,4029,4030,4031,4034,4035,4036,4037,4038,4040,4041,4042,4044,4050,4051,4052,4053,4054,4056,4057,4061,4062,4064,4065,4066,4067,4070,4073,4074,4093,4094,4095,4096,4097,4099,4100,4101,4104,4107,4109,4110,4111,4112,4113,4114,4116,4117,4118,4119,4120,4124,4126,4128,4130,4133,4139,4140,4142,4143,4147,4150,4151,4154,4202,4248,4249,4264,4274,4275,4278,4279,4280,4281,4282,4283,4284,4285,4287,4291,4293,4296,4299,4304,4306,4308,4420,4421,4422,4424,4427,4428,4435,4436,4437,4438,4440,4442,4462,4463,4464,4481,4490,4499,4511,4512,4514,4515,4516,4517,4518,4519,4520,4522,4523,4525,4530,4531,4532,4538,4539,4541,4543,4548,4619,4623,4627,4632,4634,4635,4636,4637,4638,4639,4640,4641,4643,4646,4647,4648,4649,4663,4664,4665,4666,4670,4671,4672,4673,4674,4675,4689,4692,4696,4697,4711,4712,4713,4714,4718,4728,4788,4789,4798,4799,4802,4803,4805,4807,4809,4810,4811,4812,4813,4814,4815,4818,4819,4820,4822,4823,4825,4827,4829,4831,4832,4887,4969,4978,5056,5756,5762,5797,5798,5799,5800,5827,5847,5849,5851,5928,6035,6073,6115,6132,6168,6170,6206,6207,6208,6210,6211,6212,6213,6218,6219,6220,6221,6222,6223,6224,6225,6226,6227,6230,6231,6232,6233,6234,6238,6243,6329,6391,6426,6427,6489,6490,6523,6547,6575,6668,7079,7327,7333,7361,7404,7603,7800,7843,7872,7873,7874,8518,9377,10617,10756,10757,10758,10759,10760,10761,10882,10896,10992,11562,11563,11576,11656,11680,11681,11682,11684,11921,12347,12579,12676,12678,12759,12856,12860,12876,12896,12897,12902,12918,12940,12977,13019,14269,14278,14279,14280,203139,214456,214519,246600,246664,246888,246990,246993,247001,247003,247016,255066,255068,255069,255070,255072,256433,260796,260797,260798,260799,260800,260801,260802,260803,260804,260808,260809,260810,264081,264082,264083,266216,266862,268622,268623,269134,270094,270892,271334,271336,271338,271346,271348,271351,271460,271462,271732,271749,272389,274715,275044,275045,275046,277645}}
-data.Item[262889]={["name"]="Sealed Expert's Writ",["npcDrops"]={92,206,212,300,314,507,522,587,588,595,597,660,667,669,670,671,672,674,675,676,677,678,679,680,681,682,683,684,685,686,687,688,689,690,691,694,696,697,699,701,702,709,710,728,729,730,731,736,740,741,742,747,750,751,755,757,759,760,761,762,764,765,766,767,772,775,780,781,782,783,814,854,855,856,858,871,873,875,877,879,920,921,922,937,938,939,940,941,942,976,978,979,1053,1054,1059,1062,1082,1084,1085,1087,1088,1094,1096,1097,1108,1114,1142,1144,1150,1151,1152,1270,1364,1488,1489,1490,1491,1492,1550,1551,1557,1558,1561,1562,1563,1564,1565,1653,1713,1754,1907,2091,2240,2241,2242,2243,2245,2246,2247,2248,2249,2250,2251,2252,2253,2254,2255,2256,2258,2271,2272,2287,2304,2305,2306,2318,2319,2320,2335,2345,2346,2358,2359,2369,2371,2375,2376,2377,2406,2407,2408,2411,2412,2413,2414,2415,2416,2417,2423,2431,2440,2537,2545,2548,2549,2550,2553,2554,2555,2556,2557,2558,2559,2560,2561,2562,2563,2564,2565,2566,2567,2569,2570,2571,2572,2573,2574,2578,2579,2580,2581,2582,2583,2584,2585,2586,2587,2588,2589,2590,2591,2592,2595,2596,2597,2599,2600,2611,2612,2615,2618,2619,2628,2635,2644,2645,2649,2650,2652,2653,2655,2680,2686,2692,2693,2701,2715,2716,2717,2718,2721,2725,2726,2727,2728,2729,2731,2732,2734,2735,2736,2738,2739,2740,2742,2743,2760,2761,2762,2773,2781,2783,2791,2829,2830,2831,2893,2894,2906,2907,2923,2924,2925,2927,2928,2929,2932,2945,3752,3974,3975,3976,3977,3983,3984,4062,4101,4104,4130,4131,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4260,4282,4283,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4304,4306,4308,4323,4324,4328,4329,4331,4334,4341,4342,4343,4344,4351,4352,4355,4356,4357,4358,4359,4360,4361,4362,4363,4376,4377,4378,4379,4385,4389,4391,4396,4397,4401,4402,4404,4405,4411,4412,4413,4414,4415,4420,4421,4422,4424,4427,4465,4466,4467,4480,4481,4490,4504,4505,4506,4525,4532,4538,4539,4540,4542,4543,4548,4623,4632,4633,4634,4635,4636,4637,4638,4639,4640,4641,4642,4644,4645,4647,4648,4649,4651,4652,4654,4655,4656,4657,4662,4663,4664,4665,4666,4668,4670,4671,4672,4673,4674,4675,4676,4678,4679,4680,4681,4682,4685,4689,4692,4693,4695,4696,4697,4699,4700,4711,4712,4713,4714,4715,4716,4718,4719,4723,4726,4727,4728,4729,4834,4844,4845,4846,4847,4850,4851,4852,4853,4855,4856,4857,4860,4861,4863,5044,5046,5184,5226,5229,5232,5234,5236,5237,5238,5239,5240,5245,5246,5249,5251,5253,5254,5255,5258,5260,5261,5268,5278,5286,5292,5293,5295,5299,5300,5304,5305,5306,5331,5332,5333,5334,5335,5336,5337,5357,5360,5419,5420,5423,5424,5425,5426,5428,5429,5455,5459,5472,5473,5474,5475,5477,5481,5600,5615,5616,5617,5618,5622,5623,5647,5648,5649,5650,5760,5839,5840,5843,5844,5846,5853,5854,5855,5856,5858,5982,5984,5990,6068,6116,6168,6170,6190,6212,6223,6224,6226,6227,6229,6232,6234,6235,6391,6426,6427,6487,6575,7011,7022,7023,7078,7175,7246,7247,7268,7269,7274,7275,7286,7290,7291,7320,7321,7327,7328,7329,7332,7333,7334,7335,7337,7341,7342,7344,7345,7346,7347,7348,7349,7351,7352,7353,7355,7357,7361,7396,7397,7405,7604,7605,7606,7725,7726,7727,7797,7800,7803,7809,7855,7856,7857,7858,7872,7873,7874,8095,8311,8318,8566,8567,8637,8759,8959,9377,10992,11559,11561,11562,11563,11576,11686,11687,11777,11778,11782,11783,11785,11786,11787,11788,11789,11790,11791,11792,11793,11937,12207,12216,12217,12218,12219,12220,12221,12222,12223,12239,12347,12369,12865,12976,13019,13141,13142,13323,13696,14221,217836,222286,246664,247001,250187,252711,253272,253524,253525,253526,254284,254560,255238,255262,255267,255309,255560,255561,255769,255770,255772,255774,255849,255850,255851,255898,255901,255906,255995,256383,256433,256434,256749,256795,256797,256798,256799,256800,256801,256807,256899,256952,257001,257017,257034,257885,257888,257900,257901,257910,257915,257916,257926,258038,258040,258042,258100,258102,258104,258331,258522,258573,258574,258687,258792,258797,258799,258804,258818,258897,259046,259052,259054,259055,259258,259263,259267,259269,259979,259981,259987,260211,260225,260235,260244,260353,260429,260968,260969,260973,260995,260996,261497,261710,261711,262037,262065,262169,262397,262473,262477,263071,263196,263307,263343,263348,263380,263615,263681,263749,263899,268321,268423,268462,268831,269175,270094,270664,270667,270892,271338,271346,271348,271351,271373,271458,271460,271462,271784,272228,272313,272315,272389}}
-data.Item[262890]={["name"]="Sealed Artisan's Writ",["npcDrops"]={818,1494,1559,1565,1783,1784,1787,1791,1795,1824,2505,2534,2550,2642,2644,2645,2646,2647,2648,2655,2656,2692,2694,2748,2925,2926,2929,4374,4466,4467,4474,4475,5226,5238,5239,5259,5262,5270,5271,5274,5280,5291,5293,5297,5299,5305,5306,5308,5333,5357,5359,5360,5361,5362,5366,5426,5430,5450,5451,5453,5454,5455,5456,5457,5459,5461,5462,5472,5474,5481,5485,5490,5623,5649,5650,5709,5712,5840,5843,5844,5846,5852,5854,5855,5858,5861,5862,5988,5990,5991,6004,6005,6117,6125,6126,6194,6195,6198,6199,6348,6499,6500,6505,6506,6508,6509,6510,6511,6513,6514,6516,6517,6518,6519,6520,6521,6527,6552,6553,6554,6555,6556,6559,7027,7033,7034,7041,7047,7086,7092,7093,7100,7101,7106,7109,7110,7111,7113,7114,7118,7120,7125,7132,7153,7155,7156,7157,7246,7247,7269,7271,7273,7274,7275,7276,7291,7440,7441,7448,7449,7457,7458,7809,7855,7856,7857,7858,7885,7886,8095,8318,8319,8384,8438,8497,8504,8558,8597,8636,8759,8761,8889,8890,8891,8892,8894,8896,8897,8904,8905,8906,8907,8911,8912,8914,8915,8920,8921,8957,8958,8959,8960,8961,9033,9045,9163,9164,9166,9167,9197,9318,9684,9692,9862,9878,9879,10040,10220,10375,10391,10418,10438,10471,10485,10802,11448,11450,11735,11784,11789,11793,11794,12201,12206,12218,12220,12221,12225,12242,12258,13282,13323,13696,236028,239942,243509,247237,248395,249228,250023,255262,255267,255271,255276,255309,255364,255373,255377,255995,257915,261785,262687,269254,271780}}
+data.Item[262888]={["name"]="Sealed Journeyman's Writ",["npcDrops"]={3,48,202,203,205,206,210,212,215,218,232,300,314,315,334,335,345,397,429,431,432,433,434,435,436,437,445,485,486,511,518,531,533,544,565,568,569,570,579,580,587,588,595,604,615,616,628,639,657,681,682,683,685,688,689,694,697,699,701,702,703,711,736,740,775,785,787,819,855,856,889,891,892,898,905,909,910,920,923,930,937,938,940,941,943,948,949,976,1007,1008,1009,1010,1011,1012,1013,1014,1015,1016,1017,1018,1019,1020,1021,1022,1023,1024,1025,1026,1027,1028,1029,1030,1031,1032,1033,1034,1035,1036,1037,1038,1039,1040,1041,1042,1043,1044,1051,1052,1053,1054,1057,1069,1085,1094,1097,1108,1110,1111,1140,1150,1157,1158,1159,1160,1200,1210,1251,1258,1259,1270,1353,1364,1400,1417,1418,1421,1487,1663,1666,1696,1706,1707,1708,1711,1715,1716,1717,1729,1754,1755,1947,1973,2089,2102,2120,2160,2183,2236,2240,2241,2244,2248,2249,2250,2251,2252,2260,2261,2264,2265,2266,2267,2268,2269,2270,2271,2272,2304,2305,2319,2335,2337,2344,2345,2346,2348,2349,2350,2351,2354,2356,2358,2359,2360,2368,2369,2370,2371,2372,2373,2374,2375,2376,2377,2384,2385,2387,2403,2404,2406,2407,2408,2411,2412,2413,2415,2427,2428,2448,2449,2450,2451,2476,2503,2529,2552,2553,2554,2555,2556,2559,2560,2562,2563,2564,2575,2577,2578,2579,2581,2582,2586,2587,2589,2618,2619,2628,3235,3237,3238,3239,3249,3250,3252,3253,3374,3375,3376,3377,3378,3392,3414,3424,3434,3435,3436,3456,3457,3458,3459,3466,3472,3473,3474,3476,3637,3654,3660,3664,3670,3673,3674,3711,3727,3736,3740,3742,3743,3745,3746,3748,3749,3750,3752,3754,3755,3757,3758,3759,3762,3763,3765,3767,3770,3771,3772,3774,3780,3781,3782,3783,3784,3789,3791,3797,3799,3801,3802,3803,3804,3806,3807,3808,3809,3810,3814,3817,3818,3819,3820,3821,3824,3825,3833,3834,3854,3855,3857,3859,3863,3866,3868,3872,3873,3875,3877,3879,3886,3887,3893,3899,3917,3919,3921,3922,3923,3924,3925,3926,3927,3928,3932,3940,3943,3944,3974,3983,3984,3985,3986,3987,3992,3993,3999,4003,4004,4012,4013,4014,4015,4016,4017,4018,4019,4020,4021,4022,4023,4024,4025,4026,4027,4028,4029,4030,4031,4034,4035,4036,4037,4038,4040,4041,4042,4044,4050,4051,4052,4053,4054,4056,4057,4061,4062,4064,4065,4066,4067,4070,4073,4074,4093,4094,4095,4096,4097,4099,4100,4101,4104,4107,4109,4110,4111,4112,4113,4114,4116,4117,4118,4119,4120,4124,4126,4128,4130,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4202,4248,4249,4250,4264,4274,4275,4278,4279,4280,4281,4282,4283,4284,4285,4287,4288,4291,4293,4296,4299,4304,4306,4308,4409,4420,4421,4422,4424,4427,4428,4435,4436,4437,4438,4440,4442,4462,4463,4464,4481,4490,4499,4511,4512,4514,4515,4516,4517,4518,4519,4520,4522,4523,4525,4530,4531,4532,4538,4539,4541,4543,4548,4619,4623,4627,4632,4633,4634,4635,4636,4637,4638,4639,4640,4641,4642,4643,4646,4647,4648,4649,4663,4664,4665,4666,4667,4670,4671,4672,4673,4674,4675,4689,4692,4696,4697,4711,4712,4713,4714,4718,4726,4728,4788,4789,4798,4799,4802,4803,4805,4807,4809,4810,4811,4812,4813,4814,4815,4818,4819,4820,4821,4822,4823,4824,4825,4827,4829,4830,4831,4832,4842,4887,4969,4978,5056,5756,5762,5775,5797,5798,5799,5800,5827,5831,5832,5847,5849,5851,5928,6035,6073,6115,6132,6167,6168,6170,6206,6207,6208,6210,6211,6212,6213,6215,6218,6219,6220,6221,6222,6223,6224,6225,6226,6227,6229,6230,6231,6232,6233,6234,6235,6238,6243,6329,6391,6392,6407,6426,6427,6489,6490,6523,6547,6575,6668,7053,7079,7327,7332,7333,7361,7404,7603,7800,7843,7872,7873,7874,8518,9377,10617,10756,10757,10758,10759,10760,10761,10882,10896,10992,11562,11563,11576,11656,11680,11681,11682,11683,11684,11697,11921,12347,12579,12676,12677,12678,12759,12856,12860,12876,12896,12897,12902,12918,12940,12977,13019,14269,14275,14278,14279,14280,14425,14427,203139,214456,214519,218029,246600,246664,246888,246990,246992,246993,247001,247003,247016,255066,255068,255069,255070,255072,256433,260796,260797,260798,260799,260800,260801,260802,260803,260804,260808,260809,260810,264081,264082,264083,266216,266862,268622,268623,269134,270094,270589,270892,271334,271336,271338,271346,271348,271351,271458,271460,271462,271732,271749,271750,272389,274715,275044,275045,275046,277645,277881}}
+data.Item[262889]={["name"]="Sealed Expert's Writ",["npcDrops"]={92,206,212,300,314,315,412,507,522,587,588,595,597,660,667,669,670,671,672,674,675,676,677,678,679,680,681,682,683,684,685,686,687,688,689,690,691,694,696,697,699,701,702,709,710,728,729,730,731,736,740,741,742,743,744,745,747,750,751,752,755,757,759,760,761,762,764,765,766,767,768,772,775,780,781,782,783,784,814,854,855,856,858,871,873,875,877,879,905,920,921,922,937,938,939,940,941,942,976,978,979,1053,1054,1059,1061,1062,1081,1082,1084,1085,1087,1088,1094,1095,1096,1097,1108,1114,1142,1144,1150,1151,1152,1200,1270,1364,1488,1489,1490,1491,1492,1550,1551,1557,1558,1561,1562,1563,1564,1565,1653,1713,1754,1907,2091,2240,2241,2242,2243,2245,2246,2247,2248,2249,2250,2251,2252,2253,2254,2255,2256,2257,2258,2271,2272,2287,2304,2305,2306,2318,2319,2320,2335,2345,2346,2347,2358,2359,2369,2371,2375,2376,2377,2406,2407,2408,2411,2412,2413,2414,2415,2416,2417,2421,2422,2423,2431,2440,2530,2534,2535,2536,2537,2541,2544,2545,2547,2548,2549,2550,2551,2553,2554,2555,2556,2557,2558,2559,2560,2561,2562,2563,2564,2565,2566,2567,2569,2570,2571,2572,2573,2574,2575,2578,2579,2580,2581,2582,2583,2584,2585,2586,2587,2588,2589,2590,2591,2592,2595,2596,2597,2599,2600,2611,2612,2615,2618,2619,2624,2628,2635,2640,2641,2642,2643,2644,2645,2649,2650,2651,2652,2653,2654,2655,2656,2657,2658,2680,2686,2691,2692,2693,2694,2701,2715,2716,2717,2718,2720,2721,2723,2725,2726,2727,2728,2729,2731,2732,2733,2734,2735,2736,2738,2739,2740,2742,2743,2745,2760,2761,2762,2765,2773,2781,2783,2791,2829,2830,2831,2892,2893,2894,2906,2907,2923,2924,2925,2926,2927,2928,2929,2932,2944,2945,3752,3757,3941,3974,3975,3976,3977,3983,3984,3985,4062,4063,4101,4104,4110,4130,4131,4133,4139,4140,4142,4143,4144,4147,4150,4151,4154,4158,4260,4281,4282,4283,4286,4287,4288,4289,4290,4291,4292,4293,4294,4295,4296,4297,4298,4299,4300,4301,4302,4303,4304,4306,4308,4323,4324,4328,4329,4331,4334,4341,4342,4343,4344,4345,4351,4352,4355,4356,4357,4358,4359,4360,4361,4362,4363,4374,4376,4377,4378,4379,4382,4385,4386,4387,4389,4391,4396,4397,4398,4400,4401,4402,4403,4404,4405,4411,4412,4413,4414,4415,4420,4421,4422,4424,4427,4428,4438,4457,4458,4461,4465,4466,4467,4468,4479,4480,4481,4490,4504,4505,4506,4525,4532,4538,4539,4540,4542,4543,4548,4623,4632,4633,4634,4635,4636,4637,4638,4639,4640,4641,4642,4643,4644,4645,4646,4647,4648,4649,4651,4652,4654,4655,4656,4657,4659,4662,4663,4664,4665,4666,4667,4668,4670,4671,4672,4673,4674,4675,4676,4677,4678,4679,4680,4681,4682,4684,4685,4686,4689,4692,4693,4695,4696,4697,4699,4700,4701,4702,4705,4711,4712,4713,4714,4715,4716,4718,4719,4723,4725,4726,4727,4728,4729,4834,4841,4842,4844,4845,4846,4847,4848,4849,4850,4851,4852,4853,4854,4855,4856,4857,4860,4861,4863,4872,5044,5046,5184,5224,5225,5226,5228,5229,5232,5234,5235,5236,5237,5238,5239,5240,5243,5244,5245,5246,5247,5249,5251,5253,5254,5255,5256,5258,5260,5261,5263,5267,5268,5269,5272,5278,5286,5287,5292,5293,5295,5296,5299,5300,5304,5305,5306,5307,5308,5328,5331,5332,5333,5334,5335,5336,5337,5357,5359,5360,5361,5419,5420,5422,5423,5424,5425,5426,5428,5429,5452,5455,5459,5461,5462,5471,5472,5473,5474,5475,5477,5481,5490,5600,5615,5616,5617,5618,5622,5623,5643,5645,5647,5648,5649,5650,5760,5771,5839,5840,5843,5844,5846,5853,5854,5855,5856,5858,5861,5982,5984,5990,5992,6068,6069,6073,6116,6117,6125,6126,6127,6168,6170,6190,6193,6212,6222,6223,6224,6225,6226,6227,6229,6230,6232,6234,6235,6239,6391,6407,6426,6427,6487,6489,6505,6575,6733,6910,7011,7012,7022,7023,7030,7078,7079,7091,7153,7175,7206,7228,7246,7247,7267,7268,7269,7271,7272,7273,7274,7275,7276,7286,7290,7291,7320,7321,7327,7328,7329,7332,7333,7334,7335,7337,7341,7342,7344,7345,7346,7347,7348,7349,7351,7352,7353,7355,7356,7357,7358,7361,7396,7397,7405,7604,7605,7606,7608,7725,7726,7727,7795,7796,7797,7800,7803,7805,7808,7809,7847,7848,7855,7856,7857,7858,7872,7873,7874,7883,8095,8120,8127,8136,8311,8318,8337,8384,8504,8566,8567,8637,8667,8759,8956,8959,9165,9377,9396,10992,11559,11561,11562,11563,11576,11577,11578,11686,11687,11777,11778,11781,11782,11783,11784,11785,11786,11787,11788,11789,11790,11791,11792,11793,11794,11937,12206,12207,12216,12217,12218,12219,12220,12221,12222,12223,12239,12240,12241,12243,12347,12369,12676,12865,12976,12977,13019,13141,13142,13323,13696,13718,14123,14221,217305,217836,218029,218032,222233,222286,246600,246664,246993,247001,250187,252711,253272,253394,253524,253525,253526,254283,254284,254560,255003,255174,255207,255238,255262,255267,255271,255276,255309,255377,255560,255561,255769,255770,255772,255774,255849,255850,255851,255898,255901,255906,255995,256383,256433,256434,256749,256795,256797,256798,256799,256800,256801,256807,256899,256952,257001,257017,257034,257885,257888,257900,257901,257910,257915,257916,257926,258032,258038,258040,258042,258100,258102,258104,258331,258522,258573,258574,258687,258792,258797,258799,258804,258818,258897,259046,259052,259054,259055,259258,259263,259267,259269,259801,259979,259981,259987,260211,260225,260235,260244,260353,260419,260429,260931,260968,260969,260973,260995,260996,261497,261710,261711,262037,262065,262169,262397,262473,262477,262838,263071,263196,263307,263343,263348,263380,263615,263681,263749,263899,264082,266357,266862,267065,268321,268423,268462,268831,269175,270094,270589,270664,270667,270892,271338,271346,271348,271351,271373,271458,271460,271462,271780,271784,272228,272313,272315,272389}}
+data.Item[262890]={["name"]="Sealed Artisan's Writ",["npcDrops"]={818,1492,1493,1494,1559,1565,1653,1783,1784,1785,1787,1791,1793,1794,1795,1796,1809,1815,1816,1817,1822,1824,1826,1835,1853,1883,2505,2521,2534,2546,2550,2641,2642,2643,2644,2645,2646,2647,2648,2653,2654,2655,2656,2659,2681,2686,2692,2693,2694,2707,2748,2925,2926,2928,2929,4374,4465,4466,4467,4468,4469,4472,4474,4475,4493,4494,4857,5226,5228,5238,5239,5243,5244,5245,5246,5247,5256,5259,5262,5263,5267,5269,5270,5271,5273,5274,5277,5280,5283,5288,5291,5293,5295,5296,5297,5299,5304,5305,5306,5308,5333,5357,5358,5359,5360,5361,5362,5363,5364,5366,5420,5421,5424,5426,5429,5430,5431,5441,5450,5451,5452,5453,5454,5455,5456,5457,5459,5461,5462,5471,5472,5474,5475,5481,5485,5490,5623,5649,5650,5709,5710,5711,5712,5713,5714,5715,5717,5721,5722,5833,5840,5843,5844,5846,5850,5852,5853,5854,5855,5858,5860,5861,5862,5982,5984,5988,5990,5991,5992,5993,6004,6005,6006,6011,6116,6117,6125,6126,6138,6146,6147,6190,6193,6194,6195,6196,6198,6199,6200,6201,6202,6348,6350,6351,6375,6377,6380,6499,6500,6505,6506,6507,6508,6509,6510,6511,6512,6513,6514,6516,6517,6518,6519,6520,6521,6527,6551,6552,6553,6554,6555,6556,6557,6559,6585,7025,7026,7027,7028,7029,7033,7034,7035,7039,7040,7041,7044,7047,7048,7055,7086,7092,7093,7099,7100,7101,7106,7107,7108,7109,7110,7111,7112,7113,7114,7115,7118,7120,7125,7126,7132,7138,7139,7153,7154,7155,7156,7157,7158,7246,7247,7267,7268,7269,7271,7272,7273,7274,7275,7276,7291,7320,7321,7396,7397,7438,7439,7440,7441,7442,7443,7445,7447,7448,7449,7450,7451,7452,7453,7455,7457,7458,7460,7524,7604,7795,7797,7803,7809,7847,7855,7856,7857,7858,7864,7885,7886,7977,7995,8095,8120,8127,8311,8318,8319,8336,8384,8438,8440,8442,8497,8504,8527,8528,8532,8534,8557,8558,8560,8562,8565,8566,8580,8581,8596,8597,8600,8601,8602,8603,8605,8636,8675,8759,8761,8762,8766,8889,8890,8891,8892,8893,8894,8895,8896,8897,8898,8899,8900,8902,8903,8904,8905,8906,8907,8908,8909,8910,8911,8912,8913,8914,8915,8920,8921,8933,8956,8957,8958,8959,8960,8961,8983,9016,9017,9019,9024,9025,9026,9029,9032,9033,9041,9042,9044,9045,9056,9096,9097,9098,9156,9162,9163,9164,9165,9166,9167,9196,9197,9199,9201,9216,9239,9240,9257,9258,9259,9261,9262,9263,9266,9268,9318,9376,9416,9454,9464,9476,9477,9502,9541,9543,9545,9547,9583,9604,9677,9683,9684,9692,9695,9696,9701,9716,9717,9718,9817,9818,9819,9860,9862,9878,9879,9938,9956,10040,10041,10043,10177,10197,10220,10268,10317,10318,10319,10339,10366,10372,10374,10375,10381,10382,10385,10391,10394,10398,10400,10405,10406,10407,10408,10409,10412,10413,10414,10416,10417,10418,10419,10420,10421,10422,10424,10438,10442,10447,10463,10469,10471,10476,10477,10478,10480,10481,10485,10487,10488,10489,10495,10503,10505,10507,10516,10580,10605,10648,10678,10717,10738,10742,10801,10802,10916,11257,11290,11441,11448,11450,11451,11455,11456,11457,11459,11461,11462,11464,11469,11472,11473,11477,11489,11582,11611,11735,11738,11740,11746,11783,11784,11789,11791,11793,11794,12050,12201,12203,12206,12207,12218,12219,12220,12221,12222,12223,12224,12225,12236,12242,12258,12418,13022,13036,13136,13142,13143,13160,13196,13197,13282,13299,13323,13447,13696,14400,14564,203138,222525,236028,236874,236876,239942,243509,244188,244525,247006,247237,247248,247470,248041,248395,249053,249221,249222,249223,249228,249229,249230,249236,249237,249247,249474,249490,249491,249493,250023,250027,251199,255247,255262,255267,255271,255276,255309,255347,255364,255373,255377,255394,255995,256800,256809,257861,257915,258329,258508,259758,260826,261749,261779,261785,261786,261914,261934,262687,262696,264867,268834,268864,269254,271780,271784,272307,277474,278644}}
 data.Item[262896]={["name"]="Forger's Quill"}
 data.Item[262902]={["name"]="Forged Delivery Receipt"}
 data.Item[262913]={["name"]="Fel-Tainted Bear Heart",["npcDrops"]={244530}}
@@ -35170,14 +35172,14 @@ data.Item[264219]={["name"]="Schematic: Tru-Trigger Frag Bomb",["npcDrops"]={547
 data.Item[264220]={["name"]="Schematic: SAF-T Disposable Parachute",["vendors"]={248200,256733}}
 data.Item[264221]={["name"]="Schematic: Gnomish Army Knife",["vendors"]={248200,256733}}
 data.Item[264222]={["name"]="Schematic: Loot-A-Rang",["vendors"]={248200,256733}}
-data.Item[264223]={["name"]="Schematic: SAF-T Tube"}
+data.Item[264223]={["name"]="Schematic: SAF-T Tube",["npcDrops"]={7037}}
 data.Item[264224]={["name"]="Schematic: SAF-T Clever Dynamite",["npcDrops"]={7033}}
 data.Item[264225]={["name"]="Schematic: EZ-Thro Shell"}
-data.Item[264226]={["name"]="Schematic: EZ-Thro Thorium Grenade"}
+data.Item[264226]={["name"]="Schematic: EZ-Thro Thorium Grenade",["npcDrops"]={8527}}
 data.Item[264227]={["name"]="Schematic: EZ-Thro Dark Bomb"}
 data.Item[264228]={["name"]="Schematic: EZ-Thro Mana Bomb",["npcDrops"]={9862}}
-data.Item[264229]={["name"]="Schematic: EZ-Thro Field Transporter: Gadgetzan"}
-data.Item[264230]={["name"]="Schematic: SAF-T Emergency Ripper: Everlook"}
+data.Item[264229]={["name"]="Schematic: EZ-Thro Field Transporter: Gadgetzan",["npcDrops"]={10498}}
+data.Item[264230]={["name"]="Schematic: SAF-T Emergency Ripper: Everlook",["npcDrops"]={10426}}
 data.Item[264231]={["name"]="Schematic: EZ and SAF Field Transporter: Mt. Hyjal",["npcDrops"]={250027}}
 data.Item[264232]={["name"]="Schematic: Ultrasafe Rechargeable Battery",["vendors"]={248200,256733}}
 data.Item[264233]={["name"]="Schematic: Dimensional Transporter: Mt. Hyjal",["vendors"]={266901}}
@@ -35313,7 +35315,7 @@ data.Item[268422]={["name"]="Velvet of Kala'th's Horn"}
 data.Item[268423]={["name"]="Whisker of Shalla'kal"}
 data.Item[268484]={["name"]="Moonsilver Blade",["questRewards"]={95126},["relatedQuests"]={95140}}
 data.Item[268502]={["name"]="Tiny Bronze Whelpling"}
-data.Item[268503]={["name"]="Tiny Azure Whelpling"}
+data.Item[268503]={["name"]="Tiny Azure Whelpling",["npcDrops"]={10659,10660}}
 data.Item[268505]={["name"]="Remote Explosive Charge"}
 data.Item[268506]={["name"]="Lamora's Loot"}
 data.Item[268507]={["name"]="Broken Staff",["npcDrops"]={259875}}
@@ -35661,7 +35663,7 @@ data.Item[271673]={["name"]="Grove Scoundrel's Boots"}
 data.Item[271674]={["name"]="Grove Scoundrel's Pants"}
 data.Item[271675]={["name"]="Grove Scoundrel's Shirt"}
 data.Item[271716]={["name"]="Explorer's League Dustcover"}
-data.Item[271718]={["name"]="Linken's Boots of Iron",["npcDrops"]={258905,260042,260243,263886,258924,260202,260468,264177}}
+data.Item[271718]={["name"]="Linken's Boots of Iron",["npcDrops"]={258905,260042,260243,263886,258924,260202,260468,264172,264177}}
 data.Item[271719]={["name"]="Furs of the Earthen Ring"}
 data.Item[271720]={["name"]="Crocolisk Skin Gaiter"}
 data.Item[271721]={["name"]="Krol'dok Ogre Key",["npcDrops"]={258968}}
@@ -35805,7 +35807,7 @@ data.Item[271956]={["name"]="Theramore Epaulets"}
 data.Item[271957]={["name"]="Theramore Mantle"}
 data.Item[271959]={["name"]="Theramore Spaulders"}
 data.Item[271965]={["name"]="Jewelcrafting Chisel"}
-data.Item[271972]={["name"]="Partially Digested Journal Page",["npcDrops"]={253214,253215,261786,262696,262697}}
+data.Item[271972]={["name"]="Partially Digested Journal Page",["npcDrops"]={253214,253215,261786,262685,262696,262697}}
 data.Item[271992]={["name"]="Phantasmal Blade"}
 data.Item[271993]={["name"]="Monster Weapon"}
 data.Item[271994]={["name"]="Undermine Satchel"}
@@ -36334,7 +36336,7 @@ data.Item[273046]={["name"]="Guardian's Dualblade",["npcDrops"]={246017}}
 data.Item[273047]={["name"]="Unstable Crystalline Shoulderpads",["npcDrops"]={246017}}
 data.Item[273048]={["name"]="Refractory Scaleguards",["npcDrops"]={246017}}
 data.Item[273049]={["name"]="Archmagister's Faceted Pendant",["npcDrops"]={246020}}
-data.Item[273050]={["name"]="Blackmaw Pouch",["npcDrops"]={247206,247209,247231,247234,247235,247237,247248,247249,250023,250027,250034,255247,255347,255394,258264,258329,258508,268865,277474}}
+data.Item[273050]={["name"]="Blackmaw Pouch",["npcDrops"]={247195,247198,247206,247207,247209,247231,247234,247235,247237,247248,247249,250023,250027,250034,255247,255347,255394,258152,258264,258329,258508,258516,258668,268834,268864,268865,269104,269111,269151,272307,277474}}
 data.Item[273051]={["name"]="Violet Sorcerer's Mantle",["npcDrops"]={246020}}
 data.Item[273052]={["name"]="Ponderous Orb",["npcDrops"]={246020}}
 data.Item[273053]={["name"]="Tendonscraper Dagger",["npcDrops"]={247032}}
@@ -36356,23 +36358,23 @@ data.Item[273102]={["name"]="Blueprint: Cookie's Feast",["npcDrops"]={645}}
 data.Item[273103]={["name"]="Blueprint: Arcane Salvager",["npcDrops"]={4421,246020,250657}}
 data.Item[273105]={["name"]="Blueprint: Toxin Study",["npcDrops"]={4278}}
 data.Item[273106]={["name"]="Blueprint: Greenhouse",["npcDrops"]={260325}}
-data.Item[273109]={["name"]="Blueprint: Trapper's Workbench",["npcDrops"]={3974}}
-data.Item[273112]={["name"]="Blueprint: Alchemy Laboratory"}
-data.Item[273113]={["name"]="Blueprint: Master Forge"}
+data.Item[273109]={["name"]="Blueprint: Trapper's Workbench",["npcDrops"]={3974,10430}}
+data.Item[273112]={["name"]="Blueprint: Alchemy Laboratory",["npcDrops"]={10508}}
+data.Item[273113]={["name"]="Blueprint: Master Forge",["npcDrops"]={8983}}
 data.Item[273115]={["name"]="Blueprint: Iron Oven",["npcDrops"]={9736}}
-data.Item[273116]={["name"]="Blueprint: Arcane Forge"}
-data.Item[273117]={["name"]="Blueprint: Anarchist's Workbench"}
-data.Item[273118]={["name"]="Blueprint: Plague Doctor's Laboratory"}
+data.Item[273116]={["name"]="Blueprint: Arcane Forge",["npcDrops"]={261809}}
+data.Item[273117]={["name"]="Blueprint: Anarchist's Workbench",["npcDrops"]={11058}}
+data.Item[273118]={["name"]="Blueprint: Plague Doctor's Laboratory",["npcDrops"]={11261}}
 data.Item[273119]={["name"]="Blueprint: Fishing Hut",["npcDrops"]={5710}}
-data.Item[273120]={["name"]="Blueprint: Seed Hybridizer"}
-data.Item[273121]={["name"]="Blueprint: Sewing Machine"}
+data.Item[273120]={["name"]="Blueprint: Seed Hybridizer",["npcDrops"]={11489}}
+data.Item[273121]={["name"]="Blueprint: Sewing Machine",["npcDrops"]={10432}}
 data.Item[273122]={["name"]="Blueprint: Molten Foundry",["npcDrops"]={9156}}
-data.Item[273124]={["name"]="Blueprint: Loom"}
+data.Item[273124]={["name"]="Blueprint: Loom",["npcDrops"]={10436}}
 data.Item[273125]={["name"]="Lich's Index Finger",["npcDrops"]={10508}}
 data.Item[273127]={["name"]="Golem Heart",["npcDrops"]={8983}}
 data.Item[273128]={["name"]="Maker's Spark",["npcDrops"]={261809}}
 data.Item[273129]={["name"]="Essence of Anarchy",["npcDrops"]={11058}}
-data.Item[273130]={["name"]="Undeath Engine"}
+data.Item[273130]={["name"]="Undeath Engine",["npcDrops"]={10432}}
 data.Item[273131]={["name"]="Bottled Screams",["npcDrops"]={10436}}
 data.Item[273137]={["name"]="Skum's Bucket",["npcDrops"]={3674}}
 data.Item[273141]={["name"]="Blueprint: Fishing Rack",["npcDrops"]={6243}}
@@ -36897,14 +36899,14 @@ data.Item[274024]={["name"]="Fizzbolt's Fashionable Fedora",["vendors"]={265577}
 data.Item[274025]={["name"]="Guardians of Hyjal Tabard",["vendors"]={255151}}
 data.Item[274026]={["name"]="Extravagant Extravaganza Coin"}
 data.Item[274027]={["name"]="Placeholder"}
-data.Item[274028]={["name"]="Blood Red Bandana",["npcDrops"]={255262,255271,255276,255309,255364,255377,271780,271784}}
+data.Item[274028]={["name"]="Blood Red Bandana",["npcDrops"]={255262,255271,255276,255309,255364,255377,255391,256236,257016,271780,271784}}
 data.Item[274029]={["name"]="Ornate Shackle Key",["npcDrops"]={256236}}
 data.Item[274030]={["name"]="Malleable Essence of Nature"}
 data.Item[274035]={["name"]="Staghide Drape"}
 data.Item[274041]={["name"]="Document Box",["relatedQuests"]={96376,96377}}
 data.Item[274042]={["name"]="Skullduggery Belt",["npcDrops"]={7361}}
 data.Item[274043]={["name"]="Irradiated Shield",["npcDrops"]={7361}}
-data.Item[274044]={["name"]="Twisted Fire Totem",["npcDrops"]={2891,2893,2894,2701,2715,2716,2717,2718,2892,2906,2907,2944,2945,6733}}
+data.Item[274044]={["name"]="Twisted Fire Totem",["npcDrops"]={2891,2893,2894,2701,2715,2716,2717,2718,2719,2720,2892,2906,2907,2944,2945,6733}}
 data.Item[274045]={["name"]="Twisted Earth Totem",["npcDrops"]={755,757,759,760,761,762,763,1106,5622}}
 data.Item[274046]={["name"]="Twisted Water Totem",["npcDrops"]={4358,4359,4360,4361,4362,4363}}
 data.Item[274047]={["name"]="Twisted Air Totem",["npcDrops"]={4655,4656,4657,4658,4659,4704,4654}}
@@ -37230,7 +37232,7 @@ data.Item[274959]={["name"]="Farholde Horns",["questRewards"]={95064}}
 data.Item[274961]={["name"]="Brute Slayer Band"}
 data.Item[274962]={["name"]="Crocskin Waders",["questRewards"]={95991,95992}}
 data.Item[274963]={["name"]="Rot-Covered Harpoon"}
-data.Item[274964]={["name"]="Mote of Unstable Magic",["npcDrops"]={1805,1852,1853,5271,5401,5709,5710,5711,5719,5721,5722,5860,5861,5862,6583,7040,7041,8440,8889,8894,8905,8909,8910,8911,8912,8914,8983,9016,9017,9018,9019,9024,9026,9033,9045,9098,9156,9196,9197,9198,9201,9236,9239,9240,9257,9261,9262,9266,9269,9476,9568,9693,9717,9736,10202,10220,10268,10398,10399,10400,10419,10422,10423,10425,10426,10435,10437,10438,10439,10440,10464,10469,10470,10471,10472,10476,10477,10498,10500,10503,10505,10506,10508,10516,10558,10806,10812,10901,10997,11032,11043,11261,11490,11492,11496,11498,11582,11622,12201,12203,12225,12236,12237,12258,13280,13282,13596,13601,14327,14354,203138,222525,247207,247209,247231,247234,247235,247237,247248,250023,250027,255247,255394,258152,258508,258516,268864,269151,277474,278644}}
+data.Item[274964]={["name"]="Mote of Unstable Magic",["npcDrops"]={1788,1805,1841,1852,1853,5271,5401,5709,5710,5711,5719,5721,5722,5860,5861,5862,6583,6584,7040,7041,7042,7043,7044,7046,7136,7728,8419,8440,8889,8894,8905,8909,8910,8911,8912,8914,8929,8983,9016,9017,9018,9019,9024,9026,9033,9045,9098,9156,9196,9197,9198,9201,9217,9218,9219,9236,9237,9239,9240,9257,9261,9262,9263,9264,9266,9269,9437,9438,9439,9441,9442,9443,9449,9461,9476,9568,9596,9693,9717,9718,9736,9816,9817,9818,10083,10198,10202,10220,10263,10264,10268,10339,10363,10372,10376,10398,10399,10400,10419,10420,10422,10423,10425,10426,10429,10430,10432,10433,10435,10436,10437,10438,10439,10440,10464,10469,10470,10471,10472,10476,10477,10498,10499,10500,10502,10503,10504,10505,10506,10507,10508,10509,10516,10558,10584,10596,10738,10806,10808,10809,10811,10812,10899,10901,10997,11032,11043,11143,11261,11467,11487,11488,11489,11490,11492,11496,11497,11498,11501,11582,11622,12128,12201,12203,12225,12236,12237,12258,13280,13282,13596,13601,14324,14327,14354,203138,222525,247195,247198,247206,247207,247209,247231,247234,247235,247237,247248,247249,247972,250023,250027,250034,253201,255247,255394,258152,258508,258516,258668,261809,261811,261812,261813,261974,262081,262127,262297,268864,269104,269111,269151,272307,272561,277474,278644}}
 data.Item[274966]={["name"]="Silvermoon Shimmerwine",["npcDrops"]={6198,6199,8581,246920,246991,247006,247013,250448,252865,259620}}
 data.Item[274968]={["name"]="Premier Senior Sergeant's Insignia"}
 data.Item[274969]={["name"]="Premier Master Sergeant's Insignia"}
@@ -37452,7 +37454,10 @@ data.Item[276065]={["name"]="Fizzgrimble's Mysterious Crate"}
 data.Item[276066]={["name"]="Frazzlespark's Crate"}
 data.Item[276067]={["name"]="Lost Shipping Crate"}
 data.Item[276068]={["name"]="Cask of Powderfuse Port"}
+data.Item[276069]={["name"]="Gravetoll Gavel",["npcDrops"]={10433}}
 data.Item[276070]={["name"]="Chol'aruk's Head",["npcDrops"]={267307},["relatedQuests"]={97003,97005}}
+data.Item[276071]={["name"]="The Black Helm",["npcDrops"]={10433}}
+data.Item[276072]={["name"]="Soulwoven Drape",["npcDrops"]={10432}}
 data.Item[276087]={["name"]="Nail"}
 data.Item[276088]={["name"]="Metal Bracket"}
 data.Item[276099]={["name"]="Sawyer Family Ledger"}
@@ -37498,11 +37503,11 @@ data.Item[276397]={["name"]="Hand of the Zealous",["npcDrops"]={11032}}
 data.Item[276398]={["name"]="Scarlet Malice",["npcDrops"]={11032}}
 data.Item[276399]={["name"]="Plate of the Scarlet Bastion",["npcDrops"]={11032}}
 data.Item[276403]={["name"]="Scarlet Bonebreaker",["npcDrops"]={11120}}
-data.Item[276404]={["name"]="Masterwork Crimson Hammer"}
+data.Item[276404]={["name"]="Masterwork Crimson Hammer",["npcDrops"]={11120}}
 data.Item[276419]={["name"]="Lightcrest Hammer",["npcDrops"]={11120}}
 data.Item[276423]={["name"]="Unstable Elemental Core"}
-data.Item[276434]={["name"]="Black Guard Skullcap"}
-data.Item[276455]={["name"]="Swordsmith Mitts"}
+data.Item[276434]={["name"]="Black Guard Skullcap",["npcDrops"]={11121}}
+data.Item[276455]={["name"]="Swordsmith Mitts",["npcDrops"]={11121}}
 data.Item[276456]={["name"]="Plague Defiled Buckler",["npcDrops"]={11121}}
 data.Item[276467]={["name"]="Jorin's List"}
 data.Item[276468]={["name"]="Consecrated Holy Salts"}
@@ -37710,30 +37715,30 @@ data.Item[277052]={["name"]="Azure Windraveled Cover"}
 data.Item[277053]={["name"]="Azure Windraveled Drapes"}
 data.Item[277054]={["name"]="Azure Stormsewn Cowl"}
 data.Item[277055]={["name"]="Azure Stormsewn Epaulets"}
-data.Item[277056]={["name"]="Al'Aketh Chainmail",["npcDrops"]={253195,253511,253622},["vendors"]={272045}}
+data.Item[277056]={["name"]="Al'Aketh Chainmail",["npcDrops"]={253195,253511,253622,270201},["vendors"]={272045}}
 data.Item[277057]={["name"]="Al'Aketh Wristguards",["npcDrops"]={253195,253511,253622},["vendors"]={272045}}
 data.Item[277058]={["name"]="Al'Aketh Gauntlets",["npcDrops"]={253195,253511,253622},["vendors"]={272045}}
-data.Item[277059]={["name"]="Al'Aketh Chain",["npcDrops"]={253195,253511,253622,270201},["vendors"]={272045}}
-data.Item[277060]={["name"]="Al'Aketh Legguards",["npcDrops"]={252765,253195,253511},["vendors"]={272045}}
+data.Item[277059]={["name"]="Al'Aketh Chain",["npcDrops"]={253195,253511,253622},["vendors"]={272045}}
+data.Item[277060]={["name"]="Al'Aketh Legguards",["npcDrops"]={252765,253195,253511,253622},["vendors"]={272045}}
 data.Item[277061]={["name"]="Al'Aketh Greaves",["npcDrops"]={253195,253511,253622},["vendors"]={272045}}
 data.Item[277062]={["name"]="Al'Aketh Harness",["npcDrops"]={252664,252762,253195,253511,253622,270201},["vendors"]={272045}}
 data.Item[277063]={["name"]="Al'Aketh Bracers",["npcDrops"]={253195,253511,253622},["vendors"]={272045}}
 data.Item[277064]={["name"]="Al'Aketh Gloves",["npcDrops"]={252762,253195,253511},["vendors"]={272045}}
-data.Item[277065]={["name"]="Al'Aketh Belt",["npcDrops"]={253195,253622},["vendors"]={272045}}
+data.Item[277065]={["name"]="Al'Aketh Belt",["npcDrops"]={253195,253511,253622},["vendors"]={272045}}
 data.Item[277066]={["name"]="Al'Aketh Trousers",["npcDrops"]={253195,253511,253622},["vendors"]={272045}}
-data.Item[277067]={["name"]="Al'Aketh Boots",["npcDrops"]={253511},["vendors"]={272045}}
+data.Item[277067]={["name"]="Al'Aketh Boots",["npcDrops"]={253195,253511},["vendors"]={272045}}
 data.Item[277068]={["name"]="Al'Aketh Jerkin",["npcDrops"]={252765,253195,253511,253622},["vendors"]={272045}}
 data.Item[277069]={["name"]="Al'Aketh Armguards",["npcDrops"]={253195,253511,253622},["vendors"]={272045}}
 data.Item[277070]={["name"]="Al'Aketh Mitts",["npcDrops"]={253195,253511,253622},["vendors"]={272045}}
-data.Item[277071]={["name"]="Al'Aketh Strap",["npcDrops"]={253195,253511,253622},["vendors"]={272045}}
+data.Item[277071]={["name"]="Al'Aketh Strap",["npcDrops"]={252762,253195,253511,253622},["vendors"]={272045}}
 data.Item[277072]={["name"]="Al'Aketh Pants",["npcDrops"]={253195,253511,253622},["vendors"]={272045}}
-data.Item[277073]={["name"]="Al'Aketh Footwraps",["npcDrops"]={253511},["vendors"]={272045}}
+data.Item[277073]={["name"]="Al'Aketh Footwraps",["npcDrops"]={253195,253511,253622},["vendors"]={272045}}
 data.Item[277074]={["name"]="Al'Aketh Vestments",["npcDrops"]={253195,253511,253622},["vendors"]={272045}}
 data.Item[277075]={["name"]="Al'Aketh Cuffs",["npcDrops"]={253195,253511,253622},["vendors"]={272045}}
-data.Item[277076]={["name"]="Al'Aketh Handwraps",["npcDrops"]={253511,253622},["vendors"]={272045}}
+data.Item[277076]={["name"]="Al'Aketh Handwraps",["npcDrops"]={253195,253511},["vendors"]={272045}}
 data.Item[277077]={["name"]="Al'Aketh Cord",["npcDrops"]={253511,253622},["vendors"]={272045}}
 data.Item[277078]={["name"]="Al'Aketh Leggings",["npcDrops"]={253195,253511,253622},["vendors"]={272045}}
-data.Item[277079]={["name"]="Al'Aketh Shoes",["npcDrops"]={253195,253511,253622,270201},["vendors"]={272045}}
+data.Item[277079]={["name"]="Al'Aketh Shoes",["npcDrops"]={252664,253195,253511,253622,270201},["vendors"]={272045}}
 data.Item[277080]={["name"]="Zephrali Chainmail",["vendors"]={271478}}
 data.Item[277081]={["name"]="Zephrali Wristguards",["vendors"]={271478}}
 data.Item[277082]={["name"]="Zephrali Gauntlets",["vendors"]={271478}}
@@ -37770,7 +37775,7 @@ data.Item[277112]={["name"]="Zum'rah's Head",["npcDrops"]={7271,220076}}
 data.Item[277113]={["name"]="Apprentice's Herb Pouch",["vendors"]={66,152,829,1250,1285,1286,1692,2115,2118,3072,3081,3158,3168,3187,3313,3367,3587,3614,4561,4775,5817,8362,8363,8934,251537,252449,254360}}
 data.Item[277114]={["name"]="Apprentice's Skinning Satchel",["vendors"]={66,152,829,1250,1285,1286,1692,2115,2118,3072,3081,3158,3168,3187,3313,3367,3587,3605,3614,4561,4775,5817,8362,8363,8934,247227,251537,252376,252449,254360,257003,257024,267324,267327,267330,267333,267336}}
 data.Item[277115]={["name"]="Apprentice's Mining Pack",["vendors"]={66,152,829,1250,1285,1286,1692,2115,2118,3072,3081,3158,3168,3187,3313,3367,3587,3614,4561,4775,5817,8362,8363,8934,247226,251537,252388,252449,254360,262471,267325,267328,267331,267334,267337}}
-data.Item[277117]={["name"]="Savage Gladiator Shoulders"}
+data.Item[277117]={["name"]="Savage Gladiator Shoulders",["npcDrops"]={9028}}
 data.Item[277119]={["name"]="Gatehouse Shipment",["relatedQuests"]={97220}}
 data.Item[277128]={["name"]="Bloodtalon Matriarch Eggs",["npcDrops"]={268530},["relatedQuests"]={97223}}
 data.Item[277129]={["name"]="Fragment of the Firelands",["npcDrops"]={9938}}
@@ -37895,7 +37900,7 @@ data.Item[277519]={["name"]="Nelanna's Enchanted Jewel"}
 data.Item[277533]={["name"]="Fel Tainted Journal"}
 data.Item[277534]={["name"]="Arena Spoils"}
 data.Item[277555]={["name"]="Monster - Shield, Skyborne (Gray)"}
-data.Item[277556]={["name"]="Razza's Heart"}
+data.Item[277556]={["name"]="Razza's Heart",["npcDrops"]={11497}}
 data.Item[277557]={["name"]="Skarr's Broken Gauntlet",["npcDrops"]={11498}}
 data.Item[277558]={["name"]="Mushgog's Crown of Thorns"}
 data.Item[277559]={["name"]="Shen'dralar Relic"}
@@ -38261,27 +38266,27 @@ data.Item[279993]={["name"]="Titanic Keystone",["npcDrops"]={270892}}
 data.Item[279996]={["name"]="Goaz Stone"}
 data.Item[280009]={["name"]="Titanosaur Scale Pendant",["npcDrops"]={253201}}
 data.Item[280010]={["name"]="Gargantuan Wristguards",["npcDrops"]={253201}}
-data.Item[280011]={["name"]="Deeproar Cord"}
-data.Item[280012]={["name"]="Talon of Tor'Rel"}
+data.Item[280011]={["name"]="Deeproar Cord",["npcDrops"]={253201}}
+data.Item[280012]={["name"]="Talon of Tor'Rel",["npcDrops"]={261811}}
 data.Item[280013]={["name"]="Frostfang Mail Vest",["npcDrops"]={261811}}
 data.Item[280014]={["name"]="Raptorscale Bulwark",["npcDrops"]={261811}}
-data.Item[280015]={["name"]="Venomvessel Ring"}
+data.Item[280015]={["name"]="Venomvessel Ring",["npcDrops"]={261813}}
 data.Item[280016]={["name"]="Spiderchitin Wrap",["npcDrops"]={261813}}
 data.Item[280017]={["name"]="Octoclaw Chain Boots",["npcDrops"]={261813}}
 data.Item[280018]={["name"]="Hammer of Thundering Hooves",["npcDrops"]={261812}}
-data.Item[280019]={["name"]="Dinofrill Casque"}
+data.Item[280019]={["name"]="Dinofrill Casque",["npcDrops"]={261812}}
 data.Item[280020]={["name"]="Deep Jungle Rifle",["npcDrops"]={261812}}
 data.Item[280021]={["name"]="Tooth of the Matriarch",["npcDrops"]={262127}}
 data.Item[280022]={["name"]="Scaleguard Scimitar",["npcDrops"]={262127}}
-data.Item[280023]={["name"]="Nanaya's Control Spire"}
+data.Item[280023]={["name"]="Nanaya's Control Spire",["npcDrops"]={261809}}
 data.Item[280024]={["name"]="Legplates of Reinforced Crystal",["npcDrops"]={261809}}
 data.Item[280025]={["name"]="Leggings of Curation",["npcDrops"]={261809}}
-data.Item[280026]={["name"]="Albinofur Grips",["npcDrops"]={262297}}
-data.Item[280027]={["name"]="Crownroar Chestplate",["npcDrops"]={262297,272561}}
-data.Item[280028]={["name"]="Heartflame Gauntlets",["npcDrops"]={261974}}
-data.Item[280029]={["name"]="Cinderedge Crescent",["npcDrops"]={272561}}
-data.Item[280031]={["name"]="Sparklance Wand",["npcDrops"]={262081}}
-data.Item[280032]={["name"]="Bolt's Charged Eyeball",["npcDrops"]={262081}}
+data.Item[280026]={["name"]="Albinofur Grips",["npcDrops"]={261993,262297,272561}}
+data.Item[280027]={["name"]="Crownroar Chestplate",["npcDrops"]={261993,262297,272561}}
+data.Item[280028]={["name"]="Heartflame Gauntlets",["npcDrops"]={261974,272561}}
+data.Item[280029]={["name"]="Cinderedge Crescent",["npcDrops"]={261974,272561}}
+data.Item[280031]={["name"]="Sparklance Wand",["npcDrops"]={262081,272561}}
+data.Item[280032]={["name"]="Bolt's Charged Eyeball",["npcDrops"]={262081,272561}}
 data.Item[280042]={["name"]="Tattered Spellbook"}
 data.Item[280045]={["name"]="Regal Direhorn Drape",["npcDrops"]={262127}}
 data.Item[280056]={["name"]="Flameslash Crescent",["npcDrops"]={247206}}
@@ -38305,12 +38310,13 @@ data.Item[280073]={["name"]="Burnished Pridescales",["npcDrops"]={247231}}
 data.Item[280074]={["name"]="Scalding Flamehoof",["npcDrops"]={247234}}
 data.Item[280075]={["name"]="Bleak Eye Shoulderplates",["npcDrops"]={247234}}
 data.Item[280076]={["name"]="Horns of Varrox",["npcDrops"]={247234}}
-data.Item[280077]={["name"]="Fist of Revelation"}
+data.Item[280077]={["name"]="Fist of Revelation",["npcDrops"]={269111}}
 data.Item[280078]={["name"]="Apprentice's Protective Treads",["npcDrops"]={269111}}
-data.Item[280079]={["name"]="Lunarlight Robe"}
-data.Item[280080]={["name"]="Claymore of Two Moons"}
+data.Item[280079]={["name"]="Lunarlight Robe",["npcDrops"]={269104}}
+data.Item[280080]={["name"]="Claymore of Two Moons",["npcDrops"]={269104}}
+data.Item[280081]={["name"]="Sad-Sack Sandals",["npcDrops"]={247412}}
 data.Item[280083]={["name"]="Truesight Rifle",["npcDrops"]={269151}}
-data.Item[280084]={["name"]="Furbolg Rib Protector"}
+data.Item[280084]={["name"]="Furbolg Rib Protector",["npcDrops"]={269151}}
 data.Item[280085]={["name"]="Tunnelweb Pincer",["npcDrops"]={250034}}
 data.Item[280086]={["name"]="Octofinger Gauntlets",["npcDrops"]={250034}}
 data.Item[280087]={["name"]="Soft Nightsaber Pelt",["npcDrops"]={2042},["relatedQuests"]={87288}}
@@ -38349,7 +38355,7 @@ data.Item[280347]={["name"]="Shadowgale Squirrel",["vendors"]={254151}}
 data.Item[280363]={["name"]="Nightclaw Mantle",["vendors"]={254151}}
 data.Item[280369]={["name"]="Dragonmaw Armaments",["relatedQuests"]={98293}}
 data.Item[280375]={["name"]="Worgen Bits",["npcDrops"]={1924},["relatedQuests"]={98298}}
-data.Item[280390]={["name"]="Carved Stone Trinket",["npcDrops"]={5974,5976}}
+data.Item[280390]={["name"]="Carved Stone Trinket",["npcDrops"]={5974,5975,5976,5977,5978}}
 data.Item[280391]={["name"]="Carved Stone Trinket",["npcDrops"]={5974,5975,5976,5977,5978}}
 data.Item[280392]={["name"]="Howin's Missive"}
 data.Item[280394]={["name"]="Goaz Stone"}
@@ -38375,7 +38381,7 @@ data.Item[280453]={["name"]="Manaflare Pants"}
 data.Item[280454]={["name"]="Manaflare Mantle"}
 data.Item[280455]={["name"]="Manaflare Crown"}
 data.Item[280456]={["name"]="Weevil K. Neevil"}
-data.Item[280459]={["name"]="Crystal Infused Scale",["npcDrops"]={6505,6506,6507,6508,9162,9163,9164,9165,9166,9167}}
+data.Item[280459]={["name"]="Crystal Infused Scale",["npcDrops"]={6505,6506,6507,6508,9162,9163,9164,9165,9166,9167,279811}}
 data.Item[280502]={["name"]="Relic of the Fang",["relatedQuests"]={98342,98396,98404}}
 data.Item[280504]={["name"]="Mudsoaked Scrap"}
 data.Item[280505]={["name"]="Old Leather Jacket",["questRewards"]={92867}}
@@ -38500,10 +38506,10 @@ data.Item[280974]={["name"]="Grovekeeper Chestguard"}
 data.Item[280976]={["name"]="Grovekeeper Pauldrons"}
 data.Item[280977]={["name"]="Grovekeeper Cover"}
 data.Item[281014]={["name"]="Vine-Wrapped Scroll"}
-data.Item[281015]={["name"]="Scroll: DOST OREM",["npcDrops"]={1783,2648,5993,6006,6195,6196,6198,6199,6200,6201,6202,6510,6513,6516,6519,6527,6555,7025,7027,7033,7034,7035,7101,7106,7107,7110,7112,7113,7139,7158,7440,7441,7451,7455,7458,8600,8603,8761,8900,8957,9163,9164,9167,9199,9259,9862,10405,10418,11873,12248,13021,228609,243509,246920,248395,249222,249491}}
-data.Item[281016]={["name"]="Scroll: FORGOT HOOF THUD",["npcDrops"]={1784,1787,1791,1821,2648,2681,2707,4475,5714,5988,6004,6195,6198,6200,6201,6202,6510,6516,6518,6520,6552,6559,7027,7034,7035,7092,7101,7108,7110,7114,7115,7118,7120,7125,7139,7431,7439,7458,7886,8597,8600,8761,8893,8897,8904,8910,8915,8961,9163,9164,9167,9268,9269,9701,9717,9862,11740,11746,12250,246920,247470,249228,249230,249490}}
-data.Item[281017]={["name"]="Scroll: KEEP CLEF FOCI",["npcDrops"]={1783,1787,1789,1791,1794,1834,2648,4472,4474,5271,5712,5988,6137,6195,6198,6202,6378,6498,6510,6512,6516,6518,6519,6520,6555,7036,7092,7106,7108,7111,7120,7139,7158,7438,7440,7442,7458,8581,8605,8761,8895,8899,8957,9163,9164,9166,9262,9454,9464,9862,9879,10375,10405,10413,11551,236876,239966,243509,244525,247470,248041,248395,249220,262689}}
-data.Item[281018]={["name"]="Scroll: RARE SERVICHI RADAR",["npcDrops"]={1783,1789,1795,1796,1824,2648,4472,6005,6195,6196,6198,6199,6498,6510,6513,6516,6553,6554,6555,7025,7038,7039,7047,7092,7100,7108,7109,7110,7111,7113,7114,7132,7138,7139,7156,7157,7441,7442,7450,7453,7458,7885,8581,8675,8897,8900,8904,8910,8920,9163,9164,9167,9198,9240,9690,10268,11467,11475,248395}}
+data.Item[281015]={["name"]="Scroll: DOST OREM",["npcDrops"]={1783,1784,1785,1787,1791,1793,1795,1796,1809,1816,1817,1822,1826,1831,1835,2648,2681,4474,4475,4493,5273,5277,5280,5708,5711,5712,5713,5721,5722,5988,5991,5993,6004,6005,6006,6010,6195,6196,6198,6199,6200,6201,6202,6348,6351,6379,6508,6510,6512,6513,6514,6516,6517,6518,6519,6520,6521,6527,6551,6552,6553,6554,6555,6557,6559,7025,7026,7027,7033,7034,7035,7037,7039,7040,7041,7047,7048,7092,7100,7101,7106,7107,7108,7109,7110,7111,7112,7113,7114,7115,7118,7120,7125,7126,7132,7138,7139,7156,7157,7158,7438,7439,7440,7441,7442,7445,7447,7448,7450,7451,7453,7454,7455,7456,7457,7458,7459,7885,7995,8440,8526,8528,8541,8556,8561,8562,8565,8578,8581,8596,8597,8598,8600,8601,8602,8603,8761,8891,8892,8893,8894,8895,8896,8897,8898,8899,8900,8902,8903,8904,8905,8906,8910,8911,8913,8915,8920,8922,8925,8957,8961,8977,9017,9024,9026,9097,9163,9164,9166,9167,9199,9257,9259,9263,9266,9267,9269,9416,9517,9684,9817,9862,9878,9879,9956,10040,10177,10366,10375,10382,10390,10391,10399,10400,10405,10408,10409,10411,10416,10418,10421,10422,10424,10426,10464,10471,10477,10485,10487,10489,10491,10495,10498,10605,10648,10678,10717,10742,10916,11291,11452,11459,11469,11470,11473,11477,11480,11738,11739,11746,11873,11887,12248,13021,13022,14327,228609,236874,236876,239939,239942,243509,246920,247013,247235,247237,248395,249053,249221,249222,249228,249229,249230,249237,249247,249474,249490,249491,249493,250023,250027,253215,255247,255347,256809,258152,258516,261786,261914,277474,278644}}
+data.Item[281016]={["name"]="Scroll: FORGOT HOOF THUD",["npcDrops"]={1784,1785,1787,1789,1791,1793,1794,1795,1796,1812,1815,1816,1817,1821,1831,1833,2648,2681,2707,4474,4475,4494,5271,5277,5280,5709,5710,5711,5714,5716,5719,5721,5722,5988,5993,6004,6005,6006,6010,6195,6196,6198,6199,6200,6201,6202,6378,6499,6503,6508,6510,6512,6513,6514,6516,6517,6518,6519,6520,6521,6527,6551,6552,6553,6555,6557,6559,7025,7027,7029,7032,7033,7034,7035,7039,7040,7041,7047,7055,7092,7093,7100,7101,7106,7107,7108,7109,7110,7111,7112,7113,7114,7115,7118,7120,7125,7132,7139,7149,7156,7157,7158,7431,7438,7439,7440,7441,7442,7443,7447,7448,7449,7451,7452,7453,7454,7455,7456,7457,7458,7459,7669,7886,7995,8520,8528,8531,8534,8535,8561,8581,8596,8597,8598,8600,8601,8602,8603,8605,8675,8761,8764,8766,8891,8892,8893,8894,8896,8897,8898,8899,8902,8903,8904,8905,8906,8907,8908,8910,8911,8913,8914,8915,8920,8957,8961,9016,9017,9096,9097,9163,9164,9166,9167,9196,9200,9240,9241,9257,9262,9268,9269,9416,9443,9454,9462,9464,9477,9545,9547,9583,9622,9684,9691,9693,9696,9701,9717,9817,9818,9862,9879,9956,10040,10083,10221,10318,10375,10381,10382,10390,10391,10399,10400,10405,10407,10412,10414,10418,10419,10421,10422,10425,10426,10442,10463,10469,10472,10480,10495,10498,10507,10596,10648,10717,10807,11291,11441,11443,11462,11472,11480,11483,11484,11551,11735,11737,11738,11739,11740,11746,11883,12178,12250,13021,13022,13036,13160,13196,14354,14399,14564,236874,239942,239966,243509,244525,246920,247013,247237,247248,247470,248041,248395,249053,249220,249221,249223,249228,249229,249230,249237,249247,249490,249491,250023,250027,253215,255247,255347,256809,258152,258516,262696,272307,272318,277474,278644}}
+data.Item[281017]={["name"]="Scroll: KEEP CLEF FOCI",["npcDrops"]={1783,1784,1785,1787,1789,1791,1793,1794,1795,1817,1821,1824,1833,1834,1835,1883,2648,2681,2707,4472,4474,4493,5271,5277,5280,5712,5715,5988,5991,6004,6005,6006,6009,6137,6148,6195,6196,6198,6199,6200,6201,6202,6371,6378,6498,6499,6508,6510,6512,6513,6514,6516,6518,6519,6520,6521,6527,6551,6552,6553,6554,6555,6559,7025,7026,7028,7032,7034,7035,7036,7037,7038,7039,7041,7047,7092,7100,7101,7106,7107,7108,7109,7110,7111,7112,7113,7114,7115,7120,7125,7126,7132,7139,7156,7157,7158,7438,7439,7440,7441,7442,7443,7445,7448,7449,7450,7451,7452,7453,7454,7456,7457,7458,7460,7523,7886,8419,8527,8528,8530,8538,8551,8581,8596,8597,8600,8601,8603,8605,8675,8761,8891,8892,8893,8894,8895,8896,8897,8898,8899,8902,8904,8905,8906,8907,8908,8910,8911,8912,8913,8914,8915,8920,8957,8961,9032,9096,9097,9163,9164,9166,9167,9201,9259,9261,9262,9266,9267,9268,9319,9416,9454,9464,9554,9681,9684,9691,9692,9817,9819,9862,9878,9879,9956,10040,10319,10375,10381,10382,10390,10391,10405,10407,10413,10416,10418,10419,10421,10436,10437,10447,10464,10470,10480,10487,10489,10502,10558,10605,10648,10717,10806,11043,11290,11441,11464,11470,11473,11477,11487,11551,11736,11738,11739,11740,11741,11744,11746,11887,12179,12201,13021,13022,13136,13160,13276,236573,236867,236876,239942,239966,243509,244525,246991,247248,247470,248041,248395,249053,249220,249221,249222,249228,249229,249230,249237,249247,249493,250023,250027,253214,255247,255347,256809,258264,258508,260148,261774,261786,262164,262689,277474}}
+data.Item[281018]={["name"]="Scroll: RARE SERVICHI RADAR",["npcDrops"]={1783,1784,1785,1787,1789,1793,1794,1795,1796,1804,1815,1816,1817,1821,1822,1824,1826,1831,2648,2681,4472,4474,4475,4494,5271,5273,5277,5280,5709,5717,5719,5721,5722,5981,5988,5993,6004,6005,6146,6148,6195,6196,6198,6199,6200,6201,6350,6378,6380,6498,6508,6510,6512,6513,6514,6516,6518,6519,6520,6521,6527,6551,6552,6553,6554,6555,6557,6559,7025,7026,7027,7029,7032,7034,7035,7036,7038,7039,7040,7041,7044,7047,7048,7055,7092,7098,7100,7101,7106,7107,7108,7109,7110,7111,7112,7113,7114,7115,7118,7120,7126,7132,7138,7139,7149,7156,7157,7158,7434,7438,7440,7441,7442,7443,7444,7447,7448,7449,7450,7451,7452,7453,7456,7457,7458,7459,7460,7523,7669,7885,8524,8531,8534,8541,8555,8562,8563,8581,8600,8601,8602,8603,8675,8761,8766,8891,8892,8894,8896,8897,8900,8904,8905,8906,8910,8911,8912,8913,8914,8915,8920,8957,8961,9017,9024,9025,9097,9098,9163,9164,9166,9167,9198,9200,9201,9240,9258,9259,9262,9266,9267,9269,9443,9445,9462,9464,9477,9518,9541,9622,9690,9691,9696,9862,9878,9879,9956,10220,10268,10316,10319,10366,10375,10381,10382,10390,10391,10405,10414,10416,10418,10419,10420,10437,10464,10471,10480,10486,10495,10499,10678,10717,10738,10802,10916,11290,11441,11456,11457,11465,11467,11472,11473,11475,11483,11489,11735,11738,11739,11744,11880,13022,13036,13136,13196,13197,13276,14342,14523,14564,236876,239966,243509,244525,246920,246991,247006,247237,247248,247972,248041,248395,249053,249220,249221,249222,249223,249228,249230,249237,249247,249474,249490,249491,249493,249974,250023,250027,255247,255394,256809,258329,258508,258668,272318,278644}}
 data.Item[281019]={["name"]="Monster - Sword1H, Skyborne Back Sheathe (Blue)"}
 data.Item[281020]={["name"]="Monster - Shield, Skyborne (White)"}
 data.Item[281023]={["name"]="Mature Fel Moss",["npcDrops"]={272116},["relatedQuests"]={98403}}
@@ -38634,8 +38640,8 @@ data.Item[281539]={["name"]="Bear Fur Cowl"}
 data.Item[281586]={["name"]="Elderwild Construction Hammer"}
 data.Item[281587]={["name"]="Greatflank Flayer"}
 data.Item[281588]={["name"]="Nature's Cull"}
-data.Item[281598]={["name"]="Rusthowl's Worn Collar"}
-data.Item[281600]={["name"]="Wail of Death"}
+data.Item[281598]={["name"]="Rusthowl's Worn Collar",["npcDrops"]={263935}}
+data.Item[281600]={["name"]="Wail of Death",["npcDrops"]={249226}}
 data.Item[281628]={["name"]="Blade of Bandarion"}
 data.Item[281629]={["name"]="Patrol Orders"}
 data.Item[281630]={["name"]="Scarlet Keyring"}
@@ -38717,7 +38723,7 @@ data.Item[282005]={["name"]="Saltwater Shawl",["npcDrops"]={14446}}
 data.Item[282006]={["name"]="Crumbling Hearthstone"}
 data.Item[282007]={["name"]="Emerald Watcher's Dreamstaff",["npcDrops"]={1063}}
 data.Item[282008]={["name"]="Wyrmak's Cuirass",["npcDrops"]={14445}}
-data.Item[282009]={["name"]="Ravaged Leather Leggings"}
+data.Item[282009]={["name"]="Ravaged Leather Leggings",["npcDrops"]={8300}}
 data.Item[282010]={["name"]="Tusk of Grunter"}
 data.Item[282011]={["name"]="Restored Healing Potion"}
 data.Item[282012]={["name"]="Corsepickers",["npcDrops"]={8299}}
@@ -38729,24 +38735,25 @@ data.Item[282017]={["name"]="Restored Heavy Brown Bag"}
 data.Item[282018]={["name"]="Restorative Bread"}
 data.Item[282019]={["name"]="Braided Seer Stones",["npcDrops"]={8298}}
 data.Item[282020]={["name"]="Stonegaze Wand",["npcDrops"]={8302}}
-data.Item[282021]={["name"]="Dreadscorn's Spaulders"}
+data.Item[282021]={["name"]="Dreadscorn's Spaulders",["npcDrops"]={8304}}
 data.Item[282023]={["name"]="Clack's Claw"}
 data.Item[282026]={["name"]="Unyielding Battle Signet",["npcDrops"]={8297}}
 data.Item[282028]={["name"]="Broken Frond of Celastrus",["npcDrops"]={249051}}
 data.Item[282029]={["name"]="Reaver's Repeater"}
 data.Item[282046]={["name"]="Gnome Skull",["npcDrops"]={3581}}
 data.Item[282047]={["name"]="Baby Crocolisk",["npcDrops"]={3581}}
-data.Item[282048]={["name"]="Ragged Dark Iron Cuffs"}
+data.Item[282048]={["name"]="Ragged Dark Iron Cuffs",["npcDrops"]={8978}}
 data.Item[282049]={["name"]="Deathmaw's Guise",["npcDrops"]={10077}}
 data.Item[282064]={["name"]="Tim's Lost Rib",["questRewards"]={98545}}
 data.Item[282065]={["name"]="Sealed Letter",["relatedQuests"]={98545}}
-data.Item[282070]={["name"]="Gruklash's Basher"}
+data.Item[282070]={["name"]="Gruklash's Basher",["npcDrops"]={8979}}
 data.Item[282071]={["name"]="Shin Slicers"}
 data.Item[282074]={["name"]="Ogre Sorcerer Belt",["npcDrops"]={9604}}
-data.Item[282080]={["name"]="Flame Seared Signet"}
+data.Item[282080]={["name"]="Flame Seared Signet",["npcDrops"]={10078}}
+data.Item[282085]={["npcDrops"]={8976}}
 data.Item[282088]={["name"]="Heart of Smoldar",["npcDrops"]={8278}}
 data.Item[282094]={["name"]="Blackheart's Vest",["npcDrops"]={8283}}
-data.Item[282097]={["name"]="Unbreakable Golem Grips"}
+data.Item[282097]={["name"]="Unbreakable Golem Grips",["npcDrops"]={8279}}
 data.Item[282283]={["name"]="Malignant Root"}
 data.Item[282284]={["name"]="Webwood Slicer",["questRewards"]={98403}}
 data.Item[282285]={["name"]="Clearcutter Key",["questRewards"]={98427}}
@@ -38771,8 +38778,8 @@ data.Item[282431]={["name"]="Tears of Anguish"}
 data.Item[282547]={["name"]="Abyssal Mote"}
 data.Item[282548]={["name"]="Star of Elune"}
 data.Item[282550]={["name"]="Combat Tuning Wrench",["npcDrops"]={14224}}
-data.Item[282551]={["name"]="Golem Fist"}
-data.Item[282555]={["name"]="Shadowforge Shield"}
+data.Item[282551]={["name"]="Golem Fist",["npcDrops"]={2751}}
+data.Item[282555]={["name"]="Shadowforge Shield",["npcDrops"]={2744}}
 data.Item[282556]={["name"]="Groundshaker's Bindings",["npcDrops"]={2752}}
 data.Item[282557]={["name"]="Broken Tooth's Flayed Hide",["npcDrops"]={2850}}
 data.Item[282558]={["name"]="Firebird's Cowl",["npcDrops"]={2931}}
@@ -38795,12 +38802,12 @@ data.Item[282658]={["name"]="Dragonmaw Battle Shroud",["npcDrops"]={1037}}
 data.Item[282699]={["name"]="Cleansed Water Globe"}
 data.Item[282702]={["name"]="Molok's Masher",["npcDrops"]={2604}}
 data.Item[282703]={["name"]="Needletooth's Needletooth",["npcDrops"]={217836}}
-data.Item[282704]={["name"]="Shadow Council Apprentice's Mantle"}
+data.Item[282704]={["name"]="Shadow Council Apprentice's Mantle",["npcDrops"]={2598}}
 data.Item[282705]={["name"]="Ruul's Secondstone",["npcDrops"]={2602}}
 data.Item[282706]={["name"]="Rotting Meat",["npcDrops"]={2601}}
 data.Item[282710]={["name"]="Dun Garok Rifle",["npcDrops"]={14275}}
 data.Item[282711]={["name"]="Naga Maiden's Gown",["npcDrops"]={14277}}
-data.Item[282712]={["name"]="Libram of Binding",["npcDrops"]={11483,11484,14399}}
+data.Item[282712]={["name"]="Libram of Binding",["npcDrops"]={11480,11483,11484,11496,14399,14400}}
 data.Item[282713]={["name"]="Bloodstained Pants",["npcDrops"]={14281}}
 data.Item[282716]={["name"]="Imbued Scaled Cuffs",["npcDrops"]={14276}}
 data.Item[282717]={["name"]="Durable Bearhide Pauldrons",["npcDrops"]={14280}}
@@ -38831,14 +38838,14 @@ data.Item[284064]={["name"]="Cliffbreaker's Pauldrons",["npcDrops"]={8215}}
 data.Item[284065]={["name"]="Crown of Maldazzar",["npcDrops"]={1848}}
 data.Item[284066]={["name"]="Husk of the Husk"}
 data.Item[284067]={["name"]="Rusted Family Memento"}
-data.Item[284070]={["name"]="Dreadwhisper's Touch"}
-data.Item[284072]={["name"]="Scarlet Judge's Mace"}
-data.Item[284079]={["name"]="High Clerist's Seal"}
-data.Item[284086]={["name"]="Scarlet Executioner's Guise"}
+data.Item[284070]={["name"]="Dreadwhisper's Touch",["npcDrops"]={1849}}
+data.Item[284072]={["name"]="Scarlet Judge's Mace",["npcDrops"]={1837}}
+data.Item[284079]={["name"]="High Clerist's Seal",["npcDrops"]={1839}}
+data.Item[284086]={["name"]="Scarlet Executioner's Guise",["npcDrops"]={1841}}
 data.Item[284091]={["name"]="Scarlet Forgemaster's Bindings"}
 data.Item[284092]={["name"]="Keystone Fragment"}
 data.Item[284093]={["name"]="Keystone Fragment"}
-data.Item[284097]={["name"]="Everstaring Abomination Eye"}
+data.Item[284097]={["name"]="Everstaring Abomination Eye",["npcDrops"]={1850}}
 data.Item[284100]={["name"]="Horseman's Unyielding Shroud"}
 data.Item[284101]={["name"]="Blade of Senseless Slaughter"}
 data.Item[284102]={["name"]="Signet of the Soulless Rider"}
@@ -38847,9 +38854,9 @@ data.Item[284105]={["name"]="Wildhammer Soldier's Spaulders"}
 data.Item[284146]={["name"]="Essene's Waterskin"}
 data.Item[284150]={["name"]="Essene's Spellbook"}
 data.Item[284151]={["name"]="Essene's Note"}
-data.Item[284154]={["name"]="Unmovable Sabatons"}
+data.Item[284154]={["name"]="Unmovable Sabatons",["npcDrops"]={10825}}
 data.Item[284157]={["name"]="Ranger Lord's Longsword"}
-data.Item[284158]={["name"]="Mossflayer Warlord's Girdle"}
+data.Item[284158]={["name"]="Mossflayer Warlord's Girdle",["npcDrops"]={10822}}
 data.Item[284161]={["name"]="Treads of Rotting Flesh"}
 data.Item[284162]={["name"]="Mossflayer Witchdoctor's Robe"}
 data.Item[284165]={["name"]="Duskstalker's Hide",["npcDrops"]={14430}}
@@ -38863,23 +38870,23 @@ data.Item[284185]={["name"]="Greymist Gauntlets",["npcDrops"]={7015}}
 data.Item[284187]={["name"]="Crazed Firecaller's Cloak",["npcDrops"]={2192}}
 data.Item[284192]={["name"]="Furbolg Loincloth",["npcDrops"]={2186}}
 data.Item[284193]={["name"]="Moongazer's Wand",["npcDrops"]={2184}}
-data.Item[284197]={["name"]="Hide of Mongress"}
+data.Item[284197]={["name"]="Hide of Mongress",["npcDrops"]={14344}}
 data.Item[284199]={["name"]="Death Howl's Guise",["npcDrops"]={14339}}
-data.Item[284214]={["name"]="Minfernal"}
+data.Item[284214]={["name"]="Minfernal",["npcDrops"]={7137}}
 data.Item[284215]={["name"]="Ancient Lichen Vestments",["npcDrops"]={7104}}
 data.Item[284218]={["name"]="Slime-Coated Gloves",["npcDrops"]={14345}}
-data.Item[284228]={["name"]="Vial of Vile Liquid"}
-data.Item[284230]={["name"]="Rage Paw"}
-data.Item[284253]={["name"]="Eternally Frozen Band"}
+data.Item[284228]={["name"]="Vial of Vile Liquid",["npcDrops"]={14340}}
+data.Item[284230]={["name"]="Rage Paw",["npcDrops"]={14342}}
+data.Item[284253]={["name"]="Eternally Frozen Band",["npcDrops"]={10198}}
 data.Item[284257]={["name"]="Icesworn Decapitator"}
 data.Item[284261]={["name"]="Magically Fortified Legguards",["npcDrops"]={10202}}
-data.Item[284262]={["name"]="Howling Hide"}
-data.Item[284266]={["name"]="Wintersaber Hide Lined Gloves"}
+data.Item[284262]={["name"]="Howling Hide",["npcDrops"]={10197}}
+data.Item[284266]={["name"]="Wintersaber Hide Lined Gloves",["npcDrops"]={10200}}
 data.Item[284268]={["name"]="Furbolg Shaman's Girdle",["npcDrops"]={10199}}
 data.Item[284271]={["name"]="Emergency Cache"}
-data.Item[284272]={["name"]="Chimaera Hide Legs"}
+data.Item[284272]={["name"]="Chimaera Hide Legs",["npcDrops"]={8660}}
 data.Item[284282]={["name"]="Queen Guard's Royal Seal"}
-data.Item[284283]={["name"]="Horn of Antilos"}
+data.Item[284283]={["name"]="Horn of Antilos",["npcDrops"]={6648}}
 data.Item[284285]={["name"]="Feardred's Gauntlets",["npcDrops"]={236496}}
 data.Item[284286]={["name"]="Battleguard Captain's Sticker",["npcDrops"]={5824}}
 data.Item[284287]={["name"]="Felweaver's Staff",["npcDrops"]={5822}}
@@ -38908,7 +38915,7 @@ data.Item[284664]={["name"]="Packmule Treat",["vendors"]={256384,256389}}
 data.Item[284666]={["name"]="Wolf Whistle",["npcDrops"]={10644}}
 data.Item[284667]={["name"]="Flame Seared Sword"}
 data.Item[284668]={["name"]="Apothecary's Concoction",["npcDrops"]={3735}}
-data.Item[284696]={["name"]="Carved Furbolg Tooth"}
+data.Item[284696]={["name"]="Carved Furbolg Tooth",["npcDrops"]={10640}}
 data.Item[284697]={["name"]="Arcane Charged Robes",["npcDrops"]={10647}}
 data.Item[284699]={["name"]="Still Water Band"}
 data.Item[284700]={["name"]="Den Guardian's Crusher",["npcDrops"]={10639}}
@@ -38937,7 +38944,7 @@ data.Item[284871]={["name"]="Recipe: Transmute Legionite",["npcDrops"]={249229,2
 data.Item[285043]={["name"]="Snarling Fang",["npcDrops"]={5356}}
 data.Item[285047]={["name"]="Yeti Hide Stompers",["npcDrops"]={5346}}
 data.Item[285063]={["name"]="Black Brood Battleguards",["npcDrops"]={4339}}
-data.Item[285088]={["name"]="Ooze Dripping Robes"}
+data.Item[285088]={["name"]="Ooze Dripping Robes",["npcDrops"]={14237}}
 data.Item[285089]={["name"]="Swamp Roamer's Band",["npcDrops"]={14231}}
 data.Item[285093]={["name"]="Ripscaled Cuffs",["npcDrops"]={14233}}
 data.Item[285094]={["name"]="Ravaged Fishing Pole",["npcDrops"]={14236}}
@@ -38979,9 +38986,9 @@ data.Item[285278]={["name"]="Satchel of Dark Iron Bombs"}
 data.Item[285279]={["name"]="Cracked Blacksmith Hammer"}
 data.Item[285280]={["name"]="Mithril Blacksmith Hammer"}
 data.Item[285281]={["name"]="Arcanite Blacksmith Hammer"}
-data.Item[285282]={["name"]="Jagged Knives of the Eagle",["npcDrops"]={2186,2192,3270,3295,3470,5829,5830,5835,5836,5837,5838,5841,5863,7015}}
-data.Item[285283]={["name"]="Serrated Axes",["npcDrops"]={14232}}
-data.Item[285284]={["name"]="Balanced Knives of the Bandit",["npcDrops"]={6585}}
+data.Item[285282]={["name"]="Jagged Knives of the Bandit",["npcDrops"]={2184,2186,2192,3270,3295,3470,5829,5830,5835,5836,5837,5838,5841,5863,7015}}
+data.Item[285283]={["name"]="Serrated Axes of the Bear",["npcDrops"]={5935,14232}}
+data.Item[285284]={["name"]="Balanced Knives of the Bandit",["npcDrops"]={6583,6585}}
 data.Item[285285]={["name"]="Schematic: Satchel of Copper Bombs",["vendors"]={248200,256733}}
 data.Item[285286]={["name"]="Schematic: Satchel of Bronze Bombs",["vendors"]={248200,256733}}
 data.Item[285287]={["name"]="Schematic: Satchel of Iron Bombs",["vendors"]={248200,256733}}
@@ -39116,7 +39123,7 @@ data.Item[286360]={["name"]="Stoneanvil's Rifle",["relatedQuests"]={99162}}
 data.Item[286405]={["name"]="Blooming Heart"}
 data.Item[286408]={["name"]="Sword of Mourning"}
 data.Item[286411]={["name"]="Plant Stem"}
-data.Item[286415]={["name"]="Reliquary of Tyr"}
+data.Item[286415]={["name"]="Reliquary of Tyr",["npcDrops"]={247209}}
 data.Item[286424]={["name"]="Monster - Sword, Scimitar Basic"}
 data.Item[286425]={["name"]="Monster - Sword, Scimitar Basic"}
 data.Item[286426]={["name"]="Honorbound Cloak",["questRewards"]={93739}}
@@ -39134,20 +39141,20 @@ data.Item[286541]={["name"]="Bael'dun Tankard",["npcDrops"]={5848}}
 data.Item[286552]={["name"]="Sandcaster's Mantle"}
 data.Item[286554]={["name"]="Warleader's Signet",["npcDrops"]={8199}}
 data.Item[286556]={["name"]="Winds of Tanaris",["npcDrops"]={8206}}
-data.Item[286568]={["name"]="Blisterpaw Bones"}
+data.Item[286568]={["name"]="Blisterpaw Bones",["npcDrops"]={8208}}
 data.Item[286569]={["name"]="Firebird Leggings",["npcDrops"]={8207}}
 data.Item[286570]={["name"]="Silithid Flesh Bindings",["npcDrops"]={8205}}
 data.Item[286571]={["name"]="Silithid Hauberk",["npcDrops"]={8204}}
 data.Item[286572]={["name"]="Ogre Casting Cloak",["npcDrops"]={8202}}
-data.Item[286597]={["name"]="Calm Air Band"}
+data.Item[286597]={["name"]="Calm Air Band",["npcDrops"]={14478}}
 data.Item[286604]={["name"]="Spawn of Grubthor"}
 data.Item[286609]={["name"]="Krellack's Carapace"}
 data.Item[286612]={["name"]="Sand-Covered Silk Sash"}
-data.Item[286613]={["name"]="King Mosh's Tooth"}
+data.Item[286613]={["name"]="King Mosh's Tooth",["npcDrops"]={6584}}
 data.Item[286614]={["name"]="Gruff's Tough Tongue",["npcDrops"]={6583}}
 data.Item[286616]={["name"]="Matriarch's Prowlers",["npcDrops"]={6581}}
 data.Item[286618]={["name"]="Clutchmother's Guards"}
-data.Item[286619]={["name"]="Big Basher's Belt"}
+data.Item[286619]={["name"]="Big Basher's Belt",["npcDrops"]={6585}}
 data.Item[286639]={["name"]="Ambassador's Bloodrobes",["npcDrops"]={7895}}
 data.Item[286640]={["name"]="High Priestess's Kilt"}
 data.Item[286646]={["name"]="Gill's Gills",["npcDrops"]={264177}}
@@ -39190,61 +39197,66 @@ data.Item[286978]={["name"]="Rotmender's Garb",["npcDrops"]={250484,250618,25061
 data.Item[286979]={["name"]="Rotmender's Gloves",["npcDrops"]={250484,250618,250619,250620,250622,250623,250624,250625,250626,250627,250629,250630,250650,250651,250652,250654,250656,250689,250735,255109,255964,256040}}
 data.Item[286980]={["name"]="Rotmender's Sash",["npcDrops"]={250484,250618,250619,250620,250622,250623,250624,250625,250626,250627,250629,250630,250650,250651,250654,250656,250689,250735,255109,255964,256040,250652}}
 data.Item[286981]={["name"]="Death Bindings",["npcDrops"]={250618,250624,250626,255964}}
-data.Item[286982]={["name"]="Unearthed Barrier",["npcDrops"]={260796,260797,260799,260800,260801,260803,260804,260808,260809}}
-data.Item[286983]={["name"]="Ancient Cleaver",["npcDrops"]={260796,260799,260800,260801,260802,260803,260804,274715}}
-data.Item[286984]={["name"]="Mark of the Marsh",["npcDrops"]={260796,260797,260798,260799,260800,260801,260802,260803,260804,260809}}
-data.Item[286985]={["name"]="Thicket Bindings",["npcDrops"]={260796,260797,260799,260800,260801,260802,260803,260804,260808,260810,274715}}
-data.Item[286986]={["name"]="Abandoned Leggings",["npcDrops"]={260796,260797,260798,260799,260800,260801,260802,260803,260804}}
-data.Item[286987]={["name"]="Violet Sorcerer's Sandals",["npcDrops"]={246664,246888,255066,255068,255070,255072,269134,246600,246992,246993,247001,247003,255069}}
+data.Item[286982]={["name"]="Unearthed Barrier",["npcDrops"]={260796,260797,260798,260799,260800,260801,260802,260803,260804,260808,260809,274715}}
+data.Item[286983]={["name"]="Ancient Cleaver",["npcDrops"]={260796,260797,260799,260800,260801,260802,260803,260804,274715}}
+data.Item[286984]={["name"]="Mark of the Marsh",["npcDrops"]={260796,260797,260798,260799,260800,260801,260802,260803,260804,260809,260810,274715}}
+data.Item[286985]={["name"]="Thicket Bindings",["npcDrops"]={260796,260797,260798,260799,260800,260801,260802,260803,260804,260808,260809,260810,274715}}
+data.Item[286986]={["name"]="Abandoned Leggings",["npcDrops"]={260796,260797,260798,260799,260800,260801,260802,260803,260804,260808,260810}}
+data.Item[286987]={["name"]="Violet Sorcerer's Sandals",["npcDrops"]={246664,246888,255066,255068,255070,255072,269134,246600,246990,246992,246993,247001,247003,255069}}
 data.Item[286988]={["name"]="Violet Sorcerer's Leggings",["npcDrops"]={247001,255066,255072,246600,246664,246888,246990,246992,246993,247003,255068,255069,255070,269134}}
 data.Item[286989]={["name"]="Violet Sorcerer's Wraps",["npcDrops"]={246993,247003,255066,269134,246600,246664,246888,246990,246992,247001,255068,255069,255070,255072}}
-data.Item[286990]={["name"]="Arcane Remnant Leggings",["npcDrops"]={246992,246600,246664,246993,247001,255066,255069,255072}}
-data.Item[286991]={["name"]="Roused Nature Footwraps",["npcDrops"]={247003,246600,246664,246993,247001,255066,255070,269134}}
+data.Item[286990]={["name"]="Arcane Remnant Leggings",["npcDrops"]={246992,246600,246664,246888,246990,246993,247001,247003,255066,255068,255069,255070,255072,269134}}
+data.Item[286991]={["name"]="Roused Nature Footwraps",["npcDrops"]={247003,246600,246664,246990,246992,246993,247001,255066,255068,255069,255070,269134}}
 data.Item[286992]={["name"]="Construct's Grips",["npcDrops"]={246664}}
-data.Item[286993]={["name"]="Suffused Bindings",["npcDrops"]={246664,246990,247001,255066,255069,255072,269134}}
-data.Item[286994]={["name"]="Tattered Kirin Tor Cloak",["npcDrops"]={246600,246664,246990,247001,247003,255066,255069,255072,269134}}
-data.Item[286995]={["name"]="Guardian's Emblem",["npcDrops"]={246664,246888,247003,255066,255068,255069,255072,269134}}
-data.Item[286996]={["name"]="City Guard's Tarnished Blade",["npcDrops"]={247003,246600,246664,246888,246990,246992,247001,255066,255069,255072,269134}}
-data.Item[286997]={["name"]="Depth-Risen Leggings",["npcDrops"]={250187,258792,258797,258799,258804,258818,258897,259979,259981,259987,263196,263899,268321}}
-data.Item[286998]={["name"]="Deep Flora Bindings",["npcDrops"]={250187,258792,258797,258799,258804,258818,258897,259979,259981,259987,263196,263899,268462}}
-data.Item[286999]={["name"]="Deathcrawler's Chest",["npcDrops"]={258792,258797,258799,258804,258818,259979,259981,259987,263196,268321}}
-data.Item[287000]={["name"]="Skin-Flayed Footguards",["npcDrops"]={250187,258792,258797,258799,258804,258818,258897,259979,259987,263196,268462}}
-data.Item[287001]={["name"]="Waterlogged Shoulderpads",["npcDrops"]={250187,258792,258797,258799,258804,258818,258897,259979,259987,263196,263899}}
+data.Item[286993]={["name"]="Suffused Bindings",["npcDrops"]={246664,246888,246990,246993,247001,247003,255066,255068,255069,255070,255072,269134}}
+data.Item[286994]={["name"]="Tattered Kirin Tor Cloak",["npcDrops"]={246600,246664,246888,246990,246992,246993,247001,247003,255066,255068,255069,255070,255072,269134}}
+data.Item[286995]={["name"]="Guardian's Emblem",["npcDrops"]={246600,246664,246888,246990,246992,246993,247001,247003,255066,255068,255069,255070,255072,269134}}
+data.Item[286996]={["name"]="City Guard's Tarnished Blade",["npcDrops"]={247003,246600,246664,246888,246990,246992,246993,247001,255066,255068,255069,255070,255072,269134}}
+data.Item[286997]={["name"]="Depth-Risen Leggings",["npcDrops"]={250187,258792,258797,258799,258804,258818,258897,259979,259981,259987,260353,263196,263899,268321}}
+data.Item[286998]={["name"]="Deep Flora Bindings",["npcDrops"]={250187,258792,258797,258799,258804,258818,258897,259979,259981,259987,263196,263899,268321,268462}}
+data.Item[286999]={["name"]="Deathcrawler's Chest",["npcDrops"]={250187,258792,258797,258799,258804,258818,258897,259979,259981,259987,263196,263899,268321}}
+data.Item[287000]={["name"]="Skin-Flayed Footguards",["npcDrops"]={250187,258792,258797,258799,258804,258818,258897,259979,259981,259987,263196,263899,268321,268462}}
+data.Item[287001]={["name"]="Waterlogged Shoulderpads",["npcDrops"]={250187,258792,258797,258799,258804,258818,258897,259979,259987,263196,263899,268321,268462}}
 data.Item[287002]={["name"]="Risen Sentry's Links",["npcDrops"]={258792}}
-data.Item[287003]={["name"]="Corroded Handguards",["npcDrops"]={250187,258792,258797,258799,258804,258818,258897,259981,259987}}
-data.Item[287004]={["name"]="Touch of the Depths",["npcDrops"]={250187,258792,258797,258799,258804,258818,259979,259981}}
-data.Item[287005]={["name"]="Sword of Dismemberment",["npcDrops"]={258792,258797,258799,258804,259979,260353,268321}}
-data.Item[287006]={["name"]="Resurged Axe",["npcDrops"]={258792,258797,258799,258804,258818,259979,259981,259987,260353,263196,268321}}
-data.Item[287007]={["name"]="Stretched Footpads",["npcDrops"]={257885,257888,257900,258038,258042,258100,258102,258104,258687,262065}}
-data.Item[287008]={["name"]="Ogre Magi's Mantle",["npcDrops"]={257885,257888,257900,258038,258042,258100,258102,258104,258687,262065,262067}}
-data.Item[287009]={["name"]="Twilight Enforcer's Legs",["npcDrops"]={257885,257888,257900,258038,258040,258042,258102,258104,258687,262065,262067}}
+data.Item[287003]={["name"]="Corroded Handguards",["npcDrops"]={250187,258792,258797,258799,258804,258818,258897,259979,259981,259987,263196,263899,268462}}
+data.Item[287004]={["name"]="Touch of the Depths",["npcDrops"]={250187,258792,258797,258799,258804,258818,258897,259979,259981,259987,260353,263196,263899,268321}}
+data.Item[287005]={["name"]="Sword of Dismemberment",["npcDrops"]={250187,258792,258797,258799,258804,258818,259979,259981,259987,260353,263196,268321}}
+data.Item[287006]={["name"]="Resurged Axe",["npcDrops"]={250187,258792,258797,258799,258804,258818,258897,259979,259981,259987,260353,263196,263899,268321}}
+data.Item[287007]={["name"]="Stretched Footpads",["npcDrops"]={257885,257888,257900,258038,258040,258042,258100,258102,258104,258687,262065,262067}}
+data.Item[287008]={["name"]="Ogre Magi's Mantle",["npcDrops"]={257885,257888,257900,258038,258040,258042,258100,258102,258104,258687,262065,262067}}
+data.Item[287009]={["name"]="Twilight Enforcer's Legs",["npcDrops"]={257885,257888,257900,258038,258040,258042,258100,258102,258104,258687,262065,262067,268423}}
 data.Item[287010]={["name"]="Outrider's Gloves",["npcDrops"]={258102}}
-data.Item[287011]={["name"]="Guise of Battle",["npcDrops"]={257885,257900,258038,258040,258042,258100,258102,258104,258687,262067}}
-data.Item[287012]={["name"]="Krol'dok Warplate Gauntlets",["npcDrops"]={257885,257888,257900,258038,258040,258042,258100,258102,258104,258687,262065,262067}}
-data.Item[287013]={["name"]="Krol'dok Warplate Legplates",["npcDrops"]={257885,257888,257900,258038,258040,258042,258100,258102,258104,258687,262067}}
+data.Item[287011]={["name"]="Guise of Battle",["npcDrops"]={257885,257888,257900,258038,258040,258042,258100,258102,258104,258687,262065,262067,268423}}
+data.Item[287012]={["name"]="Krol'dok Warplate Gauntlets",["npcDrops"]={257885,257888,257900,258038,258040,258042,258100,258102,258104,258687,262065,262067,268423}}
+data.Item[287013]={["name"]="Krol'dok Warplate Legplates",["npcDrops"]={257885,257888,257900,258038,258040,258042,258100,258102,258104,258687,262065,262067,262716}}
 data.Item[287014]={["name"]="Krol'dok Warplate Pauldrons",["npcDrops"]={257885,257888,257900,258038,258040,258042,258100,258102,258104,258687,262065,262067,268423}}
-data.Item[287015]={["name"]="Supreme Smasher",["npcDrops"]={257900,258040,258042,258100,258104,258687}}
-data.Item[287016]={["name"]="Shadow-Seer Orb",["npcDrops"]={257888,257900,258040,258042,258100,258102,258104,258687,262067}}
-data.Item[287017]={["name"]="Chaplain's Mitre",["npcDrops"]={255377,255995}}
-data.Item[287018]={["name"]="Compound Gloves",["npcDrops"]={255271,255262,255276,255995}}
-data.Item[287019]={["name"]="Defias Enforcer's Mask",["npcDrops"]={255262,255267,255276,255309,255373,255377,255995,271784}}
-data.Item[287020]={["name"]="Defias Enforcer's Chest",["npcDrops"]={255267,255271,255276,255309,255373,255377,255995,271784}}
-data.Item[287021]={["name"]="Defias Enforcer's Prowlers",["npcDrops"]={255267,255271,255276,255364,255373,255377,255995,271780,271784}}
-data.Item[287022]={["name"]="Spaulders of Containment",["npcDrops"]={255271,255309,255377}}
-data.Item[287023]={["name"]="Iron-Wrought Cuffs"}
-data.Item[287024]={["name"]="Mark of Captivity",["npcDrops"]={255262}}
+data.Item[287015]={["name"]="Supreme Smasher",["npcDrops"]={257885,257888,257900,258038,258040,258042,258100,258102,258104,258687,262067}}
+data.Item[287016]={["name"]="Shadow-Seer Orb",["npcDrops"]={257885,257888,257900,258038,258040,258042,258100,258102,258104,258687,262067}}
+data.Item[287017]={["name"]="Chaplain's Mitre",["npcDrops"]={255262,255267,255271,255276,255309,255373,255377,255995}}
+data.Item[287018]={["name"]="Compound Gloves",["npcDrops"]={255271,255262,255276,255309,255373,255377,255995}}
+data.Item[287019]={["name"]="Defias Enforcer's Mask",["npcDrops"]={255262,255267,255271,255276,255309,255364,255373,255377,255995,271780,271784}}
+data.Item[287020]={["name"]="Defias Enforcer's Chest",["npcDrops"]={255262,255267,255271,255276,255309,255364,255373,255377,255995,271784}}
+data.Item[287021]={["name"]="Defias Enforcer's Prowlers",["npcDrops"]={255262,255267,255271,255276,255309,255364,255373,255377,255995,271780,271784}}
+data.Item[287022]={["name"]="Spaulders of Containment",["npcDrops"]={255271,255309,255364,255373,255377,255995,271784}}
+data.Item[287023]={["name"]="Iron-Wrought Cuffs",["npcDrops"]={255262,255267,255271,255276,255309,255364,255373,255377,255995}}
+data.Item[287024]={["name"]="Mark of Captivity",["npcDrops"]={255262,255364,255377}}
 data.Item[287025]={["name"]="Enchantresses' Spire",["npcDrops"]={255373}}
-data.Item[287026]={["name"]="Escape Plan",["npcDrops"]={255377,255995}}
-data.Item[287028]={["name"]="Tormented Cuffs"}
+data.Item[287026]={["name"]="Escape Plan",["npcDrops"]={255262,255267,255271,255309,255373,255377,255995}}
+data.Item[287028]={["name"]="Tormented Cuffs",["npcDrops"]={247237,255247,255347,258152,277474}}
 data.Item[287029]={["name"]="Nature Guardian's Legguards"}
-data.Item[287030]={["name"]="Blackmaw Bindings"}
-data.Item[287031]={["name"]="Spearfisher's Waders",["npcDrops"]={250027}}
-data.Item[287032]={["name"]="Den Champion's Binding"}
-data.Item[287033]={["name"]="Furbolg Berserker's Boots"}
-data.Item[287034]={["name"]="Grove Subjugator's Blade",["npcDrops"]={255247,255347}}
-data.Item[287035]={["name"]="Demon Worshipper's Necklace",["npcDrops"]={250023,255247}}
-data.Item[287036]={["name"]="Satyr's Touch",["npcDrops"]={255247,255347}}
-data.Item[287037]={["name"]="Shaper's Robe"}
+data.Item[287030]={["name"]="Blackmaw Bindings",["npcDrops"]={247237,250023,255347,258264,268834}}
+data.Item[287031]={["name"]="Spearfisher's Waders",["npcDrops"]={250023,250027,255247,255347,258264,277474}}
+data.Item[287032]={["name"]="Den Champion's Binding",["npcDrops"]={250023,250027,258508}}
+data.Item[287033]={["name"]="Furbolg Berserker's Boots",["npcDrops"]={247237,250023,255247,255394}}
+data.Item[287034]={["name"]="Grove Subjugator's Blade",["npcDrops"]={247235,247248,255247,255347,258668}}
+data.Item[287035]={["name"]="Demon Worshipper's Necklace",["npcDrops"]={247235,250023,250027,255247,277474}}
+data.Item[287036]={["name"]="Satyr's Touch",["npcDrops"]={247235,247248,255247,255347,272307}}
+data.Item[287037]={["name"]="Shaper's Robe",["npcDrops"]={261750,261786}}
+data.Item[287038]={["name"]="Naturopathy Footpads",["npcDrops"]={261785}}
+data.Item[287039]={["name"]="Tattered Explorer's Cuffs",["npcDrops"]={253214,261779}}
+data.Item[287040]={["name"]="Dinosaur Hide Belt",["npcDrops"]={253215,261786}}
+data.Item[287045]={["name"]="Ancient Mattock",["npcDrops"]={262689}}
+data.Item[287046]={["name"]="Pylon Poker",["npcDrops"]={262167}}
 data.Item[287059]={["name"]="Footman's Pocketknife",["questRewards"]={11}}
 data.Item[287060]={["name"]="Rezlak's Spare Knife"}
 data.Item[287061]={["name"]="Cheese Knife"}
@@ -39253,9 +39265,9 @@ data.Item[287063]={["name"]="Serrated Knife"}
 data.Item[287064]={["name"]="Beastculler's Knife",["questRewards"]={98093}}
 data.Item[287066]={["name"]="Wizlo's Tuning Wrench",["questRewards"]={5151}}
 data.Item[287067]={["name"]="Dragonmaw Skinflayer"}
-data.Item[287068]={["name"]="Excavated Dagger",["npcDrops"]={260798,260799,260800,260801,260802,260803,260809,260810}}
+data.Item[287068]={["name"]="Excavated Dagger",["npcDrops"]={260796,260798,260799,260800,260801,260802,260803,260804,260808,260809,260810,271732}}
 data.Item[287069]={["name"]="Yeti Skinner",["questRewards"]={565}}
-data.Item[287070]={["name"]="Skypierce Javelin",["npcDrops"]={783,1564,4506,5258,5336,5623,7269,7584,7856,12221,257885,257916,263141}}
+data.Item[287070]={["name"]="Skypierce Javelin",["npcDrops"]={783,1564,2925,4467,4506,5239,5258,5295,5308,5336,5420,5615,5623,5648,5649,5650,5843,7246,7247,7269,7397,7584,7604,7606,7856,7857,11789,11791,12216,12221,12224,257885,257915,257916,263141}}
 data.Item[287071]={["name"]="Goblin Switchblade",["questRewards"]={600}}
 data.Item[287072]={["name"]="Bladewhisper's Namesake",["questRewards"]={95912}}
 data.Item[287073]={["name"]="Orwin's Axe",["questRewards"]={2987}}
@@ -39302,131 +39314,122 @@ data.Item[288337]={["name"]="Green Firework"}
 data.Item[288338]={["name"]="Red Firework"}
 data.Item[288339]={["name"]="Red Streaks Firework"}
 data.Item[288340]={["name"]="Yellow Rose Firework"}
-data.Item[288358]={["name"]="Gnoll Greataxe",["npcDrops"]={278256}}
-data.Item[288823]={["name"]="Arcanist Crown",["npcDrops"]={285,1995,2009,2152,3100}}
-data.Item[288824]={["name"]="Arcanist Leggings",["npcDrops"]={116,524,2008,3100,3128,256092,278863}}
-data.Item[288825]={["name"]="Arcanist Mantle",["npcDrops"]={2008,2009,3128,256092}}
-data.Item[288826]={["name"]="Arcanist Robes",["npcDrops"]={30,113,2008,2010,2042,3099,3127,256092}}
-data.Item[288827]={["name"]="Arcanist Bindings",["npcDrops"]={113,285,525,2009,3099,3100,256092,278863}}
-data.Item[288828]={["name"]="Arcanist Boots",["npcDrops"]={30,1999,2008,2009,2152,3100,3128,251676,256092,278863}}
-data.Item[288829]={["name"]="Arcanist Gloves",["npcDrops"]={94,113,735,1998,2008,2009,2152,3099,3123,251676,256092,278863}}
-data.Item[288830]={["name"]="Arcanist Belt",["npcDrops"]={2042,3128,256092}}
-data.Item[288831]={["name"]="Felheart Slippers",["npcDrops"]={1995,2152,251676,256092}}
-data.Item[288832]={["name"]="Felheart Bracers",["npcDrops"]={285,3126,3128,256092,278863}}
-data.Item[288833]={["name"]="Felheart Gloves",["npcDrops"]={116,2008,2009,256092,278863}}
-data.Item[288834]={["name"]="Felheart Belt",["npcDrops"]={1995,2008,3099,3123,250927,256092}}
-data.Item[288835]={["name"]="Felheart Shoulder Pads",["npcDrops"]={30,94,2009,2042,3100,3128,256092}}
-data.Item[288836]={["name"]="Felheart Horns",["npcDrops"]={113,1995,2010,2152,256092}}
-data.Item[288837]={["name"]="Felheart Robes",["npcDrops"]={113,2008,3128,256092,278863}}
-data.Item[288838]={["name"]="Felheart Pants",["npcDrops"]={3100,251676,256092,278863}}
-data.Item[288839]={["name"]="Boots of Prophecy",["npcDrops"]={113,2008,2010,256092,278863}}
-data.Item[288840]={["name"]="Gloves of Prophecy",["npcDrops"]={2010,3128,251676,256092}}
-data.Item[288841]={["name"]="Circlet of Prophecy",["npcDrops"]={113,2008,3115,3125,256092}}
-data.Item[288842]={["name"]="Pants of Prophecy",["npcDrops"]={525,3099,3100,3127}}
-data.Item[288843]={["name"]="Robes of Prophecy",["npcDrops"]={113,285,3100,256092}}
-data.Item[288844]={["name"]="Mantle of Prophecy",["npcDrops"]={113,822,2008,2152,3127,256092,278863}}
-data.Item[288845]={["name"]="Girdle of Prophecy",["npcDrops"]={2152,3125,256092,278863}}
-data.Item[288846]={["name"]="Vambraces of Prophecy",["npcDrops"]={113,116,3100,256092}}
-data.Item[288847]={["name"]="Nightslayer Chestpiece",["npcDrops"]={113,2008,2010,2042,3100,3127,278863}}
-data.Item[288848]={["name"]="Nightslayer Cover",["npcDrops"]={113,285,1999,2008,2010}}
-data.Item[288849]={["name"]="Nightslayer Pants",["npcDrops"]={2010,2042,256092}}
-data.Item[288850]={["name"]="Nightslayer Shoulder Pads",["npcDrops"]={2008,251676,278863}}
-data.Item[288851]={["name"]="Nightslayer Boots",["npcDrops"]={116,2008,2009,2042,3100,251676,256092}}
-data.Item[288852]={["name"]="Nightslayer Bracelets",["npcDrops"]={3100,256092}}
-data.Item[288853]={["name"]="Nightslayer Gloves",["npcDrops"]={113,285,2008,2010,256092,278863}}
-data.Item[288854]={["name"]="Nightslayer Belt",["npcDrops"]={3100,3128,251676,256092}}
-data.Item[288855]={["name"]="Cenarion Belt",["npcDrops"]={2009,2010,256092}}
-data.Item[288856]={["name"]="Cenarion Boots",["npcDrops"]={113,1995,2008,2010,2042,2043,278863}}
-data.Item[288857]={["name"]="Cenarion Bracers",["npcDrops"]={30,1998,2008,2042,3100,251676,256092}}
-data.Item[288858]={["name"]="Cenarion Gloves",["npcDrops"]={1998,2042,2152,3106,3123,3126,251676,256092}}
-data.Item[288859]={["name"]="Cenarion Vestments",["npcDrops"]={113,524,822,2009,3116,3123,3128,256092}}
-data.Item[288860]={["name"]="Cenarion Helm",["npcDrops"]={113,2009,2010,2152,3099,251676,256092,278863}}
-data.Item[288861]={["name"]="Cenarion Leggings",["npcDrops"]={822,2009,2010,2042,3127,3128,256092,278863}}
-data.Item[288862]={["name"]="Cenarion Spaulders",["npcDrops"]={113,285,735,2010,2022,3100,3127,256092}}
-data.Item[288863]={["name"]="Earthfury Boots",["npcDrops"]={2008,256092,278863}}
-data.Item[288864]={["name"]="Earthfury Belt",["npcDrops"]={94,524,1998,2152,3100,251676,256092}}
-data.Item[288865]={["name"]="Earthfury Gauntlets",["npcDrops"]={30,1998,2010,3126,3127,251676,256092}}
-data.Item[288866]={["name"]="Earthfury Bracers",["npcDrops"]={2008,2010,2042,3128,256092,278863}}
-data.Item[288867]={["name"]="Earthfury Vestments",["npcDrops"]={524,1998,2010,3115,256092}}
-data.Item[288868]={["name"]="Earthfury Helmet",["npcDrops"]={113,2008,2010,2042,3100,3122,251676,256092}}
-data.Item[288869]={["name"]="Earthfury Legguards",["npcDrops"]={113,2008,3128,256092}}
-data.Item[288870]={["name"]="Earthfury Epaulets",["npcDrops"]={1995,2008,2152,3100,3128,256092}}
-data.Item[288871]={["name"]="Giantstalker's Breastplate",["npcDrops"]={1998,3123,256092,278863}}
-data.Item[288872]={["name"]="Giantstalker's Helmet",["npcDrops"]={113,2008,2009,2010,2152,3100,256092,278863}}
-data.Item[288873]={["name"]="Giantstalker's Leggings",["npcDrops"]={30,113,299,1998,2008,2010,256092}}
-data.Item[288874]={["name"]="Giantstalker's Epaulets",["npcDrops"]={113,2008,2009,2152,256092}}
-data.Item[288875]={["name"]="Giantstalker's Boots",["npcDrops"]={1998,2008,2022,3099,3123,3129,250927,256092}}
-data.Item[288876]={["name"]="Giantstalker's Bracers",["npcDrops"]={2010,2152,256092,278863}}
-data.Item[288877]={["name"]="Giantstalker's Belt",["npcDrops"]={113,525,2042,256092}}
-data.Item[288878]={["name"]="Giantstalker's Gloves",["npcDrops"]={524,3100,251676,256092}}
-data.Item[288879]={["name"]="Lawbringer Chestguard",["npcDrops"]={285,2008,2010,2152,3100,3122,256092}}
-data.Item[288880]={["name"]="Lawbringer Helm",["npcDrops"]={299,822,2008,3127,256092,278863}}
-data.Item[288881]={["name"]="Lawbringer Legplates",["npcDrops"]={30,1998,2008,3099,3123,256092,278863}}
-data.Item[288882]={["name"]="Lawbringer Spaulders",["npcDrops"]={94,113,2009,3123,251676,256092}}
-data.Item[288883]={["name"]="Lawbringer Bracers",["npcDrops"]={113,2008,2010,2042,256092,278863}}
-data.Item[288884]={["name"]="Lawbringer Belt",["npcDrops"]={2022,2042,3100,256092,278863}}
-data.Item[288885]={["name"]="Lawbringer Boots",["npcDrops"]={113,1995,1998,3100,3128,256092,278863}}
-data.Item[288886]={["name"]="Lawbringer Gauntlets",["npcDrops"]={113,2008,2009,3128,251676,256092}}
-data.Item[288887]={["name"]="Bracers of Might",["npcDrops"]={2152,256092}}
-data.Item[288888]={["name"]="Sabatons of Might",["npcDrops"]={113,2008,2010,2042,3127,256092}}
-data.Item[288889]={["name"]="Gauntlets of Might",["npcDrops"]={113,1995,2042,256092,278863}}
-data.Item[288890]={["name"]="Belt of Might",["npcDrops"]={113,2152,3128,256092}}
-data.Item[288891]={["name"]="Breastplate of Might",["npcDrops"]={113,822,2008,2009,3099,3100,251676,256092}}
-data.Item[288892]={["name"]="Helm of Might",["npcDrops"]={113,2008,3100,3128,256092}}
-data.Item[288893]={["name"]="Legplates of Might",["npcDrops"]={113,524,822,2009,2010,2042,3099,3100,251676,256092}}
-data.Item[288894]={["name"]="Pauldrons of Might",["npcDrops"]={116,1995,2009,2010,2152,3103,3128,251676}}
-data.Item[288896]={["name"]="Superior Healing Potion",["npcDrops"]={30,113,116,285,735,822,1995,1998,1999,2008,2009,2010,2022,2042,2152,3099,3100,3115,3122,3126,3127,250927,251676,256092,278863}}
-data.Item[288897]={["name"]="Superior Mana Potion",["npcDrops"]={30,113,116,285,525,822,1995,2008,2009,2010,2042,2152,3100,3106,3127,3128,251676,256092,278863}}
-data.Item[288898]={["name"]="Swiftness Potion",["npcDrops"]={30,94,113,285,524,1998,1999,2008,2009,2022,3099,3100,3123,3126,3127,3128,251676,256092,278863}}
-data.Item[288900]={["name"]="Earthshaker",["npcDrops"]={113,116,285,822,1995,1998,2008,2009,2010,2043,3099,3100,3123,3128,256092}}
-data.Item[288901]={["name"]="Spinal Reaper",["npcDrops"]={113,1999,2008,2009,2010,2022,2042,3100,3127,3128,256092,278863}}
-data.Item[288902]={["name"]="Hyperthermically Insulated Lava Dredger",["npcDrops"]={113,524,822,1995,1998,2008,2009,2010,2042,2152,3100,3122,3123,3128,251676,256092,278863}}
-data.Item[288903]={["name"]="Shadowstrike",["npcDrops"]={113,116,524,822,2008,2009,2010,2022,2152,3100,3123,251676,256092,278863}}
-data.Item[288904]={["name"]="Bonereaver's Edge",["npcDrops"]={30,113,1995,2008,2009,2010,2042,2152,3100,3122,3127,3128,256092,278863}}
-data.Item[288905]={["name"]="Obsidian Edged Blade",["npcDrops"]={30,113,116,285,822,1998,2008,2010,2042,2152,3099,3100,3123,3126,3128,256092,278863}}
-data.Item[288906]={["name"]="Staff of Dominance",["npcDrops"]={113,116,285,1998,1999,2009,2010,2042,2152,3099,3100,3128,256092}}
-data.Item[288907]={["name"]="Gutgore Ripper",["npcDrops"]={113,285,525,735,1995,2008,2009,2010,2042,2152,3126,3127,3128,3129,251676,256092,278863}}
-data.Item[288908]={["name"]="Aurastone Hammer",["npcDrops"]={94,113,116,1998,2008,2010,3099,3100,3106,3123,3128,256092,278863}}
-data.Item[288909]={["name"]="Perdition's Blade",["npcDrops"]={30,113,822,1995,1998,2008,2009,2152,3100,3127,3128,251676,256092,278863}}
-data.Item[288910]={["name"]="Sorcerous Dagger",["npcDrops"]={113,285,524,1995,1998,2008,2009,2022,2152,3116,3122,3128,250927,251676,256092,278863}}
-data.Item[288911]={["name"]="Striker's Mark",["npcDrops"]={30,94,113,285,299,1998,2008,2009,2010,2042,2152,3099,3100,3128,251676,256092}}
-data.Item[288913]={["name"]="Blastershot Launcher",["npcDrops"]={113,2008,2009,2010,2042,2152,3100,3127,3128,251676,256092}}
-data.Item[288914]={["name"]="Crimson Shocker",["npcDrops"]={113,285,524,1995,1998,2008,2009,2010,2042,2152,3099,3100,3115,3122,3127,250927,251676,256092,278863}}
-data.Item[288915]={["name"]="Azuresong Mageblade",["npcDrops"]={30,113,299,524,822,1999,2008,2010,2042,2152,3099,3100,3127,3128,251676,256092,278863}}
-data.Item[288916]={["name"]="Drillborer Disk",["npcDrops"]={113,116,2008,2010,2152,3099,3115,3128,251676,256092,278863}}
-data.Item[288917]={["name"]="Fire Runed Grimoire",["npcDrops"]={94,113,822,2008,2009,2010,2022,2042,3099,3100,3123,3128,251676,256092,278863}}
-data.Item[288918]={["name"]="Malistar's Defender",["npcDrops"]={113,822,1995,1998,2008,2009,2010,2042,2152,3100,3103,3115,3123,3127,3128,251676,256092,278863}}
-data.Item[288919]={["name"]="Band of Accuria",["npcDrops"]={113,285,524,822,2008,2009,2010,2042,3100,3115,3122,3123,3127,250927,256092,278256,278863}}
-data.Item[288920]={["name"]="Medallion of Steadfast Might",["npcDrops"]={113,822,1995,1998,2008,2009,2010,2042,2152,3099,3100,3106,3123,251676,256092,278863}}
-data.Item[288921]={["name"]="Cloak of the Shrouded Mists",["npcDrops"]={113,285,1995,1998,2008,2009,2010,2042,2152,3099,3100,3122,3125,3127,3128,256092,278863}}
-data.Item[288922]={["name"]="Dragon's Blood Cape",["npcDrops"]={30,113,285,1995,1998,2008,2042,2152,3100,3123,251676,256092,278863}}
-data.Item[288923]={["name"]="Choker of Enlightenment",["npcDrops"]={113,524,1998,2008,2009,2010,2043,2152,3115,3122,3123,3125,256092,278863}}
-data.Item[288924]={["name"]="Seal of the Archmagus",["npcDrops"]={113,116,822,1998,2008,2009,2010,2042,2152,3100,3103,3123,3128,251676,256092,278863}}
-data.Item[288925]={["name"]="Fireproof Cloak",["npcDrops"]={113,822,1995,1998,2008,2009,2010,2042,2152,3099,3100,3125,3126,3128,251676,256092,278863}}
-data.Item[288926]={["name"]="Choker of the Fire Lord",["npcDrops"]={113,285,1998,2008,2009,2022,2042,3100,3115,3123,3127,3128,251676,256092,278863}}
-data.Item[288927]={["name"]="Quick Strike Ring",["npcDrops"]={113,116,822,1995,1998,2008,2009,2010,2152,3099,3100,3127,3128,251676,256092,278863}}
-data.Item[288928]={["name"]="Heavy Dark Iron Ring",["npcDrops"]={94,113,116,525,735,1995,2008,2009,2010,2042,2152,3099,3100,3127,251676,256092,278863}}
-data.Item[288929]={["name"]="Band of Sulfuras",["npcDrops"]={94,113,116,285,299,525,1995,1998,2008,2009,2010,2042,2152,3099,3100,3127,3128,3129,251676,256092,278256,278863}}
-data.Item[288930]={["name"]="Cauterizing Band",["npcDrops"]={30,113,524,525,735,822,1995,1998,2008,2009,2010,2022,2042,2152,3099,3100,3123,3126,3128,251676,256092,278863}}
-data.Item[288931]={["name"]="Ring of Spell Power",["npcDrops"]={30,113,285,1995,1999,2008,2009,2010,2042,2152,3099,3100,3122,3126,3128,251676,256092,278863}}
-data.Item[289081]={["name"]="Noggenfogger Elixir",["npcDrops"]={113,285,524,1995,1998,2008,2009,2010,2042,2152,3100,3125,3127,3128,256092,278863}}
-data.Item[289082]={["name"]="Elixir of Endless Intellect",["npcDrops"]={30,94,113,285,299,524,735,822,1998,1999,2008,2009,2010,2022,2042,2043,2152,3099,3100,3122,3125,3126,3128,251676,256092,278256,278863}}
-data.Item[289083]={["name"]="Elixir of Endless Power",["npcDrops"]={113,285,822,1995,1998,2008,2009,2010,2042,2152,3099,3100,3106,3115,3122,3123,3125,3127,3128,251676,256092,278863}}
-data.Item[289084]={["name"]="Elixir of Endless Healing",["npcDrops"]={30,113,116,285,525,735,822,1995,1998,2008,2009,2010,2152,3099,3100,3122,3123,3127,3128,250927,251676,256092,278863}}
-data.Item[289086]={["name"]="Elixir of Endless Rapidity",["npcDrops"]={30,113,116,285,525,735,822,1995,2008,2009,2010,2042,2152,3099,3100,3106,3115,3122,3123,3128,251676,256092,278863}}
-data.Item[289087]={["name"]="Elixir of Endless Opportunity",["npcDrops"]={30,113,116,285,524,525,822,1995,1998,2008,2009,2010,2042,3100,3115,3123,3125,3126,3127,3128,3129,251676,256092,278256,278677,278863}}
-data.Item[289088]={["name"]="Scroll of Endless Fortitude",["npcDrops"]={30,113,285,299,524,822,1999,2008,2009,2010,2042,2152,3099,3100,3115,3122,3123,3128,251676,256092,278863}}
+data.Item[288823]={["name"]="Arcanist Crown",["npcDrops"]={1995,2009,2152}}
+data.Item[288824]={["name"]="Arcanist Leggings",["npcDrops"]={2008,278863}}
+data.Item[288825]={["name"]="Arcanist Mantle",["npcDrops"]={2008,2009}}
+data.Item[288826]={["name"]="Arcanist Robes",["npcDrops"]={2008,2010,2042}}
+data.Item[288827]={["name"]="Arcanist Bindings",["npcDrops"]={2009}}
+data.Item[288828]={["name"]="Arcanist Boots",["npcDrops"]={1999,2008,2009,2152}}
+data.Item[288829]={["name"]="Arcanist Gloves",["npcDrops"]={1998,2008,2009,2152}}
+data.Item[288830]={["name"]="Arcanist Belt",["npcDrops"]={2042}}
+data.Item[288831]={["name"]="Felheart Slippers",["npcDrops"]={1995,2152}}
+data.Item[288832]={["name"]="Felheart Bracers",["npcDrops"]={278863}}
+data.Item[288833]={["name"]="Felheart Gloves",["npcDrops"]={2008,2009,278863}}
+data.Item[288834]={["name"]="Felheart Belt",["npcDrops"]={1995,2008}}
+data.Item[288835]={["name"]="Felheart Shoulder Pads",["npcDrops"]={2009,2042}}
+data.Item[288836]={["name"]="Felheart Horns",["npcDrops"]={1995,2010,2152}}
+data.Item[288837]={["name"]="Felheart Robes",["npcDrops"]={2008,278863}}
+data.Item[288839]={["name"]="Boots of Prophecy",["npcDrops"]={2008,2010,278863}}
+data.Item[288840]={["name"]="Gloves of Prophecy",["npcDrops"]={2010}}
+data.Item[288841]={["name"]="Circlet of Prophecy",["npcDrops"]={2008}}
+data.Item[288844]={["name"]="Mantle of Prophecy",["npcDrops"]={2008,2152}}
+data.Item[288845]={["name"]="Girdle of Prophecy",["npcDrops"]={2152}}
+data.Item[288847]={["name"]="Nightslayer Chestpiece",["npcDrops"]={2008,2010,2042,278863}}
+data.Item[288848]={["name"]="Nightslayer Cover",["npcDrops"]={1999,2008,2010}}
+data.Item[288849]={["name"]="Nightslayer Pants",["npcDrops"]={2010,2042}}
+data.Item[288850]={["name"]="Nightslayer Shoulder Pads",["npcDrops"]={2008}}
+data.Item[288851]={["name"]="Nightslayer Boots",["npcDrops"]={2008,2009,2042}}
+data.Item[288853]={["name"]="Nightslayer Gloves",["npcDrops"]={2008,2010,278863}}
+data.Item[288855]={["name"]="Cenarion Belt",["npcDrops"]={2009,2010}}
+data.Item[288856]={["name"]="Cenarion Boots",["npcDrops"]={1995,2008,2010,2042,2043,278863}}
+data.Item[288857]={["name"]="Cenarion Bracers",["npcDrops"]={1998,2008,2042}}
+data.Item[288858]={["name"]="Cenarion Gloves",["npcDrops"]={1998,2042,2152}}
+data.Item[288859]={["name"]="Cenarion Vestments",["npcDrops"]={2009}}
+data.Item[288860]={["name"]="Cenarion Helm",["npcDrops"]={2009,2010,2152,278863}}
+data.Item[288861]={["name"]="Cenarion Leggings",["npcDrops"]={2009,2010,2042,278863}}
+data.Item[288862]={["name"]="Cenarion Spaulders",["npcDrops"]={2010,2022}}
+data.Item[288863]={["name"]="Earthfury Boots",["npcDrops"]={2008,278863}}
+data.Item[288864]={["name"]="Earthfury Belt",["npcDrops"]={1998,2152}}
+data.Item[288865]={["name"]="Earthfury Gauntlets",["npcDrops"]={1998,2010}}
+data.Item[288866]={["name"]="Earthfury Bracers",["npcDrops"]={2008,2010,2042}}
+data.Item[288867]={["name"]="Earthfury Vestments",["npcDrops"]={1998,2010}}
+data.Item[288868]={["name"]="Earthfury Helmet",["npcDrops"]={2008,2010,2042}}
+data.Item[288869]={["name"]="Earthfury Legguards",["npcDrops"]={2008}}
+data.Item[288870]={["name"]="Earthfury Epaulets",["npcDrops"]={1995,2008,2152}}
+data.Item[288871]={["name"]="Giantstalker's Breastplate",["npcDrops"]={1998}}
+data.Item[288872]={["name"]="Giantstalker's Helmet",["npcDrops"]={2008,2009,2010,2152,278863}}
+data.Item[288873]={["name"]="Giantstalker's Leggings",["npcDrops"]={1998,2008,2010}}
+data.Item[288874]={["name"]="Giantstalker's Epaulets",["npcDrops"]={2008,2009,2152}}
+data.Item[288875]={["name"]="Giantstalker's Boots",["npcDrops"]={1998,2008,2022}}
+data.Item[288876]={["name"]="Giantstalker's Bracers",["npcDrops"]={2010,2152,278863}}
+data.Item[288877]={["name"]="Giantstalker's Belt",["npcDrops"]={2042}}
+data.Item[288879]={["name"]="Lawbringer Chestguard",["npcDrops"]={2008,2010,2152}}
+data.Item[288880]={["name"]="Lawbringer Helm",["npcDrops"]={2008,278863}}
+data.Item[288881]={["name"]="Lawbringer Legplates",["npcDrops"]={1998,2008,278863}}
+data.Item[288882]={["name"]="Lawbringer Spaulders",["npcDrops"]={2009}}
+data.Item[288883]={["name"]="Lawbringer Bracers",["npcDrops"]={2008,2010,2042,278863}}
+data.Item[288884]={["name"]="Lawbringer Belt",["npcDrops"]={2022,2042}}
+data.Item[288885]={["name"]="Lawbringer Boots",["npcDrops"]={1995,1998,278863}}
+data.Item[288886]={["name"]="Lawbringer Gauntlets",["npcDrops"]={2008,2009}}
+data.Item[288887]={["name"]="Bracers of Might",["npcDrops"]={2152}}
+data.Item[288888]={["name"]="Sabatons of Might",["npcDrops"]={2008,2010,2042}}
+data.Item[288889]={["name"]="Gauntlets of Might",["npcDrops"]={1995,2042,278863}}
+data.Item[288890]={["name"]="Belt of Might",["npcDrops"]={2152}}
+data.Item[288891]={["name"]="Breastplate of Might",["npcDrops"]={2008,2009}}
+data.Item[288892]={["name"]="Helm of Might",["npcDrops"]={2008}}
+data.Item[288893]={["name"]="Legplates of Might",["npcDrops"]={2009,2010,2042}}
+data.Item[288894]={["name"]="Pauldrons of Might",["npcDrops"]={1995,2009,2010,2152}}
+data.Item[288896]={["name"]="Superior Healing Potion",["npcDrops"]={1995,1998,1999,2008,2009,2010,2022,2042,2152,278863}}
+data.Item[288897]={["name"]="Superior Mana Potion",["npcDrops"]={1995,2008,2009,2010,2042,2152,278863}}
+data.Item[288898]={["name"]="Swiftness Potion",["npcDrops"]={1998,1999,2008,2009,2022,278863}}
+data.Item[288900]={["name"]="Earthshaker",["npcDrops"]={1995,1998,2008,2009,2010,2043}}
+data.Item[288901]={["name"]="Spinal Reaper",["npcDrops"]={1999,2008,2009,2010,2022,2042,278863}}
+data.Item[288902]={["name"]="Hyperthermically Insulated Lava Dredger",["npcDrops"]={1995,1998,2008,2009,2010,2042,2152,278863}}
+data.Item[288903]={["name"]="Shadowstrike",["npcDrops"]={2008,2009,2010,2022,2152,278863}}
+data.Item[288904]={["name"]="Bonereaver's Edge",["npcDrops"]={1995,2008,2009,2010,2042,2152,278863}}
+data.Item[288905]={["name"]="Obsidian Edged Blade",["npcDrops"]={1998,2008,2010,2042,2152,278863}}
+data.Item[288906]={["name"]="Staff of Dominance",["npcDrops"]={1998,1999,2009,2010,2042,2152}}
+data.Item[288907]={["name"]="Gutgore Ripper",["npcDrops"]={1995,2008,2009,2010,2042,2152}}
+data.Item[288908]={["name"]="Aurastone Hammer",["npcDrops"]={1998,2008,2010,278863}}
+data.Item[288909]={["name"]="Perdition's Blade",["npcDrops"]={1995,1998,2008,2009,2152,278863}}
+data.Item[288910]={["name"]="Sorcerous Dagger",["npcDrops"]={1995,1998,2008,2009,2022,2152,278863}}
+data.Item[288911]={["name"]="Striker's Mark",["npcDrops"]={1998,2008,2009,2010,2042,2152}}
+data.Item[288913]={["name"]="Blastershot Launcher",["npcDrops"]={2008,2009,2010,2042,2152}}
+data.Item[288914]={["name"]="Crimson Shocker",["npcDrops"]={1995,1998,2008,2009,2010,2042,2152,278863}}
+data.Item[288915]={["name"]="Azuresong Mageblade",["npcDrops"]={1999,2008,2010,2042,2152,278863}}
+data.Item[288916]={["name"]="Drillborer Disk",["npcDrops"]={2008,2010,2152}}
+data.Item[288917]={["name"]="Fire Runed Grimoire",["npcDrops"]={2008,2009,2010,2022,2042,278863}}
+data.Item[288918]={["name"]="Malistar's Defender",["npcDrops"]={1995,1998,2008,2009,2010,2042,2152}}
+data.Item[288919]={["name"]="Band of Accuria",["npcDrops"]={2008,2009,2010,2042,278863}}
+data.Item[288920]={["name"]="Medallion of Steadfast Might",["npcDrops"]={1995,1998,2008,2009,2010,2042,2152,278863}}
+data.Item[288921]={["name"]="Cloak of the Shrouded Mists",["npcDrops"]={1995,1998,2008,2009,2010,2042,2152,278863}}
+data.Item[288922]={["name"]="Dragon's Blood Cape",["npcDrops"]={1995,1998,2008,2042,2152,278863}}
+data.Item[288923]={["name"]="Choker of Enlightenment",["npcDrops"]={1998,2008,2009,2010,2043,2152,278863}}
+data.Item[288924]={["name"]="Seal of the Archmagus",["npcDrops"]={1998,2008,2009,2010,2042,2152,278863}}
+data.Item[288925]={["name"]="Fireproof Cloak",["npcDrops"]={1995,1998,2008,2009,2010,2042,2152,278863}}
+data.Item[288926]={["name"]="Choker of the Fire Lord",["npcDrops"]={1998,2008,2009,2022,2042,278863}}
+data.Item[288927]={["name"]="Quick Strike Ring",["npcDrops"]={1995,1998,2008,2009,2010,2152,278863}}
+data.Item[288928]={["name"]="Heavy Dark Iron Ring",["npcDrops"]={1995,2008,2009,2010,2042,2152,278863}}
+data.Item[288929]={["name"]="Band of Sulfuras",["npcDrops"]={1995,1998,2008,2009,2010,2042,2152,278863}}
+data.Item[288930]={["name"]="Cauterizing Band",["npcDrops"]={1995,1998,2008,2009,2010,2022,2042,2152,278863}}
+data.Item[288931]={["name"]="Ring of Spell Power",["npcDrops"]={1995,1999,2008,2009,2010,2042,2152,278863}}
+data.Item[289081]={["name"]="Noggenfogger Elixir",["npcDrops"]={1995,1998,2008,2009,2010,2042,2152,278863}}
+data.Item[289082]={["name"]="Elixir of Endless Intellect",["npcDrops"]={1998,1999,2008,2009,2010,2022,2042,2043,2152,278863}}
+data.Item[289083]={["name"]="Elixir of Endless Power",["npcDrops"]={1995,1998,2008,2009,2010,2042,2152,278863}}
+data.Item[289084]={["name"]="Elixir of Endless Healing",["npcDrops"]={1995,1998,2008,2009,2010,2152,278863}}
+data.Item[289086]={["name"]="Elixir of Endless Rapidity",["npcDrops"]={1995,2008,2009,2010,2042,2152,278863}}
+data.Item[289087]={["name"]="Elixir of Endless Opportunity",["npcDrops"]={1995,1998,2008,2009,2010,2042,278863}}
+data.Item[289088]={["name"]="Scroll of Endless Fortitude",["npcDrops"]={1999,2008,2009,2010,2042,2152,278863}}
 data.Item[289292]={["name"]="Hammer of Bestial Fury"}
-data.Item[289294]={["name"]="Thunderfury, Blessed Blade of the Windseeker",["npcDrops"]={278256}}
-data.Item[289295]={["name"]="Sulfuras, Hand of Ragnaros",["npcDrops"]={278256}}
+data.Item[289294]={["name"]="Thunderfury, Blessed Blade of the Windseeker"}
+data.Item[289295]={["name"]="Sulfuras, Hand of Ragnaros"}
 data.Item[289296]={["name"]="Benediction"}
 data.Item[289297]={["name"]="Anathema"}
-data.Item[289302]={["name"]="Quel'Serrar",["npcDrops"]={278256}}
-data.Item[289303]={["name"]="Rhok'delar, Longbow of the Ancient Keepers",["npcDrops"]={278256}}
-data.Item[289321]={["name"]="Elixir of Endless Mana",["npcDrops"]={94,113,116,822,1995,1998,2008,2009,2010,2042,2152,3099,3100,3106,3122,3127,3128,251676,256092,278863}}
-data.Item[289329]={["name"]="Elixir of Endless Growth",["npcDrops"]={30,113,524,822,1995,1998,2008,2009,2010,2022,2042,2152,3099,3100,3123,3125,3127,3128,251676,256092,278863}}
-data.Item[289330]={["name"]="Scroll of Endless Speed",["npcDrops"]={30,113,285,735,822,1995,1998,2008,2009,2010,2022,2042,2152,3099,3100,3106,3115,3123,3126,3127,3128,251676,256092,278256,278863}}
-data.Item[289334]={["name"]="Elixir of Endless Experience",["npcDrops"]={30,113,285,524,525,735,822,1995,1998,2008,2009,2010,2042,2152,3099,3100,3106,3115,3123,3125,3127,3128,251676,256092,278256,278863}}
+data.Item[289303]={["name"]="Rhok'delar, Longbow of the Ancient Keepers"}
+data.Item[289321]={["name"]="Elixir of Endless Mana",["npcDrops"]={1995,1998,2008,2009,2010,2042,2152,278863}}
+data.Item[289329]={["name"]="Elixir of Endless Growth",["npcDrops"]={1995,1998,2008,2009,2010,2022,2042,2152,278863}}
+data.Item[289330]={["name"]="Scroll of Endless Speed",["npcDrops"]={1995,1998,2008,2009,2010,2022,2042,2152,278863}}
+data.Item[289334]={["name"]="Elixir of Endless Experience",["npcDrops"]={1995,1998,2008,2009,2010,2042,2152,278863}}
 data.Item[289439]={["name"]="Pouch of Violet Dust"}
 data.Item[289559]={["name"]="Enchant Boots - Speed"}
 data.Item[289560]={["name"]="Formula: Enchant Boots - Speed",["vendors"]={248199,256732}}
@@ -43789,6 +43792,9 @@ data.Quest[79980]={["name"]="Scramble"}
 data.Quest[80001]={["name"]="Rekindle"}
 data.Quest[80325]={["name"]="The Mad King"}
 data.Quest[80411]={["name"]="The Talisman of Kazdor"}
+data.Quest[80453]={["name"]="Best Laid Plans"}
+data.Quest[80454]={["name"]="One Last Drop"}
+data.Quest[80455]={["name"]="Biding Our Time"}
 data.Quest[80526]={["name"]="Fool Me Twice"}
 data.Quest[81570]={["name"]="Jarl Needs a Blade"}
 data.Quest[81730]={["name"]="Duskwood Mission I: Defeat Worgen"}
@@ -43814,6 +43820,7 @@ data.Quest[81764]={["name"]="The Mysterious Merchant"}
 data.Quest[81765]={["name"]="Elrick, Paladin of the Silver Hand"}
 data.Quest[81766]={["name"]="The Bloody Missive"}
 data.Quest[81790]={["name"]="Materials of Significance"}
+data.Quest[81885]={["name"]="The Ritual"}
 data.Quest[81900]={["name"]="The Burning Beast"}
 data.Quest[81917]={["name"]="Chains That Bind"}
 data.Quest[81919]={["name"]="Brought to Heel"}
@@ -43829,13 +43836,20 @@ data.Quest[81955]={["name"]="A Mind of Metal"}
 data.Quest[81956]={["name"]="Conjurer's Codex"}
 data.Quest[82062]={["name"]="Ever After"}
 data.Quest[82084]={["name"]="A Lesson in Literacy"}
+data.Quest[82135]={["name"]="The Price of Hope"}
 data.Quest[82208]={["name"]="Greater Friend of the Library"}
 data.Quest[83934]={["name"]="Show Me the Money!"}
+data.Quest[84135]={["name"]="Beach Bot"}
+data.Quest[84137]={["name"]="Mechanical Romance"}
+data.Quest[84138]={["name"]="Frosty Favors"}
+data.Quest[84146]={["name"]="Red Bag Blues"}
 data.Quest[84147]={["name"]="An Earnest Proposition"}
 data.Quest[84148]={["name"]="An Earnest Proposition"}
 data.Quest[84149]={["name"]="An Earnest Proposition"}
 data.Quest[84150]={["name"]="An Earnest Proposition"}
 data.Quest[84151]={["name"]="An Earnest Proposition"}
+data.Quest[84152]={["name"]="An Earnest Proposition"}
+data.Quest[84153]={["name"]="An Earnest Proposition"}
 data.Quest[84154]={["name"]="An Earnest Proposition"}
 data.Quest[84155]={["name"]="An Earnest Proposition"}
 data.Quest[84156]={["name"]="An Earnest Proposition"}
@@ -43845,9 +43859,17 @@ data.Quest[84159]={["name"]="An Earnest Proposition"}
 data.Quest[84160]={["name"]="An Earnest Proposition"}
 data.Quest[84161]={["name"]="An Earnest Proposition"}
 data.Quest[84162]={["name"]="An Earnest Proposition"}
+data.Quest[84163]={["name"]="Just Compensation"}
+data.Quest[84166]={["name"]="Just Compensation"}
+data.Quest[84171]={["name"]="Just Compensation"}
+data.Quest[84211]={["name"]="Poacher's Den"}
+data.Quest[84212]={["name"]="Bookin' it Back"}
 data.Quest[84318]={["name"]="Oi!"}
 data.Quest[84319]={["name"]="Oh No Ye Don't!"}
 data.Quest[84330]={["name"]="A Wee Bit O' Necromancy"}
+data.Quest[84332]={["name"]="A Thane's Gratitude"}
+data.Quest[84377]={["name"]="End of the Dark Horde"}
+data.Quest[84394]={["name"]="Greater Friend of the Library"}
 data.Quest[84395]={["name"]="Undead Potatoes"}
 data.Quest[84396]={["name"]="Magma or Lava?"}
 data.Quest[84397]={["name"]="Northern Kalimdor - A Comprehensive Guide"}
@@ -43856,6 +43878,7 @@ data.Quest[84399]={["name"]="Ka-Boom!"}
 data.Quest[84400]={["name"]="The Knight and the Lady"}
 data.Quest[84401]={["name"]="Scourge: Undead Menace or Misunderstood?"}
 data.Quest[84402]={["name"]="Necromancy 101"}
+data.Quest[84414]={["name"]="Send Me On Me Way"}
 data.Quest[86574]={["name"]="Stonetalon Supply Run"}
 data.Quest[86576]={["name"]="Bloodfury Trinkets"}
 data.Quest[86577]={["name"]="A Sampling of Putrescence"}
@@ -43874,13 +43897,25 @@ data.Quest[86752]={["name"]="Report to Rageroar"}
 data.Quest[86757]={["name"]="Slowing the Orc Advance"}
 data.Quest[86758]={["name"]="Twisting the Knife"}
 data.Quest[86776]={["name"]="Ingredients for the Forge"}
+data.Quest[86777]={["name"]="Master Feardred"}
 data.Quest[86784]={["name"]="Sticks and Bones"}
+data.Quest[86791]={["name"]="Missing Blackmaw Scouts"}
+data.Quest[86792]={["name"]="Thinning Their Forces"}
+data.Quest[86796]={["name"]="Later, Satyr"}
+data.Quest[86797]={["name"]="Return to Rageroar"}
+data.Quest[86798]={["name"]="Timbermaw Reinforcements"}
 data.Quest[86799]={["name"]="Encroaching Corruption"}
 data.Quest[86804]={["name"]="An Unlikely Source"}
+data.Quest[86812]={["name"]="Transmuted Tincture"}
+data.Quest[86813]={["name"]="Potential Panacea"}
+data.Quest[86814]={["name"]="Blackmaw Counter-Offensive"}
 data.Quest[86925]={["name"]="Toil and Trouble"}
+data.Quest[86926]={["name"]="Felfire Burn, Cauldron Bubble"}
+data.Quest[86927]={["name"]="Running Firewater"}
 data.Quest[87288]={["name"]="Soft Saber Pelts"}
 data.Quest[87295]={["name"]="Deflective Surface"}
 data.Quest[87318]={["name"]="Hearts of the Lost"}
+data.Quest[87346]={["name"]="Chieftain Bloodmaw"}
 data.Quest[87451]={["name"]="Memories of Rockard"}
 data.Quest[87491]={["name"]="Spark of Freedom"}
 data.Quest[87492]={["name"]="Uncanny Crystal"}
@@ -43909,6 +43944,7 @@ data.Quest[90487]={["name"]="Ancient Allies"}
 data.Quest[90647]={["name"]="The Staff of the Mountain"}
 data.Quest[90702]={["name"]="Disturbed Grave"}
 data.Quest[90750]={["name"]="More Work?"}
+data.Quest[90789]={["name"]="Scalebeard"}
 data.Quest[90813]={["name"]="Pay Dirt!"}
 data.Quest[90854]={["name"]="Leather for Inclement Weather"}
 data.Quest[90865]={["name"]="Eyes of the Watchers"}
@@ -44000,6 +44036,7 @@ data.Quest[92066]={["name"]="The Twin Bears"}
 data.Quest[92067]={["name"]="Feeding Time!"}
 data.Quest[92069]={["name"]="Claws That Rend, Tusks that Gore"}
 data.Quest[92070]={["name"]="A Lost Memento"}
+data.Quest[92094]={["name"]="Rocket Gnomes"}
 data.Quest[92100]={["name"]="Anywhere But Here"}
 data.Quest[92101]={["name"]="Lifted by Legacy"}
 data.Quest[92102]={["name"]="Praise"}
@@ -44010,6 +44047,7 @@ data.Quest[92124]={["name"]="Book Inventory"}
 data.Quest[92147]={["name"]="Highfeather Helper"}
 data.Quest[92169]={["name"]="Paying Back the Pact"}
 data.Quest[92171]={["name"]="Taking to New Heights"}
+data.Quest[92189]={["name"]="Back to the Grind"}
 data.Quest[92317]={["name"]="Stolen Life"}
 data.Quest[92328]={["name"]="Siegecraft"}
 data.Quest[92329]={["name"]="Drum Up Trouble"}
@@ -44255,6 +44293,7 @@ data.Quest[93827]={["name"]="Windswept Wards"}
 data.Quest[93828]={["name"]="Herbs of the Hollow"}
 data.Quest[93830]={["name"]="Water of Hyjal"}
 data.Quest[93831]={["name"]="Sweetpaw Jam"}
+data.Quest[93832]={["name"]="Shatter the Stonewatchers"}
 data.Quest[93833]={["name"]="Wicked Wisdom"}
 data.Quest[93834]={["name"]="Burrow Beetles"}
 data.Quest[93835]={["name"]="Confront Lorthuna"}
@@ -44604,6 +44643,8 @@ data.Quest[95063]={["name"]="Bloodmaster's Ring"}
 data.Quest[95064]={["name"]="Preventative Measures"}
 data.Quest[95065]={["name"]="Fishin' Time"}
 data.Quest[95066]={["name"]="The Rog'mar Situation"}
+data.Quest[95107]={["name"]="Deeproar Down"}
+data.Quest[95108]={["name"]="Mystic Mix"}
 data.Quest[95111]={["name"]="An Underrated Talent"}
 data.Quest[95118]={["name"]="Saltwater Savages"}
 data.Quest[95119]={["name"]="Unfriendly Competition"}
@@ -44650,6 +44691,7 @@ data.Quest[95262]={["name"]="The Secret Prison"}
 data.Quest[95263]={["name"]="Somber News"}
 data.Quest[95264]={["name"]="Shaw Needs To Know"}
 data.Quest[95267]={["name"]="The Monster Surfaces"}
+data.Quest[95273]={["name"]="Water of Hyjal"}
 data.Quest[95278]={["name"]="It Is Time, Brother..."}
 data.Quest[95283]={["name"]="The Missing Kor'kron"}
 data.Quest[95284]={["name"]="The Elite of the Elite"}
@@ -44730,6 +44772,7 @@ data.Quest[95753]={["name"]="Challenge of the Desert Wolf"}
 data.Quest[95766]={["name"]="Fine Feathered Friend"}
 data.Quest[95769]={["name"]="Threading a Solution"}
 data.Quest[95770]={["name"]="Locating the Lost City"}
+data.Quest[95771]={["name"]="A Taste of Darkness"}
 data.Quest[95772]={["name"]="Songblade Search"}
 data.Quest[95773]={["name"]="Enemies in the Water"}
 data.Quest[95774]={["name"]="Her Name Is Olgra"}
@@ -44943,6 +44986,7 @@ data.Quest[96897]={["name"]="The Cult of the Damned"}
 data.Quest[96898]={["name"]="Remnants of War"}
 data.Quest[96899]={["name"]="Bandarion Keep"}
 data.Quest[96912]={["name"]="Field of Honor: Week 1"}
+data.Quest[96913]={["name"]="Field of Honor: Week 2"}
 data.Quest[96930]={["name"]="The Capricious Corvid"}
 data.Quest[96931]={["name"]="Heading Up the Mountain"}
 data.Quest[96939]={["name"]="The Balance of Life and Death"}
@@ -44990,14 +45034,22 @@ data.Quest[97074]={["name"]="Learning to Ride"}
 data.Quest[97119]={["name"]="Now We're Cooking"}
 data.Quest[97130]={["name"]="Ancient Gurubashi Secrets"}
 data.Quest[97168]={["name"]="Material Assistance"}
+data.Quest[97169]={["name"]="The Darkreaver Menace"}
 data.Quest[97170]={["name"]="Learning to Ride"}
 data.Quest[97171]={["name"]="Your First Horse"}
 data.Quest[97173]={["name"]="Blackmaw Magic"}
 data.Quest[97174]={["name"]="A Worthy Endeavor"}
 data.Quest[97175]={["name"]="Due Sacrifice"}
+data.Quest[97176]={["name"]="Exorcising Terrordale"}
 data.Quest[97177]={["name"]="Acts of Mercy"}
 data.Quest[97178]={["name"]="Ott of Tarren Mill"}
 data.Quest[97179]={["name"]="Collection of Goods"}
+data.Quest[97180]={["name"]="Ott's Finest Work"}
+data.Quest[97182]={["name"]="An Offering of Vengeance"}
+data.Quest[97183]={["name"]="Blessed Arcanite Barding"}
+data.Quest[97184]={["name"]="The Divination Scryer"}
+data.Quest[97185]={["name"]="Justice and Retribution"}
+data.Quest[97186]={["name"]="Manna-Enriched Horse Feed"}
 data.Quest[97188]={["name"]="Learning to Ride"}
 data.Quest[97194]={["name"]="Learning to Ride"}
 data.Quest[97196]={["name"]="The Coldbringer's Eye"}
@@ -45026,6 +45078,7 @@ data.Quest[97257]={["name"]="Call of Fire"}
 data.Quest[97263]={["name"]="Your Package Has Arrived"}
 data.Quest[97264]={["name"]="Shardtooth Pulling"}
 data.Quest[97265]={["name"]="Hate the Hatefury"}
+data.Quest[97270]={["name"]="Brawl at the Maul"}
 data.Quest[97271]={["name"]="Maul or Nothing!"}
 data.Quest[97275]={["name"]="Whuut's the Rush"}
 data.Quest[97277]={["name"]="Grund and Gozwin"}
@@ -45053,6 +45106,7 @@ data.Quest[97403]={["name"]="Two-Headed Ravagers"}
 data.Quest[97404]={["name"]="Too Bad to Bear"}
 data.Quest[97405]={["name"]="Noise Complaints"}
 data.Quest[97411]={["name"]="An Earnest Proposition"}
+data.Quest[97412]={["name"]="Just Compensation"}
 data.Quest[97420]={["name"]="Reduce, Reuse, Reconcile"}
 data.Quest[97446]={["name"]="Your First Riding Kodo"}
 data.Quest[97447]={["name"]="An Earnest Proposition"}
@@ -45249,6 +45303,7 @@ data.Quest[98476]={["name"]="More Unstable Magic"}
 data.Quest[98477]={["name"]="Unstable Magic"}
 data.Quest[98512]={["name"]="Al'Aketh Assassins"}
 data.Quest[98517]={["name"]="Call of Fire"}
+data.Quest[98529]={["name"]="Junkboxes Needed"}
 data.Quest[98545]={["name"]="Leonid's Letter"}
 data.Quest[98574]={["name"]="Hallowed Memorandum"}
 data.Quest[98575]={["name"]="Tainted Tablet"}
@@ -45266,13 +45321,17 @@ data.Quest[98888]={["name"]="Conflict at Darkspear Islands"}
 data.Quest[98889]={["name"]="Conflict at Darkspear Islands"}
 data.Quest[98890]={["name"]="Conflict at Darkspear Islands"}
 data.Quest[98891]={["name"]="Conflict at Darkspear Islands"}
+data.Quest[98892]={["name"]="Conflict at Darkspear Islands"}
 data.Quest[98893]={["name"]="Conflict at Darkspear Islands"}
+data.Quest[98894]={["name"]="Conflict at Darkspear Islands"}
 data.Quest[98895]={["name"]="Darkspear Islands Clash"}
 data.Quest[98896]={["name"]="Darkspear Islands Clash"}
 data.Quest[98897]={["name"]="Darkspear Islands Clash"}
 data.Quest[98898]={["name"]="Darkspear Islands Clash"}
 data.Quest[98899]={["name"]="Darkspear Islands Clash"}
+data.Quest[98900]={["name"]="Darkspear Islands Clash"}
 data.Quest[98901]={["name"]="Darkspear Islands Clash"}
+data.Quest[98902]={["name"]="Darkspear Islands Clash"}
 data.Quest[98903]={["name"]="The Battle for Darkspear Islands!"}
 data.Quest[98904]={["name"]="The Battle for Darkspear Islands!"}
 data.Quest[98905]={["name"]="The Battle for Darkspear Islands!"}
@@ -45280,7 +45339,11 @@ data.Quest[98906]={["name"]="The Battle for Darkspear Islands!"}
 data.Quest[98907]={["name"]="The Battle for Darkspear Islands!"}
 data.Quest[98908]={["name"]="The Battle for Darkspear Islands!"}
 data.Quest[98910]={["name"]="Darkspear's Basic Care Package"}
+data.Quest[98911]={["name"]="Darkspear's Standard Care Package"}
+data.Quest[98912]={["name"]="Darkspear's Advanced Care Package"}
 data.Quest[98913]={["name"]="Theramore Basic Care Package"}
+data.Quest[98914]={["name"]="Darkspear's Standard Care Package"}
+data.Quest[98915]={["name"]="Darkspear's Advanced Care Package"}
 data.Quest[98977]={["name"]="Mossheart the Elder"}
 data.Quest[98983]={["name"]="Frostleaf the Elder"}
 data.Quest[99046]={["name"]="The Lost Runner"}
@@ -45328,10 +45391,18 @@ data.Quest[99197]={["name"]="A Donation of Silk"}
 data.Quest[99198]={["name"]="A Donation of Mageweave"}
 data.Quest[99199]={["name"]="A Donation of Runecloth"}
 data.Quest[99200]={["name"]="Additional Runecloth"}
+data.Quest[99201]={["name"]="Swift as the Wind"}
+data.Quest[99202]={["name"]="Swift as the Wind"}
+data.Quest[99203]={["name"]="Swift as the Wind"}
+data.Quest[99204]={["name"]="Swift as the Wind"}
 data.Quest[99205]={["name"]="Swift as the Wind"}
+data.Quest[99206]={["name"]="Swift as the Wind"}
 data.Quest[99207]={["name"]="Swift as the Wind"}
 data.Quest[99208]={["name"]="Swift as the Wind"}
 data.Quest[99209]={["name"]="Swift as the Wind"}
+data.Quest[99213]={["name"]="An Epic Ride"}
+data.Quest[99214]={["name"]="An Epic Ride"}
+data.Quest[99215]={["name"]="An Epic Ride"}
 data.Quest[99233]={["name"]="Brawl at the Maul"}
 data.Quest[99257]={["name"]="A Heart of Crystal"}
 data.Quest[99258]={["name"]="Mana Mania"}
@@ -45941,7 +46012,7 @@ data.Item[5382].relatedQuests={963}
 data.Item[5383].relatedQuests={1143}
 data.Item[5385].relatedQuests={983}
 data.Item[5386].relatedQuests={986}
-data.Item[5388].relatedQuests={1046}
+data.Item[5388].relatedQuests={1045}
 data.Item[5412].relatedQuests={1001}
 data.Item[5413].relatedQuests={1002}
 data.Item[5414].relatedQuests={1003}
@@ -46348,7 +46419,7 @@ data.Item[8684].relatedQuests={77}
 data.Item[8707].relatedQuests={2770}
 data.Item[8723].relatedQuests={2781}
 data.Item[8831].relatedQuests={8505,8506,8582,8583}
-data.Item[8836].relatedQuests={7642,8509,8510}
+data.Item[8836].relatedQuests={7642,8509,8510,97179}
 data.Item[8846].relatedQuests={4201}
 data.Item[8923].relatedQuests={97291}
 data.Item[8932].relatedQuests={6610}
@@ -46450,7 +46521,7 @@ data.Item[10552].relatedQuests={3452}
 data.Item[10556].relatedQuests={3444}
 data.Item[10559].relatedQuests={3641,3643}
 data.Item[10560].relatedQuests={6026,94285}
-data.Item[10561].relatedQuests={4244}
+data.Item[10561].relatedQuests={4244,91564}
 data.Item[10562].relatedQuests={6026}
 data.Item[10563].relatedQuests={3449}
 data.Item[10564].relatedQuests={3449}
@@ -46567,7 +46638,7 @@ data.Item[11563].relatedQuests={4484}
 data.Item[11564].relatedQuests={4482}
 data.Item[11567].relatedQuests={4483}
 data.Item[11583].relatedQuests={4402}
-data.Item[11590].relatedQuests={7897,94290}
+data.Item[11590].relatedQuests={7897,91564,94290}
 data.Item[11674].relatedQuests={939}
 data.Item[11723].relatedQuests={4450}
 data.Item[11724].relatedQuests={4450}
@@ -46630,7 +46701,7 @@ data.Item[12355].relatedQuests={4763}
 data.Item[12356].relatedQuests={4767}
 data.Item[12358].relatedQuests={4768}
 data.Item[12359].relatedQuests={6026,6861,6862,7653,7654,7655,7656,7657,7658,7659,8499,8500,9234,9235,9236}
-data.Item[12360].relatedQuests={5067,5068,7630,7642,8728,9034,9036,9037,9038,9039,9040,9041,9042,9043,9044,9045,9046,9047,9048,9049,9050,9054,9055,9056,9057,9058,9059,9060,9061,9068,9069,9070,9071,9072,9073,9074,9075,9077,9078,9082,9084,9230,9234,9235,9236}
+data.Item[12360].relatedQuests={5067,5068,7630,7642,8728,9034,9036,9037,9038,9039,9040,9041,9042,9043,9044,9045,9046,9047,9048,9049,9050,9054,9055,9056,9057,9058,9059,9060,9061,9068,9069,9070,9071,9072,9073,9074,9075,9077,9078,9082,9084,9230,9234,9235,9236,97179}
 data.Item[12361].relatedQuests={8728,9230,9232}
 data.Item[12363].relatedQuests={5063,9093,9101,9102,9109,9110,9117,9118,9121,9122}
 data.Item[12364].relatedQuests={8779,8807}
@@ -46638,6 +46709,7 @@ data.Item[12366].relatedQuests={3783}
 data.Item[12367].relatedQuests={977}
 data.Item[12383].relatedQuests={978}
 data.Item[12402].relatedQuests={4787}
+data.Item[12404].relatedQuests={92189}
 data.Item[12411].relatedQuests={5065}
 data.Item[12412].relatedQuests={5065}
 data.Item[12416].relatedQuests={94326}
@@ -46663,7 +46735,7 @@ data.Item[12623].relatedQuests={4970}
 data.Item[12630].relatedQuests={4974}
 data.Item[12638].relatedQuests={4972,4973}
 data.Item[12643].relatedQuests={9178}
-data.Item[12644].relatedQuests={7893,7939,8541,8806}
+data.Item[12644].relatedQuests={7893,7939,8541,8806,92189}
 data.Item[12648].relatedQuests={4962}
 data.Item[12649].relatedQuests={4963}
 data.Item[12655].relatedQuests={5124,5247,8783,8809}
@@ -46686,7 +46758,7 @@ data.Item[12766].relatedQuests={5064}
 data.Item[12768].relatedQuests={5064}
 data.Item[12775].relatedQuests={9182,94331}
 data.Item[12792].relatedQuests={9181}
-data.Item[12800].relatedQuests={7646,7667,8728,97168}
+data.Item[12800].relatedQuests={7646,7667,8728,97168,97184}
 data.Item[12804].relatedQuests={8785}
 data.Item[12806].relatedQuests={5127}
 data.Item[12810].relatedQuests={8783,8809,8947,9241,9242,9243}
@@ -46721,7 +46793,7 @@ data.Item[13155].relatedQuests={5206}
 data.Item[13172].relatedQuests={5214}
 data.Item[13174].relatedQuests={5212}
 data.Item[13176].relatedQuests={5213}
-data.Item[13180].relatedQuests={5243,7642}
+data.Item[13180].relatedQuests={5243,7642,97179}
 data.Item[13194].relatedQuests={5216,5229}
 data.Item[13195].relatedQuests={5219,5231}
 data.Item[13196].relatedQuests={5225,5235}
@@ -46763,7 +46835,7 @@ data.Item[13585].relatedQuests={5461}
 data.Item[13626].relatedQuests={5466}
 data.Item[13702].relatedQuests={5482}
 data.Item[13703].relatedQuests={5501}
-data.Item[13724].relatedQuests={7645}
+data.Item[13724].relatedQuests={7645,97186}
 data.Item[13725].relatedQuests={5515}
 data.Item[13755].relatedQuests={89228,91610}
 data.Item[13757].relatedQuests={9206}
@@ -46777,7 +46849,7 @@ data.Item[13872].relatedQuests={5545}
 data.Item[13890].relatedQuests={9205}
 data.Item[13935].relatedQuests={8615,8616}
 data.Item[14046].relatedQuests={9191,94353}
-data.Item[14047].relatedQuests={5218,5221,5224,5227,6031,7642,7795,7796,7800,7801,7805,7806,7811,7812,7818,7819,7823,7824,7825,7832,7836,7837,9266,99194,99195,99199,99200}
+data.Item[14047].relatedQuests={5218,5221,5224,5227,6031,7642,7795,7796,7800,7801,7805,7806,7811,7812,7818,7819,7823,7824,7825,7832,7836,7837,9266,97179,99194,99195,99199,99200}
 data.Item[14048].relatedQuests={5518,5519,8782,8808,9237,9238,9239,9240,95769}
 data.Item[14104].relatedQuests={9188}
 data.Item[14108].relatedQuests={94356}
@@ -46872,7 +46944,7 @@ data.Item[16667].relatedQuests={9011}
 data.Item[16668].relatedQuests={8957}
 data.Item[16669].relatedQuests={8957}
 data.Item[16670].relatedQuests={8957}
-data.Item[16671].relatedQuests={8918}
+data.Item[16671].relatedQuests={8918,84160,97447}
 data.Item[16672].relatedQuests={8942}
 data.Item[16673].relatedQuests={8942}
 data.Item[16674].relatedQuests={9000,9008}
@@ -46882,7 +46954,7 @@ data.Item[16677].relatedQuests={9000,9008}
 data.Item[16678].relatedQuests={8952,9017}
 data.Item[16679].relatedQuests={8952,9017}
 data.Item[16680].relatedQuests={8931,8938}
-data.Item[16681].relatedQuests={8906,8914}
+data.Item[16681].relatedQuests={8906,8914,84156}
 data.Item[16682].relatedQuests={8953,9018}
 data.Item[16683].relatedQuests={8907,8915}
 data.Item[16684].relatedQuests={8932,8939}
@@ -46898,34 +46970,34 @@ data.Item[16693].relatedQuests={9003,9009}
 data.Item[16694].relatedQuests={8955,9019}
 data.Item[16695].relatedQuests={8955,9019}
 data.Item[16696].relatedQuests={8934,8940}
-data.Item[16697].relatedQuests={8909,8916}
+data.Item[16697].relatedQuests={8909,8916,84151,84158}
 data.Item[16698].relatedQuests={9005,9012}
 data.Item[16699].relatedQuests={8958,9021}
 data.Item[16700].relatedQuests={9005,9012}
 data.Item[16701].relatedQuests={8958,9021}
 data.Item[16702].relatedQuests={8936,8943}
-data.Item[16703].relatedQuests={8911,8919}
+data.Item[16703].relatedQuests={8911,8919,84153,84161}
 data.Item[16704].relatedQuests={8958,9021}
 data.Item[16705].relatedQuests={8936,8943}
 data.Item[16706].relatedQuests={8999,9007}
 data.Item[16707].relatedQuests={9004,9010}
 data.Item[16708].relatedQuests={8956,9020}
 data.Item[16709].relatedQuests={8956,9020}
-data.Item[16710].relatedQuests={8910,8917}
+data.Item[16710].relatedQuests={8910,8917,84152,84159}
 data.Item[16711].relatedQuests={8956,9020}
 data.Item[16712].relatedQuests={8935,8941}
 data.Item[16713].relatedQuests={8935,8941}
-data.Item[16714].relatedQuests={8905,8913,84147}
+data.Item[16714].relatedQuests={8905,8913,84147,84155}
 data.Item[16715].relatedQuests={8951,9016}
-data.Item[16716].relatedQuests={8926,8927}
-data.Item[16717].relatedQuests={8926,8927}
+data.Item[16716].relatedQuests={8926,8927,84163,84171}
+data.Item[16717].relatedQuests={8926,8927,84163,84171}
 data.Item[16718].relatedQuests={8951,9016}
 data.Item[16719].relatedQuests={8951,9016}
 data.Item[16720].relatedQuests={8999,9007}
 data.Item[16721].relatedQuests={9004,9010}
 data.Item[16722].relatedQuests={8908,84150}
-data.Item[16723].relatedQuests={8933}
-data.Item[16724].relatedQuests={8933}
+data.Item[16723].relatedQuests={8933,84166,97412}
+data.Item[16724].relatedQuests={8933,84166,97412}
 data.Item[16725].relatedQuests={8954}
 data.Item[16726].relatedQuests={9002}
 data.Item[16727].relatedQuests={9002}
@@ -46936,7 +47008,7 @@ data.Item[16731].relatedQuests={9006,9013}
 data.Item[16732].relatedQuests={8959,9022}
 data.Item[16733].relatedQuests={8959,9022}
 data.Item[16734].relatedQuests={8959,9022}
-data.Item[16735].relatedQuests={8912,8920,84162}
+data.Item[16735].relatedQuests={8912,8920,84154,84162}
 data.Item[16736].relatedQuests={8937,8944}
 data.Item[16737].relatedQuests={8937,8944}
 data.Item[16742].relatedQuests={6571}
@@ -47036,7 +47108,7 @@ data.Item[18331].relatedQuests={9208}
 data.Item[18332].relatedQuests={7483}
 data.Item[18333].relatedQuests={7484}
 data.Item[18334].relatedQuests={7485}
-data.Item[18335].relatedQuests={7483,7484,7485,7646,7667,97168}
+data.Item[18335].relatedQuests={7483,7484,7485,7646,7667,97168,97184}
 data.Item[18336].relatedQuests={1318,7703}
 data.Item[18412].relatedQuests={7848}
 data.Item[18426].relatedQuests={7488,7489}
@@ -47066,10 +47138,10 @@ data.Item[18704].relatedQuests={7634}
 data.Item[18705].relatedQuests={7635}
 data.Item[18706].relatedQuests={7838}
 data.Item[18719].relatedQuests={7624}
-data.Item[18775].relatedQuests={7643}
-data.Item[18792].relatedQuests={7647}
+data.Item[18775].relatedQuests={7643,97182}
+data.Item[18792].relatedQuests={7647,97185}
 data.Item[18799].relatedQuests={7647}
-data.Item[18880].relatedQuests={7668,8258}
+data.Item[18880].relatedQuests={7668,8258,97169}
 data.Item[18922].relatedQuests={7722}
 data.Item[18944].relatedQuests={7736,8241,8242}
 data.Item[18945].relatedQuests={7737}
@@ -47313,7 +47385,7 @@ data.Item[21508].relatedQuests={8573}
 data.Item[21515].relatedQuests={8574}
 data.Item[21829].relatedQuests={8979,9024}
 data.Item[21833].relatedQuests={8979,9024}
-data.Item[21928].relatedQuests={8905,8906,8907,8908,8909,8910,8911,8912,84147,84150}
+data.Item[21928].relatedQuests={8905,8906,8907,8908,8909,8910,8911,8912,84147,84150,84151,84152,84153,84154,97447}
 data.Item[21935].relatedQuests={8924}
 data.Item[21936].relatedQuests={8924}
 data.Item[21937].relatedQuests={8924}
@@ -47373,7 +47445,7 @@ data.Item[22373].relatedQuests={9077,9078,9079,9080,9081,9082,9083,9084,9086,908
 data.Item[22374].relatedQuests={9054,9055,9056,9057,9058,9059,9060,9061,9068,9069,9070,9071,9072,9073,9074,9075}
 data.Item[22375].relatedQuests={9034,9036,9037,9038,9039,9040,9041,9042,9043,9044,9045,9046,9047,9048,9049,9050}
 data.Item[22376].relatedQuests={9095,9096,9097,9098,9099,9100,9101,9102,9103,9104,9105,9106,9107,9108,9109,9110,9111,9112,9113,9114,9115,9116,9117,9118}
-data.Item[22381].relatedQuests={8913,8914,8915,8916,8917,8918,8919,8920,84162}
+data.Item[22381].relatedQuests={8913,8914,8915,8916,8917,8918,8919,8920,84155,84156,84158,84159,84160,84161,84162}
 data.Item[22434].relatedQuests={9052}
 data.Item[22435].relatedQuests={9052}
 data.Item[22444].relatedQuests={9053}
@@ -47392,7 +47464,7 @@ data.Item[22733].relatedQuests={9251}
 data.Item[22734].relatedQuests={9251}
 data.Item[22892].relatedQuests={9260,9261,9262,9263,9264,9265}
 data.Item[23024].relatedQuests={8508,8732}
-data.Item[23250].relatedQuests={9362}
+data.Item[23250].relatedQuests={9362,90789}
 data.Item[190179].relatedQuests={65593}
 data.Item[190180].relatedQuests={65593}
 data.Item[190232].relatedQuests={65610}
@@ -47470,8 +47542,9 @@ data.Item[220353].relatedQuests={81956}
 data.Item[221359].relatedQuests={82084}
 data.Item[221360].relatedQuests={82084}
 data.Item[221361].relatedQuests={82084}
+data.Item[226698].relatedQuests={84211}
+data.Item[226699].relatedQuests={84211}
 data.Item[227686].relatedQuests={84318}
-data.Item[227687].relatedQuests={84330}
 data.Item[227689].relatedQuests={84319}
 data.Item[227690].relatedQuests={84330}
 data.Item[228132].relatedQuests={84395}
@@ -47482,7 +47555,11 @@ data.Item[228136].relatedQuests={84399}
 data.Item[228138].relatedQuests={84400}
 data.Item[228140].relatedQuests={84401}
 data.Item[228141].relatedQuests={84402}
+data.Item[235334].relatedQuests={86777}
+data.Item[235470].relatedQuests={86926}
+data.Item[235471].relatedQuests={86926}
 data.Item[235645].relatedQuests={86925}
+data.Item[236631].relatedQuests={87346}
 data.Item[238057].relatedQuests={88813}
 data.Item[238244].relatedQuests={88884}
 data.Item[238245].relatedQuests={88884}
@@ -47524,6 +47601,9 @@ data.Item[248765].relatedQuests={91899}
 data.Item[248766].relatedQuests={91900}
 data.Item[248770].relatedQuests={91904}
 data.Item[248771].relatedQuests={91905}
+data.Item[249692].relatedQuests={92065}
+data.Item[249693].relatedQuests={92066}
+data.Item[249694].relatedQuests={92066}
 data.Item[249696].relatedQuests={92069}
 data.Item[249697].relatedQuests={92069}
 data.Item[249698].relatedQuests={92070}
@@ -47590,6 +47670,7 @@ data.Item[262357].relatedQuests={93736}
 data.Item[262640].relatedQuests={93787}
 data.Item[262668].relatedQuests={93797}
 data.Item[262802].relatedQuests={93825}
+data.Item[262803].relatedQuests={93834}
 data.Item[262816].relatedQuests={93833}
 data.Item[262818].relatedQuests={93831}
 data.Item[262917].relatedQuests={93862}
@@ -47804,6 +47885,7 @@ data.Item[268345].relatedQuests={95121}
 data.Item[268346].relatedQuests={95123}
 data.Item[268484].relatedQuests={95140}
 data.Item[268506].relatedQuests={95124}
+data.Item[268507].relatedQuests={95107}
 data.Item[268518].relatedQuests={95250,97289}
 data.Item[268536].relatedQuests={95156}
 data.Item[268540].relatedQuests={95195}
@@ -47914,7 +47996,7 @@ data.Item[274463].relatedQuests={79360,96264}
 data.Item[274586].relatedQuests={92014}
 data.Item[274617].relatedQuests={92702}
 data.Item[274800].relatedQuests={96561}
-data.Item[274895].relatedQuests={98887,98888,98889,98891,98893,98895,98896,98897,98899,98901}
+data.Item[274895].relatedQuests={98887,98888,98889,98890,98891,98892,98893,98895,98896,98897,98899,98900,98901}
 data.Item[274949].relatedQuests={91794}
 data.Item[274964].relatedQuests={96603,98477}
 data.Item[274966].relatedQuests={96609}
@@ -47943,6 +48025,7 @@ data.Item[276087].relatedQuests={96992}
 data.Item[276088].relatedQuests={96992}
 data.Item[276100].relatedQuests={97009}
 data.Item[276235].relatedQuests={97049}
+data.Item[276783].relatedQuests={97185}
 data.Item[276890].relatedQuests={96772}
 data.Item[276893].relatedQuests={97173,97198}
 data.Item[276894].relatedQuests={96774,97130}

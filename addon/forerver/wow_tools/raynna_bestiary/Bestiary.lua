@@ -22,8 +22,21 @@ local function hideRowTooltip()
     end
 end
 local titleColor = Addon.Theme.gold
-local function isReadableValue(value)
-    return not issecretvalue or not issecretvalue(value)
+local isReadableValue = Addon.IsReadableValue
+
+local function sourceNPC(entry)
+    if entry.drop.npcID then return entry.drop.npcID end
+    if not entry.drop.kind then return entry.id end
+    return entry.drop.kind == 'Vendor' and tonumber(tostring(entry.id):match('^vendor:(%d+)$')) or nil
+end
+
+local function showSourceOnMap(npcID, objectID, name, levelText)
+    hideRowTooltip()
+    local opened, message = Addon.ShowSourceLocation({
+        npcID = npcID, objectID = objectID, title = name, levelText = levelText,
+    })
+    if opened then bestiaryFrame:Hide() end
+    if message then print(T("Raynna's Bestiary") .. ': ' .. message) end
 end
 local function createLabel(parent, size, x, y, width, value)
     local label = parent:CreateFontString(nil, 'OVERLAY', 'GameFontNormal')
@@ -87,7 +100,7 @@ local function refreshWindow()
     )
     local hasSkinning = not selectedSubject.itemID and next(selectedSubject.skinning or {}) ~= nil
     bestiaryFrame:SetWidth(hasSkinning and 600 or 300)
-    bestiaryFrame.name:SetWidth(hasSkinning and 540 or 240)
+    bestiaryFrame.name:SetWidth((hasSkinning and 540 or 240) - (selectedSubject.mapAvailable and 90 or 0))
     bestiaryFrame.context:SetWidth(hasSkinning and 540 or 240)
     bestiaryFrame.skinningFooter:SetShown(hasSkinning)
     bestiaryFrame.context:SetText(
@@ -100,6 +113,7 @@ local function refreshWindow()
                 .. (showingPreview and ('  /  ' .. T('Preview')) or '')
             )
     )
+    bestiaryFrame.map:SetShown(selectedSubject.mapAvailable)
     bestiaryFrame.footer:SetText(
         selectedSubject.itemID
                 and T('Sources: Classic DB / source metadata / Forever records\nCoverage varies; ? = unknown chance')
@@ -153,9 +167,7 @@ local function refreshWindow()
                 if selectedSubject.itemID then
                     row.icon:Hide()
                     local creatureSource = not sourceRecord.kind or sourceRecord.kind == 'Skinning'
-                    local npcID = sourceRecord.npcID
-                        or (sourceRecord.kind == 'Vendor' and tonumber(tostring(item):match('vendor:(%d+)')))
-                        or (not sourceRecord.kind and item)
+                    local npcID = sourceNPC(row.entry)
                     row.portrait:SetShown(not not npcID)
                     if npcID then
                         Addon.SetBestiaryPortrait(row.portrait, npcID)
@@ -168,10 +180,11 @@ local function refreshWindow()
                     row.location:SetPoint('TOPLEFT', inset, -21)
                     row.location:SetWidth(273 - inset)
                     row.name:SetText(sourceRecord.name)
-                    sourceRecord.zones = creatureSource and Addon.MonsterZones(npcID) or T(sourceRecord.details)
+                    sourceRecord.zones = creatureSource and (sourceRecord.details or Addon.MonsterZones(npcID))
+                        or T(sourceRecord.details or 'Zone unavailable')
                     local location = creatureSource
                         and (T('Lv ') .. Addon.LevelText(sourceRecord) .. ' / ' .. sourceRecord.zones)
-                        or T(sourceRecord.details)
+                        or sourceRecord.zones
                     if sourceRecord.kind == 'Skinning' then
                         location = T('Skinning') .. ' / ' .. location
                     end
@@ -218,6 +231,7 @@ function Addon.ShowBestiary(monster, demo, pin)
         return
     end
     selectedSubject, showingPreview, isPinned = monster, not not demo, not not pin
+    monster.mapAvailable = monster.npcID ~= nil and #Addon.SourceLocations(monster.npcID) > 0
     for _, column in ipairs(columns) do column.offset = 0 end
     Addon.HideDrops(true)
     refreshWindow()
@@ -284,18 +298,19 @@ local function showMouseoverCreature()
     if isPinned or itemLockedForAlt or bestiaryFrame:IsMouseOver() or not IsAltKeyDown() then
         return
     end
-    local guid, name, level = UnitGUID('mouseover'), UnitName('mouseover'), UnitLevel('mouseover')
-    if not isReadableValue(guid) or not isReadableValue(name) or not isReadableValue(level) then
-        return
-    end
-    if type(guid) ~= 'string' or not guid:match('^Creature%-') or not name then
+    local ok, guid = pcall(UnitGUID, 'mouseover')
+    if not ok or not isReadableValue(guid) or type(guid) ~= 'string' then
         return
     end
     local id = tonumber(guid:match('^Creature%-%d+%-%d+%-%d+%-%d+%-(%d+)%-'))
     if not id then
         return
     end
-    local monster = Addon.ReferenceMonster(id, name, type(level) == 'number' and level > 0 and level or nil)
+    local nameOK, name = pcall(UnitName, 'mouseover')
+    local levelOK, level = pcall(UnitLevel, 'mouseover')
+    name = nameOK and isReadableValue(name) and type(name) == 'string' and name or nil
+    level = levelOK and isReadableValue(level) and type(level) == 'number' and level > 0 and level or nil
+    local monster = Addon.ReferenceMonster(id, name, level)
     if
         bestiaryFrame:IsShown()
         and selectedSubject
@@ -361,6 +376,13 @@ function Addon.BuildBestiary()
     bestiaryFrame.name = createLabel(bestiaryFrame, 14, 50, -31, 240)
     bestiaryFrame.context = createLabel(bestiaryFrame, 9, 50, -49, 240)
     bestiaryFrame.context:SetTextColor(unpack(Addon.Theme.muted))
+    bestiaryFrame.map = button(bestiaryFrame, T('Show on map'), 0, 0, 86, function()
+        if not selectedSubject or not selectedSubject.npcID then return end
+        showSourceOnMap(selectedSubject.npcID, nil, selectedSubject.name, T('Lv ') .. Addon.LevelText(selectedSubject))
+    end)
+    bestiaryFrame.map:ClearAllPoints()
+    bestiaryFrame.map:SetPoint('TOPRIGHT', -13, -29)
+    bestiaryFrame.map:SetHeight(18)
     bestiaryFrame.questLine = createLabel(bestiaryFrame, 10, 10, -65, 280)
     bestiaryFrame.questLine:SetTextColor(1, 0.82, 0.2)
     bestiaryFrame.columns = columns
@@ -402,10 +424,25 @@ function Addon.BuildBestiary()
             row.detail:SetJustifyH('RIGHT')
             row.location = createLabel(row, 9, 0, -21, 273)
             row.location:SetTextColor(unpack(Addon.Theme.muted))
-            row:SetScript('OnClick', function(self)
-                if not self.entry or not selectedSubject or selectedSubject.itemID then
+            row:RegisterForClicks('LeftButtonUp', 'RightButtonUp')
+            row:SetScript('OnClick', function(self, mouseButton)
+                if not self.entry or not selectedSubject then
                     return
                 end
+                if selectedSubject.itemID then
+                    local source = self.entry.drop
+                    if mouseButton == 'RightButton' then
+                        local npcID = sourceNPC(self.entry)
+                        if npcID or source.objectID then
+                            showSourceOnMap(npcID, source.objectID, source.name, nil)
+                        end
+                    elseif source.itemID then
+                        hideRowTooltip()
+                        Addon.ShowBestiary(Addon.ReferenceItem(source.itemID), false, true)
+                    end
+                    return
+                end
+                if mouseButton ~= 'LeftButton' then return end
                 hideRowTooltip()
                 Addon.ShowBestiary(Addon.ReferenceItem(self.entry.id), false, true)
             end)
@@ -428,6 +465,9 @@ function Addon.BuildBestiary()
                             0.8,
                             true
                         )
+                        if #Addon.SourceLocations(sourceNPC(self.entry), self.entry.drop.objectID) > 0 then
+                            GameTooltip:AddLine(T('Right-click to show on map'), 0.4, 0.9, 0.6, true)
+                        end
                         GameTooltip:AddLine(
                             T('Source: ')
                                 .. T(self.entry.drop.source or 'cMaNGOS Classic; locations: source metadata'),
@@ -514,6 +554,7 @@ function Addon.BuildBestiary()
         refreshWindow()
     end)
     bestiaryFrame:SetScript('OnHide', function()
+        isPinned, itemLockedForAlt = false, false
         local owner = GameTooltip:GetOwner()
         for _, row in ipairs(sourceRows) do
             if owner == row then

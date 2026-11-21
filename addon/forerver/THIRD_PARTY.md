@@ -9,9 +9,9 @@
 | bigfoot_channel | 大脚聊天 | [大脚官方 forever](https://gitee.com/bigfoot-wow/forever) | 1.60.1.2（整合包） | 6b8e7466470cd2daf4c8c647eb8f97f141caafb6，整包和原文件指纹见 bigfoot_channel/SOURCE.json | 2026-11-16 | BF-01、BF-02、BF-03、BF-04 | 2026-11-17 官方 latest 仍为 1.60.1.2，manifest commit、整包 MD5 和 SHA256 与 SOURCE.json 一致，当前宿主、聊天及运行库适配继续适用 |
 | ls_toasts | ls_Toasts | [ls-/ls_Toasts](https://github.com/ls-/ls_Toasts) | 120105.07 | 105214a4cc0f2d13a4c9deef57614f30cff79b33 | 2026-11-20 | LS-01、LS-02、LS-04、LS-05、LS-06 | 2026-11-20 核对 120105.06 到 120105.07 的源码差异，合并默认关闭的 Slug 字体渲染开关。宿主接入、客户端接口、拾取队列、弹窗预建及背包提示适配继续沿用 |
 | forever_faces | Forever 3D Portraits | [sorrow8/forever-3d-portraits](https://github.com/sorrow8/forever-3d-portraits) | 1.0.11 | 20eaf8fd29b03ba3d91f73a90ccbaf39b49f2af4 | 2026-11-20 | FF-01、FF-02、FF-03、FF-04、FF-05 | 2026-11-20 在 1.0.11 基线修正目标的目标模型准备、绑定与加载完成判定 |
-| better_vendor_ui | Better Vendor UI | [Vaniron 官方发布包](https://www.curseforge.com/wow/addons/better-vendor-ui/files/9436965) | 1.3.1 | 上游未公布 Git commit，发布包 SHA256 和文件指纹见 better_vendor_ui/SOURCE.json | 2026-11-14 | BV-01、BV-02、BV-03 | 2026-11-17 官方文件 API 最新正式包仍为 1.3.1 / 9436965，重新下载包 SHA256 与 SOURCE.json 一致，三项适配继续适用 |
+| better_vendor_ui | Better Vendor UI | [Vaniron 官方发布包](https://www.curseforge.com/wow/addons/better-vendor-ui/files/9676130) | 1.3.2 | 上游未公布 Git commit，发布包 SHA256 和文件指纹见 better_vendor_ui/SOURCE.json | 2026-11-21 | BV-01、BV-02、BV-03 | 2026-11-21 核对正式包 9676130 的失效物品 ID、商人过滤、名单按钮与 Leatrix 相关差异，保留宿主、已学配方标记及中文设置 |
 | pet_xp_bar | PetXPBarPlus | [DustinChecketts/PetXPBarPlus](https://github.com/DustinChecketts/PetXPBarPlus) | 1.3.1 | 0c5da2aef6b2b56e307a77e37151fe4675be6c82 | 2026-11-16 | PX-01、PX-02 | 2026-11-17 官方最新正式版仍为 v1.3.1，tag 解析出的完整 commit 与当前基线一致，宿主与本服接口适配继续适用 |
-| raynna_bestiary | Raynna's Bestiary | [raynna/raynnabestiary](https://github.com/raynna/raynnabestiary) | 1.1.3 | 上游未公布该版本 Git commit，官方文件 9638877 的发布包 SHA256 及文件指纹见 raynna_bestiary/SOURCE.json | 2026-11-17 | RB-01、RB-02、RB-03、RB-05、RB-06 | 2026-11-17 官方最新正式包仍为 1.1.3 / 9638877，重新下载包 SHA256 与 SOURCE.json 一致，核对既有来源窗口，增加怪物剥皮并列视图及指针坐标适配 |
+| raynna_bestiary | Raynna's Bestiary | [Raynna 官方发布包](https://www.curseforge.com/wow/addons/raynnas-beastiary/files/9725389) | 2.4.4 | 上游未公布该版本 Git commit，官方文件 9725389 的发布包 SHA256 及文件指纹见 raynna_bestiary/SOURCE.json | 2026-11-21 | RB-01、RB-02、RB-03、RB-05、RB-06 | 2026-11-21 采用 2.4.4 的参考数据、来源关系、刷新点地图及悬停恢复，保留本地双列和来源窗口 |
 | prr | PRR | [izicawow 官方发布包](https://www.curseforge.com/wow/addons/prr/files/9629892) | 1.5.2 | 上游未公布 Git commit，发布包 SHA256 与文件指纹见 prr/SOURCE.json | 2026-11-18 | PR-01、PR-02、PR-03、PR-05、PR-06、PR-07、PR-08、PR-09、PR-10、PR-11、PR-12、PR-13 | 2026-11-18 补录 142 位训练师阵营，学习地点按当前角色显示同阵营及中立来源，摘要、悬停与计数共用过滤结果。来源与审查记录见 prr/RECIPE-SOURCES.json，沿用官方 1.5.2 基线 |
 
 ## 当前本地适配
@@ -30,15 +30,15 @@
 - FF-04 增加“3D头像 → 像素风调试”，配置保存到 wowDetectorDB.foreverFaces.db.style。模型来源、DisplayID/FileID、动画和 MipMap 支持即时应用，战斗中结构调整延后到脱战。2026-11-16 根据游戏内暴雪专用功能拦截撤下离屏快照调用链，像素化开关与采样参数显示为不可用并说明原因，已保存开启值归为关闭，采样参数保留。页面显示模型状态与 ID，单列安装更新及加载开关的 Reload 要求。公开接口缺少强制 LOD，低模使用客户端已有模型 ID。
   2026-11-16 修复提示直接挂接到各输入控件与按钮，布局后刷新原生滚动子区域。数值草稿在刷新时保留，回车、应用和焦点离开保存，Esc 恢复已保存值，重置清理草稿。
 - FF-05 目标的目标及焦点的目标按原生 IsUnitModelReadyForUI 等待单位数据，用 OnModelLoaded 或已就绪单位的 SetUnit 成功回执确认加载并设置镜头。SetUnit 暂未接受时同一单位限频重试，已有 3D 模型继续展示。文件号用于检查已获取的模型是否丢失。依据为 1.0.11 的模型加载分支，以及本服原生基线 3d8abb1da73acd38e412e24fb3f99454a6392346 的 TargetOfTargetMixin:Update、Unit.IsUnitModelReadyForUI 和 FrameAPICharacterModelBase.SetUnit。
-- BV-01 保留宿主接入。`better_vendor_ui/Bootstrap.lua` 与四个业务文件隔离命名空间、媒体、初始化及统一设置，配置为 `wowDetectorDB.betterVendorUI.db`。停用时跳过事件与运行控件，部署直接迁移 BetterVendorUIDB 并归档原目录。当前 1.3.1 发布包使用独立插件入口。
+- BV-01 保留宿主接入。`better_vendor_ui/Bootstrap.lua` 与四个业务文件隔离命名空间、媒体、初始化及统一设置，配置为 `wowDetectorDB.betterVendorUI.db`。停用时跳过事件与运行控件，部署直接迁移 BetterVendorUIDB 并归档原目录。当前 1.3.2 发布包使用独立插件入口。
 - BV-02 保留已学配方标记。`better_vendor_ui/BetterVendorUI.lua` 在完整与品质重绘中刷新图标去色及 136814 绿色勾，跟随学习和物品数据事件合并更新。旧 addon_fix Vendor 补丁已归档，维护收编实现。依据为 fd95272。
 - BV-03 保留简体中文设置。`BetterVendorUI_Config.lua`、`BetterVendorUI_Options.lua` 及相关反馈统一中文标题、控件、确认、名单和提示，保留格式参数。依据为 12fc998。
 - PX-01 保留宿主接入。`pet_xp_bar/Bootstrap.lua`、`PetXPBarPlus.lua`、`Options.lua` 使用 `WoWTools.petXPBar`、统一中文设置、账号 `wowDetectorDB.petXPBar.db` 和加载开关，保留 `/pxp`。停用时跳过运行框体、事件与计时器，部署直接迁移旧配置并归档独立插件。
 - PX-02 保留无限服接口适配。`pet_xp_bar/Compat.lua` 使用本服 GetEffectivePlayerMaxLevel / GetMaxPlayerLevel，保留原生 GetPetExperience、经验与等级事件以及条目可见性处理。依据为 c70da89。
 - RB-01 保留宿主接入。`raynna_bestiary/Bootstrap.lua`、`Integration.lua`、`files.xml` 与业务文件采用延迟 RegisterSource 初始化、独立命名空间和角色 `wowToolsCharacterSettings.raynnaBestiary.db`，停用时跳过业务源初始化，保留 `/rb` 与浏览器、提示及数据许可。当前安装基线仍使用独立插件存储及初始化。
-- RB-02 保留设置与迁移接入。原设置控件嵌入统一页面，部署按角色直接迁移 RaynnaBestiaryDB 并归档原目录，收编源码移除旧配置导入入口。原安装版 1.1.0 与官方旧包逐文件指纹一致，本次采用官方 1.1.3 发布包，SOURCE.json 保存包和原文件指纹，更新时按此基线核对。依据为 7c38572、e3a1ac8。
+- RB-02 保留设置与迁移接入。原设置控件嵌入统一页面，部署按角色直接迁移 RaynnaBestiaryDB 并归档原目录，收编源码移除旧配置导入入口。原安装版 1.1.0 与官方旧包逐文件指纹一致，历次升级按 SOURCE.json 中的发布包和原文件指纹核对。依据为 7c38572、e3a1ac8。
 - RB-03 保留中英语言和中文名称接入。`raynna_bestiary/Localization.lua`、`Settings.lua`、`Bestiary.lua`、`Browser.lua`、`LootSources.lua` 增加默认中文及角色语言选择，界面文字使用语言资源，NPC 和任务名称按 ID 优先取 QuestieDB 中文或客户端名称，并按实体类型及 ID 缓存。依据为收编后的 f09b9c4。
-- RB-05 物品来源列表加入独立剥皮记录。`SkinningReference.lua` 从既有 cMaNGOS Classic SQL blob 提取 924 个怪物的 SkinningLootId、774 个剥皮表及物品名称，生成器校验原始 Git blob，复用现有引用池与概率解析。`LootSources.lua` 以 `skinning:<npcID>` 保留独立来源和物品查询缓存，`Bestiary.lua` 显示剥皮标识、头像、等级、区域及参考掉率，`Localization.lua` 提供中英文文案。已知剥皮关联覆盖未区分拾取类型的元数据，实际尸体掉落记录继续单列。沿用 1.1.3 上游基线，经典旧世覆盖和掉率尚待无限服验证，离线数据无持续轮询。
+- RB-05 物品来源列表加入独立剥皮记录。`SkinningReference.lua` 从既有 cMaNGOS Classic SQL blob 提取 924 个怪物的 SkinningLootId、774 个剥皮表及物品名称，生成器校验原始 Git blob，复用现有引用池与概率解析。`LootSources.lua` 以 `skinning:<npcID>` 保留独立来源和物品查询缓存，`Bestiary.lua` 显示剥皮标识、头像、等级、区域及参考掉率，`Localization.lua` 提供中英文文案。已知剥皮关联覆盖未区分拾取类型的元数据，实际尸体掉落记录继续单列。沿用独立剥皮数据基线，经典旧世覆盖和掉率尚待无限服验证，离线数据无持续轮询。
 - RB-06 怪物掉落窗口按尸体掉落与剥皮并排显示。`LootSources.lua` 为怪物查询添加独立剥皮表，复用既有引用池概率解析与缓存，未分类元数据中的已知剥皮关系归入剥皮列。`Bestiary.lua` 按两列最大行数设置整体高度，各列分别排序与滚动，剥皮行保留物品提示、掉率及来源点击入口。未固定窗口按物理像素、UIParent 和窗口有效缩放计算整窗位置，优先指针右侧，右侧空间不足时置于左侧，必要时临时缩小以容纳整窗，保存缩放值继续保留。物品来源保持单列，经典旧世参考范围沿用 RB-05。
 - PR-01 保留宿主接入。`prr/Bootstrap.lua`、`Integration.lua`、`files.xml` 与业务文件采用延迟 RegisterSource 初始化、独立命名空间、宿主 Ace3/LDB/DBIcon 和专用 JSON 库，配置为 `wowDetectorDB.prr.db`。停用时跳过业务事件、提示钩子与计时器，保留 `/prr` 及配方查询、规划。
 - PR-02 保留设置与迁移接入。Ace 设置以 WoWToolsPRR 嵌入统一页面，部署按账号直接迁移 PRRDB 并归档原目录，收编源码移除旧配置导入入口。依据为 7c38572、e3a1ac8，发布包使用原独立入口及存储。
@@ -74,3 +74,8 @@
 - BF-04 复用宿主 Ace3 与 LibStub，保留统一 Ace 配置容器和两服接口适配。时光服官方整合包中的 AceConfigDialog 为较早基线，采用现有宿主与无限服官方包同版本运行库并保留本地接口修改。各来源文件与包指纹记录在 SOURCE.json。
 - ls_Toasts 采用 120105.06，新增默认皮肤 SLUG 字体标记。3D头像采用 1.0.11，吸收上游队伍动画、显示恢复、失败模型重试与原头像透明度处理，重新应用宿主挂接和像素风设置。现有独立适配的调用链继续适用，当前清单逐项保留。
 - PetXPBarPlus 官方最新正式版为 1.3.1，采用的 tag commit 已匹配。Better Vendor UI 最新正式包仍为 1.3.1 / 9436965，下载 SHA256 与已采用发布包一致。其余模块按本服表内官方文件和指纹核对。
+
+## 2026-11-21 正式版更新核对
+
+- Better Vendor UI 1.3.2（9676130）在 `BetterVendorUI.lua`、`BetterVendorUI_Config.lua` 和 `BetterVendorUI_Filters.lua` 修复失效物品 ID 重试、商人换货后过滤缓存、名单和 Leatrix 同步。官方 TOC 与初始化仍使用独立入口及保存表，保留 BV-01。官方商人重绘未挂接已学配方事件和标记，保留 BV-02。新增反馈翻译为中文，保留 BV-03。本地过滤缓存为缺少 `GetMerchantItemID` 的接口环境保留物品链接检查，类别缺失时重新读取。包指纹及原文件清单见 `better_vendor_ui/SOURCE.json`。
+- Raynna’s Bestiary 2.4.4（9725389）用 `Metadata.lua` 更新 QuestieDB 快照至 1.1.3，引入 `DungeonReference.lua`、`ForeverSources.lua`、`ForeverPortraits.lua` 和位置、关系数据。复用 `ItemsMap.lua` / `SpawnOverlay.lua`，怪物窗口和物品来源行可查看已记录刷新区域，隐藏窗口后释放固定与悬停状态。上游 `Core.lua`、`ItemsCore.lua`、`Settings.lua` 和两个 TOC 使用独立保存表、配置迁移、命令与设置，RB-01 至 RB-03 继续使用宿主绑定和语言设置。上游 `LootSources.lua` 没有剥皮独立数据，`Bestiary.lua` 和 `ItemsUI.lua` 的来源列表没有尸体与剥皮双列，保留 RB-05、RB-06。沿用 2026-11-17 的配方入口范围，物品点击继续进入来源窗，PRR 提供配方查询。本次采用新版数据、地图和来源功能，并沿用宿主界面。上游 Codex 独立配置加载器、配方页和版本广播未接入。原包及文件指纹见 `raynna_bestiary/SOURCE.json`。

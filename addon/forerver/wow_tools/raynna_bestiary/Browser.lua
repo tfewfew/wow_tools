@@ -19,6 +19,11 @@ function A.FindNPCs(query, source)
         for id, npc in pairs(A.LootReference.creatures) do
             names[id] = names[id] or npc[2]
         end
+        for _, dungeon in pairs(A.DungeonReference or {}) do
+            for id, boss in pairs(dungeon.bosses) do
+                names[id] = boss.name
+            end
+        end
         for id, npc in pairs(A.ForeverReference or {}) do
             names[id] = npc.name
         end

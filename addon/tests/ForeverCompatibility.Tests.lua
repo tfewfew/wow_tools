@@ -429,7 +429,7 @@ if flavor == "forerver" then
     local bestiary, prr = WoWTools.raynnaBestiary, WoWTools.prr
     assert(bestiary == WoWTools.modules.raynna_bestiary and prr == WoWTools.modules.prr,
         "Bestiary/PRR module namespaces are not isolated")
-    assert(bestiary.sourceVersion == "1.1.3" and prr.sourceVersion == "1.5.2", "Adopted source versions differ")
+    assert(bestiary.sourceVersion == "2.4.4" and prr.sourceVersion == "1.5.2", "Adopted source versions differ")
     if TEST_THIRD_PARTY_DISABLED then
         assert(not bestiary.db and not bestiary.BuildBestiary and not RaynnaBestiaryAPI,
             "Disabled Bestiary initialized its runtime")
@@ -488,6 +488,13 @@ if flavor == "forerver" then
             "Bestiary skinning text resource binding failed")
         assert(bestiary.SkinningReference.creatures[113][1] == 113,
             "Bestiary skinning data dependency/load order failed")
+        assert(bestiary.ReferenceMonster(250660).drops[271204]
+            and bestiary.ReferenceItem(271204).drops[250660],
+            "Bestiary Forever dungeon source binding failed")
+        local spawn = bestiary.SourceLocations(6)[1]
+        assert(spawn and type(spawn.area) == "number" and type(spawn.x) == "number"
+            and type(spawn.y) == "number" and type(bestiary.ShowSourceLocation) == "function",
+            "Bestiary spawn data and map interface binding failed")
         local leatherSources = bestiary.ReferenceItem(2318).drops
         local skinningSource = assert(leatherSources["skinning:113"], "Bestiary item-to-skinning query binding failed")
         assert(skinningSource.kind == "Skinning" and skinningSource.npcID == 113
@@ -854,7 +861,7 @@ end
 local vendor = WoWTools.betterVendorUI
 assert(vendor and vendor == WoWTools.modules.better_vendor_ui, "Embedded vendor module export failed")
 assert(WoWTools.settings.pages.better_vendor_ui.frame == vendor.settingsPanel, "Vendor settings page binding failed")
-assert(vendor.sourceVersion == "1.3.1" and vendor.sourceFileID == 9436965, "Vendor upstream identity mismatch")
+assert(vendor.sourceVersion == "1.3.2" and vendor.sourceFileID == 9676130, "Vendor upstream identity mismatch")
 if TEST_THIRD_PARTY_DISABLED then
     assert(not vendor.ready and not vendor.DB, "Disabled vendor registered its runtime")
 else

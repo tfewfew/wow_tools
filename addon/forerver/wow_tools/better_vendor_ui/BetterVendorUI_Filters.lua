@@ -19,11 +19,18 @@ function ns.InitializeFilters()
     local GROUPS = { "classes", "subclasses", "slots", "qualities" }
     local FLAGS = { "usableOnly", "affordableOnly", "hideSoldOut" }
 
+    local checkedFilters  -- the saved table whose groups are known to exist
+
+    -- Runs for every vendor item on every redraw, so the groups are only checked once
     function ns.GetFilters()
-        local DB = ns.DB
-        DB.filters = DB.filters or {}
-        for _, g in ipairs(GROUPS) do DB.filters[g] = DB.filters[g] or {} end
-        return DB.filters
+        local f = ns.DB.filters
+        if not f or f ~= checkedFilters then
+            f = f or {}
+            ns.DB.filters = f
+            for _, g in ipairs(GROUPS) do f[g] = f[g] or {} end
+            checkedFilters = f
+        end
+        return f
     end
 
     function ns.FiltersActive()
@@ -60,17 +67,30 @@ function ns.InitializeFilters()
         end
     end
 
+    local GetMerchantItemID = GetMerchantItemID  -- not on every client
+
     local function GetEntry(index)
         local e = cache[index]
-        if e then return e end
+        -- A vendor can swap its items with their number staying the same (Blizzard's class
+        -- filter), which CheckItemCache can't see: check the item is still the one cached
+        local merchantID = GetMerchantItemID and GetMerchantItemID(index)
+        local link
+        if not merchantID then link = ns.GetMerchantItemLinkSafe(index) end
+        if e and e.merchantID == merchantID and (merchantID or e.link == link) then return e end
         local name = ns.GetMerchantItemInfoSafe(index)
-        if not name then return end
-        e = { nameLower = string.lower(name), link = ns.GetMerchantItemLinkSafe(index) }
+        if not name then
+            cache[index] = nil
+            return
+        end
+        e = { nameLower = string.lower(name), link = link or ns.GetMerchantItemLinkSafe(index), merchantID = merchantID }
         if e.link then
             local itemID, _, _, equipLoc, _, classID, subclassID = GetItemInfoInstantSafe(e.link)
             e.itemID, e.equipLoc, e.classID, e.subclassID = itemID, SLOT_ALIASES[equipLoc] or equipLoc, classID, subclassID
+            e.subKey = classID and (classID .. ":" .. (subclassID or 0))  -- key in filters.subclasses
         end
-        cache[index] = e
+        -- Without a link the category is unknown. Kept out of the cache, so an item whose
+        -- link hasn't loaded yet isn't hidden by a category filter for the whole visit.
+        cache[index] = e.link and e or nil
         return e
     end
 
@@ -107,10 +127,9 @@ function ns.InitializeFilters()
         local f = ns.GetFilters()
 
         if next(f.classes) or next(f.subclasses) then
-            local sub = e.classID and (e.classID .. ":" .. (e.subclassID or 0))
-            if not (e.classID and (f.classes[e.classID] or f.subclasses[sub])) then return false end
+            if e.classID and not (f.classes[e.classID] or f.subclasses[e.subKey]) then return false end
         end
-        if next(f.slots) and ns.Get("showSlotFilters") and not f.slots[e.equipLoc or ""] then
+        if next(f.slots) and e.link and ns.Get("showSlotFilters") and not f.slots[e.equipLoc or ""] then
             return false
         end
         if next(f.qualities) then
@@ -403,7 +422,7 @@ function ns.InitializeFilters()
             insets = { left = 4, right = 4, top = 4, bottom = 4 },
         })
         panel:Hide()
-        table.insert(UISpecialFrames, "BetterVendorUIFilterPanel")  -- Escape closes it first
+        table.insert(UISpecialFrames, "BetterVendorUIFilterPanel")
 
         local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
         title:SetPoint("TOPLEFT", 12, -12)
@@ -427,6 +446,13 @@ function ns.InitializeFilters()
 
         panel:SetScript("OnShow", RebuildPanel)
         SkinPanel()  -- EllesmereUI look, when its skinning is on
+    end
+
+    -- The vendor closed. Hidden only through its parent, the panel would still count as
+    -- shown: the next Escape would be spent on closing it instead of opening the game menu,
+    -- and it would come back by itself at the next vendor.
+    function ns.HideFilterPanel()
+        if panel then panel:Hide() end
     end
 
     local function UpdateFilterButton()

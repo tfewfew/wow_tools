@@ -9,7 +9,14 @@
     <Script file="MetadataQueries.lua"/>
     <Script file="ForeverReference.lua"/>
     <Script file="LootSources.lua"/>
+    <Script file="Relations.lua"/>
+    <Script file="DungeonReference.lua"/>
+    <Script file="ForeverSources.lua"/>
+    <Script file="Locations.lua"/>
+    <Script file="ItemsMap.lua"/>
+    <Script file="SpawnOverlay.lua"/>
     <Script file="PortraitDisplays.lua"/>
+    <Script file="ForeverPortraits.lua"/>
     <Script file="Portraits.lua"/>
     <Script file="Bestiary.lua"/>
     <Script file="Browser.lua"/>

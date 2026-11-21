@@ -65,6 +65,31 @@ remain unknown. Existing Classic-only rates remain unverified fallback reference
 Optional newer QuestieDB fields are preferred; new item IDs require a bundled refresh.
 No website requests occur in game and player loot history is never synthesized.
 
+The embedded source and map views use QuestieDB Relations and Locations.
+The separate upstream recipe dataset is outside the embedded build.
+
+2026-11-21 update (Bestiary 2.1.0):
+QuestieDB 1.1.3 Forever: https://github.com/Questie/QuestieDB/releases/tag/v1.1.3
+NorgannonDB revision cae6d644952b9b12fbd1e3a500211893336cc219:
+https://github.com/zmarotrix/NorgannonDB
+34 credited dungeon/raid records, 1475 boss-item relationships; no imported probabilities.
+DungeonJournal by Exehn, compiled by Maro; upstream credit/terms in NOTICE-NorgannonDB.md.
+Rebuild with tools/build_bestiary_dungeons.py. Reference snapshot, not guaranteed complete.
+Curated NPC level/zone supplements checked against:
+https://warcraft.wiki.gg/wiki/Broodwidow_(Ruins_of_Lordaeron)
+https://warcraft.wiki.gg/wiki/Ghostly_Citizen_(Ruins_of_Lordaeron)
+https://efficient.games/wowf/npcs/id256040
+https://foreverdroprate.com/zones/16611 (NPC-linked zone sightings, not probabilities)
+Rotmender's Gloves: https://www.wowhead.com/forever/item=286979/rotmenders-gloves
+Only factual summaries imported. No copied wiki prose, icons or tiny-sample rates.
+
+2.1.1: Additional Forever NPC display mappings from installed DungeonJournal 2.1.0
+by Exehn, numeric facts only; tools/build_forever_portraits.py records input SHA256.
+No third-party artwork or runtime bundled.
+Additional levels checked 2026-11-21:
+https://warcraft.wiki.gg/wiki/Ragged_Ghoul_(Ruins_of_Lordaeron)
+https://warcraft.wiki.gg/wiki/Mangled_Cadaver_(Ruins_of_Lordaeron)
+
 WoWTools skinning-source extension: 2026-11-17
 --------------------------------------------
 SkinningReference.lua uses the same ClassicDB_1_12_1_z2815.sql.gz Git blob
