@@ -20,6 +20,7 @@ ns.Localization.Add("en", [==[
         "other_locations": " and %d other locations",
         "reference_mark": " (Classic reference)",
         "skill_reference": "* Required skill uses Classic reference data and awaits Forever verification.",
+        "skill_range": "Skill %s",
         "locations_forever": "Learning locations on Forever: %s",
         "locations_reference": "Learning locations from Classic: %s",
         "auto_taught": "Learned automatically with the profession.",

@@ -20,6 +20,7 @@ ns.Localization.Add("zh", [==[
         "other_locations": "，另有 %d 处",
         "reference_mark": "（经典旧世参考）",
         "skill_reference": "* 学习等级沿用经典旧世参考数据，无限服待核实。",
+        "skill_range": "熟练度 %s",
         "locations_forever": "无限服学习地点：%s",
         "locations_reference": "经典旧世参考学习地点：%s",
         "auto_taught": "学习该专业时自动学会。",

@@ -232,9 +232,16 @@ end
 UIParent, Minimap, FramerateFrame, GameTooltip = widget(), widget(), widget(), widget()
 ItemRefTooltip = widget()
 FramerateLabel = flavor=="titan" and widget() or nil
-function GameTooltip:SetOwner(owner) self.owner = owner end
+function GameTooltip:SetOwner(owner, anchor)
+    self.owner, self.anchor, self.lines = owner, anchor, {}
+end
 function GameTooltip:GetOwner() return self.owner end
-function GameTooltip:AddLine() end
+function GameTooltip:IsOwned(owner) return self.owner == owner end
+function GameTooltip:IsForbidden() return self.forbidden == true end
+function GameTooltip:AddLine(text)
+    self.lines = self.lines or {}
+    self.lines[#self.lines + 1] = text
+end
 DEFAULT_CHAT_FRAME = { AddMessage = function(_, message) messages[#messages + 1] = message end }
 SlashCmdList, UISpecialFrames, StaticPopupDialogs = {}, {}, {}
 YES, NO = "Yes", "No"
@@ -346,6 +353,7 @@ function UnitName(unit) assert(unit == "softinteract"); return targetName end
 function UnitExists() error("Do not reject GameObjects with UnitExists") end
 -- Native pet contracts are present in both client sources.
 function HasPetUI() return false, false end
+function IsAltKeyDown() return false end
 function GetPetExperience() return 0, 1000 end
 function UnitLevel(unit)
     assert(unit == "player" or unit == "pet", "Unexpected pet-level unit")
@@ -369,10 +377,13 @@ function hooksecurefunc(target, method, callback)
         target[method] = function(...) original(...); callback(...) end
     else originalHook(target, method, callback) end
 end
+local recipeHoverEvent = "Professions.RecipeListOnEnter"
+local nativeRecipeHover
 local function CreateNativeProfessionForm()
     ProfessionsFrame = CreateFrame("Frame", nil, UIParent)
     local page = CreateFrame("Frame", nil, ProfessionsFrame)
     ProfessionsFrame.CraftingPage = page
+    page.RecipeList = CreateFrame("Frame", nil, page)
     local form = CreateFrame("Frame", nil, page)
     page.SchematicForm = form
     form:SetSize(360, 484)
@@ -402,6 +413,14 @@ for line in io.lines(addon .. "wow_tools.toc") do
     if line:match("%.lua%s*$") or line:match("%.xml%s*$") then
         chatMock.LoadAddonFile(addon .. line:gsub("\\", "/"):gsub("%s+$", ""))
     end
+end
+function GameTooltip:SetText(text) self.text = text end
+EventRegistry = EventRegistry or {}
+function EventRegistry:RegisterCallback(event, callback, recipient)
+    if event ~= recipeHoverEvent then return end
+    assert(not nativeRecipeHover, "PRR registered the native recipe hover event twice")
+    assert(type(callback) == "function" and type(recipient) == "table", "Native callback registry signature mismatch")
+    nativeRecipeHover = function(row, info) callback(recipient, row, {recipeInfo = info}) end
 end
 -- SavedVariables become available after the TOC scripts and before ADDON_LOADED.
 if TEST_PLUGIN_LANGUAGE then
@@ -434,7 +453,8 @@ if flavor == "forerver" then
         assert(not bestiary.db and not bestiary.BuildBestiary and not RaynnaBestiaryAPI,
             "Disabled Bestiary initialized its runtime")
         assert(not prr.db and not prr.Events and not prr.ready, "Disabled PRR initialized its runtime")
-        assert(not ProfessionsFrame or not ProfessionsFrame.CraftingPage.SchematicForm.TrackRecipeCheckbox.prrSkillRange,
+        assert(not nativeRecipeHover and (not ProfessionsFrame
+            or not ProfessionsFrame.CraftingPage.SchematicForm.TrackRecipeCheckbox.prrSkillRange),
             "Disabled PRR attached its native crafting skill display")
     else
         assert(bestiary.db == wowToolsCharacterSettings.raynnaBestiary.db,
@@ -680,6 +700,33 @@ if flavor == "forerver" then
         prr.Dataflows.RecipeIndex.Invalidate()
         assert(levels:GetText() == prr.SkillRange.Text(repairedRecipe),
             "PRR native skill display did not restore the indexed supplement")
+        local hover = assert(nativeRecipeHover, "PRR did not register the native recipe hover event")
+        local list = ProfessionsFrame.CraftingPage.RecipeList
+        local scrollTarget = CreateFrame("Frame", nil, list)
+        local row = CreateFrame("Button", nil, scrollTarget)
+        row.Label = row:CreateFontString()
+        local info = {recipeID = 2149, name = "Handstitched Leather Boots"}
+        local hoverLevels = prr.SkillRange.Text(prr.Dataflows.RecipeIndex.Get(info.recipeID))
+        local skillLine = text("tooltip.skill_range", hoverLevels)
+        GameTooltip:Hide()
+        hover(row, info)
+        assert(GameTooltip:IsOwned(row) and GameTooltip.anchor == "ANCHOR_RIGHT"
+            and GameTooltip:GetText() == info.name and GameTooltip.lines[1] == skillLine
+            and hoverLevels ~= levels:GetText(), "Native hover must use the hovered recipe ID and native tooltip API")
+        GameTooltip:SetOwner(row.Label, "ANCHOR_RIGHT")
+        GameTooltip:AddLine(info.name)
+        GameTooltip:Show()
+        hover(row, info)
+        assert(GameTooltip:IsOwned(row.Label) and #GameTooltip.lines == 2
+            and GameTooltip.lines[1] == info.name and GameTooltip.lines[2] == skillLine,
+            "PRR did not append the skill range to the native truncated-title tooltip")
+        local otherListRow = CreateFrame("Button", nil, ProfessionsFrame)
+        hover(otherListRow, info)
+        hover(row, {recipeID = secret})
+        hover(row, {recipeID = 99999999, name = "Unknown recipe"})
+        assert(GameTooltip:IsOwned(row.Label) and #GameTooltip.lines == 2,
+            "PRR decorated a foreign recipe list or a recipe without a readable skill range")
+        GameTooltip:Hide()
         ProfessionsFrame:Hide()
         WoWTools.settings.Open("raynna_bestiary")
         assert(bestiary.optionsPanel and bestiary.optionsPanel:GetParent() == bestiary.settingsPanel,
