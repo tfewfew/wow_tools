@@ -253,8 +253,13 @@ function CloseBag(id)
     reagentCloses = reagentCloses + 1
     reagent:Hide()
 end
-function ToggleBackpack()
+function ToggleBackpack_Combined()
     if container:IsShown() then container:Hide() else container:Show() end
+end
+function ToggleBackpack() ToggleBackpack_Combined() end
+function ToggleBag(id)
+    assert(id >= 1 and id <= 4, "Equipped bag buttons must use their native bag ID")
+    ToggleBackpack_Combined()
 end
 ContainerFrameSettingsManager = {
     IsUsingCombinedBags = function(_, bagID) return (not bagID or bagID <= 4) and cvar == "1" end,
@@ -292,7 +297,7 @@ NineSliceUtil = {UpdateCornerCropping = function(frame, height)
 end}
 function hooksecurefunc(target, method, callback)
     if type(target) == "string" then
-        assert((target == "ContainerFrame_GenerateFrame" or target == "UpdateContainerFrameAnchors" or target == "ToggleBackpack")
+        assert((target == "ContainerFrame_GenerateFrame" or target == "UpdateContainerFrameAnchors" or target == "ToggleBackpack_Combined")
             and type(_G[target]) == "function" and type(method) == "function",
             "Native generation and window placement must use post-hooks")
         local native = _G[target]
@@ -521,7 +526,7 @@ assert(bags.SetEnabled(true) and bags.active and combinedChanges == 3,
     "Enabling must reuse the combined CVar if another addon already enabled it")
 assert(#closeCallbacks == 1, "Re-enabling integration must reuse its native close callback")
 BankFrame:Show()
-ToggleBackpack()
+ToggleBag(3)
 backpack.scripts.OnClick(backpack, "LeftButton")
 for _, callback in ipairs(pending) do callback() end
 pending = {}
@@ -538,17 +543,28 @@ assert(reagentButton:GetParent() == container and reagentButton.anchor[2] == con
     "The native button must participate in the combined window's input hierarchy while retaining its bag and slot identity")
 assert(reagent.anchor[1] == "TOPRIGHT" and reagent.anchor[2] == UIParent and reagent.anchor[3] == "BOTTOMLEFT"
     and reagentButton:GetFrameLevel() > container:GetFrameLevel(), "The visible item must be above the combined window's chrome")
-ToggleBackpack()
-backpack.scripts.OnClick(backpack, "LeftButton")
+ToggleBag(3)
 for _, callback in ipairs(pending) do callback() end
 pending = {}
 assert(reagentCloses == 1 and not reagent:IsShown() and reagentButton:GetParent() == reagent,
-    "Closing the backpack must return the button to its native reagent frame and close the automatically opened bag")
+    "Closing via an equipped bag must close a reagent bag automatically opened by the backpack button")
+for index, bagID in ipairs({3, 1}) do
+    ToggleBag(bagID)
+    for _, callback in ipairs(pending) do callback() end
+    pending = {}
+    assert(container:IsShown() and reagentOpens == index + 1 and reagentButton:GetParent() == container,
+        "Ammo and ordinary bag buttons must use the combined toggle and display native reagent items")
+    ToggleBag(bagID)
+    for _, callback in ipairs(pending) do callback() end
+    pending = {}
+    assert(not container:IsShown() and reagentCloses == index + 1 and reagentButton:GetParent() == reagent,
+        "The combined toggle must also close the automatically opened reagent bag for each equipped bag")
+end
 ToggleBackpack()
 backpack.scripts.OnClick(backpack, "LeftButton")
 for _, callback in ipairs(pending) do callback() end
 pending = {}
-assert(reagentOpens == 2, "The keyboard and click hooks must share the same native bag request")
+assert(reagentOpens == 4, "The keyboard and click hooks must share the same native bag request")
 UpdateContainerFrameAnchors()
 for _, callback in ipairs(pending) do callback() end
 pending = {}

@@ -308,7 +308,7 @@ local function NativeReady()
         and EventRegistry and type(EventRegistry.RegisterCallback) == "function"
         and type(ContainerFrame_GenerateFrame) == "function" and type(UpdateContainerFrameAnchors) == "function"
         and MainMenuBarBackpackButton and type(MainMenuBarBackpackButton.HookScript) == "function"
-        and type(ToggleBackpack) == "function" and type(OpenBag) == "function" and type(CloseBag) == "function"
+        and type(ToggleBackpack_Combined) == "function" and type(OpenBag) == "function" and type(CloseBag) == "function"
         and type(C_Timer.NewTimer) == "function"
 end
 
@@ -326,7 +326,8 @@ local function InstallHooks()
     hooksecurefunc(frame, "UpdateItemLayout", ScheduleLayout)
     hooksecurefunc(frame, "UpdateFrameSize", ScheduleLayout)
     if ContainerFrame6 then
-        hooksecurefunc("ToggleBackpack", ScheduleBackpackReagent)
+        -- Both ToggleBackpack and ToggleBag for equipped bags call this combined toggle.
+        hooksecurefunc("ToggleBackpack_Combined", ScheduleBackpackReagent)
         MainMenuBarBackpackButton:HookScript("OnClick", function(_, button)
             if button == "LeftButton" then ScheduleBackpackReagent() end
         end)
@@ -447,7 +448,7 @@ function module.BuildSettings(parent)
     local hint = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     hint:SetPoint("TOPLEFT", 8, -48)
     hint:SetJustifyH("LEFT")
-    hint:SetText("整合窗口按普通背包、材料袋、弹药袋分区，空分区自动隐藏。打开行囊时一并显示已装备的材料袋。战斗中切换此开关在脱战后生效。")
+    hint:SetText("整合窗口按普通背包、材料袋、弹药袋分区，空分区自动隐藏。点击行囊或已装备的背包打开整合窗口时，一并显示材料袋。战斗中切换此开关在脱战后生效。")
     local compatibility = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     compatibility:SetPoint("TOPLEFT", 8, -110)
     compatibility:SetJustifyH("LEFT")
