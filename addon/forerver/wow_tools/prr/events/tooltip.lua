@@ -1,5 +1,5 @@
 WoWTools.prr.RegisterSource(function(...)
--- tooltip.lua -- adds the recipe lines to item tooltips.
+-- tooltip.lua -- adds recipe information to item and trainer tooltips.
 -- Modern clients (Forever among them) build tooltips from TooltipDataProcessor;
 -- older ones fire OnTooltipSetItem.
 
@@ -29,8 +29,25 @@ local function OnItem(tooltip, data)
     end
 end
 
+local function OnTrainerSpell(tooltip, data)
+    if not ns.db or tooltip ~= GameTooltip or tooltip:IsForbidden() then return end
+    local info = tooltip:GetProcessingTooltipInfo()
+    if not info or info.getterName ~= "GetTrainerService" or info.append then return end
+
+    local spellID = data.id
+    if (issecretvalue and issecretvalue(spellID)) or type(spellID) ~= "number" then return end
+    local recipe = ns.Dataflows.RecipeIndex.Get(spellID)
+    local levels = recipe and ns.SkillRange.Text(recipe)
+    if levels then
+        tooltip:AddLine(ns.Localization.Text("tooltip.skill_range", levels), 1, 1, 1)
+    end
+end
+
 if TooltipDataProcessor and Enum.TooltipDataType then
     TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, OnItem)
+    if Enum.TooltipDataType.Spell then
+        TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Spell, OnTrainerSpell)
+    end
 else
     GameTooltip:HookScript("OnTooltipSetItem", OnItem)
     ItemRefTooltip:HookScript("OnTooltipSetItem", OnItem)

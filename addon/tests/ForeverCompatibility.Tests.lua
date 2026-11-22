@@ -282,6 +282,16 @@ MenuUtil = { CreateContextMenu = function(owner, generator)
     generator(owner, description)
 end }
 Enum = { WeaponSlot = {MainHand = 0}, ItemEnchantType = {Permanent = 1, Temporary = 2, Imbue = 3} }
+local trainerSpellPostCall
+if flavor == "forerver" then
+    Enum.TooltipDataType = {Item = 0, Spell = 1}
+    TooltipDataProcessor = {AddTooltipPostCall = function(dataType, callback)
+        if dataType ~= Enum.TooltipDataType.Spell then return end
+        assert(not trainerSpellPostCall and type(callback) == "function", "Invalid spell tooltip post-call binding")
+        trainerSpellPostCall = callback
+    end}
+    function GameTooltip:GetProcessingTooltipInfo() return self.processingInfo end
+end
 ItemLocation = { CreateFromEquipmentSlot = function(_, slot) assert(slot == 16); return {slot = slot} end }
 C_Item = {
     GetItemInfo = function(itemID) return "物品" .. itemID, "item:" .. itemID, 1 end,
@@ -453,6 +463,7 @@ if flavor == "forerver" then
         assert(not bestiary.db and not bestiary.BuildBestiary and not RaynnaBestiaryAPI,
             "Disabled Bestiary initialized its runtime")
         assert(not prr.db and not prr.Events and not prr.ready, "Disabled PRR initialized its runtime")
+        assert(not trainerSpellPostCall, "Disabled PRR registered the trainer tooltip post-call")
         assert(not nativeRecipeHover and (not ProfessionsFrame
             or not ProfessionsFrame.CraftingPage.SchematicForm.TrackRecipeCheckbox.prrSkillRange),
             "Disabled PRR attached its native crafting skill display")
@@ -727,6 +738,21 @@ if flavor == "forerver" then
         assert(GameTooltip:IsOwned(row.Label) and #GameTooltip.lines == 2,
             "PRR decorated a foreign recipe list or a recipe without a readable skill range")
         GameTooltip:Hide()
+
+        local trainerPostCall = assert(trainerSpellPostCall, "PRR did not bind the native spell tooltip post-call")
+        local trainerLevels = prr.SkillRange.Text(prr.Dataflows.RecipeIndex.Get(9198))
+        GameTooltip.lines = {"Native trainer tooltip"}
+        GameTooltip.processingInfo = {getterName = "GetTrainerService"}
+        trainerPostCall(GameTooltip, {id = 9198})
+        assert(GameTooltip.lines[1] == "Native trainer tooltip"
+            and GameTooltip.lines[2] == text("tooltip.skill_range", trainerLevels),
+            "PRR trainer tooltip did not append the indexed recipe skill range")
+        trainerPostCall(GameTooltip, {id = 99999999})
+        trainerPostCall(GameTooltip, {id = secret})
+        GameTooltip.processingInfo = {getterName = "GetSpellByID"}
+        trainerPostCall(GameTooltip, {id = 9198})
+        assert(#GameTooltip.lines == 2, "PRR added trainer levels to an unrelated or unreadable spell")
+        GameTooltip.processingInfo = nil
         ProfessionsFrame:Hide()
         WoWTools.settings.Open("raynna_bestiary")
         assert(bestiary.optionsPanel and bestiary.optionsPanel:GetParent() == bestiary.settingsPanel,

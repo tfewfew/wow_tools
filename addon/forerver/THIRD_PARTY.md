@@ -12,7 +12,7 @@
 | better_vendor_ui | Better Vendor UI | [Vaniron 官方发布包](https://www.curseforge.com/wow/addons/better-vendor-ui/files/9676130) | 1.3.2 | 上游未公布 Git commit，发布包 SHA256 和文件指纹见 better_vendor_ui/SOURCE.json | 2026-11-21 | BV-01、BV-02、BV-03 | 2026-11-21 核对正式包 9676130 的失效物品 ID、商人过滤、名单按钮与 Leatrix 相关差异，保留宿主、已学配方标记及中文设置 |
 | pet_xp_bar | PetXPBarPlus | [DustinChecketts/PetXPBarPlus](https://github.com/DustinChecketts/PetXPBarPlus) | 1.3.1 | 0c5da2aef6b2b56e307a77e37151fe4675be6c82 | 2026-11-16 | PX-01、PX-02 | 2026-11-17 官方最新正式版仍为 v1.3.1，tag 解析出的完整 commit 与当前基线一致，宿主与本服接口适配继续适用 |
 | raynna_bestiary | Raynna's Bestiary | [Raynna 官方发布包](https://www.curseforge.com/wow/addons/raynnas-beastiary/files/9725389) | 2.4.4 | 上游未公布该版本 Git commit，官方文件 9725389 的发布包 SHA256 及文件指纹见 raynna_bestiary/SOURCE.json | 2026-11-21 | RB-01、RB-02、RB-03、RB-05、RB-06 | 2026-11-21 采用 2.4.4 的参考数据、来源关系、刷新点地图及悬停恢复，保留本地双列和来源窗口 |
-| prr | PRR | [izicawow 官方发布包](https://www.curseforge.com/wow/addons/prr/files/9629892) | 1.5.2 | 上游未公布 Git commit，发布包 SHA256 与文件指纹见 prr/SOURCE.json | 2026-11-21 | PR-01、PR-02、PR-03、PR-05、PR-06、PR-07、PR-08、PR-09、PR-10、PR-11、PR-12、PR-13、PR-14 | 2026-11-21 为无限服原生制作页的配方列表悬停提示添加熟练度区间，复用 PRR 索引、等级颜色及用户修正，沿用官方 1.5.2 基线 |
+| prr | PRR | [izicawow 官方发布包](https://www.curseforge.com/wow/addons/prr/files/9629892) | 1.5.2 | 上游未公布 Git commit，发布包 SHA256 与文件指纹见 prr/SOURCE.json | 2026-11-22 | PR-01、PR-02、PR-03、PR-05、PR-06、PR-07、PR-08、PR-09、PR-10、PR-11、PR-12、PR-13、PR-14、PR-15 | 2026-11-22 为无限服原生训练师配方提示添加 PRR 熟练度等级，沿用官方 1.5.2 基线 |
 
 ## 当前本地适配
 
@@ -60,6 +60,8 @@
 - PR-13 学习地点按当前角色阵营过滤。`utilities/recipe_sources.lua` 在位置去重与计数前读取 UnitFactionGroup，部落显示部落与中立训练师，联盟显示联盟与中立训练师，行内摘要和所有配方悬停入口共用结果，全部被过滤时隐藏地点行。生成器为 142 位训练师补录阵营，固定 QuestieDB Forever 1.1.2、完整构建 commit、TOC 与字段及动态修正源码指纹，按 friendlyToFaction 收录联盟 45、部落 81 位，双阵营可访问训练师 16 位标记中立，其中梅罗什采用明确的木喉声望商人双阵营访问资料。来源与逐项阵营保存到 prr-learning-evidence.json 和 RECIPE-SOURCES.json。接口检查核对两阵营、保留中立、位置去重与过滤后数量、空结果、未知训练师、受限阵营及参考标记。
 
 - PR-14 原生制作页配方行悬停显示熟练度。`components/crafting_skill_range.lua` 监听无限服原生 `Professions.RecipeListOnEnter`，校验配方行属于 `CraftingPage.RecipeList`，按悬停配方的 `recipeInfo.recipeID` 复用 `RecipeIndex.Get` 和 `SkillRange.Text`。原生截断名称提示已显示时在其下追加熟练度，完整名称有等级数据时显示名称与熟练度，原生 `OnLeave` 负责关闭。沿用 PRR 模块开关与 Profession UI 加载入口。事件参数、提示归属和关闭顺序依据 `bebcb6bf309cf41b41bd74f8ca651e6a105b2676` 的 `Blizzard_ProfessionsRecipeList.lua`。
+
+- PR-15 原生训练师配方提示显示熟练度。`events/tooltip.lua` 在主 `GameTooltip` 处理 `GetTrainerService` 的法术数据时按 `data.id` 查询 `RecipeIndex.Get`，通过 `SkillRange.Text` 和 `tooltip.skill_range` 显示与制作页配方悬停一致的颜色及括号格式。按 Gethe/wow-ui-source forever 的 `3d8abb1da73acd38e412e24fb3f99454a6392346` 核对 `Blizzard_TrainerUI.xml` 的 `SetTrainerService` 入口及 `TooltipDataHandler.lua` 的回调和重建顺序。接口检查覆盖冰霜皮质披风法术 9198、无配方数据、普通法术提示和 PRR 停用。
 
 ## 已回退适配
 
