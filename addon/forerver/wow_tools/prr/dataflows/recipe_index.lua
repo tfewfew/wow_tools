@@ -119,6 +119,21 @@ local function Build()
             recipe.skill = recipe.details.skill
             recipe.skillReference = recipe.details.skillReference
         end
+        local calibration = ns.Database.RecipeCalibration[spellID]
+        if calibration then
+            if calibration.skill and not recipe.skillUnknown and not (fix and fix.skill) then
+                recipe.skill = calibration.skill
+                recipe.skillReference = nil
+            end
+            if calibration.yellow then
+                recipe.yellow = calibration.yellow > 0 and calibration.yellow or nil
+                recipe.gray = calibration.gray > 0 and calibration.gray or nil
+            end
+            if calibration.recipeItem and not recipe.recipeItem then
+                recipe.recipeItem = calibration.recipeItem
+                recipe.recipeItemBound = calibration.recipeItemBound
+            end
+        end
     end
 
     for _, recipe in pairs(recipes) do
@@ -148,6 +163,10 @@ function RecipeIndex.FixOf(spellID)
     local fix = saved or ns.Database.Fixes[spellID]
     if fix and fix.cleared then
         return nil
+    end
+    local calibration = ns.Database.RecipeCalibration[spellID]
+    if not saved and fix and fix.skill and calibration and calibration.skill then
+        return { skill = calibration.skill, ignored = fix.ignored }
     end
     return fix
 end

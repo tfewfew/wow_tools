@@ -39,13 +39,15 @@ function SkillRange.IsLearnedBefore(a, b)
 end
 
 -- The colored levels of a recipe, or nil when nothing is known.
-function SkillRange.Text(recipe)
-    local learn = recipe.skill
-    if recipe.skillUnknown then
-        learn = ns.Localization.Text("dev.skill_unknown")
-    end
-    if learn and recipe.skillReference then
-        learn = learn .. "*"
+function SkillRange.Text(recipe, trainerRank)
+    local learn = trainerRank or recipe.skill
+    if not trainerRank then
+        if recipe.skillUnknown then
+            learn = ns.Localization.Text("dev.skill_unknown")
+        end
+        if learn and recipe.skillReference then
+            learn = learn .. "*"
+        end
     end
     if not recipe.gray then
         return learn and Level(Config.COLOR_SKILL_ORANGE, learn) or nil

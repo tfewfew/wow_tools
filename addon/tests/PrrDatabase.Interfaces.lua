@@ -7,13 +7,15 @@ local ns = {
 }
 WoWTools = {prr = {RegisterSource = function(initialize) initialize("wow_tools", ns) end}}
 for _, relative in ipairs({"libs/json/json.lua", "database/recipes.lua", "database/fixes.lua",
-    "database/recipe_details.lua", "dataflows/recipe_index.lua"}) do
+    "database/recipe_details.lua", "dataflows/recipe_index.lua", "dataflows/skill_planner.lua"}) do
     dofile(addon .. relative)
 end
 local file = assert(io.open(addon .. "RECIPE-SOURCES.json", "r"))
 local provenance = ns.json.decode(file:read("*a"))
 file:close()
 local index = ns.Dataflows.RecipeIndex
+local calibration = ns.Database.RecipeCalibration
+ns.Database.RecipeCalibration = {}
 local confirmed, statuses = {}, {corrected = 0, rejectedReference = 0, confirmedLearnAboveYellow = 0}
 for _, record in ipairs(provenance.skillAudit) do
     local recipe = assert(index.Get(record.spellID), "Audited recipe missing from the PRR index")
@@ -223,4 +225,62 @@ assert(index.Get(2665).skill == 45, "Built-in PRR fixes must keep their existing
 ns.Database.Fixes[2665] = nil
 index.Invalidate()
 assert(index.Get(2665).skill == 40, "Cleared hand fixes did not restore the corrected source data")
-print("PASS: PRR exhaustive learning audit, client thresholds, indexed corrections and user-fix precedence.")
+
+local current = provenance.skillCalibration
+local equal = current.previousLearnEqualsYellow
+local reviewed = {}
+for _, group in pairs(equal) do
+    for _, spellID in ipairs(group) do
+        local recipe = index.Get(spellID)
+        assert(not reviewed[spellID] and recipe.skill and recipe.skill == recipe.yellow,
+            "A recipe with equal learning and yellow ranks was misclassified")
+        reviewed[spellID] = true
+    end
+end
+local total = 0
+for _, recipe in ipairs(index.AllRecipes()) do
+    total = total + 1
+    if recipe.skill and recipe.skill == recipe.yellow then
+        assert(reviewed[recipe.spellID], "A prior equal-rank recipe was omitted from the calibration")
+    end
+end
+assert(total == current.recipesChecked, "PRR calibration omitted recipes")
+
+ns.Database.RecipeCalibration = calibration
+index.Invalidate()
+local learningChanges, thresholdChanges = 0, 0
+for _, change in ipairs(current.changes) do
+    local recipe = index.Get(change.spellID)
+    local fields = change.corrected
+    if fields.skill then
+        assert(recipe.skill == fields.skill, "Calibrated learning rank did not reach the index")
+        learningChanges = learningChanges + 1
+    end
+    if fields.yellow then
+        assert((recipe.yellow or 0) == fields.yellow and (recipe.gray or 0) == fields.gray,
+            "Calibrated skill-up thresholds did not reach the index")
+        thresholdChanges = thresholdChanges + 1
+    end
+end
+assert(learningChanges == current.learningRanksChanged and thresholdChanges == current.thresholdsChanged,
+    "PRR calibration coverage differs from its changes")
+assert(index.Get(2167).skill == 75 and index.Get(2167).yellow == 100,
+    "Gray Leather Boots still uses the yellow threshold as the learning requirement")
+assert(index.Get(2665).skill == 40 and index.Get(2665).yellow == 40
+    and index.Get(3326).skill == 50 and index.Get(3326).gray == 90,
+    "Verified equal learning and yellow ranks were lost")
+assert(index.Get(1263031).skill == 125 and index.Get(1263031).yellow == 125 and index.Get(1263031).gray == 130,
+    "Tanning Rack did not apply the documented server hotfix")
+local campfire = index.Get(1283400)
+local chance = ns.Dataflows.SkillPlanner.Chance
+assert(campfire.yellow == campfire.gray and chance(campfire, campfire.skill, true) == 1
+    and chance(campfire, campfire.gray, true) == nil,
+    "A recipe that moves directly from orange to gray lost its orange range")
+assert(index.Get(9957).skill == 205 and index.TaughtBy(7994)[1].spellID == 9957,
+    "The current Orcish War Leggings plans did not reach the recipe item index")
+assert(index.FixOf(3170).skill == 15 and index.Get(3170).skill == 15,
+    "A stale built-in fix masked the trainer's calibrated requirement")
+ns.db.fixes[3170] = {skill = 17}
+index.Invalidate()
+assert(index.Get(3170).skill == 17, "A calibrated built-in fix took precedence over a user correction")
+print("PASS: PRR learning audits, calibrated client thresholds, recipe item indexing and user-fix precedence.")

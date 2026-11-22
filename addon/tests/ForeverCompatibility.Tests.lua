@@ -747,6 +747,24 @@ if flavor == "forerver" then
         assert(GameTooltip.lines[1] == "Native trainer tooltip"
             and GameTooltip.lines[2] == text("tooltip.skill_range", trainerLevels),
             "PRR trainer tooltip did not append the indexed recipe skill range")
+        local trainerRecipe = prr.Dataflows.RecipeIndex.Get(1257426)
+        assert(trainerRecipe.skill == 140 and trainerRecipe.yellow == 145)
+        local nativeTrainerRank = 150
+        function GetTrainerServiceSkillReq(serviceIndex)
+            assert(serviceIndex == 7, "PRR did not use the tooltip's trainer service index")
+            return "Tailoring", nativeTrainerRank, false
+        end
+        GameTooltip.processingInfo.getterArgs = {7}
+        GameTooltip.lines = {}
+        trainerPostCall(GameTooltip, {id = trainerRecipe.spellID})
+        assert(GameTooltip.lines[1] == text("tooltip.skill_range", prr.SkillRange.Text(trainerRecipe, 150))
+            and GameTooltip.lines[1]:find("[150]", 1, true),
+            "PRR did not use the native trainer rank for the current teaching route")
+        nativeTrainerRank = secret
+        trainerPostCall(GameTooltip, {id = trainerRecipe.spellID})
+        assert(GameTooltip.lines[2] == text("tooltip.skill_range", prr.SkillRange.Text(trainerRecipe)),
+            "PRR did not fall back to the index for a restricted trainer rank")
+        GetTrainerServiceSkillReq = nil
         trainerPostCall(GameTooltip, {id = 99999999})
         trainerPostCall(GameTooltip, {id = secret})
         GameTooltip.processingInfo = {getterName = "GetSpellByID"}

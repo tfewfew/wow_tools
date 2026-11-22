@@ -29,6 +29,20 @@ local function OnItem(tooltip, data)
     end
 end
 
+local function GetTrainerRank(info, spellID)
+    local saved = ns.db.fixes and ns.db.fixes[spellID]
+    if saved and (saved.skill or saved.skillUnknown) then return end
+    local serviceIndex = info.getterArgs and info.getterArgs[1]
+    if not GetTrainerServiceSkillReq or (issecretvalue and issecretvalue(serviceIndex))
+        or type(serviceIndex) ~= "number" or serviceIndex <= 0 then return end
+
+    local skill, rank = GetTrainerServiceSkillReq(serviceIndex)
+    if (not issecretvalue or not (issecretvalue(skill) or issecretvalue(rank)))
+        and type(skill) == "string" and type(rank) == "number" and rank > 0 then
+        return rank
+    end
+end
+
 local function OnTrainerSpell(tooltip, data)
     if not ns.db or tooltip ~= GameTooltip or tooltip:IsForbidden() then return end
     local info = tooltip:GetProcessingTooltipInfo()
@@ -37,7 +51,7 @@ local function OnTrainerSpell(tooltip, data)
     local spellID = data.id
     if (issecretvalue and issecretvalue(spellID)) or type(spellID) ~= "number" then return end
     local recipe = ns.Dataflows.RecipeIndex.Get(spellID)
-    local levels = recipe and ns.SkillRange.Text(recipe)
+    local levels = recipe and ns.SkillRange.Text(recipe, GetTrainerRank(info, spellID))
     if levels then
         tooltip:AddLine(ns.Localization.Text("tooltip.skill_range", levels), 1, 1, 1)
     end

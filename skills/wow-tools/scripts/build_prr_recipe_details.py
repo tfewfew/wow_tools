@@ -26,6 +26,27 @@ PROFESSIONS = ('Alchemy', 'Blacksmithing', 'Cooking', 'Enchanting', 'Engineering
                'Firstaid', 'Fishing', 'Herbalism', 'Leatherworking', 'Mining', 'Skinning', 'Tailoring')
 # These IDs lack names in ProfessionDB. Cross-checked against the bundled QuestieDB 1.1.1 NPC records.
 TRAINER_NAMES = {3184: "Miao'zan", 3484: "Kil'hala", 4159: "Me'lynn", 7871: "Se'Jib"}
+CALIBRATION_BUILD = '1.60.1.71037'
+CALIBRATION_TABLES = {
+    'SkillLineAbility': SKILLLINE_SHA256,
+    'ItemSparse': '40a846d609a35d6fa4df63dfe0fed4166a96e753d2fe8f7f87fb0023ab50a1b0',
+    'ItemEffect': '0272d47d6bed698febbe29a4b58882adcf6c2bf43d211f926bfd96be47ae8a23',
+    'ItemXItemEffect': 'dd612cf4d32a4287861f57b9a19421f6bf111531b084197a3033a4f8c794c397',
+    'SpellEffect': 'a0afcd6a6bfd078e6eaf77df82922c435a9a4558593cf78dfb483631a7b9bfd3',
+}
+CALIBRATION_TRAINER_COMMIT = '5d76a9e5bbba33b97a98774103ccc607ad2463c1'
+CALIBRATION_TRAINERS = {
+    '1.60.1.70938': '4d94357ea0fde25af338781e72c372489a6a0c5cf7a3c316b344953ced6420ad',
+    '1.60.1.70959': 'ee9d2ae0b58b332ae0508421ad2816ae9bdcbbc623f1fdbea1cca559ec1cf154',
+    '1.60.1.71037': 'c78ea2bbaef22059f8bd4c8d542b246ce9126e3ba0f65395da7c320286f18f03',
+}
+TRAINER_SKILL_NAMES = {
+    129: {'First Aid'}, 164: {'Blacksmithing'}, 165: {'Leatherworking'},
+    171: {'Alchemy', '연금술'}, 182: {'Herbalism', '약초채집'}, 185: {'Cooking'},
+    186: {'Mining'}, 197: {'Tailoring'}, 202: {'Engineering'},
+    333: {'Enchanting'}, 356: {'Fishing'}, 393: {'Skinning'},
+}
+HOTFIX_URL = 'https://news.blizzard.com/en-us/article/24315281/wow-forever-hotfixes-november-10-2026'
 
 
 def lua(value):
@@ -43,7 +64,8 @@ def lua(value):
 
 
 def write_utf8(path, text):
-    path.write_bytes(text.encode('utf8'))
+    if not path.exists() or path.read_text(encoding='utf8') != text:
+        path.write_bytes(text.encode('utf8'))
 
 
 def read_client_table(path, expected_hash):
@@ -53,13 +75,7 @@ def read_client_table(path, expected_hash):
         return list(csv.DictReader(stream))
 
 
-def verify_learning(repo, args, recipes, details, trainers, client_ranges, client_items):
-    evidence_path = repo / 'skills/wow-tools/data/prr-learning-evidence.json'
-    evidence_text = evidence_path.read_text(encoding='utf8')
-    evidence = json.loads(evidence_text)
-    targets = evidence['targets']
-    tables = {name: read_client_table(args.item_sparse_csv.parent / (name + '-' + CLIENT_BUILD + '.csv'), digest)
-              for name, digest in TEACHING_TABLES.items()}
+def teaching_item_index(tables):
     taught_spells = defaultdict(set)
     for row in tables['SpellEffect']:
         if int(row['Effect']) == 36:
@@ -76,6 +92,149 @@ def verify_learning(repo, args, recipes, details, trainers, client_ranges, clien
             spells.add(spell_id)
         for taught in spells:
             teaching_items[taught].add(int(row['ItemID']))
+    return teaching_items
+
+
+def calibration_observations(args, recipes):
+    observations = {}
+    for build, digest in CALIBRATION_TRAINERS.items():
+        path = f'data/wowf/{build}/trainers.json'
+        blob = subprocess.check_output(['git', '-C', str(args.forever_data), 'show',
+                                        f'{CALIBRATION_TRAINER_COMMIT}:{path}'])
+        if hashlib.sha256(blob).hexdigest() != digest:
+            raise ValueError('Unexpected trainer dataset fingerprint: ' + path)
+        snapshot = json.loads(blob)
+        if (snapshot['meta']['product'], snapshot['meta']['clientBuild']) != ('wowf', build):
+            raise ValueError('Unexpected trainer dataset identity: ' + path)
+        by_spell = defaultdict(list)
+        for npc_id, npc in snapshot['trainers'].items():
+            if not npc.get('tradeskill'):
+                continue
+            for key, service in npc.get('services', {}).items():
+                spell_id = int(key)
+                recipe = recipes[spell_id]
+                if (recipe and service.get('spellId') == spell_id and not service.get('step')
+                        and service.get('skillRank', 0) > 0
+                        and service.get('skill') in TRAINER_SKILL_NAMES.get(recipe.profession, set())):
+                    by_spell[spell_id].append((service['skillRank'], int(npc_id)))
+        for spell_id, ranks in by_spell.items():
+            rank = min(rank for rank, _ in ranks)
+            observations[spell_id] = {'type': 'trainer', 'rank': rank, 'build': build,
+                                      'npcIDs': sorted(npc for value, npc in ranks if value == rank)}
+    return observations
+
+
+def calibrate_skills(args, recipes, fixes, details, verification, core, borrowed):
+    tables = {name: read_client_table(args.calibration_tables / f'{name}-{CALIBRATION_BUILD}.csv', digest)
+              for name, digest in CALIBRATION_TABLES.items()}
+    trainer = calibration_observations(args, recipes)
+    teaching_items = teaching_item_index(tables)
+    items = {int(row['ID']): row for row in tables['ItemSparse']}
+    ranges = defaultdict(list)
+    for row in tables['SkillLineAbility']:
+        ranges[int(row['Spell']), int(row['SkillLine'])].append(row)
+
+    changes, audit = {}, []
+    equal = {'corrected': [], 'verified': [], 'retained': []}
+    historical = {row['spellID'] for row in verification['unknownSkills'] if row['status'] == 'verified'}
+    unknown = 0
+    for spell_id, recipe in sorted(recipes.items()):
+        fix, detail = fixes[spell_id], details.get(spell_id, {})
+        previous = (fix.skill if fix else None) or (detail.get('skill') if detail.get('skillCorrection')
+                                                   else recipe.skill or detail.get('skill'))
+        if fix and fix.skillUnknown:
+            previous = None
+        native = ranges[spell_id, recipe.profession]
+        values = {(int(row['TrivialSkillLineRankLow']), int(row['TrivialSkillLineRankHigh'])) for row in native}
+        if len(values) != 1:
+            raise ValueError(f'Missing or ambiguous client thresholds for spell {spell_id}')
+        raw_yellow, raw_gray = next(iter(values))
+        yellow, gray = raw_yellow, raw_gray
+        if spell_id == 1263031:
+            # Blizzard reduced the original 145 cap by 15. The build table stores 125 in both fields.
+            if (yellow, raw_gray, recipe.gray) != (125, 125, 145):
+                raise ValueError('Recheck the Tanning Rack server hotfix')
+            gray = 130
+        if not 0 <= yellow <= gray:
+            yellow, gray = 0, 0
+
+        candidates = []
+        for item_id in sorted(teaching_items[spell_id]):
+            item = items.get(item_id)
+            if item and int(item['RequiredSkill']) == recipe.profession and int(item['RequiredSkillRank']) > 0:
+                candidates.append({'type': 'item', 'rank': int(item['RequiredSkillRank']), 'itemID': item_id})
+        if spell_id in trainer:
+            candidates.append(trainer[spell_id])
+        for row in native:
+            if int(row['AcquireMethod']) in (1, 2):
+                candidates.append({'type': 'automatic', 'rank': max(1, int(row['MinSkillLineRank'])),
+                                   'skillLineAbilityID': int(row['ID'])})
+                break
+        chosen = min(candidates, key=lambda source: source['rank'], default=None)
+        skill = previous
+        if chosen and not (fix and fix.skillUnknown):
+            skill = chosen['rank']
+
+        updated = {}
+        if previous != skill:
+            updated['skill'] = skill
+        if (recipe.yellow or 0, recipe.gray or 0) != (yellow, gray):
+            updated.update(yellow=yellow, gray=gray)
+        if spell_id == 9957 and chosen and chosen.get('itemID') == 7994:
+            updated.update(recipeItem=7994, recipeItemBound=int(items[7994]['Bonding']) == 1)
+        if updated:
+            changes[spell_id] = updated
+            entry = {'spellID': spell_id, 'profession': recipe.profession,
+                     'previous': {'skill': previous, 'yellow': recipe.yellow, 'gray': recipe.gray},
+                     'corrected': updated, 'sources': candidates}
+            if 'yellow' in updated:
+                entry['clientThresholds'] = {'yellow': raw_yellow, 'gray': raw_gray,
+                                             'skillLineAbilityIDs': sorted(int(row['ID']) for row in native)}
+                if spell_id == 1263031:
+                    entry['serverHotfix'] = {'url': HOTFIX_URL, 'date': '2026-11-06',
+                                             'gray': gray, 'previousGray': recipe.gray, 'delta': -15}
+                elif raw_yellow > raw_gray:
+                    entry['thresholdStatus'] = 'unknownInvertedClientRange'
+            audit.append(entry)
+
+        if previous is not None and previous == recipe.yellow:
+            lib = core[spell_id]
+            corroborated = (spell_id in historical or (lib and lib.profession == recipe.profession
+                            and lib.requiredSkill == previous and not borrowed[spell_id]))
+            outcome = 'corrected' if updated else 'verified' if chosen or corroborated else 'retained'
+            equal[outcome].append(spell_id)
+        if skill is None:
+            unknown += 1
+
+    return changes, {
+        'build': CALIBRATION_BUILD,
+        'clientTables': {name: {'url': f'https://wago.tools/db2/{name}/csv?build={CALIBRATION_BUILD}', 'sha256': digest}
+                         for name, digest in CALIBRATION_TABLES.items()},
+        'trainerObservations': {'commit': CALIBRATION_TRAINER_COMMIT,
+                                'inputs': {f'data/wowf/{build}/trainers.json': digest
+                                           for build, digest in CALIBRATION_TRAINERS.items()}},
+        'policy': ['Read thresholds from the matching current SkillLineAbility spell and profession.',
+                   'Suppress an inverted client range and apply the independently documented Tanning Rack hotfix.',
+                   'Use the earliest verified learning route across teaching items, automatic grants and the newest trainer observation.',
+                   'A trainer can require a different rank from an available item or automatic grant.',
+                   'A matching prior rank without additional evidence is listed as retained, and unknown ranks stay unknown.'],
+        'recipesChecked': len(list(recipes.items())),
+        'unknownLearningRanks': unknown,
+        'learningRanksChanged': sum('skill' in row for row in changes.values()),
+        'thresholdsChanged': sum('yellow' in row for row in changes.values()),
+        'previousLearnEqualsYellow': equal,
+        'changes': audit,
+    }
+
+
+def verify_learning(repo, args, recipes, details, trainers, client_ranges, client_items):
+    evidence_path = repo / 'skills/wow-tools/data/prr-learning-evidence.json'
+    evidence_text = evidence_path.read_text(encoding='utf8')
+    evidence = json.loads(evidence_text)
+    targets = evidence['targets']
+    tables = {name: read_client_table(args.item_sparse_csv.parent / (name + '-' + CLIENT_BUILD + '.csv'), digest)
+              for name, digest in TEACHING_TABLES.items()}
+    teaching_items = teaching_item_index(tables)
 
     documented = {}
     documentation = {row['spellID']: row for row in evidence['foreverDB']['recipes']}
@@ -318,6 +477,8 @@ def main():
     parser.add_argument('--forever-data', type=Path, required=True)
     parser.add_argument('--skillline-ability-csv', type=Path, required=True)
     parser.add_argument('--item-sparse-csv', type=Path, required=True)
+    parser.add_argument('--calibration-tables', type=Path, required=True,
+                        help='Directory with the five pinned current-build CSV inputs')
     parser.add_argument('--lua-module-root', type=Path)
     args = parser.parse_args()
     if args.lua_module_root:
@@ -518,6 +679,8 @@ def main():
         detail = details.get(spell_id, {})
         key = ('reference' if detail.get('skillReference') else 'native') if detail.get('skill') else 'remaining'
         repaired[key] += 1
+    calibration, calibration_audit = calibrate_skills(
+        args, recipes, fixes, details, verification, globals_.core, globals_.borrowed.requiredSkill)
     lines = [
         'WoWTools.prr.RegisterSource(function(...)',
         '-- Generated by skills/wow-tools/scripts/build_prr_recipe_details.py.',
@@ -530,12 +693,15 @@ def main():
     lines.extend(['}', 'ns.Database.Trainers = {'])
     for npc_id, trainer in sorted(trainers.items()):
         lines.append('    [' + str(npc_id) + '] = ' + lua(trainer) + ',')
+    lines.extend(['}', 'ns.Database.RecipeCalibration = {'])
+    for spell_id, fields in sorted(calibration.items()):
+        lines.append('    [' + str(spell_id) + '] = ' + lua(fields) + ',')
     lines.extend(['}', 'end)', ''])
     write_utf8(target / 'database/recipe_details.lua', '\n'.join(lines))
     write_utf8(target / 'LICENSE-ProfessionDB.txt', archive.read('ProfessionDB/LICENSE').decode('utf8').rstrip() + '\n')
     write_utf8(target / 'LICENSE-EfficientGames.txt', (args.forever_data / 'LICENSE').read_text(encoding='utf8').rstrip() + '\n')
     provenance = {
-        'updatedAt': '2026-11-18',
+        'updatedAt': '2026-11-22',
         'professionDB': {'version': '1.10.1', 'license': 'MIT', 'author': 'Pimptasty',
                          'release': 'https://www.curseforge.com/wow/addons/libprofessiondb/files/9653856',
                          'packageSHA256': PROFESSIONDB_SHA256, 'data': 'Data/Forever/_core'},
@@ -566,6 +732,7 @@ def main():
                for name, digest in TEACHING_TABLES.items()},
         },
         'learningVerification': verification,
+        'skillCalibration': calibration_audit,
         'skillAudit': sorted(skill_audit, key=lambda row: row['spellID']),
         'npcNameCorrections': {'source': 'QuestieDB 1.1.1 NPC records bundled with Raynna Bestiary',
                                'release': 'https://github.com/Questie/QuestieDB/releases/tag/v1.1.1',

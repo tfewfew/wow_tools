@@ -85,7 +85,7 @@ end
 -- yellow (only with includeYellow, up to green): yellowChance percent set by
 -- the player, or by the formula (YELLOW_CHANCE_AUTO, nil); nil -- no point or not known.
 function SkillPlanner.Chance(recipe, skill, includeYellow, yellowChance)
-    local isKnown = recipe.skill and recipe.yellow and recipe.gray and recipe.gray > recipe.yellow
+    local isKnown = recipe.skill and recipe.yellow and recipe.gray and recipe.gray >= recipe.yellow
     if not isKnown or skill < recipe.skill then
         return nil
     end

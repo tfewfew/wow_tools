@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-18",
+  "updatedAt": "2026-11-22",
   "professionDB": {
     "version": "1.10.1",
     "license": "MIT",
@@ -23255,6 +23255,3371 @@
         ],
         "documentationPage": "https://www.wowhead.com/forever/npc=7867/thorkaf-dragoneye",
         "documentationStatus": "inferredOrClientMismatch"
+      }
+    ]
+  },
+  "skillCalibration": {
+    "build": "1.60.1.71037",
+    "clientTables": {
+      "SkillLineAbility": {
+        "url": "https://wago.tools/db2/SkillLineAbility/csv?build=1.60.1.71037",
+        "sha256": "6696abd03ef90ad250a12ac23778616c292c46f6a0082130fbe187c96ead0aa0"
+      },
+      "ItemSparse": {
+        "url": "https://wago.tools/db2/ItemSparse/csv?build=1.60.1.71037",
+        "sha256": "40a846d609a35d6fa4df63dfe0fed4166a96e753d2fe8f7f87fb0023ab50a1b0"
+      },
+      "ItemEffect": {
+        "url": "https://wago.tools/db2/ItemEffect/csv?build=1.60.1.71037",
+        "sha256": "0272d47d6bed698febbe29a4b58882adcf6c2bf43d211f926bfd96be47ae8a23"
+      },
+      "ItemXItemEffect": {
+        "url": "https://wago.tools/db2/ItemXItemEffect/csv?build=1.60.1.71037",
+        "sha256": "dd612cf4d32a4287861f57b9a19421f6bf111531b084197a3033a4f8c794c397"
+      },
+      "SpellEffect": {
+        "url": "https://wago.tools/db2/SpellEffect/csv?build=1.60.1.71037",
+        "sha256": "a0afcd6a6bfd078e6eaf77df82922c435a9a4558593cf78dfb483631a7b9bfd3"
+      }
+    },
+    "trainerObservations": {
+      "commit": "5d76a9e5bbba33b97a98774103ccc607ad2463c1",
+      "inputs": {
+        "data/wowf/1.60.1.70938/trainers.json": "4d94357ea0fde25af338781e72c372489a6a0c5cf7a3c316b344953ced6420ad",
+        "data/wowf/1.60.1.70959/trainers.json": "ee9d2ae0b58b332ae0508421ad2816ae9bdcbbc623f1fdbea1cca559ec1cf154",
+        "data/wowf/1.60.1.71037/trainers.json": "c78ea2bbaef22059f8bd4c8d542b246ce9126e3ba0f65395da7c320286f18f03"
+      }
+    },
+    "policy": [
+      "Read thresholds from the matching current SkillLineAbility spell and profession.",
+      "Suppress an inverted client range and apply the independently documented Tanning Rack hotfix.",
+      "Use the earliest verified learning route across teaching items, automatic grants and the newest trainer observation.",
+      "A trainer can require a different rank from an available item or automatic grant.",
+      "A matching prior rank without additional evidence is listed as retained, and unknown ranks stay unknown."
+    ],
+    "recipesChecked": 2523,
+    "unknownLearningRanks": 161,
+    "learningRanksChanged": 95,
+    "thresholdsChanged": 27,
+    "previousLearnEqualsYellow": {
+      "corrected": [
+        2167,
+        2168,
+        2386,
+        2397,
+        2399,
+        2401,
+        2657,
+        3326,
+        3501,
+        3502,
+        3506,
+        3508,
+        3764,
+        3766,
+        3768,
+        3770,
+        3841,
+        3842,
+        3843,
+        3845,
+        3848,
+        3850,
+        3855,
+        3866,
+        3920,
+        7135,
+        7223,
+        8467,
+        9074,
+        9145,
+        9916,
+        9993,
+        12046,
+        15972,
+        1229432,
+        1229504,
+        1229517,
+        1229705,
+        1230117,
+        1230161,
+        1230171,
+        1230564,
+        1230643,
+        1230656,
+        1262975,
+        1262980,
+        1262985,
+        1262990,
+        1262996,
+        1263005,
+        1263031,
+        1263032,
+        1263034,
+        1263041,
+        1263056,
+        1263425
+      ],
+      "verified": [
+        2659,
+        2665,
+        2674,
+        3116,
+        3117,
+        3277,
+        3278,
+        3337,
+        3569,
+        3937,
+        3938,
+        3941,
+        3942,
+        3944,
+        3945,
+        3946,
+        3947,
+        3950,
+        3953,
+        3972,
+        7836,
+        7928,
+        7929,
+        7934,
+        7935,
+        8243,
+        8768,
+        9271,
+        9918,
+        9920,
+        9921,
+        10097,
+        10098,
+        10482,
+        10840,
+        11454,
+        11458,
+        12584,
+        14891,
+        15628,
+        15633,
+        16153,
+        16728,
+        16746,
+        17187,
+        17559,
+        17560,
+        17561,
+        17562,
+        17563,
+        17564,
+        17565,
+        17566,
+        19047,
+        19058,
+        19666,
+        19667,
+        19668,
+        20201,
+        20648,
+        20649,
+        20650,
+        21940,
+        22331,
+        22813,
+        22815,
+        23066,
+        23067,
+        23068,
+        23069,
+        23080,
+        23129,
+        23190,
+        23507,
+        23787,
+        26416,
+        26417,
+        26418,
+        26420,
+        26421,
+        26422,
+        26423,
+        26424,
+        26425,
+        26426,
+        26427,
+        26428,
+        44950,
+        44958,
+        426607,
+        428424,
+        429348,
+        429351,
+        429354,
+        429869,
+        431362,
+        435610,
+        435819,
+        435827,
+        435904,
+        435906,
+        435908,
+        435910,
+        435949,
+        435951,
+        435953,
+        435956,
+        435958,
+        435960,
+        435964,
+        435966,
+        435969,
+        435971,
+        439156,
+        446179,
+        446183,
+        446185,
+        446186,
+        446188,
+        446189,
+        446190,
+        446191,
+        446192,
+        446193,
+        446194,
+        446195,
+        446226,
+        446236,
+        446237,
+        446238,
+        446243,
+        446851,
+        448085,
+        448624,
+        451706,
+        461692,
+        462227,
+        1223768,
+        1223770,
+        1223772,
+        1229737,
+        1229745,
+        1244645,
+        1244646,
+        1244647,
+        1244648,
+        1248703,
+        1248739,
+        1248745,
+        1248748,
+        1248757,
+        1248760,
+        1248805,
+        1249637,
+        1254965,
+        1254966,
+        1259342,
+        1259347,
+        1262982,
+        1262998,
+        1263001,
+        1263067,
+        1263070,
+        1263071,
+        1263073,
+        1263078,
+        1263079,
+        1263080,
+        1263082,
+        1263083,
+        1266893,
+        1266905,
+        1266906,
+        1266907,
+        1266908,
+        1266909,
+        1266910,
+        1266911,
+        1266912,
+        1266914,
+        1266916,
+        1266917,
+        1266918,
+        1266921,
+        1266922,
+        1266924,
+        1266925,
+        1266926,
+        1266927,
+        1266928,
+        1266929,
+        1286792,
+        1293088,
+        1294054,
+        1297122,
+        1297125,
+        1297128,
+        1297131,
+        1297134,
+        1297137,
+        1297140,
+        1297143,
+        1302161,
+        1306126,
+        1317279,
+        1319154,
+        1319155,
+        1319156,
+        1319157,
+        1319158,
+        1319159,
+        1319160,
+        1319161,
+        1319162,
+        1319163,
+        1319164,
+        1319165
+      ],
+      "retained": [
+        3958,
+        3961,
+        3962,
+        3963,
+        3965,
+        3967,
+        7636,
+        8368,
+        10001,
+        10003,
+        10007,
+        10011,
+        10015,
+        10841,
+        12585,
+        12586,
+        12589,
+        12590,
+        12591,
+        12596,
+        12599,
+        12619,
+        12621,
+        12715,
+        12755,
+        12760,
+        12895,
+        12900,
+        15255,
+        16960,
+        16965,
+        16967,
+        16980,
+        17180,
+        17181,
+        17551,
+        18629,
+        18630,
+        19669,
+        19788,
+        23070,
+        30021
+      ]
+    },
+    "changes": [
+      {
+        "spellID": 2153,
+        "profession": 165,
+        "previous": {
+          "skill": 30,
+          "yellow": 45,
+          "gray": 75
+        },
+        "corrected": {
+          "skill": 15
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 15,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3008,
+              4212,
+              5564,
+              11081
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2160,
+        "profession": 165,
+        "previous": {
+          "skill": 50,
+          "yellow": 65,
+          "gray": 95
+        },
+        "corrected": {
+          "skill": 35
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 35,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3008,
+              4212,
+              5564,
+              11081
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2161,
+        "profession": 165,
+        "previous": {
+          "skill": 65,
+          "yellow": 80,
+          "gray": 110
+        },
+        "corrected": {
+          "skill": 50
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 50,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3008,
+              4212,
+              5564,
+              11081
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2162,
+        "profession": 165,
+        "previous": {
+          "skill": 65,
+          "yellow": 70,
+          "gray": 100
+        },
+        "corrected": {
+          "skill": 40
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 40,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3008,
+              4212,
+              5564,
+              11081
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2167,
+        "profession": 165,
+        "previous": {
+          "skill": 100,
+          "yellow": 100,
+          "gray": 125
+        },
+        "corrected": {
+          "skill": 75
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 75,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              4212,
+              5564,
+              11081
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2168,
+        "profession": 165,
+        "previous": {
+          "skill": 110,
+          "yellow": 110,
+          "gray": 135
+        },
+        "corrected": {
+          "skill": 85
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 85,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              4212,
+              5564,
+              11081
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2331,
+        "profession": 171,
+        "previous": {
+          "skill": 30,
+          "yellow": 65,
+          "gray": 105
+        },
+        "corrected": {
+          "skill": 25
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 25,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3603
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2386,
+        "profession": 197,
+        "previous": {
+          "skill": 65,
+          "yellow": 65,
+          "gray": 100
+        },
+        "corrected": {
+          "skill": 40
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 40,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              1300,
+              4576,
+              5567,
+              11048,
+              11049
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2392,
+        "profession": 197,
+        "previous": {
+          "skill": 40,
+          "yellow": 50,
+          "gray": 85
+        },
+        "corrected": {
+          "skill": 25
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 25,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              1300,
+              4576,
+              5567,
+              11048,
+              11049
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2394,
+        "profession": 197,
+        "previous": {
+          "skill": 40,
+          "yellow": 50,
+          "gray": 85
+        },
+        "corrected": {
+          "skill": 25
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 25,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              1300,
+              4576,
+              5567,
+              11048,
+              11049
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2397,
+        "profession": 197,
+        "previous": {
+          "skill": 60,
+          "yellow": 60,
+          "gray": 95
+        },
+        "corrected": {
+          "skill": 35
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 35,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              1300,
+              4576,
+              5567,
+              11048,
+              11049
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2399,
+        "profession": 197,
+        "previous": {
+          "skill": 85,
+          "yellow": 85,
+          "gray": 120
+        },
+        "corrected": {
+          "skill": 60
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 60,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              4576,
+              5567,
+              11049
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2401,
+        "profession": 197,
+        "previous": {
+          "skill": 95,
+          "yellow": 95,
+          "gray": 130
+        },
+        "corrected": {
+          "skill": 70
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 70,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              4576,
+              5567,
+              11049
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2402,
+        "profession": 197,
+        "previous": {
+          "skill": 75,
+          "yellow": 80,
+          "gray": 115
+        },
+        "corrected": {
+          "skill": 55
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 55,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              1300,
+              4576,
+              5567,
+              11048,
+              11049
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2539,
+        "profession": 185,
+        "previous": {
+          "skill": 30,
+          "yellow": 50,
+          "gray": 90
+        },
+        "corrected": {
+          "skill": 10
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 10,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3399
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2541,
+        "profession": 185,
+        "previous": {
+          "skill": 65,
+          "yellow": 90,
+          "gray": 130
+        },
+        "corrected": {
+          "skill": 50
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 50,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3399
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2546,
+        "profession": 185,
+        "previous": {
+          "skill": 110,
+          "yellow": 120,
+          "gray": 160
+        },
+        "corrected": {
+          "skill": 80
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 80,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3399
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2657,
+        "profession": 186,
+        "previous": {
+          "skill": 25,
+          "yellow": 25,
+          "gray": 70
+        },
+        "corrected": {
+          "skill": 1
+        },
+        "sources": [
+          {
+            "type": "automatic",
+            "rank": 1,
+            "skillLineAbilityID": 3324
+          }
+        ]
+      },
+      {
+        "spellID": 2661,
+        "profession": 164,
+        "previous": {
+          "skill": 55,
+          "yellow": 70,
+          "gray": 110
+        },
+        "corrected": {
+          "skill": 30
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 30,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2662,
+        "profession": 164,
+        "previous": {
+          "skill": 40,
+          "yellow": 50,
+          "gray": 90
+        },
+        "corrected": {
+          "skill": 15
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 15,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2666,
+        "profession": 164,
+        "previous": {
+          "skill": 80,
+          "yellow": 85,
+          "gray": 125
+        },
+        "corrected": {
+          "skill": 45
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 45,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2668,
+        "profession": 164,
+        "previous": {
+          "skill": 95,
+          "yellow": 120,
+          "gray": 150
+        },
+        "corrected": {
+          "skill": 80
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 80,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2670,
+        "profession": 164,
+        "previous": {
+          "skill": 105,
+          "yellow": 120,
+          "gray": 150
+        },
+        "corrected": {
+          "skill": 80
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 80,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2672,
+        "profession": 164,
+        "previous": {
+          "skill": 120,
+          "yellow": 125,
+          "gray": 155
+        },
+        "corrected": {
+          "skill": 95
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 95,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2675,
+        "profession": 164,
+        "previous": {
+          "skill": 135,
+          "yellow": 150,
+          "gray": 180
+        },
+        "corrected": {
+          "skill": 120
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 120,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2737,
+        "profession": 164,
+        "previous": {
+          "skill": 30,
+          "yellow": 55,
+          "gray": 95
+        },
+        "corrected": {
+          "skill": 15
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 15,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2738,
+        "profession": 164,
+        "previous": {
+          "skill": 35,
+          "yellow": 60,
+          "gray": 100
+        },
+        "corrected": {
+          "skill": 20
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 20,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2739,
+        "profession": 164,
+        "previous": {
+          "skill": 40,
+          "yellow": 65,
+          "gray": 105
+        },
+        "corrected": {
+          "skill": 25
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 25,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2740,
+        "profession": 164,
+        "previous": {
+          "skill": 75,
+          "yellow": 115,
+          "gray": 145
+        },
+        "corrected": {
+          "skill": 85
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 85,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 2741,
+        "profession": 164,
+        "previous": {
+          "skill": 85,
+          "yellow": 120,
+          "gray": 150
+        },
+        "corrected": {
+          "skill": 90
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 90,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3170,
+        "profession": 171,
+        "previous": {
+          "skill": 1,
+          "yellow": 60,
+          "gray": 100
+        },
+        "corrected": {
+          "skill": 15
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 15,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3603
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3292,
+        "profession": 164,
+        "previous": {
+          "skill": 95,
+          "yellow": 110,
+          "gray": 150
+        },
+        "corrected": {
+          "skill": 70
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 70,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3293,
+        "profession": 164,
+        "previous": {
+          "skill": 35,
+          "yellow": 70,
+          "gray": 110
+        },
+        "corrected": {
+          "skill": 30
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 30,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3294,
+        "profession": 164,
+        "previous": {
+          "skill": 70,
+          "yellow": 85,
+          "gray": 125
+        },
+        "corrected": {
+          "skill": 45
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 45,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3296,
+        "profession": 164,
+        "previous": {
+          "skill": 130,
+          "yellow": 135,
+          "gray": 165
+        },
+        "corrected": {
+          "skill": 105
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 105,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3323,
+        "profession": 164,
+        "previous": {
+          "skill": 40,
+          "yellow": 75,
+          "gray": 115
+        },
+        "corrected": {
+          "skill": 35
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 35,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3324,
+        "profession": 164,
+        "previous": {
+          "skill": 45,
+          "yellow": 75,
+          "gray": 115
+        },
+        "corrected": {
+          "skill": 35
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 35,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3326,
+        "profession": 164,
+        "previous": {
+          "skill": 50,
+          "yellow": 50,
+          "gray": 75
+        },
+        "corrected": {
+          "yellow": 50,
+          "gray": 90
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 50,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ],
+        "clientThresholds": {
+          "yellow": 50,
+          "gray": 90,
+          "skillLineAbilityIDs": [
+            1861
+          ]
+        }
+      },
+      {
+        "spellID": 3328,
+        "profession": 164,
+        "previous": {
+          "skill": 110,
+          "yellow": 115,
+          "gray": 145
+        },
+        "corrected": {
+          "skill": 85
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 85,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3331,
+        "profession": 164,
+        "previous": {
+          "skill": 130,
+          "yellow": 135,
+          "gray": 165
+        },
+        "corrected": {
+          "skill": 105
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 105,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3333,
+        "profession": 164,
+        "previous": {
+          "skill": 135,
+          "yellow": 140,
+          "gray": 170
+        },
+        "corrected": {
+          "skill": 110
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 110,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3491,
+        "profession": 164,
+        "previous": {
+          "skill": 105,
+          "yellow": 110,
+          "gray": 140
+        },
+        "corrected": {
+          "skill": 80
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 80,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3501,
+        "profession": 164,
+        "previous": {
+          "skill": 165,
+          "yellow": 165,
+          "gray": 190
+        },
+        "corrected": {
+          "skill": 140
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 140,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3502,
+        "profession": 164,
+        "previous": {
+          "skill": 170,
+          "yellow": 170,
+          "gray": 195
+        },
+        "corrected": {
+          "skill": 145
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 145,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3506,
+        "profession": 164,
+        "previous": {
+          "skill": 155,
+          "yellow": 155,
+          "gray": 180
+        },
+        "corrected": {
+          "skill": 130
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 130,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3508,
+        "profession": 164,
+        "previous": {
+          "skill": 180,
+          "yellow": 180,
+          "gray": 205
+        },
+        "corrected": {
+          "skill": 155
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 155,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3756,
+        "profession": 165,
+        "previous": {
+          "skill": 55,
+          "yellow": 70,
+          "gray": 100
+        },
+        "corrected": {
+          "skill": 40
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 40,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3008,
+              4212,
+              5564,
+              11081
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3759,
+        "profession": 165,
+        "previous": {
+          "skill": 75,
+          "yellow": 80,
+          "gray": 110
+        },
+        "corrected": {
+          "skill": 50
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 50,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3008,
+              4212,
+              5564,
+              11081
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3761,
+        "profession": 165,
+        "previous": {
+          "skill": 85,
+          "yellow": 90,
+          "gray": 120
+        },
+        "corrected": {
+          "skill": 60
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 60,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              4212,
+              5564,
+              11081
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3763,
+        "profession": 165,
+        "previous": {
+          "skill": 80,
+          "yellow": 85,
+          "gray": 115
+        },
+        "corrected": {
+          "skill": 55
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 55,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              4212,
+              5564,
+              11081
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3764,
+        "profession": 165,
+        "previous": {
+          "skill": 145,
+          "yellow": 145,
+          "gray": 170
+        },
+        "corrected": {
+          "skill": 120
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 120,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              4212,
+              5564,
+              11081
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3766,
+        "profession": 165,
+        "previous": {
+          "skill": 125,
+          "yellow": 125,
+          "gray": 150
+        },
+        "corrected": {
+          "skill": 100
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 100,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              4212,
+              5564,
+              11081
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3768,
+        "profession": 165,
+        "previous": {
+          "skill": 130,
+          "yellow": 130,
+          "gray": 155
+        },
+        "corrected": {
+          "skill": 105
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 105,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              4212,
+              5564,
+              11081
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3770,
+        "profession": 165,
+        "previous": {
+          "skill": 135,
+          "yellow": 135,
+          "gray": 160
+        },
+        "corrected": {
+          "skill": 110
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 110,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              4212,
+              5564,
+              11081
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3816,
+        "profession": 165,
+        "previous": {
+          "skill": 35,
+          "yellow": 50,
+          "gray": 70
+        },
+        "corrected": {
+          "skill": 30
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 30,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3008,
+              4212,
+              5564,
+              11081
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3840,
+        "profession": 197,
+        "previous": {
+          "skill": 35,
+          "yellow": 50,
+          "gray": 85
+        },
+        "corrected": {
+          "skill": 25
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 25,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              1300,
+              4576,
+              5567,
+              11048,
+              11049
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3841,
+        "profession": 197,
+        "previous": {
+          "skill": 60,
+          "yellow": 60,
+          "gray": 95
+        },
+        "corrected": {
+          "skill": 35
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 35,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              1300,
+              4576,
+              5567,
+              11048,
+              11049
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3842,
+        "profession": 197,
+        "previous": {
+          "skill": 70,
+          "yellow": 70,
+          "gray": 105
+        },
+        "corrected": {
+          "skill": 45
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 45,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              1300,
+              4576,
+              5567,
+              11048,
+              11049
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3843,
+        "profession": 197,
+        "previous": {
+          "skill": 85,
+          "yellow": 85,
+          "gray": 120
+        },
+        "corrected": {
+          "skill": 60
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 60,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              4576,
+              5567,
+              11049
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3845,
+        "profession": 197,
+        "previous": {
+          "skill": 80,
+          "yellow": 80,
+          "gray": 115
+        },
+        "corrected": {
+          "skill": 55
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 55,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              4576,
+              5567,
+              11049
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3848,
+        "profession": 197,
+        "previous": {
+          "skill": 110,
+          "yellow": 110,
+          "gray": 145
+        },
+        "corrected": {
+          "skill": 85
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 85,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              4576,
+              5567,
+              11049
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3850,
+        "profession": 197,
+        "previous": {
+          "skill": 110,
+          "yellow": 110,
+          "gray": 145
+        },
+        "corrected": {
+          "skill": 85
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 85,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              4576,
+              5567,
+              11049
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3855,
+        "profession": 197,
+        "previous": {
+          "skill": 125,
+          "yellow": 125,
+          "gray": 160
+        },
+        "corrected": {
+          "skill": 100
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 100,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              4576,
+              5567,
+              11049
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3866,
+        "profession": 197,
+        "previous": {
+          "skill": 110,
+          "yellow": 110,
+          "gray": 145
+        },
+        "corrected": {
+          "skill": 85
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 85,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              4576,
+              5567,
+              11049
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3914,
+        "profession": 197,
+        "previous": {
+          "skill": 30,
+          "yellow": 50,
+          "gray": 85
+        },
+        "corrected": {
+          "skill": 25
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 25,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              1300,
+              4576,
+              5567,
+              11048,
+              11049
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 3920,
+        "profession": 202,
+        "previous": {
+          "skill": 30,
+          "yellow": 30,
+          "gray": 60
+        },
+        "corrected": {
+          "skill": 1
+        },
+        "sources": [
+          {
+            "type": "automatic",
+            "rank": 1,
+            "skillLineAbilityID": 2415
+          }
+        ]
+      },
+      {
+        "spellID": 6517,
+        "profession": 164,
+        "previous": {
+          "skill": 110,
+          "yellow": 115,
+          "gray": 145
+        },
+        "corrected": {
+          "skill": 85
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 85,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 6521,
+        "profession": 197,
+        "previous": {
+          "skill": 90,
+          "yellow": 95,
+          "gray": 130
+        },
+        "corrected": {
+          "skill": 70
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 70,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              4576,
+              5567,
+              11049
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 7135,
+        "profession": 165,
+        "previous": {
+          "skill": 115,
+          "yellow": 115,
+          "gray": 140
+        },
+        "corrected": {
+          "skill": 90
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 90,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              4212,
+              5564,
+              11081
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 7223,
+        "profession": 164,
+        "previous": {
+          "skill": 185,
+          "yellow": 185,
+          "gray": 210
+        },
+        "corrected": {
+          "skill": 160
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 160,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 7408,
+        "profession": 164,
+        "previous": {
+          "skill": 65,
+          "yellow": 80,
+          "gray": 120
+        },
+        "corrected": {
+          "skill": 40
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 40,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 7623,
+        "profession": 197,
+        "previous": {
+          "skill": 30,
+          "yellow": 50,
+          "gray": 85
+        },
+        "corrected": {
+          "skill": 25
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 25,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              1300,
+              4576,
+              5567,
+              11048,
+              11049
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 7624,
+        "profession": 197,
+        "previous": {
+          "skill": 30,
+          "yellow": 50,
+          "gray": 85
+        },
+        "corrected": {
+          "skill": 25
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 25,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              1300,
+              4576,
+              5567,
+              11048,
+              11049
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 7771,
+        "profession": 333,
+        "previous": {
+          "skill": 90,
+          "yellow": 110,
+          "gray": 150
+        },
+        "corrected": {
+          "skill": 70
+        },
+        "sources": [
+          {
+            "type": "item",
+            "rank": 90,
+            "itemID": 6345
+          },
+          {
+            "type": "trainer",
+            "rank": 70,
+            "build": "1.60.1.70938",
+            "npcIDs": [
+              3345,
+              4616,
+              11067,
+              11068
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 7817,
+        "profession": 164,
+        "previous": {
+          "skill": 95,
+          "yellow": 100,
+          "gray": 130
+        },
+        "corrected": {
+          "skill": 70
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 70,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 8465,
+        "profession": 197,
+        "previous": {
+          "skill": 40,
+          "yellow": 50,
+          "gray": 85
+        },
+        "corrected": {
+          "skill": 25
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 25,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              1300,
+              4576,
+              5567,
+              11048,
+              11049
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 8467,
+        "profession": 197,
+        "previous": {
+          "skill": 110,
+          "yellow": 110,
+          "gray": 145
+        },
+        "corrected": {
+          "skill": 85
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 85,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              4576,
+              5567,
+              11049
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 8880,
+        "profession": 164,
+        "previous": {
+          "skill": 30,
+          "yellow": 65,
+          "gray": 105
+        },
+        "corrected": {
+          "skill": 25
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 25,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 9060,
+        "profession": 165,
+        "previous": {
+          "skill": 30,
+          "yellow": 55,
+          "gray": 85
+        },
+        "corrected": {
+          "skill": 25
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 25,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3008,
+              4212,
+              5564,
+              11081
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 9062,
+        "profession": 165,
+        "previous": {
+          "skill": 30,
+          "yellow": 55,
+          "gray": 85
+        },
+        "corrected": {
+          "skill": 25
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 25,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3008,
+              4212,
+              5564,
+              11081
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 9065,
+        "profession": 165,
+        "previous": {
+          "skill": 70,
+          "yellow": 75,
+          "gray": 105
+        },
+        "corrected": {
+          "skill": 45
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 45,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3008,
+              4212,
+              5564,
+              11081
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 9068,
+        "profession": 165,
+        "previous": {
+          "skill": 95,
+          "yellow": 100,
+          "gray": 130
+        },
+        "corrected": {
+          "skill": 70
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 70,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              4212,
+              5564,
+              11081
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 9074,
+        "profession": 165,
+        "previous": {
+          "skill": 120,
+          "yellow": 120,
+          "gray": 145
+        },
+        "corrected": {
+          "skill": 95
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 95,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              4212,
+              5564,
+              11081
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 9145,
+        "profession": 165,
+        "previous": {
+          "skill": 125,
+          "yellow": 125,
+          "gray": 150
+        },
+        "corrected": {
+          "skill": 100
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 100,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              4212,
+              5564,
+              11081
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 9916,
+        "profession": 164,
+        "previous": {
+          "skill": 200,
+          "yellow": 200,
+          "gray": 225
+        },
+        "corrected": {
+          "skill": 175
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 175,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 9957,
+        "profession": 164,
+        "previous": {
+          "skill": null,
+          "yellow": 225,
+          "gray": 245
+        },
+        "corrected": {
+          "skill": 205,
+          "recipeItem": 7994,
+          "recipeItemBound": true
+        },
+        "sources": [
+          {
+            "type": "item",
+            "rank": 205,
+            "itemID": 7994
+          }
+        ]
+      },
+      {
+        "spellID": 9983,
+        "profession": 164,
+        "previous": {
+          "skill": 30,
+          "yellow": 65,
+          "gray": 105
+        },
+        "corrected": {
+          "skill": 25
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 25,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 9985,
+        "profession": 164,
+        "previous": {
+          "skill": 125,
+          "yellow": 155,
+          "gray": 185
+        },
+        "corrected": {
+          "skill": 100
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 100,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 9986,
+        "profession": 164,
+        "previous": {
+          "skill": 130,
+          "yellow": 135,
+          "gray": 165
+        },
+        "corrected": {
+          "skill": 105
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 105,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 9987,
+        "profession": 164,
+        "previous": {
+          "skill": 135,
+          "yellow": 140,
+          "gray": 170
+        },
+        "corrected": {
+          "skill": 110
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 110,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 9993,
+        "profession": 164,
+        "previous": {
+          "skill": 210,
+          "yellow": 210,
+          "gray": 235
+        },
+        "corrected": {
+          "skill": 185
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 185,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 12046,
+        "profession": 197,
+        "previous": {
+          "skill": 75,
+          "yellow": 75,
+          "gray": 110
+        },
+        "corrected": {
+          "skill": 50
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 50,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              1300,
+              4576,
+              5567,
+              11048,
+              11049
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 15972,
+        "profession": 164,
+        "previous": {
+          "skill": 180,
+          "yellow": 180,
+          "gray": 205
+        },
+        "corrected": {
+          "skill": 155
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 155,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 22434,
+        "profession": 333,
+        "previous": {
+          "skill": null,
+          "yellow": 320,
+          "gray": 310
+        },
+        "corrected": {
+          "yellow": 0,
+          "gray": 0
+        },
+        "sources": [],
+        "clientThresholds": {
+          "yellow": 320,
+          "gray": 310,
+          "skillLineAbilityIDs": [
+            12217
+          ]
+        },
+        "thresholdStatus": "unknownInvertedClientRange"
+      },
+      {
+        "spellID": 1229432,
+        "profession": 165,
+        "previous": {
+          "skill": 20,
+          "yellow": 20,
+          "gray": 25
+        },
+        "corrected": {
+          "yellow": 20,
+          "gray": 20
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 20,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3008,
+              4212,
+              5564,
+              11081
+            ]
+          }
+        ],
+        "clientThresholds": {
+          "yellow": 20,
+          "gray": 20,
+          "skillLineAbilityIDs": [
+            52647
+          ]
+        }
+      },
+      {
+        "spellID": 1229504,
+        "profession": 197,
+        "previous": {
+          "skill": 20,
+          "yellow": 20,
+          "gray": 25
+        },
+        "corrected": {
+          "yellow": 20,
+          "gray": 20
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 20,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              4576,
+              11048,
+              11049
+            ]
+          }
+        ],
+        "clientThresholds": {
+          "yellow": 20,
+          "gray": 20,
+          "skillLineAbilityIDs": [
+            52648
+          ]
+        }
+      },
+      {
+        "spellID": 1229517,
+        "profession": 393,
+        "previous": {
+          "skill": 20,
+          "yellow": 20,
+          "gray": 25
+        },
+        "corrected": {
+          "yellow": 20,
+          "gray": 20
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 20,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              1292,
+              257003,
+              257024
+            ]
+          }
+        ],
+        "clientThresholds": {
+          "yellow": 20,
+          "gray": 20,
+          "skillLineAbilityIDs": [
+            52644
+          ]
+        }
+      },
+      {
+        "spellID": 1229705,
+        "profession": 182,
+        "previous": {
+          "skill": 20,
+          "yellow": 20,
+          "gray": 25
+        },
+        "corrected": {
+          "yellow": 20,
+          "gray": 20
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 20,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3604
+            ]
+          }
+        ],
+        "clientThresholds": {
+          "yellow": 20,
+          "gray": 20,
+          "skillLineAbilityIDs": [
+            52642
+          ]
+        }
+      },
+      {
+        "spellID": 1230117,
+        "profession": 129,
+        "previous": {
+          "skill": 20,
+          "yellow": 20,
+          "gray": 25
+        },
+        "corrected": {
+          "yellow": 20,
+          "gray": 20
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 20,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              2798,
+              3373,
+              257007,
+              257018
+            ]
+          }
+        ],
+        "clientThresholds": {
+          "yellow": 20,
+          "gray": 20,
+          "skillLineAbilityIDs": [
+            52641
+          ]
+        }
+      },
+      {
+        "spellID": 1230161,
+        "profession": 186,
+        "previous": {
+          "skill": 20,
+          "yellow": 20,
+          "gray": 25
+        },
+        "corrected": {
+          "yellow": 20,
+          "gray": 20
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 20,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3357
+            ]
+          }
+        ],
+        "clientThresholds": {
+          "yellow": 20,
+          "gray": 20,
+          "skillLineAbilityIDs": [
+            52643
+          ]
+        }
+      },
+      {
+        "spellID": 1230171,
+        "profession": 164,
+        "previous": {
+          "skill": 20,
+          "yellow": 20,
+          "gray": 25
+        },
+        "corrected": {
+          "yellow": 20,
+          "gray": 20
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 20,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3355
+            ]
+          }
+        ],
+        "clientThresholds": {
+          "yellow": 20,
+          "gray": 20,
+          "skillLineAbilityIDs": [
+            52645
+          ]
+        }
+      },
+      {
+        "spellID": 1230564,
+        "profession": 171,
+        "previous": {
+          "skill": 20,
+          "yellow": 20,
+          "gray": 25
+        },
+        "corrected": {
+          "yellow": 20,
+          "gray": 20
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 20,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              3603
+            ]
+          }
+        ],
+        "clientThresholds": {
+          "yellow": 20,
+          "gray": 20,
+          "skillLineAbilityIDs": [
+            52646
+          ]
+        }
+      },
+      {
+        "spellID": 1230643,
+        "profession": 333,
+        "previous": {
+          "skill": 20,
+          "yellow": 20,
+          "gray": 25
+        },
+        "corrected": {
+          "yellow": 20,
+          "gray": 20
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 20,
+            "build": "1.60.1.70938",
+            "npcIDs": [
+              3345,
+              4616,
+              11067,
+              11068
+            ]
+          }
+        ],
+        "clientThresholds": {
+          "yellow": 20,
+          "gray": 20,
+          "skillLineAbilityIDs": [
+            52649
+          ]
+        }
+      },
+      {
+        "spellID": 1230656,
+        "profession": 202,
+        "previous": {
+          "skill": 20,
+          "yellow": 20,
+          "gray": 25
+        },
+        "corrected": {
+          "yellow": 20,
+          "gray": 20
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 20,
+            "build": "1.60.1.71037",
+            "npcIDs": [
+              4586,
+              11031
+            ]
+          }
+        ],
+        "clientThresholds": {
+          "yellow": 20,
+          "gray": 20,
+          "skillLineAbilityIDs": [
+            52650
+          ]
+        }
+      },
+      {
+        "spellID": 1257368,
+        "profession": 197,
+        "previous": {
+          "skill": 50,
+          "yellow": 55,
+          "gray": 55
+        },
+        "corrected": {
+          "skill": 35
+        },
+        "sources": [
+          {
+            "type": "item",
+            "rank": 50,
+            "itemID": 253886
+          },
+          {
+            "type": "trainer",
+            "rank": 35,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              1300,
+              4576,
+              5567,
+              11048,
+              11049
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 1257369,
+        "profession": 197,
+        "previous": {
+          "skill": 50,
+          "yellow": 55,
+          "gray": 55
+        },
+        "corrected": {
+          "skill": 35
+        },
+        "sources": [
+          {
+            "type": "item",
+            "rank": 50,
+            "itemID": 253888
+          },
+          {
+            "type": "trainer",
+            "rank": 35,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              1300,
+              4576,
+              5567,
+              11048,
+              11049
+            ]
+          }
+        ]
+      },
+      {
+        "spellID": 1262975,
+        "profession": 186,
+        "previous": {
+          "skill": 140,
+          "yellow": 140,
+          "gray": 145
+        },
+        "corrected": {
+          "yellow": 140,
+          "gray": 140
+        },
+        "sources": [
+          {
+            "type": "item",
+            "rank": 140,
+            "itemID": 273097
+          }
+        ],
+        "clientThresholds": {
+          "yellow": 140,
+          "gray": 140,
+          "skillLineAbilityIDs": [
+            57016
+          ]
+        }
+      },
+      {
+        "spellID": 1262978,
+        "profession": 185,
+        "previous": {
+          "skill": 140,
+          "yellow": 145,
+          "gray": 150
+        },
+        "corrected": {
+          "yellow": 145,
+          "gray": 145
+        },
+        "sources": [
+          {
+            "type": "item",
+            "rank": 140,
+            "itemID": 273102
+          }
+        ],
+        "clientThresholds": {
+          "yellow": 145,
+          "gray": 145,
+          "skillLineAbilityIDs": [
+            57021
+          ]
+        }
+      },
+      {
+        "spellID": 1262980,
+        "profession": 182,
+        "previous": {
+          "skill": 140,
+          "yellow": 140,
+          "gray": 145
+        },
+        "corrected": {
+          "yellow": 140,
+          "gray": 140
+        },
+        "sources": [
+          {
+            "type": "item",
+            "rank": 140,
+            "itemID": 273106
+          }
+        ],
+        "clientThresholds": {
+          "yellow": 140,
+          "gray": 140,
+          "skillLineAbilityIDs": [
+            57026
+          ]
+        }
+      },
+      {
+        "spellID": 1262985,
+        "profession": 393,
+        "previous": {
+          "skill": 140,
+          "yellow": 140,
+          "gray": 145
+        },
+        "corrected": {
+          "yellow": 140,
+          "gray": 140
+        },
+        "sources": [
+          {
+            "type": "item",
+            "rank": 140,
+            "itemID": 273098
+          }
+        ],
+        "clientThresholds": {
+          "yellow": 140,
+          "gray": 140,
+          "skillLineAbilityIDs": [
+            57017
+          ]
+        }
+      },
+      {
+        "spellID": 1262990,
+        "profession": 356,
+        "previous": {
+          "skill": 140,
+          "yellow": 140,
+          "gray": 145
+        },
+        "corrected": {
+          "yellow": 140,
+          "gray": 140
+        },
+        "sources": [
+          {
+            "type": "item",
+            "rank": 140,
+            "itemID": 273141
+          }
+        ],
+        "clientThresholds": {
+          "yellow": 140,
+          "gray": 140,
+          "skillLineAbilityIDs": [
+            57025
+          ]
+        }
+      },
+      {
+        "spellID": 1262996,
+        "profession": 129,
+        "previous": {
+          "skill": 140,
+          "yellow": 140,
+          "gray": 145
+        },
+        "corrected": {
+          "yellow": 140,
+          "gray": 140
+        },
+        "sources": [
+          {
+            "type": "item",
+            "rank": 140,
+            "itemID": 273105
+          }
+        ],
+        "clientThresholds": {
+          "yellow": 140,
+          "gray": 140,
+          "skillLineAbilityIDs": [
+            57024
+          ]
+        }
+      },
+      {
+        "spellID": 1263005,
+        "profession": 171,
+        "previous": {
+          "skill": 140,
+          "yellow": 140,
+          "gray": 145
+        },
+        "corrected": {
+          "yellow": 140,
+          "gray": 140
+        },
+        "sources": [
+          {
+            "type": "item",
+            "rank": 140,
+            "itemID": 273085
+          }
+        ],
+        "clientThresholds": {
+          "yellow": 140,
+          "gray": 140,
+          "skillLineAbilityIDs": [
+            57006
+          ]
+        }
+      },
+      {
+        "spellID": 1263031,
+        "profession": 165,
+        "previous": {
+          "skill": 140,
+          "yellow": 140,
+          "gray": 145
+        },
+        "corrected": {
+          "skill": 125,
+          "yellow": 125,
+          "gray": 130
+        },
+        "sources": [
+          {
+            "type": "item",
+            "rank": 125,
+            "itemID": 273096
+          }
+        ],
+        "clientThresholds": {
+          "yellow": 125,
+          "gray": 125,
+          "skillLineAbilityIDs": [
+            57015
+          ]
+        },
+        "serverHotfix": {
+          "url": "https://news.blizzard.com/en-us/article/24315281/wow-forever-hotfixes-november-10-2026",
+          "date": "2026-11-06",
+          "gray": 130,
+          "previousGray": 145,
+          "delta": -15
+        }
+      },
+      {
+        "spellID": 1263032,
+        "profession": 197,
+        "previous": {
+          "skill": 140,
+          "yellow": 140,
+          "gray": 145
+        },
+        "corrected": {
+          "yellow": 140,
+          "gray": 140
+        },
+        "sources": [
+          {
+            "type": "item",
+            "rank": 140,
+            "itemID": 273099
+          }
+        ],
+        "clientThresholds": {
+          "yellow": 140,
+          "gray": 140,
+          "skillLineAbilityIDs": [
+            57018
+          ]
+        }
+      },
+      {
+        "spellID": 1263034,
+        "profession": 202,
+        "previous": {
+          "skill": 140,
+          "yellow": 140,
+          "gray": 145
+        },
+        "corrected": {
+          "yellow": 140,
+          "gray": 140
+        },
+        "sources": [
+          {
+            "type": "item",
+            "rank": 140,
+            "itemID": 273092
+          }
+        ],
+        "clientThresholds": {
+          "yellow": 140,
+          "gray": 140,
+          "skillLineAbilityIDs": [
+            57011
+          ]
+        }
+      },
+      {
+        "spellID": 1263041,
+        "profession": 164,
+        "previous": {
+          "skill": 140,
+          "yellow": 140,
+          "gray": 145
+        },
+        "corrected": {
+          "yellow": 140,
+          "gray": 140
+        },
+        "sources": [
+          {
+            "type": "item",
+            "rank": 140,
+            "itemID": 273086
+          }
+        ],
+        "clientThresholds": {
+          "yellow": 140,
+          "gray": 140,
+          "skillLineAbilityIDs": [
+            57020
+          ]
+        }
+      },
+      {
+        "spellID": 1263056,
+        "profession": 333,
+        "previous": {
+          "skill": 140,
+          "yellow": 140,
+          "gray": 145
+        },
+        "corrected": {
+          "yellow": 140,
+          "gray": 140
+        },
+        "sources": [
+          {
+            "type": "item",
+            "rank": 140,
+            "itemID": 273103
+          }
+        ],
+        "clientThresholds": {
+          "yellow": 140,
+          "gray": 140,
+          "skillLineAbilityIDs": [
+            57022
+          ]
+        }
+      },
+      {
+        "spellID": 1263425,
+        "profession": 197,
+        "previous": {
+          "skill": 20,
+          "yellow": 20,
+          "gray": 25
+        },
+        "corrected": {
+          "yellow": 20,
+          "gray": 20
+        },
+        "sources": [
+          {
+            "type": "trainer",
+            "rank": 20,
+            "build": "1.60.1.70959",
+            "npcIDs": [
+              1300,
+              5567
+            ]
+          }
+        ],
+        "clientThresholds": {
+          "yellow": 20,
+          "gray": 20,
+          "skillLineAbilityIDs": [
+            56361
+          ]
+        }
+      },
+      {
+        "spellID": 1283400,
+        "profession": 185,
+        "previous": {
+          "skill": 90,
+          "yellow": 95,
+          "gray": 105
+        },
+        "corrected": {
+          "yellow": 95,
+          "gray": 95
+        },
+        "sources": [
+          {
+            "type": "item",
+            "rank": 90,
+            "itemID": 273087
+          }
+        ],
+        "clientThresholds": {
+          "yellow": 95,
+          "gray": 95,
+          "skillLineAbilityIDs": [
+            57200
+          ]
+        }
+      },
+      {
+        "spellID": 1291341,
+        "profession": 185,
+        "previous": {
+          "skill": 200,
+          "yellow": 205,
+          "gray": 220
+        },
+        "corrected": {
+          "yellow": 205,
+          "gray": 205
+        },
+        "sources": [
+          {
+            "type": "item",
+            "rank": 200,
+            "itemID": 273101
+          }
+        ],
+        "clientThresholds": {
+          "yellow": 205,
+          "gray": 205,
+          "skillLineAbilityIDs": [
+            58290
+          ]
+        }
       }
     ]
   },
