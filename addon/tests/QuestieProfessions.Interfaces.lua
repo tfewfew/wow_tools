@@ -4,19 +4,22 @@ local flavor = assert(TEST_FLAVOR)
 local modules = {
     QuestieCompat = {IsSpellKnown = function() return false end},
     QuestieQuest = {ResetAutoblacklistCategory = function(category) assert(category == "skill") end},
+    QuestieLib = {AddonPath = "Interface\\AddOns\\Questie\\"},
     Expansions = {Current = flavor == "titan" and 2 or 0, Wotlk = 2, MoP = 4},
     l10n = {translations = setmetatable({}, {__index = function(_, name) return {[name] = true} end})},
     QuestieCombatQueue = {Queue = function(_, callback) assert(type(callback) == "function") end},
     AvailableQuests = {CalculateAndDrawAll = function() end},
 }
+local createdModules = {}
 local env = setmetatable({
     Questie = {Debug = function() end, db = {profile = {townsfolkKnownProfessions = false}}},
     ERR_QUEST_ACCEPTED_S = "Accepted %s", ERR_QUEST_COMPLETE_S = "Completed %s",
 }, {__index = _G})
 env.QuestieLoader = {
     CreateModule = function(_, name)
-        assert(not modules[name], "Questie module loaded twice")
-        modules[name] = {}
+        assert(not createdModules[name], "Questie module loaded twice")
+        createdModules[name] = true
+        modules[name] = modules[name] or {}
         return modules[name]
     end,
     ImportModule = function(_, name)
@@ -110,6 +113,12 @@ assert(professions:GetPlayerProfessions() == known and collapsed and not seconda
 failExpand = false
 
 Load("Modules/EventHandler/EventHandler.lua")
+local stationsPath = "Modules/Map/ProfessionStations.lua"
+local stationsFile = io.open(questieRoot .. "/" .. stationsPath, "r")
+if stationsFile then
+    stationsFile:close()
+    Load(stationsPath)
+end
 local hookClose
 for index = 1, math.huge do
     local name, value = debug.getupvalue(modules.EventHandler.RegisterLateEvents, index)

@@ -14,7 +14,8 @@
           "background-scans/2.1.104/manifest.json",
           "background-scans/2.1.109/manifest.json",
           "background-scans/2.1.112/manifest.json",
-          "background-scans/2.1.117/manifest.json"
+          "background-scans/2.1.117/manifest.json",
+          "background-scans/2.1.122/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
@@ -131,6 +132,21 @@
               }
             ],
             "checkedAt": "2026-11-20T04:52:20+00:00"
+          },
+          {
+            "version": "2.1.122",
+            "reason": "核对 2.1.122 的 TOC、Hui.lua 和四个已安装 DungeonsForever 模块的 Lua/XML 引用。TOC 仍加载 Hui.lua，ExtTipSkin、CollectForeign、SkinGameTooltip、RefreshGameTooltipSkin 及提示框 OnUpdate 扫描链未恢复。Hui.lua 的控件树遍历及 OnUpdate 用于窗口样式、滑条和按钮，沿用 2.1.99 停止边界。",
+            "files": [
+              {
+                "path": "DungeonsForever/Core/Hui.lua",
+                "sha256": "ea8160197623527a467e48503aeb56a46bf78189adb4f9c5154b6de016fa1118"
+              },
+              {
+                "path": "DungeonsForever/DungeonsForever.toc",
+                "sha256": "8efeb7e30913caf08a5db29ae84fbf1bd6e8e6116212e341abe7bd7518a32555"
+              }
+            ],
+            "checkedAt": "2026-11-22T11:57:25+00:00"
           }
         ]
       }
@@ -151,7 +167,8 @@
           "background-scans/2.0.3-20261116/manifest.json",
           "background-scans/2.0.3-20261117/manifest.json",
           "background-scans/2.0.3-20261118/manifest.json",
-          "background-scans/2.0.3-20261119/manifest.json"
+          "background-scans/2.0.3-20261119/manifest.json",
+          "background-scans/2.0.3-20261122/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
@@ -169,7 +186,8 @@
           "background-scans/2.0.3-20261117/manifest.json",
           "background-scans/2.0.3-20261118/manifest.json",
           "background-scans/2.0.3-20261119/manifest.json",
-          "background-scans/2.0.3-20261120/manifest.json"
+          "background-scans/2.0.3-20261120/manifest.json",
+          "background-scans/2.0.3-20261122/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
@@ -184,7 +202,8 @@
           "background-scans/2.3.12-20261115/manifest.json",
           "background-scans/2.3.12-20261116/manifest.json",
           "background-scans/2.3.12-20261118/manifest.json",
-          "background-scans/2.3.12-20261119/manifest.json"
+          "background-scans/2.3.12-20261119/manifest.json",
+          "background-scans/2.3.12-20261122/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
@@ -195,7 +214,8 @@
         "id": "cursor-repair-hook",
         "description": "移除 CursorHasItem 全局修理状态钩子及对应回调，减少光标物品查询附带的修理检查。",
         "variants": [
-          "cursor-repair-hook/2.30.03/manifest.json"
+          "cursor-repair-hook/2.30.03/manifest.json",
+          "cursor-repair-hook/2.30.05/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
@@ -207,7 +227,8 @@
         "description": "恢复 OpenMap v0.8.9 的逐帧瓦片淡入曲线，减少缩小地图时淡入的阶梯感。",
         "variants": [
           "texture-fade-steps/0.8.10/manifest.json",
-          "texture-fade-steps/0.8.10-16-step-trial/manifest.json"
+          "texture-fade-steps/0.8.10-16-step-trial/manifest.json",
+          "texture-fade-steps/0.8.12/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
@@ -251,6 +272,33 @@
               }
             ],
             "checkedAt": "2026-11-20T04:52:20+00:00"
+          },
+          {
+            "version": "12.12.0",
+            "reason": "核对 12.12.0 的 Forever TOC、TrackerUtils.GetSortedQuestIds、TrackerQuestTimers.UpdateAndGetRemainingTime、QuestSection 的显示条件及 DistanceUtils.GetNearestSpawnForQuest。正反两种模式先更新计时状态，再取可见已追踪任务的组内最小距离，目标未完成时使用目标地点、任务完成时使用交任务地点，未知地点组继续置后，沿用 12.11.1 停止边界。",
+            "files": [
+              {
+                "path": "Questie/Modules/Tracker/TrackerUtils.lua",
+                "sha256": "b5c5edd65bdfd76bbe76fc0d6afa7295246d3c8648175c408b34fa435837f03f"
+              },
+              {
+                "path": "Questie/Modules/Tracker/TrackerQuestTimers.lua",
+                "sha256": "0ff14c74dbe10a7d27974ee33e38b63eb4842be840d12e08e0e5795cdbc39f54"
+              },
+              {
+                "path": "Questie/Modules/Tracker/Sections/QuestSection.lua",
+                "sha256": "e00e753dab2976cb80aff33a17ff13c15cdc2e6ad7aabb70c7a44a0d0b72a82c"
+              },
+              {
+                "path": "Questie/Modules/Libs/DistanceUtils.lua",
+                "sha256": "ec1d24b3340caa09f2d189a851ac1490dded2b3c27658940cd1c373874dd5141"
+              },
+              {
+                "path": "Questie/Questie_Forever.toc",
+                "sha256": "d1d258aa8e91202245ebe7714f9b38737e64ac34a35bb4846f01cb89b235c2f8"
+              }
+            ],
+            "checkedAt": "2026-11-22T11:57:25+00:00"
           }
         ]
       },
@@ -258,7 +306,8 @@
         "id": "profession-panel-close",
         "description": "专业数据在关闭角色技能面板时刷新一次，保留初始采集及原有分类折叠状态。",
         "variants": [
-          "profession-panel-close/12.10.0/manifest.json"
+          "profession-panel-close/12.10.0/manifest.json",
+          "profession-panel-close/12.12.0/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
@@ -267,7 +316,8 @@
         "id": "quest-log-coalesce",
         "description": "全量任务日志扫描统一由一秒定时任务触发，同一秒内的请求合并并保留补查标记。",
         "variants": [
-          "quest-log-coalesce/12.11.1/manifest.json"
+          "quest-log-coalesce/12.11.1/manifest.json",
+          "quest-log-coalesce/12.12.0/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []

@@ -1,0 +1,174 @@
+diff --git a/Questie/Modules/QuestieProfessions.lua b/Questie/Modules/QuestieProfessions.lua
+index 97461ec..5667931 100644
+--- a/Questie/Modules/QuestieProfessions.lua
++++ b/Questie/Modules/QuestieProfessions.lua
+@@ -36,6 +36,77 @@ function QuestieProfessions:Init()
+     end
+ end
+ 
++local function ReadPlayerProfessions()
++    local professions = {}
++    local count = QuestieCompat.GetNumSkillLines()
++    if not count or count <= 0 then return nil end
++
++    if C_SkillInfo and type(C_SkillInfo.GetSkillLineInfoByID) == "function" then
++        -- Native ID queries include learned professions inside collapsed categories.
++        for professionId in pairs(professionIds) do
++            local info = C_SkillInfo.GetSkillLineInfoByID(professionId)
++            if issecretvalue and issecretvalue(info) then return nil end
++            if info then
++                if issecretvalue and (issecretvalue(info.name) or issecretvalue(info.rank)
++                    or issecretvalue(info.maxRank)) then return nil end
++                if type(info.name) ~= "string" or type(info.rank) ~= "number"
++                    or type(info.maxRank) ~= "number" then return nil end
++                if info.maxRank > 0 then
++                    professions[professionId] = {info.name, info.rank}
++                end
++            end
++        end
++        return professions
++    end
++
++    local function ReadHeader(index)
++        if C_SkillInfo and C_SkillInfo.GetSkillLineInfo then
++            local info = assert(C_SkillInfo.GetSkillLineInfo(index), "Skill line unavailable")
++            return info.name, info.isHeader, info.isCollapsed
++        end
++        local name, isHeader, isExpanded = GetSkillLineInfo(index)
++        return name, isHeader, not isExpanded
++    end
++    local collapse = C_SkillInfo and C_SkillInfo.CollapseSkillHeader or CollapseSkillHeader
++    local collapsed = {}
++    for index = 1, count do
++        local name, isHeader, isCollapsed = ReadHeader(index)
++        if isHeader and isCollapsed then collapsed[name] = true end
++    end
++
++    local ok = pcall(function()
++        QuestieCompat.ExpandAllSkillHeaders()
++        -- Preserve the legacy localized-name scan and its profession-line boundary.
++        local maxSkillLineToCheck = Expansions.Current >= Expansions.MoP and 20 or 14
++        for index = 1, QuestieCompat.GetNumSkillLines() do
++            local name, isHeader, rank, skillLineId = QuestieCompat.GetSkillLineInfo(index)
++            if not skillLineId and index > maxSkillLineToCheck then break end
++            local professionId
++            if skillLineId then
++                professionId = professionIds[skillLineId] and skillLineId
++            else
++                professionId = professionTable[name]
++            end
++            if name and not isHeader and professionId then
++                professions[professionId] = {name, rank}
++            end
++        end
++    end)
++
++    -- Restore every original collapsed header even when a read or expansion failed.
++    local countOK, restoreCount = pcall(QuestieCompat.GetNumSkillLines)
++    if not countOK or type(restoreCount) ~= "number" then return nil end
++    for index = restoreCount, 1, -1 do
++        local readable, name, isHeader = pcall(ReadHeader, index)
++        if not readable then
++            ok = false
++        elseif isHeader and collapsed[name] then
++            if not pcall(collapse, index) then ok = false end
++        end
++    end
++    return ok and professions or nil
++end
++
+ ---Refreshes known professions and reports changes that can affect available quests.
+ ---@return boolean HasProfessionUpdate @True for a skill threshold increase, a new profession, or an unlearned profession.
+ ---@return boolean HasNewProfession @Returns true if the player has learned a new profession
+@@ -44,27 +115,8 @@ function QuestieProfessions:Update()
+     local hasProfessionUpdate = false
+     local hasNewProfession = false
+ 
+-    --- Used to compare to be able to detect if a profession has been learned
+-    local temporaryPlayerProfessions = {}
+-
+-    QuestieCompat.ExpandAllSkillHeaders()
+-    -- MoP's "Ways of Cooking" add skill lines before the weapon skills.
+-    local maxSkillLineToCheck = Expansions.Current >= Expansions.MoP and 20 or 14
+-    for i = 1, QuestieCompat.GetNumSkillLines() do
+-        local skillName, isHeader, skillRank, skillLineId = QuestieCompat.GetSkillLineInfo(i)
+-        -- Without skill line IDs the localized names are matched, so only the leading profession lines are checked.
+-        if (not skillLineId) and i > maxSkillLineToCheck then break end
+-
+-        local professionId
+-        if skillLineId then
+-            professionId = professionIds[skillLineId] and skillLineId
+-        else
+-            professionId = professionTable[skillName]
+-        end
+-        if skillName and (not isHeader) and professionId then
+-            temporaryPlayerProfessions[professionId] = {skillName, skillRank}
+-        end
+-    end
++    local ok, temporaryPlayerProfessions = pcall(ReadPlayerProfessions)
++    if not ok or not temporaryPlayerProfessions then return false, false end
+ 
+     for professionId, _ in pairs(temporaryPlayerProfessions) do
+         if not playerProfessions[professionId] then
+diff --git a/Questie/Modules/EventHandler/EventHandler.lua b/Questie/Modules/EventHandler/EventHandler.lua
+index 8a43328..9c0e58b 100644
+--- a/Questie/Modules/EventHandler/EventHandler.lua
++++ b/Questie/Modules/EventHandler/EventHandler.lua
+@@ -5,6 +5,17 @@ local QuestieCompat = QuestieLoader:ImportModule("QuestieCompat")
+ local EventHandler = QuestieLoader:CreateModule("EventHandler")
+ local _EventHandler = {}
+ 
++local skillCloseHooked = false
++local function HookSkillPanelClose()
++    if skillCloseHooked then return true end
++    -- Forever uses SkillsFrame; Titan's legacy character skills tab is SkillFrame.
++    local panel = SkillsFrame or SkillFrame
++    if not panel then return false end
++    panel:HookScript("OnHide", _EventHandler.ChatMsgSkill)
++    skillCloseHooked = true
++    return true
++end
++
+ -------------------------
+ --Import modules.
+ -------------------------
+@@ -117,22 +128,14 @@ function EventHandler:RegisterLateEvents()
+         QuestieTracker.HandleZoneChanged()
+     end)
+ 
+-    -- Events to update a players professions and reputations
+-    -- Skill chat can be secret; batch refreshes without retaining the chat arguments.
+-    local skillUpdatePending = false
+-    Questie:RegisterEvent("CHAT_MSG_SKILL", function()
+-        if skillUpdatePending then
+-            return
+-        end
+-
+-        skillUpdatePending = true
+-        Questie:ScheduleTimer(function()
+-            skillUpdatePending = false
+-            _EventHandler.ChatMsgSkill()
+-        end, 2)
+-    end)
+-    -- Learning or unlearning a profession need not print CHAT_MSG_SKILL
+-    Questie:RegisterBucketEvent("SKILL_LINES_CHANGED", 2, _EventHandler.ChatMsgSkill)
++    -- Profession refreshes run once when the character skills panel closes.
++    if not HookSkillPanelClose() then
++        local loader = CreateFrame("Frame")
++        loader:RegisterEvent("ADDON_LOADED")
++        loader:SetScript("OnEvent", function(self)
++            if HookSkillPanelClose() then self:UnregisterEvent("ADDON_LOADED") end
++        end)
++    end
+     Questie:RegisterBucketEvent("CHAT_MSG_COMBAT_FACTION_CHANGE", 2, function()
+         QuestEventHandler.ReputationChange()
+         _EventHandler:ChatMsgCompatFactionChange()
+@@ -575,7 +578,7 @@ function _EventHandler:ModifierStateChanged(key, down)
+     end
+ end
+ 
+----Refreshes skill-gated quests after skill chat or skill line changes.
++---Refreshes skill-gated quests after the character skills panel closes.
+ function _EventHandler:ChatMsgSkill()
+     Questie.Debug(Questie.DEBUG_DEVELOP, "[EVENT] Profession skills changed")
+ 

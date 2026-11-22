@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "plugin": "Accountant_Classic",
+  "id": "cursor-repair-hook",
+  "version": "v2.30.05",
+  "patch": "fix.patch",
+  "patchSha256": "f6fa9f3c9a0ae5ff2a96f3e17a467c91763d9f52030d2551ce17b11f3c61b92f",
+  "files": [
+    {
+      "path": "Accountant_Classic/Core/Core.lua",
+      "originalSha256": "054f9da27de7c41d1e60ee9eb45dc66fa1e1c03efa685714982e673f9862d02b",
+      "patchedSha256": "bae865e810b55d1397e2853e117dd91334d3241a5bc6476a035b9751db9f44fc"
+    }
+  ],
+  "loadOrder": [
+    "Core/Constants.lua",
+    "Core/Core.lua",
+    "Core/MoneyFrame.lua",
+    "Core/Config.lua"
+  ]
+}
