@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "plugin": "DungeonsForever",
+  "id": "background-scans",
+  "version": "2.1.126",
+  "patch": "fix.patch",
+  "patchSha256": "f79c93436eb3f16e23b5cb68fc58d922b5fcf16d996dbfecd688b75ee5311954",
+  "files": [
+    {
+      "path": "DungeonsForever/Core/Core.lua",
+      "originalSha256": "0fd8a121c6921cecc604b1ecb2ae1c4017f2e2d42737c67debffeb7466b894e8",
+      "patchedSha256": "40bc7dbd4eee70c4b17e574e3762c6c4cf6bd7f85ed1753f4d56fe29654b74e2"
+    },
+    {
+      "path": "DungeonsForever/Core/MapOnWorld.lua",
+      "originalSha256": "012439d0697577b0f4630f19a879543a21329173e616c8f8e9d25cc1f1d269da",
+      "patchedSha256": "0d609e03fa43e34ab2295cbd86adb005b9ad866c7b843b6874a364f15b4ebcc9"
+    },
+    {
+      "path": "DungeonsForever/Core/MapWindow.lua",
+      "originalSha256": "dc68fd1c7348dcee0c2d8d25ddf3242c8e6760e0d649be409012e10a20bc652d",
+      "patchedSha256": "5fa4edd16d80f0da5e72850be6b5787f0995feb77e2370d6841fdf00e6971942"
+    },
+    {
+      "path": "DungeonsForever/Core/ZoneHint.lua",
+      "originalSha256": "511d12e711110fd772d2fb3a265f2a2750ec45c4ec2f4705e0b9745cd175eab7",
+      "patchedSha256": "68dc54316fb0df1122bf713cd5ccd64b65222ec20e4481f855d887f84a06bbd5"
+    }
+  ]
+}

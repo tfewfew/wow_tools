@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "plugin": "OpenMap",
+  "id": "texture-fade-steps",
+  "version": "v0.8.13",
+  "patch": "fix.patch",
+  "patchSha256": "9d2b7a85963d5a62e58d9a302556bb59a77e3b89720044879e523f3a73240775",
+  "files": [
+    {
+      "path": "OpenMap/Map/Stitch.lua",
+      "originalSha256": "2d6f1c1ca31ac1ea55ed6ee35515e8e3656f9a0015b1e941f76afd4aeb9e17d4",
+      "patchedSha256": "9fe0a350b69acbe7881cd4cb73b23747e390f3acb2fef6ba374eb51d4bbdce1f"
+    }
+  ],
+  "loadOrder": [
+    "Map/Stitch.lua",
+    "Map/WorldMap.lua"
+  ]
+}
