@@ -1,6 +1,7 @@
 ﻿# These adapters run only on the dedicated STA UI thread. Workers receive JSON snapshots.
 $script:legacySettingsFactory=${function:New-UnifiedSettingsDialog}
 $script:legacyRotationSave=${function:Save-RotationConfiguration}
+$script:directTaskModes=Get-WowAutoDirectTaskModes
 function Save-RotationConfiguration($Interval=$script:rotation.IntervalSeconds,$Plans=$script:rotation.Plans,$OcrIntervalMs=$script:rotation.OcrIntervalMs,$GameDirectories=$script:rotation.GameDirectories) {
     $old=$script:rotation.IntervalSeconds
     & $script:legacyRotationSave -Interval $Interval -Plans $Plans -OcrIntervalMs $OcrIntervalMs -GameDirectories $GameDirectories
@@ -26,11 +27,38 @@ function Add-ProcessTaskControls($Row) {
     $summary=New-Object Windows.Forms.Label;$summary.SetBounds(12,146,686,34);$summary.AutoEllipsis=$true
     $progress=New-Object Windows.Forms.Label;$progress.SetBounds(12,192,686,26);$progress.AutoEllipsis=$true
     $Row | Add-Member NoteProperty AccountText $account;$Row | Add-Member NoteProperty RotationLabel $summary;$Row | Add-Member NoteProperty RotationProgress $progress
-    $shop=New-Object WowAuto.DimButton;$shop.Text='购物';$shop.SetBounds(646,33,56,40);Set-UiButtonStyle $shop
-    $shop.Tag=$Row;$shop.Add_Click({param($sender,$e) Start-RowDirect $sender.Tag -Shopping})
-    $Row | Add-Member NoteProperty ShopStart $shop
+    $directMode=New-Object Windows.Forms.ComboBox
+    $directMode.DropDownStyle='DropDownList';$directMode.FlatStyle='Flat'
+    $directMode.BackColor=$script:uiColors.Input;$directMode.ForeColor=$script:uiColors.Text
+    $directMode.Font=$form.Font;$directMode.AccessibleName='直接开始的任务'
+    $directMode.SetBounds(454,(33+[int]((40-$directMode.Height)/2)),76,$directMode.Height)
+    foreach($mode in $script:directTaskModes){[void]$directMode.Items.Add((Get-AccountTaskModeLabel $mode))}
+    $savedMode=$script:processModePreferences[$Row.Key]
+    $directMode.SelectedIndex=[Array]::IndexOf($script:directTaskModes,$(if($savedMode){$savedMode}else{'fish'}))
+    $directMode.Tag=$Row
+    $directMode.Add_SelectionChangeCommitted({
+        param($sender,$e)
+        if($sender.SelectedIndex -lt 0){return}
+        $row=$sender.Tag
+        $mode=$script:directTaskModes[$sender.SelectedIndex]
+        $previous=$script:processModePreferences[$row.Key]
+        if($mode -ceq $previous){return}
+        $next=$script:processModePreferences.Clone()
+        $next[$row.Key]=$mode
+        try {
+            Save-PreferenceSwitches -ProcessModePreferences $next
+            $row.Validated=$false
+            Set-RowStatusText $row ('直接开始任务已设为'+(Get-AccountTaskModeLabel $mode)+'。')
+        } catch {
+            $sender.SelectedIndex=[Array]::IndexOf($script:directTaskModes,$(if($previous){$previous}else{'fish'}))
+            Set-RowStatusText $row ('无法保存直接开始任务：'+$_.Exception.Message)
+        }
+    })
+    $Row.DirectStart.SetBounds(536,33,94,40)
+    $Row.Stop.Left=636
+    $Row | Add-Member NoteProperty DirectMode $directMode
     $Row | Add-Member NoteProperty AccountSettings $configure
-    $Row.Panel.Controls.AddRange([Windows.Forms.Control[]]@($accountLabel,$account,$configure,$summary,$progress,$shop))
+    $Row.Panel.Controls.AddRange([Windows.Forms.Control[]]@($accountLabel,$account,$configure,$summary,$progress,$directMode))
     Update-RowAccountChoices $Row
 }
 function Update-RowAccountChoices($Row) {
@@ -80,8 +108,10 @@ function Set-RowControls($Row) {
     $available=-not $Row.Exited -and -not $Row.RuntimeExiting -and -not $script:scanning -and -not $script:editingSettings -and -not $script:parallelHub.Closing
     if($script:parallelWorkers.ContainsKey($Row.Key) -and $script:parallelWorkers[$Row.Key].Endpoint.Closed){$available=$false}
     $Row.Start.Enabled=$available -and -not $Row.RuntimeRunning -and (Test-AccountDiscoveryAvailable $Row)
-    $Row.DirectStart.Enabled=$available -and -not $Row.RuntimeRunning -and $Row.Validated -and $Row.TaskMode -ne 'rest'
-    $Row.ShopStart.Enabled=$available -and -not $Row.RuntimeRunning -and -not $script:characterCreate.Busy -and -not $script:shutdownState.Started
+    $canStartDirect=$available -and $null -ne $Row.StartTime -and -not $Row.RuntimeRunning -and -not $Row.RuntimeScanning -and
+        -not $script:characterCreate.Busy -and -not $script:shutdownState.Started
+    $Row.DirectMode.Enabled=$canStartDirect
+    $Row.DirectStart.Enabled=$canStartDirect -and $Row.DirectMode.SelectedIndex -ge 0
     $Row.Stop.Enabled=$Row.RuntimeRunning -or $Row.RuntimeScanning -or $Row.RuntimeExiting
     $Row.AccountSettings.Enabled=-not $script:scanning -and -not $script:editingSettings
     Update-RotationRow $Row
@@ -122,22 +152,24 @@ function Start-Row($Row,[switch]$TaskOnly) {
     if(-not (Test-AccountDiscoveryAvailable $Row)){Set-RowStatusText $Row '请在设置中为本客户端的子战网启用至少一个角色。';return}
     $Row.ExcludedNames=@();Start-ParallelBatch @($Row) Start
 }
-function Start-RowDirect($Row,[switch]$Shopping) {
-    if($script:characterCreate.Busy -or $Row.Exited -or $Row.RuntimeRunning -or $Row.RuntimeScanning -or $Row.RuntimeExiting -or
-        $script:editingSettings -or $script:scanning -or $script:shutdownState.Started -or $script:parallelHub.Closing){return}
-    if($Shopping){$Row.TaskMode='shop';$Row.Validated=$false}
-    elseif(-not $Row.Validated -or $Row.TaskMode -eq 'rest'){return}
-    $Row.RuntimeRunning=$true;$Row.RuntimeDirect=$true
+function Start-RowDirect($Row) {
+    if($Row.RuntimeRunning -or -not $Row.DirectStart.Enabled){return}
+    $mode=$script:directTaskModes[$Row.DirectMode.SelectedIndex]
+    $Row.TaskMode=$mode;$Row.Validated=$false
+    $Row.RuntimeRunning=$true;$Row.RuntimeDirect=$true;$Row.RuntimePhase='starting'
     $script:parallelHub.ActiveTasks=@($script:rows.Values | Where-Object RuntimeRunning).Count
-    try {Send-ParallelCommand $Row Start '' $true;Set-RowControls $Row}
-    catch {Stop-Row $Row ('无法开始：'+$_.Exception.Message)}
+    try {
+        Send-ParallelCommand $Row Start '' $true
+        Set-RowStatusText $Row ('正在验证'+(Get-AccountTaskModeLabel $mode)+'，准备直接开始。')
+        Set-RowControls $Row
+    } catch {Stop-Row $Row ('无法开始：'+$_.Exception.Message)}
 }
 function Stop-Row($Row,[string]$Reason='已停止，本进程的待执行操作已取消。',[switch]$CancelExit,[switch]$KeepRotation) {
     if($script:parallelWorkers.ContainsKey($Row.Key)){$null=$script:parallelWorkers[$Row.Key].Endpoint.Send('Stop','{}')}
     $script:parallelPending.Remove($Row.Key)
     if($script:parallelHub.Batch){$script:parallelHub.Batch.Drop($Row.Key)}
     $Row.RuntimeRunning=$false;$Row.RuntimeScanning=$false;$Row.RuntimeExiting=$false;$Row.RuntimePhase='stopped';$Row.Metrics=$null;$Row.TargetRole='';$Row.CurrentRole='';$Row.CurrentIndex=-1
-    if($Row.TaskMode -eq 'tame' -or ($Row.TaskMode -eq 'shop' -and $Row.RuntimeDirect)){$Row.TaskMode=$Row.DefaultTaskMode;$Row.Validated=$false}
+    if($Row.RuntimeDirect){$Row.RuntimeDirect=$false;$Row.TaskMode=$Row.DefaultTaskMode;$Row.Validated=$false}
     $script:parallelHub.ActiveTasks=@($script:rows.Values | Where-Object RuntimeRunning).Count
     Set-RowStatusText $Row $Reason;Update-WowAutoRunInfo
 }
@@ -161,8 +193,10 @@ function Begin-RefreshScan {
     $script:scanning=$script:rows.Count -gt 0
     $script:parallelOriginal=if($UiTest){[IntPtr]::Zero}else{[WowAuto.NativeInput]::CurrentWindow()}
     foreach($row in $script:rows.Values){
-        $row.Validated=$false;$row.RuntimeScanning=$true;Update-RowAccountChoices $row;Send-ParallelCommand $row Scan
-        Set-RowStatusText $row $(if($row.TaskMode -in @('rest','shop')){'检测线程读取右下角登录白点。'}else{'检测线程等待操作线程开启监控，完成后后台检测色块。'})
+        $row.Validated=$false;$row.RuntimeScanning=$true;Update-RowAccountChoices $row
+        $mode=$script:directTaskModes[$row.DirectMode.SelectedIndex]
+        Send-ParallelCommand $row Scan -Mode $mode
+        Set-RowStatusText $row $(if($mode -in @('rest','shop')){'检测线程读取右下角登录白点。'}else{'检测线程等待操作线程开启监控，完成后后台检测色块。'})
     }
     Update-WowAutoRunInfo;Update-BatchControls
 }

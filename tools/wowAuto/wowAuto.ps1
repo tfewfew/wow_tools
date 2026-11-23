@@ -539,7 +539,7 @@ function Read-WowAutoSettingsIni([string]$Path) {
         if ($key -match '^Mode_([1-9]\d*)_([1-9]\d*)$') {
             $modePid=0; $modeTicks=0L
             if (-not [int]::TryParse($matches[1],[ref]$modePid) -or -not [long]::TryParse($matches[2],[ref]$modeTicks) -or
-                $modeTicks -gt [datetime]::MaxValue.Ticks -or $value -cnotin @('fish','fight')) {throw '进程任务模式配置无效。'}
+                $modeTicks -gt [datetime]::MaxValue.Ticks -or $value -cnotin (Get-WowAutoDirectTaskModes)) {throw '进程任务模式配置无效。'}
             $modes["${modePid}:$modeTicks"]=$value
             continue
         }
@@ -664,7 +664,7 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
         if ($key -notmatch '^([1-9]\d*):([1-9]\d*)$') {throw '进程任务模式标识无效。'}
         $modePid=0; $modeTicks=0L
         if (-not [int]::TryParse($matches[1],[ref]$modePid) -or -not [long]::TryParse($matches[2],[ref]$modeTicks) -or
-            $modeTicks -gt [datetime]::MaxValue.Ticks -or $ProcessModePreferences[$key] -cnotin @('fish','fight')) {throw '进程任务模式配置无效。'}
+            $modeTicks -gt [datetime]::MaxValue.Ticks -or $ProcessModePreferences[$key] -cnotin (Get-WowAutoDirectTaskModes)) {throw '进程任务模式配置无效。'}
         $nextModes[$key]=$ProcessModePreferences[$key]
     }
     # Reserve a changed hotkey before writing the INI. Keep the previous listener until saving succeeds.
@@ -694,7 +694,7 @@ function Set-VersionWaitRanges($TitanMinimum, $TitanMaximum, $ForerverMinimum, $
                     ScreenshotKey=$nextScreenshot.Text
                 }
                 $lines=@('; wowAuto settings: ms for timing, percent for thresholds, 0/1 for switches.';
-                    '; Shortcuts use Ctrl/Shift/Alt plus a key; UseItem_PID_StartTicks stores process choices.')
+                    '; Shortcuts use Ctrl/Shift/Alt plus a key; Mode_PID_StartTicks stores the direct task choice.')
                 foreach ($key in $script:settingsKeys) { $lines += "$key=$($values[$key])" }
                 foreach ($key in @($nextItems.Keys | Sort-Object)) { $lines += "UseItem_$($key.Replace(':','_'))=$([int]$nextItems[$key])" }
                 foreach ($key in @($nextModes.Keys | Sort-Object)) { $lines += "Mode_$($key.Replace(':','_'))=$($nextModes[$key])" }

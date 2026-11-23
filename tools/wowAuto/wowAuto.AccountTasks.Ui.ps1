@@ -94,8 +94,8 @@ function New-RestTaskSettingsPage {
     $page=New-Object Windows.Forms.TabPage
     $page.Text='放号';$page.BackColor=$script:uiColors.Background;$page.AutoScroll=$true
     $hint=New-Object Windows.Forms.Label
-    $hint.Text='无限服帐篷休息放号。先在“子战网 → 永恒服”启用指定角色，将任务设为“放号”，保存后点击进程行的“开始”。'+[Environment]::NewLine+
-        '每个角色完成单次时间后切换，全部指定放号角色完成一次算一轮，达到轮次后停止。登录确认后先跳跃一次，再按间隔跳跃。'
+    $hint.Text='两服可在进程行选「放号」后点击「直接开始」，当前角色执行一次。无限服也可在子战网中配置放号角色并编排执行。'+[Environment]::NewLine+
+        '轮次用于角色编排。登录确认后先跳跃一次，再按间隔跳跃。'
     $hint.SetBounds(18,18,1000,100)
     $inputs=@{};$y=138
     foreach ($spec in @(@('DurationSeconds','单次时间（秒）'),@('Rounds','轮次'),@('JumpIntervalSeconds','跳跃间隔（秒）'))) {
@@ -126,7 +126,7 @@ function New-ShopTaskSettingsPage {
     $page=New-Object Windows.Forms.TabPage
     $page.Text='购物';$page.BackColor=$script:uiColors.Background;$page.AutoScroll=$true
     $hint=New-Object Windows.Forms.Label
-    $hint.Text='在游戏插件「游戏辅助 → 自动购物」保存物品 ID 和背包上限。选中附近的商人后，可在进程行点击「购物」，也可把「购物」设为角色任务。'
+    $hint.Text='在游戏插件「游戏辅助 → 自动购物」保存物品 ID 和背包上限。选中附近的商人后，在进程行选择「购物」并点击「直接开始」，也可把「购物」设为角色任务。'
     $hint.SetBounds(18,18,1000,66)
     $inputs=@{};$y=92
     foreach($spec in @(@('VisitIntervalSeconds','访问间隔（秒）',1),@('JumpIntervalSeconds','跳跃间隔（秒，0 关闭额外跳跃）',0),@('DurationSeconds','最大购物时长（秒）',1))) {

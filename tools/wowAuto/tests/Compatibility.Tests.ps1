@@ -109,6 +109,31 @@ try {
         throw 'Automatic shopping mode or slash command contract is incompatible.'
     }
     Write-Output 'PASS: both clients support the shopping task configuration and add-on command contract.'
+
+    . (Join-Path $tool 'wowAuto.Engine.ps1')
+    $directModes=Get-WowAutoDirectTaskModes
+    $directLabels=@($directModes | ForEach-Object {Get-AccountTaskModeLabel $_})
+    if(($directLabels -join ',') -cne '放号,战斗,购物,钓鱼'){throw 'The direct-start task labels do not match the mode list.'}
+    $launcher=$asts | Where-Object {$_.Extent.File -eq (Join-Path $tool 'wowAuto.ps1')}
+    $readIni=$launcher.Find({param($node)
+        $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Read-WowAutoSettingsIni'
+    },$true)
+    . ([scriptblock]::Create($readIni.Extent.Text))
+    $ini=Join-Path ([IO.Path]::GetTempPath()) ('wow-tools-direct-mode-'+[guid]::NewGuid().ToString('N')+'.ini')
+    $temporaryFiles+=$ini
+    [IO.File]::WriteAllLines($ini,[string[]]@('Mode_100_638000000000000001=fish','Mode_101_638000000000000002=fight',
+        'Mode_102_638000000000000003=shop','Mode_103_638000000000000004=rest'))
+    $script:audioSettingsKeys=@()
+    $script:audioTimeoutSettingsKeys=@()
+    $script:recordingSettingsKeys=@()
+    $script:preferenceSettingsKeys=@()
+    $readModes=(Read-WowAutoSettingsIni $ini).ProcessModePreferences
+    if($readModes.Count -ne 4 -or $readModes['100:638000000000000001'] -cne 'fish' -or
+        $readModes['101:638000000000000002'] -cne 'fight' -or $readModes['102:638000000000000003'] -cne 'shop' -or
+        $readModes['103:638000000000000004'] -cne 'rest'){
+        throw 'The direct-start task modes did not load by PID and start time.'
+    }
+    Write-Output 'PASS: direct-start task labels and per-process INI compatibility.'
 } finally {
     foreach ($path in $temporaryFiles) { Remove-Item -LiteralPath $path -ErrorAction SilentlyContinue }
 }

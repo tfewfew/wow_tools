@@ -42,10 +42,10 @@ function Ensure-ParallelWorker($Row) {
     $endpoint.Notify('Configure',((Get-ParallelConfig $Row) | ConvertTo-Json -Depth 15 -Compress))
     return $endpoint
 }
-function Send-ParallelCommand($Row,[string]$Kind,[string]$BatchId='',[bool]$Direct=$false) {
+function Send-ParallelCommand($Row,[string]$Kind,[string]$BatchId='',[bool]$Direct=$false,[string]$Mode=$Row.TaskMode) {
     $endpoint=Ensure-ParallelWorker $Row
-    $useItem=if($Direct){$Row.TaskMode -eq 'fish' -and $script:directStartUseItem}else{$Row.SlotUseItem}
-    $payload=@{Config=(Get-ParallelConfig $Row);Roles=@(Get-AccountTaskRoles $Row);Account=$Row.AccountName;AccountCandidates=@(Get-AccountDiscoveryCandidates $Row);BatchId=$BatchId;Direct=$Direct;Mode=$Row.TaskMode;UseItem=$useItem;RoundBase=$Row.ExecutionRound}
+    $useItem=if($Direct){$Mode -eq 'fish' -and $script:directStartUseItem}else{$Row.SlotUseItem}
+    $payload=@{Config=(Get-ParallelConfig $Row);Roles=@(Get-AccountTaskRoles $Row);Account=$Row.AccountName;AccountCandidates=@(Get-AccountDiscoveryCandidates $Row);BatchId=$BatchId;Direct=$Direct;Mode=$Mode;UseItem=$useItem;RoundBase=$Row.ExecutionRound}
     $endpoint.Notify('Configure',($payload.Config | ConvertTo-Json -Depth 15 -Compress))
     $null=$endpoint.Send($Kind,($payload | ConvertTo-Json -Depth 15 -Compress))
 }
@@ -99,7 +99,7 @@ function Update-ParallelMessages {
             'stopped' {
                 $row.RuntimeRunning=$false;$row.RuntimeScanning=$false;$row.RuntimeExiting=$false;$row.RuntimePhase='stopped';$row.TargetRole='';$row.CurrentRole='';$row.CurrentIndex=-1
                 if($data.Exited){$row.Exited=$true}
-                if($row.TaskMode -eq 'tame' -or ($row.TaskMode -eq 'shop' -and $row.RuntimeDirect)){$row.TaskMode=$row.DefaultTaskMode;$row.Validated=$false}
+                if($row.RuntimeDirect){$row.RuntimeDirect=$false;$row.TaskMode=$row.DefaultTaskMode;$row.Validated=$false}
                 Set-RowControls $row;Update-WowAutoRunInfo
             }
             'excluded' {$row.ExcludedNames+=,$data.Name;Update-WowAutoRunInfo}
@@ -176,7 +176,7 @@ function Initialize-ParallelRuntime {
     $script:parallelHub.Simulation=[bool]$UiTest
     Apply-ParallelTimings
     $script:parallelOperator=New-ParallelPipeline 'wowAuto.Operator.ps1' -Mock $mockOperator
-    $intro.Text='在设置中启用角色并配置任务。“开始”首次返回选角页时自动识别子战网，再按角色轮转；“直接开始”使用当前已登录角色。'
+    $intro.Text='在设置中启用角色并配置任务。“开始”首次返回选角页时自动识别子战网，再按角色轮转；选择任务后点击“直接开始”，使用当前已登录角色。'
     $footer.Text='检测与OCR按进程独立运行；操作线程执行按键和点击，日志线程统一写文件。角色死亡或包满时移出本次轮转，耗尽才退出该进程。'
     $script:parallelHub.Log($null,0,'system','独立检测线程 / 专用操作线程 / 专用日志线程 / UI消息模式已初始化。')
     if($accountError){$settingsSummary.Text='子战网配置读取失败，角色已停用，请打开设置核对：'+$accountError;$script:parallelHub.Log($null,0,'error',$settingsSummary.Text)}

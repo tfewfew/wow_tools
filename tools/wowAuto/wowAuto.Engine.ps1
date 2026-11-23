@@ -1,4 +1,8 @@
 ﻿# Pure shared scheduler. Native window/input operations are performed by the GUI adapter.
+function Get-WowAutoDirectTaskModes {
+    return @('rest','fight','shop','fish')
+}
+
 function New-WowAutoState {
     param([int]$MinimumMs, [int]$MaximumMs)
     if ($MinimumMs -lt 1 -or $MaximumMs -gt 3600000 -or $MinimumMs -gt $MaximumMs) {

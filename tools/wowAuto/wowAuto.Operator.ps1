@@ -200,8 +200,9 @@ function Invoke-OperatorShop($Request,$Body) {
 }
 function Invoke-OperatorRequest($Request) {
     $endpoint=$Request.Owner;$body=$Request.Json | ConvertFrom-Json;$timing=$Request.Timing
-    if($Request.Domain -eq 'Rest' -and ($endpoint.Flavor -cne 'forerver' -or $Request.Kind -cne 'Rest.Jump')) {
-        throw '放号操作只支持无限服跳跃。'
+    if($Request.Domain -eq 'Rest' -and ($Request.Kind -cne 'Rest.Jump' -or $endpoint.Flavor -cnotin @('titan','forerver') -or
+        ($endpoint.Flavor -ceq 'titan' -and ($body.Direct -isnot [bool] -or -not $body.Direct)))) {
+        throw '放号操作仅支持直接放号或无限服角色编排的跳跃。'
     }
     if($Request.Domain -eq 'Shop') {
         $deadline=if($Request.Kind -eq 'Shop.Stop'){$body.LeaseUntil}else{$body.Deadline}
