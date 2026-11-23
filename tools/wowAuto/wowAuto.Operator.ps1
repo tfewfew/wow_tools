@@ -62,7 +62,7 @@ function Invoke-OperatorAdapter([string]$Action,$Endpoint,$Data=$null,[int]$Dura
         'ShopState' {return [WowAutoRotation.Native]::ReadShoppingState($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
         'ShopCommand' {
             return [WowAuto.NativeInput]::SendShoppingCommand($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,
-                $Data.Action,[long]$Data.LeaseMs,[long]$Data.ClosedWaitMs,[long]$Data.OpenHoldMs,[long]$Data.JitterMs,$DurationMs)
+                $Data.Action,[long]$Data.LeaseMs,$DurationMs)
         }
         'TamePacket' {return [WowAutoFight.Native]::ReadTame((Get-OperatorClient $Endpoint))}
         'Press' {$binding=ConvertFrom-AutoFightBinding ([string]$Data);return [WowAutoFight.Native]::Press((Get-OperatorClient $Endpoint),$binding.Code,$binding.Ctrl,$binding.Shift,$binding.Alt,$DurationMs)}
@@ -167,47 +167,42 @@ function Invoke-OperatorShop($Request,$Body) {
         return $result
     }
     if(-not (Test-OperatorShopInput $Request $Body.Deadline)){return $result}
+    if($Request.Kind -eq 'Shop.Prepare') {
+        $leaseMs=[long]$Body.Deadline-$Hub.Now-4L*$timing.ChatKeyPressMs
+        if($leaseMs -gt 0){
+            $result.Executed=Invoke-OperatorAdapter ShopCommand $endpoint @{Action='prepare';LeaseMs=$leaseMs} $timing.ChatKeyPressMs
+        }
+        return $result
+    }
+    $state=Invoke-OperatorAdapter ShopState $endpoint
     if($Request.Kind -eq 'Shop.Logout') {
-        if((Invoke-OperatorAdapter ShopState $endpoint) -eq 'bought' -and (Test-OperatorShopInput $Request $Body.Deadline)){
+        if($state -eq 'bought' -and (Test-OperatorShopInput $Request $Body.Deadline)){
             $result.Confirmed=$true
             $result.Executed=Invoke-OperatorAdapter Logout $endpoint $null $timing.ChatKeyPressMs
         }
         return $result
     }
+    if($Request.Kind -eq 'Shop.Close') {
+        if($state -eq 'open' -and (Test-OperatorShopInput $Request $Body.Deadline)){
+            $result.Executed=Invoke-OperatorAdapter ShopCommand $endpoint @{Action='close'} $timing.ChatKeyPressMs
+        }
+        return $result
+    }
     if($Request.Kind -eq 'Shop.Jump') {
-        if((Invoke-OperatorAdapter ShopState $endpoint) -notin @('ready','busy','bought')){
+        if($state -eq 'closed' -and (Test-OperatorShopInput $Request $Body.Deadline)){
             $result.Executed=Invoke-OperatorAdapter Press $endpoint 'Space' $timing.KeyPressMs
             $result.SentAt=$Hub.Now
         }
         return $result
     }
     if($Request.Kind -ne 'Shop.Visit'){throw '未知购物操作。'}
+    if($state -ne 'closed'){return $result}
     if($Body.JumpOnVisit -isnot [bool]){throw '开店跳跃须为开关值。'}
-    if($Body.RequireReopen -and (Invoke-OperatorAdapter ShopState $endpoint) -ne 'reopen'){
-        $result.Prepared=$true
-        return $result
-    }
     $binding=ConvertFrom-AutoFightBinding ([string]$Body.Key)
     if($binding.Code -in @(13,32)){throw '交互键不能使用回车或空格。'}
-    $leaseMs=[long]$Body.Deadline-$Hub.Now-4L*$timing.ChatKeyPressMs
-    if($leaseMs -lt 1){return $result}
-    $prepare=@{Action='prepare';LeaseMs=$leaseMs;ClosedWaitMs=$Body.ClosedWaitMs;OpenHoldMs=$Body.OpenHoldMs;JitterMs=$Body.JitterMs}
-    if(-not (Invoke-OperatorAdapter ShopCommand $endpoint $prepare $timing.ChatKeyPressMs)){return $result}
-    $result.Prepared=$true
-    $until=[Math]::Min([long]$Body.Deadline,$Hub.Now+1500)
-    $state='unknown'
-    while(Test-OperatorShopInput $Request $until) {
-        try {
-            $state=Invoke-OperatorAdapter ShopState $endpoint
-            if($state -in @('ready','busy')){break}
-        }
-        catch {if(-not [WowAutoCapture.Native]::IsPending($_.Exception)){throw}}
-        if(-not (Wait-Operator $Request 50)){return $result}
-    }
     if(-not (Test-OperatorShopInput $Request $Body.Deadline)){return $result}
-    if($state -eq 'unknown'){$result.MissingMode=$true}
-    if($state -ne 'ready'){return $result}
     if(-not (Invoke-OperatorAdapter Press $endpoint $binding.Text $timing.KeyPressMs)){return $result}
+    $result.Interacted=$true
     if(-not (Test-OperatorShopInput $Request $Body.Deadline)){return $result}
     if($Body.JumpOnVisit){
         if(-not (Invoke-OperatorAdapter Press $endpoint 'Space' $timing.KeyPressMs)){return $result}

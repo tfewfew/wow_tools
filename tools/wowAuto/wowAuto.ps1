@@ -292,21 +292,20 @@ namespace WowAuto
             if (mode=="rest") return "/wowrest";
             throw new ArgumentException("Unknown detector mode.");
         }
-        public static string ShoppingCommand(string action,long leaseMs,long closedWaitMs,long openHoldMs,long jitterMs)
+        public static string ShoppingCommand(string action,long leaseMs)
         {
             const long maxMs = int.MaxValue*1000L;
-            if (action=="prepare" && leaseMs>=1 && leaseMs<=maxMs &&
-                closedWaitMs>=1 && closedWaitMs<=maxMs && openHoldMs>=1 && openHoldMs<=maxMs && jitterMs>=0 && jitterMs<=maxMs)
+            if (action=="prepare" && leaseMs>=1 && leaseMs<=maxMs)
                 return string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                    "/autoshop preparems {0} {1} {2} {3}",leaseMs,closedWaitMs,openHoldMs,jitterMs);
-            if ((action=="buy" || action=="cancel") && leaseMs==0 && closedWaitMs==0 && openHoldMs==0 && jitterMs==0)
+                    "/autoshop preparems {0}",leaseMs);
+            if ((action=="buy" || action=="close" || action=="cancel") && leaseMs==0)
                 return "/autoshop " + action;
             throw new ArgumentException("Invalid shopping command.");
         }
 
-        public static bool SendShoppingCommand(int pid,long ticks,string path,string action,long leaseMs,long closedWaitMs,long openHoldMs,long jitterMs,int durationMs)
+        public static bool SendShoppingCommand(int pid,long ticks,string path,string action,long leaseMs,int durationMs)
         {
-            return SendChatCommand(pid,ticks,path,ShoppingCommand(action,leaseMs,closedWaitMs,openHoldMs,jitterMs),durationMs);
+            return SendChatCommand(pid,ticks,path,ShoppingCommand(action,leaseMs),durationMs);
         }
 
         public static string RotationCommand(string action,int token)

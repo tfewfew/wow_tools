@@ -18,10 +18,8 @@ namespace WowAutoRotation {
             {"shop",Color.FromArgb(181,104,255)}
         };
         static readonly Dictionary<string,Color> ShoppingColors = new Dictionary<string,Color> {
-            {"ready",Color.FromArgb(107,29,193)},
-            {"busy",Color.FromArgb(125,202,57)},
-            {"cooldown",Color.FromArgb(44,161,230)},
-            {"reopen",Color.FromArgb(233,139,45)},
+            {"closed",Color.FromArgb(52,120,230)},
+            {"open",Color.FromArgb(154,211,67)},
             {"bought",Color.FromArgb(71,218,181)}
         };
         [StructLayout(LayoutKind.Sequential)] struct Rect { public int L,T,R,B; }

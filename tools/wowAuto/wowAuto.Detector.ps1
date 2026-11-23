@@ -170,7 +170,7 @@ function Start-DetectorTask {
             Login=$false;Started=$false;Deadline=0L;NextJumpAt=$now;Round=([int]$script:restVisits[$script:roleName]+1)}
     } elseif($script:mode -eq 'shop') {
         $settings=$script:shopSettings
-        $script:shopSession=@{Deadline=$now+[long]$settings.DurationSeconds*1000;NextVisitAt=$now;LeaseUntil=0L;WaitingForReopen=$false;Visits=0;
+        $script:shopSession=@{Deadline=$now+[long]$settings.DurationSeconds*1000;LeaseUntil=0L;State='';StateDueAt=0L;NextActionAt=$now;Visits=0;
             NextJumpAt=$now+[long]$settings.JumpIntervalSeconds*1000}
     } else {
         $observation=Get-DetectorObservationReady
@@ -453,9 +453,11 @@ function Invoke-DetectorShop {
     $now=$Hub.Now
     $session=$script:shopSession
     $expired=$now -ge $session.Deadline
-    $pollDue=$now -ge $script:retryAt -and $now -ge $script:nextColor
+    if(-not $expired -and ($now -lt $script:retryAt -or $now -lt $script:nextColor)){return}
+    $pollMs=[Math]::Min(100,[int]$script:config.Periods.LoginMs)
+    $script:nextColor=$now+$pollMs
     $state='unknown'
-    if($session.WaitingForReopen -and ($pollDue -or $expired)) {
+    if($session.LeaseUntil) {
         try {$state=[WowAutoRotation.Native]::ReadShoppingState($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
         catch {
             if($now -lt $session.Deadline+5000L -or -not [WowAutoCapture.Native]::IsPending($_.Exception)){throw}
@@ -464,8 +466,8 @@ function Invoke-DetectorShop {
     }
     if($expired) {
         # At the deadline an already-submitted purchase can still be reaching the bags.
-        if($state -in @('ready','busy','cooldown') -and $now -lt $session.Deadline+5000L){
-            $null=Wait-Detector ([Math]::Min(100,[int]$script:config.Periods.LoginMs))
+        if($state -in @('closed','open') -and $now -lt $session.Deadline+5000L){
+            $null=Wait-Detector $pollMs
             return
         }
         $script:running=$false
@@ -484,48 +486,53 @@ function Invoke-DetectorShop {
         Publish-Detector stopped @{Reason=$reason;Exited=$false}
         return
     }
-    $settings=$script:shopSettings
-    $visitDue=$now -ge $session.NextVisitAt
-    $jumpDue=$settings.JumpIntervalSeconds -gt 0 -and $now -ge $session.NextJumpAt
-    if(-not $pollDue -or (-not $session.WaitingForReopen -and -not $visitDue -and -not $jumpDue)){return}
-    $script:nextColor=$now+[Math]::Min(100,[int]$script:config.Periods.LoginMs)
-    if(-not (Get-DetectorObservation).Login){Write-Detector '等待角色登录，暂不访问商人。';return}
-    if($session.WaitingForReopen) {
-        if($state -eq 'unknown'){
+    if($state -notin @('closed','open')) {
+        if(-not $session.State -and $now -ge $session.NextActionAt){
+            $reply=Request-DetectorOperation Shop.Prepare Shop @{Deadline=$session.Deadline}
+            if($session.LeaseUntil){
+                Write-Detector '未确认购物模式和商店状态。请选中商人，确认已更新插件并保存购物清单。'
+            }
+            if($reply -and $reply.Executed){$session.LeaseUntil=$session.Deadline}
+            $session.NextActionAt=$Hub.Now+1500L
+        } elseif($session.State) {
             Write-Detector '等待购物插件确认商店状态。'
+        }
+        return
+    }
+    $settings=$script:shopSettings
+    if($state -ne $session.State){
+        # Draw one interval when the actual merchant state changes.
+        $session.State=$state
+        $baseMs=if($state -eq 'open'){[long]$settings.CloseDelayMs}else{[long]$settings.ReopenDelayMs}
+        $jitterMs=[long]$settings.JitterMs
+        $delay=Get-Random -Minimum ([Math]::Max(1L,($baseMs-$jitterMs))) -Maximum ($baseMs+$jitterMs+1L)
+        $session.StateDueAt=$Hub.Now+$delay
+        $session.NextActionAt=0L
+        Write-Detector $(if($state -eq 'open'){'商店已打开，开始关店倒计时。'}else{'商店已关闭，开始开店倒计时。'})
+        return
+    }
+    if($now -lt $session.NextActionAt){return}
+    if($now -ge $session.StateDueAt){
+        if($state -eq 'open'){
+            $null=Request-DetectorOperation Shop.Close Shop @{Deadline=$session.Deadline}
+            $session.NextActionAt=$Hub.Now+250L
             return
         }
-        if($state -in @('ready','busy','bought')){return}
-        $visitDue=$state -eq 'reopen'
-        if(-not $visitDue){Write-Detector '商店已关闭，等待下次打开。'}
-    }
-    if($visitDue) {
-        $session.LeaseUntil=$session.Deadline
-        $reply=Request-DetectorOperation Shop.Visit Shop @{Key=$settings.InteractKey;Deadline=$session.Deadline;
-            ClosedWaitMs=$settings.ReopenDelayMs;OpenHoldMs=$settings.CloseDelayMs;JitterMs=$settings.JitterMs;
-            JumpOnVisit=$settings.JumpOnVisit;RequireReopen=$session.WaitingForReopen}
+        $reply=Request-DetectorOperation Shop.Visit Shop @{Key=$settings.InteractKey;Deadline=$session.Deadline;JumpOnVisit=$settings.JumpOnVisit}
         if($reply -and $null -ne $reply.JumpedAt){
             $session.NextJumpAt=[long]$reply.JumpedAt+[long]$settings.JumpIntervalSeconds*1000
         }
-        if($reply -and $reply.Prepared -and -not $reply.MissingMode) {
-            $session.WaitingForReopen=$true
-            if($reply.Executed) {
-                $session.Visits++
+        $retryDelay=250L
+        if($reply -and $reply.Interacted){
+            $session.Visits++
+            $retryDelay=4000L
+            if($reply.Executed){
                 $inputDescription=if($null -ne $reply.JumpedAt){'交互键和空格'}else{'交互键'}
                 Write-Detector ('第 '+$session.Visits+' 次购物访问已发送'+$inputDescription+'，等待插件处理购买。')
             }
-        } elseif($reply) {
-            $session.WaitingForReopen=$false
-            $baseMs=[long]$settings.ReopenDelayMs
-            $jitterMs=[long]$settings.JitterMs
-            $retryDelay=Get-Random -Minimum ([Math]::Max(1L,($baseMs-$jitterMs))) -Maximum ($baseMs+$jitterMs+1L)
-            $session.NextVisitAt=$Hub.Now+$retryDelay
-            if($reply.MissingMode){
-                $session.LeaseUntil=0L
-                Write-Detector '未确认购物模式和阶段色块。请选中商人，确认已更新插件并保存购物清单。'
-            }
         }
-    } elseif($jumpDue) {
+        $session.NextActionAt=$Hub.Now+$retryDelay
+    } elseif($state -eq 'closed' -and $settings.JumpIntervalSeconds -gt 0 -and $now -ge $session.NextJumpAt){
         $reply=Request-DetectorOperation Shop.Jump Shop @{Deadline=$session.Deadline}
         if($reply -and $reply.Executed){$session.NextJumpAt=[long]$reply.SentAt+[long]$settings.JumpIntervalSeconds*1000}
     }

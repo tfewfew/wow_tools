@@ -120,9 +120,10 @@ try {
         -not $legacyShop.ContainsKey('VisitIntervalSeconds') -or $legacyDefaults.JitterMs -ne 0 -or
         $previousShop.ContainsKey('JitterMs') -or $previousShop.ContainsKey('JumpOnVisit') -or
         -not $legacyDefaults.JumpOnVisit -or -not $shopping.Shop.JumpOnVisit -or $customShop.JumpOnVisit -or
-        [WowAuto.NativeInput]::ShoppingCommand('prepare',1500,3101,605,$customShop.JitterMs) -cne '/autoshop preparems 1500 3101 605 100' -or
-        [WowAuto.NativeInput]::ShoppingCommand('buy',0,0,0,0) -cne '/autoshop buy' -or
-        [WowAuto.NativeInput]::ShoppingCommand('cancel',0,0,0,0) -cne '/autoshop cancel' -or
+        [WowAuto.NativeInput]::ShoppingCommand('prepare',1500) -cne '/autoshop preparems 1500' -or
+        [WowAuto.NativeInput]::ShoppingCommand('buy',0) -cne '/autoshop buy' -or
+        [WowAuto.NativeInput]::ShoppingCommand('close',0) -cne '/autoshop close' -or
+        [WowAuto.NativeInput]::ShoppingCommand('cancel',0) -cne '/autoshop cancel' -or
         [WowAuto.NativeInput]::DetectorCommand('rest') -cne '/wowrest') {
         throw 'Automatic shopping timing settings or slash command contract is incompatible.'
     }
@@ -147,14 +148,13 @@ try {
                 throw "Login mode must identify $($spec[0]) as in world."
             }
         }
-        foreach($spec in @(@('ready',107,29,193),@('busy',125,202,57),@('cooldown',44,161,230),
-            @('reopen',233,139,45),@('bought',71,218,181))){
+        foreach($spec in @(@('closed',52,120,230),@('open',154,211,67),@('bought',71,218,181))){
             $color=[Drawing.Color]::FromArgb($spec[1],$spec[2],$spec[3])
             for($y=47;$y -le 51;$y++){
                 for($x=46;$x -le 50;$x++){$frame.SetPixel($x,$y,$color)}
             }
             if([WowAutoRotation.Native]::ReadShoppingState(0,0,'') -cne $spec[0]){
-                throw 'Shopping status signal contract is incompatible.'
+                throw 'The closed, open and purchase-completed color signals must decode from the same frame as the mode marker.'
             }
         }
         $frame.SetPixel(46,47,[Drawing.Color]::Black)
@@ -176,7 +176,7 @@ try {
         [WowAutoRotation.Native]::FrameReader=$frameReader
         $frame.Dispose()
     }
-    Write-Output 'PASS: shared in-world mode palette, shopping settings, slash commands and same-frame shopping signals.'
+    Write-Output 'PASS: shared in-world mode palette, shopping settings, slash commands and three same-frame shopping states.'
 
     . (Join-Path $tool 'wowAuto.Engine.ps1')
     $directModes=Get-WowAutoDirectTaskModes
