@@ -3,7 +3,7 @@ local mode, visit, canBuy, opened, selectedGossip, merchantOpen
 local rules, pending, receipt, skipped = {}, nil, nil, {}
 local exitOnPurchase = false
 local menuReadyAt, updateAt = 0, 0
-local stateText, editor
+local stateText, loadSavedRules
 local events = CreateFrame("Frame")
 local signal = CreateFrame("Frame", nil, UIParent)
 signal:SetSize(16, 16)
@@ -367,6 +367,7 @@ events:SetScript("OnEvent", function(_, event, addon)
             end
         end
         exitOnPurchase = SingleRuleID(rules) ~= nil and wowDetectorDB.autoShopExitOnPurchase == true
+        if loadSavedRules then loadSavedRules() end
     elseif event == "DISPLAY_SIZE_CHANGED" or event == "UI_SCALE_CHANGED" then
         RefreshStatus()
     elseif event == "MERCHANT_SHOW" then
@@ -414,16 +415,36 @@ local function BuildSettings(parent)
     hint:SetPoint("TOPLEFT", 16, -18)
     hint:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -16, -18)
     hint:SetJustifyH("LEFT")
-    hint:SetText("每行输入两个数字：物品 ID  背包上限。开启模式后，打开商店会补货并确认购买。")
+    hint:SetText("购物清单（每行填写物品 ID 和背包上限）")
 
-    local scroll = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
-    scroll:SetPoint("TOPLEFT", 16, -54)
-    scroll:SetPoint("BOTTOMRIGHT", -40, 124)
-    editor = CreateFrame("EditBox", nil, scroll)
+    local inputArea = CreateFrame("Frame", nil, panel, "BackdropTemplate")
+    inputArea:SetPoint("TOPLEFT", 16, -50)
+    inputArea:SetPoint("BOTTOMRIGHT", -16, 124)
+    inputArea:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8X8",
+        edgeFile = "Interface\\Buttons\\WHITE8X8",
+        edgeSize = 1,
+        insets = {left = 1, right = 1, top = 1, bottom = 1},
+    })
+    inputArea:SetBackdropColor(0.07, 0.07, 0.08, 1)
+    inputArea:SetBackdropBorderColor(0.48, 0.51, 0.56, 1)
+
+    local scroll = CreateFrame("ScrollFrame", nil, inputArea, "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", 2, -2)
+    scroll:SetPoint("BOTTOMRIGHT", -25, 2)
+    local editor = CreateFrame("EditBox", nil, scroll)
+    editor:SetPoint("TOPLEFT", scroll, "TOPLEFT")
+    editor:EnableMouse(true)
     editor:SetMultiLine(true)
     editor:SetAutoFocus(false)
     editor:SetFontObject("ChatFontNormal")
+    editor:SetTextInsets(8, 8, 8, 8)
     editor:SetSize(400, 120)
+
+    local placeholder = editor:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    placeholder:SetPoint("TOPLEFT", 8, -8)
+    placeholder:SetTextColor(0.65, 0.68, 0.74)
+    placeholder:SetText("点击输入，例如 159 1")
     editor:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
     local function SizeEditor()
         local _, fontHeight = editor:GetFont()
@@ -439,21 +460,36 @@ local function BuildSettings(parent)
         local draft = ParseRules(editor:GetText())
         exitCheck:SetEnabled(draft ~= nil and SingleRuleID(draft) ~= nil)
     end
+    local function RefreshPlaceholder()
+        placeholder:SetShown(editor:GetText() == "" and not editor:HasFocus())
+    end
     editor:SetScript("OnTextChanged", function()
         SizeEditor()
         RefreshExitCheck()
+        RefreshPlaceholder()
     end)
-    scroll:SetScript("OnSizeChanged", function(self, width)
-        editor:SetWidth(math.max(1, width))
+    editor:SetScript("OnEditFocusGained", RefreshPlaceholder)
+    editor:SetScript("OnEditFocusLost", RefreshPlaceholder)
+    local function ResizeEditor()
+        editor:SetWidth(math.max(1, scroll:GetWidth()))
         SizeEditor()
-    end)
+    end
+    scroll:SetScript("OnSizeChanged", ResizeEditor)
+    panel:SetScript("OnShow", ResizeEditor)
     scroll:SetScrollChild(editor)
-    local values, ids = {}, {}
-    for id in pairs(rules) do ids[#ids + 1] = id end
-    table.sort(ids)
-    for _, id in ipairs(ids) do values[#values + 1] = id .. "  " .. rules[id] end
-    editor:SetText(table.concat(values, "\n"))
-    RefreshExitCheck()
+    ResizeEditor()
+
+    loadSavedRules = function()
+        local values, ids = {}, {}
+        for id in pairs(rules) do ids[#ids + 1] = id end
+        table.sort(ids)
+        for _, id in ipairs(ids) do values[#values + 1] = id .. "  " .. rules[id] end
+        editor:SetText(table.concat(values, "\n"))
+        exitCheck:SetChecked(exitOnPurchase)
+        RefreshExitCheck()
+        RefreshPlaceholder()
+    end
+    loadSavedRules()
 
     stateText = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     stateText:SetPoint("BOTTOMLEFT", 16, 57)

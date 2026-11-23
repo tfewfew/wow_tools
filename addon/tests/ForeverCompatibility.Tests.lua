@@ -123,6 +123,8 @@ local function widget(name, parent, kind)
             return self.mockLineCount or newlines + 1
         end
         function object:GetSpacing() return self.spacing or 0 end
+        function object:HasFocus() return false end
+        function object:SetTextInsets(...) self.textInsets = {...} end
     elseif kind == "ScrollFrame" then
         function object:UpdateScrollChildRect() self.scrollRectUpdated = true end
     end
@@ -444,6 +446,9 @@ if TEST_THIRD_PARTY_DISABLED then
     wowDetectorDB = {thirdPartyAddons = {bigfoot_channel = false, ls_toasts = false, forever_faces = false, better_vendor_ui = false, pet_xp_bar = false,
         raynna_bestiary = false, prr = false}}
 end
+wowDetectorDB = wowDetectorDB or {}
+wowDetectorDB.autoShop = {[159] = 1}
+wowDetectorDB.autoShopExitOnPurchase = true
 for _, frame in ipairs(frames) do
     if frame.events.ADDON_LOADED then frame.scripts.OnEvent(frame, "ADDON_LOADED", "wow_tools") end
 end
@@ -1012,15 +1017,31 @@ local autoShop = assert(WoWTools.modules.auto_shop, "Missing automatic shopping 
 assert(type(autoShop.BuildSettings) == "function" and type(SlashCmdList.WOWTOOLSAUTOSHOP) == "function"
     and SLASH_WOWTOOLSAUTOSHOP1 == "/autoshop" and not autoShop.IsEnabled(),
     "Automatic shopping settings, slash command or initial state contract failed")
-local shopPanel = autoShop.BuildSettings(CreateFrame("Frame", nil, UIParent))
-local shopExitCheck
+local shopPanel = assert(WoWTools.settings.pages.auto_shop.frame, "Missing shopping settings panel")
+local shopExitCheck, shopEditor
 for _, child in ipairs(frames) do
     if child:GetParent() == shopPanel and child.kind == "CheckButton" and child.template == "UICheckButtonTemplate" then
         shopExitCheck = child
+    elseif child.kind == "EditBox" then
+        local scroll = child:GetParent()
+        local area = scroll and scroll:GetParent()
+        if area and area:GetParent() == shopPanel then
+            assert(scroll.template == "UIPanelScrollFrameTemplate" and area.template == "BackdropTemplate",
+                "Shopping list editor is missing its bordered scroll area")
+            shopEditor = child
+        end
     end
 end
+assert(shopEditor and shopEditor:GetText() == "159  1" and shopEditor.textInsets[1] == 8,
+    "Shopping list editor did not receive SavedVariables after TOC initialization")
+local shopPlaceholder
+for _, widget in ipairs(widgets) do
+    if widget:GetParent() == shopEditor and widget.kind == "FontString" then shopPlaceholder = widget end
+end
+assert(shopPlaceholder and shopPlaceholder:GetText() == "点击输入，例如 159 1" and not shopPlaceholder:IsShown(),
+    "Shopping list editor's placeholder binding failed")
 assert(shopExitCheck and shopExitCheck.Text:GetText() == "买到后下线并关闭游戏（仅限 wowAuto 单商品任务）"
-    and not shopExitCheck:GetChecked() and not shopExitCheck:IsEnabled(), "Automatic shopping exit checkbox binding failed")
+    and shopExitCheck:GetChecked() and shopExitCheck:IsEnabled(), "Automatic shopping exit checkbox binding failed")
 assert(WoWTools.settings.tabs.third_party.Text:GetText() == "插件列表", "Plugin list label binding failed")
 local firstThirdPartyGroup
 for _, group in ipairs(WoWTools.settings.groups) do
