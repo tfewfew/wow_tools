@@ -292,20 +292,16 @@ namespace WowAuto
             if (mode=="rest") return "/wowrest";
             throw new ArgumentException("Unknown detector mode.");
         }
-        public static string ShoppingCommand(string action,long leaseMs)
+        public static string ShoppingCommand(string action)
         {
-            const long maxMs = int.MaxValue*1000L;
-            if (action=="prepare" && leaseMs>=1 && leaseMs<=maxMs)
-                return string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                    "/autoshop preparems {0}",leaseMs);
-            if ((action=="buy" || action=="close" || action=="cancel") && leaseMs==0)
+            if (action=="prepare" || action=="buy" || action=="close" || action=="finish" || action=="cancel")
                 return "/autoshop " + action;
             throw new ArgumentException("Invalid shopping command.");
         }
 
-        public static bool SendShoppingCommand(int pid,long ticks,string path,string action,long leaseMs,int durationMs)
+        public static bool SendShoppingCommand(int pid,long ticks,string path,string action,int durationMs)
         {
-            return SendChatCommand(pid,ticks,path,ShoppingCommand(action,leaseMs),durationMs);
+            return SendChatCommand(pid,ticks,path,ShoppingCommand(action),durationMs);
         }
 
         public static string RotationCommand(string action,int token)
@@ -2039,7 +2035,7 @@ $form.Add_FormClosing({
     Close-WowAutoScreenshot
     if($script:characterCreate){Stop-CharacterCreate}
     $shutdownTimer.Stop()
-    if($script:useWorkers){$timer.Stop();$positionTimer.Stop();$scanTimer.Stop();Stop-AllRows;$script:parallelHub.Close();return}
+    if($script:useWorkers){$timer.Stop();$positionTimer.Stop();$scanTimer.Stop();Stop-ParallelRowsBeforeClose;$script:parallelHub.Close();return}
     Remove-GameActions -IncludeProcess
     $script:gameActions.Closing=$true
     [WowAutoCapture.Native]::Shutdown()

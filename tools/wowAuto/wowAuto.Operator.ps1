@@ -62,7 +62,7 @@ function Invoke-OperatorAdapter([string]$Action,$Endpoint,$Data=$null,[int]$Dura
         'ShopState' {return [WowAutoRotation.Native]::ReadShoppingState($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
         'ShopCommand' {
             return [WowAuto.NativeInput]::SendShoppingCommand($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,
-                $Data.Action,[long]$Data.LeaseMs,$DurationMs)
+                $Data.Action,$DurationMs)
         }
         'TamePacket' {return [WowAutoFight.Native]::ReadTame((Get-OperatorClient $Endpoint))}
         'Press' {$binding=ConvertFrom-AutoFightBinding ([string]$Data);return [WowAutoFight.Native]::Press((Get-OperatorClient $Endpoint),$binding.Code,$binding.Ctrl,$binding.Shift,$binding.Alt,$DurationMs)}
@@ -160,18 +160,14 @@ function Test-OperatorShopInput($Request,[long]$Deadline) {
 function Invoke-OperatorShop($Request,$Body) {
     $endpoint=$Request.Owner;$timing=$Request.Timing
     $result=@{Executed=$false;SentAt=$Hub.Now}
+    if(-not (Test-OperatorShopInput $Request $Body.Deadline)){return $result}
     if($Request.Kind -eq 'Shop.Stop') {
-        if((Test-OperatorShopInput $Request $Body.LeaseUntil) -and (Invoke-OperatorAdapter ShopState $endpoint) -ne 'unknown') {
-            $result.Executed=Invoke-OperatorAdapter ShopCommand $endpoint @{Action='cancel'} $timing.ChatKeyPressMs
-        }
+        $action=if($Body.Finish){'finish'}else{'cancel'}
+        $result.Executed=Invoke-OperatorAdapter ShopCommand $endpoint @{Action=$action} $timing.ChatKeyPressMs
         return $result
     }
-    if(-not (Test-OperatorShopInput $Request $Body.Deadline)){return $result}
     if($Request.Kind -eq 'Shop.Prepare') {
-        $leaseMs=[long]$Body.Deadline-$Hub.Now-4L*$timing.ChatKeyPressMs
-        if($leaseMs -gt 0){
-            $result.Executed=Invoke-OperatorAdapter ShopCommand $endpoint @{Action='prepare';LeaseMs=$leaseMs} $timing.ChatKeyPressMs
-        }
+        $result.Executed=Invoke-OperatorAdapter ShopCommand $endpoint @{Action='prepare'} $timing.ChatKeyPressMs
         return $result
     }
     $state=Invoke-OperatorAdapter ShopState $endpoint
@@ -220,8 +216,7 @@ function Invoke-OperatorRequest($Request) {
         throw '放号操作仅支持直接放号或无限服角色编排的跳跃。'
     }
     if($Request.Domain -eq 'Shop' -or $Request.Kind -eq 'Shop.Logout') {
-        $deadline=if($Request.Kind -eq 'Shop.Stop'){$body.LeaseUntil}else{$body.Deadline}
-        if($Hub.Now -ge $deadline){return @{Executed=$false;SentAt=$Hub.Now}}
+        if($Hub.Now -ge $body.Deadline){return @{Executed=$false;SentAt=$Hub.Now}}
     }
     if($Request.Kind -eq 'Process.Shutdown'){return Invoke-OperatorShutdown $Request}
     if($Request.Kind -eq 'Scan.Restore') {

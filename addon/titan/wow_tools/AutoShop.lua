@@ -200,9 +200,13 @@ local function WaitForPurchase(now, counts)
     return false
 end
 
+local function AwaitingExitReceipt(now)
+    return session and receipt and receipt.exitSession == session and now < receipt.expires
+end
+
 local function Update(now)
     -- A submitted purchase can reach the bags after the merchant window closes.
-    local awaitingExitReceipt = session and receipt and receipt.exitSession == session and now < receipt.expires
+    local awaitingExitReceipt = AwaitingExitReceipt(now)
     if awaitingExitReceipt and now >= updateAt then
         updateAt = now + 0.05
         local counts = CountBags()
@@ -211,7 +215,10 @@ local function Update(now)
             return
         end
     end
-    if session and now >= session.deadline and not awaitingExitReceipt then Stop(); return end
+    if session and session.finishing then
+        if not awaitingExitReceipt then Stop() end
+        return
+    end
     if buyUntil and now >= buyUntil then FinishPurchases() end
     if awaitingExitReceipt or not merchantOpen or not canBuy or now < menuReadyAt or now < updateAt then return end
     updateAt = now + 0.05
@@ -267,7 +274,7 @@ local function StartManual()
     RefreshStatus()
 end
 
-local function StartScripted(leaseMs)
+local function StartScripted()
     if not next(rules) or InCombatLockdown() or UnitIsDeadOrGhost("player")
         or not UnitExists("target") or UnitIsPlayer("target") then
         if session then Stop() end
@@ -277,14 +284,14 @@ local function StartScripted(leaseMs)
     FinishPurchases()
     WoWTools.ActivateDetector("auto_shop")
     mode = "script"
-    session = { deadline = GetTime() + leaseMs / 1000, exitItemID = exitOnPurchase and SingleRuleID(rules) }
+    session = { exitItemID = exitOnPurchase and SingleRuleID(rules) }
     merchantOpen = MerchantFrame and MerchantFrame:IsShown() or false
     events:SetScript("OnUpdate", Tick)
     RefreshStatus()
 end
 
 local function OpenVendorOption()
-    if not session or selectedGossip or not buyUntil or GetTime() >= math.min(buyUntil, session.deadline) then return end
+    if not session or selectedGossip or not buyUntil or GetTime() >= buyUntil then return end
     for _, option in ipairs(C_GossipInfo.GetOptions()) do
         -- vendorgossipicon.blp is the interaction icon used by item vendors.
         if option.icon == 132060 and option.status == 0 then
@@ -324,7 +331,7 @@ events:SetScript("OnEvent", function(_, event, addon)
                 canBuy = true
                 events:SetScript("OnUpdate", Tick)
             elseif session and not session.bought then
-                canBuy = buyUntil and now < buyUntil and now < session.deadline
+                canBuy = buyUntil and now < buyUntil
                 buyUntil = nil
                 RefreshStatus()
             end
@@ -637,12 +644,21 @@ SLASH_WOWTOOLSAUTOSHOP1 = "/autoshop"
 SlashCmdList.WOWTOOLSAUTOSHOP = function(message)
     local command = (message or ""):match("^%s*(.-)%s*$")
     if command == "on" then StartManual()
+    elseif command == "prepare" then StartScripted()
     elseif command == "off" or (command == "cancel" and mode == "script") then Stop()
+    elseif command == "finish" then
+        if not session or session.bought then return end
+        if AwaitingExitReceipt(GetTime()) then
+            session.finishing = true
+            CloseStore()
+        else
+            Stop()
+        end
     elseif command == "close" then
         if session and not session.bought then CloseStore() end
     elseif command == "buy" then
         local now = GetTime()
-        if session and not session.bought and now < session.deadline and not InCombatLockdown() then
+        if session and not session.bought and not session.finishing and not InCombatLockdown() then
             canBuy = true
             if not merchantOpen then
                 -- Authorization expires if this interaction never opens a merchant.
@@ -650,8 +666,5 @@ SlashCmdList.WOWTOOLSAUTOSHOP = function(message)
                 if GossipFrame and GossipFrame:IsShown() then OpenVendorOption() end
             end
         end
-    else
-        local leaseMs = tonumber(command:match("^preparems (%d+)$"))
-        if leaseMs and leaseMs >= 1 and leaseMs <= 2147483647000 then StartScripted(leaseMs) end
     end
 end

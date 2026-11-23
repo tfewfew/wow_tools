@@ -67,6 +67,23 @@ function Start-ParallelBatch($Rows,[string]$Kind='Rotate') {
     $script:parallelHub.ActiveTasks=@($script:rows.Values | Where-Object RuntimeRunning).Count
     Update-WowAutoRunInfo
 }
+function Stop-ParallelRowsBeforeClose {
+    $pending=@{}
+    foreach($row in $script:rows.Values){
+        if($row.TaskMode -eq 'shop' -and ($row.RuntimeRunning -or $row.RuntimeExiting) -and $script:parallelWorkers.ContainsKey($row.Key)){
+            $pending[$row.Key]=$script:parallelWorkers[$row.Key].Endpoint
+        }
+    }
+    Stop-AllRows
+    $until=$script:parallelHub.Now+5000L
+    while($pending.Count -and -not $script:parallelHub.Closing -and $script:parallelHub.Now -lt $until){
+        $notice=$script:parallelHub.NextNotice()
+        if(-not $notice){[Threading.Thread]::Sleep(25);continue}
+        if($notice.Kind -eq 'stopped' -and $pending.ContainsKey($notice.Key) -and $notice.Version -eq $pending[$notice.Key].Version){
+            $pending.Remove($notice.Key)
+        }
+    }
+}
 function Stop-ParallelRuntime {
     if(-not $script:parallelHub){return}
     $script:parallelHub.Close()

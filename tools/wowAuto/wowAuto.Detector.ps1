@@ -170,7 +170,7 @@ function Start-DetectorTask {
             Login=$false;Started=$false;Deadline=0L;NextJumpAt=$now;Round=([int]$script:restVisits[$script:roleName]+1)}
     } elseif($script:mode -eq 'shop') {
         $settings=$script:shopSettings
-        $script:shopSession=@{Deadline=$now+[long]$settings.DurationSeconds*1000;LeaseUntil=0L;State='';StateDueAt=0L;NextActionAt=$now;Visits=0;
+        $script:shopSession=@{Deadline=$now+[long]$settings.DurationSeconds*1000;PrepareRequested=$false;FinishUntil=0L;State='';StateDueAt=0L;NextActionAt=$now;Visits=0;
             NextJumpAt=$now+[long]$settings.JumpIntervalSeconds*1000}
     } else {
         $observation=Get-DetectorObservationReady
@@ -407,11 +407,17 @@ function Invoke-DetectorRest {
     }
 }
 function Stop-DetectorShoppingVisit {
-    if($script:shopSession -and $Hub.Now -lt $script:shopSession.LeaseUntil) {
-        try {$null=Request-DetectorOperation Shop.Stop Shop @{LeaseUntil=$script:shopSession.LeaseUntil}}
-        catch {Write-Detector ('未能立即关闭本次商店访问，插件将在到期时停止：'+$_.Exception.Message)}
+    if($script:shopSession -and $script:shopSession.PrepareRequested) {
+        try {
+            $reply=Request-DetectorOperation Shop.Stop Shop @{Deadline=($Hub.Now+5000L)}
+            if((Test-DetectorCurrent) -and (-not $reply -or -not $reply.Executed)){
+                Write-Detector '未能向插件发送停止购物命令。' error
+            }
+        } catch {
+            Write-Detector ('未能向插件发送停止购物命令：'+$_.Exception.Message) error
+        }
     }
-    $script:shopSession=$null
+    if(Test-DetectorCurrent){$script:shopSession=$null}
 }
 function Exit-DetectorAfterShopPurchase {
     $reason='已买到清单中的商品'
@@ -457,21 +463,43 @@ function Invoke-DetectorShop {
     $pollMs=[Math]::Min(100,[int]$script:config.Periods.LoginMs)
     $script:nextColor=$now+$pollMs
     $state='unknown'
-    if($session.LeaseUntil) {
+    if($session.PrepareRequested) {
         try {$state=[WowAutoRotation.Native]::ReadShoppingState($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
         catch {
-            if($now -lt $session.Deadline+5000L -or -not [WowAutoCapture.Native]::IsPending($_.Exception)){throw}
+            if(-not $expired -or -not [WowAutoCapture.Native]::IsPending($_.Exception)){throw}
         }
         if($state -eq 'bought' -and $session.Visits -gt 0){Exit-DetectorAfterShopPurchase;return}
     }
     if($expired) {
-        # At the deadline an already-submitted purchase can still be reaching the bags.
-        if($state -in @('closed','open') -and $now -lt $session.Deadline+5000L){
-            $null=Wait-Detector $pollMs
-            return
+        if($session.PrepareRequested -and -not $session.FinishUntil){
+            # End new purchases and let the plugin report an already-submitted receipt.
+            try {
+                $reply=Request-DetectorOperation Shop.Stop Shop @{Finish=$true;Deadline=($Hub.Now+5000L)}
+                if(-not (Test-DetectorCurrent)){return}
+                if($reply -and $reply.Executed){
+                    $session.FinishUntil=$Hub.Now+5000L
+                    return
+                }
+            } catch {
+                if(-not (Test-DetectorCurrent)){return}
+                Write-Detector '未能正常结束购物，正在尝试取消。'
+            }
+        }
+        if($session.FinishUntil -and $now -lt $session.FinishUntil){
+            $mode='unknown'
+            if($state -eq 'unknown'){
+                try {$mode=[WowAutoRotation.Native]::ReadLoginMode($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
+                catch {if(-not [WowAutoCapture.Native]::IsPending($_.Exception)){throw}}
+            }
+            if($mode -notin @('rest','fish','fight')){
+                $null=Wait-Detector $pollMs
+                return
+            }
+            $session.PrepareRequested=$false
         }
         $script:running=$false
         Stop-DetectorShoppingVisit
+        if(-not (Test-DetectorCurrent)){return}
         $reason='达到最大购物时长，已停止购物。'
         Write-Detector $reason
         if(-not $script:direct) {
@@ -488,11 +516,11 @@ function Invoke-DetectorShop {
     }
     if($state -notin @('closed','open')) {
         if(-not $session.State -and $now -ge $session.NextActionAt){
-            $reply=Request-DetectorOperation Shop.Prepare Shop @{Deadline=$session.Deadline}
-            if($session.LeaseUntil){
+            if($session.PrepareRequested){
                 Write-Detector '未确认购物模式和商店状态。请选中商人，确认已更新插件并保存购物清单。'
             }
-            if($reply -and $reply.Executed){$session.LeaseUntil=$session.Deadline}
+            $session.PrepareRequested=$true
+            $null=Request-DetectorOperation Shop.Prepare Shop @{Deadline=$session.Deadline}
             $session.NextActionAt=$Hub.Now+1500L
         } elseif($session.State) {
             Write-Detector '等待购物插件确认商店状态。'
@@ -692,8 +720,9 @@ try {
                 }
                 if($script:batch -and -not $script:batch.All(8)){$script:batch.Drop($Endpoint.Key)}
                 $script:version=$command.Version;$script:running=$false;Stop-DetectorAudio;$script:lastStatus=''
+                Stop-DetectorShoppingVisit
+                if(-not (Test-DetectorCurrent)){continue}
                 if($command.Kind -eq 'Stop'){
-                    Stop-DetectorShoppingVisit
                     Stop-WowAutoTask $script:scheduler $Endpoint.Key
                     $script:scheduler.ReelHoldUntil=0L;$script:scheduler.ItemHoldUntil=0L
                     Write-Detector '已停止，本进程待执行操作已取消。';Publish-Detector stopped @{Reason='已停止';Exited=$false};continue
@@ -755,10 +784,13 @@ try {
                 if($script:mode -eq 'fish'){Suspend-WowAutoFocus $script:scheduler $Endpoint.Key $Hub.Now '窗口操作暂时失败。'}elseif($script:mode -eq 'fight'){$script:combat.Due=$script:retryAt}
                 Write-Detector ('窗口操作失败，继续后台检测，等待 '+$script:config.FocusRetryMs+'ms 后重试操作。');continue
             }
+            $reason=$_.Exception.Message
             $script:running=$false;Stop-DetectorAudio
+            Stop-DetectorShoppingVisit
+            if(-not (Test-DetectorCurrent)){continue}
             if($script:batch){$script:batch.Drop($Endpoint.Key)}
-            Write-Detector ('检测线程停止：'+$_.Exception.Message) error
-            Publish-Detector stopped @{Reason=$_.Exception.Message;Exited=$false}
+            Write-Detector ('检测线程停止：'+$reason) error
+            Publish-Detector stopped @{Reason=$reason;Exited=$false}
         }
     }
 } finally {Stop-DetectorAudio;if($script:batch){$script:batch.Drop($Endpoint.Key)}}

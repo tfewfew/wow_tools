@@ -120,10 +120,11 @@ try {
         -not $legacyShop.ContainsKey('VisitIntervalSeconds') -or $legacyDefaults.JitterMs -ne 0 -or
         $previousShop.ContainsKey('JitterMs') -or $previousShop.ContainsKey('JumpOnVisit') -or
         -not $legacyDefaults.JumpOnVisit -or -not $shopping.Shop.JumpOnVisit -or $customShop.JumpOnVisit -or
-        [WowAuto.NativeInput]::ShoppingCommand('prepare',1500) -cne '/autoshop preparems 1500' -or
-        [WowAuto.NativeInput]::ShoppingCommand('buy',0) -cne '/autoshop buy' -or
-        [WowAuto.NativeInput]::ShoppingCommand('close',0) -cne '/autoshop close' -or
-        [WowAuto.NativeInput]::ShoppingCommand('cancel',0) -cne '/autoshop cancel' -or
+        [WowAuto.NativeInput]::ShoppingCommand('prepare') -cne '/autoshop prepare' -or
+        [WowAuto.NativeInput]::ShoppingCommand('buy') -cne '/autoshop buy' -or
+        [WowAuto.NativeInput]::ShoppingCommand('close') -cne '/autoshop close' -or
+        [WowAuto.NativeInput]::ShoppingCommand('finish') -cne '/autoshop finish' -or
+        [WowAuto.NativeInput]::ShoppingCommand('cancel') -cne '/autoshop cancel' -or
         [WowAuto.NativeInput]::DetectorCommand('rest') -cne '/wowrest') {
         throw 'Automatic shopping timing settings or slash command contract is incompatible.'
     }
