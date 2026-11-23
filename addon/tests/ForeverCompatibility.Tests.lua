@@ -527,6 +527,18 @@ if flavor == "forerver" then
         assert(bestiary.ReferenceMonster(250660).drops[271204]
             and bestiary.ReferenceItem(271204).drops[250660],
             "Bestiary Forever dungeon source binding failed")
+        local hammer = bestiary.ReferenceItem(285289)
+        local observedVendor = assert(hammer.drops["vendor:248197"], "Bestiary omitted an observed recipe vendor")
+        local referenceVendor = assert(hammer.drops["vendor:256730"], "Bestiary omitted a reference recipe vendor")
+        assert(hammer.recipeItem and observedVendor.kind == "Vendor" and observedVendor.npcID == 248197
+            and observedVendor.details == "Area 17"
+            and observedVendor.source == "Efficient Games Forever vendor observations"
+            and referenceVendor.source == "DungeonsForeverProf Forever vendor reference",
+            "Bestiary recipe vendor identity, area or provenance binding failed")
+        assert(bestiary.ReferenceItem(16382).drops["vendor:5815"].source
+                == "Efficient Games earlier Forever vendor observations"
+            and bestiary.ReferenceItem(277716).drops["vendor:3168"].source == "QuestieDB Forever metadata",
+            "Bestiary earlier and QuestieDB recipe vendor provenance binding failed")
         local spawn = bestiary.SourceLocations(6)[1]
         assert(spawn and type(spawn.area) == "number" and type(spawn.x) == "number"
             and type(spawn.y) == "number" and type(bestiary.ShowSourceLocation) == "function",
@@ -592,6 +604,17 @@ if flavor == "forerver" then
         assert(detail:GetWidth() == 300 and not right.frame:IsShown()
             and detail.columns[1].rows[1].location:IsShown(),
             "Bestiary item-source row binding changed with the creature columns")
+        local potion = bestiary.ReferenceItem(5642)
+        assert(potion.drops["vendor:3348"] and potion.drops["vendor:12245"],
+            "Bestiary failed to merge existing and observed recipe vendor records")
+        local flask = bestiary.ReferenceItem(13519)
+        assert(flask.drops[10363].rate and flask.drops["vendor:227853"],
+            "Bestiary lost the existing drop or the supplemental recipe vendor")
+        bestiary.ShowBestiary(flask, false, true)
+        assert(detail.columns[1].rows[1].entry.drop.kind == "Vendor"
+            and detail.columns[1].rows[1].detail:GetText() == bestiary.Text("Vendor sale")
+            and detail.columns[1].rows[2].entry.id == 10363,
+            "Bestiary recipe sources do not put the vendor sale ahead of a rated drop")
         detail:Hide()
         bestiary.db.bestiary.scale = savedScale
         GetCursorPosition = originalCursor

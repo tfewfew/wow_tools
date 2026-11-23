@@ -8,6 +8,7 @@
     <Script file="Metadata.lua"/>
     <Script file="MetadataQueries.lua"/>
     <Script file="ForeverReference.lua"/>
+    <Script file="RecipeVendors.lua"/>
     <Script file="LootSources.lua"/>
     <Script file="Relations.lua"/>
     <Script file="DungeonReference.lua"/>

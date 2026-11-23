@@ -136,6 +136,12 @@ local function refreshWindow()
             entries[#entries + 1] = { id = id, drop = drop }
         end
         table.sort(entries, function(a, b)
+            if selectedSubject.recipeItem then
+                local aVendor, bVendor = a.drop.kind == 'Vendor', b.drop.kind == 'Vendor'
+                if aVendor ~= bVendor then
+                    return aVendor
+                end
+            end
             if (a.drop.rate or -1) ~= (b.drop.rate or -1) then
                 return (a.drop.rate or -1) > (b.drop.rate or -1)
             end
@@ -190,7 +196,8 @@ local function refreshWindow()
                     end
                     row.location:SetText(location)
                     row.detail:SetText(
-                        not creatureSource and T(sourceRecord.kind)
+                        selectedSubject.recipeItem and sourceRecord.kind == 'Vendor' and T('Vendor sale')
+                            or not creatureSource and T(sourceRecord.kind)
                             or (sourceRecord.rate and Addon.DropChance(sourceRecord, true) or '?')
                     )
                 else

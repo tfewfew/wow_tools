@@ -11,7 +11,7 @@
 | forever_faces | Forever 3D Portraits | [sorrow8/forever-3d-portraits](https://github.com/sorrow8/forever-3d-portraits) | 1.0.11 | 20eaf8fd29b03ba3d91f73a90ccbaf39b49f2af4 | 2026-11-21 | FF-01、FF-02、FF-03、FF-04、FF-05 | 2026-11-21 核对 1.0.11 与本服模型接口，修正目标的目标异步确认和空模型重绑 |
 | better_vendor_ui | Better Vendor UI | [Vaniron 官方发布包](https://www.curseforge.com/wow/addons/better-vendor-ui/files/9676130) | 1.3.2 | 上游未公布 Git commit，发布包 SHA256 和文件指纹见 better_vendor_ui/SOURCE.json | 2026-11-21 | BV-01、BV-02、BV-03 | 2026-11-21 核对正式包 9676130 的失效物品 ID、商人过滤、名单按钮与 Leatrix 相关差异，保留宿主、已学配方标记及中文设置 |
 | pet_xp_bar | PetXPBarPlus | [DustinChecketts/PetXPBarPlus](https://github.com/DustinChecketts/PetXPBarPlus) | 1.3.1 | 0c5da2aef6b2b56e307a77e37151fe4675be6c82 | 2026-11-16 | PX-01、PX-02 | 2026-11-17 官方最新正式版仍为 v1.3.1，tag 解析出的完整 commit 与当前基线一致，宿主与本服接口适配继续适用 |
-| raynna_bestiary | Raynna's Bestiary | [Raynna 官方发布包](https://www.curseforge.com/wow/addons/raynnas-beastiary/files/9725389) | 2.4.4 | 上游未公布该版本 Git commit，官方文件 9725389 的发布包 SHA256 及文件指纹见 raynna_bestiary/SOURCE.json | 2026-11-21 | RB-01、RB-02、RB-03、RB-05、RB-06 | 2026-11-21 采用 2.4.4 的参考数据、来源关系、刷新点地图及悬停恢复，保留本地双列和来源窗口 |
+| raynna_bestiary | Raynna's Bestiary | [Raynna 官方发布包](https://www.curseforge.com/wow/addons/raynnas-beastiary/files/9725389) | 2.4.4 | 上游未公布该版本 Git commit，官方文件 9725389 的发布包 SHA256 及文件指纹见 raynna_bestiary/SOURCE.json | 2026-11-24 | RB-01、RB-02、RB-03、RB-05、RB-06、RB-07 | 2026-11-24 对照无限服 71037 的配方物品分类和出售记录补齐商人来源，数据版本、指纹及来源见 REFERENCE-SOURCES.txt |
 | prr | PRR | [izicawow 官方发布包](https://www.curseforge.com/wow/addons/prr/files/9629892) | 1.5.2 | 上游未公布 Git commit，发布包 SHA256 与文件指纹见 prr/SOURCE.json | 2026-11-22 | PR-01、PR-02、PR-03、PR-05、PR-06、PR-07、PR-08、PR-09、PR-10、PR-11、PR-12、PR-13、PR-14、PR-15、PR-16 | 2026-11-22 按无限服 71037 数据重校配方等级，并从原生训练师条目读取悬停配方的学习要求 |
 
 ## 当前本地适配
@@ -40,6 +40,7 @@
 - RB-03 保留中英语言和中文名称接入。`raynna_bestiary/Localization.lua`、`Settings.lua`、`Bestiary.lua`、`Browser.lua`、`LootSources.lua` 增加默认中文及角色语言选择，界面文字使用语言资源，NPC 和任务名称按 ID 优先取 QuestieDB 中文或客户端名称，并按实体类型及 ID 缓存。依据为收编后的 f09b9c4。
 - RB-05 物品来源列表加入独立剥皮记录。`SkinningReference.lua` 从既有 cMaNGOS Classic SQL blob 提取 924 个怪物的 SkinningLootId、774 个剥皮表及物品名称，生成器校验原始 Git blob，复用现有引用池与概率解析。`LootSources.lua` 以 `skinning:<npcID>` 保留独立来源和物品查询缓存，`Bestiary.lua` 显示剥皮标识、头像、等级、区域及参考掉率，`Localization.lua` 提供中英文文案。已知剥皮关联覆盖未区分拾取类型的元数据，实际尸体掉落记录继续单列。沿用独立剥皮数据基线，经典旧世覆盖和掉率尚待无限服验证，离线数据无持续轮询。
 - RB-06 怪物掉落窗口按尸体掉落与剥皮并排显示。`LootSources.lua` 为怪物查询添加独立剥皮表，复用既有引用池概率解析与缓存，未分类元数据中的已知剥皮关系归入剥皮列。`Bestiary.lua` 按两列最大行数设置整体高度，各列分别排序与滚动，剥皮行保留物品提示、掉率及来源点击入口。未固定窗口按物理像素、UIParent 和窗口有效缩放计算整窗位置，优先指针右侧，右侧空间不足时置于左侧，必要时临时缩小以容纳整窗，保存缩放值继续保留。物品来源保持单列，经典旧世参考范围沿用 RB-05。
+- RB-07 物品来源窗优先显示配方商人。按无限服 71037 的 Item 分类核对 DungeonsForeverProf 2.0.3、Efficient Games 商人观察及 QuestieDB，按配方物品和 NPC ID 合并去重。来源行显示商人、区域和出处，有坐标可沿用右键地图入口。生成器及数据依据见 REFERENCE-SOURCES.txt。
 - PR-01 保留宿主接入。`prr/Bootstrap.lua`、`Integration.lua`、`files.xml` 与业务文件采用延迟 RegisterSource 初始化、独立命名空间、宿主 Ace3/LDB/DBIcon 和专用 JSON 库，配置为 `wowDetectorDB.prr.db`。停用时跳过业务事件、提示钩子与计时器，保留 `/prr` 及配方查询、规划。
 - PR-02 保留设置与迁移接入。Ace 设置以 WoWToolsPRR 嵌入统一页面，部署按账号直接迁移 PRRDB 并归档原目录，收编源码移除旧配置导入入口。依据为 7c38572、e3a1ac8，发布包使用原独立入口及存储。
 - PR-03 保留中文默认与补译。`prr/config/defaults.lua`、`core.lua`、`components/options_panel.lua`、`lang/en.lua`、`lang/zh.lua` 默认使用中文，首次将旧自动语言配置转为中文，保留用户明确指定的其他语言，中文优先列出并补齐标题。依据为收编后的 f09b9c4。

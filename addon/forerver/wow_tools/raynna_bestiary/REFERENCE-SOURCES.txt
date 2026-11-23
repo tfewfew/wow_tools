@@ -107,3 +107,37 @@ Skinning sources have separate IDs from corpse loot, vendors and quests.
 Skinning percentages use the existing group/reference/condition resolver.
 Classic coverage and percentages remain unverified for Forever. New or changed
 Forever skinning sources require a verified data refresh. No runtime requests.
+
+WoWTools Forever recipe vendor supplement (2026-11-24)
+-----------------------------------------------------
+RecipeVendors.lua covers merchant offers for items classified as Recipes in
+the Forever 1.60.1.71037 Item table:
+https://wago.tools/db2/Item/csv?build=1.60.1.71037
+It adds vendor NPC IDs and available area IDs to the existing sources. Listings
+carry no live price, stock, faction eligibility, or purchase requirements.
+
+DungeonsForeverProf 2.0.3 by 圆圆 supplies vendor IDs and reference areas from
+its installed Core/Data snapshot. The inputs are Data_ProfSources.lua (its
+Wowhead Forever reference), Data_ProfFormulaOffers.lua and
+Data_ProfLearningSources.lua. Exported records consist of numeric facts.
+
+Data from Efficient Games (https://efficient.games), licensed under CC BY 4.0
+(https://creativecommons.org/licenses/by/4.0/). Item and vendor IDs are selected
+from three Forever vendors.json snapshots at commit
+423d6c9645cd102406782e7400805a7c738e2d69:
+https://github.com/JIVESCORP/eg-link-output-wowf/tree/423d6c9645cd102406782e7400805a7c738e2d69/data/wowf
+Current 71037 observations are identified separately. Earlier 70959 and 70862
+observations add reference links, including the vendors for recipes 16382, 21099,
+21219, 253665 and 253668 still listed on the corresponding Efficient Games item
+pages on 2026-11-24. Their current stock is unknown.
+
+One additional listing (item 277716, NPC 3168) is from QuestieDB 1.1.5 Forever,
+metadata field X-Item-277716-14. Input TOC SHA256 is
+1be2c720f1d11a6662aac7abee236cf6228ccace847ada93d75b613388546aa3.
+https://github.com/Questie/QuestieDB/releases/tag/v1.1.5
+
+Use skills/wow-tools/scripts/build_raynna_recipe_vendors.py with the Item CSV,
+DungeonsForeverProf Core/Data directory and Efficient Games data/wowf directory.
+The generator pins input SHA256 values and uses Lua 5.1 through lupa. It emits
+1791 links for 943 item IDs. These are merged with QuestieDB vendor records by
+item and NPC ID at query time. Only evidenced offers are listed.

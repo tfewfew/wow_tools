@@ -74,6 +74,11 @@ local function resolveLootTable(records, trail, onlyItem, memo)
     return result
 end
 local itemDropCache = {}
+local vendorSources = {
+    'Efficient Games Forever vendor observations',
+    'Efficient Games earlier Forever vendor observations',
+    'QuestieDB Forever metadata',
+}
 
 -- Bundled quest and location metadata
 function Addon.ItemQuests(itemID)
@@ -205,11 +210,12 @@ function Addon.ReferenceItem(item)
         end
         itemDropCache[item] = drops
     end
-    local name, quest
+    local name, classID
     if C_Item and C_Item.GetItemInfo then
         local info = { C_Item.GetItemInfo(item) }
-        name, quest = info[1], info[12] == 12
+        name, classID = info[1], info[12]
     end
+    local quest = classID == 12
     for _, drop in pairs(itemDropCache[item]) do
         if drop.quest then
             quest = true
@@ -259,13 +265,30 @@ function Addon.ReferenceItem(item)
             source = 'QuestieDB Forever metadata',
         }
     end
-    for _, id in ipairs(get('Item', item, 'vendors') or {}) do
+    local recipeVendors = Addon.RecipeVendors[item]
+    local metadataVendors = get('Item', item, 'vendors') or {}
+    local function addVendor(id, reference)
+        local areaID = reference and reference[1]
+        local area = areaID and areaID > 0 and C_Map and C_Map.GetAreaInfo and C_Map.GetAreaInfo(areaID)
         drops['vendor:' .. id] = {
             kind = 'Vendor',
+            npcID = id,
             name = get('Npc', id, 'name') or (T('Vendor ') .. id),
-            details = Addon.MonsterZones(id),
-            source = 'QuestieDB Forever metadata',
+            details = area or Addon.MonsterZones(id),
+            source = reference and (vendorSources[reference[2]] or 'DungeonsForeverProf Forever vendor reference')
+                or 'QuestieDB Forever metadata',
         }
+    end
+    for _, id in ipairs(metadataVendors) do
+        addVendor(id, recipeVendors and recipeVendors[id])
+    end
+    for id, reference in pairs(recipeVendors or {}) do
+        if not drops['vendor:' .. id] then
+            addVendor(id, reference)
+        end
+    end
+    if not recipeVendors and classID == nil and #metadataVendors > 0 and C_Item and C_Item.GetItemInfoInstant then
+        classID = select(6, C_Item.GetItemInfoInstant(item))
     end
     -- Verified Forever-only reward absent from the Classic reference snapshot.
     if item == 279844 then
@@ -292,6 +315,7 @@ function Addon.ReferenceItem(item)
     return {
         itemID = item,
         quest = quest,
+        recipeItem = recipeVendors ~= nil or classID == 9,
         name = name or Addon.LootReference.names[item] or Addon.SkinningReference.names[item] or (T('Item ') .. item),
         drops = drops,
     }

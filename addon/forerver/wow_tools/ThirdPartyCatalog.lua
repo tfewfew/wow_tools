@@ -5,6 +5,6 @@ WoWTools.thirdPartyCatalog = {
     forever_faces = { version = "1.0.11", updatedAt = "2026-11-21" },
     better_vendor_ui = { version = "1.3.2", updatedAt = "2026-11-21" },
     pet_xp_bar = { version = "1.3.1", updatedAt = "2026-11-16" },
-    raynna_bestiary = { version = "2.4.4", updatedAt = "2026-11-21" },
+    raynna_bestiary = { version = "2.4.4", updatedAt = "2026-11-24" },
     prr = { version = "1.5.2", updatedAt = "2026-11-22" },
 }
