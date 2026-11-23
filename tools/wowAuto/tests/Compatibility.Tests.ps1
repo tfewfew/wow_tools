@@ -108,16 +108,19 @@ try {
     $withoutCloseDelay=ConvertTo-ShopTaskSettings $legacyShop
     $previousShop=$shopping.Shop.Clone()
     $previousShop.Remove('JitterMs')
-    $withoutJitter=ConvertTo-ShopTaskSettings $previousShop
-    $withJitter=$withoutJitter.Clone()
-    $withJitter.JitterMs=100
-    Test-ShopTaskSettings $withJitter
+    $previousShop.Remove('JumpOnVisit')
+    $legacyDefaults=ConvertTo-ShopTaskSettings $previousShop
+    $customShop=$legacyDefaults.Clone()
+    $customShop.JitterMs=100
+    $customShop.JumpOnVisit=$false
+    $customShop=ConvertTo-ShopTaskSettings (ConvertTo-TaskMap ($customShop | ConvertTo-Json | ConvertFrom-Json))
     if((Get-AccountTaskModeLabel 'shop') -cne '购物' -or $shopping.Shop.ReopenDelayMs -ne 1000 -or
         $shopping.Shop.CloseDelayMs -ne 1000 -or $convertedShop.ReopenDelayMs -ne 2147483647000L -or
         $convertedShop.CloseDelayMs -ne 5000 -or $withoutCloseDelay.CloseDelayMs -ne 1000 -or
-        -not $legacyShop.ContainsKey('VisitIntervalSeconds') -or $withoutJitter.JitterMs -ne 0 -or
-        $previousShop.ContainsKey('JitterMs') -or
-        [WowAuto.NativeInput]::ShoppingCommand('prepare',1500,3101,605,$withJitter.JitterMs) -cne '/autoshop preparems 1500 3101 605 100' -or
+        -not $legacyShop.ContainsKey('VisitIntervalSeconds') -or $legacyDefaults.JitterMs -ne 0 -or
+        $previousShop.ContainsKey('JitterMs') -or $previousShop.ContainsKey('JumpOnVisit') -or
+        -not $legacyDefaults.JumpOnVisit -or -not $shopping.Shop.JumpOnVisit -or $customShop.JumpOnVisit -or
+        [WowAuto.NativeInput]::ShoppingCommand('prepare',1500,3101,605,$customShop.JitterMs) -cne '/autoshop preparems 1500 3101 605 100' -or
         [WowAuto.NativeInput]::ShoppingCommand('buy',0,0,0,0) -cne '/autoshop buy' -or
         [WowAuto.NativeInput]::ShoppingCommand('cancel',0,0,0,0) -cne '/autoshop cancel') {
         throw 'Automatic shopping timing settings or slash command contract is incompatible.'

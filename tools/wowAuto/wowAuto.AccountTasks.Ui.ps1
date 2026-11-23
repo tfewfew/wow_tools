@@ -141,13 +141,16 @@ function New-ShopTaskSettingsPage {
     }
     $keyLabel=New-Object Windows.Forms.Label;$keyLabel.Text='与目标互动键';$keyLabel.SetBounds(18,$y,300,34)
     $key=New-AutoFightKeyBox;$key.Text=$script:accountTasks.Config.Shop.InteractKey;$key.SetBounds(330,$y,240,34)
-    $status=New-Object Windows.Forms.Label;$status.SetBounds(18,($y+44),1000,52)
-    $save=New-Object WowAuto.DimButton;$save.Text='保存购物设置';$save.SetBounds(18,($y+102),220,38);Set-UiButtonStyle $save $true
-    $save.Tag=@{Inputs=$inputs;Key=$key;Status=$status}
+    $jumpOnVisit=New-Object WowAuto.DimCheckBox
+    $jumpOnVisit.Text='每次开店时自动跳跃';$jumpOnVisit.Checked=$script:accountTasks.Config.Shop.JumpOnVisit
+    $jumpOnVisit.FlatStyle='Flat';$jumpOnVisit.SetBounds(18,($y+44),470,34)
+    $status=New-Object Windows.Forms.Label;$status.SetBounds(18,($y+88),1000,52)
+    $save=New-Object WowAuto.DimButton;$save.Text='保存购物设置';$save.SetBounds(18,($y+146),220,38);Set-UiButtonStyle $save $true
+    $save.Tag=@{Inputs=$inputs;Key=$key;Status=$status;JumpOnVisit=$jumpOnVisit}
     $save.Add_Click({param($sender,$e)
         try {
             $next=ConvertTo-TaskMap ($script:accountTasks.Config | ConvertTo-Json -Depth 12 | ConvertFrom-Json)
-            $next.Shop=@{InteractKey=$sender.Tag.Key.Text}
+            $next.Shop=@{InteractKey=$sender.Tag.Key.Text;JumpOnVisit=$sender.Tag.JumpOnVisit.Checked}
             foreach($name in $sender.Tag.Inputs.Keys){
                 $value=$sender.Tag.Inputs[$name].Value
                 $next.Shop[$name]=if($name -in @('ReopenDelayMs','CloseDelayMs','JitterMs')){[long]$value}else{[int]$value}
@@ -156,7 +159,7 @@ function New-ShopTaskSettingsPage {
             $sender.Tag.Status.Text='购物设置已保存，下次开始购物时生效。'
         }catch{$sender.Tag.Status.Text=$_.Exception.Message}
     })
-    $page.Controls.AddRange([Windows.Forms.Control[]]@($hint,$keyLabel,$key,$status,$save))
+    $page.Controls.AddRange([Windows.Forms.Control[]]@($hint,$keyLabel,$key,$jumpOnVisit,$status,$save))
     return $page
 }
 function New-DetectionPeriodSettingsPage {

@@ -21,7 +21,7 @@ function Test-RestTaskSettings($Settings) {
     }
 }
 function New-ShopTaskSettings {
-    return @{ReopenDelayMs=1000;CloseDelayMs=1000;JitterMs=0;JumpIntervalSeconds=60;DurationSeconds=600;InteractKey='F'}
+    return @{ReopenDelayMs=1000;CloseDelayMs=1000;JitterMs=0;JumpOnVisit=$true;JumpIntervalSeconds=60;DurationSeconds=600;InteractKey='F'}
 }
 function ConvertTo-ShopTaskSettings($Settings) {
     if($Settings -isnot [Collections.IDictionary]){throw '购物配置字段无效。'}
@@ -36,7 +36,9 @@ function ConvertTo-ShopTaskSettings($Settings) {
     }
     $defaults=New-ShopTaskSettings
     if($legacy -and -not $next.ContainsKey('CloseDelayMs')){$next.CloseDelayMs=$defaults.CloseDelayMs}
-    if(-not $next.ContainsKey('JitterMs')){$next.JitterMs=$defaults.JitterMs}
+    foreach($key in @('JitterMs','JumpOnVisit')){
+        if(-not $next.ContainsKey($key)){$next[$key]=$defaults[$key]}
+    }
     Test-ShopTaskSettings $next
     return $next
 }
@@ -55,6 +57,7 @@ function Test-ShopTaskSettings($Settings) {
         $Settings.DurationSeconds -isnot [int] -or $Settings.DurationSeconds -lt 1){
         throw '跳跃间隔和最大购物时长须为整数秒，最大时长至少为 1 秒。'
     }
+    if($Settings.JumpOnVisit -isnot [bool]){throw '开店跳跃须为开关值。'}
     if($Settings.InteractKey -isnot [string]){throw '请配置与目标互动的按键。'}
     $binding=ConvertFrom-AutoFightBinding $Settings.InteractKey
     if($binding.Code -in @(13,32)){throw '交互键须与聊天回车和跳跃空格分开。'}

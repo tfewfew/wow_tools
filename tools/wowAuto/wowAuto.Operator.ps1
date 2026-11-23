@@ -174,6 +174,7 @@ function Invoke-OperatorShop($Request,$Body) {
         return $result
     }
     if($Request.Kind -ne 'Shop.Visit'){throw '未知购物操作。'}
+    if($Body.JumpOnVisit -isnot [bool]){throw '开店跳跃须为开关值。'}
     if($Body.RequireReopen -and (Invoke-OperatorAdapter ShopState $endpoint) -ne 'reopen'){
         $result.Prepared=$true
         return $result
@@ -200,8 +201,11 @@ function Invoke-OperatorShop($Request,$Body) {
     if($state -ne 'ready'){return $result}
     if(-not (Invoke-OperatorAdapter Press $endpoint $binding.Text $timing.KeyPressMs)){return $result}
     if(-not (Test-OperatorShopInput $Request $Body.Deadline)){return $result}
-    if(-not (Invoke-OperatorAdapter Press $endpoint 'Space' $timing.KeyPressMs)){return $result}
-    if(-not (Test-OperatorShopInput $Request $Body.Deadline)){return $result}
+    if($Body.JumpOnVisit){
+        if(-not (Invoke-OperatorAdapter Press $endpoint 'Space' $timing.KeyPressMs)){return $result}
+        $result.JumpedAt=$Hub.Now
+        if(-not (Test-OperatorShopInput $Request $Body.Deadline)){return $result}
+    }
     $result.Executed=Invoke-OperatorAdapter ShopCommand $endpoint @{Action='buy'} $timing.ChatKeyPressMs
     $result.SentAt=$Hub.Now
     return $result

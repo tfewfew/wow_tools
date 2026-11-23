@@ -450,13 +450,17 @@ function Invoke-DetectorShop {
     if($visitDue) {
         $session.LeaseUntil=$session.Deadline
         $reply=Request-DetectorOperation Shop.Visit Shop @{Key=$settings.InteractKey;Deadline=$session.Deadline;
-            ClosedWaitMs=$settings.ReopenDelayMs;OpenHoldMs=$settings.CloseDelayMs;JitterMs=$settings.JitterMs;RequireReopen=$session.WaitingForReopen}
+            ClosedWaitMs=$settings.ReopenDelayMs;OpenHoldMs=$settings.CloseDelayMs;JitterMs=$settings.JitterMs;
+            JumpOnVisit=$settings.JumpOnVisit;RequireReopen=$session.WaitingForReopen}
+        if($reply -and $null -ne $reply.JumpedAt){
+            $session.NextJumpAt=[long]$reply.JumpedAt+[long]$settings.JumpIntervalSeconds*1000
+        }
         if($reply -and $reply.Prepared -and -not $reply.MissingMode) {
             $session.WaitingForReopen=$true
             if($reply.Executed) {
-                $session.NextJumpAt=[long]$reply.SentAt+[long]$settings.JumpIntervalSeconds*1000
                 $session.Visits++
-                Write-Detector ('第 '+$session.Visits+' 次购物访问已发送交互键和空格，等待插件处理购买。')
+                $inputDescription=if($null -ne $reply.JumpedAt){'交互键和空格'}else{'交互键'}
+                Write-Detector ('第 '+$session.Visits+' 次购物访问已发送'+$inputDescription+'，等待插件处理购买。')
             }
         } elseif($reply) {
             $session.WaitingForReopen=$false
