@@ -35,10 +35,10 @@ function Get-DetectorClient {
 }
 function Get-DetectorObservation {
     if($Hub.Simulation){throw 'Simulation requires an explicit frame adapter.'}
-    $login=[WowAutoRotation.Native]::LoginPoint($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)
-    if(-not $login){return [pscustomobject]@{Login=$false;Color='unknown';Packet=$null;Lure='unknown'}}
+    $loginMode=[WowAutoRotation.Native]::ReadLoginMode($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)
+    if($loginMode -eq 'unknown'){return [pscustomobject]@{Login=$false;Mode=$loginMode;Color='unknown';Packet=$null;Lure='unknown'}}
     if($script:mode -in @('rest','shop')) {
-        return [pscustomobject]@{Login=$true;Color='';Packet=$null;Lure='unknown'}
+        return [pscustomobject]@{Login=$true;Mode=$loginMode;Color='';Packet=$null;Lure='unknown'}
     }
     if($script:mode -eq 'tame') {
         return [pscustomobject]@{Login=$true;Color='';Packet=([WowAutoFight.Native]::ReadTame((Get-DetectorClient)));Lure='unknown'}
@@ -116,7 +116,7 @@ function Get-DetectorObservationReady {
     return $null
 }
 function Invoke-DetectorScan([switch]$ForStart) {
-    if($script:mode -notin @('rest','shop')) {
+    if($script:mode -ne 'shop' -and ($script:mode -ne 'rest' -or $ForStart)) {
         $reply=Request-DetectorOperation Scan.Enable Scan @{Mode=$script:mode}
         if(-not $reply -or -not $reply.Executed){throw '监控开启命令未完成。'}
     }
@@ -127,7 +127,8 @@ function Invoke-DetectorScan([switch]$ForStart) {
         $valid=($script:mode -eq 'fish' -and $observation.Color -in @('red','green')) -or
             ($script:mode -eq 'fight' -and $observation.Packet -and $observation.Packet.Action -ne 'dead') -or
             ($script:mode -eq 'tame' -and $observation.Packet -and $observation.Packet.State -in @('idle','matched')) -or
-            ($script:mode -in @('rest','shop') -and $observation.Login)
+            ($script:mode -eq 'rest' -and $observation.Login -and (-not $ForStart -or $observation.Mode -eq 'rest')) -or
+            ($script:mode -eq 'shop' -and $observation.Login)
         if($valid -or $Hub.Now -ge $until){break};$null=Wait-Detector $script:config.Periods.CaptureRetryMs
     }
     if(-not (Test-DetectorCurrent)){return}
@@ -302,7 +303,7 @@ function Invoke-DetectorRotation {
                     if(-not (Invoke-DetectorEquipRod)){return}
                     $rodEquipped=$true
                 }
-                if($script:mode -notin @('rest','shop')) {
+                if($script:mode -ne 'shop') {
                     $null=Request-DetectorOperation Rotation.Enable Rotation @{Mode=$script:mode}
                     $null=Wait-Detector $script:config.Periods.LoginMs
                 }
@@ -310,7 +311,8 @@ function Invoke-DetectorRotation {
                 if($observation.Color -eq 'dead' -or ($observation.Packet -and $observation.Packet.Action -eq 'dead')){Remove-DetectorRole '角色死亡';return}
                 if($script:mode -eq 'fish' -and $observation.Color -eq 'yellow'){Remove-DetectorRole '背包已满';return}
                 if(($script:mode -eq 'fish' -and $observation.Color -in @('red','green')) -or ($script:mode -eq 'fight' -and $observation.Packet) -or
-                    ($script:mode -in @('rest','shop') -and $observation.Login)) {
+                    ($script:mode -eq 'rest' -and $observation.Mode -eq 'rest') -or
+                    ($script:mode -eq 'shop' -and $observation.Login)) {
                     $script:scheduler=New-WowAutoScheduler;Set-DetectorScheduler
                     Start-DetectorTask;$script:batch.Mark($Endpoint.Key,8)
                     while((Test-DetectorCurrent) -and -not $script:batch.All(8)){$null=Wait-Detector 25}
@@ -380,13 +382,14 @@ function Invoke-DetectorRest {
     $script:nextColor=$now+$script:config.Periods.LoginMs
     $observation=Get-DetectorObservation
     $session=$script:restSession
-    # Only consecutive confirmed in-world observations contribute to the online duration.
-    if($session.Started -and $session.Login -and $observation.Login) {
+    $inRestMode=$observation.Mode -eq 'rest'
+    # Only consecutive observations in rest mode contribute to the duration.
+    if($session.Started -and $session.Login -and $inRestMode) {
         $session.RemainingMs=[Math]::Max(0L,$session.RemainingMs-($now-$session.ObservedAt))
     }
-    $session.ObservedAt=$now;$session.Login=$observation.Login
+    $session.ObservedAt=$now;$session.Login=$inRestMode
     $session.Deadline=if($session.Started -and $session.Login){$now+$session.RemainingMs}else{0L}
-    if(-not $observation.Login){Write-Detector '等待右下角登录白点，放号计时和跳跃暂停。';return}
+    if(-not $inRestMode){Write-Detector '等待右下角放号色块，放号计时和跳跃暂停。';return}
     if($session.Started -and $session.RemainingMs -le 0){Complete-DetectorRestVisit;return}
     if($now -lt $session.NextJumpAt -or $now -lt $script:retryAt){return}
     $reply=Request-DetectorOperation Rest.Jump Rest @{Deadline=$session.Deadline;Direct=$script:direct}
@@ -453,7 +456,7 @@ function Invoke-DetectorShop {
     $pollDue=$now -ge $script:retryAt -and $now -ge $script:nextColor
     $state='unknown'
     if($session.WaitingForReopen -and ($pollDue -or $expired)) {
-        try {$state=[WowAuto.NativeInput]::ReadShoppingState($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
+        try {$state=[WowAutoRotation.Native]::ReadShoppingState($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
         catch {
             if($now -lt $session.Deadline+5000L -or -not [WowAutoCapture.Native]::IsPending($_.Exception)){throw}
         }
@@ -519,7 +522,7 @@ function Invoke-DetectorShop {
             $session.NextVisitAt=$Hub.Now+$retryDelay
             if($reply.MissingMode){
                 $session.LeaseUntil=0L
-                Write-Detector '插件未进入购物模式。请选中商人，确认插件已更新并保存购物清单。'
+                Write-Detector '未确认购物模式和阶段色块。请选中商人，确认已更新插件并保存购物清单。'
             }
         }
     } elseif($jumpDue) {
@@ -623,7 +626,7 @@ function Invoke-DetectorTaskCore {
         Write-Detector $state.Status;return
     }
     if($work.Kind -eq 'FocusRetry'){Resume-WowAutoFocus $script:scheduler $Endpoint.Key;return}
-    if(-not $script:observation -or -not $script:observation.Login){Write-Detector '等待插件登录白点和钓鱼色块。';return}
+    if(-not $script:observation -or -not $script:observation.Login){Write-Detector '等待插件登录色块和钓鱼色块。';return}
     $color=$script:observation.Color
     if($color -notin @('red','green')){Write-Detector '钓鱼色块暂不可读，等待下次后台检测。';return}
     if($state.UseItem -and -not $state.ItemDetectionDisabled -and $work.Kind -ne 'Reel' -and $now -ge $script:nextBait) {

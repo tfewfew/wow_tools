@@ -122,31 +122,61 @@ try {
         -not $legacyDefaults.JumpOnVisit -or -not $shopping.Shop.JumpOnVisit -or $customShop.JumpOnVisit -or
         [WowAuto.NativeInput]::ShoppingCommand('prepare',1500,3101,605,$customShop.JitterMs) -cne '/autoshop preparems 1500 3101 605 100' -or
         [WowAuto.NativeInput]::ShoppingCommand('buy',0,0,0,0) -cne '/autoshop buy' -or
-        [WowAuto.NativeInput]::ShoppingCommand('cancel',0,0,0,0) -cne '/autoshop cancel') {
+        [WowAuto.NativeInput]::ShoppingCommand('cancel',0,0,0,0) -cne '/autoshop cancel' -or
+        [WowAuto.NativeInput]::DetectorCommand('rest') -cne '/wowrest') {
         throw 'Automatic shopping timing settings or slash command contract is incompatible.'
     }
-    $pixelReader=[WowAuto.NativeInput]::WindowPixelReader
+    $frameReader=[WowAutoRotation.Native]::FrameReader
+    $frame=New-Object Drawing.Bitmap 97,99
     try {
-        foreach($spec in @(@('cooldown',44,161,230),@('reopen',233,139,45),@('bought',71,218,181))) {
-            $statePixel=[uint32]($spec[1]+256*$spec[2]+65536*$spec[3])
-            $signaturePixel=[uint32](183+256*96+65536*152)
-            [WowAuto.NativeInput]::WindowPixelReader=[Func[int,long,string,int,uint32]]{
-                param($pidValue,$ticks,$path,$offset)
-                if($offset -eq 0){return $statePixel}
-                return $signaturePixel
+        $bounds=[WowAutoRotation.Native]::LoginPointBounds($frame.Width,$frame.Height)
+        if($bounds.X -ne 65 -or $bounds.Y -ne 67 -or $bounds.Width -ne 16 -or $bounds.Height -ne 16){
+            throw 'The shared mode marker must use the existing login-point client coordinates.'
+        }
+        [WowAutoRotation.Native]::FrameReader=[Func[int,long,string,Drawing.Bitmap]]{
+            param($pidValue,$ticks,$path)
+            return $frame.Clone()
+        }
+        foreach($spec in @(@('rest',255,255,255),@('fish',64,170,255),@('fight',255,112,76),@('shop',181,104,255))){
+            $color=[Drawing.Color]::FromArgb($spec[1],$spec[2],$spec[3])
+            for($y=$bounds.Top+2;$y -lt $bounds.Bottom-2;$y++){
+                for($x=$bounds.Left+2;$x -lt $bounds.Right-2;$x++){$frame.SetPixel($x,$y,$color)}
             }
-            if([WowAuto.NativeInput]::ReadShoppingState(0,0,'') -cne $spec[0]){
-                throw 'Shopping status signal contract is incompatible.'
-            }
-            if($spec[0] -eq 'bought'){
-                $signaturePixel=[uint32]0
-                if([WowAuto.NativeInput]::ReadShoppingState(0,0,'') -cne 'unknown'){
-                    throw 'Shopping completion signal must require the matching signature pixel.'
-                }
+            if([WowAutoRotation.Native]::ReadLoginMode($frame) -cne $spec[0] -or
+                -not [WowAutoRotation.Native]::LoginPoint(0,0,'')){
+                throw "Login mode must identify $($spec[0]) as in world."
             }
         }
-    } finally {[WowAuto.NativeInput]::WindowPixelReader=$pixelReader}
-    Write-Output 'PASS: both clients support the shopping settings, slash commands and purchase completion signal contract.'
+        foreach($spec in @(@('ready',107,29,193),@('busy',125,202,57),@('cooldown',44,161,230),
+            @('reopen',233,139,45),@('bought',71,218,181))){
+            $color=[Drawing.Color]::FromArgb($spec[1],$spec[2],$spec[3])
+            for($y=47;$y -le 51;$y++){
+                for($x=46;$x -le 50;$x++){$frame.SetPixel($x,$y,$color)}
+            }
+            if([WowAutoRotation.Native]::ReadShoppingState(0,0,'') -cne $spec[0]){
+                throw 'Shopping status signal contract is incompatible.'
+            }
+        }
+        $frame.SetPixel(46,47,[Drawing.Color]::Black)
+        if([WowAutoRotation.Native]::ReadShoppingState(0,0,'') -cne 'unknown'){
+            throw 'An incomplete center marker must not decode as a shopping phase.'
+        }
+        $frame.SetPixel(46,47,$color)
+        $frame.SetPixel($bounds.Left+2,$bounds.Top+2,[Drawing.Color]::Black)
+        if([WowAutoRotation.Native]::LoginPoint(0,0,'') -or [WowAutoRotation.Native]::ReadShoppingState(0,0,'') -cne 'unknown'){
+            throw 'An incomplete mode marker must not confirm login or authorize a shopping phase.'
+        }
+        for($y=$bounds.Top+2;$y -lt $bounds.Bottom-2;$y++){
+            for($x=$bounds.Left+2;$x -lt $bounds.Right-2;$x++){$frame.SetPixel($x,$y,[Drawing.Color]::White)}
+        }
+        if(-not [WowAutoRotation.Native]::LoginPoint(0,0,'') -or [WowAutoRotation.Native]::ReadShoppingState(0,0,'') -cne 'unknown'){
+            throw 'The white login marker must confirm login without authorizing shopping.'
+        }
+    } finally {
+        [WowAutoRotation.Native]::FrameReader=$frameReader
+        $frame.Dispose()
+    }
+    Write-Output 'PASS: shared in-world mode palette, shopping settings, slash commands and same-frame shopping signals.'
 
     . (Join-Path $tool 'wowAuto.Engine.ps1')
     $directModes=Get-WowAutoDirectTaskModes

@@ -1,15 +1,42 @@
--- Always present in the game world, independent of detector panels and settings.
+-- One in-world marker carries the active mode, independent of detector panels.
 local point=CreateFrame("Frame","wowToolsLoginPoint",UIParent)
 WoWTools.loginPoint=point
 point:SetFrameStrata("TOOLTIP")
 point:SetFrameLevel(10000)
 point:EnableMouse(false)
 if point.SetIgnoreParentAlpha then point:SetIgnoreParentAlpha(true) end
-local white=point:CreateTexture(nil,"OVERLAY")
-white:SetAllPoints()
-white:SetColorTexture(1,1,1,1)
+local fill=point:CreateTexture(nil,"OVERLAY")
+fill:SetAllPoints()
 point:Hide()
-local inWorld,elapsed=false,0
+local inWorld,elapsed,modeElapsed=false,0,0
+local displayedMode
+local detectorModes={"wowDetector","fight_detector","auto_shop"}
+-- This palette is also decoded by wowAuto.Rotation.Native.cs.
+local colors={
+    rest={255,255,255},
+    wowDetector={64,170,255},
+    fight_detector={255,112,76},
+    auto_shop={181,104,255},
+}
+local function PaintMode()
+    local mode="rest"
+    for _,name in ipairs(detectorModes) do
+        local detector=WoWTools.modules[name]
+        if detector and detector.IsEnabled() then mode=name;break end
+    end
+    if mode~=displayedMode then
+        local color=colors[mode]
+        fill:SetColorTexture(color[1]/255,color[2]/255,color[3]/255,1)
+        displayedMode=mode
+    end
+end
+PaintMode()
+
+SLASH_WOWTOOLSREST1="/wowrest"
+SlashCmdList.WOWTOOLSREST=function()
+    WoWTools.ActivateDetector("rest")
+    PaintMode()
+end
 local function Readable(value)
     return not (issecretvalue and issecretvalue(value))
 end
@@ -35,10 +62,15 @@ for _,event in ipairs({"PLAYER_ENTERING_WORLD","PLAYER_LEAVING_WORLD","PLAYER_LO
 end
 local function Poll(_,delta)
     elapsed=elapsed+delta
+    modeElapsed=modeElapsed+delta
+    if modeElapsed>=0.1 then modeElapsed=0;PaintMode() end
     if elapsed>=1 then elapsed=0; Position() end
 end
 events:SetScript("OnEvent",function(_,event)
-    if event=="PLAYER_ENTERING_WORLD" then inWorld=true; elapsed=0; events:SetScript("OnUpdate",Poll)
+    if event=="PLAYER_ENTERING_WORLD" then
+        inWorld,elapsed,modeElapsed=true,0,0
+        PaintMode()
+        events:SetScript("OnUpdate",Poll)
     elseif event=="PLAYER_LEAVING_WORLD" or event=="PLAYER_LOGOUT" then
         inWorld=false; elapsed=0; events:SetScript("OnUpdate",nil)
     end

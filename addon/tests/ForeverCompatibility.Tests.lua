@@ -1013,6 +1013,10 @@ for _, group in ipairs(WoWTools.settings.groups) do
         secondaryRow = secondaryRow + 1
     end
 end
+local loginPoint = assert(names.wowToolsLoginPoint, "Missing shared in-world mode marker")
+assert(WoWTools.loginPoint == loginPoint and loginPoint:GetParent() == UIParent and #loginPoint.textures == 1
+    and type(SlashCmdList.WOWTOOLSREST) == "function" and SLASH_WOWTOOLSREST1 == "/wowrest",
+    "Shared mode marker or rest entry point contract failed")
 local autoShop = assert(WoWTools.modules.auto_shop, "Missing automatic shopping module")
 assert(type(autoShop.BuildSettings) == "function" and type(SlashCmdList.WOWTOOLSAUTOSHOP) == "function"
     and SLASH_WOWTOOLSAUTOSHOP1 == "/autoshop" and not autoShop.IsEnabled(),

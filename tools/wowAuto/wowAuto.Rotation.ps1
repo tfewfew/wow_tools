@@ -481,7 +481,7 @@ function Invoke-RotationTick([long]$Now) {
                 $work.Phase='validate';$work.Due=$Now
             } else {
                 $work.Due=$Now+300
-                Set-RowStatusText $row ('步骤4/5：等待“'+$name+'”进入游戏并连续三次确认右下角常驻白点。')
+                Set-RowStatusText $row ('步骤4/5：等待“'+$name+'”进入游戏并连续三次确认右下角登录色块。')
             }
             return $true
         }
@@ -495,7 +495,7 @@ function Invoke-RotationTick([long]$Now) {
                 if ($work.Phase -ne 'enable') {$work.Phase='enable';$work.Due=$Now;return $true}
                 if (-not (Send-ScanDetectorCommand $row)) {throw '登录后监控开启命令失败。'}
                 $work.MonitorEnabled=$true;$work.Phase='validate';$work.Due=$Now+300
-                Set-RowStatusText $row '步骤5/5：白点确认通过，已开启监控，等待任务色块。'
+                Set-RowStatusText $row '步骤5/5：已确认登录并开启监控，等待任务色块。'
                 return $true
             }
             if ($row.TaskMode -eq 'fight') {

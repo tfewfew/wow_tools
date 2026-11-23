@@ -196,7 +196,7 @@ function Begin-RefreshScan {
         $row.Validated=$false;$row.RuntimeScanning=$true;Update-RowAccountChoices $row
         $mode=$script:directTaskModes[$row.DirectMode.SelectedIndex]
         Send-ParallelCommand $row Scan -Mode $mode
-        Set-RowStatusText $row $(if($mode -in @('rest','shop')){'检测线程读取右下角登录白点。'}else{'检测线程等待操作线程开启监控，完成后后台检测色块。'})
+        Set-RowStatusText $row $(if($mode -in @('rest','shop')){'检测线程读取右下角登录色块。'}else{'检测线程等待操作线程开启监控，完成后后台检测色块。'})
     }
     Update-WowAutoRunInfo;Update-BatchControls
 }

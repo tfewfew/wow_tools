@@ -319,7 +319,7 @@ function Invoke-AutoFightTick([bool]$AllowInput=$true,[switch]$PlanOnly,[string]
         if ($pending.Activated -and $now -lt $pending.SampleAt) {return}
         # Background monitoring cannot call the foreground-only login-point reader.
         # Check only after activation has settled and before any actual command is sent.
-        if (-not (Test-AutoFightLoginPoint $row)) {throw '插件常驻登录白点不存在，已停止战斗任务。'}
+        if (-not (Test-AutoFightLoginPoint $row)) {throw '未识别到右下角登录色块，已停止战斗任务。'}
         $handler=$script:autoFightStates[$action]
         $keyField=$handler.Key
         $binding=ConvertFrom-AutoFightBinding $profile.$keyField

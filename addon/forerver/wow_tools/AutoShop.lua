@@ -9,13 +9,11 @@ local signal = CreateFrame("Frame", nil, UIParent)
 signal:SetSize(16, 16)
 signal:SetPoint("CENTER", WoWTools.detectorAnchor, "CENTER")
 signal:SetFrameStrata("TOOLTIP")
+signal:SetFrameLevel(10000)
 signal:EnableMouse(false)
+if signal.SetIgnoreParentAlpha then signal:SetIgnoreParentAlpha(true) end
 local main = signal:CreateTexture(nil, "OVERLAY")
 main:SetAllPoints(signal)
-local signature = signal:CreateTexture(nil, "OVERLAY")
-signature:SetSize(16, 16)
-signature:SetPoint("CENTER", signal, "CENTER", 32, 0)
-signature:SetColorTexture(183/255, 96/255, 152/255, 1)
 signal:Hide()
 
 -- The PC operator waits for the next visit to be due before sending the interaction key.
@@ -51,9 +49,6 @@ local function RefreshStatus()
         local _, physicalHeight = GetPhysicalScreenSize()
         local ratio = physicalHeight and physicalHeight > 0 and UIParent:GetHeight() / physicalHeight or 1
         signal:SetSize(16 * ratio, 16 * ratio)
-        signature:SetSize(16 * ratio, 16 * ratio)
-        signature:ClearAllPoints()
-        signature:SetPoint("CENTER", signal, "CENTER", 32 * ratio, 0)
         local color = visitColors[visit.phase]
         main:SetColorTexture(color[1]/255, color[2]/255, color[3]/255, 1)
         signal:Show()

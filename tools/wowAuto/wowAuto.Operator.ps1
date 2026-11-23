@@ -55,10 +55,11 @@ function Invoke-OperatorAdapter([string]$Action,$Endpoint,$Data=$null,[int]$Dura
         }
         'Activate' {return [WowAuto.NativeInput]::ActivateForScan($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
         'Login' {return [WowAutoRotation.Native]::LoginPoint($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
+        'LoginMode' {return [WowAutoRotation.Native]::ReadLoginMode($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
         'Color' {return [WowAuto.NativeInput]::ReadCenterColor($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
         'Lure' {return [WowAuto.NativeInput]::ReadLureColor($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
         'Packet' {return [WowAutoFight.Native]::Observe((Get-OperatorClient $Endpoint))}
-        'ShopState' {return [WowAuto.NativeInput]::ReadShoppingState($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
+        'ShopState' {return [WowAutoRotation.Native]::ReadShoppingState($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
         'ShopCommand' {
             return [WowAuto.NativeInput]::SendShoppingCommand($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,
                 $Data.Action,[long]$Data.LeaseMs,[long]$Data.ClosedWaitMs,[long]$Data.OpenHoldMs,[long]$Data.JitterMs,$DurationMs)
@@ -290,15 +291,14 @@ function Invoke-OperatorRequest($Request) {
         return @{Executed=$sent;SentAt=$Hub.Now}
     }
     if($Request.Domain -eq 'Shop' -or $Request.Kind -eq 'Shop.Logout'){return Invoke-OperatorShop $Request $body}
-    if(-not (Invoke-OperatorAdapter Login $endpoint)){
-        if($Request.Domain -eq 'Rest'){return @{Executed=$false;SentAt=$Hub.Now}}
-        throw '操作前未检测到插件右下角登录白点。'
-    }
     if($Request.Domain -eq 'Rest') {
         if($body.Deadline -gt 0 -and $Hub.Now -ge $body.Deadline){return @{Executed=$false;Expired=$true;SentAt=$Hub.Now}}
-        if($Hub.Paused -or -not $Request.Current){return @{Executed=$false;SentAt=$Hub.Now}}
+        if($Hub.Paused -or -not $Request.Current -or (Invoke-OperatorAdapter LoginMode $endpoint) -ne 'rest'){
+            return @{Executed=$false;SentAt=$Hub.Now}
+        }
         return @{Executed=(Invoke-OperatorAdapter Press $endpoint 'Space' $timing.KeyPressMs);SentAt=$Hub.Now}
     }
+    if(-not (Invoke-OperatorAdapter Login $endpoint)){throw '操作前未检测到插件右下角登录色块。'}
     if($Request.Kind -in @('Rotation.EquipRod','Fish.EquipRod')) {
         if($body.Mode -cne 'fish' -or [string]::IsNullOrWhiteSpace([string]$body.Key)){throw '装备鱼竿需要钓鱼任务和已配置的按键。'}
         $null=ConvertFrom-AutoFightBinding ([string]$body.Key)

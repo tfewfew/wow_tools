@@ -289,6 +289,7 @@ namespace WowAuto
             if (mode=="fish") return "/wowdetector on";
             if (mode=="fight") return "/fightdetector on";
             if (mode=="tame") return "/pettamer on";
+            if (mode=="rest") return "/wowrest";
             throw new ArgumentException("Unknown detector mode.");
         }
         public static string ShoppingCommand(string action,long leaseMs,long closedWaitMs,long openHoldMs,long jitterMs)
@@ -306,26 +307,6 @@ namespace WowAuto
         public static bool SendShoppingCommand(int pid,long ticks,string path,string action,long leaseMs,long closedWaitMs,long openHoldMs,long jitterMs,int durationMs)
         {
             return SendChatCommand(pid,ticks,path,ShoppingCommand(action,leaseMs,closedWaitMs,openHoldMs,jitterMs),durationMs);
-        }
-
-        private static bool MatchesShoppingColor(uint pixel,int red,int green,int blue)
-        {
-            return Math.Abs((int)(pixel & 255)-red)<=3 && Math.Abs((int)((pixel >> 8) & 255)-green)<=3 &&
-                Math.Abs((int)((pixel >> 16) & 255)-blue)<=3;
-        }
-
-        public static string ReadShoppingState(int pid,long ticks,string path)
-        {
-            if (WindowPixelReader == null) throw new InvalidOperationException("Window capture source is not initialized.");
-            uint color = WindowPixelReader(pid,ticks,path,0);
-            string state;
-            if (MatchesShoppingColor(color,107,29,193)) state = "ready";
-            else if (MatchesShoppingColor(color,125,202,57)) state = "busy";
-            else if (MatchesShoppingColor(color,44,161,230)) state = "cooldown";
-            else if (MatchesShoppingColor(color,233,139,45)) state = "reopen";
-            else if (MatchesShoppingColor(color,71,218,181)) state = "bought";
-            else return "unknown";
-            return MatchesShoppingColor(WindowPixelReader(pid,ticks,path,32),183,96,152) ? state : "unknown";
         }
 
         public static string RotationCommand(string action,int token)
@@ -1365,7 +1346,7 @@ function Start-Row($Row,[switch]$TaskOnly,[switch]$Direct) {
     if (-not $TaskOnly) {Remove-GameActions -Domain Restore}
     try {
         if (-not $TaskOnly -and (Test-RowHasRotation $Row)) {Start-RowRotation $Row;return}
-        if ($TaskOnly -and -not (Test-RowLoginPoint $Row)) {throw '常驻登录白点不存在，未启动任务。'}
+        if ($TaskOnly -and -not (Test-RowLoginPoint $Row)) {throw '未识别到右下角登录色块，未启动任务。'}
         if ($Row.TaskMode -eq 'fight') {
             if (-not $Row.Validated -or $script:scanning -or $script:editingSettings) {throw '请刷新并通过战斗色块检测。'}
             $wasRunning=$null -ne $Row.FightRow.Session
@@ -1935,7 +1916,7 @@ function Invoke-SchedulerTick([long]$Now,$QueuedWork=$null) {
             $row.Validated=$false
             throw '进程身份已改变。'
         }
-        if (-not (Test-RowLoginPoint $row)) {throw '插件常驻登录白点不存在，已停止钓鱼任务。'}
+        if (-not (Test-RowLoginPoint $row)) {throw '未识别到右下角登录色块，已停止钓鱼任务。'}
         if ($work.Kind -eq 'FocusRetry') {
             Resume-WowAutoFocus $script:scheduler $work.Key
             $script:pendingWork=$null

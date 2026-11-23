@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -9,6 +10,20 @@ namespace WowAutoRotation {
     public static class Native {
         public static Func<int,long,string,Bitmap> FrameReader;
         public static Func<int,long,string,Size> SizeReader;
+        // Match the in-world palette in each client's LoginPoint.lua.
+        static readonly Dictionary<string,Color> LoginModeColors = new Dictionary<string,Color> {
+            {"rest",Color.White},
+            {"fish",Color.FromArgb(64,170,255)},
+            {"fight",Color.FromArgb(255,112,76)},
+            {"shop",Color.FromArgb(181,104,255)}
+        };
+        static readonly Dictionary<string,Color> ShoppingColors = new Dictionary<string,Color> {
+            {"ready",Color.FromArgb(107,29,193)},
+            {"busy",Color.FromArgb(125,202,57)},
+            {"cooldown",Color.FromArgb(44,161,230)},
+            {"reopen",Color.FromArgb(233,139,45)},
+            {"bought",Color.FromArgb(71,218,181)}
+        };
         [StructLayout(LayoutKind.Sequential)] struct Rect { public int L,T,R,B; }
         [StructLayout(LayoutKind.Sequential)] struct Point { public int X,Y; }
         [StructLayout(LayoutKind.Sequential)] struct Input { public uint Type; public Data Data; }
@@ -55,25 +70,58 @@ namespace WowAutoRotation {
             if(FrameReader==null) throw new InvalidOperationException("Window capture source is not initialized.");
             return FrameReader(pid,ticks,path);
         }
-        public static bool HasLoginPoint(Bitmap sample) {
-            if(sample==null || sample.Width!=16 || sample.Height!=16) return false;
-            // Avoid rounded edge pixels; require a solid white interior, not one coincidental pixel.
-            for(int y=2;y<14;y++) for(int x=2;x<14;x++) {
-                Color c=sample.GetPixel(x,y);
-                if(c.R<245 || c.G<245 || c.B<245) return false;
+        static bool ColorMatches(Color actual,Color expected,int tolerance) {
+            return Math.Abs(actual.R-expected.R)<=tolerance && Math.Abs(actual.G-expected.G)<=tolerance &&
+                Math.Abs(actual.B-expected.B)<=tolerance;
+        }
+        static bool IsSolidColor(Bitmap frame,Rectangle bounds,Color expected,int tolerance) {
+            for(int y=bounds.Top;y<bounds.Bottom;y++) for(int x=bounds.Left;x<bounds.Right;x++) {
+                if(!ColorMatches(frame.GetPixel(x,y),expected,tolerance)) return false;
             }
             return true;
+        }
+        static string DecodeLoginMode(Bitmap frame,Rectangle bounds) {
+            Color center=frame.GetPixel(bounds.X+8,bounds.Y+8);
+            // Keep the legacy solid-white threshold and avoid the outer edge pixels.
+            bounds.Inflate(-2,-2);
+            foreach(var mode in LoginModeColors) {
+                int tolerance=mode.Key=="rest" ? 10 : 6;
+                if(ColorMatches(center,mode.Value,tolerance) && IsSolidColor(frame,bounds,mode.Value,tolerance))
+                    return mode.Key;
+            }
+            return "unknown";
+        }
+        public static bool HasLoginPoint(Bitmap sample) {
+            return sample!=null && sample.Width==16 && sample.Height==16 &&
+                DecodeLoginMode(sample,new Rectangle(0,0,16,16))!="unknown";
         }
         public static Rectangle LoginPointBounds(int width,int height) {
             if(width<48 || height<48) throw new ArgumentException("Client too small for login point.");
             // Match both addons: 16 physical pixels away from the rounded client edges.
             return new Rectangle(width-32,height-32,16,16);
         }
+        public static string ReadLoginMode(Bitmap frame) {
+            return DecodeLoginMode(frame,LoginPointBounds(frame.Width,frame.Height));
+        }
+        public static string ReadLoginMode(int pid,long ticks,string path) {
+            if(FrameReader==null) throw new InvalidOperationException("Window capture source is not initialized.");
+            using(var frame=FrameReader(pid,ticks,path)) return ReadLoginMode(frame);
+        }
         public static bool LoginPoint(int pid,long ticks,string path) {
+            return ReadLoginMode(pid,ticks,path)!="unknown";
+        }
+        public static string ReadShoppingState(int pid,long ticks,string path) {
             if(FrameReader==null) throw new InvalidOperationException("Window capture source is not initialized.");
             using(var frame=FrameReader(pid,ticks,path)) {
-                Rectangle bounds=LoginPointBounds(frame.Width,frame.Height);
-                using(var sample=frame.Clone(bounds,PixelFormat.Format32bppArgb)) return HasLoginPoint(sample);
+                if(ReadLoginMode(frame)!="shop") return "unknown";
+                int x=frame.Width/2,y=frame.Height/2;
+                Color center=frame.GetPixel(x,y);
+                Rectangle interior=new Rectangle(x-2,y-2,5,5);
+                foreach(var phase in ShoppingColors) {
+                    if(ColorMatches(center,phase.Value,3) && IsSolidColor(frame,interior,phase.Value,3))
+                        return phase.Key;
+                }
+                return "unknown";
             }
         }
         public static System.Drawing.Point CursorParkPoint(int width,int height) {

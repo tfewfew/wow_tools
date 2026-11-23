@@ -54,7 +54,7 @@ function Send-ScanDetectorCommand($Row) {
     Assert-GameActionContext
     $Row.Process.Refresh()
     if ($Row.Process.HasExited -or -not (Test-RowProcessIdentity $Row) -or -not (Test-WorkerForeground $Row)) {return $false}
-    if (-not (Test-RowLoginPoint $Row)) {throw '未检测到插件右下角常驻白点，未开启钓鱼 / 战斗监控。'}
+    if (-not (Test-RowLoginPoint $Row)) {throw '未检测到插件右下角登录色块，未开启钓鱼 / 战斗监控。'}
     $command=[WowAuto.NativeInput]::DetectorCommand($Row.TaskMode)
     if ($UiTest) {
         if ($Row.Process.PSObject.Properties['CommandAllowed'] -and -not $Row.Process.CommandAllowed) {return $false}
