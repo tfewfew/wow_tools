@@ -1,0 +1,26 @@
+diff --git a/DungeonsForeverProf/Core/ProfFollow.lua b/DungeonsForeverProf/Core/ProfFollow.lua
+index d42514e..77be912 100644
+--- a/DungeonsForeverProf/Core/ProfFollow.lua
++++ b/DungeonsForeverProf/Core/ProfFollow.lua
+@@ -2479,7 +2479,7 @@ local function BuildBody()
+     end
+ 
+     if C_Timer.NewTicker then
+-        C_Timer.NewTicker(1, function()
++        C_Timer.NewTicker(5, function()
+             if f and f:IsShown() and PF.Sync() then PF.Paint() end
+         end)
+     end
+diff --git a/DungeonsForeverProf/Core/ProfessionUI.lua b/DungeonsForeverProf/Core/ProfessionUI.lua
+index 941aca8..171678b 100644
+--- a/DungeonsForeverProf/Core/ProfessionUI.lua
++++ b/DungeonsForeverProf/Core/ProfessionUI.lua
+@@ -6737,7 +6737,7 @@ function PD.Build(page)
+     local hlAcc = 0
+     child:SetScript("OnUpdate", function(_, el)
+         hlAcc = hlAcc + el
+-        if hlAcc < 0.1 then return end
++        if hlAcc < 0.25 then return end
+         hlAcc = 0
+         PD.SyncHover()
+     end)

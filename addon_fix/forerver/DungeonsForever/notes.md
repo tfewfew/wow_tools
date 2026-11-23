@@ -1,3 +1,9 @@
+## 2.1.132 更新适配（2026-11-24）
+
+- 主插件保留新版 `Core.lua` 的分帧初始化。手柄守护、世界地图巡检和独立地图同步沿用 10 秒、1 秒和 1 / 2 秒周期。`ZoneHint.lua` 保留新版分批任务扫描以及背包和任务事件对 `questCache`、`qscan` 的失效处理。书籍状态继续从 Explore 的共享缓存读取，区域切换与软刷新按至少 2 秒合并。
+- Prof 仍声明 2.0.3。新版 `ProfessionUI.lua` 的 `PD.Build` 仍每 0.1 秒调用 `PD.SyncHover`，`ProfFollow.lua` 的跟随 HUD 仍每秒调用 `PF.Sync`。新增当前源码变体并恢复 0.25 秒悬停同步和 5 秒 HUD 更新，保留 TOC 中专业页先于 HUD 加载的顺序。
+- Explore 2.0.3、Spell 2.3.12、Questie 12.13.0 和 QuestieTrace 1.14.0 的相关文件匹配已归档补丁，复用相应变体。
+
 ## 已停用补丁清理（2026-11-23）
 
 - 移除已停用的 DungeonsForever 提示框扫描补丁。上游从 2.1.99 起移除原提示框轮询链，2.1.126 的 Hui.lua 与 TOC 核对结果见 aa018ef。

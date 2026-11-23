@@ -16,7 +16,8 @@
           "background-scans/2.1.112/manifest.json",
           "background-scans/2.1.117/manifest.json",
           "background-scans/2.1.122/manifest.json",
-          "background-scans/2.1.126/manifest.json"
+          "background-scans/2.1.126/manifest.json",
+          "background-scans/2.1.132/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
@@ -60,7 +61,8 @@
           "background-scans/2.0.3-20261119/manifest.json",
           "background-scans/2.0.3-20261120/manifest.json",
           "background-scans/2.0.3-20261122/manifest.json",
-          "background-scans/2.0.3-20261123/manifest.json"
+          "background-scans/2.0.3-20261123/manifest.json",
+          "background-scans/2.0.3-20261124/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
