@@ -137,9 +137,15 @@ function Update-ParallelStatusDisplay($Row) {
     if(-not $Row.StatusHistory.Count){return}
     $first=$Row.StatusHistory[0]
     if($Row.RuntimePhase -eq 'running' -and $Row.Metrics) {
-        if($Row.Metrics.Deadline -gt $script:parallelHub.Now){
-            $remaining=$Row.Metrics.Deadline-$script:parallelHub.Now
-            $first+=[Environment]::NewLine+'剩余 '+$(if($Row.TaskMode -in @('rest','shop')){[Math]::Ceiling($remaining/1000.0).ToString()+' 秒'}else{([int]$remaining).ToString()+' ms'})
+        $now=$script:parallelHub.Now
+        if($Row.Metrics.Deadline -gt $now){
+            $remaining=$Row.Metrics.Deadline-$now
+            $first+=[Environment]::NewLine+'剩余 '+$(if($Row.TaskMode -eq 'rest'){[Math]::Ceiling($remaining/1000.0).ToString()+' 秒'}else{"$remaining ms"})
+        }
+        if($Row.TaskMode -eq 'shop' -and $Row.Metrics.ShopStateDueAt -gt $now -and $Row.Metrics.ShopStateDueAt -lt $Row.Metrics.Deadline){
+            $label=if($Row.Metrics.ShopState -eq 'open'){'关店倒计时'}else{'开店倒计时'}
+            $remaining=$Row.Metrics.ShopStateDueAt-$now
+            $first+=[Environment]::NewLine+"$label $remaining ms"
         }
         if($Row.Metrics.Audio){$first+=[Environment]::NewLine+('音频匹配 {0:P0} · 峰值 {1:F3}' -f $Row.Metrics.Similarity,$Row.Metrics.Peak)}
     }

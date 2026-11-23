@@ -184,6 +184,7 @@ function Start-DetectorTask {
     Publish-Detector taskstart @{Role=$script:roleName;Index=$script:index;Mode=$script:mode;UseItem=$script:useItem;Round=$script:round;Direct=$script:direct;SwitchCount=([Math]::Max(0,$script:runLogins-1));Cycles=(Get-WowAutoCycleCount $script:scheduler $Endpoint.Key);BiteTimeouts=(Get-WowAutoBiteTimeoutCount $script:scheduler $Endpoint.Key);ClassId=$(if($script:combat -and $script:mode -eq 'fight'){$script:combat.ClassId}else{0});RestRound=$(if($script:mode -eq 'rest'){$script:restSession.Round}else{0});RestRounds=$(if($script:mode -eq 'rest'){if($script:direct){1}else{$script:restSettings.Rounds}}else{0})}
     $progress=if($script:mode -eq 'rest' -and -not $script:direct){'放号轮次 '+$script:restSession.Round+' / '+$script:restSettings.Rounds}else{'执行轮次 '+$script:round}
     Write-Detector ('已开始'+@{fight='战斗';fish='钓鱼';tame='抓宠';rest='放号';shop='购物'}[$script:mode]+'；角色：'+$script:roleName+'；'+$progress)
+    if($script:mode -eq 'shop'){Publish-DetectorMetrics}
 }
 function Get-DetectorProfile([int]$ClassId) {
     if(-not $script:config.ProfilesReady){throw '战斗配置无效，请先在设置中修正。'}
@@ -455,6 +456,24 @@ function Exit-DetectorAfterShopPurchase {
     Publish-Detector stopped @{Reason=$reason;Exited=$true}
     $Endpoint.Finish()
 }
+function Publish-DetectorMetrics {
+    $shop=if($script:mode -eq 'shop'){$script:shopSession}
+    $script:nextMetrics=$Hub.Now+250L
+    $metrics=@{
+        Deadline=$(if($script:mode -eq 'fish'){$script:fish.Deadline}elseif($script:mode -eq 'rest'){$script:restSession.Deadline}elseif($shop){$shop.Deadline}else{0L})
+        RestRemainingSeconds=$(if($script:mode -eq 'rest'){[Math]::Ceiling($script:restSession.RemainingMs/1000.0)}else{0})
+        Cycles=(Get-WowAutoCycleCount $script:scheduler $Endpoint.Key)
+        BiteTimeouts=(Get-WowAutoBiteTimeoutCount $script:scheduler $Endpoint.Key)
+        Audio=[bool]$script:audio
+        Similarity=$(if($script:audio){$script:audio.Similarity}else{0.0})
+        Peak=$(if($script:audio){$script:audio.Peak}else{0.0})
+    }
+    if($shop){
+        $metrics.ShopState=$shop.State
+        $metrics.ShopStateDueAt=$shop.StateDueAt
+    }
+    Publish-Detector metrics $metrics
+}
 function Invoke-DetectorShop {
     $now=$Hub.Now
     $session=$script:shopSession
@@ -537,6 +556,7 @@ function Invoke-DetectorShop {
         $session.StateDueAt=$Hub.Now+$delay
         $session.NextActionAt=0L
         Write-Detector $(if($state -eq 'open'){'商店已打开，开始关店倒计时。'}else{'商店已关闭，开始开店倒计时。'})
+        Publish-DetectorMetrics
         return
     }
     if($now -lt $session.NextActionAt){return}
@@ -767,11 +787,7 @@ try {
             }
             if($script:running){Invoke-DetectorTask}
             if($script:running -and $Hub.Now -ge $script:nextMetrics) {
-                $script:nextMetrics=$Hub.Now+250
-                Publish-Detector metrics @{Deadline=$(if($script:mode -eq 'fish'){$script:fish.Deadline}elseif($script:mode -eq 'rest'){$script:restSession.Deadline}elseif($script:mode -eq 'shop'){$script:shopSession.Deadline}else{0L});
-                    RestRemainingSeconds=$(if($script:mode -eq 'rest'){[Math]::Ceiling($script:restSession.RemainingMs/1000.0)}else{0});
-                    Cycles=(Get-WowAutoCycleCount $script:scheduler $Endpoint.Key);BiteTimeouts=(Get-WowAutoBiteTimeoutCount $script:scheduler $Endpoint.Key);Audio=[bool]$script:audio;
-                    Similarity=$(if($script:audio){$script:audio.Similarity}else{0.0});Peak=$(if($script:audio){$script:audio.Peak}else{0.0})}
+                Publish-DetectorMetrics
             }
         } catch {
             if(-not (Test-DetectorCurrent)){continue}
