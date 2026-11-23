@@ -20,16 +20,10 @@ local function HasVendorPrice(tooltip)
     return false
 end
 
-local function AddVendorPrice(request, mayWait)
-    local tooltip = GameTooltip
-    if request ~= pending or tooltip:IsForbidden() or not tooltip:IsShown() or not tooltip:IsOwned(request.owner) then return end
-
-    local price = select(11, C_Item.GetItemInfo(request.item))
-    if price == nil and mayWait then
-        Item:CreateFromItemID(request.itemID):ContinueOnItemLoad(function() AddVendorPrice(request) end)
-    elseif price and price > 0 and not HasVendorPrice(tooltip) then
+local function AddVendorPrice(tooltip, price)
+    if price and price > 0 and not HasVendorPrice(tooltip) then
         tooltip:AddDoubleLine(SELL_PRICE, C_CurrencyInfo.GetCoinTextureString(price))
-        tooltip:Show()
+        return true
     end
 end
 
@@ -43,8 +37,19 @@ TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(tool
     if (issecretvalue and issecretvalue(itemID)) or type(itemID) ~= "number" or itemID <= 0 then return end
     local link = data.hyperlink
     if issecretvalue and issecretvalue(link) then link = nil end
-    local request = { owner = owner, item = link or itemID, itemID = itemID }
+    local item = link or itemID
+    local price = select(11, C_Item.GetItemInfo(item))
+    if price ~= nil then
+        -- The native data handler shows the tooltip immediately after its post-calls.
+        AddVendorPrice(tooltip, price)
+        return
+    end
+
+    local request = {}
     pending = request
-    -- Wait for the native tooltip and other addons to finish adding price lines.
-    C_Timer.After(0, function() AddVendorPrice(request, true) end)
+    Item:CreateFromItemID(itemID):ContinueOnItemLoad(function()
+        if request ~= pending or tooltip:IsForbidden() or not tooltip:IsShown()
+            or not tooltip:IsOwned(owner) or data ~= tooltip:GetPrimaryTooltipData() then return end
+        if AddVendorPrice(tooltip, select(11, C_Item.GetItemInfo(item))) then tooltip:Show() end
+    end)
 end)

@@ -23,44 +23,49 @@ local function HasVendorPrice(tooltip)
     return false
 end
 
-local function AddVendorPrice(request, mayWait)
-    local tooltip = GameTooltip
-    if request ~= pending or tooltip:IsForbidden() or not tooltip:IsShown() or not tooltip:IsOwned(request.owner) then return end
-
-    local price = select(11, C_Item.GetItemInfo(request.item))
-    if price == nil and mayWait then
-        local itemID = C_Item.GetItemInfoInstant(request.item)
-        if itemID and itemID > 0 then
-            Item:CreateFromItemID(itemID):ContinueOnItemLoad(function() AddVendorPrice(request) end)
-        end
-    elseif price and price > 0 and not HasVendorPrice(tooltip) then
+local function AddVendorPrice(tooltip, price)
+    if price and price > 0 and not HasVendorPrice(tooltip) then
         tooltip:AddDoubleLine(SELL_PRICE, C_CurrencyInfo.GetCoinTextureString(price))
-        tooltip:Show()
+        if tooltip:IsShown() then tooltip:Show() end
     end
 end
 
-local function QueueVendorPrice(owner, item)
-    local request = { owner = owner, item = item }
-    pending = request
-    -- Wait for the native tooltip and other addons to finish adding price lines.
-    C_Timer.After(0, function() AddVendorPrice(request, true) end)
-end
-
-GameTooltip:HookScript("OnTooltipCleared", function() pending = nil end)
-GameTooltip:HookScript("OnTooltipSetItem", function(tooltip)
+local function UpdateVendorPrice(tooltip, fallbackItemID)
     if tooltip:IsForbidden() or not (AuctionFrame or AuctionHouseFrame) then return end
     local owner = tooltip:GetOwner()
     if not IsAuctionOwner(owner) then return end
+    pending = nil
     local _, link = tooltip:GetItem()
-    if link then QueueVendorPrice(owner, link) end
-end)
+    local item = link or fallbackItemID
+    if not item then return end
+    local price = select(11, C_Item.GetItemInfo(item))
+    if price ~= nil then
+        AddVendorPrice(tooltip, price)
+        return
+    end
 
-if GameTooltip.SetItemKey then
-    hooksecurefunc(GameTooltip, "SetItemKey", function(tooltip, itemID)
-        if tooltip:IsForbidden() or not AuctionHouseFrame or itemID <= 0 then return end
-        local owner = tooltip:GetOwner()
-        if not IsAuctionOwner(owner) then return end
-        local _, link = tooltip:GetItem()
-        QueueVendorPrice(owner, link or itemID)
+    local itemID = C_Item.GetItemInfoInstant(item)
+    if not itemID or itemID <= 0 then return end
+    local request = {}
+    pending = request
+    Item:CreateFromItemID(itemID):ContinueOnItemLoad(function()
+        if request ~= pending or tooltip:IsForbidden() or not tooltip:IsShown() or not tooltip:IsOwned(owner) then return end
+        AddVendorPrice(tooltip, select(11, C_Item.GetItemInfo(item)))
     end)
 end
+
+local events = CreateFrame("Frame")
+events:RegisterEvent("PLAYER_LOGIN")
+events:SetScript("OnEvent", function(self)
+    self:UnregisterEvent("PLAYER_LOGIN")
+    GameTooltip:HookScript("OnTooltipCleared", function() pending = nil end)
+    -- Run after native setters and hooks registered by other addons during loading.
+    for _, method in ipairs({ "SetAuctionItem", "SetAuctionSellItem", "SetHyperlink", "SetBagItem" }) do
+        if GameTooltip[method] then
+            hooksecurefunc(GameTooltip, method, function(tooltip) UpdateVendorPrice(tooltip) end)
+        end
+    end
+    for _, method in ipairs({ "SetItemByID", "SetItemKey" }) do
+        if GameTooltip[method] then hooksecurefunc(GameTooltip, method, UpdateVendorPrice) end
+    end
+end)
