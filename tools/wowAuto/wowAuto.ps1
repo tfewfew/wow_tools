@@ -323,6 +323,7 @@ namespace WowAuto
             else if (MatchesShoppingColor(color,125,202,57)) state = "busy";
             else if (MatchesShoppingColor(color,44,161,230)) state = "cooldown";
             else if (MatchesShoppingColor(color,233,139,45)) state = "reopen";
+            else if (MatchesShoppingColor(color,71,218,181)) state = "bought";
             else return "unknown";
             return MatchesShoppingColor(WindowPixelReader(pid,ticks,path,32),183,96,152) ? state : "unknown";
         }

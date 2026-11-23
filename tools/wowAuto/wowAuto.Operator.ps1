@@ -166,8 +166,15 @@ function Invoke-OperatorShop($Request,$Body) {
         return $result
     }
     if(-not (Test-OperatorShopInput $Request $Body.Deadline)){return $result}
+    if($Request.Kind -eq 'Shop.Logout') {
+        if((Invoke-OperatorAdapter ShopState $endpoint) -eq 'bought' -and (Test-OperatorShopInput $Request $Body.Deadline)){
+            $result.Confirmed=$true
+            $result.Executed=Invoke-OperatorAdapter Logout $endpoint $null $timing.ChatKeyPressMs
+        }
+        return $result
+    }
     if($Request.Kind -eq 'Shop.Jump') {
-        if((Invoke-OperatorAdapter ShopState $endpoint) -notin @('ready','busy')){
+        if((Invoke-OperatorAdapter ShopState $endpoint) -notin @('ready','busy','bought')){
             $result.Executed=Invoke-OperatorAdapter Press $endpoint 'Space' $timing.KeyPressMs
             $result.SentAt=$Hub.Now
         }
@@ -216,7 +223,7 @@ function Invoke-OperatorRequest($Request) {
         ($endpoint.Flavor -ceq 'titan' -and ($body.Direct -isnot [bool] -or -not $body.Direct)))) {
         throw '放号操作仅支持直接放号或无限服角色编排的跳跃。'
     }
-    if($Request.Domain -eq 'Shop') {
+    if($Request.Domain -eq 'Shop' -or $Request.Kind -eq 'Shop.Logout') {
         $deadline=if($Request.Kind -eq 'Shop.Stop'){$body.LeaseUntil}else{$body.Deadline}
         if($Hub.Now -ge $deadline){return @{Executed=$false;SentAt=$Hub.Now}}
     }
@@ -282,7 +289,7 @@ function Invoke-OperatorRequest($Request) {
         $sent=Invoke-OperatorAdapter Up $endpoint $null $timing.ChatKeyPressMs
         return @{Executed=$sent;SentAt=$Hub.Now}
     }
-    if($Request.Domain -eq 'Shop'){return Invoke-OperatorShop $Request $body}
+    if($Request.Domain -eq 'Shop' -or $Request.Kind -eq 'Shop.Logout'){return Invoke-OperatorShop $Request $body}
     if(-not (Invoke-OperatorAdapter Login $endpoint)){
         if($Request.Domain -eq 'Rest'){return @{Executed=$false;SentAt=$Hub.Now}}
         throw '操作前未检测到插件右下角登录白点。'

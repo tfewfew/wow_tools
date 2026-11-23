@@ -25,6 +25,7 @@
     "Rotation.Select": 50,
     "Rotation.Click": 50,
     "Fight.Interact": 55,
+    "Shop.Logout": 50,
     "Shop.Visit": 55,
     "Shop.Stop": 40,
     "Fight.Target": 60,

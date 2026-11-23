@@ -1012,6 +1012,15 @@ local autoShop = assert(WoWTools.modules.auto_shop, "Missing automatic shopping 
 assert(type(autoShop.BuildSettings) == "function" and type(SlashCmdList.WOWTOOLSAUTOSHOP) == "function"
     and SLASH_WOWTOOLSAUTOSHOP1 == "/autoshop" and not autoShop.IsEnabled(),
     "Automatic shopping settings, slash command or initial state contract failed")
+local shopPanel = autoShop.BuildSettings(CreateFrame("Frame", nil, UIParent))
+local shopExitCheck
+for _, child in ipairs(frames) do
+    if child:GetParent() == shopPanel and child.kind == "CheckButton" and child.template == "UICheckButtonTemplate" then
+        shopExitCheck = child
+    end
+end
+assert(shopExitCheck and shopExitCheck.Text:GetText() == "买到后下线并关闭游戏（仅限 wowAuto 单商品任务）"
+    and not shopExitCheck:GetChecked() and not shopExitCheck:IsEnabled(), "Automatic shopping exit checkbox binding failed")
 assert(WoWTools.settings.tabs.third_party.Text:GetText() == "插件列表", "Plugin list label binding failed")
 local firstThirdPartyGroup
 for _, group in ipairs(WoWTools.settings.groups) do

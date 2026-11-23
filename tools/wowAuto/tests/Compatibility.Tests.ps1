@@ -127,19 +127,26 @@ try {
     }
     $pixelReader=[WowAuto.NativeInput]::WindowPixelReader
     try {
-        foreach($spec in @(@('cooldown',44,161,230),@('reopen',233,139,45))) {
+        foreach($spec in @(@('cooldown',44,161,230),@('reopen',233,139,45),@('bought',71,218,181))) {
             $statePixel=[uint32]($spec[1]+256*$spec[2]+65536*$spec[3])
+            $signaturePixel=[uint32](183+256*96+65536*152)
             [WowAuto.NativeInput]::WindowPixelReader=[Func[int,long,string,int,uint32]]{
                 param($pidValue,$ticks,$path,$offset)
                 if($offset -eq 0){return $statePixel}
-                return [uint32](183+256*96+65536*152)
+                return $signaturePixel
             }
             if([WowAuto.NativeInput]::ReadShoppingState(0,0,'') -cne $spec[0]){
-                throw 'Shopping reopen signal contract is incompatible.'
+                throw 'Shopping status signal contract is incompatible.'
+            }
+            if($spec[0] -eq 'bought'){
+                $signaturePixel=[uint32]0
+                if([WowAuto.NativeInput]::ReadShoppingState(0,0,'') -cne 'unknown'){
+                    throw 'Shopping completion signal must require the matching signature pixel.'
+                }
             }
         }
     } finally {[WowAuto.NativeInput]::WindowPixelReader=$pixelReader}
-    Write-Output 'PASS: both clients support the shopping settings, slash commands and reopen signal contract.'
+    Write-Output 'PASS: both clients support the shopping settings, slash commands and purchase completion signal contract.'
 
     . (Join-Path $tool 'wowAuto.Engine.ps1')
     $directModes=Get-WowAutoDirectTaskModes

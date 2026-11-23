@@ -1,6 +1,7 @@
 -- Automatic purchases run only in an explicitly activated shopping visit.
 local mode, visit, canBuy, opened, selectedGossip, merchantOpen
 local rules, pending, receipt, skipped = {}, nil, nil, {}
+local exitOnPurchase = false
 local menuReadyAt, updateAt = 0, 0
 local stateText, editor
 local events = CreateFrame("Frame")
@@ -23,6 +24,7 @@ local visitColors = {
     busy = {125, 202, 57},
     cooldown = {44, 161, 230},
     reopen = {233, 139, 45},
+    bought = {71, 218, 181},
 }
 local popupKinds = {
     "CONFIRM_HIGH_COST_ITEM",
@@ -32,6 +34,24 @@ local popupKinds = {
 local function Number(value, minimum)
     return not (issecretvalue and issecretvalue(value)) and type(value) == "number"
         and value >= minimum and value <= 2147483647 and value == math.floor(value)
+end
+
+local function SingleRuleID(list)
+    local id = next(list)
+    if id and not next(list, id) then return id end
+end
+
+local function ParseRules(text)
+    local draft = {}
+    for line in text:gmatch("[^\r\n]+") do
+        if line:match("%S") then
+            local id, limit = line:match("^%s*(%d+)%s+(%d+)%s*$")
+            id, limit = tonumber(id), tonumber(limit)
+            if not Number(id, 1) or not Number(limit, 1) or draft[id] then return end
+            draft[id] = limit
+        end
+    end
+    return draft
 end
 
 local function Say(text)
@@ -53,8 +73,14 @@ local function RefreshStatus()
         signal:Hide()
     end
     if stateText then
-        stateText:SetText(mode == "manual" and "自动购物模式已开启" or mode == "script" and
-            (visit.phase == "cooldown" and "商店已关闭，等待下次访问" or "wowAuto 正在访问商人") or "自动购物模式已关闭")
+        local text = "自动购物模式已关闭"
+        if mode == "manual" then text = "自动购物模式已开启"
+        elseif visit then
+            if visit.phase == "bought" then text = "已买到，等待 wowAuto 下线"
+            elseif visit.phase == "cooldown" then text = "商店已关闭，等待下次访问"
+            else text = "wowAuto 正在访问商人" end
+        end
+        stateText:SetText(text)
     end
 end
 
@@ -79,6 +105,19 @@ local function Stop()
     mode, visit, selectedGossip = nil, nil, false
     FinishPurchases()
     RefreshStatus()
+    if closeMerchant and MerchantFrame and MerchantFrame:IsShown() then CloseMerchant() end
+end
+
+local function MarkBought(transaction)
+    local closeMerchant = opened
+    receipt = nil
+    FinishPurchases()
+    opened = false
+    visit.phase = "bought"
+    visit.closeAt, visit.openTimeout, visit.reopenAt = nil, nil, nil
+    events:SetScript("OnUpdate", nil)
+    RefreshStatus()
+    Say(transaction.link .. " 已买到，等待 wowAuto 下线。")
     if closeMerchant and MerchantFrame and MerchantFrame:IsShown() then CloseMerchant() end
 end
 
@@ -146,6 +185,7 @@ local function Buy(index, link, id, item, count, amount)
         showNonrefundablePrompt = item.showNonrefundablePrompt,
     }
     local transaction = {id = id, index = index, link = link, count = count, amount = amount, expires = GetTime() + 4}
+    if visit and visit.exitItemID == id then transaction.exitVisit = visit end
     pending = transaction
     if product.showNonrefundablePrompt or (item.hasExtendedCost and GetMerchantItemCostInfo(index) > 0) then
         MerchantFrame_ConfirmExtendedItemCost(product, amount)
@@ -200,21 +240,31 @@ local function WaitForPurchase(now, counts)
 end
 
 local function Update(now)
+    -- A submitted purchase can reach the bags after the merchant window closes.
+    local awaitingExitReceipt = visit and receipt and receipt.exitVisit == visit and now < receipt.expires
+    if awaitingExitReceipt and now >= updateAt then
+        updateAt = now + 0.05
+        local counts = CountBags()
+        if counts and (counts[receipt.id] or 0) > receipt.count then
+            MarkBought(receipt)
+            return
+        end
+    end
     if visit then
-        if now >= visit.deadline then Stop(); return end
-        if visit.closeAt and now >= visit.closeAt then
+        if now >= visit.deadline and not awaitingExitReceipt then Stop(); return end
+        if visit.closeAt and (now >= visit.closeAt or now >= visit.deadline) then
             visit.closeAt = nil
             FinishPurchases()
             CloseMerchant()
             return
         end
         if visit.openTimeout and now >= visit.openTimeout then WaitToReopen(now); return end
-        if visit.reopenAt and now >= visit.reopenAt then
+        if visit.reopenAt and now >= visit.reopenAt and not awaitingExitReceipt then
             visit.phase, visit.reopenAt = "reopen", nil
             RefreshStatus()
         end
     end
-    if not opened or not canBuy or now < menuReadyAt or now < updateAt then return end
+    if awaitingExitReceipt or not opened or not canBuy or now < menuReadyAt or now < updateAt then return end
     updateAt = now + 0.05
     if not AtMerchant() then FinishPurchases(); return end
     local counts = CountBags()
@@ -269,14 +319,15 @@ local function StartManual()
 end
 
 local function PrepareVisit(leaseMs, closedWaitMs, openHoldMs, jitterMs)
-    if visit and visit.phase ~= "reopen" then return end
+    if visit and visit.phase ~= "reopen" and visit.phase ~= "bought" then return end
     Stop()
     if not next(rules) or InCombatLockdown() or UnitIsDeadOrGhost("player") or not UnitExists("target") or UnitIsPlayer("target") then return end
     WoWTools.ActivateDetector("auto_shop")
     local now = GetTime()
     mode = "script"
     visit = { phase = "ready", deadline = now + leaseMs / 1000, openTimeout = now + 30,
-        closedWaitMs = closedWaitMs, openHoldMs = openHoldMs, jitterMs = jitterMs }
+        closedWaitMs = closedWaitMs, openHoldMs = openHoldMs, jitterMs = jitterMs,
+        exitItemID = exitOnPurchase and SingleRuleID(rules) }
     events:SetScript("OnUpdate", Tick)
     if MerchantFrame and MerchantFrame:IsShown() then
         -- An existing window must close and finish the full wait before the next interaction.
@@ -315,10 +366,11 @@ events:SetScript("OnEvent", function(_, event, addon)
                 if Number(id, 1) and Number(limit, 1) then rules[id] = limit end
             end
         end
+        exitOnPurchase = SingleRuleID(rules) ~= nil and wowDetectorDB.autoShopExitOnPurchase == true
     elseif event == "DISPLAY_SIZE_CHANGED" or event == "UI_SCALE_CHANGED" then
         RefreshStatus()
     elseif event == "MERCHANT_SHOW" then
-        if mode and not merchantOpen then
+        if mode and not merchantOpen and not (visit and visit.phase == "bought") then
             local now = GetTime()
             opened, menuReadyAt, updateAt = true, now + 0.05, now
             if visit then
@@ -366,7 +418,7 @@ local function BuildSettings(parent)
 
     local scroll = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
     scroll:SetPoint("TOPLEFT", 16, -54)
-    scroll:SetPoint("BOTTOMRIGHT", -40, 94)
+    scroll:SetPoint("BOTTOMRIGHT", -40, 124)
     editor = CreateFrame("EditBox", nil, scroll)
     editor:SetMultiLine(true)
     editor:SetAutoFocus(false)
@@ -378,7 +430,19 @@ local function BuildSettings(parent)
         local lines = math.max(1, editor:GetNumLines())
         editor:SetHeight(math.max(scroll:GetHeight(), lines * (fontHeight + editor:GetSpacing()) + 20))
     end
-    editor:SetScript("OnTextChanged", SizeEditor)
+    local exitCheck = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+    exitCheck:SetSize(24, 24)
+    exitCheck:SetPoint("BOTTOMLEFT", 12, 82)
+    exitCheck.Text:SetText("买到后下线并关闭游戏（仅限 wowAuto 单商品任务）")
+    exitCheck:SetChecked(exitOnPurchase)
+    local function RefreshExitCheck()
+        local draft = ParseRules(editor:GetText())
+        exitCheck:SetEnabled(draft ~= nil and SingleRuleID(draft) ~= nil)
+    end
+    editor:SetScript("OnTextChanged", function()
+        SizeEditor()
+        RefreshExitCheck()
+    end)
     scroll:SetScript("OnSizeChanged", function(self, width)
         editor:SetWidth(math.max(1, width))
         SizeEditor()
@@ -389,6 +453,7 @@ local function BuildSettings(parent)
     table.sort(ids)
     for _, id in ipairs(ids) do values[#values + 1] = id .. "  " .. rules[id] end
     editor:SetText(table.concat(values, "\n"))
+    RefreshExitCheck()
 
     stateText = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     stateText:SetPoint("BOTTOMLEFT", 16, 57)
@@ -397,20 +462,16 @@ local function BuildSettings(parent)
     save:SetPoint("BOTTOMLEFT", 16, 18)
     save:SetText("保存购物清单")
     save:SetScript("OnClick", function()
-        local draft = {}
-        for line in editor:GetText():gmatch("[^\r\n]+") do
-            if line:match("%S") then
-                local id, limit = line:match("^%s*(%d+)%s+(%d+)%s*$")
-                id, limit = tonumber(id), tonumber(limit)
-                if not Number(id, 1) or not Number(limit, 1) or draft[id] then
-                    Say("每行填写唯一的物品 ID 和正整数上限。")
-                    return
-                end
-                draft[id] = limit
-            end
+        local draft = ParseRules(editor:GetText())
+        if not draft then
+            Say("每行填写唯一的物品 ID 和正整数上限。")
+            return
         end
         Stop()
         rules, wowDetectorDB.autoShop = draft, draft
+        exitOnPurchase = SingleRuleID(draft) ~= nil and not not exitCheck:GetChecked()
+        wowDetectorDB.autoShopExitOnPurchase = exitOnPurchase
+        exitCheck:SetChecked(exitOnPurchase)
         editor:ClearFocus()
         Say("购物清单已保存。")
     end)

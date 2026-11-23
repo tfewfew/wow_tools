@@ -410,10 +410,61 @@ function Stop-DetectorShoppingVisit {
     }
     $script:shopSession=$null
 }
+function Exit-DetectorAfterShopPurchase {
+    $reason='已买到清单中的商品'
+    $script:running=$false
+    if($script:batch){$script:batch.Drop($Endpoint.Key)}
+    Publish-Detector exiting @{Reason=$reason}
+    Write-Detector ($reason+'，正在确认下线条件。')
+    $reply=Request-DetectorOperation Shop.Logout Process @{Deadline=($Hub.Now+10000)}
+    if(-not (Test-DetectorCurrent)){return}
+    if(-not $reply.Confirmed){throw '购得状态未能复核，已停止购物。'}
+
+    if($reply.Executed) {
+        Write-Detector '已发送下线命令，等待角色离开游戏。'
+        $until=$Hub.Now+30000
+        $outOfWorld=0
+        while((Test-DetectorCurrent) -and $Hub.Now -lt $until -and (Test-DetectorAlive)) {
+            try {
+                if((Get-DetectorObservation).Login){$outOfWorld=0}else{$outOfWorld++}
+                if($outOfWorld -ge 2){break}
+            } catch {
+                $outOfWorld=0
+                if([WowAutoCapture.Native]::IsPending($_.Exception)){Repair-DetectorCapture}
+            }
+            if(-not (Wait-Detector ([Math]::Min(500,[int]$script:config.Periods.LoginMs)))){return}
+        }
+    }
+    if(-not (Test-DetectorCurrent)){return}
+    Write-Detector ($reason+'，正在正常关闭该游戏客户端。')
+    $reply=Request-DetectorOperation Process.Shutdown Process
+    if(-not (Test-DetectorCurrent)){return}
+    if(-not $reply.Exited){throw '购物完成后未能确认该客户端已关闭。'}
+    $script:shopSession=$null
+    $reason+='，已关闭该游戏客户端。'
+    Write-Detector $reason
+    Publish-Detector stopped @{Reason=$reason;Exited=$true}
+    $Endpoint.Finish()
+}
 function Invoke-DetectorShop {
     $now=$Hub.Now
     $session=$script:shopSession
-    if($now -ge $session.Deadline) {
+    $expired=$now -ge $session.Deadline
+    $pollDue=$now -ge $script:retryAt -and $now -ge $script:nextColor
+    $state='unknown'
+    if($session.WaitingForReopen -and ($pollDue -or $expired)) {
+        try {$state=[WowAuto.NativeInput]::ReadShoppingState($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
+        catch {
+            if($now -lt $session.Deadline+5000L -or -not [WowAutoCapture.Native]::IsPending($_.Exception)){throw}
+        }
+        if($state -eq 'bought' -and $session.Visits -gt 0){Exit-DetectorAfterShopPurchase;return}
+    }
+    if($expired) {
+        # At the deadline an already-submitted purchase can still be reaching the bags.
+        if($state -in @('ready','busy','cooldown') -and $now -lt $session.Deadline+5000L){
+            $null=Wait-Detector ([Math]::Min(100,[int]$script:config.Periods.LoginMs))
+            return
+        }
         $script:running=$false
         Stop-DetectorShoppingVisit
         $reason='达到最大购物时长，已停止购物。'
@@ -433,17 +484,15 @@ function Invoke-DetectorShop {
     $settings=$script:shopSettings
     $visitDue=$now -ge $session.NextVisitAt
     $jumpDue=$settings.JumpIntervalSeconds -gt 0 -and $now -ge $session.NextJumpAt
-    if((-not $session.WaitingForReopen -and -not $visitDue -and -not $jumpDue) -or
-        $now -lt $script:retryAt -or $now -lt $script:nextColor){return}
+    if(-not $pollDue -or (-not $session.WaitingForReopen -and -not $visitDue -and -not $jumpDue)){return}
     $script:nextColor=$now+[Math]::Min(100,[int]$script:config.Periods.LoginMs)
     if(-not (Get-DetectorObservation).Login){Write-Detector '等待角色登录，暂不访问商人。';return}
     if($session.WaitingForReopen) {
-        $state=[WowAuto.NativeInput]::ReadShoppingState($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)
         if($state -eq 'unknown'){
             Write-Detector '等待购物插件确认商店状态。'
             return
         }
-        if($state -in @('ready','busy')){return}
+        if($state -in @('ready','busy','bought')){return}
         $visitDue=$state -eq 'reopen'
         if(-not $visitDue){Write-Detector '商店已关闭，等待下次打开。'}
     }
