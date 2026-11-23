@@ -131,6 +131,7 @@ function New-ShopTaskSettingsPage {
     $inputs=@{};$y=92
     $maxIntervalMs=[long][int]::MaxValue*1000L
     foreach($spec in @(@('ReopenDelayMs','关闭后再打开（毫秒）',1,$maxIntervalMs),@('CloseDelayMs','打开后关闭（毫秒）',1,$maxIntervalMs),
+        @('JitterMs','随机浮动（毫秒）',0,$maxIntervalMs),
         @('JumpIntervalSeconds','跳跃间隔（秒，0 关闭额外跳跃）',0,[int]::MaxValue),@('DurationSeconds','最大购物时长（秒）',1,[int]::MaxValue))) {
         $label=New-Object Windows.Forms.Label;$label.Text=$spec[1];$label.SetBounds(18,$y,300,34)
         $box=New-Object Windows.Forms.NumericUpDown
@@ -140,8 +141,8 @@ function New-ShopTaskSettingsPage {
     }
     $keyLabel=New-Object Windows.Forms.Label;$keyLabel.Text='与目标互动键';$keyLabel.SetBounds(18,$y,300,34)
     $key=New-AutoFightKeyBox;$key.Text=$script:accountTasks.Config.Shop.InteractKey;$key.SetBounds(330,$y,240,34)
-    $status=New-Object Windows.Forms.Label;$status.SetBounds(18,360,1000,52)
-    $save=New-Object WowAuto.DimButton;$save.Text='保存购物设置';$save.SetBounds(18,418,220,38);Set-UiButtonStyle $save $true
+    $status=New-Object Windows.Forms.Label;$status.SetBounds(18,($y+44),1000,52)
+    $save=New-Object WowAuto.DimButton;$save.Text='保存购物设置';$save.SetBounds(18,($y+102),220,38);Set-UiButtonStyle $save $true
     $save.Tag=@{Inputs=$inputs;Key=$key;Status=$status}
     $save.Add_Click({param($sender,$e)
         try {
@@ -149,7 +150,7 @@ function New-ShopTaskSettingsPage {
             $next.Shop=@{InteractKey=$sender.Tag.Key.Text}
             foreach($name in $sender.Tag.Inputs.Keys){
                 $value=$sender.Tag.Inputs[$name].Value
-                $next.Shop[$name]=if($name -in @('ReopenDelayMs','CloseDelayMs')){[long]$value}else{[int]$value}
+                $next.Shop[$name]=if($name -in @('ReopenDelayMs','CloseDelayMs','JitterMs')){[long]$value}else{[int]$value}
             }
             Save-AccountTasks $next
             $sender.Tag.Status.Text='购物设置已保存，下次开始购物时生效。'

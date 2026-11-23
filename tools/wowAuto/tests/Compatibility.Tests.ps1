@@ -106,13 +106,20 @@ try {
     $convertedShop=ConvertTo-ShopTaskSettings $legacyShop
     $legacyShop.Remove('CloseDelaySeconds')
     $withoutCloseDelay=ConvertTo-ShopTaskSettings $legacyShop
+    $previousShop=$shopping.Shop.Clone()
+    $previousShop.Remove('JitterMs')
+    $withoutJitter=ConvertTo-ShopTaskSettings $previousShop
+    $withJitter=$withoutJitter.Clone()
+    $withJitter.JitterMs=100
+    Test-ShopTaskSettings $withJitter
     if((Get-AccountTaskModeLabel 'shop') -cne '购物' -or $shopping.Shop.ReopenDelayMs -ne 1000 -or
         $shopping.Shop.CloseDelayMs -ne 1000 -or $convertedShop.ReopenDelayMs -ne 2147483647000L -or
         $convertedShop.CloseDelayMs -ne 5000 -or $withoutCloseDelay.CloseDelayMs -ne 1000 -or
-        -not $legacyShop.ContainsKey('VisitIntervalSeconds') -or
-        [WowAuto.NativeInput]::ShoppingCommand('prepare',1500,3101,605) -cne '/autoshop preparems 1500 3101 605' -or
-        [WowAuto.NativeInput]::ShoppingCommand('buy',0,0,0) -cne '/autoshop buy' -or
-        [WowAuto.NativeInput]::ShoppingCommand('cancel',0,0,0) -cne '/autoshop cancel') {
+        -not $legacyShop.ContainsKey('VisitIntervalSeconds') -or $withoutJitter.JitterMs -ne 0 -or
+        $previousShop.ContainsKey('JitterMs') -or
+        [WowAuto.NativeInput]::ShoppingCommand('prepare',1500,3101,605,$withJitter.JitterMs) -cne '/autoshop preparems 1500 3101 605 100' -or
+        [WowAuto.NativeInput]::ShoppingCommand('buy',0,0,0,0) -cne '/autoshop buy' -or
+        [WowAuto.NativeInput]::ShoppingCommand('cancel',0,0,0,0) -cne '/autoshop cancel') {
         throw 'Automatic shopping timing settings or slash command contract is incompatible.'
     }
     $pixelReader=[WowAuto.NativeInput]::WindowPixelReader
@@ -122,7 +129,7 @@ try {
             [WowAuto.NativeInput]::WindowPixelReader=[Func[int,long,string,int,uint32]]{
                 param($pidValue,$ticks,$path,$offset)
                 if($offset -eq 0){return $statePixel}
-                return [uint32](179+256*88+65536*139)
+                return [uint32](183+256*96+65536*152)
             }
             if([WowAuto.NativeInput]::ReadShoppingState(0,0,'') -cne $spec[0]){
                 throw 'Shopping reopen signal contract is incompatible.'

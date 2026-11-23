@@ -21,7 +21,7 @@ function Test-RestTaskSettings($Settings) {
     }
 }
 function New-ShopTaskSettings {
-    return @{ReopenDelayMs=1000;CloseDelayMs=1000;JumpIntervalSeconds=60;DurationSeconds=600;InteractKey='F'}
+    return @{ReopenDelayMs=1000;CloseDelayMs=1000;JitterMs=0;JumpIntervalSeconds=60;DurationSeconds=600;InteractKey='F'}
 }
 function ConvertTo-ShopTaskSettings($Settings) {
     if($Settings -isnot [Collections.IDictionary]){throw '购物配置字段无效。'}
@@ -34,7 +34,9 @@ function ConvertTo-ShopTaskSettings($Settings) {
         $next[$new]=[long]$next[$old]*1000L
         $next.Remove($old)
     }
-    if($legacy -and -not $next.ContainsKey('CloseDelayMs')){$next.CloseDelayMs=(New-ShopTaskSettings).CloseDelayMs}
+    $defaults=New-ShopTaskSettings
+    if($legacy -and -not $next.ContainsKey('CloseDelayMs')){$next.CloseDelayMs=$defaults.CloseDelayMs}
+    if(-not $next.ContainsKey('JitterMs')){$next.JitterMs=$defaults.JitterMs}
     Test-ShopTaskSettings $next
     return $next
 }
@@ -42,10 +44,11 @@ function Test-ShopTaskSettings($Settings) {
     $defaults=New-ShopTaskSettings
     if ($Settings -isnot [Collections.IDictionary] -or $Settings.Count -ne $defaults.Count -or
         @($Settings.Keys | Where-Object {$_ -cnotin $defaults.Keys}).Count) {throw '购物配置字段无效。'}
-    foreach ($key in @('ReopenDelayMs','CloseDelayMs')) {
+    foreach ($key in @('ReopenDelayMs','CloseDelayMs','JitterMs')) {
         $value=$Settings[$key]
-        if(($value -isnot [int] -and $value -isnot [long]) -or $value -lt 1 -or $value -gt ([long][int]::MaxValue*1000L)){
-            throw '开关店间隔须为至少 1 毫秒的整数。'
+        $minimum=if($key -eq 'JitterMs'){0}else{1}
+        if(($value -isnot [int] -and $value -isnot [long]) -or $value -lt $minimum -or $value -gt ([long][int]::MaxValue*1000L)){
+            throw '开关店间隔须为正整数毫秒，随机浮动须为非负整数毫秒。'
         }
     }
     if($Settings.JumpIntervalSeconds -isnot [int] -or $Settings.JumpIntervalSeconds -lt 0 -or

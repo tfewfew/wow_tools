@@ -14,7 +14,7 @@ main:SetAllPoints(signal)
 local signature = signal:CreateTexture(nil, "OVERLAY")
 signature:SetSize(16, 16)
 signature:SetPoint("CENTER", signal, "CENTER", 32, 0)
-signature:SetColorTexture(179/255, 88/255, 139/255, 1)
+signature:SetColorTexture(183/255, 96/255, 152/255, 1)
 signal:Hide()
 
 -- The PC operator waits for the next visit to be due before sending the interaction key.
@@ -83,11 +83,20 @@ local function Stop()
     if closeMerchant and MerchantFrame and MerchantFrame:IsShown() then CloseMerchant() end
 end
 
+local function SampleDelaySeconds(baseMs, jitterMs)
+    if jitterMs == 0 then return baseMs / 1000 end
+    local lower = math.max(1, baseMs - jitterMs)
+    local upper = baseMs + jitterMs
+    -- The integer-argument form of math.random is limited to signed 32-bit bounds.
+    local sampled = lower + math.floor(math.random() * (upper - lower + 1))
+    return math.min(sampled, upper) / 1000
+end
+
 local function WaitToReopen(now)
     FinishPurchases()
     opened = false
     visit.closeAt, visit.openTimeout = nil, nil
-    visit.phase, visit.reopenAt = "cooldown", now + visit.closedWait
+    visit.phase, visit.reopenAt = "cooldown", now + SampleDelaySeconds(visit.closedWaitMs, visit.jitterMs)
     RefreshStatus()
 end
 
@@ -259,7 +268,7 @@ local function StartManual()
     RefreshStatus()
 end
 
-local function PrepareVisit(leaseMs, closedWaitMs, openHoldMs)
+local function PrepareVisit(leaseMs, closedWaitMs, openHoldMs, jitterMs)
     if visit and visit.phase ~= "reopen" then return end
     Stop()
     if not next(rules) or InCombatLockdown() or UnitIsDeadOrGhost("player") or not UnitExists("target") or UnitIsPlayer("target") then return end
@@ -267,12 +276,13 @@ local function PrepareVisit(leaseMs, closedWaitMs, openHoldMs)
     local now = GetTime()
     mode = "script"
     visit = { phase = "ready", deadline = now + leaseMs / 1000, openTimeout = now + 30,
-        closedWait = closedWaitMs / 1000, openHold = openHoldMs / 1000 }
+        closedWaitMs = closedWaitMs, openHoldMs = openHoldMs, jitterMs = jitterMs }
     events:SetScript("OnUpdate", Tick)
     if MerchantFrame and MerchantFrame:IsShown() then
         -- An existing window must close and finish the full wait before the next interaction.
         opened, merchantOpen = true, true
-        visit.phase, visit.closeAt, visit.openTimeout = "busy", now + visit.openHold, nil
+        visit.phase, visit.openTimeout = "busy", nil
+        visit.closeAt = now + SampleDelaySeconds(visit.openHoldMs, visit.jitterMs)
     end
     RefreshStatus()
 end
@@ -312,7 +322,8 @@ events:SetScript("OnEvent", function(_, event, addon)
             local now = GetTime()
             opened, menuReadyAt, updateAt = true, now + 0.05, now
             if visit then
-                visit.closeAt, visit.openTimeout, visit.reopenAt = now + visit.openHold, nil, nil
+                visit.openTimeout, visit.reopenAt = nil, nil
+                visit.closeAt = now + SampleDelaySeconds(visit.openHoldMs, visit.jitterMs)
                 if visit.phase == "cooldown" or visit.phase == "reopen" then
                     visit.phase = "busy"
                     RefreshStatus()
@@ -440,13 +451,14 @@ SlashCmdList.WOWTOOLSAUTOSHOP = function(message)
             RefreshStatus()
         end
     else
-        local leaseMs, closedWaitMs, openHoldMs = command:match("^preparems (%d+) (%d+) (%d+)$")
-        leaseMs, closedWaitMs, openHoldMs = tonumber(leaseMs), tonumber(closedWaitMs), tonumber(openHoldMs)
+        local leaseMs, closedWaitMs, openHoldMs, jitterMs = command:match("^preparems (%d+) (%d+) (%d+) (%d+)$")
+        leaseMs, closedWaitMs, openHoldMs, jitterMs = tonumber(leaseMs), tonumber(closedWaitMs), tonumber(openHoldMs), tonumber(jitterMs)
         local maxMs = 2147483647000
         if leaseMs and leaseMs >= 1 and leaseMs <= maxMs
             and closedWaitMs and closedWaitMs >= 1 and closedWaitMs <= maxMs
-            and openHoldMs and openHoldMs >= 1 and openHoldMs <= maxMs then
-            PrepareVisit(leaseMs, closedWaitMs, openHoldMs)
+            and openHoldMs and openHoldMs >= 1 and openHoldMs <= maxMs
+            and jitterMs and jitterMs >= 0 and jitterMs <= maxMs then
+            PrepareVisit(leaseMs, closedWaitMs, openHoldMs, jitterMs)
         end
     end
 end

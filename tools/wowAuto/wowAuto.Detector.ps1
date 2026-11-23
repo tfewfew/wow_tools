@@ -450,7 +450,7 @@ function Invoke-DetectorShop {
     if($visitDue) {
         $session.LeaseUntil=$session.Deadline
         $reply=Request-DetectorOperation Shop.Visit Shop @{Key=$settings.InteractKey;Deadline=$session.Deadline;
-            ClosedWaitMs=$settings.ReopenDelayMs;OpenHoldMs=$settings.CloseDelayMs;RequireReopen=$session.WaitingForReopen}
+            ClosedWaitMs=$settings.ReopenDelayMs;OpenHoldMs=$settings.CloseDelayMs;JitterMs=$settings.JitterMs;RequireReopen=$session.WaitingForReopen}
         if($reply -and $reply.Prepared -and -not $reply.MissingMode) {
             $session.WaitingForReopen=$true
             if($reply.Executed) {
@@ -460,7 +460,10 @@ function Invoke-DetectorShop {
             }
         } elseif($reply) {
             $session.WaitingForReopen=$false
-            $session.NextVisitAt=$Hub.Now+[long]$settings.ReopenDelayMs
+            $baseMs=[long]$settings.ReopenDelayMs
+            $jitterMs=[long]$settings.JitterMs
+            $retryDelay=Get-Random -Minimum ([Math]::Max(1L,($baseMs-$jitterMs))) -Maximum ($baseMs+$jitterMs+1L)
+            $session.NextVisitAt=$Hub.Now+$retryDelay
             if($reply.MissingMode){
                 $session.LeaseUntil=0L
                 Write-Detector '插件未进入购物模式。请选中商人，确认插件已更新并保存购物清单。'

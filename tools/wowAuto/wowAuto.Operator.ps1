@@ -61,7 +61,7 @@ function Invoke-OperatorAdapter([string]$Action,$Endpoint,$Data=$null,[int]$Dura
         'ShopState' {return [WowAuto.NativeInput]::ReadShoppingState($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
         'ShopCommand' {
             return [WowAuto.NativeInput]::SendShoppingCommand($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,
-                $Data.Action,[long]$Data.LeaseMs,[long]$Data.ClosedWaitMs,[long]$Data.OpenHoldMs,$DurationMs)
+                $Data.Action,[long]$Data.LeaseMs,[long]$Data.ClosedWaitMs,[long]$Data.OpenHoldMs,[long]$Data.JitterMs,$DurationMs)
         }
         'TamePacket' {return [WowAutoFight.Native]::ReadTame((Get-OperatorClient $Endpoint))}
         'Press' {$binding=ConvertFrom-AutoFightBinding ([string]$Data);return [WowAutoFight.Native]::Press((Get-OperatorClient $Endpoint),$binding.Code,$binding.Ctrl,$binding.Shift,$binding.Alt,$DurationMs)}
@@ -182,7 +182,7 @@ function Invoke-OperatorShop($Request,$Body) {
     if($binding.Code -in @(13,32)){throw '交互键不能使用回车或空格。'}
     $leaseMs=[long]$Body.Deadline-$Hub.Now-4L*$timing.ChatKeyPressMs
     if($leaseMs -lt 1){return $result}
-    $prepare=@{Action='prepare';LeaseMs=$leaseMs;ClosedWaitMs=$Body.ClosedWaitMs;OpenHoldMs=$Body.OpenHoldMs}
+    $prepare=@{Action='prepare';LeaseMs=$leaseMs;ClosedWaitMs=$Body.ClosedWaitMs;OpenHoldMs=$Body.OpenHoldMs;JitterMs=$Body.JitterMs}
     if(-not (Invoke-OperatorAdapter ShopCommand $endpoint $prepare $timing.ChatKeyPressMs)){return $result}
     $result.Prepared=$true
     $until=[Math]::Min([long]$Body.Deadline,$Hub.Now+1500)
