@@ -21,15 +21,17 @@ function Test-RestTaskSettings($Settings) {
     }
 }
 function New-ShopTaskSettings {
-    return @{VisitIntervalSeconds=30;JumpIntervalSeconds=60;DurationSeconds=600;InteractKey='F'}
+    return @{VisitIntervalSeconds=30;CloseDelaySeconds=5;JumpIntervalSeconds=60;DurationSeconds=600;InteractKey='F'}
 }
 function Test-ShopTaskSettings($Settings) {
     $defaults=New-ShopTaskSettings
-    if ($Settings -isnot [Collections.IDictionary] -or $Settings.Count -ne $defaults.Count -or
+    if ($Settings -isnot [Collections.IDictionary] -or
+        ($Settings.Count -ne $defaults.Count -and -not ($Settings.Count -eq $defaults.Count-1 -and -not $Settings.Contains('CloseDelaySeconds'))) -or
         @($Settings.Keys | Where-Object {$_ -cnotin $defaults.Keys}).Count) {throw '购物配置字段无效。'}
-    foreach ($key in @('VisitIntervalSeconds','JumpIntervalSeconds','DurationSeconds')) {
+    foreach ($key in @('VisitIntervalSeconds','CloseDelaySeconds','JumpIntervalSeconds','DurationSeconds')) {
+        if ($key -eq 'CloseDelaySeconds' -and -not $Settings.Contains($key)) {continue}
         $minimum=if($key -eq 'JumpIntervalSeconds'){0}else{1}
-        if($Settings[$key] -isnot [int] -or $Settings[$key] -lt $minimum) {throw '购物时间须为整数秒，访问间隔和最大时长至少为 1 秒。'}
+        if($Settings[$key] -isnot [int] -or $Settings[$key] -lt $minimum) {throw '购物时间须为整数秒，开关店间隔和最大时长至少为 1 秒。'}
     }
     if($Settings.InteractKey -isnot [string]){throw '请配置与目标互动的按键。'}
     $binding=ConvertFrom-AutoFightBinding $Settings.InteractKey
@@ -80,6 +82,7 @@ function Initialize-AccountTasks([string]$Path=(Join-Path $PSScriptRoot 'account
     if ([IO.File]::Exists($Path)) {$config=ConvertTo-TaskMap ([IO.File]::ReadAllText($Path) | ConvertFrom-Json);Test-AccountTaskConfiguration $config}
     if (-not $config.ContainsKey('Rest')) {$config.Rest=New-RestTaskSettings}
     if (-not $config.ContainsKey('Shop')) {$config.Shop=New-ShopTaskSettings}
+    if (-not $config.Shop.ContainsKey('CloseDelaySeconds')) {$config.Shop.CloseDelaySeconds=(New-ShopTaskSettings).CloseDelaySeconds}
     if(-not $config.ContainsKey('Operations')){$config.Operations=Get-LegacyOperationTimings}
     if(-not $config.Operations.ContainsKey('FishColorRetryMs')){$config.Operations.FishColorRetryMs=3000}
     Test-OperationTimings $config.Operations
@@ -126,6 +129,7 @@ function Save-AccountTasks($Config=$script:accountTasks.Config) {
     $snapshot=ConvertTo-TaskMap ($Config | ConvertTo-Json -Depth 12 | ConvertFrom-Json)
     if (-not $snapshot.ContainsKey('Rest')) {$snapshot.Rest=New-RestTaskSettings}
     if (-not $snapshot.ContainsKey('Shop')) {$snapshot.Shop=New-ShopTaskSettings}
+    if (-not $snapshot.Shop.ContainsKey('CloseDelaySeconds')) {$snapshot.Shop.CloseDelaySeconds=(New-ShopTaskSettings).CloseDelaySeconds}
     if(-not $snapshot.ContainsKey('Operations')){$snapshot.Operations=if($script:accountTasks.Config.Operations){ConvertTo-TaskMap $script:accountTasks.Config.Operations}else{Get-LegacyOperationTimings}}
     if(-not $snapshot.Operations.ContainsKey('FishColorRetryMs')){$snapshot.Operations.FishColorRetryMs=3000}
     Test-OperationTimings $snapshot.Operations

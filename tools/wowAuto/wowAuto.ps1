@@ -291,33 +291,38 @@ namespace WowAuto
             if (mode=="tame") return "/pettamer on";
             throw new ArgumentException("Unknown detector mode.");
         }
-        public static string ShoppingCommand(string action,int milliseconds)
+        public static string ShoppingCommand(string action,long leaseMs,int closedWaitSeconds,int openHoldSeconds)
         {
-            if (action=="prepare" && milliseconds==0) return "/autoshop prepare";
-            if (action=="cancel" && milliseconds==0) return "/autoshop cancel";
-            if (action=="buy" && milliseconds>=1 && milliseconds<=30000)
-                return "/autoshop buy " + milliseconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            if (action=="prepare" && leaseMs>=1 && leaseMs<=int.MaxValue*1000L && closedWaitSeconds>=1 && openHoldSeconds>=1)
+                return string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    "/autoshop prepare {0} {1} {2}",leaseMs,closedWaitSeconds,openHoldSeconds);
+            if ((action=="buy" || action=="cancel") && leaseMs==0 && closedWaitSeconds==0 && openHoldSeconds==0)
+                return "/autoshop " + action;
             throw new ArgumentException("Invalid shopping command.");
         }
 
-        public static bool SendShoppingCommand(int pid,long ticks,string path,string action,int milliseconds,int durationMs)
+        public static bool SendShoppingCommand(int pid,long ticks,string path,string action,long leaseMs,int closedWaitSeconds,int openHoldSeconds,int durationMs)
         {
-            return SendChatCommand(pid,ticks,path,ShoppingCommand(action,milliseconds),durationMs);
+            return SendChatCommand(pid,ticks,path,ShoppingCommand(action,leaseMs,closedWaitSeconds,openHoldSeconds),durationMs);
+        }
+
+        private static bool MatchesShoppingColor(uint pixel,int red,int green,int blue)
+        {
+            return Math.Abs((int)(pixel & 255)-red)<=3 && Math.Abs((int)((pixel >> 8) & 255)-green)<=3 &&
+                Math.Abs((int)((pixel >> 16) & 255)-blue)<=3;
         }
 
         public static string ReadShoppingState(int pid,long ticks,string path)
         {
             if (WindowPixelReader == null) throw new InvalidOperationException("Window capture source is not initialized.");
             uint color = WindowPixelReader(pid,ticks,path,0);
-            int red = (int)(color & 255), green = (int)((color >> 8) & 255), blue = (int)((color >> 16) & 255);
-            bool ready = Math.Abs(red-107)<=3 && Math.Abs(green-29)<=3 && Math.Abs(blue-193)<=3;
-            bool busy = Math.Abs(red-125)<=3 && Math.Abs(green-202)<=3 && Math.Abs(blue-57)<=3;
-            if (!ready && !busy) return "unknown";
-            uint signature = WindowPixelReader(pid,ticks,path,32);
-            if (Math.Abs((int)(signature & 255)-173)>3 ||
-                Math.Abs((int)((signature >> 8) & 255)-71)>3 ||
-                Math.Abs((int)((signature >> 16) & 255)-113)>3) return "unknown";
-            return ready ? "ready" : "busy";
+            string state;
+            if (MatchesShoppingColor(color,107,29,193)) state = "ready";
+            else if (MatchesShoppingColor(color,125,202,57)) state = "busy";
+            else if (MatchesShoppingColor(color,44,161,230)) state = "cooldown";
+            else if (MatchesShoppingColor(color,233,139,45)) state = "reopen";
+            else return "unknown";
+            return MatchesShoppingColor(WindowPixelReader(pid,ticks,path,32),175,73,127) ? state : "unknown";
         }
 
         public static string RotationCommand(string action,int token)

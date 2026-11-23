@@ -129,7 +129,7 @@ function New-ShopTaskSettingsPage {
     $hint.Text='在游戏插件「游戏辅助 → 自动购物」保存物品 ID 和背包上限。选中附近的商人后，在进程行选择「购物」并点击「直接开始」，也可把「购物」设为角色任务。'
     $hint.SetBounds(18,18,1000,66)
     $inputs=@{};$y=92
-    foreach($spec in @(@('VisitIntervalSeconds','访问间隔（秒）',1),@('JumpIntervalSeconds','跳跃间隔（秒，0 关闭额外跳跃）',0),@('DurationSeconds','最大购物时长（秒）',1))) {
+    foreach($spec in @(@('VisitIntervalSeconds','关闭后再打开（秒）',1),@('CloseDelaySeconds','打开后关闭（秒）',1),@('JumpIntervalSeconds','跳跃间隔（秒，0 关闭额外跳跃）',0),@('DurationSeconds','最大购物时长（秒）',1))) {
         $label=New-Object Windows.Forms.Label;$label.Text=$spec[1];$label.SetBounds(18,$y,300,34)
         $box=New-Object Windows.Forms.NumericUpDown
         $box.Minimum=$spec[2];$box.Maximum=[int]::MaxValue;$box.Value=$script:accountTasks.Config.Shop[$spec[0]]

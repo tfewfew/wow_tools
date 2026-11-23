@@ -59,7 +59,10 @@ function Invoke-OperatorAdapter([string]$Action,$Endpoint,$Data=$null,[int]$Dura
         'Lure' {return [WowAuto.NativeInput]::ReadLureColor($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
         'Packet' {return [WowAutoFight.Native]::Observe((Get-OperatorClient $Endpoint))}
         'ShopState' {return [WowAuto.NativeInput]::ReadShoppingState($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
-        'ShopCommand' {return [WowAuto.NativeInput]::SendShoppingCommand($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,$Data.Action,$Data.Milliseconds,$DurationMs)}
+        'ShopCommand' {
+            return [WowAuto.NativeInput]::SendShoppingCommand($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,
+                $Data.Action,[long]$Data.LeaseMs,[int]$Data.ClosedWaitSeconds,[int]$Data.OpenHoldSeconds,$DurationMs)
+        }
         'TamePacket' {return [WowAutoFight.Native]::ReadTame((Get-OperatorClient $Endpoint))}
         'Press' {$binding=ConvertFrom-AutoFightBinding ([string]$Data);return [WowAutoFight.Native]::Press((Get-OperatorClient $Endpoint),$binding.Code,$binding.Ctrl,$binding.Shift,$binding.Alt,$DurationMs)}
         'BeginHold' {$binding=ConvertFrom-AutoFightBinding ([string]$Data);return [WowAutoFight.Native]::BeginHold((Get-OperatorClient $Endpoint),$binding.Code,$binding.Ctrl,$binding.Shift,$binding.Alt)}
@@ -157,8 +160,8 @@ function Invoke-OperatorShop($Request,$Body) {
     $endpoint=$Request.Owner;$timing=$Request.Timing
     $result=@{Executed=$false;SentAt=$Hub.Now}
     if($Request.Kind -eq 'Shop.Stop') {
-        if((Test-OperatorShopInput $Request $Body.LeaseUntil) -and (Invoke-OperatorAdapter ShopState $endpoint) -in @('ready','busy')) {
-            $result.Executed=Invoke-OperatorAdapter ShopCommand $endpoint @{Action='cancel';Milliseconds=0} $timing.ChatKeyPressMs
+        if((Test-OperatorShopInput $Request $Body.LeaseUntil) -and (Invoke-OperatorAdapter ShopState $endpoint) -ne 'unknown') {
+            $result.Executed=Invoke-OperatorAdapter ShopCommand $endpoint @{Action='cancel'} $timing.ChatKeyPressMs
         }
         return $result
     }
@@ -171,31 +174,36 @@ function Invoke-OperatorShop($Request,$Body) {
         return $result
     }
     if($Request.Kind -ne 'Shop.Visit'){throw '未知购物操作。'}
+    if($Body.RequireReopen -and (Invoke-OperatorAdapter ShopState $endpoint) -ne 'reopen'){
+        $result.Prepared=$true
+        return $result
+    }
     $binding=ConvertFrom-AutoFightBinding ([string]$Body.Key)
     if($binding.Code -in @(13,32)){throw '交互键不能使用回车或空格。'}
-    if(-not (Invoke-OperatorAdapter ShopCommand $endpoint @{Action='prepare';Milliseconds=0} $timing.ChatKeyPressMs)){return $result}
+    $leaseMs=[long]$Body.Deadline-$Hub.Now-4L*$timing.ChatKeyPressMs
+    if($leaseMs -lt 1){return $result}
+    $prepare=@{Action='prepare';LeaseMs=$leaseMs;ClosedWaitSeconds=$Body.ClosedWaitSeconds;OpenHoldSeconds=$Body.OpenHoldSeconds}
+    if(-not (Invoke-OperatorAdapter ShopCommand $endpoint $prepare $timing.ChatKeyPressMs)){return $result}
+    $result.Prepared=$true
     $until=[Math]::Min([long]$Body.Deadline,$Hub.Now+1500)
-    $ready=$false
+    $state='unknown'
     while(Test-OperatorShopInput $Request $until) {
         try {
-            $ready=(Invoke-OperatorAdapter ShopState $endpoint) -eq 'ready'
-            if($ready){break}
+            $state=Invoke-OperatorAdapter ShopState $endpoint
+            if($state -in @('ready','busy')){break}
         }
         catch {if(-not [WowAutoCapture.Native]::IsPending($_.Exception)){throw}}
         if(-not (Wait-Operator $Request 75)){return $result}
     }
     if(-not (Test-OperatorShopInput $Request $Body.Deadline)){return $result}
-    if(-not $ready){$result.MissingMode=$true;return $result}
+    if($state -eq 'unknown'){$result.MissingMode=$true}
+    if($state -ne 'ready'){return $result}
     if(-not (Invoke-OperatorAdapter Press $endpoint $binding.Text $timing.KeyPressMs)){return $result}
     if(-not (Test-OperatorShopInput $Request $Body.Deadline)){return $result}
     if(-not (Invoke-OperatorAdapter Press $endpoint 'Space' $timing.KeyPressMs)){return $result}
     if(-not (Test-OperatorShopInput $Request $Body.Deadline)){return $result}
-    $available=[long]$Body.Deadline-$Hub.Now-4L*$timing.ChatKeyPressMs
-    if($available -lt 1){return $result}
-    $lease=[int][Math]::Min(30000L,$available)
-    $result.Executed=Invoke-OperatorAdapter ShopCommand $endpoint @{Action='buy';Milliseconds=$lease} $timing.ChatKeyPressMs
+    $result.Executed=Invoke-OperatorAdapter ShopCommand $endpoint @{Action='buy'} $timing.ChatKeyPressMs
     $result.SentAt=$Hub.Now
-    $result.LeaseUntil=$result.SentAt+$lease
     return $result
 }
 function Invoke-OperatorRequest($Request) {

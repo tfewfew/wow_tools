@@ -1,5 +1,5 @@
 -- Automatic purchases run only in an explicitly activated shopping visit.
-local mode, deadline, openDeadline, canBuy, opened, selectedGossip, merchantOpen
+local mode, visit, canBuy, opened, selectedGossip, merchantOpen
 local rules, pending, receipt, skipped = {}, nil, nil, {}
 local menuReadyAt, updateAt = 0, 0
 local stateText, editor
@@ -14,9 +14,16 @@ main:SetAllPoints(signal)
 local signature = signal:CreateTexture(nil, "OVERLAY")
 signature:SetSize(16, 16)
 signature:SetPoint("CENTER", signal, "CENTER", 32, 0)
-signature:SetColorTexture(173/255, 71/255, 113/255, 1)
+signature:SetColorTexture(175/255, 73/255, 127/255, 1)
 signal:Hide()
 
+-- The PC operator waits for the next visit to be due before sending the interaction key.
+local visitColors = {
+    ready = {107, 29, 193},
+    busy = {125, 202, 57},
+    cooldown = {44, 161, 230},
+    reopen = {233, 139, 45},
+}
 local popupKinds = {
     "CONFIRM_HIGH_COST_ITEM",
     "CONFIRM_PURCHASE_TOKEN_ITEM",
@@ -32,22 +39,22 @@ local function Say(text)
 end
 
 local function RefreshStatus()
-    if mode == "script" then
+    if visit then
         local _, physicalHeight = GetPhysicalScreenSize()
         local ratio = physicalHeight and physicalHeight > 0 and UIParent:GetHeight() / physicalHeight or 1
         signal:SetSize(16 * ratio, 16 * ratio)
         signature:SetSize(16 * ratio, 16 * ratio)
         signature:ClearAllPoints()
         signature:SetPoint("CENTER", signal, "CENTER", 32 * ratio, 0)
-        if canBuy then main:SetColorTexture(125/255, 202/255, 57/255, 1)
-        else main:SetColorTexture(107/255, 29/255, 193/255, 1) end
+        local color = visitColors[visit.phase]
+        main:SetColorTexture(color[1]/255, color[2]/255, color[3]/255, 1)
         signal:Show()
     else
         signal:Hide()
     end
     if stateText then
         stateText:SetText(mode == "manual" and "自动购物模式已开启" or mode == "script" and
-            "wowAuto 正在访问商人" or "自动购物模式已关闭")
+            (visit.phase == "cooldown" and "商店已关闭，等待下次访问" or "wowAuto 正在访问商人") or "自动购物模式已关闭")
     end
 end
 
@@ -57,20 +64,30 @@ local function OwnsPopup(transaction)
         and MerchantFrame.itemIndex == transaction.index and MerchantFrame.count == transaction.amount
 end
 
-local function Finish(closeMerchant)
+local function FinishPurchases()
     local popup = pending and OwnsPopup(pending) and pending.popup
-    pending, opened, selectedGossip, skipped = nil, false, false, {}
-    if mode == "script" then mode, deadline, canBuy = nil, nil, false end
-    events:SetScript("OnUpdate", nil)
+    pending, canBuy, skipped = nil, false, {}
+    if not visit then
+        opened = false
+        events:SetScript("OnUpdate", nil)
+    end
     if popup then popup:Hide() end
+end
+
+local function Stop()
+    local closeMerchant = visit and opened
+    mode, visit, selectedGossip = nil, nil, false
+    FinishPurchases()
     RefreshStatus()
     if closeMerchant and MerchantFrame and MerchantFrame:IsShown() then CloseMerchant() end
 end
 
-local function Stop()
-    local closeMerchant = mode == "script" and opened
-    mode, deadline, canBuy = nil, nil, false
-    Finish(closeMerchant)
+local function WaitToReopen(now)
+    FinishPurchases()
+    opened = false
+    visit.closeAt, visit.openTimeout = nil, nil
+    visit.phase, visit.reopenAt = "cooldown", now + visit.closedWait
+    RefreshStatus()
 end
 
 local function AtMerchant()
@@ -174,20 +191,32 @@ local function WaitForPurchase(now, counts)
 end
 
 local function Update(now)
-    if deadline and now >= deadline then Finish(opened); return end
-    if not opened and openDeadline and now >= openDeadline then Finish(false); return end
+    if visit then
+        if now >= visit.deadline then Stop(); return end
+        if visit.closeAt and now >= visit.closeAt then
+            visit.closeAt = nil
+            FinishPurchases()
+            CloseMerchant()
+            return
+        end
+        if visit.openTimeout and now >= visit.openTimeout then WaitToReopen(now); return end
+        if visit.reopenAt and now >= visit.reopenAt then
+            visit.phase, visit.reopenAt = "reopen", nil
+            RefreshStatus()
+        end
+    end
     if not opened or not canBuy or now < menuReadyAt then return end
-    if not AtMerchant() then Finish(false); return end
+    if not AtMerchant() then FinishPurchases(); return end
     local counts = CountBags()
     if not counts then
-        if now >= menuReadyAt + 1.5 then Finish(mode == "script") end
+        if now >= menuReadyAt + 1.5 then FinishPurchases() end
         return
     end
     if WaitForPurchase(now, counts) then return end
-    if VisiblePurchasePopup() then Finish(false); return end
+    if VisiblePurchasePopup() then FinishPurchases(); return end
 
     local total = GetMerchantNumItems()
-    if not Number(total, 0) then Finish(false); return end
+    if not Number(total, 0) then FinishPurchases(); return end
     local loading = total == 0
     for index = 1, total do
         local link = GetMerchantItemLink(index)
@@ -210,7 +239,7 @@ local function Update(now)
             end
         end
     end
-    if not loading or now >= menuReadyAt + 1.5 then Finish(mode == "script") end
+    if not loading or now >= menuReadyAt + 1.5 then FinishPurchases() end
 end
 
 local function Tick()
@@ -228,22 +257,30 @@ local function StartManual()
     if not next(rules) then Say("请先保存物品 ID 和背包上限。"); return end
     Stop()
     WoWTools.ActivateDetector("auto_shop")
-    mode, canBuy = "manual", true
+    mode = "manual"
     RefreshStatus()
 end
 
-local function PrepareVisit()
+local function PrepareVisit(leaseMs, closedWait, openHold)
+    if visit and visit.phase ~= "reopen" then return end
     Stop()
     if not next(rules) or InCombatLockdown() or UnitIsDeadOrGhost("player") or not UnitExists("target") or UnitIsPlayer("target") then return end
     WoWTools.ActivateDetector("auto_shop")
-    if MerchantFrame and MerchantFrame:IsShown() then CloseMerchant() end
-    mode, deadline, openDeadline = "script", GetTime() + 30, nil
+    local now = GetTime()
+    mode = "script"
+    visit = { phase = "ready", deadline = now + leaseMs / 1000, openTimeout = now + 30,
+        closedWait = closedWait, openHold = openHold }
     events:SetScript("OnUpdate", Tick)
+    if MerchantFrame and MerchantFrame:IsShown() then
+        -- An existing window must close and finish the full wait before the next interaction.
+        opened, merchantOpen = true, true
+        visit.phase, visit.closeAt, visit.openTimeout = "busy", now + openHold, nil
+    end
     RefreshStatus()
 end
 
 local function OpenVendorOption()
-    if mode ~= "script" or selectedGossip or not deadline or GetTime() >= deadline then return end
+    if not visit or selectedGossip or not visit.openTimeout or GetTime() >= math.min(visit.openTimeout, visit.deadline) then return end
     for _, option in ipairs(C_GossipInfo.GetOptions()) do
         -- vendorgossipicon.blp is the interaction icon used by item vendors.
         if option.icon == 132060 and option.status == 0 then
@@ -274,15 +311,36 @@ events:SetScript("OnEvent", function(_, event, addon)
         RefreshStatus()
     elseif event == "MERCHANT_SHOW" then
         if mode and not merchantOpen then
-            opened, menuReadyAt = true, GetTime() + 0.2
+            local now = GetTime()
+            opened, menuReadyAt = true, now + 0.2
+            if visit then
+                visit.closeAt, visit.openTimeout, visit.reopenAt = now + visit.openHold, nil, nil
+                if visit.phase == "cooldown" or visit.phase == "reopen" then
+                    visit.phase = "busy"
+                    RefreshStatus()
+                end
+            else
+                canBuy = true
+            end
             events:SetScript("OnUpdate", Tick)
         end
         merchantOpen = true
     elseif event == "MERCHANT_CLOSED" then
         merchantOpen = false
-        if opened then Finish(false) end
+        if opened then
+            if visit then WaitToReopen(GetTime())
+            else FinishPurchases() end
+        end
     elseif event == "GOSSIP_SHOW" then
         OpenVendorOption()
+    elseif event == "PLAYER_REGEN_DISABLED" and visit then
+        if opened then
+            FinishPurchases()
+            visit.closeAt = nil
+            CloseMerchant()
+        elseif visit.openTimeout then
+            WaitToReopen(GetTime())
+        end
     else
         Stop()
     end
@@ -375,14 +433,19 @@ SlashCmdList.WOWTOOLSAUTOSHOP = function(message)
     local command = (message or ""):match("^%s*(.-)%s*$")
     if command == "on" then StartManual()
     elseif command == "off" or (command == "cancel" and mode == "script") then Stop()
-    elseif command == "prepare" then PrepareVisit()
-    else
-        local duration = tonumber(command:match("^buy (%d+)$"))
+    elseif command == "buy" then
         local now = GetTime()
-        if mode == "script" and not canBuy and now < deadline and Number(duration, 1) and duration <= 30000 then
-            deadline, canBuy = now + duration / 1000, true
-            openDeadline = now + 4
+        if visit and visit.phase == "ready" and now < visit.deadline
+            and (not visit.closeAt or now < visit.closeAt) and (not visit.openTimeout or now < visit.openTimeout) then
+            visit.phase, canBuy = "busy", true
+            if not opened then visit.openTimeout = now + 4 end
             RefreshStatus()
+        end
+    else
+        local leaseMs, closedWait, openHold = command:match("^prepare (%d+) (%d+) (%d+)$")
+        leaseMs, closedWait, openHold = tonumber(leaseMs), tonumber(closedWait), tonumber(openHold)
+        if leaseMs and leaseMs >= 1 and leaseMs <= 2147483647000 and Number(closedWait, 1) and Number(openHold, 1) then
+            PrepareVisit(leaseMs, closedWait, openHold)
         end
     end
 end

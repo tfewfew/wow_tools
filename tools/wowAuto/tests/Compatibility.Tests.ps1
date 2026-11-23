@@ -102,13 +102,31 @@ try {
     }
     $shopping=ConvertTo-TaskMap ($shopping | ConvertTo-Json -Depth 8 | ConvertFrom-Json)
     Test-AccountTaskConfiguration $shopping
-    if((Get-AccountTaskModeLabel 'shop') -cne '购物' -or
-        [WowAuto.NativeInput]::ShoppingCommand('prepare',0) -cne '/autoshop prepare' -or
-        [WowAuto.NativeInput]::ShoppingCommand('buy',1500) -cne '/autoshop buy 1500' -or
-        [WowAuto.NativeInput]::ShoppingCommand('cancel',0) -cne '/autoshop cancel') {
-        throw 'Automatic shopping mode or slash command contract is incompatible.'
+    $legacyShop=$shopping.Shop.Clone()
+    $legacyShop.Remove('CloseDelaySeconds')
+    Test-ShopTaskSettings $legacyShop
+    if((Get-AccountTaskModeLabel 'shop') -cne '购物' -or $shopping.Shop.VisitIntervalSeconds -ne 30 -or
+        $shopping.Shop.CloseDelaySeconds -ne 5 -or
+        [WowAuto.NativeInput]::ShoppingCommand('prepare',1500,31,6) -cne '/autoshop prepare 1500 31 6' -or
+        [WowAuto.NativeInput]::ShoppingCommand('buy',0,0,0) -cne '/autoshop buy' -or
+        [WowAuto.NativeInput]::ShoppingCommand('cancel',0,0,0) -cne '/autoshop cancel') {
+        throw 'Automatic shopping timing settings or slash command contract is incompatible.'
     }
-    Write-Output 'PASS: both clients support the shopping task configuration and add-on command contract.'
+    $pixelReader=[WowAuto.NativeInput]::WindowPixelReader
+    try {
+        foreach($spec in @(@('cooldown',44,161,230),@('reopen',233,139,45))) {
+            $statePixel=[uint32]($spec[1]+256*$spec[2]+65536*$spec[3])
+            [WowAuto.NativeInput]::WindowPixelReader=[Func[int,long,string,int,uint32]]{
+                param($pidValue,$ticks,$path,$offset)
+                if($offset -eq 0){return $statePixel}
+                return [uint32](175+256*73+65536*127)
+            }
+            if([WowAuto.NativeInput]::ReadShoppingState(0,0,'') -cne $spec[0]){
+                throw 'Shopping reopen signal contract is incompatible.'
+            }
+        }
+    } finally {[WowAuto.NativeInput]::WindowPixelReader=$pixelReader}
+    Write-Output 'PASS: both clients support the shopping settings, slash commands and reopen signal contract.'
 
     . (Join-Path $tool 'wowAuto.Engine.ps1')
     $directModes=Get-WowAutoDirectTaskModes
