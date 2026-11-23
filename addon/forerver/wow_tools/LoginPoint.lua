@@ -9,6 +9,7 @@ local fill=point:CreateTexture(nil,"OVERLAY")
 fill:SetAllPoints()
 point:Hide()
 local inWorld,elapsed,modeElapsed=false,0,0
+local dead=false
 local displayedMode
 local detectorModes={"wowDetector","fight_detector","auto_shop"}
 -- This palette is also decoded by wowAuto.Rotation.Native.cs.
@@ -17,12 +18,22 @@ local colors={
     wowDetector={64,170,255},
     fight_detector={255,112,76},
     auto_shop={181,104,255},
+    dead={220,48,69},
 }
+local function Readable(value)
+    return not (issecretvalue and issecretvalue(value))
+end
+local function RefreshDeath()
+    local ok,value=pcall(UnitIsDeadOrGhost,"player")
+    if ok and Readable(value) and type(value)=="boolean" then dead=value end
+end
 local function PaintMode()
-    local mode="rest"
-    for _,name in ipairs(detectorModes) do
-        local detector=WoWTools.modules[name]
-        if detector and detector.IsEnabled() then mode=name;break end
+    local mode=dead and "dead" or "rest"
+    if not dead then
+        for _,name in ipairs(detectorModes) do
+            local detector=WoWTools.modules[name]
+            if detector and detector.IsEnabled() then mode=name;break end
+        end
     end
     if mode~=displayedMode then
         local color=colors[mode]
@@ -36,9 +47,6 @@ SLASH_WOWTOOLSREST1="/wowrest"
 SlashCmdList.WOWTOOLSREST=function()
     WoWTools.ActivateDetector("rest")
     PaintMode()
-end
-local function Readable(value)
-    return not (issecretvalue and issecretvalue(value))
 end
 local function Position()
     if not inWorld or type(GetPhysicalScreenSize)~="function" then point:Hide(); return end
@@ -57,22 +65,34 @@ local function Position()
 end
 local events=CreateFrame("Frame")
 for _,event in ipairs({"PLAYER_ENTERING_WORLD","PLAYER_LEAVING_WORLD","PLAYER_LOGOUT",
-    "DISPLAY_SIZE_CHANGED","UI_SCALE_CHANGED"}) do
+    "PLAYER_DEAD","PLAYER_ALIVE","PLAYER_UNGHOST","DISPLAY_SIZE_CHANGED","UI_SCALE_CHANGED"}) do
     pcall(events.RegisterEvent,events,event)
 end
 local function Poll(_,delta)
     elapsed=elapsed+delta
     modeElapsed=modeElapsed+delta
-    if modeElapsed>=0.1 then modeElapsed=0;PaintMode() end
+    if modeElapsed>=0.1 then
+        modeElapsed=0
+        RefreshDeath()
+        PaintMode()
+    end
     if elapsed>=1 then elapsed=0; Position() end
 end
 events:SetScript("OnEvent",function(_,event)
     if event=="PLAYER_ENTERING_WORLD" then
         inWorld,elapsed,modeElapsed=true,0,0
+        RefreshDeath()
         PaintMode()
         events:SetScript("OnUpdate",Poll)
     elseif event=="PLAYER_LEAVING_WORLD" or event=="PLAYER_LOGOUT" then
-        inWorld=false; elapsed=0; events:SetScript("OnUpdate",nil)
+        inWorld,dead,elapsed=false,false,0
+        events:SetScript("OnUpdate",nil)
+    elseif event=="PLAYER_DEAD" or event=="PLAYER_ALIVE" or event=="PLAYER_UNGHOST" then
+        if event=="PLAYER_DEAD" then dead=true
+        elseif event=="PLAYER_UNGHOST" then dead=false
+        else RefreshDeath() end
+        PaintMode()
+        return
     end
     Position()
 end)

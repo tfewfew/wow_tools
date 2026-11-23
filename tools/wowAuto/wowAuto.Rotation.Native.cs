@@ -15,7 +15,8 @@ namespace WowAutoRotation {
             {"rest",Color.White},
             {"fish",Color.FromArgb(64,170,255)},
             {"fight",Color.FromArgb(255,112,76)},
-            {"shop",Color.FromArgb(181,104,255)}
+            {"shop",Color.FromArgb(181,104,255)},
+            {"dead",Color.FromArgb(220,48,69)}
         };
         static readonly Dictionary<string,Color> ShoppingColors = new Dictionary<string,Color> {
             {"closed",Color.FromArgb(52,120,230)},
@@ -108,10 +109,12 @@ namespace WowAutoRotation {
         public static bool LoginPoint(int pid,long ticks,string path) {
             return ReadLoginMode(pid,ticks,path)!="unknown";
         }
-        public static string ReadShoppingState(int pid,long ticks,string path) {
+        public static string ReadShoppingState(int pid,long ticks,string path,bool reportDeath=false) {
             if(FrameReader==null) throw new InvalidOperationException("Window capture source is not initialized.");
             using(var frame=FrameReader(pid,ticks,path)) {
-                if(ReadLoginMode(frame)!="shop") return "unknown";
+                string mode=ReadLoginMode(frame);
+                if(reportDeath && mode=="dead") return "dead";
+                if(mode!="shop") return "unknown";
                 int x=frame.Width/2,y=frame.Height/2;
                 Color center=frame.GetPixel(x,y);
                 Rectangle interior=new Rectangle(x-2,y-2,5,5);

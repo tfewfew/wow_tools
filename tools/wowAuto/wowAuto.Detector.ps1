@@ -37,6 +37,7 @@ function Get-DetectorObservation {
     if($Hub.Simulation){throw 'Simulation requires an explicit frame adapter.'}
     $loginMode=[WowAutoRotation.Native]::ReadLoginMode($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)
     if($loginMode -eq 'unknown'){return [pscustomobject]@{Login=$false;Mode=$loginMode;Color='unknown';Packet=$null;Lure='unknown'}}
+    if($script:direct -and $loginMode -eq 'dead'){return [pscustomobject]@{Login=$true;Mode=$loginMode;Color='dead';Packet=$null;Lure='unknown'}}
     if($script:mode -in @('rest','shop')) {
         return [pscustomobject]@{Login=$true;Mode=$loginMode;Color='';Packet=$null;Lure='unknown'}
     }
@@ -124,6 +125,7 @@ function Invoke-DetectorScan([switch]$ForStart) {
     $until=$Hub.Now+5000;$valid=$false
     while(Test-DetectorCurrent) {
         $observation=Get-DetectorObservationReady
+        if($script:direct -and $observation.Color -eq 'dead'){throw '角色死亡，直接开始任务已停止。'}
         $valid=($script:mode -eq 'fish' -and $observation.Color -in @('red','green')) -or
             ($script:mode -eq 'fight' -and $observation.Packet -and $observation.Packet.Action -ne 'dead') -or
             ($script:mode -eq 'tame' -and $observation.Packet -and $observation.Packet.State -in @('idle','matched')) -or
@@ -326,8 +328,14 @@ function Invoke-DetectorRotation {
 }
 function Remove-DetectorRole([string]$Reason) {
     $script:running=$false;Stop-DetectorAudio
+    if($script:direct){
+        Stop-DetectorShoppingVisit
+        if(-not (Test-DetectorCurrent)){return}
+        Write-Detector ($Reason+'，直接开始任务已停止。')
+        Publish-Detector stopped @{Reason=$Reason;Exited=$false}
+        return
+    }
     Write-Detector ($Reason+'：'+$script:roleName+'，移出本进程本次子战网轮转。')
-    if($script:direct){Publish-Detector stopped @{Reason=$Reason;Exited=$false};return}
     $script:excluded+=,$script:roleName
     Publish-Detector excluded @{Name=$script:roleName;Reason=$Reason}
     if($script:batch){$script:batch.Drop($Endpoint.Key)}
@@ -382,6 +390,7 @@ function Invoke-DetectorRest {
     if($now -lt $script:nextColor){return}
     $script:nextColor=$now+$script:config.Periods.LoginMs
     $observation=Get-DetectorObservation
+    if($script:direct -and $observation.Color -eq 'dead'){Remove-DetectorRole '角色死亡';return}
     $session=$script:restSession
     $inRestMode=$observation.Mode -eq 'rest'
     # Only consecutive observations in rest mode contribute to the duration.
@@ -482,11 +491,13 @@ function Invoke-DetectorShop {
     $pollMs=[Math]::Min(100,[int]$script:config.Periods.LoginMs)
     $script:nextColor=$now+$pollMs
     $state='unknown'
-    if($session.PrepareRequested) {
-        try {$state=[WowAutoRotation.Native]::ReadShoppingState($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)}
+    if($session.PrepareRequested -or $script:direct) {
+        try {$state=[WowAutoRotation.Native]::ReadShoppingState($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,$script:direct)}
         catch {
             if(-not $expired -or -not [WowAutoCapture.Native]::IsPending($_.Exception)){throw}
         }
+        if($state -eq 'dead'){Remove-DetectorRole '角色死亡';return}
+        if(-not $session.PrepareRequested){$state='unknown'}
         if($state -eq 'bought' -and $session.Visits -gt 0){Exit-DetectorAfterShopPurchase;return}
     }
     if($expired) {
@@ -593,6 +604,7 @@ function Invoke-DetectorTaskCore {
         if($now -lt $script:nextColor){return}
         $script:nextColor=$now+100
         $observation=Get-DetectorObservation
+        if($script:direct -and $observation.Color -eq 'dead'){Remove-DetectorRole '角色死亡';return}
         $packet=if($observation.Login){$observation.Packet}else{$null}
         if($packet -and $packet.State -eq 'dead'){throw '角色死亡或处于灵魂状态，抓宠已停止。'}
         $action=Get-AutoTameAction $script:tame $packet $script:tameConfig $now
@@ -765,6 +777,9 @@ try {
                     $script:roleName='';$script:index=-1;$script:mode=$body.Mode;$script:useItem=[bool]$body.UseItem
                     $script:batch=$null
                     if($script:mode -cnotin ((Get-WowAutoDirectTaskModes) + 'tame')){throw '不支持的直接开始任务。'}
+                    $observation=Get-DetectorObservationReady
+                    if(-not (Test-DetectorCurrent)){continue}
+                    if($observation.Color -eq 'dead'){Remove-DetectorRole '角色死亡';continue}
                     if($script:mode -eq 'fish' -and -not (Invoke-DetectorEquipRod)){continue}
                     if($script:mode -eq 'tame'){
                         Invoke-DetectorScan

@@ -139,7 +139,7 @@ try {
             param($pidValue,$ticks,$path)
             return $frame.Clone()
         }
-        foreach($spec in @(@('rest',255,255,255),@('fish',64,170,255),@('fight',255,112,76),@('shop',181,104,255))){
+        foreach($spec in @(@('rest',255,255,255),@('fish',64,170,255),@('fight',255,112,76),@('dead',220,48,69),@('shop',181,104,255))){
             $color=[Drawing.Color]::FromArgb($spec[1],$spec[2],$spec[3])
             for($y=$bounds.Top+2;$y -lt $bounds.Bottom-2;$y++){
                 for($x=$bounds.Left+2;$x -lt $bounds.Right-2;$x++){$frame.SetPixel($x,$y,$color)}
@@ -147,6 +147,10 @@ try {
             if([WowAutoRotation.Native]::ReadLoginMode($frame) -cne $spec[0] -or
                 -not [WowAutoRotation.Native]::LoginPoint(0,0,'')){
                 throw "Login mode must identify $($spec[0]) as in world."
+            }
+            if($spec[0] -eq 'dead' -and ([WowAutoRotation.Native]::ReadShoppingState(0,0,'',$true) -cne 'dead' -or
+                [WowAutoRotation.Native]::ReadShoppingState(0,0,'') -cne 'unknown')){
+                throw 'Death must be reportable to direct shopping without decoding it as a merchant phase.'
             }
         }
         foreach($spec in @(@('closed',52,120,230),@('open',154,211,67),@('bought',71,218,181))){
