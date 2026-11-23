@@ -2,9 +2,9 @@ local flavor = assert(TEST_FLAVOR)
 local forever = flavor == "forerver"
 local folder = TEST_ROOT .. "/addon/" .. flavor .. "/wow_tools/"
 local itemID, itemLink = 15237, "|Hitem:15237:0:0:0:0:0:123|h[Item]|h"
-local hooks, lines = {}, {}
-local itemCallback, itemKeyCallback, scheduled, loadCallback
-local owner, link, data, price, requestedItem, rendered
+local hooks, setters, lines = {}, {}, {}
+local itemCallback, onEvent, loadCallback
+local owner, link, data, price, requestedItem, shown, rendered
 
 SELL_PRICE = "售价"
 AuctionHouseFrame = {}
@@ -13,10 +13,6 @@ local row = { GetParent = function() return AuctionFrame or AuctionHouseFrame en
 local cell = { GetParent = function() return row end }
 local outside = { GetParent = function() return nil end }
 
-C_Timer = { After = function(delay, callback)
-    assert(delay == 0)
-    scheduled = callback
-end }
 C_Item = {
     GetItemInfo = function(item)
         requestedItem = item
@@ -45,11 +41,11 @@ end
 
 GameTooltip = {
     HookScript = function(self, script, callback)
-        assert(self == GameTooltip and (script == "OnTooltipCleared" or not forever and script == "OnTooltipSetItem"))
+        assert(self == GameTooltip and script == "OnTooltipCleared")
         hooks[script] = callback
     end,
     IsForbidden = function() return false end,
-    IsShown = function() return true end,
+    IsShown = function() return shown end,
     GetOwner = function() return owner end,
     IsOwned = function(_, frame) return owner == frame end,
     NumLines = function() return #lines end,
@@ -57,7 +53,7 @@ GameTooltip = {
         assert(label == SELL_PRICE and value == "gold, silver, copper")
         SetLine(label)
     end,
-    Show = function() rendered = true end,
+    Show = function() assert(shown); rendered = true end,
 }
 if forever then
     Enum = { TooltipDataType = { Item = 0 } }
@@ -68,55 +64,68 @@ if forever then
     function GameTooltip:GetPrimaryTooltipData() return data end
     function GameTooltip:GetLeftLine(index) return lines[index] end
 else
+    function CreateFrame(kind)
+        assert(kind == "Frame")
+        return {
+            RegisterEvent = function(_, event) assert(event == "PLAYER_LOGIN") end,
+            UnregisterEvent = function(_, event) assert(event == "PLAYER_LOGIN") end,
+            SetScript = function(_, script, callback) assert(script == "OnEvent"); onEvent = callback end,
+        }
+    end
     function GameTooltip:GetItem() return "Item", link end
-    function GameTooltip:SetItemKey() end
+    local auctionSetters = {
+        SetAuctionItem = true, SetAuctionSellItem = true, SetBagItem = true,
+        SetHyperlink = true, SetItemByID = true, SetItemKey = true,
+    }
+    for method in pairs(auctionSetters) do GameTooltip[method] = function() end end
     function hooksecurefunc(tooltip, method, callback)
-        assert(tooltip == GameTooltip and method == "SetItemKey")
-        itemKeyCallback = callback
+        assert(tooltip == GameTooltip and auctionSetters[method])
+        setters[method] = callback
     end
 end
 
 assert(loadfile(folder .. "AuctionVendorPrice.lua"))()
-local function SetItem(frame, item, copper)
+if not forever then onEvent(CreateFrame("Frame"), "PLAYER_LOGIN") end
+
+local function SetItem(frame, item, copper, existingLine)
     hooks.OnTooltipCleared(GameTooltip)
     owner, link, price = frame, item, copper
-    scheduled, rendered, loadCallback = nil, nil, nil
+    shown, rendered, loadCallback, requestedItem = not forever, nil, nil, nil
     lines = {}
+    if existingLine then SetLine(existingLine) end
     if forever then
         data = { id = itemID, hyperlink = item }
         itemCallback(GameTooltip, data)
+        assert(not rendered, "The native data handler owns tooltip presentation during its post-call")
+        shown = true
     elseif item then
-        hooks.OnTooltipSetItem(GameTooltip)
+        setters.SetAuctionItem(GameTooltip, "list", 1)
     else
-        itemKeyCallback(GameTooltip, itemID)
+        setters.SetItemKey(GameTooltip, itemID)
     end
 end
 
-SetItem(cell, itemLink, 10101)
-scheduled()
-assert(requestedItem == itemLink and rendered and #lines == 1, "Auction item links must supply the vendor price")
+for _ = 1, 2 do
+    SetItem(cell, itemLink, 10101)
+    assert(requestedItem == itemLink and #lines == 1 and not loadCallback,
+        "Cached vendor prices must appear within each native tooltip build")
+end
 local modernRow = { GetParent = function() return AuctionHouseFrame end }
 SetItem(modernRow, nil, 10101)
-scheduled()
-assert(requestedItem == itemID and rendered and #lines == 1, "Auction item keys must supply the vendor price")
+assert(requestedItem == itemID and #lines == 1, "Auction item keys must supply the vendor price")
 
-SetItem(cell, itemLink, 10101)
-SetLine("卖店价格:")
-scheduled()
+SetItem(cell, itemLink, 10101, "卖店价格:")
 assert(#lines == 1 and not rendered, "Preserve an existing vendor price line")
 SetItem(outside, itemLink, 10101)
-assert(not scheduled, "Only auction-owned tooltips may add prices")
+assert(not requestedItem and #lines == 0, "Only auction-owned tooltips may add prices")
 SetItem(cell, itemLink, 0)
-scheduled()
 assert(#lines == 0 and not loadCallback, "Items with no vendor price have no currency line")
 
 SetItem(cell, itemLink, nil)
-scheduled()
 price = 10101
 loadCallback()
 assert(rendered and #lines == 1, "A completed item load must supply the vendor price")
 SetItem(cell, itemLink, nil)
-scheduled()
 hooks.OnTooltipCleared(GameTooltip)
 price = 10101
 loadCallback()
