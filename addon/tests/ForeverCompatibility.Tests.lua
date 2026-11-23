@@ -1018,28 +1018,55 @@ assert(type(autoShop.BuildSettings) == "function" and type(SlashCmdList.WOWTOOLS
     and SLASH_WOWTOOLSAUTOSHOP1 == "/autoshop" and not autoShop.IsEnabled(),
     "Automatic shopping settings, slash command or initial state contract failed")
 local shopPanel = assert(WoWTools.settings.pages.auto_shop.frame, "Missing shopping settings panel")
-local shopExitCheck, shopEditor
+local shopExitCheck, shopList, shopAdd, shopNameEvents
+local shopInputs = {}
 for _, child in ipairs(frames) do
-    if child:GetParent() == shopPanel and child.kind == "CheckButton" and child.template == "UICheckButtonTemplate" then
-        shopExitCheck = child
-    elseif child.kind == "EditBox" then
-        local scroll = child:GetParent()
-        local area = scroll and scroll:GetParent()
-        if area and area:GetParent() == shopPanel then
-            assert(scroll.template == "UIPanelScrollFrameTemplate" and area.template == "BackdropTemplate",
-                "Shopping list editor is missing its bordered scroll area")
-            shopEditor = child
+    if child:GetParent() == shopPanel then
+        if child.kind == "CheckButton" and child.template == "UICheckButtonTemplate" then
+            shopExitCheck = child
+        elseif child.template == "BackdropTemplate" then
+            shopList = child
+        elseif child.kind == "EditBox" then
+            shopInputs[#shopInputs + 1] = child
+        elseif child.kind == "Button" and child:GetText() == "添加" then
+            shopAdd = child
+        elseif child.events.GET_ITEM_INFO_RECEIVED and child.events.ITEM_DATA_LOAD_RESULT then
+            shopNameEvents = child
         end
     end
 end
-assert(shopEditor and shopEditor:GetText() == "159  1" and shopEditor.textInsets[1] == 8,
-    "Shopping list editor did not receive SavedVariables after TOC initialization")
-local shopPlaceholder
-for _, widget in ipairs(widgets) do
-    if widget:GetParent() == shopEditor and widget.kind == "FontString" then shopPlaceholder = widget end
+assert(#shopInputs == 2 and shopInputs[1].numeric and shopInputs[2].numeric
+    and shopInputs[1].template == "InputBoxTemplate" and shopInputs[2].template == "InputBoxTemplate"
+    and shopAdd and type(shopAdd.scripts.OnClick) == "function", "Shopping item entry controls are missing")
+assert(shopNameEvents and type(shopNameEvents.scripts.OnEvent) == "function", "Shopping item-name events are unbound")
+local shopScroll, shopContent, shopRow, shopQuantity
+for _, child in ipairs(frames) do
+    if child:GetParent() == shopList and child.template == "UIPanelScrollFrameTemplate" then
+        shopScroll = child
+    elseif shopScroll and child:GetParent() == shopScroll and child.kind == "Frame" then
+        shopContent = child
+    elseif shopContent and child:GetParent() == shopContent and child.kind == "Frame" then
+        shopRow = child
+    elseif shopRow and child:GetParent() == shopRow and child.kind == "EditBox" then
+        shopQuantity = child
+    end
 end
-assert(shopPlaceholder and shopPlaceholder:GetText() == "点击输入，例如 159 1" and not shopPlaceholder:IsShown(),
-    "Shopping list editor's placeholder binding failed")
+assert(shopList and shopScroll and shopContent and shopRow, "Missing shopping list frame hierarchy")
+assert(shopQuantity and shopQuantity.template == "InputBoxTemplate" and shopQuantity.numeric
+    and shopQuantity:GetText() == "1", "Shopping quantity did not bind loaded SavedVariables to an editable row")
+for _, target in ipairs({shopList, shopScroll, shopContent, shopRow, shopQuantity}) do
+    assert(type(target.scripts.OnReceiveDrag) == "function" and type(target.scripts.OnMouseUp) == "function",
+        "Shopping list drag/drop interface is unbound")
+end
+local shopHeaders, shopLabels = {}, {}
+for _, widget in ipairs(widgets) do
+    if widget.kind == "FontString" then
+        if widget:GetParent() == shopList then shopHeaders[widget:GetText()] = true end
+        if widget:GetParent() == shopRow then shopLabels[widget:GetText()] = true end
+    end
+end
+assert(shopHeaders["物品名称"] and shopHeaders.ID and shopHeaders["数量"], "Shopping list column headers are missing")
+assert(shopLabels["物品159"] and shopLabels["159"], "Loaded shopping row is missing its resolved name or item ID")
 assert(shopExitCheck and shopExitCheck.Text:GetText() == "买到后下线并关闭游戏（仅限 wowAuto 单商品任务）"
     and shopExitCheck:GetChecked() and shopExitCheck:IsEnabled(), "Automatic shopping exit checkbox binding failed")
 assert(WoWTools.settings.tabs.third_party.Text:GetText() == "插件列表", "Plugin list label binding failed")

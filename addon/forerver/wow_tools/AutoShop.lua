@@ -42,19 +42,6 @@ local function SingleRuleID(list)
     if id and not next(list, id) then return id end
 end
 
-local function ParseRules(text)
-    local draft = {}
-    for line in text:gmatch("[^\r\n]+") do
-        if line:match("%S") then
-            local id, limit = line:match("^%s*(%d+)%s+(%d+)%s*$")
-            id, limit = tonumber(id), tonumber(limit)
-            if not Number(id, 1) or not Number(limit, 1) or draft[id] then return end
-            draft[id] = limit
-        end
-    end
-    return draft
-end
-
 local function Say(text)
     if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("wow_tools 购物：" .. text) end
 end
@@ -408,86 +395,247 @@ events:SetScript("OnEvent", function(_, event, addon)
     end
 end)
 
+local function ItemName(id)
+    local getter = C_Item and C_Item.GetItemInfo or GetItemInfo
+    if not getter then return end
+    local ok, name = pcall(getter, id)
+    if ok and not (issecretvalue and issecretvalue(name)) and type(name) == "string" and name ~= "" then
+        return name
+    end
+end
+
+local function CursorItemID()
+    local ok, kind, value = pcall(GetCursorInfo)
+    if not ok or (issecretvalue and issecretvalue(kind)) then return end
+    if kind == "item" and Number(value, 1) then return value end
+    if kind == "merchant" and Number(value, 1) then
+        local link = GetMerchantItemLink(value)
+        if issecretvalue and issecretvalue(link) then return end
+        local id = type(link) == "string" and tonumber(link:match("item:(%d+)"))
+        if Number(id, 1) then return id end
+    end
+end
+
+local function NumericInput(parent, width)
+    local input = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
+    input:SetSize(width, 24)
+    input:SetAutoFocus(false)
+    input:SetNumeric(true)
+    input:SetMaxLetters(10)
+    input:SetScript("OnEscapePressed", input.ClearFocus)
+    input:SetScript("OnEnterPressed", input.ClearFocus)
+    return input
+end
+
 local function BuildSettings(parent)
     local panel = CreateFrame("Frame", nil, parent)
     panel:SetAllPoints(parent)
-    local hint = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    hint:SetPoint("TOPLEFT", 16, -18)
-    hint:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -16, -18)
-    hint:SetJustifyH("LEFT")
-    hint:SetText("购物清单（每行填写物品 ID 和背包上限）")
 
-    local inputArea = CreateFrame("Frame", nil, panel, "BackdropTemplate")
-    inputArea:SetPoint("TOPLEFT", 16, -50)
-    inputArea:SetPoint("BOTTOMRIGHT", -16, 124)
-    inputArea:SetBackdrop({
+    local idLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    idLabel:SetPoint("TOPLEFT", 16, -22)
+    idLabel:SetText("物品 ID")
+    local idInput = NumericInput(panel, 116)
+    idInput:SetPoint("LEFT", idLabel, "RIGHT", 12, 0)
+    local limitLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    limitLabel:SetPoint("LEFT", idInput, "RIGHT", 16, 0)
+    limitLabel:SetText("数量")
+    local limitInput = NumericInput(panel, 96)
+    limitInput:SetPoint("LEFT", limitLabel, "RIGHT", 12, 0)
+    local add = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+    add:SetSize(72, 24)
+    add:SetPoint("LEFT", limitInput, "RIGHT", 12, 0)
+    add:SetText("添加")
+
+    local hint = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    hint:SetPoint("TOPLEFT", 16, -52)
+    hint:SetText("可将背包或商店物品拖入下方清单。数量为背包上限，可直接在表内修改。")
+
+    local list = CreateFrame("Frame", nil, panel, "BackdropTemplate")
+    list:SetPoint("TOPLEFT", 16, -78)
+    list:SetPoint("BOTTOMRIGHT", -16, 124)
+    list:SetBackdrop({
         bgFile = "Interface\\Buttons\\WHITE8X8",
         edgeFile = "Interface\\Buttons\\WHITE8X8",
         edgeSize = 1,
         insets = {left = 1, right = 1, top = 1, bottom = 1},
     })
-    inputArea:SetBackdropColor(0.07, 0.07, 0.08, 1)
-    inputArea:SetBackdropBorderColor(0.48, 0.51, 0.56, 1)
+    list:SetBackdropColor(0.07, 0.07, 0.08, 1)
+    list:SetBackdropBorderColor(0.48, 0.51, 0.56, 1)
 
-    local scroll = CreateFrame("ScrollFrame", nil, inputArea, "UIPanelScrollFrameTemplate")
-    scroll:SetPoint("TOPLEFT", 2, -2)
-    scroll:SetPoint("BOTTOMRIGHT", -25, 2)
-    local editor = CreateFrame("EditBox", nil, scroll)
-    editor:SetPoint("TOPLEFT", scroll, "TOPLEFT")
-    editor:EnableMouse(true)
-    editor:SetMultiLine(true)
-    editor:SetAutoFocus(false)
-    editor:SetFontObject("ChatFontNormal")
-    editor:SetTextInsets(8, 8, 8, 8)
-    editor:SetSize(400, 120)
+    local scroll = CreateFrame("ScrollFrame", nil, list, "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", 2, -30)
+    scroll:SetPoint("BOTTOMRIGHT", -25, 4)
+    local content = CreateFrame("Frame", nil, scroll)
+    content:SetSize(1, 1)
+    scroll:SetScrollChild(content)
 
-    local placeholder = editor:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-    placeholder:SetPoint("TOPLEFT", 8, -8)
-    placeholder:SetTextColor(0.65, 0.68, 0.74)
-    placeholder:SetText("点击输入，例如 159 1")
-    editor:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
-    local function SizeEditor()
-        local _, fontHeight = editor:GetFont()
-        local lines = math.max(1, editor:GetNumLines())
-        editor:SetHeight(math.max(scroll:GetHeight(), lines * (fontHeight + editor:GetSpacing()) + 20))
-    end
+    local nameHeader = list:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    nameHeader:SetPoint("BOTTOMLEFT", scroll, "TOPLEFT", 8, 8)
+    nameHeader:SetText("物品名称")
+    local quantityHeader = list:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    quantityHeader:SetPoint("BOTTOMLEFT", scroll, "TOPRIGHT", -102, 8)
+    quantityHeader:SetText("数量")
+    local idHeader = list:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    idHeader:SetPoint("LEFT", quantityHeader, "LEFT", -128, 0)
+    idHeader:SetText("ID")
+
+    local delete = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+    delete:SetSize(112, 24)
+    delete:SetPoint("BOTTOMRIGHT", -16, 86)
+    delete:SetText("删除选中项")
+    delete:Disable()
     local exitCheck = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
     exitCheck:SetSize(24, 24)
     exitCheck:SetPoint("BOTTOMLEFT", 12, 82)
     exitCheck.Text:SetText("买到后下线并关闭游戏（仅限 wowAuto 单商品任务）")
-    exitCheck:SetChecked(exitOnPurchase)
-    local function RefreshExitCheck()
-        local draft = ParseRules(editor:GetText())
-        exitCheck:SetEnabled(draft ~= nil and SingleRuleID(draft) ~= nil)
+    local rows, rowsByID, spareRows = {}, {}, {}
+    local selected
+    local rowHeight = 30
+
+    local function ResizeList()
+        content:SetSize(math.max(1, scroll:GetWidth()), math.max(1, scroll:GetHeight(), #rows * rowHeight))
+        scroll:UpdateScrollChildRect()
     end
-    local function RefreshPlaceholder()
-        placeholder:SetShown(editor:GetText() == "" and not editor:HasFocus())
+    scroll:HookScript("OnSizeChanged", ResizeList)
+    panel:SetScript("OnShow", ResizeList)
+
+    local function LayoutRows()
+        for index, row in ipairs(rows) do
+            local y = -(index - 1) * rowHeight
+            row:ClearAllPoints()
+            row:SetPoint("TOPLEFT", content, "TOPLEFT", 0, y)
+            row:SetPoint("TOPRIGHT", content, "TOPRIGHT", 0, y)
+        end
+        ResizeList()
+        exitCheck:SetEnabled(#rows == 1)
     end
-    editor:SetScript("OnTextChanged", function()
-        SizeEditor()
-        RefreshExitCheck()
-        RefreshPlaceholder()
+
+    local function SelectRow(row)
+        if selected then selected.highlight:Hide() end
+        selected = row
+        if selected then selected.highlight:Show() end
+        delete:SetEnabled(selected ~= nil)
+    end
+
+    local AddDroppedItem
+    local function BindDrop(target, row)
+        target:EnableMouse(true)
+        target:SetScript("OnReceiveDrag", function() AddDroppedItem() end)
+        target:HookScript("OnMouseUp", function(_, button)
+            if button == "LeftButton" and not AddDroppedItem() and row then SelectRow(row) end
+        end)
+    end
+
+    local nameEvents = CreateFrame("Frame", nil, panel)
+    nameEvents:RegisterEvent("GET_ITEM_INFO_RECEIVED")
+    nameEvents:RegisterEvent("ITEM_DATA_LOAD_RESULT")
+    nameEvents:SetScript("OnEvent", function(_, _, id, success)
+        if not Number(id, 1) then return end
+        local row = rowsByID[id]
+        if row then
+            row.nameLabel:SetText(ItemName(id) or (success and "名称加载中…" or "未知物品"))
+        end
     end)
-    editor:SetScript("OnEditFocusGained", RefreshPlaceholder)
-    editor:SetScript("OnEditFocusLost", RefreshPlaceholder)
-    local function ResizeEditor()
-        editor:SetWidth(math.max(1, scroll:GetWidth()))
-        SizeEditor()
+
+    local function InsertRow(id, limit)
+        local row = table.remove(spareRows)
+        if not row then
+            row = CreateFrame("Frame", nil, content)
+            row:SetHeight(rowHeight)
+            row.highlight = row:CreateTexture(nil, "BACKGROUND")
+            row.highlight:SetAllPoints(row)
+            row.highlight:SetColorTexture(0.2, 0.45, 0.7, 0.45)
+            row.highlight:Hide()
+
+            row.quantity = NumericInput(row, 92)
+            row.quantity:SetPoint("RIGHT", -10, 0)
+            row.quantity:HookScript("OnEditFocusGained", function() SelectRow(row) end)
+            row.idLabel = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+            row.idLabel:SetPoint("LEFT", row.quantity, "LEFT", -128, 0)
+            row.nameLabel = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+            row.nameLabel:SetPoint("LEFT", 8, 0)
+            row.nameLabel:SetPoint("RIGHT", row.idLabel, "LEFT", -14, 0)
+            row.nameLabel:SetJustifyH("LEFT")
+            row.nameLabel:SetWordWrap(false)
+            row.nameLabel:SetMaxLines(1)
+            BindDrop(row, row)
+            BindDrop(row.quantity, row)
+        end
+        row.itemID = id
+        row.idLabel:SetText(tostring(id))
+        row.quantity:SetText(tostring(limit))
+        rows[#rows + 1], rowsByID[id] = row, row
+        local name = ItemName(id)
+        row.nameLabel:SetText(name or "名称加载中…")
+        if not name and C_Item and C_Item.RequestLoadItemDataByID then
+            local ok, requested = pcall(C_Item.RequestLoadItemDataByID, id)
+            if not ok or requested == false then row.nameLabel:SetText(ItemName(id) or "未知物品") end
+        end
+        row:Show()
+        return row
     end
-    scroll:SetScript("OnSizeChanged", ResizeEditor)
-    panel:SetScript("OnShow", ResizeEditor)
-    scroll:SetScrollChild(editor)
-    ResizeEditor()
+
+    local function AddItem(id, limit)
+        local row = rowsByID[id]
+        if row then
+            Say("该物品已在清单中，可直接修改该行数量。")
+        else
+            row = InsertRow(id, limit)
+            LayoutRows()
+        end
+        SelectRow(row)
+    end
+
+    AddDroppedItem = function()
+        local id = CursorItemID()
+        if not id then return false end
+        ClearCursor()
+        AddItem(id, 1)
+        return true
+    end
+    BindDrop(list)
+    BindDrop(scroll)
+    BindDrop(content)
+
+    local function AddFromInputs()
+        local id, limit = tonumber(idInput:GetText()), tonumber(limitInput:GetText())
+        if not Number(id, 1) or not Number(limit, 1) then
+            Say("请输入有效的正整数物品 ID 和数量。")
+            return
+        end
+        AddItem(id, limit)
+        idInput:SetText("")
+        limitInput:SetText("")
+        idInput:ClearFocus()
+        limitInput:ClearFocus()
+    end
+    add:SetScript("OnClick", AddFromInputs)
+    limitInput:SetScript("OnEnterPressed", AddFromInputs)
+
+    delete:SetScript("OnClick", function()
+        if not selected then return end
+        local row = selected
+        SelectRow(nil)
+        row.quantity:ClearFocus()
+        row:Hide()
+        rowsByID[row.itemID] = nil
+        for index, activeRow in ipairs(rows) do
+            if activeRow == row then
+                table.remove(rows, index)
+                break
+            end
+        end
+        spareRows[#spareRows + 1] = row
+        LayoutRows()
+    end)
 
     loadSavedRules = function()
-        local values, ids = {}, {}
+        local ids = {}
         for id in pairs(rules) do ids[#ids + 1] = id end
         table.sort(ids)
-        for _, id in ipairs(ids) do values[#values + 1] = id .. "  " .. rules[id] end
-        editor:SetText(table.concat(values, "\n"))
+        for _, id in ipairs(ids) do InsertRow(id, rules[id]) end
         exitCheck:SetChecked(exitOnPurchase)
-        RefreshExitCheck()
-        RefreshPlaceholder()
+        LayoutRows()
     end
     loadSavedRules()
 
@@ -498,17 +646,21 @@ local function BuildSettings(parent)
     save:SetPoint("BOTTOMLEFT", 16, 18)
     save:SetText("保存购物清单")
     save:SetScript("OnClick", function()
-        local draft = ParseRules(editor:GetText())
-        if not draft then
-            Say("每行填写唯一的物品 ID 和正整数上限。")
-            return
+        local draft = {}
+        for _, row in ipairs(rows) do
+            local limit = tonumber(row.quantity:GetText())
+            if not Number(limit, 1) then
+                Say("物品 " .. row.itemID .. " 的数量必须为有效的正整数。")
+                return
+            end
+            draft[row.itemID] = limit
+            row.quantity:ClearFocus()
         end
         Stop()
         rules, wowDetectorDB.autoShop = draft, draft
         exitOnPurchase = SingleRuleID(draft) ~= nil and not not exitCheck:GetChecked()
         wowDetectorDB.autoShopExitOnPurchase = exitOnPurchase
         exitCheck:SetChecked(exitOnPurchase)
-        editor:ClearFocus()
         Say("购物清单已保存。")
     end)
     local start = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
