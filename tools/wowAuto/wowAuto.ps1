@@ -291,19 +291,21 @@ namespace WowAuto
             if (mode=="tame") return "/pettamer on";
             throw new ArgumentException("Unknown detector mode.");
         }
-        public static string ShoppingCommand(string action,long leaseMs,int closedWaitSeconds,int openHoldSeconds)
+        public static string ShoppingCommand(string action,long leaseMs,long closedWaitMs,long openHoldMs)
         {
-            if (action=="prepare" && leaseMs>=1 && leaseMs<=int.MaxValue*1000L && closedWaitSeconds>=1 && openHoldSeconds>=1)
+            const long maxMs = int.MaxValue*1000L;
+            if (action=="prepare" && leaseMs>=1 && leaseMs<=maxMs &&
+                closedWaitMs>=1 && closedWaitMs<=maxMs && openHoldMs>=1 && openHoldMs<=maxMs)
                 return string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                    "/autoshop prepare {0} {1} {2}",leaseMs,closedWaitSeconds,openHoldSeconds);
-            if ((action=="buy" || action=="cancel") && leaseMs==0 && closedWaitSeconds==0 && openHoldSeconds==0)
+                    "/autoshop preparems {0} {1} {2}",leaseMs,closedWaitMs,openHoldMs);
+            if ((action=="buy" || action=="cancel") && leaseMs==0 && closedWaitMs==0 && openHoldMs==0)
                 return "/autoshop " + action;
             throw new ArgumentException("Invalid shopping command.");
         }
 
-        public static bool SendShoppingCommand(int pid,long ticks,string path,string action,long leaseMs,int closedWaitSeconds,int openHoldSeconds,int durationMs)
+        public static bool SendShoppingCommand(int pid,long ticks,string path,string action,long leaseMs,long closedWaitMs,long openHoldMs,int durationMs)
         {
-            return SendChatCommand(pid,ticks,path,ShoppingCommand(action,leaseMs,closedWaitSeconds,openHoldSeconds),durationMs);
+            return SendChatCommand(pid,ticks,path,ShoppingCommand(action,leaseMs,closedWaitMs,openHoldMs),durationMs);
         }
 
         private static bool MatchesShoppingColor(uint pixel,int red,int green,int blue)
@@ -322,7 +324,7 @@ namespace WowAuto
             else if (MatchesShoppingColor(color,44,161,230)) state = "cooldown";
             else if (MatchesShoppingColor(color,233,139,45)) state = "reopen";
             else return "unknown";
-            return MatchesShoppingColor(WindowPixelReader(pid,ticks,path,32),175,73,127) ? state : "unknown";
+            return MatchesShoppingColor(WindowPixelReader(pid,ticks,path,32),179,88,139) ? state : "unknown";
         }
 
         public static string RotationCommand(string action,int token)

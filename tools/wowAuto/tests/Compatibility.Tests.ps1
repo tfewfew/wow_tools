@@ -102,12 +102,15 @@ try {
     }
     $shopping=ConvertTo-TaskMap ($shopping | ConvertTo-Json -Depth 8 | ConvertFrom-Json)
     Test-AccountTaskConfiguration $shopping
-    $legacyShop=$shopping.Shop.Clone()
+    $legacyShop=@{VisitIntervalSeconds=[int]::MaxValue;CloseDelaySeconds=5;JumpIntervalSeconds=60;DurationSeconds=600;InteractKey='F'}
+    $convertedShop=ConvertTo-ShopTaskSettings $legacyShop
     $legacyShop.Remove('CloseDelaySeconds')
-    Test-ShopTaskSettings $legacyShop
-    if((Get-AccountTaskModeLabel 'shop') -cne '购物' -or $shopping.Shop.VisitIntervalSeconds -ne 30 -or
-        $shopping.Shop.CloseDelaySeconds -ne 5 -or
-        [WowAuto.NativeInput]::ShoppingCommand('prepare',1500,31,6) -cne '/autoshop prepare 1500 31 6' -or
+    $withoutCloseDelay=ConvertTo-ShopTaskSettings $legacyShop
+    if((Get-AccountTaskModeLabel 'shop') -cne '购物' -or $shopping.Shop.ReopenDelayMs -ne 1000 -or
+        $shopping.Shop.CloseDelayMs -ne 1000 -or $convertedShop.ReopenDelayMs -ne 2147483647000L -or
+        $convertedShop.CloseDelayMs -ne 5000 -or $withoutCloseDelay.CloseDelayMs -ne 1000 -or
+        -not $legacyShop.ContainsKey('VisitIntervalSeconds') -or
+        [WowAuto.NativeInput]::ShoppingCommand('prepare',1500,3101,605) -cne '/autoshop preparems 1500 3101 605' -or
         [WowAuto.NativeInput]::ShoppingCommand('buy',0,0,0) -cne '/autoshop buy' -or
         [WowAuto.NativeInput]::ShoppingCommand('cancel',0,0,0) -cne '/autoshop cancel') {
         throw 'Automatic shopping timing settings or slash command contract is incompatible.'
@@ -119,7 +122,7 @@ try {
             [WowAuto.NativeInput]::WindowPixelReader=[Func[int,long,string,int,uint32]]{
                 param($pidValue,$ticks,$path,$offset)
                 if($offset -eq 0){return $statePixel}
-                return [uint32](175+256*73+65536*127)
+                return [uint32](179+256*88+65536*139)
             }
             if([WowAuto.NativeInput]::ReadShoppingState(0,0,'') -cne $spec[0]){
                 throw 'Shopping reopen signal contract is incompatible.'

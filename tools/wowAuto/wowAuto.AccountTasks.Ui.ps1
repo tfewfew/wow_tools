@@ -129,10 +129,12 @@ function New-ShopTaskSettingsPage {
     $hint.Text='在游戏插件「游戏辅助 → 自动购物」保存物品 ID 和背包上限。选中附近的商人后，在进程行选择「购物」并点击「直接开始」，也可把「购物」设为角色任务。'
     $hint.SetBounds(18,18,1000,66)
     $inputs=@{};$y=92
-    foreach($spec in @(@('VisitIntervalSeconds','关闭后再打开（秒）',1),@('CloseDelaySeconds','打开后关闭（秒）',1),@('JumpIntervalSeconds','跳跃间隔（秒，0 关闭额外跳跃）',0),@('DurationSeconds','最大购物时长（秒）',1))) {
+    $maxIntervalMs=[long][int]::MaxValue*1000L
+    foreach($spec in @(@('ReopenDelayMs','关闭后再打开（毫秒）',1,$maxIntervalMs),@('CloseDelayMs','打开后关闭（毫秒）',1,$maxIntervalMs),
+        @('JumpIntervalSeconds','跳跃间隔（秒，0 关闭额外跳跃）',0,[int]::MaxValue),@('DurationSeconds','最大购物时长（秒）',1,[int]::MaxValue))) {
         $label=New-Object Windows.Forms.Label;$label.Text=$spec[1];$label.SetBounds(18,$y,300,34)
         $box=New-Object Windows.Forms.NumericUpDown
-        $box.Minimum=$spec[2];$box.Maximum=[int]::MaxValue;$box.Value=$script:accountTasks.Config.Shop[$spec[0]]
+        $box.Minimum=$spec[2];$box.Maximum=$spec[3];$box.Value=$script:accountTasks.Config.Shop[$spec[0]]
         $box.SetBounds(330,$y,240,34);$box.BackColor=$script:uiColors.Input;$box.ForeColor=$script:uiColors.Text
         $inputs[$spec[0]]=$box;$page.Controls.AddRange([Windows.Forms.Control[]]@($label,$box));$y+=56
     }
@@ -145,7 +147,10 @@ function New-ShopTaskSettingsPage {
         try {
             $next=ConvertTo-TaskMap ($script:accountTasks.Config | ConvertTo-Json -Depth 12 | ConvertFrom-Json)
             $next.Shop=@{InteractKey=$sender.Tag.Key.Text}
-            foreach($name in $sender.Tag.Inputs.Keys){$next.Shop[$name]=[int]$sender.Tag.Inputs[$name].Value}
+            foreach($name in $sender.Tag.Inputs.Keys){
+                $value=$sender.Tag.Inputs[$name].Value
+                $next.Shop[$name]=if($name -in @('ReopenDelayMs','CloseDelayMs')){[long]$value}else{[int]$value}
+            }
             Save-AccountTasks $next
             $sender.Tag.Status.Text='购物设置已保存，下次开始购物时生效。'
         }catch{$sender.Tag.Status.Text=$_.Exception.Message}

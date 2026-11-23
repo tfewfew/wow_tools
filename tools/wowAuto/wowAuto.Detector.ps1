@@ -435,7 +435,7 @@ function Invoke-DetectorShop {
     $jumpDue=$settings.JumpIntervalSeconds -gt 0 -and $now -ge $session.NextJumpAt
     if((-not $session.WaitingForReopen -and -not $visitDue -and -not $jumpDue) -or
         $now -lt $script:retryAt -or $now -lt $script:nextColor){return}
-    $script:nextColor=$now+$script:config.Periods.LoginMs
+    $script:nextColor=$now+[Math]::Min(100,[int]$script:config.Periods.LoginMs)
     if(-not (Get-DetectorObservation).Login){Write-Detector '等待角色登录，暂不访问商人。';return}
     if($session.WaitingForReopen) {
         $state=[WowAuto.NativeInput]::ReadShoppingState($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)
@@ -450,7 +450,7 @@ function Invoke-DetectorShop {
     if($visitDue) {
         $session.LeaseUntil=$session.Deadline
         $reply=Request-DetectorOperation Shop.Visit Shop @{Key=$settings.InteractKey;Deadline=$session.Deadline;
-            ClosedWaitSeconds=$settings.VisitIntervalSeconds;OpenHoldSeconds=$settings.CloseDelaySeconds;RequireReopen=$session.WaitingForReopen}
+            ClosedWaitMs=$settings.ReopenDelayMs;OpenHoldMs=$settings.CloseDelayMs;RequireReopen=$session.WaitingForReopen}
         if($reply -and $reply.Prepared -and -not $reply.MissingMode) {
             $session.WaitingForReopen=$true
             if($reply.Executed) {
@@ -460,7 +460,7 @@ function Invoke-DetectorShop {
             }
         } elseif($reply) {
             $session.WaitingForReopen=$false
-            $session.NextVisitAt=$Hub.Now+[long]$settings.VisitIntervalSeconds*1000
+            $session.NextVisitAt=$Hub.Now+[long]$settings.ReopenDelayMs
             if($reply.MissingMode){
                 $session.LeaseUntil=0L
                 Write-Detector '插件未进入购物模式。请选中商人，确认插件已更新并保存购物清单。'

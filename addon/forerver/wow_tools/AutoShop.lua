@@ -14,7 +14,7 @@ main:SetAllPoints(signal)
 local signature = signal:CreateTexture(nil, "OVERLAY")
 signature:SetSize(16, 16)
 signature:SetPoint("CENTER", signal, "CENTER", 32, 0)
-signature:SetColorTexture(175/255, 73/255, 127/255, 1)
+signature:SetColorTexture(179/255, 88/255, 139/255, 1)
 signal:Hide()
 
 -- The PC operator waits for the next visit to be due before sending the interaction key.
@@ -205,7 +205,8 @@ local function Update(now)
             RefreshStatus()
         end
     end
-    if not opened or not canBuy or now < menuReadyAt then return end
+    if not opened or not canBuy or now < menuReadyAt or now < updateAt then return end
+    updateAt = now + 0.05
     if not AtMerchant() then FinishPurchases(); return end
     local counts = CountBags()
     if not counts then
@@ -243,10 +244,7 @@ local function Update(now)
 end
 
 local function Tick()
-    local now = GetTime()
-    if now < updateAt then return end
-    updateAt = now + 0.1
-    local ok, err = pcall(Update, now)
+    local ok, err = pcall(Update, GetTime())
     if not ok then
         Stop()
         Say("本次购物已停止，客户端返回：" .. tostring(err))
@@ -261,7 +259,7 @@ local function StartManual()
     RefreshStatus()
 end
 
-local function PrepareVisit(leaseMs, closedWait, openHold)
+local function PrepareVisit(leaseMs, closedWaitMs, openHoldMs)
     if visit and visit.phase ~= "reopen" then return end
     Stop()
     if not next(rules) or InCombatLockdown() or UnitIsDeadOrGhost("player") or not UnitExists("target") or UnitIsPlayer("target") then return end
@@ -269,12 +267,12 @@ local function PrepareVisit(leaseMs, closedWait, openHold)
     local now = GetTime()
     mode = "script"
     visit = { phase = "ready", deadline = now + leaseMs / 1000, openTimeout = now + 30,
-        closedWait = closedWait, openHold = openHold }
+        closedWait = closedWaitMs / 1000, openHold = openHoldMs / 1000 }
     events:SetScript("OnUpdate", Tick)
     if MerchantFrame and MerchantFrame:IsShown() then
         -- An existing window must close and finish the full wait before the next interaction.
         opened, merchantOpen = true, true
-        visit.phase, visit.closeAt, visit.openTimeout = "busy", now + openHold, nil
+        visit.phase, visit.closeAt, visit.openTimeout = "busy", now + visit.openHold, nil
     end
     RefreshStatus()
 end
@@ -312,7 +310,7 @@ events:SetScript("OnEvent", function(_, event, addon)
     elseif event == "MERCHANT_SHOW" then
         if mode and not merchantOpen then
             local now = GetTime()
-            opened, menuReadyAt = true, now + 0.2
+            opened, menuReadyAt, updateAt = true, now + 0.05, now
             if visit then
                 visit.closeAt, visit.openTimeout, visit.reopenAt = now + visit.openHold, nil, nil
                 if visit.phase == "cooldown" or visit.phase == "reopen" then
@@ -442,10 +440,13 @@ SlashCmdList.WOWTOOLSAUTOSHOP = function(message)
             RefreshStatus()
         end
     else
-        local leaseMs, closedWait, openHold = command:match("^prepare (%d+) (%d+) (%d+)$")
-        leaseMs, closedWait, openHold = tonumber(leaseMs), tonumber(closedWait), tonumber(openHold)
-        if leaseMs and leaseMs >= 1 and leaseMs <= 2147483647000 and Number(closedWait, 1) and Number(openHold, 1) then
-            PrepareVisit(leaseMs, closedWait, openHold)
+        local leaseMs, closedWaitMs, openHoldMs = command:match("^preparems (%d+) (%d+) (%d+)$")
+        leaseMs, closedWaitMs, openHoldMs = tonumber(leaseMs), tonumber(closedWaitMs), tonumber(openHoldMs)
+        local maxMs = 2147483647000
+        if leaseMs and leaseMs >= 1 and leaseMs <= maxMs
+            and closedWaitMs and closedWaitMs >= 1 and closedWaitMs <= maxMs
+            and openHoldMs and openHoldMs >= 1 and openHoldMs <= maxMs then
+            PrepareVisit(leaseMs, closedWaitMs, openHoldMs)
         end
     end
 end
