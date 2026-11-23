@@ -6,7 +6,7 @@ WoWTools.detectorAnchor:SetSize(1, 1)
 WoWTools.detectorAnchor:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
 
 function WoWTools.ActivateDetector(name)
-    for _, other in ipairs({"wowDetector", "fight_detector", "pet_tamer"}) do
+    for _, other in ipairs({"wowDetector", "fight_detector", "pet_tamer", "auto_shop"}) do
         local module = WoWTools.modules[other]
         if other ~= name and module and (module.IsEnabled() or module.IsShown()) then
             module.Hide()

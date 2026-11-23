@@ -291,6 +291,35 @@ namespace WowAuto
             if (mode=="tame") return "/pettamer on";
             throw new ArgumentException("Unknown detector mode.");
         }
+        public static string ShoppingCommand(string action,int milliseconds)
+        {
+            if (action=="prepare" && milliseconds==0) return "/autoshop prepare";
+            if (action=="cancel" && milliseconds==0) return "/autoshop cancel";
+            if (action=="buy" && milliseconds>=1 && milliseconds<=30000)
+                return "/autoshop buy " + milliseconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            throw new ArgumentException("Invalid shopping command.");
+        }
+
+        public static bool SendShoppingCommand(int pid,long ticks,string path,string action,int milliseconds,int durationMs)
+        {
+            return SendChatCommand(pid,ticks,path,ShoppingCommand(action,milliseconds),durationMs);
+        }
+
+        public static string ReadShoppingState(int pid,long ticks,string path)
+        {
+            if (WindowPixelReader == null) throw new InvalidOperationException("Window capture source is not initialized.");
+            uint color = WindowPixelReader(pid,ticks,path,0);
+            int red = (int)(color & 255), green = (int)((color >> 8) & 255), blue = (int)((color >> 16) & 255);
+            bool ready = Math.Abs(red-107)<=3 && Math.Abs(green-29)<=3 && Math.Abs(blue-193)<=3;
+            bool busy = Math.Abs(red-125)<=3 && Math.Abs(green-202)<=3 && Math.Abs(blue-57)<=3;
+            if (!ready && !busy) return "unknown";
+            uint signature = WindowPixelReader(pid,ticks,path,32);
+            if (Math.Abs((int)(signature & 255)-173)>3 ||
+                Math.Abs((int)((signature >> 8) & 255)-71)>3 ||
+                Math.Abs((int)((signature >> 16) & 255)-113)>3) return "unknown";
+            return ready ? "ready" : "busy";
+        }
+
         public static string RotationCommand(string action,int token)
         {
             if(action=="logout") return "/logout";

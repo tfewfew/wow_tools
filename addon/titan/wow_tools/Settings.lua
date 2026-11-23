@@ -11,6 +11,7 @@ local groups = {
     { key="wowDetector", label="钓鱼检测", category="game_assist" },
     { key="fight_detector", label="战斗检测", category="game_assist" },
     { key="pet_tamer", label="自动抓宠", category="game_assist" },
+    { key="auto_shop", label="自动购物", category="game_assist" },
     { key="button_style", label="按钮皮肤", category="game_settings" },
     { key="inner_graphic_config", label="画面设置", category="game_settings" },
     { key="ui_addons", label="UI插件", category="game_settings" },

@@ -21,7 +21,7 @@ function Get-ParallelConfig($Row) {
         UseAudio=$script:audioDetectionEnabled;FeaturePath=(Join-Path $script:audioFeatureDirectory $recording.Feature);AudioThreshold=$script:audioThresholds[$Row.Client.Flavor];
         Keys=@{Cast=$script:keyBindings.Cast.Text;Reel=$script:keyBindings.Reel.Text;Item=$script:keyBindings.Item.Text;EquipRod=[string]$script:equipRodBinding.Text};
         Profiles=$script:autoFight.Profiles;ProfilesReady=$script:autoFight.ConfigReady;Common=$common;CommandIntervalMs=$operations.CommandIntervalMs;
-        Tame=$script:autoTame.Config;Rest=$script:accountTasks.Config.Rest;Operations=$operations;Periods=$script:accountTasks.Config.Periods;Priorities=$script:gameActions.Priorities}
+        Tame=$script:autoTame.Config;Rest=$script:accountTasks.Config.Rest;Shop=$script:accountTasks.Config.Shop;Operations=$operations;Periods=$script:accountTasks.Config.Periods;Priorities=$script:gameActions.Priorities}
 }
 function Apply-ParallelTimings {
     $values=$script:accountTasks.Config.Operations
@@ -99,7 +99,7 @@ function Update-ParallelMessages {
             'stopped' {
                 $row.RuntimeRunning=$false;$row.RuntimeScanning=$false;$row.RuntimeExiting=$false;$row.RuntimePhase='stopped';$row.TargetRole='';$row.CurrentRole='';$row.CurrentIndex=-1
                 if($data.Exited){$row.Exited=$true}
-                if($row.TaskMode -eq 'tame'){$row.TaskMode=$row.DefaultTaskMode;$row.Validated=$false}
+                if($row.TaskMode -eq 'tame' -or ($row.TaskMode -eq 'shop' -and $row.RuntimeDirect)){$row.TaskMode=$row.DefaultTaskMode;$row.Validated=$false}
                 Set-RowControls $row;Update-WowAutoRunInfo
             }
             'excluded' {$row.ExcludedNames+=,$data.Name;Update-WowAutoRunInfo}
@@ -142,7 +142,7 @@ function Update-ParallelMessages {
             if($startRows.Count){Start-ParallelBatch $startRows Start;foreach($key in $pending.Keys){if($pending[$key] -ne 'Start'){$script:parallelPending[$key]=$pending[$key]}}}
             else {Start-ParallelBatch @($pending.Keys | ForEach-Object {$script:rows[$_]})}
         } elseif($script:parallelNextAt -and $script:parallelHub.Now -ge $script:parallelNextAt -and -not $script:editingSettings) {
-            $timedRows=@($script:rows.Values | Where-Object {$_.RuntimeRunning -and -not $_.RuntimeDirect -and $_.TaskMode -ne 'rest'})
+            $timedRows=@($script:rows.Values | Where-Object {$_.RuntimeRunning -and -not $_.RuntimeDirect -and $_.TaskMode -notin @('rest','shop')})
             if ($timedRows.Count) {Start-ParallelBatch $timedRows} else {$script:parallelNextAt=0L}
         }
     }
@@ -166,7 +166,7 @@ function Initialize-ParallelRuntime {
     try{Initialize-AccountTasks $accountPath}
     catch{
         $accountError=$_.Exception.Message
-        $script:accountTasks=[pscustomobject]@{Path=$accountPath;Config=@{Version=1;Accounts=@{};Bindings=@{};Periods=(New-DetectionPeriods);Operations=(Get-LegacyOperationTimings);Rest=(New-RestTaskSettings)};Catalog=@{};Warnings=@('子战网配置读取失败：'+$accountError+'；所有角色保持停用，请核对后保存。')}
+        $script:accountTasks=[pscustomobject]@{Path=$accountPath;Config=@{Version=1;Accounts=@{};Bindings=@{};Periods=(New-DetectionPeriods);Operations=(Get-LegacyOperationTimings);Rest=(New-RestTaskSettings);Shop=(New-ShopTaskSettings)};Catalog=@{};Warnings=@('子战网配置读取失败：'+$accountError+'；所有角色保持停用，请核对后保存。')}
         Update-AccountTaskCatalog
         foreach($roles in $script:accountTasks.Config.Accounts.Values){foreach($role in $roles){$role.Enabled=$false}}
     }

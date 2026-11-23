@@ -26,8 +26,11 @@ function Add-ProcessTaskControls($Row) {
     $summary=New-Object Windows.Forms.Label;$summary.SetBounds(12,146,686,34);$summary.AutoEllipsis=$true
     $progress=New-Object Windows.Forms.Label;$progress.SetBounds(12,192,686,26);$progress.AutoEllipsis=$true
     $Row | Add-Member NoteProperty AccountText $account;$Row | Add-Member NoteProperty RotationLabel $summary;$Row | Add-Member NoteProperty RotationProgress $progress
+    $shop=New-Object WowAuto.DimButton;$shop.Text='购物';$shop.SetBounds(646,33,56,40);Set-UiButtonStyle $shop
+    $shop.Tag=$Row;$shop.Add_Click({param($sender,$e) Start-RowDirect $sender.Tag -Shopping})
+    $Row | Add-Member NoteProperty ShopStart $shop
     $Row | Add-Member NoteProperty AccountSettings $configure
-    $Row.Panel.Controls.AddRange([Windows.Forms.Control[]]@($accountLabel,$account,$configure,$summary,$progress))
+    $Row.Panel.Controls.AddRange([Windows.Forms.Control[]]@($accountLabel,$account,$configure,$summary,$progress,$shop))
     Update-RowAccountChoices $Row
 }
 function Update-RowAccountChoices($Row) {
@@ -62,8 +65,8 @@ function Update-RotationRow($Row) {
     $roles=@(Get-AccountTaskRoles $Row)
     $Row.RotationLabel.Text=if($Row.AccountName){'启用 '+$roles.Count+' 个角色：'+(($roles | ForEach-Object {(Get-WowCharacterDisplayName (Get-ParallelRoleRecord $Row $_.Name))+' / '+(Get-AccountTaskModeLabel $_.Mode)}) -join '、')}else{'开始任务后通过选角页角色名识别子战网，并加载该子战网角色任务。'}
     $remaining=if($Row.RuntimeDirect){'直接开始'}elseif(-not $Row.RuntimeRunning){'--'}elseif($script:parallelHub.Batch -and -not $script:parallelHub.Batch.All(8)){'角色切换中'}elseif($script:parallelNextAt){[Math]::Max(0,[int][Math]::Ceiling(($script:parallelNextAt-$script:parallelHub.Now)/1000.0)).ToString()+'秒'}else{'未启用定时轮转'}
-    if ($Row.RuntimeRunning -and $Row.TaskMode -eq 'rest' -and $Row.Metrics) {
-        $seconds=if ($Row.Metrics.Deadline) {[Math]::Max(0,[Math]::Ceiling(($Row.Metrics.Deadline-$script:parallelHub.Now)/1000.0))} else {$Row.Metrics.RestRemainingSeconds}
+    if ($Row.RuntimeRunning -and $Row.TaskMode -in @('rest','shop') -and $Row.Metrics) {
+        $seconds=if ($Row.Metrics.Deadline) {[Math]::Max(0,[Math]::Ceiling(($Row.Metrics.Deadline-$script:parallelHub.Now)/1000.0))} else {if($Row.TaskMode -eq 'rest'){$Row.Metrics.RestRemainingSeconds}else{0}}
         $remaining=[string]$seconds+'秒'
     }
     $name=if($Row.CurrentRole){$Row.CurrentRole}else{$Row.TargetRole}
@@ -78,6 +81,7 @@ function Set-RowControls($Row) {
     if($script:parallelWorkers.ContainsKey($Row.Key) -and $script:parallelWorkers[$Row.Key].Endpoint.Closed){$available=$false}
     $Row.Start.Enabled=$available -and -not $Row.RuntimeRunning -and (Test-AccountDiscoveryAvailable $Row)
     $Row.DirectStart.Enabled=$available -and -not $Row.RuntimeRunning -and $Row.Validated -and $Row.TaskMode -ne 'rest'
+    $Row.ShopStart.Enabled=$available -and -not $Row.RuntimeRunning -and -not $script:characterCreate.Busy -and -not $script:shutdownState.Started
     $Row.Stop.Enabled=$Row.RuntimeRunning -or $Row.RuntimeScanning -or $Row.RuntimeExiting
     $Row.AccountSettings.Enabled=-not $script:scanning -and -not $script:editingSettings
     Update-RotationRow $Row
@@ -95,6 +99,7 @@ function Update-RowName($Row) {
     $classId=Get-ParallelRowClassId $Row
     $Row.Name.ForeColor=Get-WowClassColor $classId
     $Row.Name.Text=$Row.Caption+[Environment]::NewLine+'PID '+$Row.Process.Id+' · '+$Row.Client.Label+' · '+$Row.Position
+    if($Row.TaskMode -eq 'shop'){$Row.Name.Text+=[Environment]::NewLine+'购物'}
     if($Row.TaskMode -eq 'fish'){$Row.Name.Text+=[Environment]::NewLine+'循环 '+$Row.CycleCount+' · 无咬钩超时 '+$Row.BiteTimeoutCount}
     if($Row.TaskMode -eq 'rest' -and $Row.RestRounds -gt 0){$Row.Name.Text+=[Environment]::NewLine+'放号轮次 '+$Row.RestRound+' / '+$Row.RestRounds}
 }
@@ -104,7 +109,7 @@ function Update-ParallelStatusDisplay($Row) {
     if($Row.RuntimePhase -eq 'running' -and $Row.Metrics) {
         if($Row.Metrics.Deadline -gt $script:parallelHub.Now){
             $remaining=$Row.Metrics.Deadline-$script:parallelHub.Now
-            $first+=[Environment]::NewLine+'剩余 '+$(if($Row.TaskMode -eq 'rest'){[Math]::Ceiling($remaining/1000.0).ToString()+' 秒'}else{([int]$remaining).ToString()+' ms'})
+            $first+=[Environment]::NewLine+'剩余 '+$(if($Row.TaskMode -in @('rest','shop')){[Math]::Ceiling($remaining/1000.0).ToString()+' 秒'}else{([int]$remaining).ToString()+' ms'})
         }
         if($Row.Metrics.Audio){$first+=[Environment]::NewLine+('音频匹配 {0:P0} · 峰值 {1:F3}' -f $Row.Metrics.Similarity,$Row.Metrics.Peak)}
     }
@@ -117,19 +122,22 @@ function Start-Row($Row,[switch]$TaskOnly) {
     if(-not (Test-AccountDiscoveryAvailable $Row)){Set-RowStatusText $Row '请在设置中为本客户端的子战网启用至少一个角色。';return}
     $Row.ExcludedNames=@();Start-ParallelBatch @($Row) Start
 }
-function Start-RowDirect($Row) {
-    if($script:characterCreate.Busy){return}
-    if($Row.RuntimeRunning -or -not $Row.Validated -or $Row.TaskMode -eq 'rest' -or $script:editingSettings -or $script:scanning -or $script:shutdownState.Started){return}
+function Start-RowDirect($Row,[switch]$Shopping) {
+    if($script:characterCreate.Busy -or $Row.Exited -or $Row.RuntimeRunning -or $Row.RuntimeScanning -or $Row.RuntimeExiting -or
+        $script:editingSettings -or $script:scanning -or $script:shutdownState.Started -or $script:parallelHub.Closing){return}
+    if($Shopping){$Row.TaskMode='shop';$Row.Validated=$false}
+    elseif(-not $Row.Validated -or $Row.TaskMode -eq 'rest'){return}
     $Row.RuntimeRunning=$true;$Row.RuntimeDirect=$true
     $script:parallelHub.ActiveTasks=@($script:rows.Values | Where-Object RuntimeRunning).Count
-    Send-ParallelCommand $Row Start '' $true;Set-RowControls $Row
+    try {Send-ParallelCommand $Row Start '' $true;Set-RowControls $Row}
+    catch {Stop-Row $Row ('无法开始：'+$_.Exception.Message)}
 }
 function Stop-Row($Row,[string]$Reason='已停止，本进程的待执行操作已取消。',[switch]$CancelExit,[switch]$KeepRotation) {
     if($script:parallelWorkers.ContainsKey($Row.Key)){$null=$script:parallelWorkers[$Row.Key].Endpoint.Send('Stop','{}')}
     $script:parallelPending.Remove($Row.Key)
     if($script:parallelHub.Batch){$script:parallelHub.Batch.Drop($Row.Key)}
     $Row.RuntimeRunning=$false;$Row.RuntimeScanning=$false;$Row.RuntimeExiting=$false;$Row.RuntimePhase='stopped';$Row.Metrics=$null;$Row.TargetRole='';$Row.CurrentRole='';$Row.CurrentIndex=-1
-    if($Row.TaskMode -eq 'tame'){$Row.TaskMode=$Row.DefaultTaskMode;$Row.Validated=$false}
+    if($Row.TaskMode -eq 'tame' -or ($Row.TaskMode -eq 'shop' -and $Row.RuntimeDirect)){$Row.TaskMode=$Row.DefaultTaskMode;$Row.Validated=$false}
     $script:parallelHub.ActiveTasks=@($script:rows.Values | Where-Object RuntimeRunning).Count
     Set-RowStatusText $Row $Reason;Update-WowAutoRunInfo
 }
@@ -154,7 +162,7 @@ function Begin-RefreshScan {
     $script:parallelOriginal=if($UiTest){[IntPtr]::Zero}else{[WowAuto.NativeInput]::CurrentWindow()}
     foreach($row in $script:rows.Values){
         $row.Validated=$false;$row.RuntimeScanning=$true;Update-RowAccountChoices $row;Send-ParallelCommand $row Scan
-        Set-RowStatusText $row $(if($row.TaskMode -eq 'rest'){'检测线程读取右下角登录白点。'}else{'检测线程等待操作线程开启监控，完成后后台检测色块。'})
+        Set-RowStatusText $row $(if($row.TaskMode -in @('rest','shop')){'检测线程读取右下角登录白点。'}else{'检测线程等待操作线程开启监控，完成后后台检测色块。'})
     }
     Update-WowAutoRunInfo;Update-BatchControls
 }
@@ -176,6 +184,7 @@ function New-UnifiedSettingsDialog {
         $dialog.Width=[Math]::Min(1440,$area.Width)
         $page=New-AccountTaskSettingsPage;$dialog.Tag.Tabs.TabPages.Add($page);$dialog.Tag | Add-Member NoteProperty Accounts $page
         $dialog.Tag.Tabs.TabPages.Add((New-RestTaskSettingsPage))
+        $dialog.Tag.Tabs.TabPages.Add((New-ShopTaskSettingsPage))
         $timingPage=New-GlobalTimingSettingsPage;$dialog.Tag.Tabs.TabPages.Add($timingPage);$dialog.Tag | Add-Member NoteProperty Timing $timingPage
         $dialog.Tag | Add-Member NoteProperty DetectionPeriods $timingPage.Tag.Detection
         $dialog.Tag | Add-Member NoteProperty Operations $timingPage.Tag.Operations

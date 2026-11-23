@@ -20,13 +20,29 @@ function Test-RestTaskSettings($Settings) {
         if ($Settings[$key] -isnot [int] -or $Settings[$key] -lt 1) {throw '放号单次时间、轮次和跳跃间隔须为正整数，时间单位为秒。'}
     }
 }
+function New-ShopTaskSettings {
+    return @{VisitIntervalSeconds=30;JumpIntervalSeconds=60;DurationSeconds=600;InteractKey='F'}
+}
+function Test-ShopTaskSettings($Settings) {
+    $defaults=New-ShopTaskSettings
+    if ($Settings -isnot [Collections.IDictionary] -or $Settings.Count -ne $defaults.Count -or
+        @($Settings.Keys | Where-Object {$_ -cnotin $defaults.Keys}).Count) {throw '购物配置字段无效。'}
+    foreach ($key in @('VisitIntervalSeconds','JumpIntervalSeconds','DurationSeconds')) {
+        $minimum=if($key -eq 'JumpIntervalSeconds'){0}else{1}
+        if($Settings[$key] -isnot [int] -or $Settings[$key] -lt $minimum) {throw '购物时间须为整数秒，访问间隔和最大时长至少为 1 秒。'}
+    }
+    if($Settings.InteractKey -isnot [string]){throw '请配置与目标互动的按键。'}
+    $binding=ConvertFrom-AutoFightBinding $Settings.InteractKey
+    if($binding.Code -in @(13,32)){throw '交互键须与聊天回车和跳跃空格分开。'}
+}
 function Get-AccountTaskModeLabel([string]$Mode) {
-    return @{fish='钓鱼';fight='战斗';rest='放号';tame='抓宠'}[$Mode]
+    return @{fish='钓鱼';fight='战斗';rest='放号';tame='抓宠';shop='购物'}[$Mode]
 }
 function Test-AccountTaskConfiguration($Config) {
     if ($Config.Version -isnot [int] -or $Config.Version -ne 1 -or $Config.Accounts -isnot [Collections.IDictionary] -or $Config.Bindings -isnot [Collections.IDictionary] -or
-        @($Config.Keys | Where-Object {$_ -cnotin @('Version','MigrationComplete','Accounts','Bindings','Periods','Operations','Rest')}).Count) {throw '子战网任务配置格式无效。'}
+        @($Config.Keys | Where-Object {$_ -cnotin @('Version','MigrationComplete','Accounts','Bindings','Periods','Operations','Rest','Shop')}).Count) {throw '子战网任务配置格式无效。'}
     if ($Config.ContainsKey('Rest')) {Test-RestTaskSettings $Config.Rest}
+    if ($Config.ContainsKey('Shop')) {Test-ShopTaskSettings $Config.Shop}
     if($Config.ContainsKey('Operations')){Test-OperationTimings $Config.Operations}
     if($Config.ContainsKey('MigrationComplete') -and $Config.MigrationComplete -isnot [bool]){throw '旧配置迁移标识无效。'}
     $defaults=New-DetectionPeriods
@@ -42,8 +58,9 @@ function Test-AccountTaskConfiguration($Config) {
         foreach($role in $Config.Accounts[$key]) {
             if ($role.Name -isnot [string] -or $role.Name -notmatch '^[\p{L}\p{M}]{1,24}$' -or
                 $role.Realm -isnot [string] -or -not $role.Realm -or $role.Realm -match '[\\/\p{C}]' -or
-                $role.Mode -cnotin @('fish','fight','rest') -or $role.Enabled -isnot [bool] -or $role.UseItem -isnot [bool]) {throw '角色任务字段无效。'}
+                $role.Mode -cnotin @('fish','fight','rest','shop') -or $role.Enabled -isnot [bool] -or $role.UseItem -isnot [bool]) {throw '角色任务字段无效。'}
             if ($role.Mode -ceq 'rest' -and ($key -cnotlike 'forerver:*' -or $role.UseItem)) {throw '放号仅支持无限服，钓鱼道具须关闭。'}
+            if ($role.Mode -ceq 'shop' -and $role.UseItem) {throw '购物任务须关闭钓鱼道具。'}
             if($role.Keys.Count -ne 5 -or @($role.Keys | Where-Object {$_ -cnotin @('Name','Realm','Mode','Enabled','UseItem')}).Count){throw '角色任务存在未知字段。'}
             $identity=$role.Realm+'|'+$role.Name
             if ($names.ContainsKey($identity)) {throw '子战网角色记录重复。'};$names[$identity]=$true
@@ -62,6 +79,7 @@ function Initialize-AccountTasks([string]$Path=(Join-Path $PSScriptRoot 'account
     $config=@{Version=1;Accounts=@{};Bindings=@{};Periods=(New-DetectionPeriods)}
     if ([IO.File]::Exists($Path)) {$config=ConvertTo-TaskMap ([IO.File]::ReadAllText($Path) | ConvertFrom-Json);Test-AccountTaskConfiguration $config}
     if (-not $config.ContainsKey('Rest')) {$config.Rest=New-RestTaskSettings}
+    if (-not $config.ContainsKey('Shop')) {$config.Shop=New-ShopTaskSettings}
     if(-not $config.ContainsKey('Operations')){$config.Operations=Get-LegacyOperationTimings}
     if(-not $config.Operations.ContainsKey('FishColorRetryMs')){$config.Operations.FishColorRetryMs=3000}
     Test-OperationTimings $config.Operations
@@ -107,6 +125,7 @@ function Save-AccountTasks($Config=$script:accountTasks.Config) {
     # The editor continues to live after Save; do not make its mutable draft the active configuration.
     $snapshot=ConvertTo-TaskMap ($Config | ConvertTo-Json -Depth 12 | ConvertFrom-Json)
     if (-not $snapshot.ContainsKey('Rest')) {$snapshot.Rest=New-RestTaskSettings}
+    if (-not $snapshot.ContainsKey('Shop')) {$snapshot.Shop=New-ShopTaskSettings}
     if(-not $snapshot.ContainsKey('Operations')){$snapshot.Operations=if($script:accountTasks.Config.Operations){ConvertTo-TaskMap $script:accountTasks.Config.Operations}else{Get-LegacyOperationTimings}}
     if(-not $snapshot.Operations.ContainsKey('FishColorRetryMs')){$snapshot.Operations.FishColorRetryMs=3000}
     Test-OperationTimings $snapshot.Operations

@@ -966,7 +966,7 @@ else
 end
 
 local expectedCategories = {
-    wowDetector="game_assist", fight_detector="game_assist", pet_tamer="game_assist",
+    wowDetector="game_assist", fight_detector="game_assist", pet_tamer="game_assist", auto_shop="game_assist",
     button_style="game_settings", inner_graphic_config="game_settings", ui_addons="game_settings", sound_control="game_settings",
     bigfoot_channel="third_party", ls_toasts="third_party", forever_faces="third_party", better_vendor_ui="third_party", pet_xp_bar="third_party", third_party="third_party",
     raynna_bestiary="third_party", prr="third_party",
@@ -1008,6 +1008,10 @@ for _, group in ipairs(WoWTools.settings.groups) do
         secondaryRow = secondaryRow + 1
     end
 end
+local autoShop = assert(WoWTools.modules.auto_shop, "Missing automatic shopping module")
+assert(type(autoShop.BuildSettings) == "function" and type(SlashCmdList.WOWTOOLSAUTOSHOP) == "function"
+    and SLASH_WOWTOOLSAUTOSHOP1 == "/autoshop" and not autoShop.IsEnabled(),
+    "Automatic shopping settings, slash command or initial state contract failed")
 assert(WoWTools.settings.tabs.third_party.Text:GetText() == "插件列表", "Plugin list label binding failed")
 local firstThirdPartyGroup
 for _, group in ipairs(WoWTools.settings.groups) do

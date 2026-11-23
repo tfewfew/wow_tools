@@ -11,7 +11,7 @@
         $column.Name=$columnSpec[0];$column.HeaderText=$columnSpec[1];$column.Width=$columnSpec[2];$column.SortMode='NotSortable'
         if($columnSpec[0] -eq 'Name'){$column.AutoSizeMode='AllCells';$column.MinimumWidth=240}
         if($columnSpec[3] -eq 'mode'){
-            $column.Items.AddRange([object[]]@('钓鱼','战斗'))
+            $column.Items.AddRange([object[]]@('钓鱼','战斗','购物'))
             if ($Flavor -eq 'forerver') {[void]$column.Items.Add('放号')}
             $column.FlatStyle='Flat'
         }
@@ -122,6 +122,37 @@ function New-RestTaskSettingsPage {
     $page.Controls.AddRange([Windows.Forms.Control[]]@($hint,$status,$save))
     return $page
 }
+function New-ShopTaskSettingsPage {
+    $page=New-Object Windows.Forms.TabPage
+    $page.Text='购物';$page.BackColor=$script:uiColors.Background;$page.AutoScroll=$true
+    $hint=New-Object Windows.Forms.Label
+    $hint.Text='在游戏插件「游戏辅助 → 自动购物」保存物品 ID 和背包上限。选中附近的商人后，可在进程行点击「购物」，也可把「购物」设为角色任务。'
+    $hint.SetBounds(18,18,1000,66)
+    $inputs=@{};$y=92
+    foreach($spec in @(@('VisitIntervalSeconds','访问间隔（秒）',1),@('JumpIntervalSeconds','跳跃间隔（秒，0 关闭额外跳跃）',0),@('DurationSeconds','最大购物时长（秒）',1))) {
+        $label=New-Object Windows.Forms.Label;$label.Text=$spec[1];$label.SetBounds(18,$y,300,34)
+        $box=New-Object Windows.Forms.NumericUpDown
+        $box.Minimum=$spec[2];$box.Maximum=[int]::MaxValue;$box.Value=$script:accountTasks.Config.Shop[$spec[0]]
+        $box.SetBounds(330,$y,240,34);$box.BackColor=$script:uiColors.Input;$box.ForeColor=$script:uiColors.Text
+        $inputs[$spec[0]]=$box;$page.Controls.AddRange([Windows.Forms.Control[]]@($label,$box));$y+=56
+    }
+    $keyLabel=New-Object Windows.Forms.Label;$keyLabel.Text='与目标互动键';$keyLabel.SetBounds(18,$y,300,34)
+    $key=New-AutoFightKeyBox;$key.Text=$script:accountTasks.Config.Shop.InteractKey;$key.SetBounds(330,$y,240,34)
+    $status=New-Object Windows.Forms.Label;$status.SetBounds(18,360,1000,52)
+    $save=New-Object WowAuto.DimButton;$save.Text='保存购物设置';$save.SetBounds(18,418,220,38);Set-UiButtonStyle $save $true
+    $save.Tag=@{Inputs=$inputs;Key=$key;Status=$status}
+    $save.Add_Click({param($sender,$e)
+        try {
+            $next=ConvertTo-TaskMap ($script:accountTasks.Config | ConvertTo-Json -Depth 12 | ConvertFrom-Json)
+            $next.Shop=@{InteractKey=$sender.Tag.Key.Text}
+            foreach($name in $sender.Tag.Inputs.Keys){$next.Shop[$name]=[int]$sender.Tag.Inputs[$name].Value}
+            Save-AccountTasks $next
+            $sender.Tag.Status.Text='购物设置已保存，下次开始购物时生效。'
+        }catch{$sender.Tag.Status.Text=$_.Exception.Message}
+    })
+    $page.Controls.AddRange([Windows.Forms.Control[]]@($hint,$keyLabel,$key,$status,$save))
+    return $page
+}
 function New-DetectionPeriodSettingsPage {
     $page=New-Object Windows.Forms.TabPage;$page.Text='检测周期';$page.BackColor=$script:uiColors.Background;$page.AutoScroll=$true
     $hint=New-Object Windows.Forms.Label;$hint.Text='全局设置：对两服所有进程生效，单位为毫秒（ms）。保存后关闭设置窗口，新周期用于后续检测。';$hint.SetBounds(18,18,920,60)
@@ -157,7 +188,7 @@ function Save-AccountGridDraft($Editor) {
         $null=$grid.EndEdit()
         foreach($row in $grid.Rows){
             $role=@{Name=[string]$row.Tag.Name;Realm=[string]$row.Tag.Realm;
-                Enabled=[bool]$row.Cells['Enabled'].Value;Mode=$(switch($row.Cells['Mode'].Value){'战斗'{'fight'}'放号'{'rest'}default{'fish'}});UseItem=([bool]$row.Cells['UseItem'].Value -and $row.Cells['Mode'].Value -eq '钓鱼')}
+                Enabled=[bool]$row.Cells['Enabled'].Value;Mode=$(switch($row.Cells['Mode'].Value){'战斗'{'fight'}'放号'{'rest'}'购物'{'shop'}default{'fish'}});UseItem=([bool]$row.Cells['UseItem'].Value -and $row.Cells['Mode'].Value -eq '钓鱼')}
             $edits[$role.Realm+'|'+$role.Name]=$role
         }
     }

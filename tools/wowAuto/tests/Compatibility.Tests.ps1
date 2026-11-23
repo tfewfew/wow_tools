@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
 $tool = Join-Path $repo 'tools\wowAuto'
 $asts = @()
@@ -93,6 +93,22 @@ try {
     Write-Output "PASS: PowerShell/C# static member and call-arity compatibility ($checked references)."
     & (Join-Path $PSScriptRoot 'Accounts.Compatibility.Tests.ps1')
     & (Join-Path $PSScriptRoot 'Rest.Compatibility.Tests.ps1')
+
+    . (Join-Path $tool 'autoFight.Engine.ps1')
+    . (Join-Path $tool 'wowAuto.AccountTasks.ps1')
+    $shopping=@{Version=1;Accounts=@{};Bindings=@{};Periods=(New-DetectionPeriods);Shop=(New-ShopTaskSettings)}
+    foreach($flavor in @('titan','forerver')) {
+        $shopping.Accounts[$flavor+':TEST']=@(@{Name='购物角色';Realm='测试';Mode='shop';Enabled=$true;UseItem=$false})
+    }
+    $shopping=ConvertTo-TaskMap ($shopping | ConvertTo-Json -Depth 8 | ConvertFrom-Json)
+    Test-AccountTaskConfiguration $shopping
+    if((Get-AccountTaskModeLabel 'shop') -cne '购物' -or
+        [WowAuto.NativeInput]::ShoppingCommand('prepare',0) -cne '/autoshop prepare' -or
+        [WowAuto.NativeInput]::ShoppingCommand('buy',1500) -cne '/autoshop buy 1500' -or
+        [WowAuto.NativeInput]::ShoppingCommand('cancel',0) -cne '/autoshop cancel') {
+        throw 'Automatic shopping mode or slash command contract is incompatible.'
+    }
+    Write-Output 'PASS: both clients support the shopping task configuration and add-on command contract.'
 } finally {
     foreach ($path in $temporaryFiles) { Remove-Item -LiteralPath $path -ErrorAction SilentlyContinue }
 }
