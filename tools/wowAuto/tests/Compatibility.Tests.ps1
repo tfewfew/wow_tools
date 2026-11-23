@@ -150,7 +150,7 @@ try {
             }
             if($spec[0] -eq 'dead' -and ([WowAutoRotation.Native]::ReadShoppingState(0,0,'',$true) -cne 'dead' -or
                 [WowAutoRotation.Native]::ReadShoppingState(0,0,'') -cne 'unknown')){
-                throw 'Death must be reportable to direct shopping without decoding it as a merchant phase.'
+                throw 'Death must be reportable to shopping tasks without decoding it as a merchant phase.'
             }
         }
         foreach($spec in @(@('closed',52,120,230),@('open',154,211,67),@('bought',71,218,181))){

@@ -37,7 +37,7 @@ function Get-DetectorObservation {
     if($Hub.Simulation){throw 'Simulation requires an explicit frame adapter.'}
     $loginMode=[WowAutoRotation.Native]::ReadLoginMode($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path)
     if($loginMode -eq 'unknown'){return [pscustomobject]@{Login=$false;Mode=$loginMode;Color='unknown';Packet=$null;Lure='unknown'}}
-    if($script:direct -and $loginMode -eq 'dead'){return [pscustomobject]@{Login=$true;Mode=$loginMode;Color='dead';Packet=$null;Lure='unknown'}}
+    if($loginMode -eq 'dead'){return [pscustomobject]@{Login=$true;Mode=$loginMode;Color='dead';Packet=$null;Lure='unknown'}}
     if($script:mode -in @('rest','shop')) {
         return [pscustomobject]@{Login=$true;Mode=$loginMode;Color='';Packet=$null;Lure='unknown'}
     }
@@ -300,6 +300,7 @@ function Invoke-DetectorRotation {
         if($Hub.Now -ge $deadline){throw '登录超过180秒，已停止本进程编排。'}
         try {
             $observation=Get-DetectorObservation
+            if($observation.Mode -eq 'dead'){Remove-DetectorRole '角色死亡';return}
             if($observation.Login){$stable++}else{$stable=0}
             if($stable -ge 3) {
                 if($script:mode -eq 'fish' -and -not $rodEquipped) {
@@ -328,9 +329,9 @@ function Invoke-DetectorRotation {
 }
 function Remove-DetectorRole([string]$Reason) {
     $script:running=$false;Stop-DetectorAudio
+    Stop-DetectorShoppingVisit
+    if(-not (Test-DetectorCurrent)){return}
     if($script:direct){
-        Stop-DetectorShoppingVisit
-        if(-not (Test-DetectorCurrent)){return}
         Write-Detector ($Reason+'，直接开始任务已停止。')
         Publish-Detector stopped @{Reason=$Reason;Exited=$false}
         return
@@ -390,7 +391,7 @@ function Invoke-DetectorRest {
     if($now -lt $script:nextColor){return}
     $script:nextColor=$now+$script:config.Periods.LoginMs
     $observation=Get-DetectorObservation
-    if($script:direct -and $observation.Color -eq 'dead'){Remove-DetectorRole '角色死亡';return}
+    if($observation.Color -eq 'dead'){Remove-DetectorRole '角色死亡';return}
     $session=$script:restSession
     $inRestMode=$observation.Mode -eq 'rest'
     # Only consecutive observations in rest mode contribute to the duration.
@@ -491,15 +492,13 @@ function Invoke-DetectorShop {
     $pollMs=[Math]::Min(100,[int]$script:config.Periods.LoginMs)
     $script:nextColor=$now+$pollMs
     $state='unknown'
-    if($session.PrepareRequested -or $script:direct) {
-        try {$state=[WowAutoRotation.Native]::ReadShoppingState($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,$script:direct)}
-        catch {
-            if(-not $expired -or -not [WowAutoCapture.Native]::IsPending($_.Exception)){throw}
-        }
-        if($state -eq 'dead'){Remove-DetectorRole '角色死亡';return}
-        if(-not $session.PrepareRequested){$state='unknown'}
-        if($state -eq 'bought' -and $session.Visits -gt 0){Exit-DetectorAfterShopPurchase;return}
+    try {$state=[WowAutoRotation.Native]::ReadShoppingState($Endpoint.Pid,$Endpoint.StartTicks,$Endpoint.Path,$true)}
+    catch {
+        if(-not $expired -or -not [WowAutoCapture.Native]::IsPending($_.Exception)){throw}
     }
+    if($state -eq 'dead'){Remove-DetectorRole '角色死亡';return}
+    if(-not $session.PrepareRequested){$state='unknown'}
+    if($state -eq 'bought' -and $session.Visits -gt 0){Exit-DetectorAfterShopPurchase;return}
     if($expired) {
         if($session.PrepareRequested -and -not $session.FinishUntil){
             # End new purchases and let the plugin report an already-submitted receipt.
@@ -604,7 +603,7 @@ function Invoke-DetectorTaskCore {
         if($now -lt $script:nextColor){return}
         $script:nextColor=$now+100
         $observation=Get-DetectorObservation
-        if($script:direct -and $observation.Color -eq 'dead'){Remove-DetectorRole '角色死亡';return}
+        if($observation.Color -eq 'dead'){Remove-DetectorRole '角色死亡';return}
         $packet=if($observation.Login){$observation.Packet}else{$null}
         if($packet -and $packet.State -eq 'dead'){throw '角色死亡或处于灵魂状态，抓宠已停止。'}
         $action=Get-AutoTameAction $script:tame $packet $script:tameConfig $now
