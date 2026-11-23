@@ -85,7 +85,7 @@ def main():
                             inline_count += 1
         for fixture in ['TitanCompatibility.Tests.lua' if flavor == 'titan' else 'ForeverCompatibility.Tests.lua',
                         'LsToastsLibraries.Tests.lua', 'LsToasts.Interfaces.lua', 'CharacterRecord.Interfaces.lua',
-                        'ChatItemHover.Interfaces.lua']:
+                        'ChatItemHover.Interfaces.lua', 'AuctionVendorPrice.Interfaces.lua']:
             runtime = LuaRuntime()
             runtime.globals().TEST_ROOT = repo.as_posix()
             runtime.globals().TEST_FLAVOR = flavor
