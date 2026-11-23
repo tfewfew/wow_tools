@@ -31,7 +31,7 @@
   2026-11-16 修复提示直接挂接到各输入控件与按钮，布局后刷新原生滚动子区域。数值草稿在刷新时保留，回车、应用和焦点离开保存，Esc 恢复已保存值，重置清理草稿。
 - FF-05 目标的目标及焦点的目标按 IsUnitModelReadyForUI 等待单位数据，用 OnModelLoaded 或已填充的缓存模型文件确认加载，应用模型透明度和头像镜头。曾有文件号的模型确认丢失时先清除，再按现有节奏重新绑定当前单位。/ff debug 记录加载信号、模型可见性、模型透明度和 DisplayID。依据为 1.0.11 的异步加载分支及本服原生基线 3d8abb1da73acd38e412e24fb3f99454a6392346 的 TargetOfTargetMixin:Update、Unit.IsUnitModelReadyForUI、FrameAPICharacterModelBase.SetUnit 和 SimpleModelAPI.ClearModel、SetModelAlpha。
 - BV-01 保留宿主接入。`better_vendor_ui/Bootstrap.lua` 与四个业务文件隔离命名空间、媒体、初始化及统一设置，配置为 `wowDetectorDB.betterVendorUI.db`。停用时跳过事件与运行控件，部署直接迁移 BetterVendorUIDB 并归档原目录。当前 1.3.2 发布包使用独立插件入口。
-- BV-02 保留已学配方标记。`better_vendor_ui/BetterVendorUI.lua` 在完整与品质重绘中刷新图标去色及 136814 绿色勾，跟随学习和物品数据事件合并更新。旧 addon_fix Vendor 补丁已归档，维护收编实现。依据为 fd95272。
+- BV-02 保留已学配方标记。`better_vendor_ui/BetterVendorUI.lua` 在完整与品质重绘中刷新图标去色及 136814 绿色勾，跟随学习和物品数据事件合并更新。已学配方标记由收编实现维护，旧独立插件补丁已从 addon_fix 移除。依据为 fd95272。
 - BV-03 保留简体中文设置。`BetterVendorUI_Config.lua`、`BetterVendorUI_Options.lua` 及相关反馈统一中文标题、控件、确认、名单和提示，保留格式参数。依据为 12fc998。
 - PX-01 保留宿主接入。`pet_xp_bar/Bootstrap.lua`、`PetXPBarPlus.lua`、`Options.lua` 使用 `WoWTools.petXPBar`、统一中文设置、账号 `wowDetectorDB.petXPBar.db` 和加载开关，保留 `/pxp`。停用时跳过运行框体、事件与计时器，部署直接迁移旧配置并归档独立插件。
 - PX-02 保留无限服接口适配。`pet_xp_bar/Compat.lua` 使用本服 GetEffectivePlayerMaxLevel / GetMaxPlayerLevel，保留原生 GetPetExperience、经验与等级事件以及条目可见性处理。依据为 c70da89。

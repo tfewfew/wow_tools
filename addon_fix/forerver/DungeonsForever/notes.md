@@ -1,3 +1,8 @@
+## 已停用补丁清理（2026-11-23）
+
+- 移除已停用的 DungeonsForever 提示框扫描补丁。上游从 2.1.99 起移除原提示框轮询链，2.1.126 的 Hui.lua 与 TOC 核对结果见 aa018ef。
+- 同批移除已停用的 Questie 区域远近排序补丁。上游从 12.11.1 起实现相同的计时与可见任务排序链，12.12.0 的源码核对结果见 d2ab1c0。
+
 ## DungeonsForever 后台扫描周期（2026-11-14）
 
 - 无限服 DungeonsForever 2.1.95、Explore 2.0.3、Prof 2.0.3、Spell 2.3.12 的性能调整保存在 `addon_fix/forerver/<插件名>/background-scans/<版本>/fix.patch`，清单记录实际安装包版本、原文件及补丁结果的 SHA256。补丁基线来自本机安装包。此维护目标为无限服安装的独立第三方插件。

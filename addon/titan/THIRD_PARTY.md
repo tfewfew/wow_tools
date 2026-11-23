@@ -28,7 +28,7 @@
 - LS-04 修正金币战斗勿扰配置。`ls_toasts/Bootstrap.lua` 在首次读取既有账号配置时将各配置档的 `types.loot_gold.dnd` 设为 false，以 `goldCombatQueueMigrated` 记录已处理，后续设置仍可由用户修改。新配置沿用上游默认关闭勿扰，金币仍按原生 `PLAYER_MONEY` 和 `GetMoney` 的实际余额差记录。用户保存的勿扰开关曾使战斗拾取进入队列并累计至脱战后显示。
 - LS-05 物品悬停复用本服背包提示。`core/components/tooltip.lua` 以完整物品链接在普通背包 0–4 定位当前格位，保留随机后缀、附魔和修正字段，通过 `GameTooltip:SetBagItem` 接入背包提示及其他插件挂接。物品不在背包时采用原始链接，锚点与装备比较分别复用本服 ContainerFrameItemButton_CalculateItemTooltipAnchors 和 COMPAREITEMS / alwaysCompareItems 条件。`systems/forever/loot_item.lua` 提供原生 UpdateTooltip 回调，回收弹窗时清除回调。接口核对 classic_titan 7014c309a25338905c41dc3799a93f9719ebb533 的 Classic/ContainerFrame_Shared.lua。
 - BV-01 保留宿主接入。`better_vendor_ui/Bootstrap.lua` 与四个业务文件隔离命名空间、媒体、初始化及统一设置，配置为 `wowDetectorDB.betterVendorUI.db`。停用时跳过事件与运行控件，部署直接迁移 BetterVendorUIDB 并归档原目录。当前 1.3.2 发布包使用独立插件入口。
-- BV-02 保留已学配方标记。`better_vendor_ui/BetterVendorUI.lua` 在完整与品质重绘中刷新图标去色及 136814 绿色勾，跟随学习和物品数据事件合并更新。旧 addon_fix Vendor 补丁已归档，维护收编实现。依据为 fd95272。
+- BV-02 保留已学配方标记。`better_vendor_ui/BetterVendorUI.lua` 在完整与品质重绘中刷新图标去色及 136814 绿色勾，跟随学习和物品数据事件合并更新。已学配方标记由收编实现维护，旧独立插件补丁已从 addon_fix 移除。依据为 fd95272。
 - BV-03 保留简体中文设置。`BetterVendorUI_Config.lua`、`BetterVendorUI_Options.lua` 及相关反馈统一中文标题、控件、确认、名单和提示，保留格式参数。依据为 12fc998。
 - PX-01 保留宿主接入。`pet_xp_bar/Bootstrap.lua`、`PetXPBarPlus.lua`、`Options.lua` 使用 `WoWTools.petXPBar`、统一中文设置、账号 `wowDetectorDB.petXPBar.db` 和加载开关，保留 `/pxp`。停用时跳过运行框体、事件与计时器，部署直接迁移旧配置并归档独立插件。
 - PX-02 保留时光服接口适配。`pet_xp_bar/Compat.lua` 使用本服 `GetMaxLevelForLatestExpansion`，经验条按本服 PetFrame、GetPetExperience 及 UNIT_PET_EXPERIENCE 接口加载，等级和经验事件刷新可见性。依据为 c70da89。
