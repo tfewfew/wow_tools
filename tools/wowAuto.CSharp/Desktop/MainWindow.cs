@@ -297,7 +297,9 @@ internal sealed partial class MainWindow : GrayForm
         private readonly Button start, direct, stop, configure;
         private readonly ComboBox mode;
         private readonly StatusLog status;
+        private readonly string modeKey;
         private ProcessView process = null!;
+        private bool choosingMode;
         private string? error;
         private string? lastMessage;
         private long configRevision = -1;
@@ -314,14 +316,17 @@ internal sealed partial class MainWindow : GrayForm
         {
             this.owner = owner;
             Identity = identity;
+            modeKey = $"{identity.Pid}:{identity.Start}";
             name = Ui.Label(Panel, "", 6, 20, 360, 70);
             name.AutoEllipsis = true;
             start = Ui.Button(Panel, "开始", 380, 33, 68, 40, () => Run("task", "start"), true);
             mode = Ui.Choice(Panel, 454, 38, 76);
             mode.AccessibleName = "直接开始的任务";
             mode.Items.AddRange(Ui.DirectModes.Select(item => (object)item.Label).ToArray());
+            mode.DropDown += (_, _) => choosingMode = true;
+            mode.DropDownClosed += (_, _) => RefreshModeAfterClose();
             mode.SelectionChangeCommitted += (_, _) => SaveMode();
-            direct = Ui.Button(Panel, "直接开始", 536, 33, 94, 40, () => Run("task", "start", "--mode", SelectedMode), true);
+            direct = Ui.Button(Panel, "直接开始", 536, 33, 94, 40, () => Run("task", "start", "--direct"), true);
             stop = Ui.Button(Panel, "停止", 636, 33, 68, 40, () => Run("task", "stop", "--wait"));
             Ui.Label(Panel, "子战网", 12, 106, 90, 28);
             account = Ui.Label(Panel, "", 110, 106, 400, 28);
@@ -336,7 +341,6 @@ internal sealed partial class MainWindow : GrayForm
         }
 
         private void SetError(string message) => error = message;
-        private string SelectedMode => mode.SelectedIndex == Ui.DirectModes.Length ? "tame" : Ui.DirectModes[mode.SelectedIndex].Id;
 
         private void Run(params string[] args)
         {
@@ -346,15 +350,53 @@ internal sealed partial class MainWindow : GrayForm
 
         private void SaveMode()
         {
+            int selected = mode.SelectedIndex;
+            if (selected < 0 || selected >= mode.Items.Count)
+                return;
+            string selection = selected == Ui.DirectModes.Length ? "tame" : Ui.DirectModes[selected].Id;
             try
             {
                 Configuration configuration = owner.automation.Config;
-                owner.automation.Configure([new($"DirectModes.{Identity.Pid}:{Identity.Start}", SelectedMode)],
+                owner.automation.Configure([new($"DirectModes.{modeKey}", selection)],
                     false, configuration.Revision);
                 error = null;
             }
             catch (Exception failure) { SetError(failure.Message); }
-            owner.Render();
+        }
+
+        private void RefreshModeAfterClose()
+        {
+            // Let the native combo box finish dispatching its commit or cancel notifications.
+            mode.BeginInvoke(() =>
+            {
+                if (mode.IsDisposed)
+                    return;
+                choosingMode = mode.DroppedDown;
+                RefreshMode(owner.automation.Config.Effective);
+            });
+        }
+
+        private void RefreshMode(Settings settings)
+        {
+            if (choosingMode)
+                return;
+
+            string modeId = settings.DirectModes.GetValueOrDefault(modeKey, "fish");
+            int selected;
+            if (modeId.Equals("tame", StringComparison.OrdinalIgnoreCase))
+            {
+                selected = Ui.DirectModes.Length;
+                if (mode.Items.Count == selected)
+                    mode.Items.Add("抓宠");
+            }
+            else
+            {
+                if (mode.Items.Count > Ui.DirectModes.Length)
+                    mode.Items.RemoveAt(Ui.DirectModes.Length);
+                selected = Array.FindIndex(Ui.DirectModes, item => item.Id.Equals(modeId, StringComparison.OrdinalIgnoreCase));
+            }
+            if (mode.SelectedIndex != selected)
+                mode.SelectedIndex = selected;
         }
 
         public void Render(ProcessView current, Configuration configuration, long now, bool canStart, bool canConfigure)
@@ -375,25 +417,10 @@ internal sealed partial class MainWindow : GrayForm
                 configuredRoleSummary = $"启用 {enabledRoles.Length} 个角色：" +
                     string.Join("、", enabledRoles.Select(item => $"{item.Name}-{item.Realm} / {Ui.ModeLabel(item.Mode)}"));
             }
-            string modeId = settings.DirectModes.GetValueOrDefault($"{current.Pid}:{current.StartTicks}", "fish");
-            int selected;
-            if (modeId.Equals("tame", StringComparison.OrdinalIgnoreCase))
-            {
-                selected = Ui.DirectModes.Length;
-                if (mode.Items.Count == selected)
-                    mode.Items.Add("抓宠");
-            }
-            else
-            {
-                if (mode.Items.Count > Ui.DirectModes.Length)
-                    mode.Items.RemoveAt(Ui.DirectModes.Length);
-                selected = Array.FindIndex(Ui.DirectModes, item => item.Id.Equals(modeId, StringComparison.OrdinalIgnoreCase));
-            }
-            if (mode.SelectedIndex != selected)
-                mode.SelectedIndex = selected;
+            RefreshMode(settings);
             start.Enabled = canStart && !busy && hasConfiguredRoles;
             mode.Enabled = canStart && !busy;
-            direct.Enabled = mode.Enabled && selected >= 0;
+            direct.Enabled = mode.Enabled && mode.SelectedIndex >= 0;
             stop.Enabled = busy;
             configure.Enabled = canConfigure;
 
