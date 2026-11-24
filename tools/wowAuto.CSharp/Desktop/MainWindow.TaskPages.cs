@@ -22,7 +22,7 @@ internal sealed partial class MainWindow
     private void BuildCreationPage()
     {
         creationPage = Ui.Page(tabs, "角色创建");
-        creationPage.AutoScrollMinSize = new(1185, 600);
+        creationPage.AutoScrollMinSize = Ui.Size(1185, 600);
         creationDraft = new(automation);
         Ui.Title(creationPage, "角色创建 · 自动重试", 20, 15, 1100, 38, 18);
         Ui.Label(creationPage, "先选好外观并填写姓名。等待间隔 → 红色“完成” → 阵营人口不平衡时点击“确定” → 重新等待。",
@@ -47,19 +47,20 @@ internal sealed partial class MainWindow
             Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical,
             BackColor = Ui.Input, ForeColor = Ui.Text, BorderStyle = BorderStyle.FixedSingle
         }, 20, 395, 1145, 190);
-        creationPage.Resize += (_, _) =>
-        {
-            creationWindows.Width = Math.Max(Px(770), creationPage.ClientSize.Width - Px(415));
-            creationStatus.Width = creationLog.Width = Math.Max(Px(1145), creationPage.ClientSize.Width - Px(40));
-            creationLog.Height = Math.Max(Px(190), creationPage.ClientSize.Height - Px(415));
-        };
         creationInputs = [titleFilter, refreshWindows, creationWindows, createInterval, createAutoStop, createDryRun];
+    }
+
+    private void ResizeCreationPage()
+    {
+        creationWindows.Width = Math.Max(Px(770), creationPage.ClientSize.Width - Px(415));
+        creationStatus.Width = creationLog.Width = Math.Max(Px(1145), creationPage.ClientSize.Width - Px(40));
+        creationLog.Height = Math.Max(Px(190), creationPage.ClientSize.Height - Px(415));
     }
 
     private void BuildTamePage()
     {
         tamePage = Ui.Page(tabs, "自动抓宠");
-        tamePage.AutoScrollMinSize = new(900, 716);
+        tamePage.AutoScrollMinSize = Ui.Size(900, 716);
         tameDraft = new(automation);
         Ui.Title(tamePage, "自动抓宠", 20, 16, 850, 36, 18);
         Ui.Label(tamePage, "插件 /pettamer 设置名单并保存。匹配当前目标后，按陷阱 → 开怪 → 后退 → 捕捉执行。",
@@ -151,10 +152,12 @@ internal sealed partial class MainWindow
         var image = new Bitmap(source);
         var preview = new GrayForm
         {
-            Text = "角色创建识别预览（不执行点击）", Size = new(1000, 660), StartPosition = FormStartPosition.CenterParent
+            Text = "角色创建识别预览（不执行点击）", Size = Ui.Size(1000, 660), StartPosition = FormStartPosition.CenterParent
         };
         preview.Controls.Add(new PictureBox { Dock = DockStyle.Fill, SizeMode = PictureBoxSizeMode.Zoom, Image = image });
         preview.Disposed += (_, _) => image.Dispose();
+        preview.FitOnOwnerScreen(this);
+        preview.CompleteLayout();
         try { preview.Show(this); }
         catch { preview.Dispose(); throw; }
     }

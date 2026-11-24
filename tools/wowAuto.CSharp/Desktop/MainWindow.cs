@@ -13,7 +13,7 @@ internal sealed partial class MainWindow : GrayForm
     private readonly FlowLayoutPanel list = new()
     {
         Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false,
-        AutoScroll = true, Padding = new(6, 0, 6, 0)
+        AutoScroll = true, Padding = Ui.Spacing(6, 0, 6, 0)
     };
     private readonly System.Windows.Forms.Timer timer = new();
     private readonly Dictionary<(int Pid, long Start), ProcessCard> cards = [];
@@ -30,24 +30,25 @@ internal sealed partial class MainWindow : GrayForm
         this.commands = commands;
         this.desktop = desktop;
         Text = "wowAuto";
-        ClientSize = new(1330, 460);
+        ClientSize = Ui.Size(1330, 460);
         StartPosition = FormStartPosition.CenterScreen;
-        SuspendLayout();
         tabs.Size = ClientSize;
         tabs.Dock = DockStyle.Fill;
         Controls.Add(tabs);
-        var header = new Panel { Dock = DockStyle.Top, Height = 75 };
+        var header = new Panel { Dock = DockStyle.Top, Height = Ui.Length(75) };
         Ui.Title(header, "wowAuto", 20, 14, 230, 45, 23);
         Controls.Add(header);
         BuildProcessPage();
         BuildCreationPage();
         BuildTamePage();
-        ResumeLayout();
+        CompleteLayout();
+        creationPage.Resize += (_, _) => ResizeCreationPage();
         list.SizeChanged += (_, _) => ResizeCards();
         Shown += (_, _) =>
         {
             Render();
             FitProcesses();
+            ResizeCreationPage();
             timer.Start();
         };
         timer.Interval = automation.Config.Effective.Operations.UiRefreshMs;
@@ -57,7 +58,7 @@ internal sealed partial class MainWindow : GrayForm
     private void BuildProcessPage()
     {
         processPage = Ui.Page(tabs, "进程任务", false);
-        var toolbar = new Panel { Width = ClientSize.Width, Dock = DockStyle.Top, Height = 116, AutoScroll = true, BackColor = Ui.Surface };
+        var toolbar = new Panel { Width = ClientSize.Width, Dock = DockStyle.Top, Height = Ui.Length(116), AutoScroll = true, BackColor = Ui.Surface };
         refresh = Ui.Button(toolbar, "刷新进程", 12, 10, 120, 35, () => Run(RefreshScan));
         startAll = Ui.Button(toolbar, "全部开始", 142, 10, 120, 35, () => Run(StartAll), true);
         stopAll = Ui.Button(toolbar, "全部停止", 272, 10, 120, 35,
@@ -72,17 +73,17 @@ internal sealed partial class MainWindow : GrayForm
 
         var intro = new Label
         {
-            Dock = DockStyle.Top, Height = 44, Padding = new(12, 12, 0, 0),
+            Dock = DockStyle.Top, Height = Ui.Length(44), Padding = Ui.Spacing(12, 12, 0, 0),
             Text = "每行通过角色编排设置名称和任务；“开始”按编排切换角色，“直接开始”留在当前角色执行已验证任务。"
         };
-        var headings = new Panel { Dock = DockStyle.Top, Height = 32, BackColor = Ui.Heading };
+        var headings = new Panel { Dock = DockStyle.Top, Height = Ui.Length(32), BackColor = Ui.Heading };
         Ui.Label(headings, "游戏进程 / 版本 / 窗口位置", 12, 3, 360, 25);
         Ui.Label(headings, "操作", 386, 3, 310, 25);
         Ui.Label(headings, "实时状态（最新日志在上）", 716, 3, 350, 25);
         var footer = new Label
         {
-            Dock = DockStyle.Bottom, Height = 48, Padding = new(12, 10, 0, 0),
-            Font = new Font("Microsoft YaHei UI", 11),
+            Dock = DockStyle.Bottom, Height = Ui.Length(48), Padding = Ui.Spacing(12, 10, 0, 0),
+            Font = new Font("Microsoft YaHei UI", 12),
             Text = "运行时自动切换窗口；各进程的检测结果和任务状态显示在右侧。"
         };
         footer.Disposed += (_, _) => footer.Font.Dispose();
@@ -166,7 +167,7 @@ internal sealed partial class MainWindow : GrayForm
         RuntimeView state = automation.Snapshot();
         using var dialog = new GrayForm
         {
-            Text = "结束倒计时", StartPosition = FormStartPosition.CenterParent, ClientSize = new(470, 180),
+            Text = "结束倒计时", StartPosition = FormStartPosition.CenterParent, ClientSize = Ui.Size(470, 180),
             FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false, ShowInTaskbar = false
         };
         Ui.Label(dialog, "多久后退出全部游戏（秒）", 18, 18, 430, 30);
@@ -181,6 +182,8 @@ internal sealed partial class MainWindow : GrayForm
         back.DialogResult = DialogResult.Cancel;
         dialog.AcceptButton = start;
         dialog.CancelButton = back;
+        dialog.FitOnOwnerScreen(this);
+        dialog.CompleteLayout();
         return WithAutomationPaused(() => dialog.ShowDialog(this)) switch
         {
             DialogResult.OK => Send("shutdown", "set", seconds.Value.ToString(CultureInfo.InvariantCulture)),
@@ -257,7 +260,7 @@ internal sealed partial class MainWindow : GrayForm
     }
 
     private static bool IsBusy(ProcessView process) => process.Phase is "running" or "starting" or "switching" or "scanning";
-    private int Px(int value) => (int)Math.Round(value * DeviceDpi / 96.0);
+    private int Px(int value) => Ui.Pixels(value, DeviceDpi);
 
     private void ResizeCards()
     {
@@ -271,7 +274,7 @@ internal sealed partial class MainWindow : GrayForm
         var area = Screen.FromControl(this).WorkingArea;
         int rows = cards.Values.Sum(card => card.Panel.Height + card.Panel.Margin.Vertical);
         int chrome = Height - list.ClientSize.Height;
-        MinimumSize = new(Math.Min(Px(1330), area.Width), Math.Min(Px(300), area.Height));
+        MinimumSize = new(Math.Min(Px(850), area.Width), Math.Min(Px(300), area.Height));
         Size = new(Math.Min(Px(1330) + Width - ClientSize.Width, area.Width),
             Math.Min(chrome + Math.Max(Px(80), rows + Px(12)), area.Height));
         Location = new(area.Left + (area.Width - Width) / 2, area.Top + (area.Height - Height) / 2);
@@ -301,7 +304,7 @@ internal sealed partial class MainWindow : GrayForm
         private object? previousMetrics;
         private JsonElement metrics;
         public (int Pid, long Start) Identity { get; }
-        public Panel Panel { get; } = new() { Size = new(1170, 224), Margin = new(0, 0, 0, 6), BackColor = Ui.Surface };
+        public Panel Panel { get; } = new() { Size = Ui.Size(1170, 224), Margin = Ui.Spacing(0, 0, 0, 6), BackColor = Ui.Surface };
         public bool CanStart => start.Enabled;
 
         public ProcessCard(MainWindow owner, (int Pid, long Start) identity)

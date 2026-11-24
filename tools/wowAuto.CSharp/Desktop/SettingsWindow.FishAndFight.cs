@@ -9,7 +9,7 @@ internal sealed partial class SettingsWindow
     {
         var draft = Draft();
         TabPage page = fishPage = Ui.Page(tabs, "自动钓鱼");
-        page.AutoScrollMinSize = new(960, 874);
+        page.AutoScrollMinSize = Ui.Size(960, 874);
         Ui.Label(page, "版本", 18, 18, 95, 25);
         Ui.Label(page, "收杆延迟区间配置（ms）", 130, 18, 375, 25);
         Ui.Label(page, "音频门槛（%）", 530, 18, 185, 25);
@@ -102,9 +102,8 @@ internal sealed partial class SettingsWindow
         var draft = Draft();
         TabPage page = Ui.Page(tabs, "自动战斗", false);
         page.BackColor = Ui.Surface;
-        var body = new Panel { Dock = DockStyle.Fill, AutoScroll = true, AutoScrollMinSize = new(840, 780) };
-        var footer = new Panel { Dock = DockStyle.Bottom, Height = 100 };
-        page.Controls.AddRange([body, footer]);
+        var body = new Panel { Dock = DockStyle.Fill, AutoScroll = true, AutoScrollMinSize = Ui.Size(840, 780) };
+        var footer = new Panel { Dock = DockStyle.Bottom, Size = Ui.Size(DesignWidth, 100) };
         GrayTabs clients = Ui.Place(body, Ui.Tabs(140), 16, 12, 808, 260);
         foreach (var (id, label) in Ui.Clients)
             BuildFightClient(Ui.Page(clients, label), draft, id);
@@ -132,20 +131,20 @@ internal sealed partial class SettingsWindow
             "补 Buff 间隔为 0 时关闭；进入游戏和到期后各执行一轮，轮内成功按键相隔至少 1 秒。\r\n" +
             "检测 / 攻击距离在插件面板设置；等待接近期间不发攻击键。",
             16, 616, 812, 144);
-        footer.Width = ClientSize.Width;
-        Label status = Ui.Label(footer, "", 16, 4, footer.Width - 32, 30);
+        Label status = Ui.Label(footer, "", 16, 4, DesignWidth - 32, 30);
         status.AutoEllipsis = true;
         status.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-        var save = Ui.Button(footer, "保存战斗设置", footer.Width - 266, 50, 130, 32,
+        var save = Ui.Button(footer, "保存战斗设置", DesignWidth - 266, 50, 130, 32,
             () => draft.SaveWithFeedback(status, "战斗设置已保存。"), true);
-        var cancel = Ui.Button(footer, "取消", footer.Width - 116, 50, 100, 32, Close);
+        var cancel = Ui.Button(footer, "取消", DesignWidth - 116, 50, 100, 32, Close);
         save.Anchor = cancel.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        page.Controls.AddRange([body, footer]);
     }
 
     private static void BuildFightClient(TabPage page, SettingsDraft draft, string flavor)
     {
         page.BackColor = Ui.Surface;
-        page.AutoScrollMinSize = new(790, 216);
+        page.AutoScrollMinSize = Ui.Size(790, 216);
         Ui.Label(page, "职业", 8, 10, 216, 28);
         var classes = Ui.Choice(page, 232, 6, 168, item => Ui.Class(((ClassChoice)item).Id).Color);
         int[] ids = SettingsRules.ClassIds.Where(id => flavor != "forerver" || id != 6).ToArray();

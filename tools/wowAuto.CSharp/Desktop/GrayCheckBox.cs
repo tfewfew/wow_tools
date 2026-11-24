@@ -3,7 +3,7 @@ namespace WowAuto.Desktop;
 // Port of the script's enlarged checkboxes for the settings controls and role grids.
 internal static class CheckGlyph
 {
-    public static int Size(Graphics graphics) => (int)Math.Round(22 * graphics.DpiX / 96);
+    public static int Size(Graphics graphics) => (int)Math.Round(Ui.Length(22) * graphics.DpiX / 96);
 
     public static void Draw(Graphics graphics, Rectangle bounds, bool value, bool enabled, Color foreground, Color background)
     {
@@ -35,7 +35,7 @@ internal sealed class GrayCheckBox : CheckBox
         e.Graphics.Clear(BackColor);
         int size = Math.Max(1, Math.Min(CheckGlyph.Size(e.Graphics), Height - 2));
         CheckGlyph.Draw(e.Graphics, new(1, (Height - size) / 2, size, size), Checked, Enabled, ForeColor, BackColor);
-        int left = size + (int)Math.Round(7 * e.Graphics.DpiX / 96);
+        int left = size + (int)Math.Round(Ui.Length(7) * e.Graphics.DpiX / 96);
         var text = new Rectangle(left, 0, Math.Max(0, Width - left), Height);
         TextRenderer.DrawText(e.Graphics, Text, Font, text, Enabled ? ForeColor : Ui.Gray(186),
             TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix);
