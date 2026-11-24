@@ -11,10 +11,10 @@
 
 ## 首次克隆后生成 wowAuto EXE
 
-在 Windows x64 安装 Git 和 [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)。打开 PowerShell，克隆仓库并运行发布脚本。
+在 Windows x64 安装 Git 和 [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)。打开新的 PowerShell，克隆仓库并运行发布脚本。若 Git 提示登录，使用有仓库读取权限的账号。
 
 ~~~powershell
-git clone git@github.com:tfewfew/wow_tools.git
+git clone https://github.com/tfewfew/wow_tools.git
 Set-Location wow_tools
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\wowAuto.CSharp\publish.ps1
 ~~~
@@ -22,9 +22,17 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\wowAuto.CSharp\p
 脚本会生成两个自带 .NET 运行时的 Windows x64 EXE。`publish/` 和 EXE 由 Git 忽略，远端提交包含源码、脚本和说明。
 
 - 桌面程序在 `tools\wowAuto.CSharp\publish\Desktop\WowAuto.exe`。运行或分发时保留同目录的 `AudioFeatures` 和 `CharacterOcr`。
-- CLI 在 `tools\wowAuto.CSharp\publish\Cli\wowauto-cli.exe`。启动桌面程序后运行 CLI 的 `help` 查看命令。
+- CLI 在 `tools\wowAuto.CSharp\publish\Cli\wowauto-cli.exe`。
 
-如果 SDK 安装在非默认位置，可给发布脚本追加 `-DotNet 'C:\路径\dotnet.exe'`。首次发布会由 .NET 恢复构建依赖。生成 EXE 所需的构建环境只需 .NET SDK，使用角色创建时再按[角色创建 OCR 说明](tools/wowAuto.CSharp/README.md#角色创建-ocr)准备 Python 环境。
+如果 SDK 安装在非默认位置，可给发布脚本追加 `-DotNet 'C:\路径\dotnet.exe'`。首次发布会恢复构建依赖。
+
+打开 `WowAuto.exe`，等主窗口出现后，在同一个 Windows 用户会话的 PowerShell 中检查连接。
+
+~~~powershell
+.\tools\wowAuto.CSharp\publish\Cli\wowauto-cli.exe status get
+~~~
+
+看到状态快照后，可运行 `help` 查看命令。只验证桌面程序和 CLI 连通时可以先不开游戏。使用游戏检测任务或角色轮转前，按[插件安装和功能前置条件](tools/wowAuto.CSharp/README.md#首次连接游戏)准备客户端。Windows OCR、Python 和进程音频的要求按功能适用。
 
 ## 本地检查
 
