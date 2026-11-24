@@ -8,7 +8,8 @@ namespace WowAuto.Desktop;
 
 internal sealed record ProcessView(int Pid, long StartTicks, string Flavor, string Title, string Position,
     string Phase, string? Mode, string? Account, string? Role, bool Direct, int Round, long Cycles, long BiteTimeouts,
-    long SessionVersion, long ConfigRevision, long TaskRevision, long SampledAt, long? Deadline, string Message, object? Metrics);
+    long SessionVersion, long ConfigRevision, long TaskRevision, long SampledAt, long? Deadline, string Message, object? Metrics,
+    long? RotationDueAt = null, int RotationSwitches = 0, string? TargetRole = null);
 
 internal sealed class GameRow(Client client, Endpoint endpoint)
 {
@@ -50,6 +51,7 @@ internal sealed partial class GameSession
     private long nextPosition, nextRotate, retryAt;
     private bool roleUseItem, shopPrepared;
     private int index = -1;
+    private int rotationSwitches;
     private RotationBatch? batch;
     private Task run = Task.CompletedTask;
     private ManualAction? activeManual;
@@ -151,6 +153,8 @@ internal sealed partial class GameSession
                 ApplyConfig();
                 phase = "running";
                 row.Round++;
+                if (!direct && started.Task.IsCompletedSuccessfully)
+                    rotationSwitches++;
                 nextRotate = RotationDue();
                 message = "任务已开始。";
                 Publish();
@@ -239,7 +243,10 @@ internal sealed partial class GameSession
     private void Publish()
     {
         var view = new ProcessView(Client.ProcessId, Client.StartTicks, Client.Flavor, Client.Title, position, phase, mode,
-            account, role ?? target, direct, row.Round, row.Cycles, row.BiteTimeouts, version, seenConfig, seenOverride, Now, deadline, message, metrics);
+            account, role ?? target, direct, row.Round, row.Cycles, row.BiteTimeouts,
+            version, seenConfig, seenOverride, Now, deadline, message, metrics,
+            phase == "running" && nextRotate is > 0 and < long.MaxValue ? nextRotate : null, rotationSwitches,
+            phase == "switching" ? target : null);
         if (ReferenceEquals(row.Session, this))
         {
             string before = Volatile.Read(ref row.View).Message;

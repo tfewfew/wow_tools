@@ -26,7 +26,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\publish.ps1
 
 登录已启用插件的角色，输入 `/wowtools` 确认它已加载。然后在桌面程序点「刷新进程」，选择对应窗口。使用钓鱼、战斗或抓宠时，核对程序中的按键与游戏里的按键绑定。已登录角色可以按所选模式「直接开始」。
 
-- **角色轮转。** 用需要编排的角色登录并正常下线一次，让插件保存角色资料。在桌面设置的 `Accounts` 组中配置并启用对应子战网的角色。安装目录有调整时，可在 `Rotation` 组设置 `TitanDirectory` 或 `ForerverDirectory` 供 `account list` 读取资料。
+- **角色轮转。** 用需要编排的角色登录并正常下线一次，让插件保存角色资料。在「设置 → 子战网」选择服务器和子战网，再启用要轮转的角色。也可以从进程卡片点「配置角色任务」直接打开对应页面。安装目录有调整时，在「设置 → 游戏目录」更新对应服务器目录。
 - **角色轮转的 OCR。** 在管理员 PowerShell 中检查简体中文 OCR 组件。若状态为 `NotPresent`，再执行安装命令。
 
   ~~~powershell
@@ -34,19 +34,19 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\publish.ps1
   Add-WindowsCapability -Online -Name 'Language.OCR~~~zh-CN~0.0.1.0'
   ~~~
 
-- **角色创建。** 按[角色创建 OCR](#角色创建-ocr)准备 Python 环境，可以先用「创建预览」读取保存的截图。
+- **角色创建。** 按[角色创建 OCR](#角色创建-ocr)准备 Python 环境，可以在「角色创建 → 从图片测试」识别已保存的截图。
 - **钓鱼音频识别。** 进程音频采集要求 Windows Build 20348 或更新版本，Windows 11 桌面系统满足该版本要求。较旧的系统可执行 `.\publish\Cli\wowauto-cli.exe config set Fish.AudioDetectionEnabled false`，改用定时钓鱼。
 
 ## 导入旧脚本配置
 
-已有脚本配置时，可在桌面程序点「设置 → 导入旧脚本配置」并选择原 `wowAuto` 目录，或运行下列命令。导入后的设置保存在 C# 版数据目录。
+已有脚本配置时，启动桌面程序后，用 CLI 指定原 `wowAuto` 目录。导入后的设置保存在 C# 版数据目录。
 
 ~~~powershell
 $legacy = (Resolve-Path -LiteralPath '..\wowAuto').Path
 .\publish\Cli\wowauto-cli.exe config import $legacy
 ~~~
 
-导入读取原脚本的钓鱼 INI、子战网任务、战斗与抓宠配置、游戏目录和轮转间隔、队列优先级、角色创建设置。如果旧截图热键已被占用，导入会保留 C# 程序当前热键并在回执中显示被跳过的字段。旧三槽位计划和进程账号绑定属于历史数据。角色名单以当前子战网配置和客户端插件保存的角色记录为准。试听文件 titan-01-match.wav、titan-02-match.wav 和 forerver-01-match.wav 可放在数据目录的 audio-samples 或发布目录的 AudioSamples。游戏插件内保存的商品清单和宠物名称继续在游戏里设置。
+导入读取原脚本的钓鱼 INI、子战网任务、战斗与抓宠配置、游戏目录和轮转间隔、队列优先级、角色创建设置。如果旧截图热键已被占用，导入会保留 C# 程序当前热键并在回执中显示被跳过的字段。旧三槽位计划和进程账号绑定属于历史数据。角色名单以当前子战网配置和客户端插件保存的角色记录为准。在仓库里运行时可直接试听脚本目录已有的匹配录音。也可将 titan-01-match.wav、titan-02-match.wav 和 forerver-01-match.wav 放在数据目录的 audio-samples 或发布目录的 AudioSamples。游戏插件内保存的商品清单和宠物名称继续在游戏里设置。
 
 ## 角色创建 OCR
 
