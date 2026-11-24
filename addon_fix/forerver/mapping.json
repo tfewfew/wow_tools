@@ -17,7 +17,8 @@
           "background-scans/2.1.117/manifest.json",
           "background-scans/2.1.122/manifest.json",
           "background-scans/2.1.126/manifest.json",
-          "background-scans/2.1.132/manifest.json"
+          "background-scans/2.1.132/manifest.json",
+          "background-scans/2.1.133/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
@@ -127,7 +128,8 @@
         "description": "全量任务日志扫描统一由一秒定时任务触发，同一秒内的请求合并并保留补查标记。",
         "variants": [
           "quest-log-coalesce/12.11.1/manifest.json",
-          "quest-log-coalesce/12.12.0/manifest.json"
+          "quest-log-coalesce/12.12.0/manifest.json",
+          "quest-log-coalesce/12.14.0/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
@@ -137,7 +139,8 @@
         "description": "无限服地图已打开时，任务跟踪器在原生地图任务日志侧栏显示所选任务详情。",
         "variants": [
           "tracker-details-on-open-map/12.13.0/manifest.json",
-          "tracker-details-on-open-map/12.13.0/upgrade-popup.json"
+          "tracker-details-on-open-map/12.13.0/upgrade-popup.json",
+          "tracker-details-on-open-map/12.14.0/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
