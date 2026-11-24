@@ -1,0 +1,32 @@
+namespace WowAuto.Desktop;
+
+internal static class ActionDefaults
+{
+    public static readonly Dictionary<string, int> Priorities = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Safety.Release"] = 0, ["Hold.Pulse"] = 5,
+        ["Fight.Emergency"] = 10, ["Fight.Recover"] = 10,
+        ["Process.Close"] = 15, ["Process.Kill"] = 15, ["Process.Shutdown"] = 15,
+        ["Fight.Combat"] = 20, ["Tame.Key"] = 25, ["Fish.Reel"] = 30,
+        ["Fight.Buff"] = 40, ["Scan.Enable"] = 40, ["Rotation.Enable"] = 40, ["Rotation.EquipRod"] = 40,
+        ["Fish.EquipRod"] = 40, ["Shop.Stop"] = 40, ["Capture.Restore"] = 45, ["Fish.Item"] = 45,
+        ["Scan.Activate"] = 45, ["Rotation.Activate"] = 45,
+        ["Rotation.Logout"] = 50, ["Rotation.Menu"] = 50, ["Rotation.Select"] = 50, ["Rotation.Click"] = 50,
+        ["Shop.Logout"] = 50,
+        ["Character.Activate"] = 50, ["Character.Click"] = 50,
+        ["Shop.Prepare"] = 55, ["Shop.Visit"] = 55, ["Shop.Close"] = 55, ["Fight.Interact"] = 55,
+        ["Fight.Target"] = 60, ["Fight.Opening"] = 60, ["Fish.Cast"] = 65,
+        ["Fight.MoveForward"] = 70, ["Fight.MoveBackward"] = 70, ["Fight.MoveLeft"] = 70, ["Fight.MoveRight"] = 70,
+        ["Fish.AudioTimeout"] = 70, ["Fish.Jump"] = 80, ["Fight.Jump"] = 80,
+        ["Tame.Jump"] = 80, ["Rest.Jump"] = 80, ["Shop.Jump"] = 80,
+        ["Fish.FocusRetry"] = 85, ["Scan.Restore"] = 85, ["Rotation.Login"] = 95, ["Rotation.Validate"] = 95,
+        ["Scan.Observe"] = 95, ["Process.Observe"] = 95
+    };
+
+    public static int Priority(Settings settings, string name)
+    {
+        if (name is "Rotation.ParkCursor" or "Rotation.Up")
+            name = "Rotation.Select";
+        return settings.Priorities.TryGetValue(name, out int value) ? value : Priorities[name];
+    }
+}
