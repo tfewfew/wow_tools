@@ -5,7 +5,8 @@ param(
     [string]$ForerverGameRoot = 'C:\Program Files (x86)\World of Warcraft\_forever_',
     [string]$Python,
     [string]$ReportPath,
-    [switch]$CheckOnly
+    [switch]$CheckOnly,
+    [ValidateNotNullOrEmpty()][string]$Plugin
 )
 $ErrorActionPreference = 'Stop'
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
@@ -25,6 +26,7 @@ $mutex = [Threading.Mutex]::new($false, 'Local\WowTools.AddonFix')
 $locked = $false
 $reports = @()
 $needsReview = $false
+$matchedPlugin = -not $Plugin
 try {
     try { $locked = $mutex.WaitOne(0) } catch [Threading.AbandonedMutexException] { $locked = $true }
     if (-not $locked) { throw 'Another addon repair operation is running.' }
@@ -46,11 +48,23 @@ try {
         $operations = @()
         foreach ($result in $report.patches) {
             Write-Output "$($profile.Flavor)/$($result.plugin)/$($result.patch): $($result.status) (version $($result.version))."
+            $selected = -not $Plugin -or $result.plugin -eq $Plugin
+            if ($selected) { $matchedPlugin = $true }
             if ($result.status -eq 'review') {
-                $needsReview = $true
+                if ($selected) { $needsReview = $true }
                 Write-Warning $result.reason
             }
-            if ($result.status -eq 'applicable') {
+            if ($selected -and $result.status -eq 'applicable') {
+                if ($Plugin) {
+                    foreach ($requirement in $result.requires) {
+                        $pendingRequirement = $report.patches | Where-Object {
+                            $_.plugin -eq $requirement.plugin -and $_.patch -eq $requirement.patch -and $_.status -eq 'applicable'
+                        }
+                        if ($requirement.plugin -ne $Plugin -and $pendingRequirement) {
+                            throw "Apply required repair $($requirement.plugin)/$($requirement.patch) before selecting $Plugin."
+                        }
+                    }
+                }
                 $manifest = Get-Content -LiteralPath $result.manifest -Raw -Encoding UTF8 | ConvertFrom-Json
                 $operations += [pscustomobject]@{ result = $result; manifest = $manifest; patch = Join-Path (Split-Path $result.manifest -Parent) $manifest.patch }
             }
@@ -143,6 +157,7 @@ try {
             if (Test-Path -LiteralPath $resolvedStage) { Remove-Item -LiteralPath $resolvedStage -Recurse -Force }
         }
     }
+    if (-not $matchedPlugin) { throw "No mapped repairs for $Plugin in the selected clients." }
     if ($ReportPath) {
         [IO.File]::WriteAllText([IO.Path]::GetFullPath($ReportPath), (ConvertTo-Json -InputObject $reports -Depth 20), [Text.UTF8Encoding]::new($false))
     }
