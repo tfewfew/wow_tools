@@ -285,14 +285,21 @@ MenuUtil = { CreateContextMenu = function(owner, generator)
 end }
 Enum = { WeaponSlot = {MainHand = 0}, ItemEnchantType = {Permanent = 1, Temporary = 2, Imbue = 3} }
 local trainerSpellPostCall
+local itemTooltipPostCalls = {}
 if flavor == "forerver" then
     Enum.TooltipDataType = {Item = 0, Spell = 1}
     TooltipDataProcessor = {AddTooltipPostCall = function(dataType, callback)
+        if dataType == Enum.TooltipDataType.Item then
+            itemTooltipPostCalls[#itemTooltipPostCalls + 1] = callback
+            return
+        end
         if dataType ~= Enum.TooltipDataType.Spell then return end
         assert(not trainerSpellPostCall and type(callback) == "function", "Invalid spell tooltip post-call binding")
         trainerSpellPostCall = callback
     end}
     function GameTooltip:GetProcessingTooltipInfo() return self.processingInfo end
+    function GameTooltip:GetPrimaryTooltipInfo() return self.primaryInfo end
+    function GameTooltip:GetPrimaryTooltipData() return self.primaryInfo and self.primaryInfo.tooltipData end
 end
 ItemLocation = { CreateFromEquipmentSlot = function(_, slot) assert(slot == 16); return {slot = slot} end }
 C_Item = {
@@ -507,7 +514,10 @@ if flavor == "forerver" then
         local options = chatMock.options.WoWToolsPRR()
         assert(options.args.general and options.args.tooltip and options.args.language,
             "PRR embedded options lost pages")
+        local postCallCount = #itemTooltipPostCalls
         bestiary.events.scripts.OnEvent(bestiary.events, "PLAYER_LOGIN")
+        assert(#itemTooltipPostCalls == postCallCount + 1, "Bestiary item tooltip post-call is not registered")
+        local bestiaryItemPostCall = itemTooltipPostCalls[#itemTooltipPostCalls]
         assert(bestiary.ready and type(bestiary.OpenBrowser) == "function", "Bestiary initialization contract failed")
         assert(bestiary.language == expectedLanguage and bestiary.db.language == expectedLanguage,
             "Bestiary language default/persistence binding failed")
@@ -567,6 +577,39 @@ if flavor == "forerver" then
         function UIParent:GetEffectiveScale() return parentScale end
         function detail:SetScale(value) frameScale = value end
         function detail:GetEffectiveScale() return parentScale * frameScale end
+        local raptor = prr.Dataflows.RecipeIndex.Get(1250153)
+        assert(raptor.item == 250076 and raptor.recipeItem == 250184,
+            "PRR Raptor Rouladen output and recipe IDs changed")
+        local originalAlt, originalContainerID = IsAltKeyDown, C_Container.GetContainerItemID
+        function IsAltKeyDown() return true end
+        function C_Container.GetContainerItemID(bag, slot)
+            assert(bag == 0 and slot == 4, "Bestiary used the wrong native bag/slot arguments")
+            return raptor.recipeItem
+        end
+        local produced = {type = Enum.TooltipDataType.Item, id = raptor.item, hyperlink = "item:" .. raptor.item}
+        for _, request in ipairs({
+            {getterName = "GetItemByID", getterArgs = {raptor.recipeItem}},
+            {getterName = "GetHyperlink", getterArgs = {"|Hitem:" .. raptor.recipeItem .. ":0|h[Recipe]|h"}},
+            {getterName = "GetBagItem", getterArgs = {0, 4}},
+        }) do
+            detail:Hide()
+            request.tooltipData = produced
+            GameTooltip.primaryInfo = request
+            bestiaryItemPostCall(GameTooltip, {type = produced.type, id = raptor.item})
+            assert(not detail:IsShown(), "An appended preview claimed the Bestiary Alt selection")
+            bestiaryItemPostCall(GameTooltip, produced)
+            assert(detail:IsShown() and detail.name:GetText() == "物品" .. raptor.recipeItem
+                and detail.columns[1].rows[1].entry.id == 4357,
+                "Bestiary did not use the primary request to show the recipe's Bloodfen Lashtail source")
+        end
+        detail:Hide()
+        GameTooltip.primaryInfo = {getterName = "GetItemByID", getterArgs = {raptor.item}, tooltipData = produced}
+        bestiaryItemPostCall(GameTooltip, produced)
+        assert(detail:IsShown() and detail.name:GetText() == "物品" .. raptor.item,
+            "Bestiary source lookup changed the identity of the crafted food")
+        detail:Hide()
+        GameTooltip.primaryInfo = nil
+        IsAltKeyDown, C_Container.GetContainerItemID = originalAlt, originalContainerID
         local savedScale = bestiary.db.bestiary.scale
         local right = detail.columns[2]
         bestiary.ShowBestiary(boar, false, false)

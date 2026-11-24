@@ -262,7 +262,47 @@ function Addon.BestiaryDemo()
 end
 
 -- Alt-hover selection and item locking
-local function showHoveredItem(tooltipItemID)
+local function itemID(value)
+    if isReadableValue(value) and type(value) == 'number' and value > 0 then
+        return value
+    end
+end
+
+local function linkItemID(link)
+    if isReadableValue(link) and type(link) == 'string' then
+        return itemID(tonumber(link:match('item:(%d+)')))
+    end
+end
+
+local function hoveredItemID()
+    local info = GameTooltip.GetPrimaryTooltipInfo and GameTooltip:GetPrimaryTooltipInfo()
+    if info then
+        local data = info.tooltipData
+        if info.append or not data or not isReadableValue(data.type) or data.type ~= Enum.TooltipDataType.Item then
+            return nil
+        end
+        local args = info.getterArgs
+        -- A recipe tooltip can report the crafted item's ID in its rendered data.
+        local requestedID
+        if args and info.getterName == 'GetItemByID' then
+            requestedID = itemID(args[1])
+        elseif args and info.getterName == 'GetHyperlink' then
+            requestedID = linkItemID(args[1])
+        elseif args and info.getterName == 'GetBagItem' and C_Container and C_Container.GetContainerItemID then
+            local bag, slot = args[1], args[2]
+            if isReadableValue(bag) and type(bag) == 'number' and itemID(slot) then
+                requestedID = itemID(C_Container.GetContainerItemID(bag, slot))
+            end
+        end
+        return requestedID or linkItemID(data.hyperlink) or itemID(data.id)
+    end
+    if GameTooltip:IsShown() then
+        local ok, _, link = pcall(GameTooltip.GetItem, GameTooltip)
+        return ok and linkItemID(link)
+    end
+end
+
+local function showHoveredItem()
     if Addon.db.bestiary.itemHover == false then
         return false
     end
@@ -277,18 +317,7 @@ local function showHoveredItem(tooltipItemID)
     if isPinned or (bestiaryFrame:IsShown() and bestiaryFrame:IsMouseOver()) then
         return false
     end
-    -- Item post-calls can run before the tooltip is shown or GetItem is updated.
-    local id = isReadableValue(tooltipItemID) and tonumber(tooltipItemID) or nil
-    if not id then
-        if not GameTooltip:IsShown() then
-            return false
-        end
-        local ok, _, link = pcall(GameTooltip.GetItem, GameTooltip)
-        if not ok or not isReadableValue(link) or type(link) ~= 'string' then
-            return false
-        end
-        id = tonumber(link:match('item:(%d+)'))
-    end
+    local id = hoveredItemID()
     if not id then
         return false
     end
@@ -606,8 +635,9 @@ function Addon.BuildBestiary()
     end)
     if TooltipDataProcessor and Enum and Enum.TooltipDataType then
         TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(tooltip, data)
-            if tooltip == GameTooltip then
-                showHoveredItem(data and data.id)
+            -- Appended item previews must not take the first selection in an Alt press.
+            if tooltip == GameTooltip and data == tooltip:GetPrimaryTooltipData() then
+                showHoveredItem()
             end
         end)
     elseif hooksecurefunc then
