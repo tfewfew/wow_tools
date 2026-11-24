@@ -13,7 +13,7 @@ internal static class ActionDefaults
         ["Scan.Activate"] = 45, ["Rotation.Activate"] = 45,
         ["Rotation.Logout"] = 50, ["Rotation.Menu"] = 50, ["Rotation.Select"] = 50, ["Rotation.Click"] = 50,
         ["Shop.Logout"] = 50,
-        ["Character.Activate"] = 50, ["Character.Click"] = 50,
+        ["Character.Activate"] = 50, ["Character.Capture"] = 50, ["Character.Click"] = 50,
         ["Shop.Prepare"] = 55, ["Shop.Visit"] = 55, ["Shop.Close"] = 55, ["Fight.Interact"] = 55,
         ["Fight.Target"] = 60, ["Fight.Opening"] = 60, ["Fish.Cast"] = 65,
         ["Fight.MoveForward"] = 70, ["Fight.MoveBackward"] = 70, ["Fight.MoveLeft"] = 70, ["Fight.MoveRight"] = 70,

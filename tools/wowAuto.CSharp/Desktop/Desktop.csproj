@@ -10,5 +10,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Protocol\Protocol.csproj" />
     <Content Include="AudioFeatures\*.feature" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="CharacterOcr\bridge.py" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\wowAuto\character-create\automation.py;..\..\wowAuto\character-create\ocr_engine.py;..\..\wowAuto\character-create\requirements.txt;..\..\wowAuto\character-create\install-runtime.ps1"
+             Link="CharacterOcr\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

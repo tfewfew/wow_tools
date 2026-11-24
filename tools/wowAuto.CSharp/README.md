@@ -4,7 +4,7 @@ Windows 桌面程序和命令行客户端。桌面程序包含钓鱼、战斗、
 
 ## 构建与启动
 
-需要 .NET 10 SDK 和 Windows 10 2004 或更新版本。角色轮转和角色创建使用 Windows 简体中文 OCR 语言功能。游戏进程音频需要支持进程回环采集的系统版本。
+需要 .NET 10 SDK 和 Windows 10 2004 或更新版本。角色轮转使用 Windows 简体中文 OCR 语言功能。角色创建使用原 RapidOCR 和 ONNX Runtime，运行环境见下文。游戏进程音频需要支持进程回环采集的系统版本。
 
 ~~~powershell
 dotnet build .\wowAuto.slnx -c Release
@@ -21,6 +21,18 @@ dotnet publish .\Cli\Cli.csproj -c Release -r win-x64 --self-contained true -p:P
 ~~~
 
 导入读取原脚本的钓鱼 INI、子战网任务、战斗与抓宠配置、游戏目录和轮转间隔、队列优先级、角色创建设置。如果旧截图热键已被占用，导入会保留 C# 程序当前热键并在回执中显示被跳过的字段。旧三槽位计划和进程账号绑定属于历史数据。角色名单以当前子战网配置和客户端插件保存的角色记录为准。试听文件 titan-01-match.wav、titan-02-match.wav 和 forerver-01-match.wav 可放在数据目录的 audio-samples 或发布目录的 AudioSamples。游戏插件内保存的商品清单和宠物名称继续在游戏里设置。
+
+## 角色创建 OCR
+
+WowAuto.exe 通过 UTF-8 JSON Lines 管理 RapidOCR 后台。构建把旧版 OCR 图像处理、按钮预览和重试策略原样打包进发布目录下的 CharacterOcr。截图、窗口激活和点击在 C# 操作线程处理。导出的预览保留原图尺寸。
+
+启动时优先使用 WOWAUTO_CHARACTER_PYTHON 指定的解释器，然后查找发布目录内 CharacterOcr/.runtime 的解释器。在仓库里运行时，也可以直接使用旧脚本已有的 Python 环境。独立发布目录可以用附带的安装脚本准备专用环境，安装目标在该目录下。
+
+~~~powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\publish\Desktop\CharacterOcr\install-runtime.ps1
+~~~
+
+角色创建运行中可通过 `config set` 更新 `CharacterCreate.IntervalSeconds`、`CharacterCreate.AutoStop` 和 `CharacterCreate.DryRun`。后台下次读取状态时采用新设置，并更新 `status get` 中的配置版本。修改间隔时从本轮已用时间继续计算。试运行启用后，C# 也会在实际点击前复核开关。
 
 ## CLI
 
@@ -62,4 +74,4 @@ wowauto-cli status watch --pid 1234 --json
 
 ## 验证
 
-本地验证覆盖 .NET 编译、管道协议、配置读取与校验、版本回执，以及仓库的两服语法、语义和接口兼容性检查。框选、真实游戏输入和时序、OCR 识别效果、音频命中以及退出流程由实际使用验证。角色创建从旧 Python OCR 后台迁为 Windows OCR，仍按区域及红色按钮判断识别结果。
+本地验证覆盖 .NET 编译、管道协议、配置读取与校验、版本回执，以及仓库的两服语法、语义和接口兼容性检查。框选、真实游戏输入和时序、OCR 识别效果、音频命中以及退出流程由实际使用验证。

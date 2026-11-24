@@ -275,7 +275,9 @@ internal sealed class CommandProcessor(Automation automation, DesktopServices de
                 return await Work(id, wait, async () =>
                 {
                     CreationResult outcome = await pending!;
-                    return (outcome.State.Mode != "failed", outcome);
+                    if (outcome.State.Mode == "failed")
+                        throw new InvalidOperationException(outcome.State.Message);
+                    return (true, outcome);
                 });
             }
             case "character stop":
