@@ -45,6 +45,13 @@ internal sealed partial class SettingsWindow : GrayForm
                 StopAudioPreview();
             foreach (SettingsDraft draft in drafts)
                 draft.Refresh(automation.Config);
+            if (Visible && tabs.SelectedTab == accountsPage)
+                _ = accounts.LoadAsync();
+        };
+        Shown += (_, _) =>
+        {
+            if (tabs.SelectedTab == accountsPage)
+                _ = accounts.LoadAsync();
         };
         previewTimer.Tick += (_, _) => StopAudioPreview();
         if (process is not null)
@@ -94,7 +101,7 @@ internal sealed partial class SettingsWindow : GrayForm
             "角色列表只显示有插件保存记录的角色。上线和下线都会采集资料，无需启动检测；正常下线或 /reload 落盘后再刷新。等级与背包空格为最近保存快照。留空可停用该版本的目录扫描。",
             20, 305, 900, 110);
         Ui.Button(page, "保存游戏目录", 20, 440, 180, 38, () =>
-            draft.SaveWithFeedback(status, "游戏目录已保存，子战网列表已刷新。", () => accounts.Reload()), true);
+            draft.SaveWithFeedback(status, "游戏目录已保存。", accounts.InvalidateCatalog), true);
     }
 
     private static string ResolveDirectory(string value, string flavor)

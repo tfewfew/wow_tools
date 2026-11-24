@@ -17,7 +17,8 @@ internal sealed partial class MainWindow
     private SettingsDraft creationDraft = null!, tameDraft = null!;
     private bool f8;
     private string? creationMessage;
-    private ProcessChoice[] creationChoices = [], tameChoices = [];
+    private ProcessChoice[] availableWindows = [], creationSource = [], tameSource = [];
+    private string? appliedTitleFilter;
 
     private void BuildCreationPage()
     {
@@ -196,13 +197,50 @@ internal sealed partial class MainWindow
         return ForProcess((process.Pid, process.Start), "task", "stop", "--wait");
     }
 
-    private void RenderTaskPages(RuntimeView state, Configuration config)
+    private void RenderTaskPages(DesktopView state, Configuration config)
+    {
+        CreationView creation = state.Creation;
+        if (creationMessage != creation.Message)
+        {
+            if (creationMessage is not null || creation.Active)
+                WriteCreation(creation.Message);
+            creationMessage = creation.Message;
+        }
+        tamePage.Enabled = !state.ShuttingDownGames && !creation.Active;
+        bool pressed = WowAuto.CharacterCreate.Native.KeyDown(0x77);
+        if (tabs.SelectedTab == creationPage)
+        {
+            RenderCreation(state, config);
+            if (pressed && !f8 && ContainsFocus)
+            {
+                f8 = true;
+                if (createStop.Enabled)
+                    Run(StopCreation, WriteCreation);
+                else if (createStart.Enabled)
+                    Run(StartCreation, WriteCreation);
+            }
+        }
+        else if (tabs.SelectedTab == tamePage)
+            RenderTame(state, config);
+        f8 = pressed;
+    }
+
+    private void RenderCreation(DesktopView state, Configuration config)
     {
         creationDraft.Refresh(config);
-        tameDraft.Refresh(config);
-        CreationView creation = automation.Creator.View;
+        CreationView creation = state.Creation;
         if (!creation.Active)
-            RefreshChoices(creationWindows, ref creationChoices, state.Processes, titleFilter.Text);
+        {
+            ProcessChoice[] source = AvailableWindows(state.Processes);
+            string filter = titleFilter.Text;
+            if (creationSource != source || appliedTitleFilter != filter)
+            {
+                creationSource = source;
+                appliedTitleFilter = filter;
+                UpdateChoices(creationWindows, source.Where(item => filter.Length == 0 ||
+                    item.Label.Contains(filter, StringComparison.CurrentCultureIgnoreCase)).ToArray());
+            }
+        }
         foreach (Control input in creationInputs)
             input.Enabled = !creation.Active;
         bool createAvailable = !creation.Active && !scanning && state.ShutdownAt is null &&
@@ -211,46 +249,46 @@ internal sealed partial class MainWindow
         previewFile.Enabled = createAvailable;
         createStop.Enabled = creation.Active;
         Ui.SetText(creationCounts, $"完成点击 {creation.Finishes} 次 · 确定点击 {creation.Confirmations} 次");
-        if (creationMessage != creation.Message)
-        {
-            if (creationMessage is not null || creation.Active)
-                WriteCreation(creation.Message);
-            creationMessage = creation.Message;
-        }
+    }
 
-        RefreshChoices(tameWindows, ref tameChoices, state.Processes);
+    private void RenderTame(DesktopView state, Configuration config)
+    {
+        tameDraft.Refresh(config);
+        ProcessChoice[] source = AvailableWindows(state.Processes);
+        if (tameSource != source)
+        {
+            tameSource = source;
+            UpdateChoices(tameWindows, source);
+        }
         ProcessChoice? target = tameWindows.SelectedItem as ProcessChoice;
         ProcessView? process = target is null ? null : state.Processes.FirstOrDefault(item => item.Pid == target.Pid && item.StartTicks == target.Start);
-        tameStart.Enabled = process is not null && !IsBusy(process) && !scanning && !creation.Active &&
+        tameStart.Enabled = process is not null && !IsBusy(process) && !scanning && !state.Creation.Active &&
             state.ShutdownAt is null && !state.ShuttingDownGames;
         tameStop.Enabled = process is { Mode: "tame" } && IsBusy(process);
-        tamePage.Enabled = !state.ShuttingDownGames && !creation.Active;
         Ui.SetText(tameStatus, process?.Message ?? "使用“进程任务”页的刷新按钮发现游戏进程。");
-
-        bool pressed = WowAuto.CharacterCreate.Native.KeyDown(0x77);
-        if (pressed && !f8 && ContainsFocus && tabs.SelectedTab == creationPage)
-        {
-            f8 = true;
-            if (createStop.Enabled)
-                Run(StopCreation, WriteCreation);
-            else if (createStart.Enabled)
-                Run(StartCreation, WriteCreation);
-        }
-        f8 = pressed;
     }
 
     private static ProcessChoice SelectedWindow(ComboBox windows) =>
         windows.SelectedItem as ProcessChoice ?? throw new InvalidOperationException("请选择有效的游戏窗口。");
 
-    private static void RefreshChoices(ComboBox combo, ref ProcessChoice[] existing, ProcessView[] processes, string filter = "")
+    private ProcessChoice[] AvailableWindows(ProcessView[] processes)
     {
-        var items = processes.Select(item => new ProcessChoice(item.Pid, item.StartTicks,
-            $"{item.Title} [PID {item.Pid} / {Ui.FlavorLabel(item.Flavor)}]"))
-            .Where(item => filter.Length == 0 || item.Label.Contains(filter, StringComparison.CurrentCultureIgnoreCase)).ToArray();
-        if (items.SequenceEqual(existing))
-            return;
+        bool changed = processes.Length != availableWindows.Length;
+        for (int i = 0; !changed && i < processes.Length; i++)
+        {
+            ProcessView process = processes[i];
+            ProcessChoice choice = availableWindows[i];
+            changed = process.Pid != choice.Pid || process.StartTicks != choice.Start ||
+                process.Title != choice.Title || process.Flavor != choice.Flavor;
+        }
+        if (changed)
+            availableWindows = processes.Select(item => new ProcessChoice(item.Pid, item.StartTicks, item.Title, item.Flavor)).ToArray();
+        return availableWindows;
+    }
+
+    private static void UpdateChoices(ComboBox combo, ProcessChoice[] items)
+    {
         ProcessChoice? previous = combo.SelectedItem as ProcessChoice;
-        existing = items;
         combo.BeginUpdate();
         try
         {
@@ -262,8 +300,9 @@ internal sealed partial class MainWindow
         finally { combo.EndUpdate(); }
     }
 
-    private sealed record ProcessChoice(int Pid, long Start, string Label)
+    private sealed record ProcessChoice(int Pid, long Start, string Title, string Flavor)
     {
+        public string Label { get; } = $"{Title} [PID {Pid} / {Ui.FlavorLabel(Flavor)}]";
         public string PidText => Pid.ToString(CultureInfo.InvariantCulture);
         public string StartText => Start.ToString(CultureInfo.InvariantCulture);
         public override string ToString() => Label;

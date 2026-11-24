@@ -12,6 +12,9 @@ internal sealed record RuntimeView(Guid InstanceId, DateTimeOffset StartedAt, lo
     bool Paused, bool ShuttingDownGames, long? ShutdownAt, long? ShutdownRemainingMs, string? RotationBatch,
     object? CharacterCreate, object? Desktop, ProcessView[] Processes, object[] PendingActions, ActionResult[] RecentActions, string? LogError);
 
+internal readonly record struct DesktopView(long Now, bool ShuttingDownGames, long? ShutdownAt, long? ShutdownRemainingMs,
+    CreationView Creation, ProcessView[] Processes, string? LogError);
+
 internal sealed class Automation : IAsyncDisposable
 {
     private readonly object gate = new();
@@ -60,10 +63,19 @@ internal sealed class Automation : IAsyncDisposable
         long now = Hub.Now, due = Interlocked.Read(ref shutdownAt);
         return new(InstanceId, startedAt, now, Config.Revision, Hub.Paused, shuttingDown, due > 0 ? due : null,
             due > 0 ? Math.Max(0, due - now) : null, Hub.Batch is { } batch && !batch.All(8) ? batch.Id : null,
-            Creator.View, DesktopState?.Invoke(), Rows.Where(row => pid is null || row.Client.ProcessId == pid)
-                .Select(row => Volatile.Read(ref row.View)).ToArray(), Hub.OperationSnapshots(),
+            Creator.View, DesktopState?.Invoke(), ProcessViews(pid), Hub.OperationSnapshots(),
             completed.Where(action => pid is null || action.Pid == pid).ToArray(), Hub.Logger.LastError);
     }
+
+    public DesktopView DesktopSnapshot()
+    {
+        long now = Hub.Now, due = Interlocked.Read(ref shutdownAt);
+        return new(now, shuttingDown, due > 0 ? due : null, due > 0 ? Math.Max(0, due - now) : null,
+            Creator.View, ProcessViews(null), Hub.Logger.LastError);
+    }
+
+    private ProcessView[] ProcessViews(int? pid) => Rows.Where(row => pid is null || row.Client.ProcessId == pid)
+        .Select(row => Volatile.Read(ref row.View)).ToArray();
 
     public void Changed()
     {

@@ -43,6 +43,7 @@ internal sealed partial class MainWindow : GrayForm
         BuildTamePage();
         CompleteLayout();
         creationPage.Resize += (_, _) => ResizeCreationPage();
+        tabs.SelectedIndexChanged += (_, _) => Render();
         list.SizeChanged += (_, _) => ResizeCards();
         Shown += (_, _) =>
         {
@@ -164,7 +165,7 @@ internal sealed partial class MainWindow : GrayForm
 
     private Task OpenCountdown()
     {
-        RuntimeView state = automation.Snapshot();
+        DesktopView state = automation.DesktopSnapshot();
         using var dialog = new GrayForm
         {
             Text = "结束倒计时", StartPosition = FormStartPosition.CenterParent, ClientSize = Ui.Size(470, 180),
@@ -210,13 +211,15 @@ internal sealed partial class MainWindow : GrayForm
 
     private void Render()
     {
-        RuntimeView state = automation.Snapshot();
+        if (Disposing || IsDisposed)
+            return;
+        DesktopView state = automation.DesktopSnapshot();
         Configuration configuration = automation.Config;
         Settings effective = configuration.Effective;
         if (timer.Interval != effective.Operations.UiRefreshMs)
             timer.Interval = effective.Operations.UiRefreshMs;
-        bool blocked = scanning || state.ShuttingDownGames || automation.Creator.Active;
-        processPage.Enabled = !state.ShuttingDownGames && !automation.Creator.Active;
+        bool blocked = scanning || state.ShuttingDownGames || state.Creation.Active;
+        processPage.Enabled = !state.ShuttingDownGames && !state.Creation.Active;
         bool canStart = !blocked && state.ShutdownAt is null;
         foreach (var key in cards.Keys.Except(state.Processes.Select(item => (item.Pid, item.StartTicks))).ToArray())
         {
