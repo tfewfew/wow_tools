@@ -7,14 +7,14 @@ Windows 桌面程序和命令行客户端。桌面程序包含钓鱼、战斗、
 需要 .NET 10 SDK 和 Windows 10 2004 或更新版本。角色轮转使用 Windows 简体中文 OCR 语言功能。角色创建使用原 RapidOCR 和 ONNX Runtime，运行环境见下文。游戏进程音频需要支持进程回环采集的系统版本。
 
 ~~~powershell
-dotnet build .\wowAuto.slnx -c Release
-dotnet publish .\Desktop\Desktop.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o .\publish\Desktop
-dotnet publish .\Cli\Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o .\publish\Cli
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\publish.ps1
 .\publish\Desktop\WowAuto.exe
 .\publish\Cli\wowauto-cli.exe help
 ~~~
 
 桌面发布目录中的 AudioFeatures 是运行所需的音频特征。实际设置和日志保存在 %LOCALAPPDATA%\wowAuto.CSharp。可用 WowAuto.exe --data-root DIR 指定独立位置。原脚本的设置可以按需导入，导入后的保存位置仍在 C# 版数据目录。
+
+首次克隆和发布步骤见[仓库 README](../../README.md#首次克隆后生成-wowauto-exe)。
 
 ~~~powershell
 .\publish\Cli\wowauto-cli.exe config import ..\wowAuto

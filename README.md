@@ -5,8 +5,26 @@
 - [addon/titan/](addon/titan/README.md)：泰坦时光服插件，接口38002，独立源码在 `addon/titan/wow_tools/`。
 - [addon/forerver/](addon/forerver/README.md)：无限服插件，接口16001，独立源码在 `addon/forerver/wow_tools/`。目录名按约定保留为 `forerver`。
 - [tools/wowAuto/](tools/wowAuto/README.md)：wowAuto 脚本及使用说明。
+- [tools/wowAuto.CSharp/](tools/wowAuto.CSharp/README.md) 提供 C# 桌面程序和 CLI 的使用说明。
 - `skills/wow-tools/SKILL.md`：维护说明及发布顺序。
 - 第三方插件的上游仓库、引入版本及完整 commit ID 分别见[时光服对照表](addon/titan/THIRD_PARTY.md)和[无限服对照表](addon/forerver/THIRD_PARTY.md)。
+
+## 首次克隆后生成 wowAuto EXE
+
+在 Windows x64 安装 Git 和 [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)。打开 PowerShell，克隆仓库并运行发布脚本。
+
+~~~powershell
+git clone git@github.com:tfewfew/wow_tools.git
+Set-Location wow_tools
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\wowAuto.CSharp\publish.ps1
+~~~
+
+脚本会生成两个自带 .NET 运行时的 Windows x64 EXE。`publish/` 和 EXE 由 Git 忽略，远端提交包含源码、脚本和说明。
+
+- 桌面程序在 `tools\wowAuto.CSharp\publish\Desktop\WowAuto.exe`。运行或分发时保留同目录的 `AudioFeatures` 和 `CharacterOcr`。
+- CLI 在 `tools\wowAuto.CSharp\publish\Cli\wowauto-cli.exe`。启动桌面程序后运行 CLI 的 `help` 查看命令。
+
+如果 SDK 安装在非默认位置，可给发布脚本追加 `-DotNet 'C:\路径\dotnet.exe'`。首次发布会由 .NET 恢复构建依赖。生成 EXE 所需的构建环境只需 .NET SDK，使用角色创建时再按[角色创建 OCR 说明](tools/wowAuto.CSharp/README.md#角色创建-ocr)准备 Python 环境。
 
 ## 本地检查
 
