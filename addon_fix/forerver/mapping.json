@@ -134,9 +134,10 @@
       },
       {
         "id": "tracker-details-on-open-map",
-        "description": "无限服地图已打开时，任务跟踪器通过原生独立详情窗口显示所选任务，避免改动世界地图及刷新地图标记。",
+        "description": "无限服地图已打开时，任务跟踪器在原生地图任务日志侧栏显示所选任务详情。",
         "variants": [
-          "tracker-details-on-open-map/12.13.0/manifest.json"
+          "tracker-details-on-open-map/12.13.0/manifest.json",
+          "tracker-details-on-open-map/12.13.0/upgrade-popup.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []

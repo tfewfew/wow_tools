@@ -1,17 +1,29 @@
 --- a/Questie/Modules/Tracker/TrackerUtils.lua
 +++ b/Questie/Modules/Tracker/TrackerUtils.lua
-@@ -88,6 +88,14 @@
+@@ -79,14 +79,22 @@
+         return
+     end
+ 
+-    -- Forever: QuestMapFrame_OpenToQuestDetails changes the world map from addon code, which leaves the map's state
+-    -- tainted for the session. Later map navigation in combat then gets Blizzard's pins blocked
+-    -- (SetPassThroughButtons, SetPropagateMouseClicks). Selecting the quest and opening its map through the client
+-    -- keeps Blizzard's own code in charge of the map.
++    -- Opening a closed map through the client avoids running its OnShow pin refresh from addon code.
+     if Questie.IsForever then
+         if InCombatLockdown() then
              Questie:Print(l10n("Can't open Quest Log while in combat. Open it manually."))
              return
-         end
-+        local questDetails = QuestLogPopupDetailFrame
-+        if WorldMapFrame and WorldMapFrame:IsVisible() and questDetails and questDetails.ShowQuest and questDetails.IsShowingQuest then
-+            -- The standalone details avoid changing the map or refreshing its pins.
-+            if not questDetails:IsShowingQuest(quest.Id) then
-+                questDetails:ShowQuest(quest.Id)
-+            end
-+            return
 +        end
++        if WorldMapFrame and WorldMapFrame:IsVisible() then
++            local questLog = WorldMapFrame.QuestLog
++            if questLog and questLog:IsVisible() and QuestMapFrame_ShowQuestDetails then
++                QuestMapFrame_ShowQuestDetails(quest.Id)
++                return
++            end
++            if QuestMapFrame_OpenToQuestDetails then
++                QuestMapFrame_OpenToQuestDetails(quest.Id)
++                return
++            end
+         end
          C_QuestLog.SetSelectedQuest(quest.Id)
          local uiMapId = QuestieCompat.GetQuestUiMapID(quest.Id)
-         if uiMapId then
