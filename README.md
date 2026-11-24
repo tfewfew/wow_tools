@@ -26,7 +26,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\wowAuto.CSharp\p
 
 如果 SDK 安装在非默认位置，可给发布脚本追加 `-DotNet 'C:\路径\dotnet.exe'`。首次发布会恢复构建依赖。
 
-打开 `WowAuto.exe`，等主窗口出现后，在同一个 Windows 用户会话的 PowerShell 中检查连接。
+发布成功后，脚本会在当前用户的桌面创建或更新「wowAuto C#」快捷方式，指向客户端 `WowAuto.exe`。打开客户端，等主窗口出现后，在同一个 Windows 用户会话的 PowerShell 中检查 CLI 连接。
 
 ~~~powershell
 .\tools\wowAuto.CSharp\publish\Cli\wowauto-cli.exe status get

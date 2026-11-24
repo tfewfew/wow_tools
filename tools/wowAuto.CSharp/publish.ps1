@@ -10,8 +10,9 @@ if (-not $dotnetCommand) {
 $dotnetPath = $dotnetCommand.Source
 
 $publishRoot = Join-Path $PSScriptRoot 'publish'
+$desktopTarget = @{ Name = 'Desktop'; Project = 'Desktop\Desktop.csproj'; Executable = 'WowAuto.exe' }
 $targets = @(
-    @{ Name = 'Desktop'; Project = 'Desktop\Desktop.csproj'; Executable = 'WowAuto.exe' }
+    $desktopTarget
     @{ Name = 'Cli'; Project = 'Cli\Cli.csproj'; Executable = 'wowauto-cli.exe' }
 )
 $publishArguments = @(
@@ -41,6 +42,25 @@ try {
         }
         $executable
     }
+
+    $desktopPath = [Environment]::GetFolderPath('Desktop')
+    if (-not $desktopPath) {
+        throw 'Windows did not report a desktop folder for the current user.'
+    }
+    $desktopOutput = Join-Path $publishRoot $desktopTarget.Name
+    $desktopExecutable = Join-Path $desktopOutput $desktopTarget.Executable
+    $shortcutPath = Join-Path $desktopPath 'wowAuto C#.lnk'
+    $shell = New-Object -ComObject WScript.Shell
+    $shortcut = $shell.CreateShortcut($shortcutPath)
+    $shortcut.TargetPath = $desktopExecutable
+    $shortcut.WorkingDirectory = $desktopOutput
+    $shortcut.Description = 'Launch the wowAuto desktop client'
+    $shortcut.Save()
+    $saved = $shell.CreateShortcut($shortcutPath)
+    if ($saved.TargetPath -ne $desktopExecutable -or $saved.WorkingDirectory -ne $desktopOutput) {
+        throw 'The wowAuto desktop shortcut could not be verified.'
+    }
+    Write-Host "Desktop shortcut saved at $shortcutPath"
     $executables
 }
 finally {

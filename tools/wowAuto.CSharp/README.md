@@ -11,7 +11,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\publish.ps1
 .\publish\Desktop\WowAuto.exe
 ~~~
 
-等桌面窗口打开后，在同一个 Windows 用户会话运行 `.\publish\Cli\wowauto-cli.exe status get`，确认能读到状态快照。操作说明可用 `.\publish\Cli\wowauto-cli.exe help` 查询。使用和分发桌面程序时保留发布目录中的 `AudioFeatures` 和 `CharacterOcr`。设置和日志保存在 `%LOCALAPPDATA%\wowAuto.CSharp`，也可用 `WowAuto.exe --data-root DIR` 指定独立位置。
+发布成功后会在当前用户桌面创建或更新「wowAuto C#」快捷方式，可用它打开客户端。等桌面窗口打开后，在同一个 Windows 用户会话运行 `.\publish\Cli\wowauto-cli.exe status get`，确认能读到状态快照。操作说明可用 `.\publish\Cli\wowauto-cli.exe help` 查询。使用和分发桌面程序时保留发布目录中的 `AudioFeatures` 和 `CharacterOcr`。设置和日志保存在 `%LOCALAPPDATA%\wowAuto.CSharp`，也可用 `WowAuto.exe --data-root DIR` 指定独立位置。
 
 首次克隆和发布步骤见[仓库 README](../../README.md#首次克隆后生成-wowauto-exe)。
 
