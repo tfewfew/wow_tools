@@ -56,11 +56,12 @@ internal static partial class ScreenOcr
         CharacterRecord[] catalog, CancellationToken cancellation)
     {
         Rectangle names = Rotation.NamesRegion(bitmap);
+        int maximumDimension = (int)OcrEngine.MaxImageDimension;
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
         timeout.CancelAfter(Rotation.OcrTimeoutMs(flavor));
-        var fullTask = Read(Image(bitmap), timeout.Token);
-        var anchorsTask = Read(Rotation.AnchorsPng(bitmap), timeout.Token);
-        var namesTask = Read(Rotation.NamesPng(bitmap), timeout.Token);
+        var fullTask = Read(Rotation.OcrPng(bitmap, maximumDimension), timeout.Token);
+        var anchorsTask = Read(Rotation.AnchorsPng(bitmap, maximumDimension), timeout.Token);
+        var namesTask = Read(Rotation.NamesPng(bitmap, maximumDimension), timeout.Token);
         await Task.WhenAll(fullTask, anchorsTask, namesTask);
         OcrLine[] full = fullTask.Result.Concat(anchorsTask.Result).ToArray();
         double bx = (double)names.X / bitmap.Width, by = (double)names.Y / bitmap.Height;

@@ -23,6 +23,7 @@ internal sealed class GameOperator : IDisposable
         NativeInput.WindowPixelReader = Capture.PixelReader;
         Native.FrameReader = Capture.FrameReader;
         Native.CapturePending = Capture.PendingReader;
+        Rotation.SizeReader = Capture.SizeReader;
         Rotation.FrameReader = Capture.FrameReader;
         thread = new Thread(Run) { Name = "wowAuto.Operator", IsBackground = true };
         thread.SetApartmentState(ApartmentState.MTA);

@@ -187,24 +187,28 @@ namespace WowAutoRotation {
             int width=Math.Min(b.Width,Math.Max(1,(int)Math.Ceiling(b.Height*0.47)));
             return new Rectangle(b.Width-width,0,width,Math.Max(1,(int)Math.Floor(b.Height*0.84)));
         }
-        public static byte[] NamesPng(Bitmap b) {
-            return TextPng(b,NamesRegion(b),false);
+        public static byte[] NamesPng(Bitmap b,int maximumDimension) {
+            return TextPng(b,NamesRegion(b),maximumDimension);
         }
-        public static byte[] AnchorsPng(Bitmap b) {
-            return TextPng(b,new Rectangle(0,0,b.Width,b.Height),false);
+        public static byte[] AnchorsPng(Bitmap b,int maximumDimension) {
+            return TextPng(b,new Rectangle(0,0,b.Width,b.Height),maximumDimension);
         }
         public static int OcrTimeoutMs(string flavor) {
             return String.Equals(flavor,"forerver",StringComparison.Ordinal)?10000:3000;
         }
         public static byte[] OcrPng(Bitmap b,int maximumDimension) {
-            if(maximumDimension<1) throw new ArgumentOutOfRangeException("maximumDimension");
             // Enlarge small windows for text recognition, cap both axes at the engine's actual limit.
-            double scale=Math.Min(Math.Max(1.0,1080.0/b.Height),maximumDimension/(double)Math.Max(b.Width,b.Height));
+            return ScalePng(b,maximumDimension,Math.Max(1.0,1080.0/b.Height));
+        }
+        static byte[] ScalePng(Bitmap b,int maximumDimension,double preferredScale) {
+            if(maximumDimension<1) throw new ArgumentOutOfRangeException(nameof(maximumDimension));
+            double scale=Math.Min(preferredScale,maximumDimension/(double)Math.Max(b.Width,b.Height));
             int width=Math.Max(1,Math.Min(maximumDimension,(int)Math.Floor(b.Width*scale)));
             int height=Math.Max(1,Math.Min(maximumDimension,(int)Math.Floor(b.Height*scale)));
+            if (width==b.Width && height==b.Height) return Png(b);
             using(var resized=new Bitmap(b,new Size(width,height))) return Png(resized);
         }
-        static byte[] TextPng(Bitmap b,Rectangle region,bool white) {
+        static byte[] TextPng(Bitmap b,Rectangle region,int maximumDimension) {
             int height=region.Height;
             using(var crop=new Bitmap(region.Width,height,PixelFormat.Format32bppArgb)) {
                 using(var g=Graphics.FromImage(crop)) g.DrawImage(b,new Rectangle(0,0,crop.Width,height),region,GraphicsUnit.Pixel);
@@ -213,14 +217,13 @@ namespace WowAutoRotation {
                     var pixels=new byte[data.Stride*height];Marshal.Copy(data.Scan0,pixels,0,pixels.Length);
                     for(int y=0;y<height;y++) for(int x=0;x<crop.Width;x++) {
                         int i=y*data.Stride+x*4;
-                        bool text=white?pixels[i+2]>100 && pixels[i+1]>100 && pixels[i]>100:pixels[i+2]>180 && pixels[i+1]>130 && pixels[i]<120;
+                        bool text=pixels[i+2]>180 && pixels[i+1]>130 && pixels[i]<120;
                         byte value=(byte)(text?0:255);
                         pixels[i]=pixels[i+1]=pixels[i+2]=value;pixels[i+3]=255;
                     }
                     Marshal.Copy(pixels,0,data.Scan0,pixels.Length);
                 } finally {crop.UnlockBits(data);}
-                double scale=Math.Min(white?3.0:2.0,9000.0/Math.Max(crop.Width,height));
-                using(var larger=new Bitmap(crop,new Size(Math.Max(1,(int)(crop.Width*scale)),Math.Max(1,(int)(height*scale))))) return Png(larger);
+                return ScalePng(crop,maximumDimension,2.0);
             }
         }
     }
