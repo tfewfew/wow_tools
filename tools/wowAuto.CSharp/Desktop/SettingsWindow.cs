@@ -4,6 +4,7 @@ namespace WowAuto.Desktop;
 
 internal sealed partial class SettingsWindow : GrayForm
 {
+    private const int DesignWidth = 1424;
     private readonly Automation automation;
     private readonly DesktopServices desktop;
     private readonly GrayTabs tabs = Ui.Tabs(150);
@@ -21,15 +22,10 @@ internal sealed partial class SettingsWindow : GrayForm
         this.desktop = desktop;
         Text = "wowAuto · 设置";
         StartPosition = FormStartPosition.CenterParent;
-        Rectangle area = Screen.FromControl(owner).WorkingArea;
-        ClientSize = new(1424, 934);
-        MinimumSize = new(700, 500);
-        Load += (_, _) =>
-        {
-            MinimumSize = new(Math.Min(MinimumSize.Width, area.Width), Math.Min(MinimumSize.Height, area.Height));
-            Size = new(Math.Min(Width, area.Width), Math.Min(Height, area.Height));
-        };
-        SuspendLayout();
+        ClientSize = Ui.Size(DesignWidth, 934);
+        MinimumSize = Ui.Size(700, 500);
+        FitOnOwnerScreen(owner);
+        tabs.Multiline = true;
         tabs.Size = ClientSize;
         tabs.Dock = DockStyle.Fill;
         Controls.Add(tabs);
@@ -53,7 +49,7 @@ internal sealed partial class SettingsWindow : GrayForm
         previewTimer.Tick += (_, _) => StopAudioPreview();
         if (process is not null)
             tabs.SelectedTab = accountsPage;
-        ResumeLayout();
+        CompleteLayout();
     }
 
     private SettingsDraft Draft()
@@ -66,7 +62,7 @@ internal sealed partial class SettingsWindow : GrayForm
     private void BuildRotationBar()
     {
         var draft = Draft();
-        var bar = new Panel { Height = 62, Dock = DockStyle.Top, AutoScroll = true, BackColor = Ui.Surface };
+        var bar = new Panel { Height = Ui.Length(62), Dock = DockStyle.Top, AutoScroll = true, BackColor = Ui.Surface };
         Controls.Add(bar);
         Ui.Label(bar, "全局角色轮换（秒，0关闭）", 12, 12, 285, 30);
         draft.Number(bar, "Rotation.IntervalSeconds", 300, 8, 130, 0, int.MaxValue);

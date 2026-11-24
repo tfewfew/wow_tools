@@ -12,6 +12,7 @@ internal static class Ui
     public static readonly Color Text = Gray(245);
     public static readonly Color Border = Gray(117);
     public static readonly Color Selected = Gray(90);
+    private static readonly Font EditFont = new("Microsoft YaHei UI", 14);
     public static readonly (string Id, string Label)[] Clients = [("titan", "时光服"), ("forerver", "无限服")];
     public static readonly (string Id, string Label)[] DirectModes = [("rest", "放号"), ("fight", "战斗"), ("shop", "购物"), ("fish", "钓鱼")];
     public static readonly Dictionary<int, (string Label, Color Color)> Classes = new()
@@ -23,6 +24,13 @@ internal static class Ui
         [9] = ("术士", Color.FromArgb(148, 130, 201)), [11] = ("德鲁伊", Color.FromArgb(255, 125, 10))
     };
 
+    // Keep the layout grid in 96-DPI units. WinForms applies the monitor's DPI separately.
+    public static int Length(int value) => (int)Math.Round(value * 1.2);
+    public static int Pixels(int value, int dpi) => (int)Math.Round(Length(value) * dpi / 96.0);
+    public static Size Size(int width, int height) => new(Length(width), Length(height));
+    public static Padding Spacing(int left, int top, int right, int bottom) =>
+        new(Length(left), Length(top), Length(right), Length(bottom));
+
     public static Color Gray(int value) => Color.FromArgb(value, value, value);
     public static string ModeLabel(string? mode) => mode == "tame" ? "抓宠" : DirectModes.FirstOrDefault(item => item.Id == mode).Label ?? "";
     public static string FlavorLabel(string flavor) => flavor == "titan" ? "时光服" : "无限服";
@@ -30,7 +38,7 @@ internal static class Ui
 
     public static T Place<T>(Control parent, T control, int x, int y, int width, int height) where T : Control
     {
-        control.SetBounds(x, y, width, height);
+        control.SetBounds(Length(x), Length(y), Length(x + width) - Length(x), Length(y + height) - Length(y));
         parent.Controls.Add(control);
         return control;
     }
@@ -58,11 +66,11 @@ internal static class Ui
         button.FlatAppearance.MouseDownBackColor = Gray(64);
         if (click is not null)
             button.Click += (_, _) => click();
-        return Place(parent, button, x, y, width, height);
+        return Place(parent, button, x, y, Math.Max(60, width), Math.Max(32, height));
     }
 
     public static GrayTabs Tabs(int width, int height = 32) =>
-        new() { SizeMode = TabSizeMode.Fixed, ItemSize = new(width, height), ForeColor = Text };
+        new(width, height) { SizeMode = TabSizeMode.Fixed, ForeColor = Text };
 
     public static TabPage Page(string text, bool scroll = true) =>
         new(text) { BackColor = Background, ForeColor = Text, AutoScroll = scroll, UseVisualStyleBackColor = false };
@@ -79,8 +87,12 @@ internal static class Ui
         var combo = new ComboBox
         {
             DropDownStyle = ComboBoxStyle.DropDownList, FlatStyle = FlatStyle.Flat,
-            BackColor = Input, ForeColor = Text, DrawMode = DrawMode.OwnerDrawFixed, ItemHeight = 26
+            BackColor = Input, ForeColor = Text, DrawMode = DrawMode.OwnerDrawFixed
         };
+        void SizeItems() => combo.ItemHeight = Pixels(26, combo.DeviceDpi);
+        SizeItems();
+        combo.HandleCreated += (_, _) => SizeItems();
+        combo.DpiChangedAfterParent += (_, _) => SizeItems();
         combo.DrawItem += (_, args) =>
         {
             if (args.Index < 0 || combo.Items[args.Index] is not { } item)
@@ -96,21 +108,21 @@ internal static class Ui
     }
 
     public static TextBox InputBox(Control parent, string text, int x, int y, int width, int height = 32) =>
-        Place(parent, new TextBox { Text = text, BackColor = Input, ForeColor = Text, BorderStyle = BorderStyle.FixedSingle }, x, y, width, height);
+        Place(parent, new TextBox { Text = text, Font = EditFont, BackColor = Input, ForeColor = Text, BorderStyle = BorderStyle.FixedSingle }, x, y, width, height);
 
     public static NumericUpDown Number(Control parent, decimal value, decimal min, decimal max,
         int x, int y, int width, decimal step = 1, int places = 0) =>
         Place(parent, new NumericUpDown
         {
             Minimum = min, Maximum = max, Value = value, Increment = step, DecimalPlaces = places,
-            BackColor = Input, ForeColor = Text, BorderStyle = BorderStyle.FixedSingle
+            Font = EditFont, BackColor = Input, ForeColor = Text, BorderStyle = BorderStyle.FixedSingle
         }, x, y, width, 32);
 
     public static CheckBox Check(Control parent, string text, bool value, int x, int y, int width, int height = 34) =>
         Place(parent, new GrayCheckBox { Text = text, Checked = value, ForeColor = Text }, x, y, width, height);
 
     public static KeyBox Key(Control parent, string value, int x, int y, int width, string empty = "") =>
-        Place(parent, new KeyBox(value, empty), x, y, width, 32);
+        Place(parent, new KeyBox(value, empty) { Font = EditFont }, x, y, width, 32);
 
     public static GroupBox Group(Control parent, string text, int x, int y, int width, int height) =>
         Place(parent, new GroupBox { Text = text, BackColor = Surface, ForeColor = Text }, x, y, width, height);
@@ -126,12 +138,28 @@ internal class GrayForm : Form
 {
     public GrayForm()
     {
-        AutoScaleDimensions = new SizeF(96, 96);
+        // Delay initial DPI scaling until the entire form has its controls.
+        SuspendLayout();
         AutoScaleMode = AutoScaleMode.Dpi;
-        Font = new("Microsoft YaHei UI", 12);
+        AutoScaleDimensions = new SizeF(96, 96);
+        Font = new("Microsoft YaHei UI", 13);
         BackColor = Ui.Background;
         ForeColor = Ui.Text;
         Disposed += (_, _) => Font.Dispose();
+    }
+
+    public void CompleteLayout() => ResumeLayout(performLayout: true);
+
+    public void FitOnOwnerScreen(Form owner)
+    {
+        Load += (_, _) =>
+        {
+            Rectangle area = Screen.FromControl(owner).WorkingArea;
+            MinimumSize = new(Math.Min(MinimumSize.Width, area.Width), Math.Min(MinimumSize.Height, area.Height));
+            Size = new(Math.Min(Width, area.Width), Math.Min(Height, area.Height));
+            Location = new(Math.Clamp(owner.Left + (owner.Width - Width) / 2, area.Left, area.Right - Width),
+                Math.Clamp(owner.Top + (owner.Height - Height) / 2, area.Top, area.Bottom - Height));
+        };
     }
 
     protected override void OnHandleCreated(EventArgs e)
@@ -151,8 +179,29 @@ internal class GrayForm : Form
 
 internal sealed class GrayTabs : TabControl
 {
-    public GrayTabs() => SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
-        ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
+    private readonly Size designItemSize;
+
+    public GrayTabs(int width, int height)
+    {
+        designItemSize = new(width, height);
+        SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
+            ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
+        ResizeHeaders();
+    }
+
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        base.OnHandleCreated(e);
+        ResizeHeaders();
+    }
+
+    protected override void OnDpiChangedAfterParent(EventArgs e)
+    {
+        base.OnDpiChangedAfterParent(e);
+        ResizeHeaders();
+    }
+
+    private void ResizeHeaders() => ItemSize = new(Ui.Pixels(designItemSize.Width, DeviceDpi), Ui.Pixels(designItemSize.Height, DeviceDpi));
 
     protected override void OnPaintBackground(PaintEventArgs e) => e.Graphics.Clear(Ui.Gray(30));
 

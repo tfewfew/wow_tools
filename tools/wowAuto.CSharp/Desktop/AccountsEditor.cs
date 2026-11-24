@@ -258,14 +258,13 @@ internal sealed class AccountsEditor
                 AllowUserToAddRows = false, AllowUserToDeleteRows = false, AllowUserToOrderColumns = false,
                 AutoGenerateColumns = false, RowHeadersVisible = false, BackgroundColor = Ui.Input, GridColor = Ui.Border,
                 EnableHeadersVisualStyles = false, AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells,
-                ColumnHeadersHeight = 34, ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing,
+                ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing,
                 DefaultCellStyle = new()
                 {
                     BackColor = Ui.Input, ForeColor = Ui.Text, SelectionBackColor = Ui.Selected, SelectionForeColor = Ui.Text
                 },
                 ColumnHeadersDefaultCellStyle = new() { BackColor = Ui.Heading, ForeColor = Ui.Text }
             };
-            grid.RowTemplate.Height = grid.RowTemplate.MinimumHeight = 36;
             DataGridViewColumn? modeColumn = null;
             (string Id, string Label, int Width)[] columns =
             [
@@ -301,6 +300,26 @@ internal sealed class AccountsEditor
                     column.DefaultCellStyle.WrapMode = DataGridViewTriState.True;
                 grid.Columns.Add(column);
             }
+            void SizeCells()
+            {
+                int rowHeight = Ui.Pixels(36, grid.DeviceDpi);
+                grid.ColumnHeadersHeight = Ui.Pixels(34, grid.DeviceDpi);
+                grid.RowTemplate.Height = grid.RowTemplate.MinimumHeight = rowHeight;
+                foreach (DataGridViewRow row in grid.Rows)
+                    row.MinimumHeight = rowHeight;
+                for (int index = 0; index < columns.Length; index++)
+                {
+                    var column = grid.Columns[index];
+                    int width = Ui.Pixels(columns[index].Width, grid.DeviceDpi);
+                    if (column.Name == "Name")
+                        column.MinimumWidth = width;
+                    else
+                        column.Width = width;
+                }
+            }
+            SizeCells();
+            grid.HandleCreated += (_, _) => SizeCells();
+            grid.DpiChangedAfterParent += (_, _) => SizeCells();
             grid.CurrentCellDirtyStateChanged += (_, _) =>
             {
                 if (grid.IsCurrentCellDirty)
