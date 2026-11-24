@@ -12,6 +12,9 @@ internal sealed class DesktopServices(Automation automation, string directory) :
     public Form? Window { get; set; }
     public string DataDirectory { get; } = directory;
     public bool Restart { get; private set; }
+    public bool EditingScreenshotKey { get; set; }
+    public string ScreenshotStatus => hotkey is not null ? $"正在监听 {hotkeyText}" :
+        hotkeyText.Length == 0 ? "截图热键已停用。" : $"截图热键 {hotkeyText} 未能注册。";
     public object Snapshot() => new { screenshotKey = hotkeyText, screenshotRegistered = hotkey is not null, screenshotSelecting = selecting, audioPreview = playing };
 
     public void Initialize()
@@ -38,6 +41,8 @@ internal sealed class DesktopServices(Automation automation, string directory) :
             next = new ScreenshotHotkey(binding.Code, binding.Ctrl, binding.Shift, binding.Alt);
             next.Pressed += async (_, _) =>
             {
+                if (EditingScreenshotKey)
+                    return;
                 try { await Screenshot(); }
                 catch (Exception error) { automation.Log(null, "error", error.Message); }
             };
@@ -67,6 +72,7 @@ internal sealed class DesktopServices(Automation automation, string directory) :
         if (selecting)
             throw new InvalidOperationException("截图框选已打开。");
         selecting = true;
+        bool wasPaused = automation.Hub.Paused;
         try
         {
             if (!automation.Hub.PauseAndWait(3000))
@@ -77,13 +83,15 @@ internal sealed class DesktopServices(Automation automation, string directory) :
         finally
         {
             selecting = false;
-            automation.Hub.Paused = false;
+            automation.Hub.Paused = wasPaused;
             automation.Hub.Wake.Set();
             automation.Changed();
         }
     });
 
-    public Task<string> AudioPreview(string flavor, int id) => OnUi(() =>
+    public Task<string> AudioPreview(string flavor, int id) => OnUi(() => PlayAudioPreview(flavor, id));
+
+    public string PlayAudioPreview(string flavor, int id)
     {
         string name = (flavor, id) switch
         {
@@ -95,23 +103,43 @@ internal sealed class DesktopServices(Automation automation, string directory) :
         if (!File.Exists(path))
             path = Path.Combine(AppContext.BaseDirectory, "AudioSamples", name);
         if (!File.Exists(path))
+        {
+            // The script and EXE can share the same locally recorded excerpts.
+            for (var folder = new DirectoryInfo(AppContext.BaseDirectory); folder?.Parent is not null; folder = folder.Parent)
+            {
+                if (!folder.Name.Equals("wowAuto.CSharp", StringComparison.OrdinalIgnoreCase))
+                    continue;
+                path = Path.Combine(folder.Parent.FullName, "wowAuto", "audio-samples", name);
+                break;
+            }
+        }
+        if (!File.Exists(path))
             throw new FileNotFoundException($"未找到试听文件 {name}。请放在 {Path.Combine(DataDirectory, "audio-samples")}。");
-        audio?.Dispose();
-        audio = new SoundPlayer(path);
-        audio.Load();
-        audio.Play();
+        var player = new SoundPlayer(path);
+        try { player.Load(); }
+        catch { player.Dispose(); throw; }
+        StopAudioPreview();
+        audio = player;
+        player.Play();
         playing = path;
         automation.Changed();
         return path;
-    });
+    }
 
     public Task<bool> AudioStop() => OnUi(() =>
     {
-        audio?.Stop();
-        playing = null;
-        automation.Changed();
+        StopAudioPreview();
         return true;
     });
+
+    public void StopAudioPreview()
+    {
+        audio?.Stop();
+        audio?.Dispose();
+        audio = null;
+        playing = null;
+        automation.Changed();
+    }
 
     public void RequestExit(bool restart)
     {

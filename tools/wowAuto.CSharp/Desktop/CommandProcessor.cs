@@ -19,7 +19,8 @@ internal sealed class CommandProcessor(Automation automation, DesktopServices de
         "task stop --pid PID|--all [--wait]", "task switch --pid PID (--mode MODE|--role NAME) [--wait]", "task get --pid PID [PATH]",
         "task update --pid PID [--set PATH=VALUE ...] [--use-item true|false] [--mode MODE|--role NAME] [--wait]",
         "action list", "action send NAME --pid PID [--wait]", "shutdown set SECONDS [--wait]", "shutdown cancel",
-        "character create --pid PID [--wait]", "character preview (--pid PID|--image PATH) [--output PNG]",
+        "character create --pid PID [--start-ticks TICKS] [--wait]",
+        "character preview (--pid PID [--start-ticks TICKS]|--image PATH) [--output PNG]",
         "character stop [--wait]", "audio preview FLAVOR ID", "audio stop", "screenshot select [--wait]",
         "request get ID", "runtime close", "runtime restart"
     ];
@@ -260,12 +261,15 @@ internal sealed class CommandProcessor(Automation automation, DesktopServices de
             case "character preview":
             {
                 int? target = options.Int("--pid");
+                long? startTicks = options.Long("--start-ticks", 1);
                 string? image = options.Value("--image");
                 string? output = options.Value("--output");
                 bool preview = command == "character preview";
                 bool wait = options.Flag("--wait") || preview;
                 options.Done(0);
-                GameRow? row = target is null ? null : automation.Select(target, false)[0];
+                if (startTicks is not null && target is null)
+                    throw new ArgumentException("--start-ticks 需要同时指定 --pid。");
+                GameRow? row = target is null ? null : automation.Select(target, false, startTicks)[0];
                 Task<CreationResult>? pending = null;
                 await automation.Exclusive(() =>
                 {

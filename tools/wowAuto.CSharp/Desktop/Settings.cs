@@ -241,8 +241,8 @@ internal static class SettingsRules
             }
         }
         foreach (string directory in new[] { value.Rotation.TitanDirectory, value.Rotation.ForerverDirectory })
-            if (!Path.IsPathFullyQualified(directory))
-                throw new ArgumentException("游戏安装目录必须使用绝对路径。");
+            if (directory.Length != 0 && !Path.IsPathFullyQualified(directory))
+                throw new ArgumentException("游戏安装目录必须使用绝对路径，或留空停用目录扫描。");
     }
 
     private static void ValidateProperties(object value, string path)
