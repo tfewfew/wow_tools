@@ -4,8 +4,8 @@
 
 - [addon/titan/](addon/titan/README.md)：泰坦时光服插件，接口38002，独立源码在 `addon/titan/wow_tools/`。
 - [addon/forerver/](addon/forerver/README.md)：无限服插件，接口16001，独立源码在 `addon/forerver/wow_tools/`。目录名按约定保留为 `forerver`。
-- [tools/wowAuto/](tools/wowAuto/README.md)：wowAuto 脚本及使用说明。
-- [tools/wowAuto.CSharp/](tools/wowAuto.CSharp/README.md) 提供 C# 桌面程序和 CLI 的使用说明。
+- [tools/wowAuto.CSharp/](tools/wowAuto.CSharp/README.md) 是 wowAuto 后续迭代的默认版本，提供桌面 EXE 和 CLI。
+- [tools/wowAuto/](tools/wowAuto/README.md) 提供原 PowerShell 脚本及使用说明。
 - `skills/wow-tools/SKILL.md`：维护说明及发布顺序。
 - 第三方插件的上游仓库、引入版本及完整 commit ID 分别见[时光服对照表](addon/titan/THIRD_PARTY.md)和[无限服对照表](addon/forerver/THIRD_PARTY.md)。
 

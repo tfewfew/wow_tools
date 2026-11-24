@@ -12,7 +12,11 @@
 
 每次修改完成都必须创建 Git 提交并推送临时分支，再合入 main 并成功推送主干。并发任务按锁结果选择正式工作区或独立 clone，各用临时分支，合并冲突在本任务持有的工作目录中解决并重新验证。MR 自动合并遵循仓库现有条件，持续跟进到已合并后更新正式目录。本地主干合并完成后复核代码与测试，成功推送再同步。正式目录已有本地改动时核对来源并保护现有内容。推送或合并失败时明确报告并保留工作分支、必要的 clone 和提交，修复后重试，不强推。完成或退出时向持锁会话发送 release 并确认释放，进程退出由操作系统关闭锁句柄。
 
-## C# 桌面程序发布
+## C# 桌面程序维护与发布
+
+wowAuto PC 工具的新增功能和通用修复默认在 `tools/wowAuto.CSharp` 实现，以桌面 EXE 和 CLI 为验证入口。原 PowerShell 版在任务明确指定时维护。
+
+角色轮转沿用 Windows 简体中文 OCR。角色创建沿用原 RapidOCR 和 ONNX Runtime 后台。
 
 通过 `tools/wowAuto.CSharp/publish.ps1` 在本机生成桌面程序和 CLI。EXE 与 `tools/wowAuto.CSharp/publish/` 发布目录留在本机，禁止提交到远端。首次克隆后的构建步骤见[仓库 README](README.md#首次克隆后生成-wowauto-exe)。
 
