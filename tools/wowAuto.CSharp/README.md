@@ -75,3 +75,13 @@ wowauto-cli status watch --pid 1234 --json
 ## 验证
 
 本地验证覆盖 .NET 编译、管道协议、配置读取与校验、版本回执，以及仓库的两服语法、语义和接口兼容性检查。框选、真实游戏输入和时序、OCR 识别效果、音频命中以及退出流程由实际使用验证。
+
+### 角色创建 OCR 图片对照
+
+运行发布脚本并关闭当前会话的 C# wowAuto 后，可以使用同一个 RapidOCR Python 环境，对照旧脚本后台与 C# CLI 的图片预览。测试启动隔离的桌面实例，把预览文件和配置放在临时目录。参数接受截图文件或目录。
+
+~~~powershell
+& ..\wowAuto\character-create\.runtime\Scripts\python.exe -X utf8 -B .\tests\compare-character-ocr.py 'C:\截图\参考截图' 'C:\截图\运行截图'
+~~~
+
+逐张比较按钮判定、识别文字的顺序与置信度、预览尺寸及 RGB 像素。有差异时命令返回失败。截图由使用者在本地提供。
