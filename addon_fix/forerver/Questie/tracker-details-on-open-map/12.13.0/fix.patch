@@ -1,0 +1,17 @@
+--- a/Questie/Modules/Tracker/TrackerUtils.lua
++++ b/Questie/Modules/Tracker/TrackerUtils.lua
+@@ -88,6 +88,14 @@
+             Questie:Print(l10n("Can't open Quest Log while in combat. Open it manually."))
+             return
+         end
++        local questDetails = QuestLogPopupDetailFrame
++        if WorldMapFrame and WorldMapFrame:IsVisible() and questDetails and questDetails.ShowQuest and questDetails.IsShowingQuest then
++            -- The standalone details avoid changing the map or refreshing its pins.
++            if not questDetails:IsShowingQuest(quest.Id) then
++                questDetails:ShowQuest(quest.Id)
++            end
++            return
++        end
+         C_QuestLog.SetSelectedQuest(quest.Id)
+         local uiMapId = QuestieCompat.GetQuestUiMapID(quest.Id)
+         if uiMapId then

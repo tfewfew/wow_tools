@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "plugin": "Questie",
+  "id": "tracker-details-on-open-map",
+  "version": "12.13.0",
+  "patch": "fix.patch",
+  "patchSha256": "5b20480cc0c4d1b1d0d12d6bb85e906e394a0229f0bfd5bd2d8718be2cfd7a6c",
+  "files": [
+    {
+      "path": "Questie/Modules/Tracker/TrackerUtils.lua",
+      "originalSha256": "28eb09cf87784727e1583aa1d95bb1f94e713165c03e4fe32d69f2498bbaac74",
+      "patchedSha256": "6312b19c224a52f59507ba84039ffafe5021e1958d845243aeb7f526aa8ec43c"
+    }
+  ],
+  "loadOrder": [
+    "Modules/QuestieCompat.lua",
+    "Modules/Tracker/TrackerUtils.lua",
+    "Modules/Tracker/LinePool/TrackerMenu.lua",
+    "Modules/Tracker/LinePool/TrackerLine.lua"
+  ]
+}
