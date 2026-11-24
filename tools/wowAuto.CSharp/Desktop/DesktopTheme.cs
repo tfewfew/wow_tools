@@ -203,20 +203,28 @@ internal sealed class GrayTabs : TabControl
 
     private void ResizeHeaders() => ItemSize = new(Ui.Pixels(designItemSize.Width, DeviceDpi), Ui.Pixels(designItemSize.Height, DeviceDpi));
 
-    protected override void OnPaintBackground(PaintEventArgs e) => e.Graphics.Clear(Ui.Gray(30));
+    protected override void OnPaintBackground(PaintEventArgs e)
+    {
+        using var brush = new SolidBrush(Ui.Gray(30));
+        e.Graphics.FillRectangle(brush, e.ClipRectangle);
+    }
 
     protected override void OnPaint(PaintEventArgs e)
     {
+        int selected = SelectedIndex;
+        using var active = new SolidBrush(Ui.Selected);
+        using var inactive = new SolidBrush(Ui.Gray(61));
+        using var pen = new Pen(Ui.Border);
         for (int i = 0; i < TabCount; i++)
         {
             Rectangle bounds = GetTabRect(i);
-            using var brush = new SolidBrush(i == SelectedIndex ? Ui.Selected : Ui.Gray(61));
-            e.Graphics.FillRectangle(brush, bounds);
-            using var pen = new Pen(Ui.Border);
+            if (!e.ClipRectangle.IntersectsWith(bounds))
+                continue;
+            e.Graphics.FillRectangle(i == selected ? active : inactive, bounds);
             e.Graphics.DrawRectangle(pen, bounds.X, bounds.Y, bounds.Width - 1, bounds.Height - 1);
             TextRenderer.DrawText(e.Graphics, TabPages[i].Text, Font, bounds, Ui.Text,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix);
-            if (Focused && ShowFocusCues && i == SelectedIndex)
+            if (Focused && ShowFocusCues && i == selected)
                 ControlPaint.DrawFocusRectangle(e.Graphics, Rectangle.Inflate(bounds, -3, -3));
         }
         base.OnPaint(e);
@@ -225,7 +233,8 @@ internal sealed class GrayTabs : TabControl
     protected override void OnSelectedIndexChanged(EventArgs e)
     {
         base.OnSelectedIndexChanged(e);
-        Invalidate();
+        if (IsHandleCreated)
+            Invalidate(new Rectangle(0, 0, ClientSize.Width, Math.Max(0, DisplayRectangle.Top)));
     }
 }
 
@@ -248,6 +257,7 @@ internal sealed class StatusLog : TextBox
 {
     private readonly List<string> history = [];
     private string? last;
+    private string lastDetails = "";
 
     public StatusLog()
     {
@@ -261,6 +271,8 @@ internal sealed class StatusLog : TextBox
 
     public void ShowStatus(string message, int limit, string details = "")
     {
+        if (last == message && lastDetails == details && history.Count <= limit)
+            return;
         if (last != message)
         {
             last = message;
@@ -268,6 +280,7 @@ internal sealed class StatusLog : TextBox
         }
         if (history.Count > limit)
             history.RemoveRange(limit, history.Count - limit);
+        lastDetails = details;
         string display = history[0] + details;
         if (history.Count > 1)
             display += Environment.NewLine + string.Join(Environment.NewLine, history.Skip(1));

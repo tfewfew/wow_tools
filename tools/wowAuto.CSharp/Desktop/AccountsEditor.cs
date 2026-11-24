@@ -5,13 +5,18 @@ namespace WowAuto.Desktop;
 internal sealed class AccountsEditor
 {
     private readonly Automation automation;
+    private readonly TabPage page;
     private readonly Label feedback;
+    private readonly Button save;
     private readonly Dictionary<string, ClientPage> clients = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Dictionary<(string Realm, string Name), RoleEdit>> edits = new(StringComparer.Ordinal);
+    private (string Titan, string Forerver)? requestedDirectories;
+    private int loadVersion;
 
     public AccountsEditor(TabPage page, Automation automation, ProcessView? process)
     {
         this.automation = automation;
+        this.page = page;
         GrayTabs tabs = Ui.Place(page, Ui.Tabs(150), 18, 18, 1380, 682);
         foreach (var (id, label) in Ui.Clients)
         {
@@ -22,19 +27,72 @@ internal sealed class AccountsEditor
                 tabs.SelectedTab = child;
         }
         feedback = Ui.Label(page, "", 18, 716, 1380, 56);
-        Ui.Button(page, "保存子战网设置", 18, 782, 210, 36, Save, true);
-        Reload();
+        save = Ui.Button(page, "保存子战网设置", 18, 782, 210, 36, Save, true);
+        save.Enabled = false;
     }
 
-    public void Reload()
+    public void InvalidateCatalog()
     {
-        RotationSettings directories = automation.Config.Saved.Rotation;
-        clients["titan"].Reload(directories.TitanDirectory);
-        clients["forerver"].Reload(directories.ForerverDirectory);
+        requestedDirectories = null;
+        loadVersion++;
+        save.Enabled = false;
+    }
+
+    private (string Titan, string Forerver) Directories()
+    {
+        RotationSettings settings = automation.Config.Saved.Rotation;
+        return (settings.TitanDirectory, settings.ForerverDirectory);
+    }
+
+    public async Task LoadAsync()
+    {
+        var directories = Directories();
+        if (requestedDirectories == directories)
+            return;
+        requestedDirectories = directories;
+        int version = ++loadVersion;
+        save.Enabled = false;
+        feedback.Text = "";
+        foreach (ClientPage client in clients.Values)
+            client.SetHint("正在读取子战网角色资料…");
+        try
+        {
+            var (titan, forerver) = await Task.Run(() => (ReadCatalog(directories.Titan), ReadCatalog(directories.Forerver)));
+            if (page.IsDisposed || page.Disposing || version != loadVersion)
+                return;
+            if (directories != Directories())
+            {
+                await LoadAsync();
+                return;
+            }
+
+            page.SuspendLayout();
+            try
+            {
+                clients["titan"].SetCatalog(titan);
+                clients["forerver"].SetCatalog(forerver);
+                feedback.Text = "";
+                save.Enabled = true;
+            }
+            finally { page.ResumeLayout(); }
+        }
+        catch (Exception error)
+        {
+            if (page.IsDisposed || page.Disposing || version != loadVersion)
+                return;
+            requestedDirectories = null;
+            foreach (ClientPage client in clients.Values)
+                client.SetHint($"读取子战网角色资料失败：{error.Message}");
+        }
     }
 
     private void Save()
     {
+        if (requestedDirectories != Directories())
+        {
+            _ = LoadAsync();
+            return;
+        }
         try
         {
             foreach (ClientPage client in clients.Values)
@@ -87,6 +145,13 @@ internal sealed class AccountsEditor
 
     private sealed record RoleEdit(RoleSettings Original, RoleSettings Value, bool WasSaved);
 
+    private sealed record ClientCatalog(Dictionary<string, CharacterRecord[]> Accounts, IReadOnlyDictionary<string, int> RealmLevels);
+
+    private static ClientCatalog ReadCatalog(string directory) => new(
+        AccountCatalog.ReadDirectory(directory).GroupBy(item => item.Account, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal),
+        AccountCatalog.ReadRealmLevels(directory));
+
     private sealed class ClientPage
     {
         private readonly AccountsEditor owner;
@@ -100,6 +165,8 @@ internal sealed class AccountsEditor
 
         public string Flavor { get; }
         public Dictionary<string, CharacterRecord[]> Catalog { get; private set; } = new(StringComparer.Ordinal);
+
+        public void SetHint(string message) => hint.Text = message;
 
         public ClientPage(AccountsEditor owner, TabPage page, string flavor, string? suggested)
         {
@@ -123,14 +190,14 @@ internal sealed class AccountsEditor
             };
         }
 
-        public void Reload(string directory)
+        public void SetCatalog(ClientCatalog catalog)
         {
             Capture();
             string? previous = selected ?? suggested;
-            Catalog = AccountCatalog.ReadDirectory(directory).GroupBy(item => item.Account, StringComparer.Ordinal)
-                .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
-            realmLevels = AccountCatalog.ReadRealmLevels(directory);
+            Catalog = catalog.Accounts;
+            realmLevels = catalog.RealmLevels;
             loading = true;
+            accounts.BeginUpdate();
             try
             {
                 accounts.Items.Clear();
@@ -141,7 +208,11 @@ internal sealed class AccountsEditor
                     accounts.SelectedIndex = Math.Max(0, index);
                 }
             }
-            finally { loading = false; }
+            finally
+            {
+                accounts.EndUpdate();
+                loading = false;
+            }
             hint.Text = accounts.Items.Count == 0
                 ? "尚未发现该服的子战网角色记录，请检查游戏目录，正常下线保存角色记录后刷新进程。"
                 : "满级角色在上，未满级按等级降序。分表保留轮转顺序，新角色默认停用。资料为最近保存快照；上线和下线都会采集，需下线或 /reload 落盘后刷新。";
@@ -189,10 +260,10 @@ internal sealed class AccountsEditor
             try
             {
                 selected = accounts.SelectedItem as string;
-                full.Rows.Clear();
-                leveling.Rows.Clear();
                 if (selected is null || !Catalog.TryGetValue(selected, out CharacterRecord[]? records))
                 {
+                    ReplaceRows(full, []);
+                    ReplaceRows(leveling, []);
                     fullLabel.Text = "满级角色";
                     levelingLabel.Text = "未满级角色";
                     return;
@@ -202,6 +273,7 @@ internal sealed class AccountsEditor
                 var byIdentity = records.GroupBy(record => (record.Realm, record.Name))
                     .Where(group => group.Count() == 1).ToDictionary(group => group.Key, group => group.Single());
                 var savedIds = saved.Select(role => (role.Realm, role.Name)).ToHashSet();
+                var maxLevel = new List<DataGridViewRow>();
                 var below = new List<(RoleEdit Role, CharacterRecord Record, int Maximum)>();
                 owner.edits.TryGetValue(key, out var changes);
                 foreach (RoleSettings role in MergeRoles(saved, records))
@@ -212,32 +284,54 @@ internal sealed class AccountsEditor
                     RoleEdit entry = changes?.GetValueOrDefault(id) ?? new(role, role, savedIds.Contains(id));
                     int max = realmLevels.GetValueOrDefault(record.Realm);
                     if (max > 0 && record.Level >= max)
-                        AddRole(full, entry, record, max);
+                        maxLevel.Add(CreateRoleRow(full, entry, record, max));
                     else
                         below.Add((entry, record, max));
                 }
-                foreach (var (role, record, max) in below.OrderByDescending(item => item.Record.Level ?? -1))
-                    AddRole(leveling, role, record, max);
+                var other = below.OrderByDescending(item => item.Record.Level ?? -1)
+                    .Select(item => CreateRoleRow(leveling, item.Role, item.Record, item.Maximum)).ToArray();
+                ReplaceRows(full, maxLevel.ToArray());
+                ReplaceRows(leveling, other);
                 fullLabel.Text = $"满级角色（{full.Rows.Count}）";
                 levelingLabel.Text = $"未满级角色（{leveling.Rows.Count}，按等级降序；上限未知列于此，等级未知置后）";
             }
             finally { loading = false; }
         }
 
-        private void AddRole(DataGridView grid, RoleEdit edit, CharacterRecord record, int max)
+        private static void ReplaceRows(DataGridView grid, DataGridViewRow[] rows)
+        {
+            grid.SuspendLayout();
+            try
+            {
+                // Insert complete rows with automatic height calculation suspended.
+                grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
+                grid.Rows.Clear();
+                grid.Rows.AddRange(rows);
+                grid.AutoResizeColumn(grid.Columns["Name"]!.Index, DataGridViewAutoSizeColumnMode.AllCells);
+            }
+            finally
+            {
+                grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.DisplayedCellsExceptHeaders;
+                grid.ResumeLayout();
+            }
+        }
+
+        private static DataGridViewRow CreateRoleRow(DataGridView grid, RoleEdit edit, CharacterRecord record, int max)
         {
             RoleSettings role = edit.Value;
             var (classLabel, classColor) = Ui.Class(record.ClassId);
-            int index = grid.Rows.Add(role.Enabled, $"{record.Name}-{record.DisplayRealm}", classLabel, record.DisplayRealm,
+            var row = (DataGridViewRow)grid.RowTemplate.Clone();
+            row.CreateCells(grid, role.Enabled, $"{record.Name}-{record.DisplayRealm}", classLabel, record.DisplayRealm,
                 Ui.ModeLabel(role.Mode), role.UseItem, record.Level?.ToString() ?? "未知", record.FreeBagSlots?.ToString() ?? "未知",
                 FormatSkills(record.Professions), FormatSkills(record.SecondarySkills),
                 record.BindLocation is null or "" or "?" ? "未知" : record.BindLocation);
-            DataGridViewRow row = grid.Rows[index];
             row.Tag = edit;
-            row.Cells["Name"].Style.ForeColor = row.Cells["Name"].Style.SelectionForeColor = classColor;
-            row.Cells["Class"].Style.ForeColor = row.Cells["Class"].Style.SelectionForeColor = classColor;
-            row.Cells["UseItem"].ReadOnly = role.Mode != "fish";
-            row.Cells["Level"].ToolTipText = max == 0 ? "服务器等级上限未知，保存资料后刷新进程。" : $"服务器满级等级：{max}";
+            DataGridViewCell Cell(string name) => row.Cells[grid.Columns[name]!.Index];
+            Cell("Name").Style.ForeColor = Cell("Name").Style.SelectionForeColor = classColor;
+            Cell("Class").Style.ForeColor = Cell("Class").Style.SelectionForeColor = classColor;
+            Cell("UseItem").ReadOnly = role.Mode != "fish";
+            Cell("Level").ToolTipText = max == 0 ? "服务器等级上限未知，保存资料后刷新进程。" : $"服务器满级等级：{max}";
+            return row;
         }
 
         private static string FormatSkills(string? skills)
@@ -253,11 +347,11 @@ internal sealed class AccountsEditor
 
         private DataGridView BuildGrid(TabPage page, int y)
         {
-            var grid = new DataGridView
+            var grid = new RoleGrid
             {
                 AllowUserToAddRows = false, AllowUserToDeleteRows = false, AllowUserToOrderColumns = false,
                 AutoGenerateColumns = false, RowHeadersVisible = false, BackgroundColor = Ui.Input, GridColor = Ui.Border,
-                EnableHeadersVisualStyles = false, AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells,
+                EnableHeadersVisualStyles = false, AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.DisplayedCellsExceptHeaders,
                 ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing,
                 DefaultCellStyle = new()
                 {
@@ -292,10 +386,7 @@ internal sealed class AccountsEditor
                 column.Width = width;
                 column.SortMode = DataGridViewColumnSortMode.NotSortable;
                 if (id == "Name")
-                {
                     column.MinimumWidth = width;
-                    column.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-                }
                 if (id is "Professions" or "SecondarySkills" or "BindLocation")
                     column.DefaultCellStyle.WrapMode = DataGridViewTriState.True;
                 grid.Columns.Add(column);
@@ -312,7 +403,10 @@ internal sealed class AccountsEditor
                     var column = grid.Columns[index];
                     int width = Ui.Pixels(columns[index].Width, grid.DeviceDpi);
                     if (column.Name == "Name")
+                    {
                         column.MinimumWidth = width;
+                        grid.AutoResizeColumn(index, DataGridViewAutoSizeColumnMode.AllCells);
+                    }
                     else
                         column.Width = width;
                 }
@@ -342,5 +436,10 @@ internal sealed class AccountsEditor
             };
             return Ui.Place(page, grid, 18, y, 1340, 220);
         }
+    }
+
+    private sealed class RoleGrid : DataGridView
+    {
+        public RoleGrid() => DoubleBuffered = true;
     }
 }

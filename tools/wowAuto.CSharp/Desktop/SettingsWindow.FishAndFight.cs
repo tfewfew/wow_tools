@@ -70,7 +70,7 @@ internal sealed partial class SettingsWindow
         }
         Ui.Label(keys, "点击输入框后直接按键，支持 Ctrl / Shift / Alt 组合键。", 16, 98, 715, 28);
         CheckBox audio = draft.Check(page, "Fish.AudioDetectionEnabled", "音频咬钩检测", 780, 414, 160);
-        if (automation.Snapshot().Processes.Any(process => process.Mode == "fish" && process.Phase is "starting" or "running" or "switching"))
+        if (automation.DesktopSnapshot().Processes.Any(process => process.Mode == "fish" && process.Phase is "starting" or "running" or "switching"))
             audio.Enabled = false;
         Ui.Label(page, "停止钓鱼后可修改", 780, 460, 160, 65);
 
@@ -149,22 +149,35 @@ internal sealed partial class SettingsWindow
         var classes = Ui.Choice(page, 232, 6, 168, item => Ui.Class(((ClassChoice)item).Id).Color);
         int[] ids = SettingsRules.ClassIds.Where(id => flavor != "forerver" || id != 6).ToArray();
         classes.Items.AddRange(ids.Select(id => new ClassChoice(id)).ToArray());
-        Panel[] profiles = ids.Select(id => BuildFightProfile(page, draft, $"Fight.Profiles.{flavor}:{id}")).ToArray();
+        var (collect, load) = BuildFightProfile(page);
+        var profiles = new FightProfile[ids.Length];
         int shown = -1;
+        for (int i = 0; i < ids.Length; i++)
+        {
+            int index = i;
+            draft.Bind($"Fight.Profiles.{flavor}:{ids[index]}",
+                () => JsonSerializer.SerializeToNode(shown == index ? collect() : profiles[index], SettingsJson.Options),
+                value =>
+                {
+                    profiles[index] = value?.Deserialize<FightProfile>(SettingsJson.Options) ?? new();
+                    if (shown == index)
+                        load(profiles[index]);
+                });
+        }
         classes.SelectedIndexChanged += (_, _) =>
         {
             if (shown >= 0)
-                profiles[shown].Visible = false;
+                profiles[shown] = collect();
             shown = classes.SelectedIndex;
             if (shown >= 0)
-                profiles[shown].Visible = true;
+                load(profiles[shown]);
         };
         classes.SelectedIndex = 0;
     }
 
-    private static Panel BuildFightProfile(TabPage page, SettingsDraft draft, string path)
+    private static (Func<FightProfile> Collect, Action<FightProfile> Load) BuildFightProfile(TabPage page)
     {
-        var profile = Ui.Place(page, new Panel { Visible = false }, 0, 42, 790, 174);
+        var profile = Ui.Place(page, new Panel(), 0, 42, 790, 174);
         Ui.Label(profile, "开怪战斗键", 8, 6, 212, 32);
         Ui.Label(profile, "正常战斗键", 408, 6, 212, 32);
         Ui.Label(profile, "恢复键", 8, 48, 212, 32);
@@ -180,13 +193,13 @@ internal sealed partial class SettingsWindow
         Ui.Label(profile, "每轮补 Buff 次数", 408, 136, 212, 32);
         var count = Ui.Number(profile, 1, 1, 100, 620, 132, 168);
 
-        draft.Bind(path, () => JsonSerializer.SerializeToNode(new FightProfile
+        FightProfile Collect() => new()
         {
             OpeningKey = opening.Binding, CombatKey = combat.Binding, RecoveryKey = recovery.Binding, BuffKey = buff.Binding,
             RecoveryCooldownSeconds = (int)cooldown.Value, BuffIntervalSeconds = (int)interval.Value, BuffCount = (int)count.Value
-        }, SettingsJson.Options), value =>
+        };
+        void Load(FightProfile settings)
         {
-            FightProfile settings = value?.Deserialize<FightProfile>(SettingsJson.Options) ?? new();
             opening.Binding = settings.OpeningKey;
             combat.Binding = settings.CombatKey;
             recovery.Binding = settings.RecoveryKey;
@@ -194,8 +207,8 @@ internal sealed partial class SettingsWindow
             cooldown.Value = settings.RecoveryCooldownSeconds;
             interval.Value = settings.BuffIntervalSeconds;
             count.Value = settings.BuffCount;
-        });
-        return profile;
+        }
+        return (Collect, Load);
     }
 
     private sealed record ClassChoice(int Id)
