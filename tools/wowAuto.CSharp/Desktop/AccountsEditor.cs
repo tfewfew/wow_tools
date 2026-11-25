@@ -377,7 +377,9 @@ internal sealed class AccountsEditor
                 if (column is DataGridViewComboBoxColumn mode)
                 {
                     modeColumn = mode;
-                    mode.Items.AddRange("钓鱼", "战斗", "购物", "放号");
+                    mode.Items.AddRange("钓鱼", "战斗", "购物");
+                    if (Flavor == "forerver")
+                        mode.Items.Add("放号");
                 }
                 column.Name = id;
                 column.HeaderText = label;

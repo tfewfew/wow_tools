@@ -11,13 +11,11 @@ internal sealed partial class GameSession
         while (Current)
         {
             ApplyConfig();
-            if ((!direct || role is not null) && !ConfiguredRoles().Any(item => item.Name == role && item.Mode == "rest"))
+            if (!direct && !ConfiguredRoles().Any(item => item.Name == role && item.Mode == "rest"))
                 return "角色任务已变更";
             long duration = 1000L * settings.Rest.DurationSeconds;
-            if (directRest)
+            if (direct)
             {
-                if (settings.Rotation.IntervalSeconds > 0)
-                    duration = Math.Min(duration, 1000L * settings.Rotation.IntervalSeconds);
                 long end = startedAt + duration;
                 if (Now >= end)
                     return "放号完成";
@@ -32,9 +30,9 @@ internal sealed partial class GameSession
             catch (WowAutoCapture.PendingException)
             {
                 wasRest = false;
-                if (directRest)
+                if (direct)
                     message = "等待放号色块，倒计时继续。";
-                await RepairCapture();
+                await RepairCapture(direct ? deadline : null);
                 continue;
             }
             if (login == "dead")
@@ -45,17 +43,18 @@ internal sealed partial class GameSession
                 accumulated += now - observed;
             observed = now;
             wasRest = inRest;
-            long remaining = Math.Max(0, duration - (directRest ? now - startedAt : accumulated));
-            if (remaining == 0 && (directRest || (startedRest && inRest)))
+            long elapsed = direct ? now - startedAt : accumulated;
+            long remaining = Math.Max(0, duration - elapsed);
+            if (remaining == 0 && (direct || (startedRest && inRest)))
                 return "放号完成";
             long next = lastJump + 1000L * settings.Rest.JumpIntervalSeconds;
-            deadline = directRest || (startedRest && inRest) ? now + remaining : null;
+            deadline = direct || (startedRest && inRest) ? now + remaining : null;
             bool canJump = inRest && now >= retryAt && (!startedRest || next <= now);
             ManualAction? command = Manual(canJump ? "Rest.Jump" : null);
             if (canJump)
             {
                 long? expires = deadline;
-                using var jumpBudget = directRest ? CancellationTokenSource.CreateLinkedTokenSource(Token) : null;
+                using var jumpBudget = direct ? CancellationTokenSource.CreateLinkedTokenSource(Token) : null;
                 if (jumpBudget is not null)
                     jumpBudget.CancelAfter((int)Math.Clamp(expires!.Value - Now, 1, int.MaxValue));
                 ActionResult result;
@@ -84,10 +83,10 @@ internal sealed partial class GameSession
                         retryAt = Now + settings.Operations.FocusRetryMs;
                 }
             }
-            metrics = new { inRest, accumulated, remaining, nextJumpAt = lastJump + 1000L * settings.Rest.JumpIntervalSeconds,
-                round = (long)RestVisits() + 1, rounds = settings.Rest.Rounds, startedRest };
-            message = inRest ? "放号计时中。" : directRest ? "等待放号色块，倒计时继续。" : "放号色块暂不可读，计时暂停。";
-            await Tick(directRest ? (int)Math.Clamp(deadline!.Value - Now, 1, settings.Periods.LoginMs) : settings.Periods.LoginMs);
+            metrics = new { inRest, accumulated = elapsed, remaining, nextJumpAt = next,
+                round = restVisits.GetValueOrDefault(role ?? "") + 1, rounds = direct ? 1 : settings.Rest.Rounds, startedRest };
+            message = inRest ? "放号计时中。" : direct ? "等待放号色块，倒计时继续。" : "放号色块暂不可读，计时暂停。";
+            await Tick(direct ? (int)Math.Clamp(deadline!.Value - Now, 1, settings.Periods.LoginMs) : settings.Periods.LoginMs);
         }
         return "已停止";
     }

@@ -150,9 +150,9 @@ internal sealed partial class SettingsWindow : GrayForm
     {
         var draft = Draft();
         TabPage page = Ui.Page(tabs, "放号");
-        Ui.Label(page, "「直接开始」先放号当前角色，到时按当前子战网已启用的放号名单轮换，每名角色执行设定轮次。\r\n" +
-            "单次倒计时从开始任务起算，启用全局轮换时取较短时间。确认放号色块后按间隔跳跃。", 18, 18, 1000, 100);
-        (string Id, string Label)[] fields = [("DurationSeconds", "单次时间（秒）"), ("Rounds", "轮次"), ("JumpIntervalSeconds", "跳跃间隔（秒）")];
+        Ui.Label(page, "「直接开始」只在当前角色放号，单次倒计时结束后停止本行。确认放号色块后按间隔跳跃。\r\n" +
+            "无限服可在子战网配置放号角色，通过「开始」按编排轮次执行。", 18, 18, 1000, 100);
+        (string Id, string Label)[] fields = [("DurationSeconds", "单次时间（秒）"), ("Rounds", "编排轮次"), ("JumpIntervalSeconds", "跳跃间隔（秒）")];
         for (int index = 0; index < fields.Length; index++)
         {
             int y = 138 + index * 56;

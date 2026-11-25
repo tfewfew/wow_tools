@@ -15,7 +15,6 @@ internal sealed partial class GameSession
         CharacterRecord[] catalog = AccountCatalog.Read(Client);
         if (catalog.Length == 0)
             throw new InvalidOperationException("此客户端没有可校验的插件角色记录。");
-        CharacterRecord[]? beforeLogout = directRest && account is null ? catalog : null;
         if (account is not null && !catalog.Any(item => item.Account == account))
             throw new InvalidOperationException("已识别子战网的插件角色记录不可用。");
         if (account is not null && !ChooseRole(catalog))
@@ -85,32 +84,23 @@ internal sealed partial class GameSession
                 message = "等待角色选择界面。";
                 continue;
             }
-            if (!directRest)
-                deadline = Now + 180000;
+            deadline = Now + 180000;
             menus++;
             metrics = new { menus, retries, targets = frame.Targets };
             if (menus < 3)
                 continue;
-            string? confirmedAccount = directRest ? ResolveAccount(frame.Targets, catalog, exactOnly: true) : null;
-            if (directRest && confirmedAccount is not null && account is not null && confirmedAccount != account)
-                throw new InvalidOperationException("选角界面的子战网已变化，已停止放号轮转。");
             if (account is null)
             {
-                account = directRest ? confirmedAccount : ResolveAccount(frame.Targets, catalog);
+                account = ResolveAccount(frame.Targets, catalog);
                 if (account is not null)
                 {
                     message = $"OCR 已识别子战网 {account}。";
-                    if (beforeLogout is not null)
-                    {
-                        catalog = AccountCatalog.Read(Client);
-                        CreditStartingRest(beforeLogout, catalog);
-                        beforeLogout = null;
-                    }
-                    if (!ChooseRole(catalog))
+                    ChooseRole(catalog);
+                    if (role is null)
                         return false;
                 }
             }
-            var matches = account is null || role is null || (directRest && confirmedAccount != account) ? [] : frame.Targets
+            var matches = account is null || role is null ? [] : frame.Targets
                 .Where(item => ResolveName(item.Raw, catalog.Where(record => record.Account == account).ToArray())?.Name == role)
                 .DistinctBy(item => item.Row).ToArray();
             if (matches.Length > 1)
@@ -119,8 +109,6 @@ internal sealed partial class GameSession
             {
                 if (retries >= 30)
                 {
-                    if (directRest)
-                        throw new InvalidOperationException("重识别 30 次仍无法确认当前子战网和放号角色，已停止轮转。");
                     message = "重识别 30 次仍无法唯一定位，准备退出客户端。";
                     currentBatch.Drop(Endpoint.Key);
                     await automation.CloseClient(row, version, settings, Token);
@@ -147,7 +135,7 @@ internal sealed partial class GameSession
                 continue;
             message = $"已定位第 {selected.Row} 个槽位 {role}，等待其他进程。";
             await Barrier(currentBatch, 2);
-            if (!(directRest ? Eligible() : ConfiguredRoles()).Any(item => item.Name == role && item.Mode == mode))
+            if (!ConfiguredRoles().Any(item => item.Name == role && item.Mode == mode))
             {
                 currentBatch.Clear(Endpoint.Key, 2);
                 role = null;
@@ -199,8 +187,7 @@ internal sealed partial class GameSession
 
     private bool ChooseRole(CharacterRecord[] catalog)
     {
-        var eligible = Eligible();
-        var candidates = eligible.Where(item => catalog.Any(record => record.Account == account &&
+        var candidates = Eligible().Where(item => catalog.Any(record => record.Account == account &&
             record.Name == item.Name && record.Realm == item.Realm)).ToArray();
         RoleSettings? pick = null;
         if (target is not null)
@@ -213,45 +200,16 @@ internal sealed partial class GameSession
         if (candidates.Length == 0)
         {
             role = null;
-            message = directRest && ConfiguredRoles().Length > 0 && eligible.Length == 0
-                ? "本次放号轮转已完成。"
-                : "当前子战网没有启用且可校验的角色任务。";
+            message = "当前子战网没有启用且可校验的角色任务。";
             return false;
         }
-        if (directRest)
-        {
-            var configured = ConfiguredRoles();
-            int start = Array.FindIndex(configured, candidate => candidate.Name == role) + 1;
-            pick = configured.Skip(start).Concat(configured.Take(start)).First(candidates.Contains);
-        }
-        else
-        {
-            int previous = Array.FindIndex(candidates, candidate => candidate.Name == role);
-            pick ??= candidates[(previous + 1) % candidates.Length];
-        }
+        int previous = Array.FindIndex(candidates, candidate => candidate.Name == role);
+        index = (previous + 1) % candidates.Length;
+        pick ??= candidates[index];
         role = pick.Name;
         mode = pick.Mode;
         roleUseItem = pick.UseItem;
         return true;
-    }
-
-    private void CreditStartingRest(CharacterRecord[] beforeLogout, CharacterRecord[] afterLogout)
-    {
-        // The client saves the logged-in character's plugin record on logout.
-        var previous = beforeLogout.Where(item => item.Account == account).ToLookup(item => (item.Name, item.Realm));
-        var changed = afterLogout.Where(item => item.Account == account &&
-            previous[(item.Name, item.Realm)].All(old => old.RecordedAt < item.RecordedAt)).Take(2).ToArray();
-        if (changed.Length != 1)
-        {
-            automation.Log(Client.ProcessId, "status", "未通过下线记录确认起始角色，按当前子战网的放号名单继续。");
-            return;
-        }
-        var startingRole = changed[0];
-        if (ConfiguredRoles().Any(item => item.Name == startingRole.Name && item.Realm == startingRole.Realm))
-        {
-            role = startingRole.Name;
-            restVisits[role] = initialRestVisits;
-        }
     }
 
     private async Task Barrier(RotationBatch currentBatch, int flag)
@@ -270,17 +228,17 @@ internal sealed partial class GameSession
     private Task<ActionResult> Logout() => Operate("Rotation.Logout", op => LoginMode() != "unknown" &&
         NativeInput.SendRotationCommand(Client.ProcessId, Client.StartTicks, Client.Path, "logout", 0, op.Timing.ChatKeyPressMs));
 
-    private static string? ResolveAccount(MenuTarget[] targets, CharacterRecord[] catalog, bool exactOnly = false)
+    private static string? ResolveAccount(MenuTarget[] targets, CharacterRecord[] catalog)
     {
         var hits = targets.Select(item => ResolveName(item.Raw, catalog)).OfType<NameMatch>().ToArray();
         var exact = hits.Where(match => match.Exact).ToArray();
-        if (hits.Length == 0 || (exactOnly && exact.Length == 0))
+        if (hits.Length == 0)
             return null;
         var evidence = exact.Length == 0 ? hits : exact;
         var possible = evidence[0].Accounts.ToHashSet(StringComparer.Ordinal);
         foreach (var match in evidence.Skip(1))
             possible.IntersectWith(match.Accounts);
-        if (!exactOnly && possible.Count > 1)
+        if (possible.Count > 1)
             foreach (var match in hits.Where(match => !match.Exact))
                 possible.IntersectWith(match.Accounts);
         return possible.Count == 1 ? possible.Single() : null;
