@@ -43,6 +43,7 @@ internal sealed partial class GameSession
     private Settings settings = new();
     private string mode;
     private readonly bool direct;
+    private readonly bool directRest;
     private readonly long version;
     private string? role, account, target;
     private string phase = "starting", message = "正在开始任务。", position = "";
@@ -50,7 +51,7 @@ internal sealed partial class GameSession
     private long? deadline;
     private long nextPosition, nextRotate, retryAt;
     private bool roleUseItem, shopPrepared;
-    private int index = -1;
+    private int initialRestVisits;
     private int rotationSwitches;
     private RotationBatch? batch;
     private Task run = Task.CompletedTask;
@@ -80,8 +81,9 @@ internal sealed partial class GameSession
         version = row.Endpoint.Advance();
         this.mode = mode;
         this.direct = direct;
+        directRest = direct && mode == "rest";
         this.target = target;
-        this.account = account;
+        this.account = directRest ? null : account;
         this.batch = batch;
         if (initialOverrides is not null)
             overrides = initialOverrides;
@@ -153,9 +155,13 @@ internal sealed partial class GameSession
                 ApplyConfig();
                 phase = "running";
                 row.Round++;
-                if (!direct && started.Task.IsCompletedSuccessfully)
-                    rotationSwitches++;
                 nextRotate = RotationDue();
+                if (directRest)
+                {
+                    retryAt = 0;
+                    deadline = null;
+                    metrics = null;
+                }
                 message = "任务已开始。";
                 Publish();
                 started.TrySetResult(true);
@@ -171,28 +177,48 @@ internal sealed partial class GameSession
                 if (!Current)
                     break;
                 message = result;
-                if (direct)
+                if (direct && !directRest)
                     break;
-                if (result is "角色死亡" or "背包已满")
-                    excluded.Add(role!);
-                if (result == "放号完成")
-                    restVisits[role!] = restVisits.GetValueOrDefault(role!) + 1;
-                if (result == "购物结束")
-                    shoppingFinished.Add(role!);
-                if (result == "买到商品，已请求退出")
-                    break;
-                ApplyConfig();
-                var roles = Eligible();
-                if (roles.Length == 0)
+                if (directRest && role is null)
                 {
-                    if (excluded.Count > 0 && !ConfiguredRoles().Any(r => !excluded.Contains(r.Name)))
-                        await automation.CloseClient(row, version, settings, Token);
-                    message = "本次轮转已完成。";
-                    break;
+                    if (result != "放号完成")
+                        break;
+                    initialRestVisits++;
+                    ApplyConfig();
+                    if (!settings.Accounts.Any(item => item.Key.StartsWith(Client.Flavor + ":", StringComparison.Ordinal) &&
+                        item.Value.Any(configured => configured.Enabled && configured.Mode == "rest")))
+                    {
+                        if (initialRestVisits < settings.Rest.Rounds)
+                            continue;
+                        break;
+                    }
+                }
+                else
+                {
+                    if (result is "角色死亡" or "背包已满")
+                        excluded.Add(role!);
+                    if (result == "放号完成")
+                        restVisits[role!] = restVisits.GetValueOrDefault(role!) + 1;
+                    if (result == "购物结束")
+                        shoppingFinished.Add(role!);
+                    if (result == "买到商品，已请求退出")
+                        break;
+                    ApplyConfig();
+                    var roles = Eligible();
+                    if (roles.Length == 0)
+                    {
+                        if (!directRest && excluded.Count > 0 && !ConfiguredRoles().Any(r => !excluded.Contains(r.Name)))
+                            await automation.CloseClient(row, version, settings, Token);
+                        message = "本次轮转已完成。";
+                        break;
+                    }
+                    if (directRest && roles.Length == 1 && roles[0].Name == role)
+                        continue;
                 }
                 batch = await automation.JoinRotation(Endpoint, Token);
                 if (!await Rotate(batch))
                     break;
+                rotationSwitches++;
             }
         }
         catch (OperationCanceledException) when (!Current) { message = "任务已停止。"; }
@@ -234,7 +260,9 @@ internal sealed partial class GameSession
     private bool ShouldRotate() => !direct && (Now >= nextRotate || !ConfiguredRoles().Any(item => item.Name == role && item.Mode == mode));
 
     private RoleSettings[] ConfiguredRoles() => account is not null && settings.Accounts.TryGetValue($"{Client.Flavor}:{account}", out var roles)
-        ? roles.Where(item => item.Enabled).ToArray() : [];
+        ? roles.Where(item => item.Enabled && (!directRest || item.Mode == "rest")).ToArray() : [];
+
+    private int RestVisits() => role is null ? initialRestVisits : restVisits.GetValueOrDefault(role);
 
     private RoleSettings[] Eligible() => ConfiguredRoles().Where(item => !excluded.Contains(item.Name) &&
         (item.Mode != "rest" || restVisits.GetValueOrDefault(item.Name) < settings.Rest.Rounds) &&
@@ -246,7 +274,7 @@ internal sealed partial class GameSession
             account, role ?? target, direct, row.Round, row.Cycles, row.BiteTimeouts,
             version, seenConfig, seenOverride, Now, deadline, message, metrics,
             phase == "running" && nextRotate is > 0 and < long.MaxValue ? nextRotate : null, rotationSwitches,
-            phase == "switching" ? target : null);
+            phase == "switching" ? target ?? role : null);
         if (ReferenceEquals(row.Session, this))
         {
             string before = Volatile.Read(ref row.View).Message;
@@ -279,9 +307,10 @@ internal sealed partial class GameSession
             await Tick((int)Math.Clamp(until - Now, 1, Math.Max(100, settings.Operations.DetectorWaitMs)));
     }
 
-    private Task<ActionResult> Operate(string kind, Func<Operation, bool?> perform, bool foreground = true)
+    private Task<ActionResult> Operate(string kind, Func<Operation, bool?> perform, bool foreground = true,
+        CancellationToken? cancellation = null)
     {
-        return automation.Operator.Submit(Endpoint, version, settings, kind, perform, Token, foreground);
+        return automation.Operator.Submit(Endpoint, version, settings, kind, perform, cancellation ?? Token, foreground);
     }
 
     private string LoginMode() => Rotation.ReadLoginMode(Client.ProcessId, Client.StartTicks, Client.Path);

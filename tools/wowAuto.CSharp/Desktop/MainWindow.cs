@@ -75,7 +75,7 @@ internal sealed partial class MainWindow : GrayForm
         var intro = new Label
         {
             Dock = DockStyle.Top, Height = Ui.Length(44), Padding = Ui.Spacing(12, 12, 0, 0),
-            Text = "每行通过角色编排设置名称和任务；“开始”按编排切换角色，“直接开始”留在当前角色执行已验证任务。"
+            Text = "“开始”按子战网编排选角。“直接开始”先运行当前角色，放号到时按当前子战网名单轮换。"
         };
         var headings = new Panel { Dock = DockStyle.Top, Height = Ui.Length(32), BackColor = Ui.Heading };
         Ui.Label(headings, "游戏进程 / 版本 / 窗口位置", 12, 3, 360, 25);
@@ -404,7 +404,7 @@ internal sealed partial class MainWindow : GrayForm
             process = current;
             Settings settings = configuration.Effective;
             bool busy = IsBusy(current);
-            bool rotating = busy && !current.Direct && current.Phase != "scanning";
+            bool rotating = busy && current.Phase != "scanning" && (!current.Direct || current.Phase == "switching");
             string? key = current.Account is { Length: > 0 } ? $"{current.Flavor}:{current.Account}" : null;
             if (configRevision != configuration.Revision || accountKey != key)
             {

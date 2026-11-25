@@ -235,7 +235,7 @@ internal static class SettingsRules
             {
                 if (!Regex.IsMatch(role.Name, @"^[\p{L}\p{M}]{1,24}$") || string.IsNullOrWhiteSpace(role.Realm) ||
                     Regex.IsMatch(role.Realm, @"[\\/\p{C}]") || role.Mode is not ("fish" or "fight" or "rest" or "shop") ||
-                    (role.UseItem && role.Mode != "fish") || (role.Mode == "rest" && !id.StartsWith("forerver:", StringComparison.Ordinal)) ||
+                    (role.UseItem && role.Mode != "fish") ||
                     !identities.Add((role.Realm, role.Name)) || (role.Enabled && !enabled.Add(role.Name)))
                     throw new ArgumentException($"无效或重复的角色配置 {id}/{role.Name}。");
             }
