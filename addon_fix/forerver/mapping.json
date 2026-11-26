@@ -18,7 +18,8 @@
           "background-scans/2.1.122/manifest.json",
           "background-scans/2.1.126/manifest.json",
           "background-scans/2.1.132/manifest.json",
-          "background-scans/2.1.133/manifest.json"
+          "background-scans/2.1.133/manifest.json",
+          "background-scans/2.1.136/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
@@ -42,7 +43,8 @@
           "background-scans/2.0.3-20261118/manifest.json",
           "background-scans/2.0.3-20261119/manifest.json",
           "background-scans/2.0.3-20261122/manifest.json",
-          "background-scans/2.0.3-20261123/manifest.json"
+          "background-scans/2.0.3-20261123/manifest.json",
+          "background-scans/2.0.3-20261126/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
@@ -63,7 +65,8 @@
           "background-scans/2.0.3-20261120/manifest.json",
           "background-scans/2.0.3-20261122/manifest.json",
           "background-scans/2.0.3-20261123/manifest.json",
-          "background-scans/2.0.3-20261124/manifest.json"
+          "background-scans/2.0.3-20261124/manifest.json",
+          "background-scans/2.0.3-20261126/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
@@ -118,7 +121,8 @@
         "description": "专业数据在关闭角色技能面板时刷新一次，保留初始采集及原有分类折叠状态。",
         "variants": [
           "profession-panel-close/12.10.0/manifest.json",
-          "profession-panel-close/12.12.0/manifest.json"
+          "profession-panel-close/12.12.0/manifest.json",
+          "profession-panel-close/12.15.0/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
@@ -129,7 +133,8 @@
         "variants": [
           "quest-log-coalesce/12.11.1/manifest.json",
           "quest-log-coalesce/12.12.0/manifest.json",
-          "quest-log-coalesce/12.14.0/manifest.json"
+          "quest-log-coalesce/12.14.0/manifest.json",
+          "quest-log-coalesce/12.15.0/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []
@@ -140,7 +145,8 @@
         "variants": [
           "tracker-details-on-open-map/12.13.0/manifest.json",
           "tracker-details-on-open-map/12.13.0/upgrade-popup.json",
-          "tracker-details-on-open-map/12.14.0/manifest.json"
+          "tracker-details-on-open-map/12.14.0/manifest.json",
+          "tracker-details-on-open-map/12.15.0/manifest.json"
         ],
         "skipFromVersion": null,
         "fixedEvidence": []

@@ -1,0 +1,70 @@
+diff --git a/Questie/Modules/EventHandler/QuestEventHandler.lua b/Questie/Modules/EventHandler/QuestEventHandler.lua
+index 9913704..8c8eeb4 100644
+--- a/Questie/Modules/EventHandler/QuestEventHandler.lua
++++ b/Questie/Modules/EventHandler/QuestEventHandler.lua
+@@ -12,6 +12,8 @@ local TaintWatch = QuestieLoader:ImportModule("TaintWatch")
+ QuestEventHandler.private = QuestEventHandler.private or {}
+ ---@type QuestLogCache
+ local QuestLogCache = QuestieLoader:ImportModule("QuestLogCache")
++---@type QuestgiverFrame
++local QuestgiverFrame = QuestieLoader:ImportModule("QuestgiverFrame")
+ ---@type QuestieQuest
+ local QuestieQuest = QuestieLoader:ImportModule("QuestieQuest")
+ ---@type QuestieJourney
+@@ -71,6 +73,8 @@ local deletedQuestItem = false
+ local lastMarkerQuestEventTime = 0
+ local MARKER_EVENT_TIMEFRAME = 20 -- seconds
+ local questLogRetryTimer
++local questLogScanQueued = false
++local retryUnchangedQuestLogScan = false
+ -- The fallback doubles its delay each time it fires without resolving loading, so a quest that never
+ -- loads costs one scan every few minutes instead of every 20s for the whole session.
+ local QUEST_LOG_RETRY_MAX_DELAY = 320 -- seconds; 20, 40, 80, 160, then 320
+@@ -582,8 +586,8 @@ end
+ 
+ --- Does a full scan of the quest log and updates every quest that is in the QUEST_ACCEPTED state and which hash changed
+ --- since the last check
+----@param doRetryWithoutChanges boolean @If true, the function will be called again at next QUEST_LOG_UPDATE even if there were no changes
+-function _QuestEventHandler:UpdateAllQuests(doRetryWithoutChanges)
++---@param doRetryWithoutChanges boolean @Keep the objective scan window open for later QUEST_LOG_UPDATE events.
++local function _ScanQuestLog(doRetryWithoutChanges)
+     Questie.Debug(Questie.DEBUG_INFO, "Running full questlog check")
+     -- Cancel only when a scan actually runs. Cancelling on every incoming event would lose recovery when
+     -- QuestLogUpdate skips the scan because its marker expired. This also covers scans started by other callers.
+@@ -658,6 +662,11 @@ function _QuestEventHandler:UpdateAllQuests(doRetryWithoutChanges)
+ 
+             QuestieAPI.PropagateQuestUpdate(questId, objIds, QuestieAPI.Enums.QuestUpdateTriggerReason.QUEST_UPDATED)
+         end
++        -- NPC dialog icons may have been refreshed before this deferred scan updated the cache.
++        if Questie.db.profile.enableQuestFrameIcons then
++            QuestgiverFrame.RecheckGreeting()
++            QuestgiverFrame.RecheckGossip()
++        end
+         QuestieCombatQueue:Queue(function()
+             C_Timer.After(1.0, function()
+                 -- Don't update tracker if we're in a pet battle
+@@ -678,6 +687,24 @@ function _QuestEventHandler:UpdateAllQuests(doRetryWithoutChanges)
+     end
+ end
+ 
++--- Merges full-scan requests into one scan one second after the first request.
++---@param doRetryWithoutChanges boolean
++function _QuestEventHandler:UpdateAllQuests(doRetryWithoutChanges)
++    retryUnchangedQuestLogScan = retryUnchangedQuestLogScan or doRetryWithoutChanges
++    if questLogScanQueued then
++        return
++    end
++
++    questLogScanQueued = true
++    C_Timer.After(1, function()
++        local retry = retryUnchangedQuestLogScan
++        -- A request raised during the scan belongs to the next window.
++        questLogScanQueued = false
++        retryUnchangedQuestLogScan = false
++        _ScanQuestLog(retry)
++    end)
++end
++
+ local lastTimeQuestRelatedFrameClosedEvent = -1
+ --- Blizzard does not fire any event when quest items are received or retrieved from sources other than looting.
+ --- So we hook events which fires once or twice after closing certain frames and do a full quest log check.
