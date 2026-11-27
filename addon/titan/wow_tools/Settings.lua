@@ -6,6 +6,7 @@ local categories = {
     { key="game_assist", label="游戏辅助" },
     { key="game_settings", label="游戏设置" },
     { key="third_party", label="三方插件" },
+    { key="information", label="信息展示" },
 }
 local groups = {
     { key="wowDetector", label="钓鱼检测", category="game_assist" },
@@ -16,6 +17,7 @@ local groups = {
     { key="inner_graphic_config", label="画面设置", category="game_settings" },
     { key="ui_addons", label="UI插件", category="game_settings" },
     { key="sound_control", label="声音控制", category="game_settings" },
+    { key="pet_skills", label="宠物技能", category="information" },
     { key="third_party", label="插件列表", category="third_party" },
     { key="bigfoot_channel", label="大脚聊天", category="third_party", app="WoWToolsBigFootChannel" },
     { key="ls_toasts", label="lsToast", category="third_party", app="ls_Toasts" },
