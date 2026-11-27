@@ -263,7 +263,7 @@ internal sealed partial class MainWindow
         ProcessChoice? target = tameWindows.SelectedItem as ProcessChoice;
         ProcessView? process = target is null ? null : state.Processes.FirstOrDefault(item => item.Pid == target.Pid && item.StartTicks == target.Start);
         tameStart.Enabled = process is not null && !IsBusy(process) && !scanning && !state.Creation.Active &&
-            state.ShutdownAt is null && !state.ShuttingDownGames;
+            !state.ShuttingDownGames;
         tameStop.Enabled = process is { Mode: "tame" } && IsBusy(process);
         Ui.SetText(tameStatus, process?.Message ?? "使用“进程任务”页的刷新按钮发现游戏进程。");
     }
