@@ -220,7 +220,6 @@ internal sealed partial class MainWindow : GrayForm
             timer.Interval = effective.Operations.UiRefreshMs;
         bool blocked = scanning || state.ShuttingDownGames || state.Creation.Active;
         processPage.Enabled = !state.ShuttingDownGames && !state.Creation.Active;
-        bool canStart = !blocked && state.ShutdownAt is null;
         foreach (var key in cards.Keys.Except(state.Processes.Select(item => (item.Pid, item.StartTicks))).ToArray())
         {
             cards[key].Panel.Dispose();
@@ -239,10 +238,10 @@ internal sealed partial class MainWindow : GrayForm
                 list.Controls.SetChildIndex(card.Panel, i);
                 ResizeCards();
             }
-            card.Render(process, configuration, state.Now, canStart, !blocked);
+            card.Render(process, configuration, state.Now, !blocked);
         }
         Ui.SetText(count, $"进程 {state.Processes.Length} · 验证通过 {state.Processes.Count(p => p.Phase is "ready" or "running")}");
-        refresh.Enabled = canStart;
+        refresh.Enabled = !blocked;
         settingsButton.Enabled = !blocked;
         restart.Enabled = !state.ShuttingDownGames;
         shutdown.Enabled = !blocked;
@@ -399,7 +398,7 @@ internal sealed partial class MainWindow : GrayForm
                 mode.SelectedIndex = selected;
         }
 
-        public void Render(ProcessView current, Configuration configuration, long now, bool canStart, bool canConfigure)
+        public void Render(ProcessView current, Configuration configuration, long now, bool canManage)
         {
             process = current;
             Settings settings = configuration.Effective;
@@ -418,11 +417,11 @@ internal sealed partial class MainWindow : GrayForm
                     string.Join("、", enabledRoles.Select(item => $"{item.Name}-{item.Realm} / {Ui.ModeLabel(item.Mode)}"));
             }
             RefreshMode(settings);
-            start.Enabled = canStart && !busy && hasConfiguredRoles;
-            mode.Enabled = canStart && !busy;
+            start.Enabled = canManage && !busy && hasConfiguredRoles;
+            mode.Enabled = canManage && !busy;
             direct.Enabled = mode.Enabled && mode.SelectedIndex >= 0;
             stop.Enabled = busy;
-            configure.Enabled = canConfigure;
+            configure.Enabled = canManage;
 
             if (!ReferenceEquals(previousMetrics, current.Metrics))
             {
