@@ -91,6 +91,7 @@ local function widget(name, parent, kind)
         self.text = value
         if self.kind == "EditBox" and self.scripts.OnTextChanged then self.scripts.OnTextChanged(self, false) end
     end
+    function object:SetJustifyH(value) self.justifyH = value end
     function object:GetText() return self.text end
     function object:GetFontString()
         self.buttonText = self.buttonText or widget(nil, self, "FontString")
@@ -156,7 +157,7 @@ local function widget(name, parent, kind)
     local harmless = {
         "SetBackdrop", "SetBackdropColor", "SetBackdropBorderColor", "SetHitRectInsets", "SetFrameLevel", "SetScale", "SetButtonState", "LockHighlight", "UnlockHighlight", "SetClampedToScreen", "SetMovable", "EnableMouse",
         "RegisterForDrag", "RegisterForClicks", "SetHighlightTexture", "SetTexture",
-        "ClearAllPoints", "SetFont", "SetJustifyH", "SetAutoFocus",
+        "ClearAllPoints", "SetFont", "SetAutoFocus",
         "SetMaxLetters", "ClearFocus", "SetScrollChild", "StartMoving", "StopMovingOrSizing", "SetMultiLine", "SetFontObject", "SetBlendMode", "SetTexCoord",
         "SetOrientation", "SetMinMaxValues", "SetValueStep", "SetObeyStepOnDrag", "SetThumbTexture", "EnableMouseWheel", "SetTextColor",
         "SetPropagateKeyboardInput", "EnableKeyboard",
@@ -1096,20 +1097,29 @@ do
     local previous = settings.selected
     assert(settings.tabs.pet_skills.Text:GetText() == "宠物技能", "Pet skills secondary tab is not labeled")
     local panel = settings.pages.pet_skills.frame
-    local function HasLine(text)
+    local function FindLabel(text, sameRow)
         for _, region in ipairs(widgets) do
             local parent = region:GetParent()
             if parent and (parent == panel or parent:GetParent() == panel) and region.kind == "FontString"
-                and region:IsVisible() and region:GetText() == text then return true end
+                and region:IsVisible() and region:GetText() == text
+                and (not sameRow or region.point[3] == sameRow.point[3] and region.point[5] == sameRow.point[5]) then
+                return region
+            end
         end
     end
     if flavor == "titan" then
         settings.Open("pet_skills")
-        assert(HasLine("时光服没有可通过抓宠领悟的猎人宠物技能。") and not panel.scripts.OnEvent,
+        assert(FindLabel("时光服没有可通过抓宠领悟的猎人宠物技能。") and not panel.scripts.OnEvent,
             "Titan pet skills must not use the Forever Beast Training interface")
     else
+        local learnedStatus = "有 |A:common-icon-checkmark:14:14:0:-1|a"
+        local unlearnedStatus = "无 |A:common-icon-redx:14:14:0:-1|a"
+        local function FindStatus(skillName, status)
+            local name = FindLabel(skillName)
+            return name and FindLabel(status, name)
+        end
         settings.Open("pet_skills")
-        assert(HasLine("请使用猎人角色查看。") and not HasLine("公共技能") and not HasLine("家族技能"),
+        assert(FindLabel("请使用猎人角色查看。") and not FindLabel("公共技能") and not FindLabel("家族技能"),
             "The pet skill sections are visible on a non-hunter")
         local savedUnitClass, savedSpellName, savedSpellBook = UnitClass, C_Spell.GetSpellName, C_SpellBook
         local savedCharacterSettings = wowToolsCharacterSettings
@@ -1129,11 +1139,23 @@ do
         end}
         panel.scripts.OnEvent(panel, "PLAYER_LOGIN")
         settings.Open("pet_skills")
-        assert(HasLine("公共技能") and HasLine("家族技能") and HasLine("风蛇-闪电吐息-无"),
+        assert(FindLabel("公共技能") and FindLabel("家族技能") and FindLabel("闪电吐息", assert(FindLabel("风蛇"))),
             "Pet skills must display the two sections and exclusive family labels")
-        assert(HasLine("本地化撕咬-无") and HasLine("爪击-有") and HasLine("狼-狂怒之嚎-有"),
-            "Pet skills must read exact highest teaching IDs and preserve existing character records")
-        assert(not HasLine("低吼-无") and not HasLine("低吼-有"), "NPC trainer spells must stay out of the list")
+        assert(FindStatus("本地化撕咬", unlearnedStatus) and FindStatus("爪击", learnedStatus)
+            and FindStatus("狂怒之嚎", learnedStatus),
+            "Pet skill rows must append the correct icon for the highest teaching rank")
+        assert(not FindLabel("低吼"), "NPC trainer spells must stay out of the list")
+        do
+            local wolf, carrionBird = assert(FindLabel("狼")), assert(FindLabel("食腐鸟"))
+            local howl = assert(FindLabel("狂怒之嚎", wolf))
+            local screech = assert(FindLabel("挫志尖啸", carrionBird))
+            local status, separator = assert(FindLabel(learnedStatus, wolf)), assert(FindLabel("-", wolf))
+            assert(wolf.justifyH == "CENTER" and carrionBird.justifyH == "CENTER"
+                and wolf:GetWidth() == carrionBird:GetWidth() and wolf.point[4] == carrionBird.point[4]
+                and howl.point[4] == screech.point[4] and separator.point[4] == wolf.point[4] + wolf:GetWidth()
+                and howl.justifyH == "CENTER" and status.justifyH == "CENTER",
+                "Short and long family names must share centered, fixed columns and aligned separators")
+        end
 
         local savedTrainer, savedTooltip = C_Trainer, C_TooltipInfo
         local savedCount, savedServiceInfo = GetNumTrainerServices, GetTrainerServiceInfo
@@ -1149,18 +1171,19 @@ do
             if index == 1 then return {id = 17267} end
         end}
         panel.scripts.OnEvent(panel, "TRAINER_SHOW")
-        assert(HasLine("突进-无"), "NPC trainer windows must not mark a spell learned")
+        assert(FindStatus("突进", unlearnedStatus), "NPC trainer windows must not mark a spell learned")
         trainerType = Enum.TrainerType.Pet
         panel.scripts.OnEvent(panel, "TRAINER_UPDATE")
-        assert(HasLine("突进-有") and HasLine("本地化撕咬-无"),
+        assert(FindStatus("突进", learnedStatus) and FindStatus("本地化撕咬", unlearnedStatus),
             "Beast Training must distinguish exact ranks even when a row omits the rank text")
         panel.scripts.OnEvent(panel, "LEARNED_SPELL_IN_SKILL_LINE", 17268)
-        assert(HasLine("本地化撕咬-有") and wowToolsCharacterSettings.knownPetSkills[17268],
+        assert(FindStatus("本地化撕咬", learnedStatus) and wowToolsCharacterSettings.knownPetSkills[17268],
             "Learned teaching spell event must bind to the character record")
         local savedLearnText = ERR_LEARN_ABILITY_S
         ERR_LEARN_ABILITY_S = "你学会了%s。"
         panel.scripts.OnEvent(panel, "CHAT_MSG_SYSTEM", "你学会了|Hspell:1264482|h[音爆]|h。")
-        assert(HasLine("蝙蝠-音爆-有") and wowToolsCharacterSettings.knownPetSkills[1264488],
+        assert(FindLabel("音爆", assert(FindLabel("蝙蝠"))) and FindStatus("音爆", learnedStatus)
+            and wowToolsCharacterSettings.knownPetSkills[1264488],
             "The client learning message must bind the exact pet spell to its teaching ID")
         ERR_LEARN_ABILITY_S = savedLearnText
         UnitClass, C_Spell.GetSpellName, C_SpellBook = savedUnitClass, savedSpellName, savedSpellBook
