@@ -1052,8 +1052,9 @@ local expectedCategories = {
     button_style="game_settings", inner_graphic_config="game_settings", ui_addons="game_settings", sound_control="game_settings",
     bigfoot_channel="third_party", ls_toasts="third_party", forever_faces="third_party", better_vendor_ui="third_party", pet_xp_bar="third_party", third_party="third_party",
     raynna_bestiary="third_party", prr="third_party",
+    pet_skills="information",
 }
-assert(#WoWTools.settings.categories == 3, "Wrong primary settings category count")
+assert(#WoWTools.settings.categories == 4, "Wrong primary settings category count")
 local categoryWidth = math.max(1, settingsCanvas:GetWidth() - 16) / #WoWTools.settings.categories
 local divider = assert(settingsCanvas.categoryDivider, "Missing primary navigation divider")
 assert(divider:GetParent() == settingsCanvas and divider.kind == "Texture" and divider:GetHeight() == 1,
@@ -1063,7 +1064,7 @@ assert(divider.point[1] == "TOPRIGHT" and divider.point[2] == settingsCanvas
     "Primary divider must stretch across the canvas below the tabs")
 assert(divider.color[1] == 0.4 and divider.color[2] == 0.4 and divider.color[3] == 0.4 and divider.color[4] == 1,
     "Primary divider color binding failed")
-for index, label in ipairs({"游戏辅助", "游戏设置", "三方插件"}) do
+for index, label in ipairs({"游戏辅助", "游戏设置", "三方插件", "信息展示"}) do
     local category = WoWTools.settings.categories[index]
     local tab = WoWTools.settings.categoryTabs[category.key]
     assert(category.label == label and tab.Text:GetText() == label and tab.Text.wordWrap == false,
@@ -1089,6 +1090,79 @@ for _, group in ipairs(WoWTools.settings.groups) do
             "Secondary tab anchor must use the left column")
         secondaryRow = secondaryRow + 1
     end
+end
+do
+    local settings = WoWTools.settings
+    local previous = settings.selected
+    assert(settings.tabs.pet_skills.Text:GetText() == "宠物技能", "Pet skills secondary tab is not labeled")
+    local panel = settings.pages.pet_skills.frame
+    local function HasLine(text)
+        for _, region in ipairs(widgets) do
+            if region:GetParent() == panel and region.kind == "FontString"
+                and region:IsShown() and region:GetText() == text then return true end
+        end
+    end
+    if flavor == "titan" then
+        settings.Open("pet_skills")
+        assert(HasLine("时光服没有可通过抓宠领悟的猎人宠物技能。") and not panel.scripts.OnEvent,
+            "Titan pet skills must not use the Forever Beast Training interface")
+    else
+        local savedUnitClass, savedSpellName, savedSpellBook = UnitClass, C_Spell.GetSpellName, C_SpellBook
+        local savedCharacterSettings = wowToolsCharacterSettings
+        wowToolsCharacterSettings = {knownPetSkills = {[3666] = true}}
+        function UnitClass(unit)
+            assert(unit == "player", "Pet skills must query the hunter")
+            return "猎人", "HUNTER", 3
+        end
+        function C_Spell.GetSpellName(spellID)
+            if spellID == 17261 then return "本地化撕咬" end
+        end
+        Enum.SpellBookSpellBank = {Player = 0, Pet = 1}
+        C_SpellBook = {IsSpellKnown = function(spellID, bank)
+            assert(type(spellID) == "number" and bank == Enum.SpellBookSpellBank.Player,
+                "Pet skills must check the hunter's teaching spell in the player bank")
+            return spellID == 24599 or spellID == 17267 or spellID == 17261
+        end}
+        panel.scripts.OnEvent(panel, "PLAYER_LOGIN")
+        settings.Open("pet_skills")
+        assert(HasLine("本地化撕咬-无") and HasLine("爪击-有") and HasLine("狂怒之嚎-有"),
+            "Pet skills must read exact highest teaching IDs and preserve existing character records")
+        assert(not HasLine("低吼-无") and not HasLine("低吼-有"), "NPC trainer spells must stay out of the list")
+
+        local savedTrainer, savedTooltip = C_Trainer, C_TooltipInfo
+        local savedCount, savedServiceInfo = GetNumTrainerServices, GetTrainerServiceInfo
+        local trainerType = 0
+        Enum.TrainerType = {Pet = 3}
+        C_Trainer = {GetTrainerType = function() return trainerType end}
+        function GetNumTrainerServices() return 2 end
+        function GetTrainerServiceInfo(index)
+            if index == 1 then return "本地化撕咬", "used", nil, 48, "等级 7" end
+            return "突进", "unavailable", nil, 50, nil
+        end
+        C_TooltipInfo = {GetTrainerService = function(index)
+            if index == 1 then return {id = 17267} end
+        end}
+        panel.scripts.OnEvent(panel, "TRAINER_SHOW")
+        assert(HasLine("突进-无"), "NPC trainer windows must not mark a spell learned")
+        trainerType = Enum.TrainerType.Pet
+        panel.scripts.OnEvent(panel, "TRAINER_UPDATE")
+        assert(HasLine("突进-有") and HasLine("本地化撕咬-无"),
+            "Beast Training must distinguish exact ranks even when a row omits the rank text")
+        panel.scripts.OnEvent(panel, "LEARNED_SPELL_IN_SKILL_LINE", 17268)
+        assert(HasLine("本地化撕咬-有") and wowToolsCharacterSettings.knownPetSkills[17268],
+            "Learned teaching spell event must bind to the character record")
+        local savedLearnText = ERR_LEARN_ABILITY_S
+        ERR_LEARN_ABILITY_S = "你学会了%s。"
+        panel.scripts.OnEvent(panel, "CHAT_MSG_SYSTEM", "你学会了|Hspell:1264482|h[音爆]|h。")
+        assert(HasLine("音爆-有") and wowToolsCharacterSettings.knownPetSkills[1264488],
+            "The client learning message must bind the exact pet spell to its teaching ID")
+        ERR_LEARN_ABILITY_S = savedLearnText
+        UnitClass, C_Spell.GetSpellName, C_SpellBook = savedUnitClass, savedSpellName, savedSpellBook
+        wowToolsCharacterSettings = savedCharacterSettings
+        C_Trainer, C_TooltipInfo = savedTrainer, savedTooltip
+        GetNumTrainerServices, GetTrainerServiceInfo = savedCount, savedServiceInfo
+    end
+    settings.Open(previous)
 end
 local loginPoint = assert(names.wowToolsLoginPoint, "Missing shared in-world mode marker")
 assert(WoWTools.loginPoint == loginPoint and loginPoint:GetParent() == UIParent and #loginPoint.textures == 1
