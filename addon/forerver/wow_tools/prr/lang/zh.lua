@@ -13,8 +13,10 @@ ns.Localization.Add("zh", [==[
         "reagent": "%d x %s",
         "reagents_unknown": "材料未知",
         "more_shift": "另有 %d 个（Shift）",
-        "teaches": "教授：",
+        "skill_levels": "技能等级：",
         "auction_price": "拍卖(PRR)",
+        "disenchant": "分解",
+        "disenchant_average": "平均",
         "learning_location": "学习地点：%s",
         "location_unknown": "位置未收录",
         "other_locations": "，另有 %d 处",
@@ -88,8 +90,13 @@ ns.Localization.Add("zh", [==[
         "reagent_for": "材料用于（%d）：",
         "profession_count": "%s（%d）",
         "no_recipes": "没有配方制作或使用此物品。",
-        "search": "搜索配方",
-        "found": "找到：%d",
+        "search": "搜索配方和材料",
+        "search_reagents": "材料",
+        "search_reagents_tooltip": "搜索时也按名称查找材料，以及使用这些材料的配方。",
+        "found_reagents": "材料（%d）：",
+        "found_recipes": "配方（%d）：",
+        "found_by_reagent": "使用这些材料的配方（%d）：",
+        "reagent_recipes": "配方：%d",
         "all_recipes": "所有配方（%d）",
         "nothing_found": "未找到。",
         "history": "历史记录",
@@ -112,41 +119,136 @@ ns.Localization.Add("zh", [==[
     },
     "options": {
         "main": {
-            "description": "什么能制作某个物品，以及它是哪些配方的材料：显示在物品鼠标提示和物品窗口中。设置位于左侧列表中本页下方的子页面。\n\n/prr -- 物品窗口，/prr planner -- 制作规划器。\n",
-            "open_window": "物品窗口",
-            "open_planner": "制作规划器"
+            "header": "专业、配方、材料",
+            "description": "每件物品的配方、材料、拍卖价格和技能提升：显示在鼠标提示、物品窗口和制作规划器中。设置在左侧列表下方的各个分类里。",
+            "item_window": {
+                "name": "物品窗口",
+                "button": "打开",
+                "description": "所有制作该物品或以它为材料的配方，可搜索。命令：/prr"
+            },
+            "planner": {
+                "name": "制作规划器",
+                "button": "打开",
+                "description": "每个配方的拍卖价格和利润，以及升级专业最便宜的路线。命令：/prr planner"
+            }
         },
-        "tooltip_header": "鼠标提示",
+        "pages": {
+            "tooltip": "物品提示",
+            "gathering": "采集与剥皮",
+            "profession": "专业窗口",
+            "window": "物品窗口",
+            "planner": "制作规划器",
+            "interface": "界面",
+            "language": "语言"
+        },
+        "sections": {
+            "general": "常规",
+            "crafting": "制作",
+            "auction": "拍卖行",
+            "disenchant": "分解",
+            "professions": "专业",
+            "herbalism": "草药学",
+            "mining": "采矿",
+            "skinning": "剥皮",
+            "loot": "拾取",
+            "tracking": "你的拾取统计",
+            "recipe": "所选配方",
+            "opening": "打开物品",
+            "links": "Wowhead 链接",
+            "minimap": "小地图",
+            "loot_window": "拾取窗口",
+            "language": "插件语言"
+        },
         "show_tooltip": {
-            "name": "在物品鼠标提示中显示配方信息",
-            "description": "什么能制作该物品，以及它是哪些配方的材料"
+            "name": "在物品提示中显示 PRR",
+            "description": "在物品提示中显示配方、材料、拍卖价格和分解结果。关闭后不显示任何 PRR 行。"
         },
         "show_crafted_by": {
-            "name": "“制作专业”和“教授”",
-            "description": "制作该物品的专业和材料；图样教授的内容"
+            "name": "制作来源",
+            "description": "哪个专业制作该物品、所需技能和材料。"
         },
         "show_reagent_for": {
-            "name": "“材料用于”",
-            "description": "按专业列出使用该物品的配方"
+            "name": "用作材料",
+            "description": "以该物品为材料的配方，按专业分组。"
         },
-        "link_header": "Wowhead 快捷链接",
-        "copy_link": {
-            "name": "在物品窗口中按 Ctrl+C -- 复制 Wowhead 链接",
-            "description": "仅限物品窗口中的图标和配方行"
+        "show_skill_levels": {
+            "name": "配方技能等级",
+            "description": "配方在多少技能时变为橙色、黄色、绿色和灰色。显示在“制作来源”行和配方物品（图样、设计图、配方）上。"
         },
-        "interface_header": "界面",
-        "minimap": {
-            "name": "微缩地图按钮",
-            "description": "点击 -- 物品窗口，右键点击 -- 这些设置"
+        "show_auction_price": {
+            "name": "拍卖价格",
+            "description": "上次规划器扫描到的最低一口价，附扫描日期。"
         },
-        "loot_glow": {
-            "name": "拾取窗口中收藏物品的发光",
-            "description": "拾取中收藏物品周围的闪烁金框；图标上的星标保持不变"
+        "show_disenchant": {
+            "name": "分解为",
+            "description": "优秀、精良和史诗武器与护甲分解后得到的材料、几率和数量。"
         },
-        "window_header": "物品窗口",
+        "show_disenchant_price": {
+            "name": "材料价格",
+            "description": "每种材料的拍卖价格和一次分解的平均价值。"
+        },
+        "tooltip_professions": {
+            "name": "显示配方的专业",
+            "description": "未勾选专业的配方不会显示在物品提示中。",
+            "all": "全部专业",
+            "show_all": "全部勾选",
+            "hide_all": "全部取消"
+        },
+        "show_herb_nodes": {
+            "name": "草药提示",
+            "description": "鼠标指向草药：所需草药学技能、技能颜色、获得技能点的几率以及采集所得。"
+        },
+        "show_mining_nodes": {
+            "name": "矿脉提示",
+            "description": "鼠标指向矿脉：所需采矿技能、技能颜色、获得技能点的几率以及采集所得。"
+        },
+        "show_skinning": {
+            "name": "生物提示",
+            "description": "鼠标指向生物：所需剥皮技能、获得技能点的几率以及能剥下的皮革和毛皮。仅限学会剥皮的角色。"
+        },
+        "skinning_units": {
+            "name": "显示于",
+            "description": "所有生物，或仅可剥皮的尸体。",
+            "all": "活着和死亡的生物",
+            "dead": "仅尸体"
+        },
+        "show_possible_loot": {
+            "name": "可能的拾取",
+            "description": "生物或资源点可能给出的物品：每件物品按 WoW Forever 拾取数据的几率。"
+        },
+        "show_gathering_own": {
+            "name": "你的拾取",
+            "description": "“你的拾取”部分：你自己剥皮、采药和采矿的所得以及次数。需要开启“记录你的拾取”。"
+        },
+        "show_gathering_stacks": {
+            "name": "堆叠数量",
+            "description": "每件物品下方：一次拾取得到 x1、x2、x3 的几率。关闭：只显示总几率。"
+        },
+        "show_gathering_price": {
+            "name": "拍卖价格",
+            "description": "上次规划器扫描到的每件物品价格。"
+        },
+        "record_gathering": {
+            "name": "记录你的拾取",
+            "description": "记住每次剥皮、采药和采矿的所得，用于计算你自己的几率。"
+        },
+        "gathering_history": {
+            "name": "保留的拾取次数",
+            "description": "每个生物和资源点保留最近多少次拾取用于计算你的几率。更早的会被删除。"
+        },
+        "gathering_reset": {
+            "name": "已记录的拾取",
+            "button": "重置",
+            "description": "删除你的拾取统计并重新开始。",
+            "confirm": "删除你的拾取统计（%d 次拾取）？"
+        },
+        "skill_zones": {
+            "name": "技能提升条",
+            "description": "在所选配方下方：橙、黄、绿、灰色区间，你的技能位置，获得技能点的几率，材料成本和售价。"
+        },
         "open_binding": {
-            "name": "用以下方式打开物品窗口",
-            "description": "点击任意物品 -- 背包中、聊天链接、拾取 -- 都会用它打开物品窗口。窗口打开时 Shift+点击始终有效。",
+            "name": "在 PRR 中打开物品的方式",
+            "description": "点击任意物品（背包、聊天链接、拾取）会在物品窗口中打开它。窗口打开时 Shift+点击始终有效。",
             "values": {
                 "NONE": "无",
                 "ALT_CLICK": "Alt+点击",
@@ -159,29 +261,31 @@ ns.Localization.Add("zh", [==[
                 "CTRL_ALT_RIGHT_CLICK": "Ctrl+Alt+右键点击"
             }
         },
-        "planner_header": "制作规划器",
+        "copy_link": {
+            "name": "Ctrl+C 复制 Wowhead 链接",
+            "description": "在物品窗口的图标或配方上：弹出可复制的 Wowhead 链接。"
+        },
         "auction_cut": {
-            "explanation": "拍卖行会从每笔售出中抽取一部分：本阵营拍卖行 5%，中立拍卖行 15%（藏宝海湾、加基森、永望镇）。\n\n制作规划器在“价格”标签中计算配方利润时会扣除这一部分：\n  利润 = 售价 - 手续费 - 成本\n例如，一件制作品售价 1金，材料花费 80银：按 5% 拍卖行收取 5银，利润为 15银；按 15% 收取 15银，利润为 5银。\n\n请设置你出售所在拍卖行的手续费。“利润”列、按利润排序以及行提示（“拍卖行手续费”一行）会立即改变。\n",
-            "name": "拍卖行手续费，%",
-            "description": "拍卖行从一笔售出中收取的部分：本阵营 5%，中立 15%。利润扣除此部分计算。"
+            "name": "拍卖行手续费",
+            "description": "拍卖行从售出中扣除的比例：本阵营 5%，中立拍卖行 15%（藏宝海湾、加基森、永望镇）。规划器的利润已扣除它。"
         },
-        "show_auction_price": {
-            "name": "拍卖价格",
-            "description": "制作规划器扫描时看到的单件最低一口价，附扫描日期"
+        "minimap": {
+            "name": "小地图按钮",
+            "description": "左键：物品窗口。右键：这些设置。"
         },
-        "tooltip_professions": {
-            "name": "鼠标提示中的专业",
-            "description": "此处关闭的专业的配方不会显示在物品鼠标提示中。",
-            "show_all": "全部显示",
-            "hide_all": "全部隐藏"
+        "loot_glow": {
+            "name": "高亮收藏物品",
+            "description": "在拾取窗口中为收藏的物品加上闪烁的金色边框。"
         },
-        "language_header": "语言",
         "language": {
-            "name": "插件语言",
-            "description": "PRR 的文字：窗口、鼠标提示行、设置和聊天消息。",
+            "name": "语言",
+            "description": "PRR 窗口、提示行、设置和聊天消息的语言。物品、配方和专业名称来自游戏。",
             "auto": "游戏语言（%s）",
-            "note": "新语言在重新载入界面后生效。物品、配方和专业的名称来自游戏，保持游戏的语言。",
-            "reload": "重新载入界面"
+            "reload": {
+                "name": "应用语言",
+                "button": "重新加载界面",
+                "description": "重新加载界面后使用新语言。"
+            }
         }
     },
     "dev": {
@@ -325,6 +429,31 @@ ns.Localization.Add("zh", [==[
     },
     "language": {
         "native_name": "简体中文"
+    },
+    "skill_zones": {
+        "title": "技能提升：",
+        "zone_orange": "橙色",
+        "zone_yellow": "黄色",
+        "zone_green": "绿色",
+        "zone_gray": "灰色",
+        "chance": "提升几率 %d%%",
+        "locked": "%d 可学",
+        "gear_title": "配方的技能区间",
+        "gear_hint": "可在设置的“%s”页面中关闭。点击打开该页面。",
+        "planner_hint": "计算专业升级最便宜的路线：每个技能等级制作哪些配方、做多少次，需要购买的材料以及按拍卖价格的总花费。点击打开计划。",
+        "materials": "材料：",
+        "sale": "售价：",
+        "no_price": "无价格"
+    },
+    "gathering": {
+        "needs": "需要技能 %d",
+        "count_skinning": "已剥皮：%d 次",
+        "count_mining": "已采矿：%d 次",
+        "count_herbalism": "已采集：%d 次",
+        "skill_up": "技能提升几率：%s",
+        "possible": "可能的拾取：",
+        "own": "你的拾取：",
+        "own_last": "你的拾取（最近 %d 次）："
     },
     "addon": {
         "title": "PRR 配方用途"

@@ -18,22 +18,22 @@ ns.Database.Recipes = Recipes
 Recipes[818] = { profession = 185, yellow = 25, gray = 75, reagents = "4470:1", name = "Basic Campfire" }
 Recipes[2149] = { item = 2302, profession = 165, skill = 1, yellow = 40, gray = 70, reagents = "2318:2,2320:1" }
 Recipes[2152] = { item = 2304, profession = 165, skill = 1, yellow = 30, gray = 60, reagents = "2318:1" }
-Recipes[2153] = { item = 2303, profession = 165, skill = 30, yellow = 45, gray = 75, reagents = "2318:4,2320:1" }
+Recipes[2153] = { item = 2303, profession = 165, skill = 15, yellow = 45, gray = 75, reagents = "2318:4,2320:1" }
 Recipes[2158] = { item = 2307, profession = 165, skill = 65, yellow = 95, gray = 125, reagents = "2318:7,2320:2", recipeItem = 2406 }
-Recipes[2159] = { item = 2308, profession = 165, yellow = 70, gray = 100, reagents = "2318:10,2321:2" }
-Recipes[2160] = { item = 2300, profession = 165, skill = 50, yellow = 65, gray = 95, reagents = "2318:8,2320:4" }
-Recipes[2161] = { item = 2309, profession = 165, skill = 65, yellow = 80, gray = 110, reagents = "2318:8,2320:5" }
-Recipes[2162] = { item = 2310, profession = 165, skill = 65, yellow = 70, gray = 100, reagents = "2318:5,2320:2" }
+Recipes[2159] = { item = 2308, profession = 165, skill = 50, yellow = 70, gray = 100, reagents = "2318:10,2321:2" }
+Recipes[2160] = { item = 2300, profession = 165, skill = 35, yellow = 65, gray = 95, reagents = "2318:8,2320:4" }
+Recipes[2161] = { item = 2309, profession = 165, skill = 50, yellow = 80, gray = 110, reagents = "2318:8,2320:5" }
+Recipes[2162] = { item = 2310, profession = 165, skill = 40, yellow = 70, gray = 100, reagents = "2318:5,2320:2" }
 Recipes[2163] = { item = 2311, profession = 165, skill = 40, yellow = 70, gray = 100, reagents = "2318:8,2320:2,2324:1", recipeItem = 2407 }
 Recipes[2164] = { item = 2312, profession = 165, skill = 50, yellow = 80, gray = 110, reagents = "4231:1,2318:4,2320:2", recipeItem = 2408 }
 Recipes[2165] = { item = 2313, profession = 165, skill = 75, yellow = 90, gray = 105, reagents = "2319:4,2320:1" }
-Recipes[2166] = { item = 2314, profession = 165, yellow = 120, gray = 145, reagents = "2319:10,4231:2,2321:2" }
-Recipes[2167] = { item = 2315, profession = 165, skill = 100, yellow = 100, gray = 125, reagents = "2319:4,2321:2,4340:1" }
-Recipes[2168] = { item = 2316, profession = 165, skill = 110, yellow = 110, gray = 135, reagents = "2319:8,2321:1,4340:1" }
+Recipes[2166] = { item = 2314, profession = 165, skill = 95, yellow = 120, gray = 145, reagents = "2319:10,4231:2,2321:2" }
+Recipes[2167] = { item = 2315, profession = 165, skill = 75, yellow = 100, gray = 125, reagents = "2319:4,2321:2,4340:1" }
+Recipes[2168] = { item = 2316, profession = 165, skill = 85, yellow = 110, gray = 135, reagents = "2319:8,2321:1,4340:1" }
 Recipes[2169] = { item = 2317, profession = 165, skill = 75, yellow = 100, gray = 125, reagents = "2319:6,2321:1,4340:1", recipeItem = 2409 }
-Recipes[2329] = { item = 2454, profession = 171, yellow = 55, gray = 95, reagents = "2449:1,765:1,3371:1" }
+Recipes[2329] = { item = 2454, profession = 171, skill = 15, yellow = 55, gray = 95, reagents = "2449:1,765:1,3371:1" }
 Recipes[2330] = { item = 118, profession = 171, yellow = 55, gray = 95, reagents = "2447:1,765:1,3371:1" }
-Recipes[2331] = { item = 2455, profession = 171, skill = 30, yellow = 65, gray = 105, reagents = "785:1,2447:1,3371:1" }
+Recipes[2331] = { item = 2455, profession = 171, skill = 25, yellow = 65, gray = 105, reagents = "785:1,2447:1,3371:1" }
 Recipes[2332] = { item = 2456, profession = 171, skill = 40, yellow = 70, gray = 110, reagents = "785:2,2447:1,3371:1" }
 Recipes[2333] = { item = 3390, profession = 171, skill = 140, yellow = 165, gray = 205, reagents = "3355:1,2452:1,3372:1", recipeItem = 3396 }
 Recipes[2334] = { item = 2458, profession = 171, skill = 50, yellow = 80, gray = 120, reagents = "2449:2,2447:1,3371:1", recipeItem = 2554 }
@@ -41,29 +41,29 @@ Recipes[2335] = { item = 2459, profession = 171, skill = 60, yellow = 90, gray =
 Recipes[2337] = { item = 858, profession = 171, skill = 80, yellow = 85, gray = 125, reagents = "118:1,2450:1" }
 Recipes[2365] = { item = 2460, profession = 171, yellow = 100, gray = 140, reagents = "2449:2,785:2,3371:1" }
 Recipes[2385] = { item = 2568, profession = 197, skill = 10, yellow = 45, gray = 70, reagents = "2996:1,2320:1" }
-Recipes[2386] = { item = 2569, profession = 197, skill = 65, yellow = 65, gray = 100, reagents = "2996:3,2320:1,2318:1" }
+Recipes[2386] = { item = 2569, profession = 197, skill = 40, yellow = 65, gray = 100, reagents = "2996:3,2320:1,2318:1" }
 Recipes[2387] = { item = 2570, profession = 197, skill = 1, yellow = 35, gray = 60, reagents = "2996:1,2320:1" }
 Recipes[2389] = { item = 2572, profession = 197, skill = 25, yellow = 50, gray = 85, reagents = "2996:3,2320:2,2604:2", recipeItem = 2598 }
-Recipes[2392] = { item = 2575, profession = 197, skill = 40, yellow = 50, gray = 85, reagents = "2996:2,2320:1,2604:1" }
+Recipes[2392] = { item = 2575, profession = 197, skill = 25, yellow = 50, gray = 85, reagents = "2996:2,2320:1,2604:1" }
 Recipes[2393] = { item = 2576, profession = 197, skill = 1, yellow = 35, gray = 60, reagents = "2996:1,2320:1,2324:1" }
-Recipes[2394] = { item = 2577, profession = 197, skill = 40, yellow = 50, gray = 85, reagents = "2996:2,2320:1,6260:1" }
-Recipes[2395] = { item = 2578, profession = 197, yellow = 65, gray = 100, reagents = "2996:4,2318:1,2321:1" }
-Recipes[2396] = { item = 2579, profession = 197, yellow = 65, gray = 100, reagents = "2996:3,2321:1,2605:1" }
-Recipes[2397] = { item = 2580, profession = 197, skill = 60, yellow = 60, gray = 95, reagents = "2996:2,2320:3" }
-Recipes[2399] = { item = 2582, profession = 197, skill = 85, yellow = 85, gray = 120, reagents = "2997:2,2321:2,2605:1" }
-Recipes[2401] = { item = 2583, profession = 197, skill = 95, yellow = 95, gray = 130, reagents = "2997:4,2321:2,2318:2" }
-Recipes[2402] = { item = 2584, profession = 197, skill = 75, yellow = 80, gray = 115, reagents = "2997:1,2321:1" }
+Recipes[2394] = { item = 2577, profession = 197, skill = 25, yellow = 50, gray = 85, reagents = "2996:2,2320:1,6260:1" }
+Recipes[2395] = { item = 2578, profession = 197, skill = 40, yellow = 65, gray = 100, reagents = "2996:4,2318:1,2321:1" }
+Recipes[2396] = { item = 2579, profession = 197, skill = 40, yellow = 65, gray = 100, reagents = "2996:3,2321:1,2605:1" }
+Recipes[2397] = { item = 2580, profession = 197, skill = 35, yellow = 60, gray = 95, reagents = "2996:2,2320:3" }
+Recipes[2399] = { item = 2582, profession = 197, skill = 60, yellow = 85, gray = 120, reagents = "2997:2,2321:2,2605:1" }
+Recipes[2401] = { item = 2583, profession = 197, skill = 70, yellow = 95, gray = 130, reagents = "2997:4,2321:2,2318:2" }
+Recipes[2402] = { item = 2584, profession = 197, skill = 55, yellow = 80, gray = 115, reagents = "2997:1,2321:1" }
 Recipes[2403] = { item = 2585, profession = 197, skill = 80, yellow = 105, gray = 140, reagents = "2997:4,2321:3,4340:1", recipeItem = 2601 }
-Recipes[2406] = { item = 2587, profession = 197, yellow = 90, gray = 110, reagents = "2997:2,2321:1,4340:1" }
+Recipes[2406] = { item = 2587, profession = 197, skill = 80, yellow = 90, gray = 110, reagents = "2997:2,2321:1,4340:1" }
 Recipes[2538] = { item = 2679, profession = 185, yellow = 45, gray = 85, reagents = "2672:1" }
-Recipes[2539] = { item = 2680, profession = 185, skill = 30, yellow = 50, gray = 90, reagents = "2672:1,2678:1" }
+Recipes[2539] = { item = 2680, profession = 185, skill = 10, yellow = 50, gray = 90, reagents = "2672:1,2678:1" }
 Recipes[2540] = { item = 2681, profession = 185, yellow = 45, gray = 85, reagents = "769:1" }
-Recipes[2541] = { item = 2684, profession = 185, skill = 65, yellow = 90, gray = 130, reagents = "2673:1" }
+Recipes[2541] = { item = 2684, profession = 185, skill = 50, yellow = 90, gray = 130, reagents = "2673:1" }
 Recipes[2542] = { item = 724, profession = 185, skill = 50, yellow = 90, gray = 130, reagents = "723:1,2678:1", recipeItem = 2697 }
 Recipes[2543] = { item = 733, profession = 185, skill = 75, yellow = 115, gray = 155, reagents = "729:1,730:1,731:1", recipeItem = 728 }
 Recipes[2544] = { item = 2683, profession = 185, skill = 75, yellow = 115, gray = 155, reagents = "2674:1,2678:1" }
 Recipes[2545] = { item = 2682, profession = 185, skill = 85, yellow = 125, gray = 165, reagents = "2675:1,2678:1", recipeItem = 2698 }
-Recipes[2546] = { item = 2687, profession = 185, skill = 110, yellow = 120, gray = 160, reagents = "2677:1,2678:1" }
+Recipes[2546] = { item = 2687, profession = 185, skill = 80, yellow = 120, gray = 160, reagents = "2677:1,2678:1" }
 Recipes[2547] = { item = 1082, profession = 185, skill = 100, yellow = 135, gray = 175, reagents = "1081:1,1080:1", recipeItem = 2699 }
 Recipes[2548] = { item = 2685, profession = 185, skill = 110, yellow = 130, gray = 170, reagents = "2677:2,2692:1", recipeItem = 2700 }
 Recipes[2549] = { item = 1017, profession = 185, skill = 100, yellow = 140, gray = 180, count = 3, reagents = "1015:2,2678:1", recipeItem = 2701 }
@@ -71,36 +71,36 @@ Recipes[2657] = { item = 2840, profession = 186, skill = 25, yellow = 25, gray =
 Recipes[2658] = { item = 2842, profession = 186, skill = 75, yellow = 100, gray = 125, reagents = "2775:1" }
 Recipes[2659] = { item = 2841, profession = 186, skill = 65, yellow = 65, gray = 115, count = 2, reagents = "2840:1,3576:1" }
 Recipes[2660] = { item = 2862, profession = 164, skill = 1, yellow = 15, gray = 55, reagents = "2835:1" }
-Recipes[2661] = { item = 2851, profession = 164, skill = 55, yellow = 70, gray = 110, reagents = "2840:6" }
-Recipes[2662] = { item = 2852, profession = 164, skill = 40, yellow = 50, gray = 90, reagents = "2840:4" }
+Recipes[2661] = { item = 2851, profession = 164, skill = 30, yellow = 70, gray = 110, reagents = "2840:6" }
+Recipes[2662] = { item = 2852, profession = 164, skill = 15, yellow = 50, gray = 90, reagents = "2840:4" }
 Recipes[2663] = { item = 2853, profession = 164, skill = 1, yellow = 20, gray = 60, reagents = "2840:2" }
 Recipes[2664] = { item = 2854, profession = 164, skill = 65, yellow = 90, gray = 115, reagents = "2840:10,3470:3" }
-Recipes[2665] = { item = 2863, profession = 164, skill = 75, yellow = 40, gray = 55, reagents = "2836:1" }
-Recipes[2666] = { item = 2857, profession = 164, skill = 80, yellow = 85, gray = 125, reagents = "2840:10" }
+Recipes[2665] = { item = 2863, profession = 164, skill = 40, yellow = 40, gray = 55, reagents = "2836:1" }
+Recipes[2666] = { item = 2857, profession = 164, skill = 45, yellow = 85, gray = 125, reagents = "2840:10" }
 Recipes[2667] = { item = 2864, profession = 164, skill = 55, yellow = 95, gray = 135, reagents = "2840:12,1210:1,3470:2", recipeItem = 2881 }
-Recipes[2668] = { item = 2865, profession = 164, skill = 95, yellow = 120, gray = 150, reagents = "2841:6" }
-Recipes[2670] = { item = 2866, profession = 164, skill = 105, yellow = 120, gray = 150, reagents = "2841:7" }
+Recipes[2668] = { item = 2865, profession = 164, skill = 80, yellow = 120, gray = 150, reagents = "2841:6" }
+Recipes[2670] = { item = 2866, profession = 164, skill = 80, yellow = 120, gray = 150, reagents = "2841:7" }
 Recipes[2671] = { item = 2867, profession = 164, skill = 100, yellow = 115, gray = 145, reagents = "2841:4" }
-Recipes[2672] = { item = 2868, profession = 164, skill = 120, yellow = 125, gray = 155, reagents = "2841:5,3478:2" }
+Recipes[2672] = { item = 2868, profession = 164, skill = 95, yellow = 125, gray = 155, reagents = "2841:5,3478:2" }
 Recipes[2673] = { item = 2869, profession = 164, skill = 105, yellow = 135, gray = 165, reagents = "2841:10,2842:2,3478:2,1705:1", recipeItem = 5578 }
-Recipes[2674] = { item = 2871, profession = 164, skill = 125, yellow = 100, gray = 115, reagents = "2838:1" }
-Recipes[2675] = { item = 2870, profession = 164, skill = 135, yellow = 150, gray = 180, reagents = "2841:20,1206:2,1705:2,5500:2,2842:4" }
-Recipes[2737] = { item = 2844, profession = 164, skill = 30, yellow = 55, gray = 95, reagents = "2840:6,2880:1,2589:2" }
-Recipes[2738] = { item = 2845, profession = 164, skill = 35, yellow = 60, gray = 100, reagents = "2840:6,2880:1,2589:2" }
-Recipes[2739] = { item = 2847, profession = 164, skill = 40, yellow = 65, gray = 105, reagents = "2840:6,2880:1,2589:2" }
-Recipes[2740] = { item = 2848, profession = 164, skill = 75, yellow = 115, gray = 145, reagents = "2841:6,2880:4,2319:1" }
-Recipes[2741] = { item = 2849, profession = 164, skill = 85, yellow = 120, gray = 150, reagents = "2841:7,2880:4,2319:1" }
+Recipes[2674] = { item = 2871, profession = 164, skill = 100, yellow = 100, gray = 115, reagents = "2838:1" }
+Recipes[2675] = { item = 2870, profession = 164, skill = 120, yellow = 150, gray = 180, reagents = "2841:20,1206:2,1705:2,5500:2,2842:4" }
+Recipes[2737] = { item = 2844, profession = 164, skill = 15, yellow = 55, gray = 95, reagents = "2840:6,2880:1,2589:2" }
+Recipes[2738] = { item = 2845, profession = 164, skill = 20, yellow = 60, gray = 100, reagents = "2840:6,2880:1,2589:2" }
+Recipes[2739] = { item = 2847, profession = 164, skill = 25, yellow = 65, gray = 105, reagents = "2840:6,2880:1,2589:2" }
+Recipes[2740] = { item = 2848, profession = 164, skill = 85, yellow = 115, gray = 145, reagents = "2841:6,2880:4,2319:1" }
+Recipes[2741] = { item = 2849, profession = 164, skill = 90, yellow = 120, gray = 150, reagents = "2841:7,2880:4,2319:1" }
 Recipes[2742] = { item = 2850, profession = 164, skill = 95, yellow = 125, gray = 155, reagents = "2841:5,2880:4,2319:2" }
 Recipes[2795] = { item = 2888, profession = 185, skill = 25, yellow = 60, gray = 100, reagents = "2886:1,2894:1", recipeItem = 2889 }
 Recipes[2835] = { item = 2892, profession = 40, yellow = 175, gray = 225, reagents = "5173:1,3372:1" }
 Recipes[2837] = { item = 2893, profession = 40, yellow = 215, gray = 265, reagents = "5173:2,3372:1" }
 Recipes[2881] = { item = 2318, profession = 165, skill = 1, yellow = 20, gray = 40, reagents = "2934:3" }
 Recipes[2963] = { item = 2996, profession = 197, skill = 1, yellow = 25, gray = 50, reagents = "2589:2" }
-Recipes[2964] = { item = 2997, profession = 197, yellow = 70, gray = 85, reagents = "2592:3" }
+Recipes[2964] = { item = 2997, profession = 197, skill = 55, yellow = 70, gray = 85, reagents = "2592:3" }
 Recipes[3115] = { item = 3239, profession = 164, skill = 1, yellow = 15, gray = 55, reagents = "2835:1" }
-Recipes[3116] = { item = 3240, profession = 164, yellow = 40, gray = 55, reagents = "2836:1" }
-Recipes[3117] = { item = 3241, profession = 164, yellow = 100, gray = 115, reagents = "2838:1" }
-Recipes[3170] = { item = 3382, profession = 171, yellow = 60, gray = 100, reagents = "2447:1,2449:2,3371:1" }
+Recipes[3116] = { item = 3240, profession = 164, skill = 40, yellow = 40, gray = 55, reagents = "2836:1" }
+Recipes[3117] = { item = 3241, profession = 164, skill = 100, yellow = 100, gray = 115, reagents = "2838:1" }
+Recipes[3170] = { item = 3382, profession = 171, skill = 15, yellow = 60, gray = 100, reagents = "2447:1,2449:2,3371:1" }
 Recipes[3171] = { item = 3383, profession = 171, skill = 90, yellow = 120, gray = 160, reagents = "785:1,2450:2,3371:1" }
 Recipes[3172] = { item = 3384, profession = 171, skill = 110, yellow = 135, gray = 175, reagents = "785:3,3355:1,3371:1", recipeItem = 3393 }
 Recipes[3173] = { item = 3385, profession = 171, skill = 120, yellow = 145, gray = 185, reagents = "785:1,3820:1,3371:1" }
@@ -114,11 +114,11 @@ Recipes[3275] = { item = 1251, profession = 129, skill = 1, yellow = 30, gray = 
 Recipes[3276] = { item = 2581, profession = 129, skill = 40, yellow = 50, gray = 100, reagents = "2589:2" }
 Recipes[3277] = { item = 3530, profession = 129, skill = 80, yellow = 80, gray = 150, reagents = "2592:1" }
 Recipes[3278] = { item = 3531, profession = 129, skill = 115, yellow = 115, gray = 185, reagents = "2592:2" }
-Recipes[3292] = { item = 3487, profession = 164, skill = 95, yellow = 110, gray = 150, reagents = "2840:14,2880:2,818:2,2319:2" }
-Recipes[3293] = { item = 3488, profession = 164, skill = 35, yellow = 70, gray = 110, reagents = "2840:12,2880:2,774:2,3470:2,2318:2" }
-Recipes[3294] = { item = 3489, profession = 164, skill = 70, yellow = 85, gray = 125, reagents = "2840:10,2880:2,2842:2,3470:2,2318:2" }
+Recipes[3292] = { item = 3487, profession = 164, skill = 70, yellow = 110, gray = 150, reagents = "2840:14,2880:2,818:2,2319:2" }
+Recipes[3293] = { item = 3488, profession = 164, skill = 30, yellow = 70, gray = 110, reagents = "2840:12,2880:2,774:2,3470:2,2318:2" }
+Recipes[3294] = { item = 3489, profession = 164, skill = 45, yellow = 85, gray = 125, reagents = "2840:10,2880:2,2842:2,3470:2,2318:2" }
 Recipes[3295] = { item = 3490, profession = 164, skill = 100, yellow = 130, gray = 160, reagents = "2841:4,3466:1,2459:1,1210:2,3478:2,2319:2", recipeItem = 2883 }
-Recipes[3296] = { item = 3491, profession = 164, skill = 130, yellow = 135, gray = 165, reagents = "2841:8,3466:1,1206:1,1210:1,3478:2,2319:2" }
+Recipes[3296] = { item = 3491, profession = 164, skill = 105, yellow = 135, gray = 165, reagents = "2841:8,3466:1,1206:1,1210:1,3478:2,2319:2" }
 Recipes[3297] = { item = 3492, profession = 164, skill = 120, yellow = 150, gray = 180, reagents = "3575:6,3466:2,3391:1,1705:2,3478:2,2319:2", recipeItem = 3608 }
 Recipes[3304] = { item = 3576, profession = 186, yellow = 50, gray = 75, reagents = "2771:1" }
 Recipes[3307] = { item = 3575, profession = 186, skill = 125, yellow = 130, gray = 140, reagents = "2772:1" }
@@ -126,17 +126,17 @@ Recipes[3308] = { item = 3577, profession = 186, skill = 155, yellow = 170, gray
 Recipes[3319] = { item = 3469, profession = 164, skill = 20, yellow = 60, gray = 100, reagents = "2840:8" }
 Recipes[3320] = { item = 3470, profession = 164, skill = 25, yellow = 45, gray = 85, reagents = "2835:2" }
 Recipes[3321] = { item = 3471, profession = 164, skill = 30, yellow = 70, gray = 110, reagents = "2840:8,774:1,3470:2", recipeItem = 3609 }
-Recipes[3323] = { item = 3472, profession = 164, skill = 40, yellow = 75, gray = 115, reagents = "2840:8,3470:2" }
-Recipes[3324] = { item = 3473, profession = 164, skill = 45, yellow = 75, gray = 115, reagents = "2840:8,2320:3,3470:3" }
+Recipes[3323] = { item = 3472, profession = 164, skill = 35, yellow = 75, gray = 115, reagents = "2840:8,3470:2" }
+Recipes[3324] = { item = 3473, profession = 164, skill = 35, yellow = 75, gray = 115, reagents = "2840:8,2320:3,3470:3" }
 Recipes[3325] = { item = 3474, profession = 164, skill = 35, yellow = 75, gray = 115, reagents = "2840:8,818:1,774:1", recipeItem = 3610 }
-Recipes[3326] = { item = 3478, profession = 164, yellow = 50, gray = 75, reagents = "2836:2" }
-Recipes[3328] = { item = 3480, profession = 164, skill = 110, yellow = 115, gray = 145, reagents = "2841:5,1210:1,3478:1" }
+Recipes[3326] = { item = 3478, profession = 164, skill = 50, yellow = 50, gray = 90, reagents = "2836:2" }
+Recipes[3328] = { item = 3480, profession = 164, skill = 85, yellow = 115, gray = 145, reagents = "2841:5,1210:1,3478:1" }
 Recipes[3330] = { item = 3481, profession = 164, skill = 100, yellow = 130, gray = 160, reagents = "2841:8,2842:2,3478:2", recipeItem = 2882 }
-Recipes[3331] = { item = 3482, profession = 164, skill = 130, yellow = 135, gray = 165, reagents = "2841:6,2842:1,3478:2" }
-Recipes[3333] = { item = 3483, profession = 164, skill = 135, yellow = 140, gray = 170, reagents = "2841:8,2842:1,3478:2" }
+Recipes[3331] = { item = 3482, profession = 164, skill = 105, yellow = 135, gray = 165, reagents = "2841:6,2842:1,3478:2" }
+Recipes[3333] = { item = 3483, profession = 164, skill = 110, yellow = 140, gray = 170, reagents = "2841:8,2842:1,3478:2" }
 Recipes[3334] = { item = 3484, profession = 164, skill = 120, yellow = 150, gray = 180, reagents = "3575:4,1705:2,3478:2,2605:1", recipeItem = 3611 }
 Recipes[3336] = { item = 3485, profession = 164, skill = 125, yellow = 155, gray = 185, reagents = "3575:4,5498:2,3478:2,2605:1", recipeItem = 3612 }
-Recipes[3337] = { item = 3486, profession = 164, yellow = 100, gray = 125, reagents = "2838:3" }
+Recipes[3337] = { item = 3486, profession = 164, skill = 100, yellow = 100, gray = 125, reagents = "2838:3" }
 Recipes[3370] = { item = 3662, profession = 185, skill = 80, yellow = 120, gray = 160, reagents = "2924:1,2678:1", recipeItem = 3678 }
 Recipes[3371] = { item = 3220, profession = 185, skill = 60, yellow = 100, gray = 140, count = 2, reagents = "3173:1,3172:1,3174:1", recipeItem = 3679 }
 Recipes[3372] = { item = 3663, profession = 185, skill = 90, yellow = 130, gray = 170, reagents = "1468:2,2692:1", recipeItem = 3680 }
@@ -157,7 +157,7 @@ Recipes[3451] = { item = 3826, profession = 171, skill = 180, yellow = 200, gray
 Recipes[3452] = { item = 3827, profession = 171, skill = 160, yellow = 180, gray = 220, reagents = "3820:1,3356:1,3372:1" }
 Recipes[3453] = { item = 3828, profession = 171, skill = 195, yellow = 215, gray = 255, reagents = "3358:1,3818:1,3372:1", recipeItem = 3832 }
 Recipes[3454] = { item = 3829, profession = 171, skill = 200, yellow = 220, gray = 260, count = 2, reagents = "3358:4,3819:2,3372:1", recipeItem = 14634, recipeItemBound = true }
-Recipes[3491] = { item = 3848, profession = 164, skill = 105, yellow = 110, gray = 140, reagents = "2841:6,2880:4,3470:2,818:1,2319:1" }
+Recipes[3491] = { item = 3848, profession = 164, skill = 80, yellow = 110, gray = 140, reagents = "2841:6,2880:4,3470:2,818:1,2319:1" }
 Recipes[3492] = { item = 3849, profession = 164, skill = 135, yellow = 160, gray = 185, reagents = "3575:6,3466:2,3486:1,1705:2,4234:3", recipeItem = 12162 }
 Recipes[3493] = { item = 3850, profession = 164, skill = 150, yellow = 175, gray = 200, reagents = "3575:8,3466:2,3486:2,1529:2,4234:3", recipeItem = 3866 }
 Recipes[3494] = { item = 3851, profession = 164, skill = 130, yellow = 155, gray = 180, reagents = "3575:8,3466:2,3486:1,2842:4,4234:2", recipeItem = 10858, recipeItemBound = true }
@@ -166,82 +166,82 @@ Recipes[3496] = { item = 3853, profession = 164, skill = 155, yellow = 180, gray
 Recipes[3497] = { item = 3854, profession = 164, skill = 175, yellow = 200, gray = 225, reagents = "3859:8,3466:2,3486:2,1529:2,3829:1,4234:4", recipeItem = 3868 }
 Recipes[3498] = { item = 3855, profession = 164, skill = 160, yellow = 185, gray = 210, reagents = "3575:14,3466:2,3486:2,3577:4,4234:2", recipeItem = 12164, recipeItemBound = true }
 Recipes[3500] = { item = 3856, profession = 164, skill = 175, yellow = 200, gray = 225, reagents = "3859:10,3466:2,3486:3,3864:2,3824:1,4234:3", recipeItem = 3869 }
-Recipes[3501] = { item = 3835, profession = 164, skill = 165, yellow = 165, gray = 190, reagents = "3575:6,2605:1" }
-Recipes[3502] = { item = 3836, profession = 164, skill = 170, yellow = 170, gray = 195, reagents = "3575:12,3864:1,2605:1" }
+Recipes[3501] = { item = 3835, profession = 164, skill = 140, yellow = 165, gray = 190, reagents = "3575:6,2605:1" }
+Recipes[3502] = { item = 3836, profession = 164, skill = 145, yellow = 170, gray = 195, reagents = "3575:12,3864:1,2605:1" }
 Recipes[3503] = { item = 3837, profession = 164, skill = 165, yellow = 190, gray = 215, reagents = "3859:8,3577:2,3486:2", recipeItem = 6047, recipeItemBound = true }
 Recipes[3504] = { item = 3840, profession = 164, skill = 135, yellow = 160, gray = 185, reagents = "3575:7,3486:1,2605:1", recipeItem = 3870 }
 Recipes[3505] = { item = 3841, profession = 164, skill = 150, yellow = 175, gray = 200, reagents = "3859:6,3577:2,3486:1", recipeItem = 3871 }
-Recipes[3506] = { item = 3842, profession = 164, skill = 155, yellow = 155, gray = 180, reagents = "3575:8,3486:1,2605:1" }
+Recipes[3506] = { item = 3842, profession = 164, skill = 130, yellow = 155, gray = 180, reagents = "3575:8,3486:1,2605:1" }
 Recipes[3507] = { item = 3843, profession = 164, skill = 145, yellow = 170, gray = 195, reagents = "3575:10,3577:2,3486:1", recipeItem = 3872 }
-Recipes[3508] = { item = 3844, profession = 164, skill = 180, yellow = 180, gray = 205, reagents = "3575:20,3486:4,1529:2,1206:2,4255:1" }
+Recipes[3508] = { item = 3844, profession = 164, skill = 155, yellow = 180, gray = 205, reagents = "3575:20,3486:4,1529:2,1206:2,4255:1" }
 Recipes[3511] = { item = 3845, profession = 164, skill = 170, yellow = 195, gray = 220, reagents = "3859:12,3577:2,3486:4,1529:2", recipeItem = 3873 }
 Recipes[3513] = { item = 3846, profession = 164, skill = 160, yellow = 185, gray = 210, reagents = "3859:8,3864:1,1705:1,3486:2", recipeItem = 3874 }
 Recipes[3515] = { item = 3847, profession = 164, skill = 175, yellow = 200, gray = 225, reagents = "3859:10,3577:4,3486:4,3864:1", recipeItem = 3875 }
 Recipes[3569] = { item = 3859, profession = 186, skill = 165, yellow = 165, gray = 165, reagents = "3575:1,3857:1" }
 Recipes[3753] = { item = 4237, profession = 165, skill = 25, yellow = 55, gray = 85, reagents = "2318:6,2320:1" }
-Recipes[3755] = { item = 4238, profession = 197, yellow = 30, gray = 65, reagents = "2996:3,2320:3" }
-Recipes[3756] = { item = 4239, profession = 165, skill = 55, yellow = 70, gray = 100, reagents = "2318:3,2320:2" }
-Recipes[3757] = { item = 4240, profession = 197, yellow = 75, gray = 110, reagents = "2997:3,2321:1" }
-Recipes[3758] = { item = 4241, profession = 197, skill = 75, yellow = 100, gray = 135, reagents = "2997:4,2605:1,2321:1", recipeItem = 4292 }
-Recipes[3759] = { item = 4242, profession = 165, skill = 75, yellow = 80, gray = 110, reagents = "4231:1,2318:6,2320:2" }
-Recipes[3760] = { item = 3719, profession = 165, yellow = 145, gray = 165, reagents = "4234:5,2321:2" }
-Recipes[3761] = { item = 4243, profession = 165, skill = 85, yellow = 90, gray = 120, reagents = "4231:3,2318:6,2320:4" }
+Recipes[3755] = { item = 4238, profession = 197, skill = 5, yellow = 30, gray = 65, reagents = "2996:3,2320:3" }
+Recipes[3756] = { item = 4239, profession = 165, skill = 40, yellow = 70, gray = 100, reagents = "2318:3,2320:2" }
+Recipes[3757] = { item = 4240, profession = 197, skill = 50, yellow = 75, gray = 110, reagents = "2997:3,2321:1" }
+Recipes[3758] = { item = 4241, profession = 197, skill = 75, yellow = 100, gray = 135, reagents = "2997:5,2605:1,2321:1", recipeItem = 4292 }
+Recipes[3759] = { item = 4242, profession = 165, skill = 50, yellow = 80, gray = 110, reagents = "4231:1,2318:6,2320:2" }
+Recipes[3760] = { item = 3719, profession = 165, skill = 125, yellow = 145, gray = 165, reagents = "4234:5,2321:2" }
+Recipes[3761] = { item = 4243, profession = 165, skill = 60, yellow = 90, gray = 120, reagents = "4231:3,2318:6,2320:4" }
 Recipes[3762] = { item = 4244, profession = 165, skill = 75, yellow = 100, gray = 125, reagents = "4243:1,4231:2,2320:2", recipeItem = 4293 }
-Recipes[3763] = { item = 4246, profession = 165, skill = 80, yellow = 85, gray = 115, reagents = "2318:6,2320:2" }
-Recipes[3764] = { item = 4247, profession = 165, skill = 145, yellow = 145, gray = 170, reagents = "2319:14,2321:4" }
+Recipes[3763] = { item = 4246, profession = 165, skill = 55, yellow = 85, gray = 115, reagents = "2318:6,2320:2" }
+Recipes[3764] = { item = 4247, profession = 165, skill = 120, yellow = 145, gray = 170, reagents = "2319:14,2321:4" }
 Recipes[3765] = { item = 4248, profession = 165, skill = 95, yellow = 140, gray = 165, reagents = "2312:1,4233:1,2321:1,4340:1", recipeItem = 7360 }
-Recipes[3766] = { item = 4249, profession = 165, skill = 125, yellow = 125, gray = 150, reagents = "4246:1,4233:1,2321:2,4340:1" }
+Recipes[3766] = { item = 4249, profession = 165, skill = 100, yellow = 125, gray = 150, reagents = "4246:1,4233:1,2321:2,4340:1" }
 Recipes[3767] = { item = 4250, profession = 165, skill = 95, yellow = 125, gray = 150, reagents = "2319:8,3383:1,2321:2", recipeItem = 4294 }
-Recipes[3768] = { item = 4251, profession = 165, skill = 130, yellow = 130, gray = 155, reagents = "4233:1,2319:4,2321:1" }
+Recipes[3768] = { item = 4251, profession = 165, skill = 105, yellow = 130, gray = 155, reagents = "4233:1,2319:4,2321:1" }
 Recipes[3769] = { item = 4252, profession = 165, skill = 115, yellow = 140, gray = 165, reagents = "2319:12,3390:1,4340:1,2321:2", recipeItem = 4296 }
-Recipes[3770] = { item = 4253, profession = 165, skill = 135, yellow = 135, gray = 160, reagents = "2319:4,4233:2,3389:2,3182:2,2321:2" }
+Recipes[3770] = { item = 4253, profession = 165, skill = 110, yellow = 135, gray = 160, reagents = "2319:4,4233:2,3389:2,3182:2,2321:2" }
 Recipes[3771] = { item = 4254, profession = 165, skill = 125, yellow = 150, gray = 170, reagents = "4234:6,5637:2,2321:1", recipeItem = 4297 }
 Recipes[3772] = { item = 4255, profession = 165, skill = 130, yellow = 150, gray = 170, reagents = "4234:9,2605:2,2321:4", recipeItem = 7613, recipeItemBound = true }
 Recipes[3773] = { item = 4256, profession = 165, skill = 150, yellow = 170, gray = 190, reagents = "4236:2,4234:12,3824:1,2321:2", recipeItem = 4299 }
-Recipes[3774] = { item = 4257, profession = 165, yellow = 155, gray = 175, reagents = "4236:1,4234:5,2321:1,2605:1,7071:1" }
+Recipes[3774] = { item = 4257, profession = 165, skill = 135, yellow = 155, gray = 175, reagents = "4236:1,4234:5,2321:1,2605:1,7071:1" }
 Recipes[3775] = { item = 4258, profession = 165, skill = 145, yellow = 165, gray = 185, reagents = "4236:2,4234:4,2321:1,7071:1", recipeItem = 4298 }
-Recipes[3776] = { item = 4259, profession = 165, yellow = 175, gray = 195, reagents = "4236:2,4234:6,2605:1,2321:1" }
+Recipes[3776] = { item = 4259, profession = 165, skill = 155, yellow = 175, gray = 195, reagents = "4236:2,4234:6,2605:1,2321:1" }
 Recipes[3777] = { item = 4260, profession = 165, skill = 170, yellow = 190, gray = 210, reagents = "4234:6,4236:2,4291:1", recipeItem = 4300 }
 Recipes[3778] = { item = 4262, profession = 165, skill = 160, yellow = 180, gray = 200, reagents = "4236:4,5500:2,1529:2,3864:1,2321:1", recipeItem = 14635 }
 Recipes[3779] = { item = 4264, profession = 165, skill = 175, yellow = 195, gray = 215, reagents = "4234:6,4236:2,4096:2,5633:1,4291:1,7071:1", recipeItem = 4301 }
-Recipes[3780] = { item = 4265, profession = 165, yellow = 145, gray = 165, reagents = "4234:5,2321:1" }
-Recipes[3813] = { item = 4245, profession = 197, yellow = 145, gray = 175, reagents = "4305:3,4234:2,2321:3" }
-Recipes[3816] = { item = 4231, profession = 165, skill = 35, yellow = 50, gray = 70, reagents = "783:1,4289:1" }
-Recipes[3817] = { item = 4233, profession = 165, yellow = 90, gray = 105, reagents = "4232:1,4289:1" }
-Recipes[3818] = { item = 4236, profession = 165, yellow = 135, gray = 145, reagents = "4235:1,4289:3" }
-Recipes[3839] = { item = 4305, profession = 197, yellow = 110, gray = 120, reagents = "4306:4" }
-Recipes[3840] = { item = 4307, profession = 197, skill = 35, yellow = 50, gray = 85, reagents = "2996:2,2320:1" }
-Recipes[3841] = { item = 4308, profession = 197, skill = 60, yellow = 60, gray = 95, reagents = "2996:3,2320:2,2605:1" }
-Recipes[3842] = { item = 4309, profession = 197, skill = 70, yellow = 70, gray = 105, reagents = "2996:4,2321:2" }
-Recipes[3843] = { item = 4310, profession = 197, skill = 85, yellow = 85, gray = 120, reagents = "2997:3,2321:1" }
+Recipes[3780] = { item = 4265, profession = 165, skill = 125, yellow = 145, gray = 165, reagents = "4234:5,2321:1" }
+Recipes[3813] = { item = 4245, profession = 197, skill = 125, yellow = 145, gray = 175, reagents = "4305:3,4234:2,2321:3" }
+Recipes[3816] = { item = 4231, profession = 165, skill = 30, yellow = 50, gray = 70, reagents = "783:1,4289:1" }
+Recipes[3817] = { item = 4233, profession = 165, skill = 75, yellow = 90, gray = 105, reagents = "4232:1,4289:1" }
+Recipes[3818] = { item = 4236, profession = 165, skill = 125, yellow = 135, gray = 145, reagents = "4235:1,4289:3" }
+Recipes[3839] = { item = 4305, profession = 197, skill = 100, yellow = 110, gray = 120, reagents = "4306:4" }
+Recipes[3840] = { item = 4307, profession = 197, skill = 25, yellow = 50, gray = 85, reagents = "2996:2,2320:1" }
+Recipes[3841] = { item = 4308, profession = 197, skill = 35, yellow = 60, gray = 95, reagents = "2996:3,2320:2,2605:1" }
+Recipes[3842] = { item = 4309, profession = 197, skill = 45, yellow = 70, gray = 105, reagents = "2996:4,2321:2" }
+Recipes[3843] = { item = 4310, profession = 197, skill = 60, yellow = 85, gray = 120, reagents = "2997:3,2321:1" }
 Recipes[3844] = { item = 4311, profession = 197, skill = 80, yellow = 105, gray = 140, reagents = "2997:3,2321:2,5498:2", recipeItem = 4346 }
-Recipes[3845] = { item = 4312, profession = 197, skill = 80, yellow = 80, gray = 115, reagents = "2996:5,2318:2,2321:1" }
+Recipes[3845] = { item = 4312, profession = 197, skill = 55, yellow = 80, gray = 115, reagents = "2996:5,2318:2,2321:1" }
 Recipes[3847] = { item = 4313, profession = 197, skill = 75, yellow = 80, gray = 115, reagents = "2997:4,2318:2,2321:1,2604:2", recipeItem = 4345 }
-Recipes[3848] = { item = 4314, profession = 197, skill = 110, yellow = 110, gray = 145, reagents = "2997:3,2321:2" }
+Recipes[3848] = { item = 4314, profession = 197, skill = 85, yellow = 110, gray = 145, reagents = "2997:3,2321:2" }
 Recipes[3849] = { item = 4315, profession = 197, skill = 95, yellow = 120, gray = 155, reagents = "2997:6,2319:2,2321:2", recipeItem = 4347 }
-Recipes[3850] = { item = 4316, profession = 197, skill = 110, yellow = 110, gray = 145, reagents = "2997:5,2321:4" }
+Recipes[3850] = { item = 4316, profession = 197, skill = 85, yellow = 110, gray = 145, reagents = "2997:5,2321:4" }
 Recipes[3851] = { item = 4317, profession = 197, skill = 100, yellow = 125, gray = 160, reagents = "2997:6,5500:1,2321:3", recipeItem = 4349 }
-Recipes[3852] = { item = 4318, profession = 197, yellow = 125, gray = 155, reagents = "2997:4,2321:3,3383:1" }
+Recipes[3852] = { item = 4318, profession = 197, skill = 105, yellow = 125, gray = 155, reagents = "2997:4,2321:3,3383:1" }
 Recipes[3854] = { item = 4319, profession = 197, skill = 120, yellow = 140, gray = 170, reagents = "4305:3,4234:2,6260:2,2321:2", recipeItem = 7114, recipeItemBound = true }
-Recipes[3855] = { item = 4320, profession = 197, skill = 125, yellow = 125, gray = 160, reagents = "4305:2,2319:4,3182:4,5500:1" }
+Recipes[3855] = { item = 4320, profession = 197, skill = 100, yellow = 125, gray = 160, reagents = "4305:2,2319:4,3182:4,5500:1" }
 Recipes[3856] = { item = 4321, profession = 197, skill = 115, yellow = 135, gray = 160, reagents = "4305:3,3182:1,2321:2", recipeItem = 4350 }
 Recipes[3857] = { item = 4322, profession = 197, skill = 130, yellow = 150, gray = 180, reagents = "4305:3,2321:2,4337:2", recipeItem = 14630, recipeItemBound = true }
 Recipes[3858] = { item = 4323, profession = 197, skill = 135, yellow = 155, gray = 185, reagents = "4305:4,4291:1,3824:1", recipeItem = 4351 }
-Recipes[3859] = { item = 4324, profession = 197, yellow = 145, gray = 175, reagents = "4305:5,6260:4" }
+Recipes[3859] = { item = 4324, profession = 197, skill = 125, yellow = 145, gray = 175, reagents = "4305:5,6260:4" }
 Recipes[3860] = { item = 4325, profession = 197, skill = 140, yellow = 160, gray = 190, reagents = "4305:4,4291:1,4337:2", recipeItem = 4352 }
 Recipes[3861] = { item = 4326, profession = 197, yellow = 170, gray = 200, reagents = "4305:4,3827:1,4291:1" }
 Recipes[3862] = { item = 4327, profession = 197, skill = 165, yellow = 185, gray = 215, reagents = "4339:3,4291:2,3829:1,4337:2", recipeItem = 4355 }
 Recipes[3863] = { item = 4328, profession = 197, skill = 145, yellow = 165, gray = 195, reagents = "4305:4,4337:2,7071:1", recipeItem = 4353 }
 Recipes[3864] = { item = 4329, profession = 197, skill = 165, yellow = 185, gray = 215, reagents = "4339:4,4234:4,3864:1,7071:1,4291:1", recipeItem = 4356 }
-Recipes[3865] = { item = 4339, profession = 197, yellow = 145, gray = 150, reagents = "4338:5" }
-Recipes[3866] = { item = 4330, profession = 197, skill = 110, yellow = 110, gray = 145, reagents = "2997:3,2604:2,2321:1" }
+Recipes[3865] = { item = 4339, profession = 197, skill = 140, yellow = 145, gray = 150, reagents = "4338:5" }
+Recipes[3866] = { item = 4330, profession = 197, skill = 85, yellow = 110, gray = 145, reagents = "2997:3,2604:2,2321:1" }
 Recipes[3868] = { item = 4331, profession = 197, skill = 100, yellow = 125, gray = 160, reagents = "2997:4,5500:1,2321:4,2324:2", recipeItem = 4348 }
 Recipes[3869] = { item = 4332, profession = 197, skill = 110, yellow = 120, gray = 130, reagents = "4305:1,4341:1,2321:1", recipeItem = 14627, recipeItemBound = true }
 Recipes[3870] = { item = 4333, profession = 197, skill = 120, yellow = 130, gray = 140, reagents = "4305:2,4340:2,2321:1", recipeItem = 6401, recipeItemBound = true }
-Recipes[3871] = { item = 4334, profession = 197, yellow = 145, gray = 155, reagents = "4305:3,2324:2,2321:1" }
+Recipes[3871] = { item = 4334, profession = 197, skill = 135, yellow = 145, gray = 155, reagents = "4305:3,2324:2,2321:1" }
 Recipes[3872] = { item = 4335, profession = 197, skill = 150, yellow = 160, gray = 170, reagents = "4305:4,4342:1,4291:1", recipeItem = 4354 }
 Recipes[3873] = { item = 4336, profession = 197, skill = 165, yellow = 175, gray = 185, reagents = "4305:5,2325:1,4291:1", recipeItem = 10728, recipeItemBound = true }
-Recipes[3914] = { item = 4343, profession = 197, skill = 30, yellow = 50, gray = 85, reagents = "2996:2,2320:1" }
+Recipes[3914] = { item = 4343, profession = 197, skill = 25, yellow = 50, gray = 85, reagents = "2996:2,2320:1" }
 Recipes[3915] = { item = 4344, profession = 197, skill = 1, yellow = 35, gray = 60, reagents = "2996:1,2320:1" }
 Recipes[3918] = { item = 4357, profession = 202, skill = 1, yellow = 20, gray = 40, reagents = "2835:1" }
 Recipes[3919] = { item = 4358, profession = 202, skill = 1, yellow = 30, gray = 60, count = 2, reagents = "4357:1,2589:1" }
@@ -314,39 +314,39 @@ Recipes[6499] = { item = 5525, profession = 185, skill = 50, yellow = 90, gray =
 Recipes[6500] = { item = 5527, profession = 185, skill = 125, yellow = 165, gray = 205, reagents = "5504:1,2692:1" }
 Recipes[6501] = { item = 5526, profession = 185, skill = 90, yellow = 130, gray = 170, reagents = "5503:1,1179:1,2678:1", recipeItem = 5528 }
 Recipes[6510] = { item = 5530, profession = 40, yellow = 170, gray = 220, count = 3, reagents = "3818:1" }
-Recipes[6517] = { item = 5540, profession = 164, skill = 110, yellow = 115, gray = 145, reagents = "2841:6,3466:1,5498:2,3478:2" }
+Recipes[6517] = { item = 5540, profession = 164, skill = 85, yellow = 115, gray = 145, reagents = "2841:6,3466:1,5498:2,3478:2" }
 Recipes[6518] = { item = 5541, profession = 164, skill = 115, yellow = 145, gray = 175, reagents = "2841:10,3466:1,5500:1,3478:2,2319:2", recipeItem = 5543 }
-Recipes[6521] = { item = 5542, profession = 197, skill = 90, yellow = 95, gray = 130, reagents = "2997:3,2321:2,5498:1" }
+Recipes[6521] = { item = 5542, profession = 197, skill = 70, yellow = 95, gray = 130, reagents = "2997:3,2321:2,5498:1" }
 Recipes[6617] = { item = 5631, profession = 171, skill = 60, yellow = 90, gray = 130, reagents = "5635:1,2450:1,3371:1", recipeItem = 5640 }
 Recipes[6618] = { item = 5633, profession = 171, skill = 175, yellow = 195, gray = 235, reagents = "5637:1,3356:1,3372:1", recipeItem = 5643 }
 Recipes[6619] = { item = 5632, profession = 171, skill = 125, yellow = 150, gray = 190, reagents = "5636:1,3356:1,3372:1" }
 Recipes[6624] = { item = 5634, profession = 171, skill = 150, yellow = 175, gray = 215, reagents = "6370:2,3820:1,3372:1", recipeItem = 5642 }
-Recipes[6661] = { item = 5739, profession = 165, yellow = 185, gray = 205, reagents = "4234:14,2321:2,7071:1" }
+Recipes[6661] = { item = 5739, profession = 165, skill = 165, yellow = 185, gray = 205, reagents = "4234:14,2321:2,7071:1" }
 Recipes[6686] = { item = 5762, profession = 197, skill = 50, yellow = 75, gray = 110, reagents = "2996:4,2321:1,2604:1", recipeItem = 5771 }
-Recipes[6688] = { item = 5763, profession = 197, skill = 90, yellow = 115, gray = 150, reagents = "2997:4,2604:1,2321:1", recipeItem = 5772 }
-Recipes[6690] = { item = 5766, profession = 197, yellow = 130, gray = 160, reagents = "4305:2,2321:2,3182:2" }
+Recipes[6688] = { item = 5763, profession = 197, skill = 90, yellow = 115, gray = 150, reagents = "2997:5,2604:1,2321:1", recipeItem = 5772 }
+Recipes[6690] = { item = 5766, profession = 197, skill = 110, yellow = 130, gray = 160, reagents = "4305:2,2321:2,3182:2" }
 Recipes[6692] = { item = 5770, profession = 197, skill = 125, yellow = 145, gray = 175, reagents = "4305:4,2321:2,3182:2", recipeItem = 5773 }
-Recipes[6693] = { item = 5764, profession = 197, skill = 140, yellow = 160, gray = 190, reagents = "4305:4,4234:3,2321:3,2605:1", recipeItem = 5774 }
-Recipes[6695] = { item = 5765, profession = 197, skill = 150, yellow = 170, gray = 200, reagents = "4305:5,2325:1,2321:4", recipeItem = 5775 }
+Recipes[6693] = { item = 5764, profession = 197, skill = 140, yellow = 160, gray = 190, reagents = "4305:5,4234:3,2321:3,2605:1", recipeItem = 5774 }
+Recipes[6695] = { item = 5765, profession = 197, skill = 150, yellow = 170, gray = 200, reagents = "4305:6,2325:1,2321:4", recipeItem = 5775 }
 Recipes[6702] = { item = 5780, profession = 165, skill = 65, yellow = 95, gray = 125, reagents = "5784:8,2318:6,2321:1", recipeItem = 5786, recipeItemBound = true }
 Recipes[6703] = { item = 5781, profession = 165, skill = 70, yellow = 100, gray = 130, reagents = "5784:12,4231:1,2318:8,2321:1", recipeItem = 5787, recipeItemBound = true }
 Recipes[6704] = { item = 5782, profession = 165, skill = 145, yellow = 165, gray = 185, reagents = "5785:12,4236:1,4234:10,2321:3", recipeItem = 5788, recipeItemBound = true }
 Recipes[6705] = { item = 5783, profession = 165, skill = 165, yellow = 185, gray = 205, reagents = "5785:16,4236:1,4234:14,4291:1", recipeItem = 5789, recipeItemBound = true }
 Recipes[7126] = { item = 5957, profession = 165, skill = 1, yellow = 40, gray = 70, reagents = "2318:3,2320:1" }
 Recipes[7133] = { item = 5958, profession = 165, skill = 80, yellow = 105, gray = 130, reagents = "2319:8,2997:1,2321:1", recipeItem = 5972 }
-Recipes[7135] = { item = 5961, profession = 165, skill = 115, yellow = 115, gray = 140, reagents = "2319:12,4340:1,2321:1" }
+Recipes[7135] = { item = 5961, profession = 165, skill = 90, yellow = 115, gray = 140, reagents = "2319:12,4340:1,2321:1" }
 Recipes[7147] = { item = 5962, profession = 165, yellow = 155, gray = 175, reagents = "4234:12,4305:2,2321:2" }
 Recipes[7149] = { item = 5963, profession = 165, skill = 145, yellow = 165, gray = 185, reagents = "4234:10,2321:2,1206:1", recipeItem = 5973, recipeItemBound = true }
-Recipes[7151] = { item = 5964, profession = 165, yellow = 170, gray = 190, reagents = "4234:8,4236:1,2321:2" }
+Recipes[7151] = { item = 5964, profession = 165, skill = 150, yellow = 170, gray = 190, reagents = "4234:8,4236:1,2321:2" }
 Recipes[7153] = { item = 5965, profession = 165, skill = 125, yellow = 180, gray = 200, reagents = "4234:14,4305:2,4291:2", recipeItem = 4295 }
-Recipes[7156] = { item = 5966, profession = 165, yellow = 185, gray = 205, reagents = "4234:4,4236:1,4291:1" }
+Recipes[7156] = { item = 5966, profession = 165, skill = 165, yellow = 185, gray = 205, reagents = "4234:4,4236:1,4291:1" }
 Recipes[7179] = { item = 5996, profession = 171, skill = 90, yellow = 120, gray = 160, reagents = "3820:1,6370:2,3371:1" }
 Recipes[7181] = { item = 1710, profession = 171, skill = 155, yellow = 175, gray = 215, reagents = "3357:1,3356:1,3372:1" }
 Recipes[7183] = { item = 5997, profession = 171, yellow = 55, gray = 95, reagents = "765:1,2447:1,3371:1" }
 Recipes[7213] = { item = 6038, profession = 185, skill = 175, yellow = 215, gray = 255, reagents = "4655:1,2692:1", recipeItem = 6039 }
 Recipes[7221] = { item = 6042, profession = 164, skill = 125, yellow = 155, gray = 185, reagents = "3575:6,3478:4", recipeItem = 6044 }
 Recipes[7222] = { item = 6043, profession = 164, skill = 140, yellow = 165, gray = 190, reagents = "3575:4,3478:2,1705:1", recipeItem = 6045 }
-Recipes[7223] = { item = 6040, profession = 164, skill = 185, yellow = 185, gray = 210, reagents = "3859:5,3486:2" }
+Recipes[7223] = { item = 6040, profession = 164, skill = 160, yellow = 185, gray = 210, reagents = "3859:5,3486:2" }
 Recipes[7224] = { item = 6041, profession = 164, skill = 165, yellow = 190, gray = 215, reagents = "3859:8,3486:2,4234:4", recipeItem = 6046 }
 Recipes[7255] = { item = 6051, profession = 171, skill = 100, yellow = 130, gray = 170, reagents = "2453:1,2452:1,3371:1", recipeItem = 6053, recipeItemBound = true }
 Recipes[7256] = { item = 6048, profession = 171, skill = 135, yellow = 160, gray = 200, reagents = "3369:1,3356:1,3372:1", recipeItem = 6054, recipeItemBound = true }
@@ -354,18 +354,18 @@ Recipes[7257] = { item = 6049, profession = 171, skill = 165, yellow = 210, gray
 Recipes[7258] = { item = 6050, profession = 171, skill = 190, yellow = 205, gray = 245, reagents = "3819:1,3821:1,3372:1", recipeItem = 6056, recipeItemBound = true }
 Recipes[7259] = { item = 6052, profession = 171, skill = 190, yellow = 210, gray = 250, reagents = "3357:1,3820:1,3372:1", recipeItem = 6057, recipeItemBound = true }
 Recipes[7359] = { profession = 142, yellow = 85, gray = 135, reagents = "4470:1" }
-Recipes[7408] = { item = 6214, profession = 164, skill = 65, yellow = 80, gray = 120, reagents = "2840:12,2880:2,2318:2" }
+Recipes[7408] = { item = 6214, profession = 164, skill = 40, yellow = 80, gray = 120, reagents = "2840:12,2880:2,2318:2" }
 Recipes[7418] = { profession = 333, yellow = 20, gray = 25, reagents = "247786:1" }
-Recipes[7420] = { profession = 333, yellow = 70, gray = 110, count = 2, reagents = "10940:1" }
+Recipes[7420] = { profession = 333, skill = 15, yellow = 70, gray = 110, count = 2, reagents = "10940:1" }
 Recipes[7421] = { item = 6218, profession = 333, skill = 1, yellow = 5, gray = 10, reagents = "6217:1,247786:1" }
-Recipes[7426] = { profession = 333, yellow = 90, gray = 130, reagents = "10938:1" }
+Recipes[7426] = { profession = 333, skill = 40, yellow = 90, gray = 130, reagents = "10938:1" }
 Recipes[7428] = { profession = 333, skill = 80, yellow = 80, gray = 120, reagents = "10938:1" }
 Recipes[7430] = { item = 6219, profession = 202, skill = 50, yellow = 70, gray = 90, reagents = "2840:6" }
 Recipes[7443] = { profession = 333, skill = 20, yellow = 80, gray = 120, reagents = "10938:1", recipeItem = 6342 }
-Recipes[7454] = { profession = 333, yellow = 95, gray = 135, reagents = "10940:1,10938:1" }
-Recipes[7457] = { profession = 333, yellow = 100, gray = 140, reagents = "10940:2" }
-Recipes[7623] = { item = 6238, profession = 197, skill = 30, yellow = 50, gray = 85, reagents = "2996:3,2320:1" }
-Recipes[7624] = { item = 6241, profession = 197, skill = 30, yellow = 50, gray = 85, reagents = "2996:3,2320:1,2324:1" }
+Recipes[7454] = { profession = 333, skill = 45, yellow = 95, gray = 135, reagents = "10940:1,10938:1" }
+Recipes[7457] = { profession = 333, skill = 50, yellow = 100, gray = 140, reagents = "10940:2" }
+Recipes[7623] = { item = 6238, profession = 197, skill = 25, yellow = 50, gray = 85, reagents = "2996:3,2320:1" }
+Recipes[7624] = { item = 6241, profession = 197, skill = 25, yellow = 50, gray = 85, reagents = "2996:3,2320:1,2324:1" }
 Recipes[7629] = { item = 6239, profession = 197, skill = 35, yellow = 60, gray = 95, reagents = "2996:3,2320:1,2604:1", recipeItem = 6271 }
 Recipes[7630] = { item = 6240, profession = 197, skill = 35, yellow = 60, gray = 95, reagents = "2996:3,2320:1,6260:1", recipeItem = 6270 }
 Recipes[7633] = { item = 6242, profession = 197, skill = 45, yellow = 70, gray = 105, reagents = "2996:4,2320:2,6260:2", recipeItem = 6272 }
@@ -373,7 +373,7 @@ Recipes[7636] = { item = 6243, profession = 197, skill = 90, yellow = 90, gray =
 Recipes[7639] = { item = 6263, profession = 197, skill = 75, yellow = 100, gray = 135, reagents = "2997:4,2321:2,6260:2", recipeItem = 6274 }
 Recipes[7643] = { item = 6264, profession = 197, skill = 90, yellow = 115, gray = 150, reagents = "2997:5,2321:3,2604:3", recipeItem = 6275 }
 Recipes[7745] = { profession = 333, skill = 100, yellow = 130, gray = 170, reagents = "10940:1,10978:1" }
-Recipes[7748] = { profession = 333, yellow = 105, gray = 145, reagents = "10940:1,10938:1" }
+Recipes[7748] = { profession = 333, skill = 60, yellow = 105, gray = 145, reagents = "10940:1,10938:1" }
 Recipes[7751] = { item = 6290, profession = 185, skill = 1, yellow = 45, gray = 85, reagents = "6291:1", recipeItem = 6325 }
 Recipes[7752] = { item = 787, profession = 185, skill = 1, yellow = 45, gray = 85, reagents = "6303:1", recipeItem = 6326 }
 Recipes[7753] = { item = 4592, profession = 185, skill = 50, yellow = 90, gray = 130, reagents = "6289:1", recipeItem = 6328 }
@@ -388,8 +388,8 @@ Recipes[7786] = { profession = 333, skill = 90, yellow = 120, gray = 160, reagen
 Recipes[7788] = { profession = 333, skill = 90, yellow = 120, gray = 160, reagents = "10940:1,10938:1,10978:1" }
 Recipes[7793] = { profession = 333, skill = 100, yellow = 130, gray = 170, reagents = "10938:4", recipeItem = 6349 }
 Recipes[7795] = { item = 6339, profession = 333, skill = 100, yellow = 130, gray = 170, reagents = "6338:1,10940:3,10938:4,1210:1" }
-Recipes[7817] = { item = 6350, profession = 164, skill = 95, yellow = 100, gray = 130, reagents = "2841:6,3470:6" }
-Recipes[7818] = { item = 6338, profession = 164, yellow = 80, gray = 85, reagents = "2842:1,3470:2" }
+Recipes[7817] = { item = 6350, profession = 164, skill = 70, yellow = 100, gray = 130, reagents = "2841:6,3470:6" }
+Recipes[7818] = { item = 6338, profession = 164, skill = 75, yellow = 80, gray = 85, reagents = "2842:1,3470:2" }
 Recipes[7827] = { item = 5095, profession = 185, skill = 50, yellow = 90, gray = 130, reagents = "6361:1", recipeItem = 6368 }
 Recipes[7828] = { item = 4594, profession = 185, skill = 175, yellow = 190, gray = 230, reagents = "6362:1", recipeItem = 6369 }
 Recipes[7836] = { item = 6370, profession = 171, skill = 80, yellow = 80, gray = 100, reagents = "6358:2,3371:1" }
@@ -419,25 +419,25 @@ Recipes[8339] = { item = 6714, profession = 202, skill = 100, yellow = 115, gray
 Recipes[8366] = { item = 6730, profession = 164, skill = 70, yellow = 80, gray = 120, reagents = "2840:12,774:2,3470:2" }
 Recipes[8367] = { item = 6731, profession = 164, skill = 100, yellow = 115, gray = 155, reagents = "2840:16,818:2,3470:3", recipeItem = 6735 }
 Recipes[8368] = { item = 6733, profession = 164, skill = 140, yellow = 140, gray = 170, reagents = "2841:8,1210:3,3478:4" }
-Recipes[8465] = { item = 6786, profession = 197, skill = 40, yellow = 50, gray = 85, reagents = "2996:2,2320:1,6260:1,2324:1" }
-Recipes[8467] = { item = 6787, profession = 197, skill = 110, yellow = 110, gray = 145, reagents = "2997:3,2324:4,2321:1" }
-Recipes[8483] = { item = 6795, profession = 197, yellow = 135, gray = 145, reagents = "4305:3,2324:2,4291:1" }
-Recipes[8489] = { item = 6796, profession = 197, yellow = 150, gray = 160, reagents = "4305:3,2604:2,4291:1" }
+Recipes[8465] = { item = 6786, profession = 197, skill = 25, yellow = 50, gray = 85, reagents = "2996:2,2320:1,6260:1,2324:1" }
+Recipes[8467] = { item = 6787, profession = 197, skill = 85, yellow = 110, gray = 145, reagents = "2997:3,2324:4,2321:1" }
+Recipes[8483] = { item = 6795, profession = 197, skill = 125, yellow = 135, gray = 145, reagents = "4305:3,2324:2,4291:1" }
+Recipes[8489] = { item = 6796, profession = 197, skill = 140, yellow = 150, gray = 160, reagents = "4305:3,2604:2,4291:1" }
 Recipes[8604] = { item = 6888, profession = 185, yellow = 45, gray = 85, reagents = "6889:1,2678:1" }
 Recipes[8607] = { item = 6890, profession = 185, skill = 40, yellow = 80, gray = 120, reagents = "3173:1", recipeItem = 6892 }
 Recipes[8681] = { item = 6947, profession = 40, yellow = 125, gray = 175, reagents = "2928:1,3371:1" }
 Recipes[8687] = { item = 6949, profession = 40, yellow = 165, gray = 215, reagents = "2928:3,3372:1" }
 Recipes[8691] = { item = 6950, profession = 40, yellow = 205, gray = 255, reagents = "8924:1,3372:1" }
 Recipes[8694] = { item = 6951, profession = 40, yellow = 215, gray = 265, reagents = "2928:4,2930:4,3372:1" }
-Recipes[8758] = { item = 7046, profession = 197, yellow = 135, gray = 165, reagents = "4305:4,6260:2,2321:3" }
-Recipes[8760] = { item = 7048, profession = 197, yellow = 130, gray = 140, reagents = "4305:2,6260:2,2321:1" }
-Recipes[8762] = { item = 7050, profession = 197, yellow = 135, gray = 145, reagents = "4305:3,2321:2" }
+Recipes[8758] = { item = 7046, profession = 197, skill = 115, yellow = 135, gray = 165, reagents = "4305:4,6260:2,2321:3" }
+Recipes[8760] = { item = 7048, profession = 197, skill = 120, yellow = 130, gray = 140, reagents = "4305:2,6260:2,2321:1" }
+Recipes[8762] = { item = 7050, profession = 197, skill = 125, yellow = 135, gray = 145, reagents = "4305:3,2321:2" }
 Recipes[8764] = { item = 7051, profession = 197, yellow = 155, gray = 185, reagents = "4305:3,7067:1,2321:2" }
-Recipes[8766] = { item = 7052, profession = 197, yellow = 160, gray = 190, reagents = "4305:4,7070:1,6260:2,2321:2,7071:1" }
-Recipes[8768] = { item = 7071, profession = 164, yellow = 125, gray = 130, count = 2, reagents = "3575:1" }
-Recipes[8770] = { item = 7054, profession = 197, yellow = 175, gray = 205, reagents = "4339:2,7067:2,7070:2,7068:2,7069:2,4291:2" }
+Recipes[8766] = { item = 7052, profession = 197, skill = 140, yellow = 160, gray = 190, reagents = "4305:4,7070:1,6260:2,2321:2,7071:1" }
+Recipes[8768] = { item = 7071, profession = 164, skill = 125, yellow = 125, gray = 130, count = 2, reagents = "3575:1" }
+Recipes[8770] = { item = 7054, profession = 197, skill = 155, yellow = 175, gray = 205, reagents = "4339:2,7067:2,7070:2,7068:2,7069:2,4291:2" }
 Recipes[8772] = { item = 7055, profession = 197, yellow = 160, gray = 190, reagents = "4305:4,7071:1,2604:2,4291:1" }
-Recipes[8774] = { item = 7057, profession = 197, yellow = 165, gray = 195, reagents = "4305:5,4291:2" }
+Recipes[8774] = { item = 7057, profession = 197, skill = 145, yellow = 165, gray = 195, reagents = "4305:5,4291:2" }
 Recipes[8776] = { item = 7026, profession = 197, skill = 15, yellow = 50, gray = 85, reagents = "2996:1,2320:1" }
 Recipes[8778] = { item = 7027, profession = 197, yellow = 135, gray = 165, reagents = "4305:3,2319:2,6048:1,2321:2" }
 Recipes[8780] = { item = 7047, profession = 197, skill = 120, yellow = 140, gray = 170, reagents = "4305:3,4234:2,6048:2,2321:2", recipeItem = 7092 }
@@ -445,39 +445,39 @@ Recipes[8782] = { item = 7049, profession = 197, skill = 125, yellow = 145, gray
 Recipes[8784] = { item = 7065, profession = 197, skill = 130, yellow = 150, gray = 180, reagents = "4305:5,2605:2,4291:1", recipeItem = 7090 }
 Recipes[8786] = { item = 7053, profession = 197, skill = 140, yellow = 160, gray = 190, reagents = "4305:3,6260:2,2321:2", recipeItem = 7089, recipeItemBound = true }
 Recipes[8789] = { item = 7056, profession = 197, skill = 145, yellow = 165, gray = 195, reagents = "4305:5,2604:2,6371:2,4291:1", recipeItem = 7087, recipeItemBound = true }
-Recipes[8791] = { item = 7058, profession = 197, yellow = 170, gray = 190, reagents = "4305:4,2604:2,2321:2" }
+Recipes[8791] = { item = 7058, profession = 197, skill = 150, yellow = 170, gray = 190, reagents = "4305:4,2604:2,2321:2" }
 Recipes[8793] = { item = 7059, profession = 197, skill = 155, yellow = 175, gray = 205, reagents = "4305:5,6371:2,2604:2,4291:2", recipeItem = 7084 }
 Recipes[8795] = { item = 7060, profession = 197, skill = 155, yellow = 175, gray = 205, reagents = "4305:6,7072:2,6260:2,4291:2", recipeItem = 7085 }
 Recipes[8797] = { item = 7061, profession = 197, skill = 160, yellow = 180, gray = 210, reagents = "4305:5,7067:4,4234:4,7071:1,4291:2", recipeItem = 7086 }
-Recipes[8799] = { item = 7062, profession = 197, yellow = 180, gray = 200, reagents = "4305:4,2604:2,4291:2" }
+Recipes[8799] = { item = 7062, profession = 197, skill = 160, yellow = 180, gray = 200, reagents = "4305:4,2604:2,4291:2" }
 Recipes[8802] = { item = 7063, profession = 197, skill = 170, yellow = 185, gray = 215, reagents = "4305:8,7068:4,3827:2,2604:4,4291:1", recipeItem = 7088, recipeItemBound = true }
-Recipes[8804] = { item = 7064, profession = 197, yellow = 190, gray = 220, reagents = "4305:6,7068:2,6371:2,4304:2,2604:4,4291:2" }
-Recipes[8880] = { item = 7166, profession = 164, skill = 30, yellow = 65, gray = 105, reagents = "2840:6,2880:1,3470:1,2318:1" }
+Recipes[8804] = { item = 7064, profession = 197, skill = 175, yellow = 190, gray = 220, reagents = "4305:6,7068:2,6371:2,4304:2,2604:4,4291:2" }
+Recipes[8880] = { item = 7166, profession = 164, skill = 25, yellow = 65, gray = 105, reagents = "2840:6,2880:1,3470:1,2318:1" }
 Recipes[8895] = { item = 7189, profession = 202, skill = 130, yellow = 245, gray = 265, reagents = "10026:1,10559:2,4234:4,9061:2,10560:1", recipeItem = 7192 }
 Recipes[9058] = { item = 7276, profession = 165, skill = 1, yellow = 40, gray = 70, reagents = "2318:2,2320:1" }
 Recipes[9059] = { item = 7277, profession = 165, skill = 1, yellow = 40, gray = 70, reagents = "2318:2,2320:3" }
-Recipes[9060] = { item = 7278, profession = 165, skill = 30, yellow = 55, gray = 85, reagents = "2318:4,2320:2" }
-Recipes[9062] = { item = 7279, profession = 165, skill = 30, yellow = 55, gray = 85, reagents = "2318:3,2320:4" }
+Recipes[9060] = { item = 7278, profession = 165, skill = 25, yellow = 55, gray = 85, reagents = "2318:4,2320:2" }
+Recipes[9062] = { item = 7279, profession = 165, skill = 25, yellow = 55, gray = 85, reagents = "2318:3,2320:4" }
 Recipes[9064] = { item = 7280, profession = 165, skill = 30, yellow = 60, gray = 90, reagents = "2318:5,2320:5", recipeItem = 7288 }
-Recipes[9065] = { item = 7281, profession = 165, skill = 70, yellow = 75, gray = 105, reagents = "2318:6,2320:4" }
-Recipes[9068] = { item = 7282, profession = 165, skill = 95, yellow = 100, gray = 130, reagents = "2318:10,4231:1,2321:1" }
+Recipes[9065] = { item = 7281, profession = 165, skill = 45, yellow = 75, gray = 105, reagents = "2318:6,2320:4" }
+Recipes[9068] = { item = 7282, profession = 165, skill = 70, yellow = 100, gray = 130, reagents = "2318:10,4231:1,2321:1" }
 Recipes[9070] = { item = 7283, profession = 165, skill = 75, yellow = 100, gray = 125, reagents = "7286:12,2319:4,2321:1", recipeItem = 7289 }
 Recipes[9072] = { item = 7284, profession = 165, skill = 95, yellow = 120, gray = 145, reagents = "7287:6,2319:4,2321:1", recipeItem = 7290 }
-Recipes[9074] = { item = 7285, profession = 165, skill = 120, yellow = 120, gray = 145, reagents = "2457:1,2319:6,2321:1" }
-Recipes[9145] = { item = 7348, profession = 165, skill = 125, yellow = 125, gray = 150, reagents = "2319:8,5116:4,2321:2" }
+Recipes[9074] = { item = 7285, profession = 165, skill = 95, yellow = 120, gray = 145, reagents = "2457:1,2319:6,2321:1" }
+Recipes[9145] = { item = 7348, profession = 165, skill = 100, yellow = 125, gray = 150, reagents = "2319:8,5116:4,2321:2" }
 Recipes[9146] = { item = 7349, profession = 165, skill = 110, yellow = 135, gray = 160, reagents = "2319:8,3356:4,2321:2", recipeItem = 7361 }
 Recipes[9147] = { item = 7352, profession = 165, skill = 110, yellow = 135, gray = 160, reagents = "2319:6,7067:1,2321:2", recipeItem = 7362, recipeItemBound = true }
 Recipes[9148] = { item = 7358, profession = 165, skill = 115, yellow = 140, gray = 165, reagents = "2319:10,5373:2,2321:2", recipeItem = 7363 }
 Recipes[9149] = { item = 7359, profession = 165, skill = 120, yellow = 145, gray = 170, reagents = "2319:12,7067:2,2997:2,2321:2", recipeItem = 7364 }
-Recipes[9193] = { item = 7371, profession = 165, yellow = 145, gray = 165, reagents = "4234:8,2321:2" }
-Recipes[9194] = { item = 7372, profession = 165, yellow = 145, gray = 165, reagents = "4234:8,2321:2" }
+Recipes[9193] = { item = 7371, profession = 165, skill = 125, yellow = 145, gray = 165, reagents = "4234:8,2321:2" }
+Recipes[9194] = { item = 7372, profession = 165, skill = 125, yellow = 145, gray = 165, reagents = "4234:8,2321:2" }
 Recipes[9195] = { item = 7373, profession = 165, skill = 140, yellow = 160, gray = 180, reagents = "4234:10,2325:1,2321:2", recipeItem = 7449 }
-Recipes[9196] = { item = 7374, profession = 165, yellow = 170, gray = 190, reagents = "4234:10,3824:1,2321:2" }
+Recipes[9196] = { item = 7374, profession = 165, skill = 150, yellow = 170, gray = 190, reagents = "4234:10,3824:1,2321:2" }
 Recipes[9197] = { item = 7375, profession = 165, skill = 150, yellow = 170, gray = 190, reagents = "7392:4,4234:10,2321:2", recipeItem = 7450 }
-Recipes[9198] = { item = 7377, profession = 165, yellow = 175, gray = 195, reagents = "4234:6,7067:2,7070:2,2321:2" }
-Recipes[9201] = { item = 7378, profession = 165, yellow = 180, gray = 200, reagents = "4234:16,2325:1,4291:2" }
+Recipes[9198] = { item = 7377, profession = 165, skill = 155, yellow = 175, gray = 195, reagents = "4234:6,7067:2,7070:2,2321:2" }
+Recipes[9201] = { item = 7378, profession = 165, skill = 160, yellow = 180, gray = 200, reagents = "4234:16,2325:1,4291:2" }
 Recipes[9202] = { item = 7386, profession = 165, skill = 165, yellow = 185, gray = 205, reagents = "7392:6,4234:8,4291:2", recipeItem = 7451, recipeItemBound = true }
-Recipes[9206] = { item = 7387, profession = 165, yellow = 190, gray = 210, reagents = "4234:10,4305:2,2325:2,7071:1" }
+Recipes[9206] = { item = 7387, profession = 165, skill = 170, yellow = 190, gray = 210, reagents = "4234:10,4305:2,2325:2,7071:1" }
 Recipes[9207] = { item = 7390, profession = 165, skill = 175, yellow = 195, gray = 215, reagents = "4234:8,7428:2,3824:1,4291:2", recipeItem = 7452 }
 Recipes[9208] = { item = 7391, profession = 165, skill = 175, yellow = 195, gray = 215, reagents = "4234:10,2459:2,4337:2,4291:1", recipeItem = 7453 }
 Recipes[9269] = { item = 7506, profession = 202, skill = 125, yellow = 150, gray = 175, reagents = "2841:6,4375:1,814:2,818:1,774:1", recipeItem = 7560, recipeItemBound = true }
@@ -489,59 +489,59 @@ Recipes[9813] = { item = 7914, profession = 164, skill = 135, yellow = 160, gray
 Recipes[9814] = { item = 7915, profession = 164, skill = 150, yellow = 175, gray = 200, reagents = "3575:10,5637:2,5635:2", recipeItem = 7980 }
 Recipes[9818] = { item = 7916, profession = 164, skill = 155, yellow = 180, gray = 205, reagents = "3575:12,5637:4,818:4,3486:2", recipeItem = 7981 }
 Recipes[9820] = { item = 7917, profession = 164, skill = 160, yellow = 185, gray = 210, reagents = "3575:14,3486:3,5637:2", recipeItem = 7982 }
-Recipes[9916] = { item = 7963, profession = 164, skill = 200, yellow = 200, gray = 225, reagents = "3859:16,3486:3" }
-Recipes[9918] = { item = 7964, profession = 164, yellow = 175, gray = 185, reagents = "7912:1" }
-Recipes[9920] = { item = 7966, profession = 164, yellow = 175, gray = 185, reagents = "7912:4" }
-Recipes[9921] = { item = 7965, profession = 164, yellow = 175, gray = 185, reagents = "7912:1" }
-Recipes[9926] = { item = 7918, profession = 164, yellow = 200, gray = 220, reagents = "3860:8,4234:6" }
-Recipes[9928] = { item = 7919, profession = 164, yellow = 200, gray = 220, reagents = "3860:6,4338:4" }
-Recipes[9931] = { item = 7920, profession = 164, yellow = 205, gray = 225, reagents = "3860:12" }
+Recipes[9916] = { item = 7963, profession = 164, skill = 175, yellow = 200, gray = 225, reagents = "3859:16,3486:3" }
+Recipes[9918] = { item = 7964, profession = 164, skill = 175, yellow = 175, gray = 185, reagents = "7912:1" }
+Recipes[9920] = { item = 7966, profession = 164, skill = 175, yellow = 175, gray = 185, reagents = "7912:4" }
+Recipes[9921] = { item = 7965, profession = 164, skill = 175, yellow = 175, gray = 185, reagents = "7912:1" }
+Recipes[9926] = { item = 7918, profession = 164, skill = 180, yellow = 200, gray = 220, reagents = "3860:8,4234:6" }
+Recipes[9928] = { item = 7919, profession = 164, skill = 180, yellow = 200, gray = 220, reagents = "3860:6,4338:4" }
+Recipes[9931] = { item = 7920, profession = 164, skill = 185, yellow = 205, gray = 225, reagents = "3860:12" }
 Recipes[9933] = { item = 7921, profession = 164, skill = 185, yellow = 205, gray = 225, reagents = "3860:10,1705:2", recipeItem = 7975 }
-Recipes[9935] = { item = 7922, profession = 164, yellow = 210, gray = 230, reagents = "3859:14,7966:1" }
+Recipes[9935] = { item = 7922, profession = 164, skill = 190, yellow = 210, gray = 230, reagents = "3859:14,7966:1" }
 Recipes[9937] = { item = 7924, profession = 164, skill = 190, yellow = 210, gray = 230, reagents = "3860:8,3864:2", recipeItem = 7995, recipeItemBound = true }
 Recipes[9939] = { item = 7967, profession = 164, skill = 190, yellow = 210, gray = 230, reagents = "3860:4,6037:2,7966:4", recipeItem = 7976 }
 Recipes[9942] = { item = 7925, profession = 164, yellow = 215, gray = 235, reagents = "3860:8,4234:6,4338:4" }
 Recipes[9945] = { item = 7926, profession = 164, skill = 195, yellow = 215, gray = 235, reagents = "3860:12,6037:1,7966:1,7909:1", recipeItem = 7983, recipeItemBound = true }
 Recipes[9950] = { item = 7927, profession = 164, skill = 195, yellow = 215, gray = 235, reagents = "3860:10,4338:6,6037:1,7966:1", recipeItem = 7984, recipeItemBound = true }
 Recipes[9952] = { item = 7928, profession = 164, skill = 200, yellow = 220, gray = 240, reagents = "3860:12,6037:1,4304:6", recipeItem = 7985, recipeItemBound = true }
-Recipes[9954] = { item = 7938, profession = 164, yellow = 220, gray = 240, reagents = "3860:10,6037:8,7909:3,3864:3,5966:1,7966:2" }
+Recipes[9954] = { item = 7938, profession = 164, skill = 200, yellow = 220, gray = 240, reagents = "3860:10,6037:8,7909:3,3864:3,5966:1,7966:2" }
 Recipes[9957] = { item = 7929, profession = 164, yellow = 225, gray = 245, reagents = "3860:12,7067:1" }
-Recipes[9959] = { item = 7930, profession = 164, yellow = 225, gray = 245, reagents = "3860:16" }
-Recipes[9961] = { item = 7931, profession = 164, yellow = 225, gray = 245, reagents = "3860:10,4338:6" }
+Recipes[9959] = { item = 7930, profession = 164, skill = 205, yellow = 225, gray = 245, reagents = "3860:16" }
+Recipes[9961] = { item = 7931, profession = 164, skill = 205, yellow = 225, gray = 245, reagents = "3860:10,4338:6" }
 Recipes[9964] = { item = 7969, profession = 164, skill = 210, yellow = 230, gray = 250, reagents = "3860:4,7966:3", recipeItem = 7989 }
 Recipes[9966] = { item = 7932, profession = 164, skill = 210, yellow = 230, gray = 250, reagents = "3860:14,4304:4,3864:4", recipeItem = 7991 }
-Recipes[9968] = { item = 7933, profession = 164, yellow = 230, gray = 250, reagents = "3860:14,4304:4" }
+Recipes[9968] = { item = 7933, profession = 164, skill = 210, yellow = 230, gray = 250, reagents = "3860:14,4304:4" }
 Recipes[9970] = { item = 7934, profession = 164, skill = 220, yellow = 230, gray = 250, reagents = "3860:14,7909:1", recipeItem = 7990 }
 Recipes[9972] = { item = 7935, profession = 164, yellow = 235, gray = 255, reagents = "3860:16,6037:6,7077:1,7966:1" }
-Recipes[9974] = { item = 7939, profession = 164, yellow = 240, gray = 260, reagents = "3860:12,6037:24,7910:4,7971:4,7966:2" }
+Recipes[9974] = { item = 7939, profession = 164, skill = 220, yellow = 240, gray = 260, reagents = "3860:12,6037:24,7910:4,7971:4,7966:2" }
 Recipes[9979] = { item = 7936, profession = 164, yellow = 240, gray = 260, reagents = "3860:14,6037:2,4304:4,7966:1,7909:1" }
 Recipes[9980] = { item = 7937, profession = 164, yellow = 240, gray = 260, reagents = "3860:16,6037:2,7971:1,7966:1" }
-Recipes[9983] = { item = 7955, profession = 164, skill = 30, yellow = 65, gray = 105, reagents = "2840:10,2880:2,3470:1,2318:1" }
-Recipes[9985] = { item = 7956, profession = 164, skill = 125, yellow = 155, gray = 185, reagents = "2841:8,3466:1,2319:1" }
-Recipes[9986] = { item = 7957, profession = 164, skill = 130, yellow = 135, gray = 165, reagents = "2841:12,3466:2,2319:2" }
-Recipes[9987] = { item = 7958, profession = 164, skill = 135, yellow = 140, gray = 170, reagents = "2841:14,3466:1,2319:2" }
-Recipes[9993] = { item = 7941, profession = 164, skill = 210, yellow = 210, gray = 235, reagents = "3860:12,3864:2,7966:1,4234:4" }
+Recipes[9983] = { item = 7955, profession = 164, skill = 25, yellow = 65, gray = 105, reagents = "2840:10,2880:2,3470:1,2318:1" }
+Recipes[9985] = { item = 7956, profession = 164, skill = 100, yellow = 155, gray = 185, reagents = "2841:8,3466:1,2319:1" }
+Recipes[9986] = { item = 7957, profession = 164, skill = 105, yellow = 135, gray = 165, reagents = "2841:12,3466:2,2319:2" }
+Recipes[9987] = { item = 7958, profession = 164, skill = 110, yellow = 140, gray = 170, reagents = "2841:14,3466:1,2319:2" }
+Recipes[9993] = { item = 7941, profession = 164, skill = 185, yellow = 210, gray = 235, reagents = "3860:12,3864:2,7966:1,4234:4" }
 Recipes[9995] = { item = 7942, profession = 164, skill = 195, yellow = 220, gray = 245, reagents = "3860:16,7909:2,7966:1,4304:4", recipeItem = 7992 }
 Recipes[9997] = { item = 7943, profession = 164, skill = 200, yellow = 225, gray = 250, reagents = "3860:14,6037:4,7966:1,4304:2", recipeItem = 8029, recipeItemBound = true }
-Recipes[10001] = { item = 7945, profession = 164, skill = 230, yellow = 230, gray = 255, reagents = "3860:16,7971:1,1210:4,7966:1,4304:2" }
-Recipes[10003] = { item = 7954, profession = 164, skill = 235, yellow = 235, gray = 260, reagents = "3860:24,7075:4,6037:6,3864:5,1529:5,7966:4,4304:4" }
+Recipes[10001] = { item = 7945, profession = 164, skill = 205, yellow = 230, gray = 255, reagents = "3860:16,7971:1,1210:4,7966:1,4304:2" }
+Recipes[10003] = { item = 7954, profession = 164, skill = 210, yellow = 235, gray = 260, reagents = "3860:24,7075:4,6037:6,3864:5,1529:5,7966:4,4304:4" }
 Recipes[10005] = { item = 7944, profession = 164, skill = 215, yellow = 240, gray = 265, reagents = "3860:14,7909:1,1705:2,1206:2,7966:1,4338:2", recipeItem = 7993 }
-Recipes[10007] = { item = 7961, profession = 164, skill = 245, yellow = 245, gray = 270, reagents = "3860:28,7081:6,6037:8,3823:2,7909:6,7966:4,4304:2" }
+Recipes[10007] = { item = 7961, profession = 164, skill = 220, yellow = 245, gray = 270, reagents = "3860:28,7081:6,6037:8,3823:2,7909:6,7966:4,4304:2" }
 Recipes[10009] = { item = 7946, profession = 164, skill = 220, yellow = 245, gray = 270, reagents = "3860:18,7075:2,7966:1,4304:4", recipeItem = 8028 }
-Recipes[10011] = { item = 7959, profession = 164, skill = 250, yellow = 250, gray = 275, reagents = "3860:28,7972:10,6037:10,7966:6,4304:6" }
+Recipes[10011] = { item = 7959, profession = 164, skill = 225, yellow = 250, gray = 275, reagents = "3860:28,7972:10,6037:10,7966:6,4304:6" }
 Recipes[10013] = { item = 7947, profession = 164, skill = 230, yellow = 255, gray = 280, reagents = "3860:12,6037:6,7910:2,7966:1,4304:2", recipeItem = 8030, recipeItemBound = true }
-Recipes[10015] = { item = 7960, profession = 164, skill = 260, yellow = 260, gray = 285, reagents = "3860:30,6037:16,7910:6,7081:4,7966:8,4304:6" }
+Recipes[10015] = { item = 7960, profession = 164, skill = 235, yellow = 260, gray = 285, reagents = "3860:30,6037:16,7910:6,7081:4,7966:8,4304:6" }
 Recipes[10097] = { item = 3860, profession = 186, skill = 175, yellow = 175, gray = 175, reagents = "3858:1" }
 Recipes[10098] = { item = 6037, profession = 186, skill = 230, yellow = 230, gray = 230, reagents = "7911:1" }
-Recipes[10482] = { item = 8172, profession = 165, yellow = 175, gray = 175, reagents = "8169:1,8150:1" }
-Recipes[10487] = { item = 8173, profession = 165, yellow = 195, gray = 215, reagents = "4304:5,4291:1" }
+Recipes[10482] = { item = 8172, profession = 165, skill = 175, yellow = 175, gray = 175, reagents = "8169:1,8150:1" }
+Recipes[10487] = { item = 8173, profession = 165, skill = 175, yellow = 195, gray = 215, reagents = "4304:5,4291:1" }
 Recipes[10490] = { item = 8174, profession = 165, skill = 175, yellow = 195, gray = 215, reagents = "4234:12,4236:2,4291:2", recipeItem = 8384 }
-Recipes[10499] = { item = 8175, profession = 165, yellow = 200, gray = 220, reagents = "4304:7,4291:2" }
-Recipes[10507] = { item = 8176, profession = 165, yellow = 200, gray = 220, reagents = "4304:5,4291:2" }
+Recipes[10499] = { item = 8175, profession = 165, skill = 180, yellow = 200, gray = 220, reagents = "4304:7,4291:2" }
+Recipes[10507] = { item = 8176, profession = 165, skill = 180, yellow = 200, gray = 220, reagents = "4304:5,4291:2" }
 Recipes[10509] = { item = 8187, profession = 165, skill = 180, yellow = 200, gray = 220, reagents = "4304:6,8167:8,8343:1", recipeItem = 8385, recipeItemBound = true }
 Recipes[10511] = { item = 8189, profession = 165, yellow = 205, gray = 225, reagents = "4304:6,8167:12,8343:1" }
 Recipes[10516] = { item = 8192, profession = 165, skill = 185, yellow = 205, gray = 225, reagents = "4304:8,4338:6,4291:3", recipeItem = 8409, recipeItemBound = true }
-Recipes[10518] = { item = 8198, profession = 165, yellow = 205, gray = 225, reagents = "4304:8,8167:12,8343:1" }
+Recipes[10518] = { item = 8198, profession = 165, skill = 185, yellow = 205, gray = 225, reagents = "4304:8,8167:12,8343:1" }
 Recipes[10520] = { item = 8200, profession = 165, skill = 190, yellow = 210, gray = 230, reagents = "4304:10,8151:4,8343:1", recipeItem = 8386 }
 Recipes[10525] = { item = 8203, profession = 165, skill = 195, yellow = 215, gray = 235, reagents = "4304:12,8154:12,4291:4", recipeItem = 8395 }
 Recipes[10529] = { item = 8210, profession = 165, skill = 195, yellow = 215, gray = 235, reagents = "4304:10,8153:1,8172:1", recipeItem = 8403, recipeItemBound = true }
@@ -550,12 +550,12 @@ Recipes[10533] = { item = 8205, profession = 165, skill = 195, yellow = 215, gra
 Recipes[10542] = { item = 8204, profession = 165, skill = 200, yellow = 220, gray = 240, reagents = "4304:6,8154:8,4291:2", recipeItem = 8398 }
 Recipes[10544] = { item = 8211, profession = 165, skill = 200, yellow = 220, gray = 240, reagents = "4304:12,8153:2,8172:1", recipeItem = 8404, recipeItemBound = true }
 Recipes[10546] = { item = 8214, profession = 165, skill = 200, yellow = 220, gray = 240, reagents = "4304:10,8153:2,8172:1", recipeItem = 8405, recipeItemBound = true }
-Recipes[10548] = { item = 8193, profession = 165, yellow = 225, gray = 245, reagents = "4304:14,4291:4" }
+Recipes[10548] = { item = 8193, profession = 165, skill = 205, yellow = 225, gray = 245, reagents = "4304:14,4291:4" }
 Recipes[10550] = { item = 8195, profession = 165, skill = 205, yellow = 225, gray = 245, reagents = "4304:12,4291:4", recipeItem = 8388 }
-Recipes[10552] = { item = 8191, profession = 165, yellow = 225, gray = 245, reagents = "4304:14,8167:24,8343:1" }
+Recipes[10552] = { item = 8191, profession = 165, skill = 205, yellow = 225, gray = 245, reagents = "4304:14,8167:24,8343:1" }
 Recipes[10554] = { item = 8209, profession = 165, skill = 210, yellow = 230, gray = 250, reagents = "4304:12,8154:12,4291:6", recipeItem = 8399 }
-Recipes[10556] = { item = 8185, profession = 165, yellow = 230, gray = 250, reagents = "4304:14,8167:28,8343:1" }
-Recipes[10558] = { item = 8197, profession = 165, yellow = 230, gray = 250, reagents = "4304:16,8343:2" }
+Recipes[10556] = { item = 8185, profession = 165, skill = 210, yellow = 230, gray = 250, reagents = "4304:14,8167:28,8343:1" }
+Recipes[10558] = { item = 8197, profession = 165, skill = 210, yellow = 230, gray = 250, reagents = "4304:16,8343:2" }
 Recipes[10560] = { item = 8202, profession = 165, skill = 215, yellow = 230, gray = 250, reagents = "4304:10,8152:6,8343:2", recipeItem = 8389 }
 Recipes[10562] = { item = 8216, profession = 165, skill = 215, yellow = 235, gray = 255, reagents = "4304:14,8152:4,8343:2", recipeItem = 8390 }
 Recipes[10564] = { item = 8207, profession = 165, skill = 215, yellow = 235, gray = 255, reagents = "4304:12,8154:16,8343:2", recipeItem = 8400 }
@@ -564,12 +564,12 @@ Recipes[10568] = { item = 8206, profession = 165, skill = 220, yellow = 240, gra
 Recipes[10570] = { item = 8208, profession = 165, skill = 225, yellow = 245, gray = 265, reagents = "4304:10,8154:20,8343:2", recipeItem = 8402 }
 Recipes[10572] = { item = 8212, profession = 165, skill = 225, yellow = 245, gray = 265, reagents = "4304:16,8153:2,8172:2", recipeItem = 8407, recipeItemBound = true }
 Recipes[10574] = { item = 8215, profession = 165, skill = 225, yellow = 245, gray = 265, reagents = "4304:16,8153:2,8172:2", recipeItem = 8408, recipeItemBound = true }
-Recipes[10619] = { item = 8347, profession = 165, yellow = 220, gray = 240, reagents = "4304:24,8165:12,8343:4,8172:2" }
-Recipes[10621] = { item = 8345, profession = 165, yellow = 220, gray = 240, reagents = "4304:18,8368:2,8146:8,8343:4,8172:2" }
-Recipes[10630] = { item = 8346, profession = 165, yellow = 225, gray = 245, reagents = "4304:20,7079:8,7075:2,8172:1,8343:4" }
-Recipes[10632] = { item = 8348, profession = 165, yellow = 245, gray = 265, reagents = "4304:40,7077:8,7075:4,8172:2,8343:4" }
-Recipes[10647] = { item = 8349, profession = 165, yellow = 245, gray = 265, reagents = "4304:40,8168:40,7971:2,8172:4,8343:4" }
-Recipes[10650] = { item = 8367, profession = 165, yellow = 250, gray = 270, reagents = "4304:40,8165:30,8343:4,8172:4" }
+Recipes[10619] = { item = 8347, profession = 165, skill = 200, yellow = 220, gray = 240, reagents = "4304:24,8165:12,8343:4,8172:2" }
+Recipes[10621] = { item = 8345, profession = 165, skill = 200, yellow = 220, gray = 240, reagents = "4304:18,8368:2,8146:8,8343:4,8172:2" }
+Recipes[10630] = { item = 8346, profession = 165, skill = 205, yellow = 225, gray = 245, reagents = "4304:20,7079:8,7075:2,8172:1,8343:4" }
+Recipes[10632] = { item = 8348, profession = 165, skill = 225, yellow = 245, gray = 265, reagents = "4304:40,7077:8,7075:4,8172:2,8343:4" }
+Recipes[10647] = { item = 8349, profession = 165, skill = 225, yellow = 245, gray = 265, reagents = "4304:40,8168:40,7971:2,8172:4,8343:4" }
+Recipes[10650] = { item = 8367, profession = 165, skill = 230, yellow = 250, gray = 270, reagents = "4304:40,8165:30,8343:4,8172:4" }
 Recipes[10840] = { item = 8544, profession = 129, skill = 210, yellow = 210, gray = 270, reagents = "4338:1", recipeItem = 16113 }
 Recipes[10841] = { item = 8545, profession = 129, skill = 240, yellow = 240, gray = 300, reagents = "4338:2" }
 Recipes[11341] = { item = 8926, profession = 40, yellow = 245, gray = 295, reagents = "8924:2,8925:1" }
@@ -607,49 +607,49 @@ Recipes[11480] = { item = 6037, profession = 171, skill = 225, yellow = 240, gra
 Recipes[11643] = { item = 9366, profession = 164, skill = 180, yellow = 200, gray = 220, reagents = "3859:10,3577:4,3486:4,3864:1", recipeItem = 9367 }
 Recipes[12044] = { item = 10045, profession = 197, skill = 1, yellow = 40, gray = 60, reagents = "2996:1,2320:1" }
 Recipes[12045] = { item = 10046, profession = 197, skill = 20, yellow = 50, gray = 85, reagents = "2996:2,2318:1,2320:1" }
-Recipes[12046] = { item = 10047, profession = 197, skill = 75, yellow = 75, gray = 110, reagents = "2996:4,2321:1" }
+Recipes[12046] = { item = 10047, profession = 197, skill = 50, yellow = 75, gray = 110, reagents = "2996:4,2321:1" }
 Recipes[12047] = { item = 10048, profession = 197, skill = 70, yellow = 95, gray = 130, reagents = "2997:5,2604:3,2321:1", recipeItem = 10316 }
 Recipes[12048] = { item = 9998, profession = 197, yellow = 185, gray = 215, reagents = "4339:2,4291:3" }
 Recipes[12049] = { item = 9999, profession = 197, yellow = 185, gray = 215, reagents = "4339:2,4291:3" }
-Recipes[12050] = { item = 10001, profession = 197, yellow = 190, gray = 220, reagents = "4339:3,8343:1" }
-Recipes[12052] = { item = 10002, profession = 197, yellow = 190, gray = 220, reagents = "4339:3,10285:2,8343:1" }
-Recipes[12053] = { item = 10003, profession = 197, yellow = 195, gray = 225, reagents = "4339:2,8343:2" }
-Recipes[12055] = { item = 10004, profession = 197, yellow = 195, gray = 225, reagents = "4339:3,10285:2,8343:1" }
+Recipes[12050] = { item = 10001, profession = 197, skill = 175, yellow = 190, gray = 220, reagents = "4339:3,8343:1" }
+Recipes[12052] = { item = 10002, profession = 197, skill = 175, yellow = 190, gray = 220, reagents = "4339:3,10285:2,8343:1" }
+Recipes[12053] = { item = 10003, profession = 197, skill = 180, yellow = 195, gray = 225, reagents = "4339:2,8343:2" }
+Recipes[12055] = { item = 10004, profession = 197, skill = 180, yellow = 195, gray = 225, reagents = "4339:3,10285:2,8343:1" }
 Recipes[12056] = { item = 10007, profession = 197, skill = 180, yellow = 195, gray = 225, reagents = "4339:3,2604:2,8343:1", recipeItem = 10300 }
 Recipes[12059] = { item = 10008, profession = 197, skill = 180, yellow = 185, gray = 195, reagents = "4339:1,2324:1,8343:1", recipeItem = 10301 }
 Recipes[12060] = { item = 10009, profession = 197, skill = 180, yellow = 195, gray = 225, reagents = "4339:3,2604:2,8343:1", recipeItem = 10302 }
-Recipes[12061] = { item = 10056, profession = 197, yellow = 185, gray = 195, reagents = "4339:1,6261:1,8343:1" }
+Recipes[12061] = { item = 10056, profession = 197, skill = 180, yellow = 185, gray = 195, reagents = "4339:1,6261:1,8343:1" }
 Recipes[12062] = { item = 10010, profession = 197, skill = 185, yellow = 200, gray = 230, reagents = "4339:4,7079:2,8343:2", recipeItem = 254681 }
 Recipes[12063] = { item = 10011, profession = 197, skill = 185, yellow = 200, gray = 230, reagents = "4339:3,7079:2,8343:2", recipeItem = 254682, recipeItemBound = true }
 Recipes[12064] = { item = 10052, profession = 197, skill = 185, yellow = 190, gray = 200, reagents = "4339:2,6261:2,8343:1", recipeItem = 10311 }
-Recipes[12065] = { item = 10050, profession = 197, yellow = 205, gray = 235, reagents = "4339:4,4291:2" }
+Recipes[12065] = { item = 10050, profession = 197, skill = 190, yellow = 205, gray = 235, reagents = "4339:4,4291:2" }
 Recipes[12066] = { item = 10018, profession = 197, skill = 190, yellow = 205, gray = 235, reagents = "4339:3,2604:2,8343:2", recipeItem = 10312 }
-Recipes[12067] = { item = 10019, profession = 197, yellow = 205, gray = 235, reagents = "4339:4,8153:4,10286:2,8343:2" }
+Recipes[12067] = { item = 10019, profession = 197, skill = 190, yellow = 205, gray = 235, reagents = "4339:4,8153:4,10286:2,8343:2" }
 Recipes[12068] = { item = 10020, profession = 197, skill = 190, yellow = 205, gray = 235, reagents = "4339:5,7079:3,8343:2", recipeItem = 254683 }
-Recipes[12069] = { item = 10042, profession = 197, yellow = 205, gray = 235, reagents = "4339:5,7077:2,8343:2" }
-Recipes[12070] = { item = 10021, profession = 197, yellow = 205, gray = 235, reagents = "4339:6,8153:6,10286:2,8343:2" }
-Recipes[12071] = { item = 10023, profession = 197, yellow = 205, gray = 235, reagents = "4339:5,10285:5,8343:2" }
-Recipes[12072] = { item = 10024, profession = 197, yellow = 205, gray = 235, reagents = "4339:3,8343:2" }
-Recipes[12073] = { item = 10026, profession = 197, yellow = 205, gray = 235, reagents = "4339:3,8343:2,4304:2" }
-Recipes[12074] = { item = 10027, profession = 197, yellow = 205, gray = 235, reagents = "4339:3,8343:2" }
+Recipes[12069] = { item = 10042, profession = 197, skill = 190, yellow = 205, gray = 235, reagents = "4339:5,7077:2,8343:2" }
+Recipes[12070] = { item = 10021, profession = 197, skill = 190, yellow = 205, gray = 235, reagents = "4339:6,8153:6,10286:2,8343:2" }
+Recipes[12071] = { item = 10023, profession = 197, skill = 190, yellow = 205, gray = 235, reagents = "4339:5,10285:5,8343:2" }
+Recipes[12072] = { item = 10024, profession = 197, skill = 190, yellow = 205, gray = 235, reagents = "4339:3,8343:2" }
+Recipes[12073] = { item = 10026, profession = 197, skill = 190, yellow = 205, gray = 235, reagents = "4339:3,8343:2,4304:2" }
+Recipes[12074] = { item = 10027, profession = 197, skill = 190, yellow = 205, gray = 235, reagents = "4339:3,8343:2" }
 Recipes[12075] = { item = 10054, profession = 197, skill = 190, yellow = 195, gray = 205, reagents = "4339:2,4342:2,8343:2", recipeItem = 10314 }
-Recipes[12076] = { item = 10028, profession = 197, yellow = 210, gray = 240, reagents = "4339:5,10285:4,8343:2" }
-Recipes[12077] = { item = 10053, profession = 197, yellow = 200, gray = 210, reagents = "4339:3,2325:1,8343:1,2324:1" }
+Recipes[12076] = { item = 10028, profession = 197, skill = 195, yellow = 210, gray = 240, reagents = "4339:5,10285:4,8343:2" }
+Recipes[12077] = { item = 10053, profession = 197, skill = 195, yellow = 200, gray = 210, reagents = "4339:3,2325:1,8343:1,2324:1" }
 Recipes[12078] = { item = 10029, profession = 197, skill = 195, yellow = 210, gray = 240, reagents = "4339:4,2604:2,8343:3", recipeItem = 10315 }
-Recipes[12079] = { item = 10051, profession = 197, yellow = 210, gray = 240, reagents = "4339:4,2604:2,8343:2" }
+Recipes[12079] = { item = 10051, profession = 197, skill = 195, yellow = 210, gray = 240, reagents = "4339:5,2604:2,8343:2" }
 Recipes[12080] = { item = 10055, profession = 197, skill = 195, yellow = 200, gray = 210, reagents = "4339:3,10290:1,8343:1", recipeItem = 10317 }
 Recipes[12081] = { item = 10030, profession = 197, skill = 200, yellow = 215, gray = 245, reagents = "4339:3,4589:6,8343:2", recipeItem = 10318 }
-Recipes[12082] = { item = 10031, profession = 197, yellow = 215, gray = 245, reagents = "4339:6,10285:6,8343:3,4304:2" }
+Recipes[12082] = { item = 10031, profession = 197, skill = 200, yellow = 215, gray = 245, reagents = "4339:6,10285:6,8343:3,4304:2" }
 Recipes[12083] = { item = 10032, profession = 197, skill = 200, yellow = 215, gray = 245, reagents = "4339:4,7079:4,8343:2", recipeItem = 254684 }
 Recipes[12084] = { item = 10033, profession = 197, skill = 200, yellow = 215, gray = 245, reagents = "4339:4,2604:2,8343:2", recipeItem = 10320 }
 Recipes[12085] = { item = 10034, profession = 197, skill = 200, yellow = 205, gray = 215, reagents = "4339:4,8343:2", recipeItem = 10321 }
 Recipes[12086] = { item = 10025, profession = 197, skill = 200, yellow = 215, gray = 245, reagents = "4339:2,10285:8,8343:2", recipeItem = 10463 }
 Recipes[12087] = { item = 10038, profession = 197, skill = 200, yellow = 215, gray = 245, reagents = "4339:5,7079:6,8343:3", recipeItem = 254685 }
-Recipes[12088] = { item = 10044, profession = 197, yellow = 215, gray = 245, reagents = "4339:5,7077:1,8343:3,4304:2" }
+Recipes[12088] = { item = 10044, profession = 197, skill = 200, yellow = 215, gray = 245, reagents = "4339:5,7077:1,8343:3,4304:2" }
 Recipes[12089] = { item = 10035, profession = 197, skill = 140, yellow = 205, gray = 215, reagents = "4339:4,8343:3", recipeItem = 10323 }
 Recipes[12090] = { item = 10039, profession = 197, skill = 205, yellow = 220, gray = 250, reagents = "4339:6,7079:6,8343:3,4304:2", recipeItem = 254686 }
 Recipes[12091] = { item = 10040, profession = 197, skill = 140, yellow = 145, gray = 155, reagents = "4339:5,8343:3,2324:1", recipeItem = 10325 }
-Recipes[12092] = { item = 10041, profession = 197, yellow = 220, gray = 250, reagents = "4339:8,8153:4,10286:2,8343:3,6037:1,1529:1" }
+Recipes[12092] = { item = 10041, profession = 197, skill = 205, yellow = 220, gray = 250, reagents = "4339:8,8153:4,10286:2,8343:3,6037:1,1529:1" }
 Recipes[12093] = { item = 10036, profession = 197, skill = 140, yellow = 155, gray = 185, reagents = "4339:5,8343:3", recipeItem = 10326 }
 Recipes[12259] = { item = 10423, profession = 164, skill = 130, yellow = 155, gray = 180, reagents = "2841:12,2842:4,3478:2", recipeItem = 10424 }
 Recipes[12260] = { item = 10421, profession = 164, skill = 1, yellow = 15, gray = 55, reagents = "2840:4" }
@@ -665,7 +665,7 @@ Recipes[12595] = { item = 10508, profession = 202, skill = 205, yellow = 225, gr
 Recipes[12596] = { item = 10512, profession = 202, skill = 210, yellow = 210, gray = 250, count = 200, reagents = "3860:1,10505:1" }
 Recipes[12597] = { item = 10546, profession = 202, skill = 210, yellow = 230, gray = 250, reagents = "10559:1,7909:2,4304:2", recipeItem = 10602, recipeItemBound = true }
 Recipes[12599] = { item = 10561, profession = 202, skill = 215, yellow = 215, gray = 255, reagents = "3860:3" }
-Recipes[12603] = { item = 10514, profession = 202, skill = 205, yellow = 215, gray = 255, count = 3, reagents = "10561:1,10560:1,10505:1" }
+Recipes[12603] = { item = 10514, profession = 202, skill = 215, yellow = 215, gray = 255, count = 3, reagents = "10561:1,10560:1,10505:1" }
 Recipes[12607] = { item = 10501, profession = 202, skill = 220, yellow = 240, gray = 260, reagents = "4304:4,7909:2,10592:1", recipeItem = 10603 }
 Recipes[12609] = { item = 10592, profession = 171, skill = 200, yellow = 220, gray = 260, reagents = "3821:1,3818:1,3372:1" }
 Recipes[12614] = { item = 10510, profession = 202, skill = 220, yellow = 240, gray = 260, reagents = "10559:2,10560:1,4400:1,3860:6,3864:2", recipeItem = 10604 }
@@ -685,9 +685,9 @@ Recipes[12718] = { item = 10543, profession = 202, skill = 205, yellow = 225, gr
 Recipes[12719] = { item = 10579, profession = 202, yellow = 210, gray = 250, count = 100, reagents = "3030:100,10505:2,3860:2" }
 Recipes[12720] = { item = 10580, profession = 202, yellow = 235, gray = 255, reagents = "10561:1,10505:2,10558:1,3860:2" }
 Recipes[12722] = { item = 10585, profession = 202, yellow = 240, gray = 260, reagents = "10561:1,3860:2,4389:1,10560:1" }
-Recipes[12754] = { item = 10586, profession = 202, skill = 225, yellow = 235, gray = 275, count = 2, reagents = "10561:1,9061:1,10507:6,10560:1" }
+Recipes[12754] = { item = 10586, profession = 202, skill = 235, yellow = 235, gray = 275, count = 2, reagents = "10561:1,9061:1,10507:6,10560:1" }
 Recipes[12755] = { item = 10587, profession = 202, skill = 230, yellow = 230, gray = 270, reagents = "10561:2,10505:4,6037:6,10560:1,4407:2" }
-Recipes[12758] = { item = 10588, profession = 202, skill = 235, yellow = 265, gray = 285, reagents = "10543:1,9061:4,3860:4,10560:1" }
+Recipes[12758] = { item = 10588, profession = 202, skill = 245, yellow = 265, gray = 285, reagents = "10543:1,9061:4,3860:4,10560:1" }
 Recipes[12759] = { item = 10645, profession = 202, skill = 240, yellow = 260, gray = 280, reagents = "10559:2,10560:1,12808:1,7972:4,9060:1" }
 Recipes[12760] = { item = 10646, profession = 202, skill = 205, yellow = 205, gray = 245, reagents = "4338:1,10505:3,10560:1" }
 Recipes[12895] = { item = 10713, profession = 202, skill = 205, yellow = 205, gray = 205, reagents = "10648:1,10647:1" }
@@ -699,7 +699,7 @@ Recipes[12903] = { item = 10721, profession = 202, skill = 215, yellow = 235, gr
 Recipes[12904] = { item = 10723, profession = 202, yellow = 240, gray = 260, reagents = "10561:1,3860:2,4389:1,10560:1" }
 Recipes[12905] = { item = 10724, profession = 202, skill = 225, yellow = 245, gray = 265, reagents = "10026:1,10559:2,4234:4,10505:8,4389:4" }
 Recipes[12906] = { item = 10725, profession = 202, skill = 230, yellow = 250, gray = 270, reagents = "10561:1,6037:6,3860:6,9060:2,10558:1,1529:2" }
-Recipes[12907] = { item = 10726, profession = 202, skill = 215, yellow = 255, gray = 275, reagents = "3860:10,6037:4,10558:1,7910:2,4338:4" }
+Recipes[12907] = { item = 10726, profession = 202, skill = 235, yellow = 255, gray = 275, reagents = "3860:10,6037:4,10558:1,7910:2,4338:4" }
 Recipes[12908] = { item = 10727, profession = 202, skill = 240, yellow = 260, gray = 280, reagents = "10559:2,9061:4,3860:6,6037:6,10560:1" }
 Recipes[13028] = { item = 10841, profession = 185, skill = 175, yellow = 215, gray = 255, count = 4, reagents = "3821:1,159:1" }
 Recipes[13220] = { item = 10918, profession = 40, yellow = 185, gray = 235, reagents = "2930:1,5173:1,3372:1" }
@@ -774,15 +774,15 @@ Recipes[13943] = { profession = 333, skill = 245, yellow = 265, gray = 305, reag
 Recipes[13945] = { profession = 333, skill = 245, yellow = 265, gray = 305, reagents = "11176:3", recipeItem = 11225 }
 Recipes[13947] = { profession = 333, skill = 250, yellow = 270, gray = 310, reagents = "11178:1,11176:2", recipeItem = 11226 }
 Recipes[13948] = { profession = 333, skill = 250, yellow = 270, gray = 310, reagents = "11178:1,8153:1" }
-Recipes[14293] = { item = 11287, profession = 333, yellow = 75, gray = 115, reagents = "4470:1,10938:1" }
-Recipes[14379] = { item = 11128, profession = 164, yellow = 130, gray = 135, reagents = "3577:1,3478:2" }
-Recipes[14380] = { item = 11144, profession = 164, yellow = 180, gray = 185, reagents = "6037:1,3486:1" }
+Recipes[14293] = { item = 11287, profession = 333, skill = 10, yellow = 75, gray = 115, reagents = "4470:1,10938:1" }
+Recipes[14379] = { item = 11128, profession = 164, skill = 125, yellow = 130, gray = 135, reagents = "3577:1,3478:2" }
+Recipes[14380] = { item = 11144, profession = 164, skill = 175, yellow = 180, gray = 185, reagents = "6037:1,3486:1" }
 Recipes[14807] = { item = 11288, profession = 333, skill = 70, yellow = 110, gray = 150, reagents = "4470:1,10938:2" }
 Recipes[14809] = { item = 11289, profession = 333, skill = 155, yellow = 175, gray = 215, reagents = "11291:1,11134:1" }
 Recipes[14810] = { item = 217287, profession = 333, skill = 175, yellow = 195, gray = 235, reagents = "11291:1,11134:1,11137:1" }
 Recipes[14891] = { item = 11371, profession = 186, yellow = 230, gray = 230, reagents = "11370:8" }
-Recipes[14930] = { item = 8217, profession = 165, yellow = 220, gray = 240, reagents = "4304:12,8172:1,8949:1,4291:4" }
-Recipes[14932] = { item = 8218, profession = 165, yellow = 220, gray = 240, reagents = "4304:10,8172:1,8951:1,4291:6" }
+Recipes[14930] = { item = 8217, profession = 165, skill = 200, yellow = 220, gray = 240, reagents = "4304:12,8172:1,8949:1,4291:4" }
+Recipes[14932] = { item = 8218, profession = 165, skill = 200, yellow = 220, gray = 240, reagents = "4304:10,8172:1,8951:1,4291:6" }
 Recipes[15255] = { item = 11590, profession = 202, skill = 200, yellow = 200, gray = 240, reagents = "3860:1,4338:1,10505:1" }
 Recipes[15292] = { item = 11608, profession = 164, skill = 240, yellow = 260, gray = 280, reagents = "11371:18,7077:4", recipeItem = 11610 }
 Recipes[15293] = { item = 11606, profession = 164, skill = 245, yellow = 265, gray = 285, reagents = "11371:10,7077:2", recipeItem = 11614, recipeItemBound = true }
@@ -804,12 +804,12 @@ Recipes[15910] = { item = 12215, profession = 185, skill = 200, yellow = 240, gr
 Recipes[15915] = { item = 12216, profession = 185, skill = 225, yellow = 265, gray = 305, reagents = "12206:1,2692:2", recipeItem = 16111 }
 Recipes[15933] = { item = 12218, profession = 185, skill = 225, yellow = 265, gray = 305, reagents = "12207:1,3713:2", recipeItem = 16110 }
 Recipes[15935] = { item = 12224, profession = 185, skill = 1, yellow = 45, gray = 85, reagents = "12223:1,2678:1", recipeItem = 12226 }
-Recipes[15972] = { item = 12259, profession = 164, skill = 180, yellow = 180, gray = 205, reagents = "3859:10,3466:2,1206:1,7067:1,4234:1" }
+Recipes[15972] = { item = 12259, profession = 164, skill = 155, yellow = 180, gray = 205, reagents = "3859:10,3466:2,1206:1,7067:1,4234:1" }
 Recipes[15973] = { item = 12260, profession = 164, skill = 165, yellow = 190, gray = 215, reagents = "3859:10,3577:4,7068:2,4234:2", recipeItem = 12261 }
 Recipes[16153] = { item = 12359, profession = 186, skill = 250, yellow = 250, gray = 250, reagents = "10620:1" }
-Recipes[16639] = { item = 12644, profession = 164, yellow = 230, gray = 235, reagents = "12365:4" }
-Recipes[16640] = { item = 12643, profession = 164, yellow = 230, gray = 235, reagents = "12365:1" }
-Recipes[16641] = { item = 12404, profession = 164, yellow = 230, gray = 235, reagents = "12365:1" }
+Recipes[16639] = { item = 12644, profession = 164, skill = 225, yellow = 230, gray = 235, reagents = "12365:4" }
+Recipes[16640] = { item = 12643, profession = 164, skill = 225, yellow = 230, gray = 235, reagents = "12365:1" }
+Recipes[16641] = { item = 12404, profession = 164, skill = 225, yellow = 230, gray = 235, reagents = "12365:1" }
 Recipes[16642] = { item = 12405, profession = 164, skill = 225, yellow = 245, gray = 265, reagents = "12359:16,12361:1,11188:4", recipeItem = 12682 }
 Recipes[16643] = { item = 12406, profession = 164, skill = 225, yellow = 245, gray = 265, reagents = "12359:12,11186:4", recipeItem = 12683 }
 Recipes[16644] = { item = 12408, profession = 164, skill = 230, yellow = 250, gray = 270, reagents = "12359:12,11184:4", recipeItem = 12684 }
@@ -914,8 +914,8 @@ Recipes[18244] = { item = 13932, profession = 185, skill = 250, yellow = 290, gr
 Recipes[18245] = { item = 13933, profession = 185, skill = 275, yellow = 315, gray = 355, reagents = "13888:1,159:1", recipeItem = 13947 }
 Recipes[18246] = { item = 13934, profession = 185, skill = 275, yellow = 315, gray = 355, reagents = "13893:1,2692:1,3713:1", recipeItem = 13948 }
 Recipes[18247] = { item = 13935, profession = 185, skill = 275, yellow = 315, gray = 355, reagents = "13889:1,3713:1", recipeItem = 13949 }
-Recipes[18401] = { item = 14048, profession = 197, yellow = 210, gray = 215, reagents = "14047:5" }
-Recipes[18402] = { item = 13856, profession = 197, yellow = 225, gray = 255, reagents = "14048:3,14341:1" }
+Recipes[18401] = { item = 14048, profession = 197, skill = 205, yellow = 210, gray = 215, reagents = "14047:5" }
+Recipes[18402] = { item = 13856, profession = 197, skill = 210, yellow = 225, gray = 255, reagents = "14048:3,14341:1" }
 Recipes[18403] = { item = 13869, profession = 197, skill = 210, yellow = 225, gray = 255, reagents = "14048:5,7079:2,14341:1", recipeItem = 14466 }
 Recipes[18404] = { item = 13868, profession = 197, skill = 210, yellow = 225, gray = 255, reagents = "14048:5,7079:2,14341:1", recipeItem = 14467 }
 Recipes[18405] = { item = 14046, profession = 197, skill = 215, yellow = 230, gray = 260, reagents = "14048:5,8170:2,14341:1,249430:4,249409:2", recipeItem = 14468 }
@@ -964,7 +964,7 @@ Recipes[18458] = { item = 14153, profession = 197, skill = 295, yellow = 310, gr
 Recipes[18560] = { item = 14342, profession = 197, skill = 230, yellow = 270, gray = 300, reagents = "14256:2", recipeItem = 14526, recipeItemBound = true }
 Recipes[18629] = { item = 14529, profession = 129, skill = 260, yellow = 260, gray = 320, reagents = "14047:1" }
 Recipes[18630] = { item = 14530, profession = 129, skill = 290, yellow = 290, gray = 350, reagents = "14047:2" }
-Recipes[19047] = { item = 15407, profession = 165, yellow = 225, gray = 235, count = 2, reagents = "8171:1,15409:1" }
+Recipes[19047] = { item = 15407, profession = 165, skill = 225, yellow = 225, gray = 235, count = 2, reagents = "8171:1,15409:1" }
 Recipes[19048] = { item = 15077, profession = 165, skill = 255, yellow = 250, gray = 270, reagents = "8170:4,15408:4,14341:1", recipeItem = 15724, recipeItemBound = true }
 Recipes[19049] = { item = 15083, profession = 165, skill = 235, yellow = 255, gray = 275, reagents = "8170:8,2325:1,14341:1", recipeItem = 15725, recipeItemBound = true }
 Recipes[19050] = { item = 15045, profession = 165, skill = 235, yellow = 255, gray = 275, reagents = "8170:20,15412:25,14341:2", recipeItem = 15726 }
@@ -973,7 +973,7 @@ Recipes[19052] = { item = 15084, profession = 165, skill = 240, yellow = 260, gr
 Recipes[19053] = { item = 15074, profession = 165, skill = 240, yellow = 260, gray = 280, reagents = "8170:6,15423:6,14341:1", recipeItem = 15729, recipeItemBound = true }
 Recipes[19054] = { item = 15047, profession = 165, skill = 290, yellow = 310, gray = 330, reagents = "8170:40,15414:30,14341:1", recipeItem = 15730, recipeItemBound = true }
 Recipes[19055] = { item = 15091, profession = 165, skill = 245, yellow = 265, gray = 285, reagents = "8170:10,14047:6,14341:1", recipeItem = 15731 }
-Recipes[19058] = { item = 15564, profession = 165, yellow = 225, gray = 245, reagents = "8170:5" }
+Recipes[19058] = { item = 15564, profession = 165, skill = 225, yellow = 225, gray = 245, reagents = "8170:5" }
 Recipes[19059] = { item = 15054, profession = 165, skill = 245, yellow = 265, gray = 285, reagents = "8170:6,7078:1,7075:1,14341:1", recipeItem = 15732 }
 Recipes[19060] = { item = 15046, profession = 165, skill = 245, yellow = 265, gray = 285, reagents = "8170:20,15412:25,14341:1", recipeItem = 15733 }
 Recipes[19061] = { item = 15061, profession = 165, skill = 245, yellow = 265, gray = 285, reagents = "8170:12,12803:4,14341:1", recipeItem = 15734 }
@@ -1067,11 +1067,11 @@ Recipes[20034] = { profession = 333, skill = 300, yellow = 320, gray = 360, reag
 Recipes[20035] = { profession = 333, skill = 300, yellow = 320, gray = 360, reagents = "16203:12,14344:2", recipeItem = 16255 }
 Recipes[20036] = { profession = 333, skill = 300, yellow = 320, gray = 360, reagents = "16203:12,14344:2", recipeItem = 16249 }
 Recipes[20051] = { item = 16207, profession = 333, skill = 290, yellow = 310, gray = 350, reagents = "16206:1,13926:1,16204:10,16203:4,14343:4,14344:2", recipeItem = 16243, recipeItemBound = true }
-Recipes[20201] = { item = 16206, profession = 164, yellow = 250, gray = 260, reagents = "12360:3,12644:1" }
+Recipes[20201] = { item = 16206, profession = 164, skill = 250, yellow = 250, gray = 260, reagents = "12360:3,12644:1" }
 Recipes[20626] = { item = 16766, profession = 185, skill = 225, yellow = 265, gray = 305, count = 2, reagents = "7974:2,2692:1,1179:1", recipeItem = 16767, recipeItemBound = true }
-Recipes[20648] = { item = 2319, profession = 165, yellow = 75, gray = 85, reagents = "2318:4" }
-Recipes[20649] = { item = 4234, profession = 165, yellow = 125, gray = 135, reagents = "2319:5" }
-Recipes[20650] = { item = 4304, profession = 165, yellow = 175, gray = 180, reagents = "4234:6" }
+Recipes[20648] = { item = 2319, profession = 165, skill = 75, yellow = 75, gray = 85, reagents = "2318:4" }
+Recipes[20649] = { item = 4234, profession = 165, skill = 125, yellow = 125, gray = 135, reagents = "2319:5" }
+Recipes[20650] = { item = 4304, profession = 165, skill = 175, yellow = 175, gray = 180, reagents = "4234:6" }
 Recipes[20848] = { item = 16980, profession = 197, skill = 300, yellow = 315, gray = 345, reagents = "14048:12,17010:4,17011:4,12810:6,14341:2", recipeItem = 17017, recipeItemBound = true }
 Recipes[20849] = { item = 16979, profession = 197, skill = 300, yellow = 315, gray = 345, reagents = "14048:8,17010:6,7078:4,12810:2,14341:2", recipeItem = 17018, recipeItemBound = true }
 Recipes[20853] = { item = 16982, profession = 165, skill = 295, yellow = 315, gray = 335, reagents = "17012:20,17010:6,17011:2,14341:2", recipeItem = 17022, recipeItemBound = true }
@@ -1094,7 +1094,7 @@ Recipes[21931] = { profession = 333, skill = 190, yellow = 210, gray = 250, reag
 Recipes[21940] = { item = 17716, profession = 202, skill = 190, yellow = 190, gray = 230, reagents = "3860:8,4389:4,17202:4,3829:1", recipeItem = 17720 }
 Recipes[21943] = { item = 17721, profession = 165, skill = 165, yellow = 185, gray = 205, reagents = "4234:8,7067:4,4291:1", recipeItem = 17722 }
 Recipes[21945] = { item = 17723, profession = 197, skill = 155, yellow = 165, gray = 175, reagents = "4305:5,2605:4,4291:1", recipeItem = 17724 }
-Recipes[22331] = { item = 8170, profession = 165, yellow = 225, gray = 225, reagents = "4304:6" }
+Recipes[22331] = { item = 8170, profession = 165, skill = 225, yellow = 225, gray = 225, reagents = "4304:6" }
 Recipes[22430] = { item = 17967, profession = 171, yellow = 315, gray = 330, reagents = "15410:1" }
 Recipes[22434] = { item = 17968, profession = 333, yellow = 320, gray = 310, reagents = "17967:1,16204:2,16203:2" }
 Recipes[22480] = { item = 18045, profession = 185, skill = 225, yellow = 265, gray = 305, reagents = "12208:1,3713:1", recipeItem = 18046 }
@@ -1200,8 +1200,8 @@ Recipes[24367] = { item = 20008, profession = 171, skill = 285, yellow = 300, gr
 Recipes[24368] = { item = 20004, profession = 171, skill = 290, yellow = 305, gray = 345, reagents = "8846:1,13466:2,8925:1", recipeItem = 20014, recipeItemBound = true }
 Recipes[24399] = { item = 20039, profession = 164, skill = 300, yellow = 320, gray = 340, reagents = "17011:3,17010:3,17012:4,11371:6", recipeItem = 20040, recipeItemBound = true }
 Recipes[24418] = { item = 20074, profession = 185, skill = 150, yellow = 160, gray = 200, reagents = "3667:2,3713:1", recipeItem = 20075 }
-Recipes[24654] = { item = 20295, profession = 165, skill = 300, yellow = 310, gray = 330, reagents = "8170:28,15415:36,15407:2,14341:2" }
-Recipes[24655] = { item = 20296, profession = 165, yellow = 275, gray = 295, reagents = "8170:20,15412:30,15407:1,14341:2" }
+Recipes[24654] = { item = 20295, profession = 165, skill = 290, yellow = 310, gray = 330, reagents = "8170:28,15415:36,15407:2,14341:2" }
+Recipes[24655] = { item = 20296, profession = 165, skill = 255, yellow = 275, gray = 295, reagents = "8170:20,15412:30,15407:1,14341:2" }
 Recipes[24703] = { item = 20380, profession = 165, skill = 300, yellow = 320, gray = 340, reagents = "12810:12,20381:6,12803:4,15407:4,14227:6" }
 Recipes[24801] = { item = 20452, profession = 185, skill = 285, yellow = 325, gray = 365, reagents = "20424:1,3713:1" }
 Recipes[24846] = { item = 20481, profession = 165, skill = 300, yellow = 310, gray = 330, reagents = "20500:1,20498:20,7078:2" }
@@ -1305,6 +1305,7 @@ Recipes[30021] = { item = 23684, profession = 129, skill = 300, yellow = 300, gr
 Recipes[44950] = { item = 34087, profession = 197, skill = 250, yellow = 250, gray = 255, reagents = "14048:4,2997:1,2605:2,14341:1", name = "Green Winter Clothes", recipeItem = 34261, recipeItemBound = true }
 Recipes[44953] = { item = 34086, profession = 165, skill = 285, reagents = "2840:1,2997:1,8170:4,14341:1", name = "Winter Boots", recipeItem = 34262, recipeItemBound = true }
 Recipes[44958] = { item = 34085, profession = 197, skill = 250, yellow = 250, gray = 255, reagents = "14048:4,2997:1,2604:2,14341:1", name = "Red Winter Clothes", recipeItem = 34319, recipeItemBound = true }
+Recipes[424641] = { item = 210147, profession = 202, skill = 135, yellow = 135, gray = 145, reagents = "4382:1,4375:2,4234:1", name = "Shredder Autosalvage Unit", recipeItem = 210178 }
 Recipes[426607] = { item = 210708, profession = 171, skill = 90, yellow = 90, gray = 110, reagents = "3820:5,3372:1,3369:5,11083:1", recipeItem = 210709 }
 Recipes[427061] = { item = 210773, profession = 164, skill = 150, yellow = 140, gray = 160, reagents = "2841:20,1206:2,1705:2,5500:2,2842:4", recipeItem = 210779, recipeItemBound = true }
 Recipes[428424] = { item = 210781, profession = 197, skill = 125, yellow = 125, gray = 150, reagents = "2997:6,814:2,2321:2", recipeItem = 211247, recipeItemBound = true }
@@ -1435,6 +1436,10 @@ Recipes[463866] = { item = 228978, profession = 333, skill = 290, yellow = 305, 
 Recipes[463869] = { item = 228980, profession = 333, skill = 275, yellow = 285, gray = 305, reagents = "16204:2,4625:1,8925:1", recipeItem = 228981, recipeItemBound = true }
 Recipes[463871] = { profession = 333, skill = 300, yellow = 320, gray = 360, reagents = "14344:4,16203:12,7078:4,7080:4,7076:1,12811:1", recipeItem = 228982, recipeItemBound = true }
 Recipes[463972] = { item = 228994, profession = 197, skill = 300, yellow = 315, gray = 345, reagents = "14048:8,14342:12,14344:2,17012:2,14341:2", recipeItem = 228993 }
+Recipes[470349] = { item = 232433, profession = 129, skill = 300, yellow = 315, gray = 340, reagents = "14530:2", name = "Dense Runecloth Bandage", recipeItem = 232434 }
+Recipes[470359] = { item = 232436, profession = 185, skill = 300, yellow = 325, gray = 365, reagents = "13888:1,227813:1", name = "Darkclaw Bisque", recipeItem = 232437 }
+Recipes[470370] = { item = 232438, profession = 185, skill = 300, yellow = 325, gray = 365, reagents = "13758:1", name = "Smoked Redgill", recipeItem = 232443 }
+Recipes[471400] = { item = 232611, profession = 333, skill = 300, yellow = 310, gray = 330, reagents = "8151:3,8152:3,14344:2,18256:1", name = "Magnificent Trollshine", recipeItem = 232610, recipeItemBound = true }
 Recipes[1213481] = { item = 233795, profession = 164, yellow = 320, gray = 340, reagents = "12360:15,234003:3,12810:4,8146:10,234006:4" }
 Recipes[1213484] = { item = 233793, profession = 164, yellow = 320, gray = 340, reagents = "12360:15,234003:3,12810:4,8146:10,234006:4" }
 Recipes[1213490] = { item = 233492, profession = 164, yellow = 320, gray = 340, reagents = "12360:20,234003:4,12810:4,8146:10,234006:8" }
@@ -1602,34 +1607,34 @@ Recipes[1226690] = { item = 238926, profession = 165, skill = 275, yellow = 280,
 Recipes[1227723] = { item = 239147, profession = 197, skill = 250, yellow = 260, gray = 265, reagents = "12811:1,14048:14,2604:8,14227:3", recipeItem = 239149, recipeItemBound = true }
 Recipes[1227724] = { item = 239148, profession = 197, skill = 290, yellow = 300, gray = 305, reagents = "12938:1,14048:24,2604:4,12808:2,12811:2", recipeItem = 239150, recipeItemBound = true }
 Recipes[1228088] = { item = 237023, profession = 202, skill = 250, yellow = 255, gray = 260, reagents = "15994:1,10560:1,4382:1", name = "Pop-Up Shrub", recipeItem = 239222, recipeItemBound = true }
-Recipes[1229432] = { item = 279978, profession = 165, skill = 20, yellow = 20, gray = 25, reagents = "2318:5", name = "Camp Tent" }
-Recipes[1229504] = { item = 279972, profession = 197, skill = 20, yellow = 20, gray = 25, reagents = "2996:1,2320:1", name = "Faction Banner" }
-Recipes[1229517] = { item = 279979, profession = 393, skill = 20, yellow = 20, gray = 25, reagents = "2318:3,4470:2" }
-Recipes[1229705] = { item = 279962, profession = 182, skill = 20, yellow = 20, gray = 25, reagents = "2447:1,765:1" }
+Recipes[1229432] = { item = 279978, profession = 165, skill = 20, yellow = 20, gray = 20, reagents = "2318:5", name = "Camp Tent" }
+Recipes[1229504] = { item = 279972, profession = 197, skill = 20, yellow = 20, gray = 20, reagents = "2996:1,2320:1", name = "Faction Banner" }
+Recipes[1229517] = { item = 279979, profession = 393, skill = 20, yellow = 20, gray = 20, reagents = "2318:3,4470:2" }
+Recipes[1229705] = { item = 279962, profession = 182, skill = 20, yellow = 20, gray = 20, reagents = "2447:1,765:1" }
 Recipes[1229737] = { item = 279981, profession = 185, skill = 1, yellow = 1, gray = 5, reagents = "4470:1" }
 Recipes[1229745] = { item = 279967, profession = 356, skill = 20, yellow = 20, gray = 20, reagents = "6291:1,3371:1", name = "Camping Tier 1" }
-Recipes[1230117] = { item = 279968, profession = 129, skill = 20, yellow = 20, gray = 25, reagents = "1251:3,159:1", name = "First Aid Kit" }
-Recipes[1230161] = { item = 279960, profession = 186, skill = 20, yellow = 20, gray = 25, reagents = "2835:1,2840:1" }
-Recipes[1230171] = { item = 279944, profession = 164, skill = 20, yellow = 20, gray = 25, reagents = "2835:1,2840:1", name = "Sharpening Wheel" }
-Recipes[1230564] = { item = 279956, profession = 171, skill = 20, yellow = 20, gray = 25, reagents = "2447:1,3371:1", name = "Mana Well" }
-Recipes[1230643] = { item = 279976, profession = 333, skill = 20, yellow = 20, gray = 25, reagents = "4470:1,10940:1", name = "Enchanted Lute" }
-Recipes[1230656] = { item = 279950, profession = 202, skill = 20, yellow = 20, gray = 25, reagents = "4359:1,4361:1", name = "Reagent Bot" }
+Recipes[1230117] = { item = 279968, profession = 129, skill = 20, yellow = 20, gray = 20, reagents = "1251:3,159:1", name = "First Aid Kit" }
+Recipes[1230161] = { item = 279960, profession = 186, skill = 20, yellow = 20, gray = 20, reagents = "2835:1,2840:1" }
+Recipes[1230171] = { item = 279944, profession = 164, skill = 20, yellow = 20, gray = 20, reagents = "2835:1,2840:1", name = "Sharpening Wheel" }
+Recipes[1230564] = { item = 279956, profession = 171, skill = 20, yellow = 20, gray = 20, reagents = "2447:1,3371:1", name = "Mana Well" }
+Recipes[1230643] = { item = 279976, profession = 333, skill = 20, yellow = 20, gray = 20, reagents = "4470:1,10940:1", name = "Enchanted Lute" }
+Recipes[1230656] = { item = 279950, profession = 202, skill = 20, yellow = 20, gray = 20, reagents = "4359:1,4361:1", name = "Reagent Bot" }
 Recipes[1231128] = { profession = 333, skill = 280, yellow = 305, gray = 310, reagents = "14344:5,12811:2,20725:2,12938:1", recipeItem = 241191, recipeItemBound = true }
 Recipes[1231139] = { profession = 333, skill = 280, yellow = 305, gray = 310, reagents = "14344:10,12811:4,20725:4,12938:1", recipeItem = 241195, recipeItemBound = true }
 Recipes[1231164] = { profession = 333, skill = 280, yellow = 305, gray = 310, reagents = "14344:6,12811:3,20725:2,12938:1", recipeItem = 241201, recipeItemBound = true }
 Recipes[1231583] = { item = 241650, profession = 171, skill = 250, yellow = 290, gray = 330, reagents = "8925:1,13466:1,730:1", recipeItem = 241651, recipeItemBound = true }
 Recipes[1232172] = { profession = 333, skill = 280, yellow = 305, gray = 310, reagents = "14344:10,12811:6,20725:4,12938:1", recipeItem = 242361, recipeItemBound = true }
 Recipes[1244421] = { item = 246948, profession = 171, skill = 250, yellow = 260, gray = 270, reagents = "3819:4,8846:2,3372:1", name = "Distilled Firewater", recipeItem = 236754, recipeItemBound = true }
-Recipes[1244431] = { item = 118, profession = 129, yellow = 55, gray = 95, reagents = "3371:1,2678:1,2447:1", name = "Minor Healing Potion" }
-Recipes[1244432] = { item = 858, profession = 129, yellow = 85, gray = 125, reagents = "3371:1,2678:2,2450:1", name = "Lesser Healing Potion" }
-Recipes[1244433] = { item = 929, profession = 129, yellow = 135, gray = 175, reagents = "3372:1,2692:1,2453:1", name = "Healing Potion" }
+Recipes[1244431] = { item = 118, profession = 129, skill = 1, yellow = 55, gray = 95, reagents = "3371:1,2678:1,2447:1", name = "Minor Healing Potion" }
+Recipes[1244432] = { item = 858, profession = 129, skill = 55, yellow = 85, gray = 125, reagents = "3371:1,2678:2,2450:1", name = "Lesser Healing Potion" }
+Recipes[1244433] = { item = 929, profession = 129, skill = 110, yellow = 135, gray = 175, reagents = "3372:1,2692:1,2453:1", name = "Healing Potion" }
 Recipes[1244434] = { item = 1710, profession = 129, skill = 155, yellow = 175, gray = 215, reagents = "3372:1,2692:3,3357:1", name = "Greater Healing Potion", recipeItem = 255723 }
 Recipes[1244435] = { item = 3928, profession = 129, skill = 215, yellow = 230, gray = 270, reagents = "8925:1,3713:1,8838:1", name = "Superior Healing Potion", recipeItem = 255725 }
 Recipes[1244436] = { item = 13446, profession = 129, skill = 275, yellow = 290, gray = 330, reagents = "8925:1,3713:3,13464:1", name = "Major Healing Potion", recipeItem = 255729 }
-Recipes[1244645] = { item = 247239, profession = 171, yellow = 85, gray = 125, reagents = "3371:1,2450:1,730:1", name = "Lesser Discolored Healing Potion" }
-Recipes[1244646] = { item = 247240, profession = 171, yellow = 135, gray = 175, reagents = "3372:1,2453:1,730:1" }
-Recipes[1244647] = { item = 247241, profession = 171, yellow = 175, gray = 215, reagents = "3372:1,3356:1,730:1", name = "Greater Discolored Healing Potion" }
-Recipes[1244648] = { item = 247242, profession = 171, yellow = 230, gray = 270, reagents = "8925:1,8838:1,730:1", name = "Superior Discolored Healing Potion" }
+Recipes[1244645] = { item = 247239, profession = 171, skill = 55, yellow = 85, gray = 125, reagents = "3371:1,2450:1,730:1", name = "Lesser Discolored Healing Potion" }
+Recipes[1244646] = { item = 247240, profession = 171, skill = 110, yellow = 135, gray = 175, reagents = "3372:1,2453:1,730:1" }
+Recipes[1244647] = { item = 247241, profession = 171, skill = 155, yellow = 175, gray = 215, reagents = "3372:1,3356:1,730:1", name = "Greater Discolored Healing Potion" }
+Recipes[1244648] = { item = 247242, profession = 171, skill = 215, yellow = 230, gray = 270, reagents = "8925:1,8838:1,730:1", name = "Superior Discolored Healing Potion" }
 Recipes[1245246] = { item = 247754, profession = 171, yellow = 10, gray = 15, reagents = "2447:1,3371:1", name = "Minor Arcane Elixir" }
 Recipes[1245250] = { item = 247755, profession = 171, yellow = 10, gray = 15, reagents = "765:1,3371:1", name = "Elixir of Minor Force" }
 Recipes[1245287] = { item = 6217, profession = 164, yellow = 10, gray = 15, reagents = "2840:1", name = "Copper Rod" }
@@ -1687,11 +1692,11 @@ Recipes[1249114] = { item = 249473, profession = 333, skill = 265, yellow = 285,
 Recipes[1249128] = { item = 220606, profession = 333, skill = 300, yellow = 320, gray = 360, reagents = "14344:2,16203:4,16204:6,249431:8,249430:4,249409:2,11291:4", name = "Idol of the Dream", recipeItem = 249529, recipeItemBound = true }
 Recipes[1249152] = { item = 228175, profession = 333, skill = 300, yellow = 320, gray = 360, reagents = "14344:4,16203:3,16204:4,249431:8,249430:4,249409:2,10308:4", name = "Libram of Holy Alacrity", recipeItem = 249530, recipeItemBound = true }
 Recipes[1249154] = { item = 228176, profession = 333, skill = 300, yellow = 320, gray = 360, reagents = "14344:1,16203:8,16204:10,249431:8,249430:4,249409:2,11291:4", name = "Totem of Thunder", recipeItem = 249532, recipeItemBound = true }
-Recipes[1249630] = { item = 249409, profession = 171, yellow = 50, gray = 90, reagents = "249399:2,3371:1", name = "Cerulean Dye" }
-Recipes[1249631] = { item = 249430, profession = 171, yellow = 130, gray = 155, reagents = "249424:2,3372:1", name = "Magenta Dye" }
-Recipes[1249632] = { item = 249431, profession = 171, yellow = 230, gray = 270, reagents = "249274:2,8925:1", name = "Viridian Dye" }
-Recipes[1249633] = { item = 249410, profession = 171, yellow = 50, gray = 90, reagents = "249391:2,3371:1", name = "Sulfuric Acid" }
-Recipes[1249634] = { item = 249432, profession = 202, yellow = 130, gray = 155, reagents = "249425:2,2996:1", name = "Sandpaper" }
+Recipes[1249630] = { item = 249409, profession = 171, skill = 40, yellow = 50, gray = 90, reagents = "249399:2,3371:1", name = "Cerulean Dye" }
+Recipes[1249631] = { item = 249430, profession = 171, skill = 120, yellow = 130, gray = 155, reagents = "249424:2,3372:1", name = "Magenta Dye" }
+Recipes[1249632] = { item = 249431, profession = 171, skill = 215, yellow = 230, gray = 270, reagents = "249274:2,8925:1", name = "Viridian Dye" }
+Recipes[1249633] = { item = 249410, profession = 171, skill = 40, yellow = 50, gray = 90, reagents = "249391:2,3371:1", name = "Sulfuric Acid" }
+Recipes[1249634] = { item = 249432, profession = 202, skill = 120, yellow = 130, gray = 155, reagents = "249425:2,2996:1", name = "Sandpaper" }
 Recipes[1249637] = { item = 249726, profession = 186, yellow = 275, gray = 275, reagents = "249426:2,3857:1" }
 Recipes[1249957] = { item = 249865, profession = 185, skill = 25, yellow = 30, gray = 45, reagents = "159:1,2447:2", name = "Peace Tea", recipeItem = 249879, recipeItemBound = true }
 Recipes[1249958] = { item = 249866, profession = 185, skill = 100, yellow = 105, gray = 125, reagents = "1179:1,785:2", name = "Royal Tea", recipeItem = 249880, recipeItemBound = true }
@@ -2225,28 +2230,28 @@ Recipes[1257493] = { item = 254135, profession = 197, skill = 260, yellow = 275,
 Recipes[1257494] = { item = 254137, profession = 197, skill = 260, yellow = 275, gray = 305, reagents = "14048:6,7076:3,14341:1", name = "Earthenweave Crown", recipeItem = 254138 }
 Recipes[1257495] = { item = 254139, profession = 197, skill = 300, yellow = 315, gray = 345, reagents = "14048:8,14342:12,14344:2,249427:5,14341:2,249428:5,249429:5", name = "Bottomless Reagent Bag", recipeItem = 254140 }
 Recipes[1259341] = { item = 255715, profession = 129, skill = 215, yellow = 230, gray = 290, count = 3, reagents = "255645:1", name = "Potent Anti-Venom", recipeItem = 255728 }
-Recipes[1259342] = { item = 255716, profession = 129, yellow = 90, gray = 160, count = 3, reagents = "3174:1,2678:1,2723:1", name = "Simple Poultice" }
+Recipes[1259342] = { item = 255716, profession = 129, skill = 90, yellow = 90, gray = 160, count = 3, reagents = "3174:1,2678:1,2723:1", name = "Simple Poultice" }
 Recipes[1259343] = { item = 255717, profession = 129, skill = 140, yellow = 160, gray = 220, count = 3, reagents = "1468:1,3713:1,2686:1", name = "Clever Poultice", recipeItem = 255724 }
 Recipes[1259344] = { item = 255718, profession = 129, skill = 210, yellow = 225, gray = 285, count = 3, reagents = "7070:1,2692:1,2596:1", name = "Superior Poultice", recipeItem = 255727 }
 Recipes[1259345] = { item = 255719, profession = 129, skill = 280, yellow = 295, gray = 355, count = 3, reagents = "7080:1,2692:1,2594:1", name = "Powerful Poultice", recipeItem = 255731 }
-Recipes[1259347] = { item = 255720, profession = 129, yellow = 120, gray = 190, reagents = "2592:2,2321:2", name = "Woolen Tourniquet" }
+Recipes[1259347] = { item = 255720, profession = 129, skill = 120, yellow = 120, gray = 190, reagents = "2592:2,2321:2", name = "Woolen Tourniquet" }
 Recipes[1259348] = { item = 255721, profession = 129, skill = 200, yellow = 220, gray = 280, reagents = "4304:2,4291:2", name = "Leather Tourniquet", recipeItem = 255726 }
 Recipes[1259349] = { item = 255722, profession = 129, skill = 265, yellow = 280, gray = 340, reagents = "8170:2,14047:2,8343:2", name = "Surgical Tourniquet", recipeItem = 255730 }
-Recipes[1262975] = { item = 279948, profession = 186, skill = 140, yellow = 140, gray = 145, reagents = "2838:2,2772:1,2842:1", recipeItem = 273097 }
-Recipes[1262978] = { item = 279957, profession = 185, skill = 140, yellow = 145, gray = 150, reagents = "12037:2,12204:1,3713:1", name = "Cookie's Feast", recipeItem = 273102 }
-Recipes[1262980] = { item = 279964, profession = 182, skill = 140, yellow = 140, gray = 145, reagents = "4470:2,8836:1,8831:1", recipeItem = 273106 }
+Recipes[1262975] = { item = 279948, profession = 186, skill = 140, yellow = 140, gray = 140, reagents = "2838:2,2772:1,2842:1", recipeItem = 273097 }
+Recipes[1262978] = { item = 279957, profession = 185, skill = 140, yellow = 145, gray = 145, reagents = "12037:2,12204:1,3713:1", name = "Cookie's Feast", recipeItem = 273102 }
+Recipes[1262980] = { item = 279964, profession = 182, skill = 140, yellow = 140, gray = 140, reagents = "4470:2,8836:1,8831:1", recipeItem = 273106 }
 Recipes[1262982] = { item = 279938, profession = 393, skill = 300, yellow = 300, gray = 300, reagents = "4470:2,4234:4,3575:1", recipeItem = 273109 }
-Recipes[1262985] = { item = 279969, profession = 393, skill = 140, yellow = 140, gray = 145, reagents = "2319:3,5784:2,2321:1", recipeItem = 273098 }
-Recipes[1262990] = { item = 279965, profession = 356, skill = 140, yellow = 140, gray = 145, reagents = "4470:2,8925:1,8365:2", recipeItem = 273141 }
-Recipes[1262996] = { item = 279940, profession = 129, skill = 140, yellow = 140, gray = 145, reagents = "6452:1,8544:2,4470:2", name = "Toxin Study", recipeItem = 273105 }
+Recipes[1262985] = { item = 279969, profession = 393, skill = 140, yellow = 140, gray = 140, reagents = "2319:3,5784:2,2321:1", recipeItem = 273098 }
+Recipes[1262990] = { item = 279965, profession = 356, skill = 140, yellow = 140, gray = 140, reagents = "4470:2,8925:1,8365:2", recipeItem = 273141 }
+Recipes[1262996] = { item = 279940, profession = 129, skill = 140, yellow = 140, gray = 140, reagents = "6452:1,8544:2,4470:2", name = "Toxin Study", recipeItem = 273105 }
 Recipes[1262998] = { item = 279966, profession = 356, skill = 300, yellow = 300, gray = 300, reagents = "4470:5,14048:2,273295:1", recipeItem = 273119 }
 Recipes[1263001] = { item = 279951, profession = 129, skill = 300, yellow = 300, gray = 300, reagents = "4470:2,6453:2,14530:5", name = "Plague Doctor's Laboratory", recipeItem = 273118 }
-Recipes[1263005] = { item = 279970, profession = 171, skill = 140, yellow = 140, gray = 145, reagents = "3372:1,3356:1,2452:1", name = "Fermenter", recipeItem = 273085 }
-Recipes[1263031] = { item = 279941, profession = 165, skill = 140, yellow = 140, gray = 145, reagents = "2319:5,2321:3,4470:2", name = "Tanning Rack", recipeItem = 273096 }
-Recipes[1263032] = { item = 279943, profession = 197, skill = 140, yellow = 140, gray = 145, reagents = "4470:2,4305:5,2321:3", name = "Spinning Wheel", recipeItem = 273099 }
-Recipes[1263034] = { item = 279949, profession = 202, skill = 140, yellow = 140, gray = 145, reagents = "4375:2,4371:1,4234:1", name = "Repair Bot", recipeItem = 273092 }
-Recipes[1263041] = { item = 279988, profession = 164, skill = 140, yellow = 140, gray = 145, reagents = "2841:5,3478:2,2319:2", name = "Anvil", recipeItem = 273086 }
-Recipes[1263056] = { item = 279985, profession = 333, skill = 140, yellow = 140, gray = 145, reagents = "11137:2,11174:1", name = "Arcane Salvager", recipeItem = 273103 }
+Recipes[1263005] = { item = 279970, profession = 171, skill = 140, yellow = 140, gray = 140, reagents = "3372:1,3356:1,2452:1", name = "Fermenter", recipeItem = 273085 }
+Recipes[1263031] = { item = 279941, profession = 165, skill = 125, yellow = 125, gray = 125, reagents = "2319:5,2321:3,4470:2", name = "Tanning Rack", recipeItem = 273096 }
+Recipes[1263032] = { item = 279943, profession = 197, skill = 140, yellow = 140, gray = 140, reagents = "4470:2,4305:5,2321:3", name = "Spinning Wheel", recipeItem = 273099 }
+Recipes[1263034] = { item = 279949, profession = 202, skill = 140, yellow = 140, gray = 140, reagents = "4375:2,4371:1,4234:1", name = "Repair Bot", recipeItem = 273092 }
+Recipes[1263041] = { item = 279988, profession = 164, skill = 140, yellow = 140, gray = 140, reagents = "2841:5,3478:2,2319:2", name = "Anvil", recipeItem = 273086 }
+Recipes[1263056] = { item = 279985, profession = 333, skill = 140, yellow = 140, gray = 140, reagents = "11137:2,11174:1", name = "Arcane Salvager", recipeItem = 273103 }
 Recipes[1263067] = { item = 279982, profession = 185, skill = 300, yellow = 300, gray = 300, reagents = "10284:10,159:5,3713:4", name = "Iron Oven", recipeItem = 273115 }
 Recipes[1263070] = { item = 279947, profession = 182, skill = 300, yellow = 300, gray = 300, reagents = "13465:4,8925:1,14047:2", name = "Camping Tier 3", recipeItem = 273120 }
 Recipes[1263071] = { item = 279952, profession = 186, skill = 300, yellow = 300, gray = 300, reagents = "12359:5,12365:2,6037:1", name = "Camping Tier 3", recipeItem = 273122 }
@@ -2256,7 +2261,7 @@ Recipes[1263079] = { item = 279945, profession = 165, skill = 300, yellow = 300,
 Recipes[1263080] = { item = 279959, profession = 197, skill = 300, yellow = 300, gray = 300, reagents = "273131:1,14048:4,4470:4", name = "Loom", recipeItem = 273124 }
 Recipes[1263082] = { item = 279987, profession = 333, skill = 300, yellow = 300, gray = 300, reagents = "273128:1,14344:2,16203:4", name = "Arcane Forge", recipeItem = 273116 }
 Recipes[1263083] = { item = 279989, profession = 202, skill = 300, yellow = 300, gray = 300, reagents = "273129:1,15994:2", name = "Anarchist's Workbench", recipeItem = 273117 }
-Recipes[1263425] = { item = 279973, profession = 197, skill = 20, yellow = 20, gray = 25, reagents = "2996:1,2320:1" }
+Recipes[1263425] = { item = 279973, profession = 197, skill = 20, yellow = 20, gray = 20, reagents = "2996:1,2320:1" }
 Recipes[1266893] = { item = 260784, profession = 202, skill = 25, yellow = 25, gray = 30, reagents = "2570:1,249409:1", name = "SAF-T Tabs", recipeItem = 264201 }
 Recipes[1266905] = { item = 260792, profession = 202, skill = 25, yellow = 25, gray = 35, reagents = "4357:2,2589:1", name = "SAF-T Dynamite", recipeItem = 264202 }
 Recipes[1266906] = { item = 260793, profession = 202, skill = 55, yellow = 55, gray = 65, reagents = "2840:1,4359:1,4357:2,2570:1,260784:2", name = "SAF-T Copper Bomb", recipeItem = 264203 }
@@ -2300,10 +2305,10 @@ Recipes[1266943] = { item = 260830, profession = 202, skill = 300, yellow = 320,
 Recipes[1270632] = { item = 263507, profession = 185, yellow = 80, gray = 85, reagents = "10284:5", name = "Critter Cookie" }
 Recipes[1270633] = { item = 263509, profession = 185, skill = 25, yellow = 30, gray = 45, reagents = "6889:2,10284:1", name = "Skywall Souffle", recipeItem = 263511 }
 Recipes[1270635] = { item = 263512, profession = 185, skill = 35, yellow = 40, gray = 55, reagents = "2675:1,10284:1", name = "Pincer Bites", recipeItem = 263513 }
-Recipes[1283400] = { item = 279961, profession = 185, skill = 90, yellow = 95, gray = 105, reagents = "11291:1", name = "Journeyman Campfire", recipeItem = 273087 }
+Recipes[1283400] = { item = 279961, profession = 185, skill = 90, yellow = 95, gray = 95, reagents = "11291:1", name = "Journeyman Campfire", recipeItem = 273087 }
 Recipes[1286792] = { item = 269900, profession = 202, skill = 190, yellow = 190, gray = 205, reagents = "4387:6,4389:2,10558:4,4234:30", name = "Centaur Banner Deployment Device", recipeItem = 269901, recipeItemBound = true }
 Recipes[1286796] = { item = 269902, profession = 202, skill = 140, yellow = 150, gray = 160, reagents = "4387:3,4382:2,4389:1,10558:1,4234:4", name = "Hoof-Shaped Foot Pedal", recipeItem = 269903, recipeItemBound = true }
-Recipes[1291341] = { item = 279974, profession = 185, skill = 200, yellow = 205, gray = 220, reagents = "272941:1", name = "Expert Campfire", recipeItem = 273101 }
+Recipes[1291341] = { item = 279974, profession = 185, skill = 200, yellow = 205, gray = 205, reagents = "272941:1", name = "Expert Campfire", recipeItem = 273101 }
 Recipes[1292920] = { item = 273884, profession = 165, skill = 300, yellow = 320, gray = 330, reagents = "274030:5,15407:4,248825:24,14341:8", name = "Grovekeeper Trousers", recipeItem = 273952, recipeItemBound = true }
 Recipes[1292921] = { item = 273885, profession = 165, skill = 300, yellow = 320, gray = 330, reagents = "274030:3,15407:2,248825:18,14341:8", name = "Grovekeeper Grips", recipeItem = 273953, recipeItemBound = true }
 Recipes[1292923] = { item = 273886, profession = 165, skill = 300, yellow = 320, gray = 330, reagents = "274030:3,15407:2,248825:18,14341:8", name = "Grovekeeper Shoulderpads", recipeItem = 273954, recipeItemBound = true }
@@ -2538,4 +2543,5 @@ Recipes[1319163] = { item = 21717, profession = 202, skill = 275, yellow = 275, 
 Recipes[1319164] = { item = 21719, profession = 202, skill = 275, yellow = 275, gray = 285, count = 5, reagents = "15992:1,8170:1", name = "Large White Rocket Cluster", recipeItem = 286086, recipeItemBound = true }
 Recipes[1319165] = { item = 21720, profession = 202, skill = 275, yellow = 275, gray = 285, count = 5, reagents = "15992:1,8170:1", name = "Large Yellow Rocket Cluster", recipeItem = 286087, recipeItemBound = true }
 Recipes[1319313] = { item = 286152, profession = 185, skill = 225, yellow = 245, gray = 255, reagents = "13890:1,3713:1", name = "Plated Armorfish", recipeItem = 286153, recipeItemBound = true }
+Recipes[1328948] = { profession = 333, skill = 280, yellow = 280, gray = 300, reagents = "11178:2,11176:8,11175:2,12361:1", name = "Enchant Boots - Speed", recipeItem = 289560 }
 end)

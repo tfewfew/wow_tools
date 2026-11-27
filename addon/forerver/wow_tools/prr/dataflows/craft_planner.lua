@@ -143,7 +143,7 @@ local function OldestScan(recipe)
             oldest = seenAt
         end
     end
-    for _, reagent in ipairs(recipe.reagents) do
+    for _, reagent in ipairs(recipe.reagents or {}) do
         Check(reagent[1])
     end
     Check(recipe.item)
@@ -156,7 +156,7 @@ end
 function CraftPlanner.Evaluate(recipe)
     local cost = 0
     local missing = 0
-    for _, reagent in ipairs(recipe.reagents) do
+    for _, reagent in ipairs(recipe.reagents or {}) do
         local price = AuctionPrices.Get(reagent[1])
         if price then
             cost = cost + price * reagent[2]

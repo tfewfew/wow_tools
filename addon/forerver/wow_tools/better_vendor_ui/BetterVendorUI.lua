@@ -12,6 +12,8 @@ function ns.Initialize()
         searchMode = "dim",         -- "dim" | "hide"
         dimAlpha = 0.2,
         clearSearchOnShow = true,
+        focusSearchOnShow = false,
+        searchHotkey = true,
         knownRecipes = true,
         qualityBorders = true,
         minBorderQuality = 2,       -- Uncommon
@@ -19,10 +21,12 @@ function ns.Initialize()
         showOptionsButton = true,
         showFilterButton = true,
         resetFiltersOnShow = true,
+        openFiltersOnShow = false,
         usableOnlyDefault = false,
         showSlotFilters = false,
         gridColumns = 4,
         gridRows = 5,
+        windowScale = 100,
         buybackFullWidth = true,
         -- Selling junk
         overrideSellButton = true,
@@ -48,6 +52,8 @@ function ns.Initialize()
         leatrixSyncNeverSell = true, leatrixSellAlwaysList = true,
         resetFiltersOnShow = true, usableOnlyDefault = true,
         ellesmereNeverSell = true, ellesmereAlwaysSell = true,
+        windowScale = true,
+        openFiltersOnShow = true, focusSearchOnShow = true, searchHotkey = true,
     }
 
     function ns.Get(key)
@@ -146,6 +152,7 @@ function ns.Initialize()
     local optionsBtn
     local filterBtn
     local origSellClick
+    local merchantOpen = false
 
     local function IsAddOnLoadedSafe(name)
         local isLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded) or IsAddOnLoaded
@@ -521,6 +528,15 @@ function ns.Initialize()
             MerchantFrame_Update()
         end)
 
+        local focusButton = CreateFrame("Button", "BetterVendorUIFocusSearchButton", MerchantFrame)
+        focusButton:Hide()
+        focusButton:SetScript("OnClick", function()
+            if merchantOpen and searchBox:IsVisible() then
+                searchBox:SetFocus()
+                searchBox:HighlightText()
+            end
+        end)
+
         if MerchantSellAllJunkButton then
             origSellClick = MerchantSellAllJunkButton:GetScript("OnClick")
             MerchantSellAllJunkButton:SetScript("OnClick", function(self, ...)
@@ -566,6 +582,22 @@ function ns.Initialize()
         end
     end
 
+    local hotkeyBound = false
+    local function UpdateSearchHotkey()
+        local wanted = not not (merchantOpen and searchBox and ns.Get("searchHotkey") and ns.Get("showSearch"))
+        if wanted == hotkeyBound then return end
+        if InCombatLockdown() then
+            frame:RegisterEvent("PLAYER_REGEN_ENABLED")
+            return
+        end
+        if wanted then
+            SetOverrideBindingClick(frame, true, "CTRL-F", "BetterVendorUIFocusSearchButton")
+        else
+            ClearOverrideBindings(frame)
+        end
+        hotkeyBound = wanted
+    end
+
     ---------------------------------------------------------------------------
     -- Grid layout
     ---------------------------------------------------------------------------
@@ -580,6 +612,7 @@ function ns.Initialize()
     local buybackAnchor   -- stands in for MerchantItem10 at its 2x5 position
     local anchoredCols    -- column count the slots are currently anchored for; nil = re-anchor
     local listMode = false  -- EllesmereUI's "Show As List" draws the items; our grid stands down
+    local scaleApplied = false
 
     local function GetSlotFrame(i)
         if not slots[i] then
@@ -683,6 +716,12 @@ function ns.Initialize()
         local extraWidth = (cols - 2) * (itemWidth + gapX)
         MerchantFrame:SetSize(baseWidth + extraWidth, baseHeight + (rows - 5) * (itemHeight - gapY))
         StretchBottomArt(extraWidth)
+
+        local scale = ns.Get("windowScale") / 100
+        if scale ~= 1 or scaleApplied then
+            MerchantFrame:SetScale(scale)
+            scaleApplied = scale ~= 1
+        end
 
         -- Where MerchantItem10 would be in a 2-column grid of this height (right slot, last row)
         buybackAnchor = buybackAnchor or CreateFrame("Frame", nil, MerchantFrame)
@@ -1053,6 +1092,7 @@ function ns.Initialize()
             if not show and searchBox:GetText() ~= "" then searchBox:SetText("") end
         end
         if searchBox then LayoutHeaderButtons() end
+        UpdateSearchHotkey()
         if ns.UpdateFilterUI then ns.UpdateFilterUI() end
         if key == nil or key:find("^leatrix") then ns.SyncLeatrix() end
         if key == nil or key:find("^ellesmere") or key == "sellAlwaysList" then ns.RefreshEllesmereBags() end
@@ -1326,6 +1366,7 @@ function ns.Initialize()
 
     frame:SetScript("OnEvent", function(self, event, arg1, arg2)
         if event == "MERCHANT_SHOW" then
+            merchantOpen = true
             InitUI()
             ns.ResetItemCache()
             -- Blizzard redraws the merchant window itself when it opens
@@ -1335,6 +1376,14 @@ function ns.Initialize()
             end
             if ns.Get("clearSearchOnShow") and searchBox:GetText() ~= "" then
                 searchBox:SetText("")  -- redraws via OnTextChanged
+            end
+            if ns.Get("openFiltersOnShow") and ns.Get("showFilterButton") and ns.ShowFilterPanel then
+                ns.ShowFilterPanel()
+            end
+            if ns.Get("focusSearchOnShow") and ns.Get("showSearch") then
+                C_Timer.After(0, function()
+                    if merchantOpen and searchBox:IsVisible() then searchBox:SetFocus() end
+                end)
             end
             HookEllesmere()  -- in case EllesmereUIBags loaded after login
             if IsShiftKeyDown() then return end
@@ -1362,11 +1411,17 @@ function ns.Initialize()
             ns.ApplyLayout()
             C_Timer.After(0, function() loginDone = true end)
         elseif event == "MERCHANT_CLOSED" then
+            merchantOpen = false
+            if searchBox then searchBox:ClearFocus() end
+            UpdateSearchHotkey()
             FinishSelling()
             ns.HideFilterPanel()
             -- Blizzard draws the next vendor before our MERCHANT_SHOW runs: don't let that
             -- draw read this vendor's items
             ns.ResetItemCache()
+        elseif event == "PLAYER_REGEN_ENABLED" then
+            self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+            UpdateSearchHotkey()
         elseif event == "UI_ERROR_MESSAGE" then  -- registered only while selling
             if arg2 and (arg2 == ERR_VENDOR_DOESNT_BUY or arg2 == ERR_TOO_MUCH_GOLD) then
                 FinishSelling(arg2)

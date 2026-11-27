@@ -155,6 +155,7 @@ local function refreshWindow()
         column.empty:SetText(
             selectedSubject.itemID
                 and T('No known source in the loaded databases.\nCoverage is incomplete for Forever.')
+                or selectedSubject.loadingDrops and T('Loading drops...')
                 or T('No source data for this creature ID.\nYour personal loot log is not used here.')
         )
         local shownRows = math.max(1, math.min(7, #entries))
@@ -346,17 +347,16 @@ local function showMouseoverCreature()
     local levelOK, level = pcall(UnitLevel, 'mouseover')
     name = nameOK and isReadableValue(name) and type(name) == 'string' and name or nil
     level = levelOK and isReadableValue(level) and type(level) == 'number' and level > 0 and level or nil
-    local monster = Addon.ReferenceMonster(id, name, level)
     if
         bestiaryFrame:IsShown()
         and selectedSubject
         and selectedSubject.npcID == id
-        and selectedSubject.minLevel == monster.minLevel
+        and (not level or selectedSubject.minLevel == level)
         and not showingPreview
     then
         return
     end
-    Addon.ShowBestiary(monster, false, false)
+    Addon.ShowBestiary(Addon.ReferenceMonster(id, name, level, true), false, false)
 end
 
 -- Construct the compact window
@@ -611,7 +611,12 @@ function Addon.BuildBestiary()
         end
         bestiaryFrame:Hide()
     end
-    bestiaryFrame:SetScript('OnUpdate', dismissOutside)
+    bestiaryFrame:SetScript('OnUpdate', function()
+        dismissOutside()
+        if bestiaryFrame:IsShown() and selectedSubject and Addon.AdvanceHoverLoot(selectedSubject) then
+            refreshWindow()
+        end
+    end)
     bestiaryFrame:SetScript('OnLeave', dismissOutside)
     bestiaryFrame:RegisterEvent('UPDATE_MOUSEOVER_UNIT')
     bestiaryFrame:RegisterEvent('MODIFIER_STATE_CHANGED')

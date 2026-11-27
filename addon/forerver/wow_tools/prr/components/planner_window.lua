@@ -307,6 +307,23 @@ function PlannerWindow.Toggle()
     ns.Components.ItemWindow.TogglePlanner()
 end
 
+-- The item window on the Plan tab with a profession (the skill-up zones in
+-- the profession window open it); one the planner has no recipes of -- the
+-- last chosen.
+function PlannerWindow.OpenLeveling(profession)
+    for _, known in ipairs(CraftPlanner.Professions()) do
+        if known == profession and profession ~= ns.db.settings.planner.profession then
+            if frame then
+                SetProfession(profession)
+            else
+                ns.db.settings.planner.profession = profession
+            end
+            break
+        end
+    end
+    ns.Components.ItemWindow.ShowTab("planner")
+end
+
 function PlannerWindow.IsShown()
     return frame ~= nil and frame:IsVisible()
 end

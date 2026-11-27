@@ -1,4 +1,4 @@
-local addon = { sourceVersion = "1.5.2", sources = {} }
+local addon = { sourceVersion = "1.6.0", sources = {} }
 WoWTools.prr = addon
 WoWTools.modules.prr = addon
 

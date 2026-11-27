@@ -13,8 +13,10 @@ ns.Localization.Add("es", [==[
         "reagent": "%d x %s",
         "reagents_unknown": "componentes desconocidos",
         "more_shift": "y %d más (Mayús)",
-        "teaches": "Enseña:",
-        "auction_price": "Subasta(PRR)"
+        "skill_levels": "Niveles de habilidad:",
+        "auction_price": "Subasta(PRR)",
+        "disenchant": "Desencantar",
+        "disenchant_average": "Promedio"
     },
     "professions": {
         "0": "Profesión desconocida",
@@ -78,8 +80,13 @@ ns.Localization.Add("es", [==[
         "reagent_for": "Componente de (%d):",
         "profession_count": "%s (%d)",
         "no_recipes": "Ninguna receta fabrica ni usa este objeto.",
-        "search": "Buscar recetas",
-        "found": "Encontradas: %d",
+        "search": "Buscar recetas y componentes",
+        "search_reagents": "Componentes",
+        "search_reagents_tooltip": "La búsqueda también encuentra componentes por su nombre y las recetas que los usan.",
+        "found_reagents": "Componentes (%d):",
+        "found_recipes": "Recetas (%d):",
+        "found_by_reagent": "Recetas con estos componentes (%d):",
+        "reagent_recipes": "recetas: %d",
         "all_recipes": "Todas las recetas (%d)",
         "nothing_found": "No se encontró nada.",
         "history": "Historial",
@@ -102,41 +109,136 @@ ns.Localization.Add("es", [==[
     },
     "options": {
         "main": {
-            "description": "Qué fabrica un objeto y de qué es componente: en las descripciones de objetos y en la ventana de objeto. La configuración está en las páginas debajo de esta en la lista de la izquierda.\n\n/prr -- la ventana de objeto, /prr planner -- el planificador de fabricación.\n",
-            "open_window": "Ventana de objeto",
-            "open_planner": "Planificador de fabricación"
+            "header": "Profesiones, recetas, componentes",
+            "description": "Recetas, componentes, precios de subasta y subida de habilidad para cada objeto: en las descripciones, en la ventana de objeto y en el planificador de fabricación. Los ajustes están en las secciones de abajo, en la lista de la izquierda.",
+            "item_window": {
+                "name": "Ventana de objeto",
+                "button": "Abrir",
+                "description": "Todas las recetas que crean el objeto o lo usan como componente, con búsqueda. Comando: /prr"
+            },
+            "planner": {
+                "name": "Planificador de fabricación",
+                "button": "Abrir",
+                "description": "Precios de subasta y beneficio de cada receta, y la forma más barata de subir una profesión. Comando: /prr planner"
+            }
         },
-        "tooltip_header": "Descripciones",
+        "pages": {
+            "tooltip": "Descripciones de objetos",
+            "gathering": "Recolección y desuello",
+            "profession": "Ventana de profesión",
+            "window": "Ventana de objeto",
+            "planner": "Planificador de fabricación",
+            "interface": "Interfaz",
+            "language": "Idioma"
+        },
+        "sections": {
+            "general": "General",
+            "crafting": "Fabricación",
+            "auction": "Casa de subastas",
+            "disenchant": "Desencantar",
+            "professions": "Profesiones",
+            "herbalism": "Herboristería",
+            "mining": "Minería",
+            "skinning": "Desuello",
+            "loot": "Botín",
+            "tracking": "Tus estadísticas de botín",
+            "recipe": "Receta elegida",
+            "opening": "Abrir objetos",
+            "links": "Enlaces de Wowhead",
+            "minimap": "Minimapa",
+            "loot_window": "Ventana de botín",
+            "language": "Idioma del addon"
+        },
         "show_tooltip": {
-            "name": "Mostrar información de recetas en las descripciones de objetos",
-            "description": "Qué fabrica el objeto y de qué es componente"
+            "name": "Mostrar PRR en las descripciones",
+            "description": "Recetas, componentes, precios de subasta y desencantamiento en las descripciones de objetos. Desactivado: ninguna línea de PRR."
         },
         "show_crafted_by": {
-            "name": "\"Fabricado con\" y \"Enseña\"",
-            "description": "La profesión y los componentes que fabrican el objeto; qué enseña un patrón"
+            "name": "Creado por",
+            "description": "Qué profesión crea el objeto, la habilidad necesaria y los componentes."
         },
         "show_reagent_for": {
-            "name": "\"Componente de\"",
-            "description": "Las recetas en las que se usa el objeto, por profesión"
+            "name": "Componente para",
+            "description": "Las recetas que usan el objeto como componente, por profesión."
         },
-        "link_header": "Wowhead Quick Link",
-        "copy_link": {
-            "name": "Ctrl+C en la ventana de objeto -- un enlace de Wowhead para copiar",
-            "description": "Solo en los iconos y las filas de recetas de la ventana de objeto"
+        "show_skill_levels": {
+            "name": "Niveles de habilidad de recetas",
+            "description": "Con qué habilidad una receta pasa a naranja, amarillo, verde y gris. En las líneas «Creado por» y en los objetos de receta (patrones, planos, fórmulas)."
         },
-        "interface_header": "Interfaz",
-        "minimap": {
-            "name": "Botón del minimapa",
-            "description": "Clic -- la ventana de objeto, clic derecho -- esta configuración"
+        "show_auction_price": {
+            "name": "Precio de subasta",
+            "description": "La compra inmediata más baja de tu último escaneo del planificador, con la fecha."
         },
-        "loot_glow": {
-            "name": "Brillo de los objetos favoritos en la ventana de botín",
-            "description": "Un borde dorado pulsante alrededor de un objeto favorito en el botín; la estrella en su icono se mantiene"
+        "show_disenchant": {
+            "name": "Se desencanta en",
+            "description": "En qué se desencantan las armas y armaduras poco comunes, raras y épicas: materiales, probabilidades y cantidades."
         },
-        "window_header": "Ventana de objeto",
+        "show_disenchant_price": {
+            "name": "Precios de materiales",
+            "description": "El precio de subasta de cada material y el valor medio de un desencantamiento."
+        },
+        "tooltip_professions": {
+            "name": "Recetas de",
+            "description": "Las recetas de profesiones sin marcar no aparecen en las descripciones.",
+            "all": "Todas las profesiones",
+            "show_all": "Marcar todas",
+            "hide_all": "Desmarcar todas"
+        },
+        "show_herb_nodes": {
+            "name": "Descripciones de hierbas",
+            "description": "Pasa el ratón por una hierba: la habilidad de herboristería necesaria, sus colores, tu probabilidad de ganar un punto y lo que da."
+        },
+        "show_mining_nodes": {
+            "name": "Descripciones de filones",
+            "description": "Pasa el ratón por un filón: la habilidad de minería necesaria, sus colores, tu probabilidad de ganar un punto y lo que da."
+        },
+        "show_skinning": {
+            "name": "Descripciones de criaturas",
+            "description": "Pasa el ratón por una criatura: la habilidad de desuello necesaria, tu probabilidad de ganar un punto y los cueros y pieles que da. Solo para personajes con Desuello."
+        },
+        "skinning_units": {
+            "name": "Mostrar en",
+            "description": "En todas las criaturas o solo en los cadáveres que puedes desollar.",
+            "all": "Criaturas vivas y muertas",
+            "dead": "Solo cadáveres"
+        },
+        "show_possible_loot": {
+            "name": "Botín posible",
+            "description": "Lo que puede dar la criatura o el nodo: cada objeto con su probabilidad según los datos de botín de WoW Forever."
+        },
+        "show_gathering_own": {
+            "name": "Tu botín",
+            "description": "Una sección «Tu botín»: lo que te dieron tus desuellos, hierbas y filones, y cuántas veces. Requiere «Registrar tu botín»."
+        },
+        "show_gathering_stacks": {
+            "name": "Tamaño de montón",
+            "description": "Bajo cada objeto: la probabilidad de x1, x2, x3 por botín. Desactivado: solo la probabilidad total."
+        },
+        "show_gathering_price": {
+            "name": "Precios de subasta",
+            "description": "El precio de cada objeto de tu último escaneo del planificador."
+        },
+        "record_gathering": {
+            "name": "Registrar tu botín",
+            "description": "Recuerda lo que te da cada desuello, hierba y filón, para tus propias probabilidades."
+        },
+        "gathering_history": {
+            "name": "Botines guardados",
+            "description": "Cuántos de los últimos botines de cada criatura y nodo cuentan para tus probabilidades. Los más antiguos se descartan."
+        },
+        "gathering_reset": {
+            "name": "Botín registrado",
+            "button": "Reiniciar",
+            "description": "Borra tus estadísticas de botín y las empieza de nuevo.",
+            "confirm": "¿Borrar tus estadísticas de botín (%d botines)?"
+        },
+        "skill_zones": {
+            "name": "Barra de habilidad",
+            "description": "Bajo la receta elegida: sus rangos naranja, amarillo, verde y gris, tu habilidad en ellos, tu probabilidad de ganar un punto, el coste de los componentes y el precio de venta."
+        },
         "open_binding": {
-            "name": "Abrir la ventana con un objeto con",
-            "description": "Un clic en cualquier objeto -- en las bolsas, un enlace del chat, el botín -- abre la ventana de objeto con él. Mayús+clic con la ventana abierta siempre funciona.",
+            "name": "Abrir un objeto en PRR con",
+            "description": "Un clic en cualquier objeto (bolsas, enlaces del chat, botín) lo abre en la ventana de objeto. Mayús-clic funciona con la ventana abierta.",
             "values": {
                 "NONE": "Nada",
                 "ALT_CLICK": "Alt+clic",
@@ -149,29 +251,31 @@ ns.Localization.Add("es", [==[
                 "CTRL_ALT_RIGHT_CLICK": "Ctrl+Alt+clic derecho"
             }
         },
-        "planner_header": "Planificador de fabricación",
+        "copy_link": {
+            "name": "Ctrl+C copia un enlace de Wowhead",
+            "description": "Sobre un icono o una receta de la ventana de objeto: un cuadro con el enlace de Wowhead listo para copiar."
+        },
         "auction_cut": {
-            "explanation": "La casa de subastas se queda con una parte de cada venta: 5% en la casa de subastas de tu facción, 15% en la neutral (Bahía del Botín, Gadgetzan, Vista Eterna).\n\nEl planificador calcula el beneficio de una receta sin esa parte, en la pestaña Precios:\n  Beneficio = Precio de venta - comisión - Coste\nPor ejemplo, un objeto fabricado se vende por 1o y sus componentes cuestan 80p: con 5% la casa de subastas se queda 5p y el beneficio es 15p; con 15% la casa se queda 15p y el beneficio es 5p.\n\nAjusta la comisión de la casa de subastas donde vendes. La columna Beneficio, el orden por esa columna y la descripción de la fila (la línea \"Comisión de la casa de subastas\") cambian al momento.\n",
-            "name": "Comisión de la casa de subastas, %",
-            "description": "Lo que la casa de subastas se queda de una venta: 5% en la de tu facción, 15% en la neutral. El beneficio se calcula descontando esta comisión."
+            "name": "Comisión de la casa de subastas",
+            "description": "Lo que la casa de subastas se queda de una venta: 5% en la de tu facción, 15% en una neutral (Bahía del Botín, Gadgetzan, Vista Eterna). El beneficio del planificador se cuenta sin ella."
         },
-        "show_auction_price": {
-            "name": "Precio de subasta",
-            "description": "El precio de compra inmediata más bajo por unidad visto por el escaneo del planificador, con la fecha del escaneo"
+        "minimap": {
+            "name": "Botón del minimapa",
+            "description": "Clic izquierdo: la ventana de objeto. Clic derecho: estos ajustes."
         },
-        "tooltip_professions": {
-            "name": "Profesiones en las descripciones",
-            "description": "Las recetas de las profesiones desactivadas aquí no se muestran en las descripciones de objetos.",
-            "show_all": "Mostrar todas",
-            "hide_all": "Ocultar todas"
+        "loot_glow": {
+            "name": "Resaltar favoritos",
+            "description": "Un borde dorado pulsante alrededor de los objetos favoritos en la ventana de botín."
         },
-        "language_header": "Idioma",
         "language": {
-            "name": "Idioma del addon",
-            "description": "Los textos de PRR: sus ventanas, las líneas de las descripciones, la configuración y los mensajes del chat.",
+            "name": "Idioma",
+            "description": "El idioma de las ventanas de PRR, las líneas de descripción, los ajustes y los mensajes. Los nombres de objetos, recetas y profesiones vienen del juego.",
             "auto": "Idioma del juego (%s)",
-            "note": "El nuevo idioma se usa después de recargar la interfaz. Los nombres de objetos, recetas y profesiones vienen del juego y se quedan en el idioma del juego.",
-            "reload": "Recargar interfaz"
+            "reload": {
+                "name": "Aplicar idioma",
+                "button": "Recargar IU",
+                "description": "Un idioma nuevo se usa tras recargar la interfaz."
+            }
         }
     },
     "dev": {
@@ -315,6 +419,31 @@ ns.Localization.Add("es", [==[
     },
     "language": {
         "native_name": "Español"
+    },
+    "skill_zones": {
+        "title": "Subida de habilidad:",
+        "zone_orange": "Naranja",
+        "zone_yellow": "Amarillo",
+        "zone_green": "Verde",
+        "zone_gray": "Gris",
+        "chance": "probabilidad de subir %d%%",
+        "locked": "Se aprende con %d",
+        "gear_title": "Zonas de habilidad de la receta",
+        "gear_hint": "Se pueden desactivar en la configuración, en la página «%s». Haz clic para abrirla.",
+        "planner_hint": "Planea la forma más barata de subir la profesión: qué recetas fabricar en cada nivel y cuántas, qué componentes comprar y el coste según los precios de subasta. Haz clic para abrir el plan.",
+        "materials": "Materiales:",
+        "sale": "Venta:",
+        "no_price": "sin precio"
+    },
+    "gathering": {
+        "needs": "Requiere habilidad %d",
+        "count_skinning": "Desollado: %d veces",
+        "count_mining": "Minado: %d veces",
+        "count_herbalism": "Recolectado: %d veces",
+        "skill_up": "Probabilidad de subir: %s",
+        "possible": "Botín posible:",
+        "own": "Tu botín:",
+        "own_last": "Tu botín (últimos %d):"
     }
 }
 ]==])

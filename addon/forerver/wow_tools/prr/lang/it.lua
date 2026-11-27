@@ -13,8 +13,10 @@ ns.Localization.Add("it", [==[
         "reagent": "%d x %s",
         "reagents_unknown": "reagenti sconosciuti",
         "more_shift": "e altri %d (Maiusc)",
-        "teaches": "Insegna:",
-        "auction_price": "Asta(PRR)"
+        "skill_levels": "Livelli di abilità:",
+        "auction_price": "Asta(PRR)",
+        "disenchant": "Disincanto",
+        "disenchant_average": "Media"
     },
     "professions": {
         "0": "Professione sconosciuta",
@@ -78,8 +80,13 @@ ns.Localization.Add("it", [==[
         "reagent_for": "Reagente per (%d):",
         "profession_count": "%s (%d)",
         "no_recipes": "Nessuna ricetta crea o usa questo oggetto.",
-        "search": "Cerca ricette",
-        "found": "Trovate: %d",
+        "search": "Cerca ricette e reagenti",
+        "search_reagents": "Reagenti",
+        "search_reagents_tooltip": "La ricerca trova anche i reagenti per nome e le ricette che li usano.",
+        "found_reagents": "Reagenti (%d):",
+        "found_recipes": "Ricette (%d):",
+        "found_by_reagent": "Ricette con questi reagenti (%d):",
+        "reagent_recipes": "ricette: %d",
         "all_recipes": "Tutte le ricette (%d)",
         "nothing_found": "Non è stato trovato nulla.",
         "history": "Cronologia",
@@ -102,41 +109,136 @@ ns.Localization.Add("it", [==[
     },
     "options": {
         "main": {
-            "description": "Cosa crea un oggetto e di cosa è reagente: nei suggerimenti degli oggetti e nella finestra dell'oggetto. Le impostazioni sono nelle pagine sotto questa, nell'elenco a sinistra.\n\n/prr -- la finestra dell'oggetto, /prr planner -- il pianificatore di creazione.\n",
-            "open_window": "Finestra dell'oggetto",
-            "open_planner": "Pianificatore di creazione"
+            "header": "Professioni, ricette, reagenti",
+            "description": "Ricette, reagenti, prezzi d'asta e avanzamento per ogni oggetto: nei tooltip, nella finestra oggetto e nel pianificatore di creazione. Le impostazioni sono nelle sezioni sotto, nell'elenco a sinistra.",
+            "item_window": {
+                "name": "Finestra oggetto",
+                "button": "Apri",
+                "description": "Tutte le ricette che creano l'oggetto o lo usano come reagente, con ricerca. Comando: /prr"
+            },
+            "planner": {
+                "name": "Pianificatore di creazione",
+                "button": "Apri",
+                "description": "Prezzi d'asta e profitto di ogni ricetta, e il modo più economico per salire una professione. Comando: /prr planner"
+            }
         },
-        "tooltip_header": "Suggerimenti",
+        "pages": {
+            "tooltip": "Tooltip oggetti",
+            "gathering": "Raccolta e scuoiatura",
+            "profession": "Finestra professione",
+            "window": "Finestra oggetto",
+            "planner": "Pianificatore di creazione",
+            "interface": "Interfaccia",
+            "language": "Lingua"
+        },
+        "sections": {
+            "general": "Generale",
+            "crafting": "Creazione",
+            "auction": "Casa d'aste",
+            "disenchant": "Disincanto",
+            "professions": "Professioni",
+            "herbalism": "Erbalismo",
+            "mining": "Estrazione",
+            "skinning": "Scuoiatura",
+            "loot": "Bottino",
+            "tracking": "Le tue statistiche di bottino",
+            "recipe": "Ricetta scelta",
+            "opening": "Aprire oggetti",
+            "links": "Link Wowhead",
+            "minimap": "Minimappa",
+            "loot_window": "Finestra bottino",
+            "language": "Lingua dell'addon"
+        },
         "show_tooltip": {
-            "name": "Mostra le informazioni sulle ricette nei suggerimenti degli oggetti",
-            "description": "Cosa crea l'oggetto e di cosa è reagente"
+            "name": "Mostra PRR nei tooltip degli oggetti",
+            "description": "Ricette, reagenti, prezzi d'asta e disincanto nei tooltip. Disattivato: nessuna riga PRR."
         },
         "show_crafted_by": {
-            "name": "\"Creato con\" e \"Insegna\"",
-            "description": "La professione e i reagenti che creano l'oggetto; cosa insegna un modello"
+            "name": "Creato da",
+            "description": "La professione che crea l'oggetto, l'abilità richiesta e i reagenti."
         },
         "show_reagent_for": {
-            "name": "\"Reagente per\"",
-            "description": "Le ricette in cui l'oggetto è usato, per professione"
+            "name": "Reagente per",
+            "description": "Le ricette che usano l'oggetto come reagente, per professione."
         },
-        "link_header": "Wowhead Quick Link",
-        "copy_link": {
-            "name": "Ctrl+C nella finestra dell'oggetto -- un link di Wowhead da copiare",
-            "description": "Solo sulle icone e sulle righe delle ricette della finestra dell'oggetto"
+        "show_skill_levels": {
+            "name": "Livelli di abilità delle ricette",
+            "description": "A quale abilità una ricetta diventa arancione, gialla, verde e grigia. Nelle righe «Creato da» e sugli oggetti ricetta (modelli, progetti, formule)."
         },
-        "interface_header": "Interfaccia",
-        "minimap": {
-            "name": "Pulsante della minimappa",
-            "description": "Clic -- la finestra dell'oggetto, clic destro -- queste impostazioni"
+        "show_auction_price": {
+            "name": "Prezzo d'asta",
+            "description": "Il prezzo di acquisto immediato più basso dall'ultima scansione del pianificatore, con la data."
         },
-        "loot_glow": {
-            "name": "Bagliore degli oggetti preferiti nella finestra del bottino",
-            "description": "Un bordo dorato pulsante attorno a un oggetto preferito nel bottino; la stella sulla sua icona resta"
+        "show_disenchant": {
+            "name": "Si disincanta in",
+            "description": "In cosa si disincantano armi e armature non comuni, rare ed epiche: materiali, probabilità e quantità."
         },
-        "window_header": "Finestra dell'oggetto",
+        "show_disenchant_price": {
+            "name": "Prezzi dei materiali",
+            "description": "Il prezzo d'asta di ogni materiale e il valore medio di un disincanto."
+        },
+        "tooltip_professions": {
+            "name": "Ricette di",
+            "description": "Le ricette delle professioni non selezionate non compaiono nei tooltip.",
+            "all": "Tutte le professioni",
+            "show_all": "Seleziona tutte",
+            "hide_all": "Deseleziona tutte"
+        },
+        "show_herb_nodes": {
+            "name": "Tooltip delle erbe",
+            "description": "Passa il mouse su un'erba: l'abilità di erbalismo richiesta, i suoi colori, la tua probabilità di un punto e cosa dà."
+        },
+        "show_mining_nodes": {
+            "name": "Tooltip dei filoni",
+            "description": "Passa il mouse su un filone: l'abilità di estrazione richiesta, i suoi colori, la tua probabilità di un punto e cosa dà."
+        },
+        "show_skinning": {
+            "name": "Tooltip delle creature",
+            "description": "Passa il mouse su una creatura: l'abilità di scuoiatura richiesta, la tua probabilità di un punto e i cuoi e le pelli che dà. Solo per personaggi con Scuoiatura."
+        },
+        "skinning_units": {
+            "name": "Mostra su",
+            "description": "Su tutte le creature o solo sui cadaveri da scuoiare.",
+            "all": "Creature vive e morte",
+            "dead": "Solo cadaveri"
+        },
+        "show_possible_loot": {
+            "name": "Bottino possibile",
+            "description": "Cosa può dare la creatura o il nodo: ogni oggetto con la sua probabilità secondo i dati di bottino di WoW Forever."
+        },
+        "show_gathering_own": {
+            "name": "Il tuo bottino",
+            "description": "Una sezione «Il tuo bottino»: cosa ti hanno dato scuoiature, erbe e filoni, e quante volte. Richiede «Registra il tuo bottino»."
+        },
+        "show_gathering_stacks": {
+            "name": "Dimensioni delle pile",
+            "description": "Sotto ogni oggetto: la probabilità di x1, x2, x3 per bottino. Disattivato: solo la probabilità totale."
+        },
+        "show_gathering_price": {
+            "name": "Prezzi d'asta",
+            "description": "Il prezzo di ogni oggetto dall'ultima scansione del pianificatore."
+        },
+        "record_gathering": {
+            "name": "Registra il tuo bottino",
+            "description": "Ricorda cosa ti dà ogni scuoiatura, erba e filone, per le tue probabilità."
+        },
+        "gathering_history": {
+            "name": "Bottini conservati",
+            "description": "Quanti degli ultimi bottini di ogni creatura e nodo contano per le tue probabilità. I più vecchi vengono scartati."
+        },
+        "gathering_reset": {
+            "name": "Bottino registrato",
+            "button": "Azzera",
+            "description": "Cancella le tue statistiche di bottino e le ricomincia.",
+            "confirm": "Cancellare le tue statistiche di bottino (%d bottini)?"
+        },
+        "skill_zones": {
+            "name": "Barra di avanzamento",
+            "description": "Sotto la ricetta scelta: le sue fasce arancione, gialla, verde e grigia, la tua abilità, la tua probabilità di un punto, il costo dei reagenti e il prezzo di vendita."
+        },
         "open_binding": {
-            "name": "Apri la finestra con un oggetto con",
-            "description": "Un clic su qualsiasi oggetto -- nelle borse, un link in chat, il bottino -- apre la finestra dell'oggetto con esso. Maiusc+clic con la finestra aperta funziona sempre.",
+            "name": "Apri un oggetto in PRR con",
+            "description": "Un clic su un oggetto (borse, link in chat, bottino) lo apre nella finestra oggetto. Maiusc-clic funziona a finestra aperta.",
             "values": {
                 "NONE": "Nessuno",
                 "ALT_CLICK": "Alt+clic",
@@ -149,29 +251,31 @@ ns.Localization.Add("it", [==[
                 "CTRL_ALT_RIGHT_CLICK": "Ctrl+Alt+clic destro"
             }
         },
-        "planner_header": "Pianificatore di creazione",
+        "copy_link": {
+            "name": "Ctrl+C copia un link Wowhead",
+            "description": "Sopra un'icona o una ricetta della finestra oggetto: un riquadro con il link Wowhead pronto da copiare."
+        },
         "auction_cut": {
-            "explanation": "La casa d'aste trattiene una parte di ogni vendita: il 5% nella casa d'aste della tua fazione, il 15% in quella neutrale (Baia del Bottino, Meccania, Lungavista).\n\nIl pianificatore calcola il profitto di una ricetta senza quella parte, nella scheda Prezzi:\n  Profitto = Prezzo di vendita - commissione - Costo\nPer esempio, un oggetto creato si vende a 1o e i suoi reagenti costano 80a: con il 5% la casa d'aste trattiene 5a e il profitto è 15a; con il 15% trattiene 15a e il profitto è 5a.\n\nImposta la commissione della casa d'aste in cui vendi. La colonna Profitto, l'ordinamento per questa colonna e il suggerimento della riga (la riga \"Commissione della casa d'aste\") cambiano subito.\n",
-            "name": "Commissione della casa d'aste, %",
-            "description": "Quanto la casa d'aste trattiene di una vendita: il 5% in quella della tua fazione, il 15% in quella neutrale. Il profitto è calcolato al netto di questa commissione."
+            "name": "Commissione della casa d'aste",
+            "description": "Quanto la casa d'aste trattiene da una vendita: 5% in quella della tua fazione, 15% in una neutrale (Baia del Bottino, Gadgetzan, Lungavista). Il profitto del pianificatore è calcolato senza."
         },
-        "show_auction_price": {
-            "name": "Prezzo all'asta",
-            "description": "Il prezzo di acquisto immediato più basso per unità visto dalla scansione del pianificatore, con la data della scansione"
+        "minimap": {
+            "name": "Pulsante della minimappa",
+            "description": "Clic sinistro: la finestra oggetto. Clic destro: queste impostazioni."
         },
-        "tooltip_professions": {
-            "name": "Professioni nei suggerimenti",
-            "description": "Le ricette delle professioni disattivate qui non sono mostrate nei suggerimenti degli oggetti.",
-            "show_all": "Mostra tutte",
-            "hide_all": "Nascondi tutte"
+        "loot_glow": {
+            "name": "Evidenzia i preferiti",
+            "description": "Un bordo dorato pulsante intorno agli oggetti preferiti nella finestra del bottino."
         },
-        "language_header": "Lingua",
         "language": {
-            "name": "Lingua dell'addon",
-            "description": "I testi di PRR: le sue finestre, le righe dei suggerimenti, le impostazioni e i messaggi in chat.",
+            "name": "Lingua",
+            "description": "La lingua delle finestre PRR, delle righe dei tooltip, delle impostazioni e dei messaggi. I nomi di oggetti, ricette e professioni vengono dal gioco.",
             "auto": "Lingua del gioco (%s)",
-            "note": "La nuova lingua viene usata dopo aver ricaricato l'interfaccia. I nomi di oggetti, ricette e professioni vengono dal gioco e restano nella lingua del gioco.",
-            "reload": "Ricarica interfaccia"
+            "reload": {
+                "name": "Applica la lingua",
+                "button": "Ricarica IU",
+                "description": "Una nuova lingua si usa dopo aver ricaricato l'interfaccia."
+            }
         }
     },
     "dev": {
@@ -315,6 +419,31 @@ ns.Localization.Add("it", [==[
     },
     "language": {
         "native_name": "Italiano"
+    },
+    "skill_zones": {
+        "title": "Punti abilità:",
+        "zone_orange": "Arancione",
+        "zone_yellow": "Giallo",
+        "zone_green": "Verde",
+        "zone_gray": "Grigio",
+        "chance": "probabilità di un punto %d%%",
+        "locked": "Si impara a %d",
+        "gear_title": "Zone di abilità della ricetta",
+        "gear_hint": "Si possono disattivare nelle impostazioni, alla pagina «%s». Clicca per aprirla.",
+        "planner_hint": "Pianifica il modo più economico di far salire la professione: quali ricette creare a ogni livello e quante, i reagenti da comprare e il costo secondo i prezzi d'asta. Clicca per aprire il piano.",
+        "materials": "Materiali:",
+        "sale": "Vendita:",
+        "no_price": "nessun prezzo"
+    },
+    "gathering": {
+        "needs": "Richiede abilità %d",
+        "count_skinning": "Scuoiato: %d volte",
+        "count_mining": "Estratto: %d volte",
+        "count_herbalism": "Raccolto: %d volte",
+        "skill_up": "Probabilità di avanzare: %s",
+        "possible": "Bottino possibile:",
+        "own": "Il tuo bottino:",
+        "own_last": "Il tuo bottino (ultimi %d):"
     }
 }
 ]==])

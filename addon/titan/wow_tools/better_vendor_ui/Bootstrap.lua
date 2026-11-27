@@ -1,7 +1,7 @@
 local vendor = {
-    sourceVersion = "1.3.2",
-    sourceFileID = 9676130,
-    sourceSHA256 = "d98fb8ed9969f6695ecae04abe87295e18ee706431f7982d78c68a72bfbca3c7",
+    sourceVersion = "1.3.4",
+    sourceFileID = 9833185,
+    sourceSHA256 = "695c6c260931bb6a1a10a75a1c15198ed847ec0287a7b3cbf50d35a298377098",
 }
 WoWTools.betterVendorUI = vendor
 WoWTools.modules.better_vendor_ui = vendor

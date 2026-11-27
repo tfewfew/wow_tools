@@ -237,6 +237,8 @@ function ns.BuildOptions(parent)
         "每行显示的商品数量，游戏默认 2 列。|n|nEllesmereUI 使用商人列表视图时，此选项暂不可用。")
     Slider("行数", "gridRows", 5, 10, 1, "%d",
         "每页显示的商品行数，游戏默认 5 行。")
+    Slider("窗口缩放", "windowScale", 50, 150, 5, "%d%%",
+        "调整商人窗口相对于游戏界面缩放的大小。默认 100% 时沿用游戏或其他插件设置的窗口缩放。")
     Buttons(
         { text = "游戏默认（2×5）", onClick = function()
             ns.Set("gridColumns", 2)
@@ -260,6 +262,10 @@ function ns.BuildOptions(parent)
     local dimAlpha = Slider("淡化后不透明度", "dimAlpha", 0, 0.6, 0.05, "%.2f",
         "设置淡化后商品的不透明度。0 为完全透明，0.6 为轻度淡化。", 20)
     local clearSearch = Checkbox("打开商人时清空搜索", "clearSearchOnShow", nil, 20)
+    local focusSearch = Checkbox("打开商人时聚焦搜索框", "focusSearchOnShow",
+        "打开商人后可直接输入。搜索框有焦点时，移动键也会输入文字。按回车或 Esc 退出输入。", 20)
+    local searchHotkey = Checkbox("Ctrl+F 聚焦搜索框", "searchHotkey",
+        "仅在商人窗口打开时生效。关窗后恢复原按键绑定。战斗中打开商人时，脱战后生效。", 20)
     Checkbox("已学配方标记", "knownRecipes", "图标去色并显示绿色勾，标识本角色已经学会的配方。")
     local qualityBorders = Checkbox("按物品品质显示边框颜色", "qualityBorders",
         "根据商品的物品品质设置边框颜色。")
@@ -280,6 +286,8 @@ function ns.BuildOptions(parent)
     Header("筛选")
     Checkbox("显示筛选按钮", "showFilterButton",
         "在搜索框旁显示望远镜按钮，按类别、品质、当前角色是否可用及是否买得起筛选商品。")
+    local openFilters = Checkbox("打开商人时展开筛选面板", "openFiltersOnShow",
+        "打开商人时显示筛选面板。点击筛选按钮关闭，或按 Esc 一起关闭商人窗口。", 20)
     Checkbox("打开商人时重置筛选", "resetFiltersOnShow",
         "每次打开商人时清空筛选条件，避免沿用上一位商人的筛选结果。")
     Checkbox("默认启用“当前角色可用”", "usableOnlyDefault",
@@ -391,6 +399,9 @@ function ns.BuildOptions(parent)
         searchMode.SetEnabledState(searchOn)
         dimAlpha.SetEnabledState(searchOn and ns.Get("searchMode") == "dim")
         clearSearch.SetEnabledState(searchOn)
+        focusSearch.SetEnabledState(searchOn)
+        searchHotkey.SetEnabledState(searchOn)
+        openFilters.SetEnabledState(ns.Get("showFilterButton"))
         minQuality.SetEnabledState(ns.Get("qualityBorders"))
 
         local leatrixOn = ns.LeatrixState() == "on"

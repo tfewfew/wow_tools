@@ -38,6 +38,57 @@ function SkillRange.IsLearnedBefore(a, b)
     return a.spellID < b.spellID
 end
 
+-- The levels of the zones { learn, yellow, green, gray }, or nil when the
+-- yellow and gray of the recipe are not known. Without the learn level,
+-- the available range starts at yellow.
+function SkillRange.Levels(recipe)
+    if not (recipe.yellow and recipe.gray) or recipe.gray < recipe.yellow then return nil end
+    local learn = recipe.skill
+    if recipe.skillUnknown or not learn then
+        learn = recipe.yellow
+    end
+    return {
+        learn = learn,
+        yellow = recipe.yellow,
+        green = recipe.green or math.floor((recipe.yellow + recipe.gray) / 2),   -- gathering: its own
+        gray = recipe.gray,
+    }
+end
+
+-- Where a skill is among the zones of a recipe: { zone = "locked" | "orange" |
+-- "yellow" | "green" | "gray", chance = of a skill-up, next = the next zone,
+-- nextLevel = where it starts, learn }; nil without the levels. The chance of
+-- yellow and green -- (gray - skill) / (gray - yellow), as the server counts it.
+function SkillRange.Zone(recipe, skill)
+    local levels = SkillRange.Levels(recipe)
+    if not levels then return nil end
+    local zone = { learn = levels.learn }
+    if skill < levels.learn then
+        zone.zone, zone.chance, zone.nextLevel = "locked", 0, levels.learn
+        if levels.learn >= levels.gray then
+            zone.next = "gray"
+        elseif levels.learn >= levels.green then
+            zone.next = "green"
+        elseif levels.learn >= levels.yellow then
+            zone.next = "yellow"
+        else
+            zone.next = "orange"
+        end
+    elseif skill < levels.yellow then
+        zone.zone, zone.chance, zone.next, zone.nextLevel = "orange", 1, "yellow", levels.yellow
+    elseif skill < levels.gray then
+        zone.chance = (levels.gray - skill) / math.max(levels.gray - levels.yellow, 1)
+        if skill < levels.green then
+            zone.zone, zone.next, zone.nextLevel = "yellow", "green", levels.green
+        else
+            zone.zone, zone.next, zone.nextLevel = "green", "gray", levels.gray
+        end
+    else
+        zone.zone, zone.chance = "gray", 0
+    end
+    return zone
+end
+
 -- The colored levels of a recipe, or nil when nothing is known.
 function SkillRange.Text(recipe, trainerRank)
     local learn = trainerRank or recipe.skill

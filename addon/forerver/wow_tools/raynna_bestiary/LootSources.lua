@@ -9,9 +9,10 @@ local monsterSkinningCache = {}
 -- Resolve source tables without treating reference-pool chances as item chances.
 
 -- Loot-pool probability resolution
-local function resolveLootTable(records, trail, onlyItem, memo)
+local function resolveLootTable(records, trail, onlyItem, memo, checkpoint)
     local result, groups = {}, {}
     for _, lootRow in ipairs(records or {}) do
+        if checkpoint then checkpoint() end
         if lootRow[3] > 0 then
             local group = groups[lootRow[3]] or { sum = 0, zeros = 0, uncertain = false }
             groups[lootRow[3]] = group
@@ -38,6 +39,7 @@ local function resolveLootTable(records, trail, onlyItem, memo)
         end
     end
     for _, lootRow in ipairs(records or {}) do
+        if checkpoint then checkpoint() end
         local rate = math.abs(lootRow[2]) / 100
         local conditional = lootRow[2] < 0 or lootRow[6] ~= 0
         if lootRow[3] > 0 then
@@ -56,11 +58,12 @@ local function resolveLootTable(records, trail, onlyItem, memo)
             local ref = -lootRow[4]
             trail[ref] = true
             local resolved = memo and memo[ref]
-                or resolveLootTable(Addon.LootReference.refs[ref], trail, onlyItem, memo)
+                or resolveLootTable(Addon.LootReference.refs[ref], trail, onlyItem, memo, checkpoint)
             if memo then
                 memo[ref] = resolved
             end
             for id, drop in pairs(resolved) do
+                if checkpoint then checkpoint() end
                 local combinedChance = rate and drop.rate and rate * drop.rate or nil
                 -- Repeat rolls have duplicate-item reroll rules; no false precision.
                 if lootRow[5] ~= 1 then
@@ -321,7 +324,7 @@ function Addon.ReferenceItem(item)
     }
 end
 
--- Build the reverse metadata index lazily, independently in each standalone package.
+-- Build the reverse metadata index in batches following login.
 local foreverItemsByNPC
 local function metadata(entity, id, field)
     local api = Addon.ReferenceMetadata and Addon.ReferenceMetadata[entity]
@@ -332,21 +335,63 @@ local function metadata(entity, id, field)
         end
     end
 end
-local function foreverItems(npcID)
-    if not foreverItemsByNPC then
-        foreverItemsByNPC = {}
-        for itemID in pairs(Addon.BundledMetadata and Addon.BundledMetadata.Item or {}) do
-            for _, id in ipairs(metadata('Item', itemID, 'npcDrops') or {}) do
-                foreverItemsByNPC[id] = foreverItemsByNPC[id] or {}
-                foreverItemsByNPC[id][itemID] = true
-            end
+local indexCursor, indexReady
+local function indexBatch(limit, deadline)
+    foreverItemsByNPC = foreverItemsByNPC or {}
+    local records = Addon.BundledMetadata and Addon.BundledMetadata.Item or {}
+    for _ = 1, limit do
+        indexCursor = next(records, indexCursor)
+        if not indexCursor then indexReady = true; return end
+        for _, id in ipairs(metadata('Item', indexCursor, 'npcDrops') or {}) do
+            foreverItemsByNPC[id] = foreverItemsByNPC[id] or {}
+            local items = foreverItemsByNPC[id]
+            if items[#items] ~= indexCursor then items[#items + 1] = indexCursor end
         end
+        if deadline and debugprofilestop() >= deadline then return end
     end
+end
+function Addon.WarmLootIndex()
+    if indexReady then return end
+    local worker = CreateFrame('Frame')
+    worker:SetScript('OnUpdate', function()
+        if not indexReady then indexBatch(48, debugprofilestop and debugprofilestop() + 1) end
+        if indexReady then worker:SetScript('OnUpdate', nil); worker:Hide() end
+    end)
+end
+local function foreverItems(npcID)
+    while not indexReady do indexBatch(256) end
     return foreverItemsByNPC[npcID] or {}
 end
 
+local function loadClassic(id, npc, database, checkpoint)
+    if npc and not monsterDropCache[id] then
+        local drops = resolveLootTable(database.loot[npc[1]], {}, nil, {}, checkpoint)
+        for item, drop in pairs(drops) do
+            if checkpoint then checkpoint() end
+            drop.link = 'item:' .. item
+            drop.name = database.names[item]
+            drop.source = 'cMaNGOS Classic'
+            if drop.rate then
+                drop.rate = math.min(100, drop.rate * 100)
+            end
+        end
+        monsterDropCache[id] = drops
+    end
+end
+local function addMetadataDrop(monster, itemID)
+    if not monster.drops[itemID] and not monster.skinning[itemID] then
+        monster.drops[itemID] = {
+            link = 'item:' .. itemID,
+            name = metadata('Item', itemID, 'name') or Addon.LootReference.names[itemID],
+            source = 'QuestieDB Forever metadata',
+            quest = #Addon.ItemQuests(itemID) > 0,
+        }
+    end
+    monster.mixedReference = true
+end
+
 -- Forward lookup: creature to possible items
-function Addon.ReferenceMonster(id, name, level)
+function Addon.ReferenceMonster(id, name, level, progressive)
     local database = Addon.LootReference
     local npc = database and database.creatures[id]
     local skinning = Addon.SkinningReference
@@ -360,18 +405,7 @@ function Addon.ReferenceMonster(id, name, level)
         drops = {},
         skinning = {},
     }
-    if npc and not monsterDropCache[id] then
-        local drops = resolveLootTable(database.loot[npc[1]], {})
-        for item, drop in pairs(drops) do
-            drop.link = 'item:' .. item
-            drop.name = database.names[item]
-            drop.source = 'cMaNGOS Classic'
-            if drop.rate then
-                drop.rate = math.min(100, drop.rate * 100)
-            end
-        end
-        monsterDropCache[id] = drops
-    end
+    if not progressive then loadClassic(id, npc, database) end
     for itemID, drop in pairs(monsterDropCache[id] or {}) do
         monster.drops[itemID] = drop
     end
@@ -391,17 +425,20 @@ function Addon.ReferenceMonster(id, name, level)
     for itemID, drop in pairs(monsterSkinningCache[id] or {}) do
         monster.skinning[itemID] = drop
     end
-    for itemID in pairs(foreverItems(id)) do
-        -- Metadata confirms a source relationship, not a drop percentage.
-        if not monster.drops[itemID] and not monster.skinning[itemID] then
-            monster.drops[itemID] = {
-                link = 'item:' .. itemID,
-                name = metadata('Item', itemID, 'name') or database.names[itemID],
-                source = 'QuestieDB Forever metadata',
-                quest = #Addon.ItemQuests(itemID) > 0,
-            }
+    if progressive then
+        monster.loadingDrops = true
+        monster.indexOffset = 0
+        if npc and not monsterDropCache[id] then
+            local steps = 0
+            monster.classicJob = coroutine.create(function()
+                loadClassic(id, npc, database, function()
+                    steps = steps + 1
+                    if steps % 128 == 0 then coroutine.yield() end
+                end)
+            end)
         end
-        monster.mixedReference = true
+    else
+        for _, itemID in ipairs(foreverItems(id)) do addMetadataDrop(monster, itemID) end
     end
     local correction = Addon.ForeverReference and Addon.ForeverReference[id]
     if correction then
@@ -415,6 +452,36 @@ function Addon.ReferenceMonster(id, name, level)
         monster.foreverReference = true
     end
     return monster
+end
+
+-- Advance only the NPC currently being displayed. Navigation history can resume a paused page.
+function Addon.AdvanceHoverLoot(monster)
+    if not monster.loadingDrops then return false end
+    local changed = false
+    if monster.classicJob then
+        local ok, err = coroutine.resume(monster.classicJob)
+        if not ok then error(err) end
+        if coroutine.status(monster.classicJob) == 'dead' then
+            monster.classicJob = nil
+            local correction = Addon.ForeverReference and Addon.ForeverReference[monster.npcID]
+            for item, drop in pairs(monsterDropCache[monster.npcID] or {}) do
+                if not (correction and correction.drops[item]) then monster.drops[item] = drop end
+            end
+            changed = true
+        end
+    end
+    local items = foreverItemsByNPC and foreverItemsByNPC[monster.npcID] or {}
+    local last = math.min(#items, monster.indexOffset + 12)
+    for i = monster.indexOffset + 1, last do
+        addMetadataDrop(monster, items[i])
+        changed = true
+    end
+    monster.indexOffset = last
+    if indexReady and last == #items and not monster.classicJob then
+        monster.loadingDrops = nil
+        changed = true
+    end
+    return changed
 end
 
 -- Probability labels
