@@ -44,8 +44,9 @@ end
 
 local known, panel, message, skillList
 local rows = {}
-local learnedSuffix = "-有 |A:common-icon-checkmark:14:14:0:-1|a"
-local unlearnedSuffix = "-无 |A:common-icon-redx:14:14:0:-1|a"
+local rowHeight = 25
+local learnedStatus = "有 |A:common-icon-checkmark:14:14:0:-1|a"
+local unlearnedStatus = "无 |A:common-icon-redx:14:14:0:-1|a"
 
 local function IsHunter()
     return select(2, UnitClass("player")) == "HUNTER"
@@ -67,11 +68,12 @@ local function Refresh()
     skillList:SetShown(hunter)
     if not hunter then return end
     for _, skill in ipairs(skills) do
-        local teachSpell, family = skill[3], skill[6]
+        local teachSpell = skill[3]
         local learned = known and known[teachSpell] == true
             or Readable(C_SpellBook.IsSpellKnown(teachSpell, Enum.SpellBookSpellBank.Player))
-        local label = SkillName(skill) .. (learned and learnedSuffix or unlearnedSuffix)
-        rows[skill]:SetText(family and family .. "-" .. label or label)
+        local row = rows[skill]
+        row.name:SetText(SkillName(skill))
+        row.status:SetText(learned and learnedStatus or unlearnedStatus)
     end
 end
 
@@ -151,6 +153,16 @@ local function OnLogin(self)
     Refresh()
 end
 
+local function AddSkillCell(anchor, left, top, width, text)
+    local cell = skillList:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    cell:SetPoint("TOPLEFT", skillList, anchor, left, -top)
+    cell:SetSize(width, rowHeight)
+    cell:SetJustifyH("CENTER")
+    cell:SetWordWrap(false)
+    cell:SetText(text or "")
+    return cell
+end
+
 function module.BuildSettings(parent)
     panel = CreateFrame("Frame", nil, parent)
     panel:SetAllPoints(parent)
@@ -160,7 +172,8 @@ function module.BuildSettings(parent)
     message:SetJustifyH("LEFT")
     skillList = CreateFrame("Frame", nil, panel)
     skillList:SetAllPoints(panel)
-    local top, rowHeight = 52, 25
+    local top = 52
+    local familyWidth, nameWidth, separatorWidth, statusWidth = 48, 120, 10, 42
     for _, section in ipairs({sharedSkills, familySkills}) do
         local heading = skillList:CreateFontString(nil, "ARTWORK", "GameFontNormal")
         heading:SetPoint("TOPLEFT", 16, -top)
@@ -168,10 +181,18 @@ function module.BuildSettings(parent)
         top = top + 27
         local columnSize = math.ceil(#section / 2)
         for index, skill in ipairs(section) do
-            local row = skillList:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
             local anchor = index <= columnSize and "TOPLEFT" or "TOP"
-            row:SetPoint("TOPLEFT", skillList, anchor, 16, -top - ((index - 1) % columnSize) * rowHeight)
-            rows[skill] = row
+            local left, rowTop = 16, top + ((index - 1) % columnSize) * rowHeight
+            local family = skill[6]
+            if family then
+                AddSkillCell(anchor, left, rowTop, familyWidth, family)
+                AddSkillCell(anchor, left + familyWidth, rowTop, separatorWidth, "-")
+                left = left + familyWidth + separatorWidth
+            end
+            local name = AddSkillCell(anchor, left, rowTop, nameWidth)
+            AddSkillCell(anchor, left + nameWidth, rowTop, separatorWidth, "-")
+            local status = AddSkillCell(anchor, left + nameWidth + separatorWidth, rowTop, statusWidth)
+            rows[skill] = {name = name, status = status}
         end
         top = top + columnSize * rowHeight + 13
     end
