@@ -30,4 +30,15 @@ ns.Commands.Add("skin", {
     end,
     developer = true,
 })
+
+-- /prr why: why the skinning lines of the mob under the mouse show or not
+-- (events/tooltip.lua); not localized, for debugging.
+ns.Commands.Add("why", {
+    run = function()
+        for _, line in ipairs(ns.Events.ExplainSkinning()) do
+            ns.Utilities.Print(line)
+        end
+    end,
+    developer = true,
+})
 end)

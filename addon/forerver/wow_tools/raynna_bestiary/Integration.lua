@@ -19,6 +19,7 @@ events:SetScript("OnEvent", function(self, event, name)
         addon.db.bestiary = addon.db.bestiary or {}
         addon.db.appearance = addon.db.appearance or {}
         addon.InitializeLanguage()
+        addon.WarmLootIndex()
         addon.PreloadTrackerPortraits()
         addon.BuildBestiary()
         addon.ready = true

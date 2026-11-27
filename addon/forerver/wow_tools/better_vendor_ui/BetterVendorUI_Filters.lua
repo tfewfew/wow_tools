@@ -455,6 +455,11 @@ function ns.InitializeFilters()
         if panel then panel:Hide() end
     end
 
+    function ns.ShowFilterPanel()
+        if not panel then CreatePanel() end
+        panel:Show()
+    end
+
     local function UpdateFilterButton()
         if filterBtn then filterBtn.glow:SetShown(ns.FiltersActive()) end
     end

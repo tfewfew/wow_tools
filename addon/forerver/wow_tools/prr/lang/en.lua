@@ -13,8 +13,10 @@ ns.Localization.Add("en", [==[
         "reagent": "%d x %s",
         "reagents_unknown": "reagents are not known",
         "more_shift": "and %d more (Shift)",
-        "teaches": "Teaches:",
+        "skill_levels": "Skill levels:",
         "auction_price": "Auction(PRR)",
+        "disenchant": "Disenchant",
+        "disenchant_average": "Average",
         "learning_location": "Learn at: %s",
         "location_unknown": "Location not recorded",
         "other_locations": " and %d other locations",
@@ -88,8 +90,13 @@ ns.Localization.Add("en", [==[
         "reagent_for": "Reagent for (%d):",
         "profession_count": "%s (%d)",
         "no_recipes": "No recipe crafts this item or uses it.",
-        "search": "Search recipes",
-        "found": "Found: %d",
+        "search": "Search recipes and reagents",
+        "search_reagents": "Reagents",
+        "search_reagents_tooltip": "The search also finds reagents by name and the recipes that use them.",
+        "found_reagents": "Reagents (%d):",
+        "found_recipes": "Recipes (%d):",
+        "found_by_reagent": "Recipes with these reagents (%d):",
+        "reagent_recipes": "recipes: %d",
         "all_recipes": "All recipes (%d)",
         "nothing_found": "Nothing found.",
         "history": "History",
@@ -112,41 +119,136 @@ ns.Localization.Add("en", [==[
     },
     "options": {
         "main": {
-            "description": "What crafts an item and what it is a reagent for: in item tooltips and in the item window. The settings are on the pages under this one in the list on the left.\n\n/prr -- the item window, /prr planner -- the craft planner.\n",
-            "open_window": "Item window",
-            "open_planner": "Craft planner"
+            "header": "Professions, Recipes, Reagents",
+            "description": "Recipes, reagents, auction prices and skill-ups for every item: in tooltips, in the item window and in the craft planner. Settings are in the sections below in the list on the left.",
+            "item_window": {
+                "name": "Item window",
+                "button": "Open",
+                "description": "Every recipe that crafts the item or uses it as a reagent, with search. Chat command: /prr"
+            },
+            "planner": {
+                "name": "Craft planner",
+                "button": "Open",
+                "description": "Auction prices and profit of every recipe, and the cheapest way to level a profession. Chat command: /prr planner"
+            }
         },
-        "tooltip_header": "Tooltips",
+        "pages": {
+            "tooltip": "Item Tooltips",
+            "gathering": "Gathering & Skinning",
+            "profession": "Profession Window",
+            "window": "Item Window",
+            "planner": "Craft Planner",
+            "interface": "Interface",
+            "language": "Language"
+        },
+        "sections": {
+            "general": "General",
+            "crafting": "Crafting",
+            "auction": "Auction House",
+            "disenchant": "Disenchanting",
+            "professions": "Professions",
+            "herbalism": "Herbalism",
+            "mining": "Mining",
+            "skinning": "Skinning",
+            "loot": "Loot",
+            "tracking": "Your Loot Statistics",
+            "recipe": "Selected Recipe",
+            "opening": "Opening Items",
+            "links": "Wowhead Links",
+            "minimap": "Minimap",
+            "loot_window": "Loot Window",
+            "language": "Addon Language"
+        },
         "show_tooltip": {
-            "name": "Show recipe information in item tooltips",
-            "description": "What crafts the item and what it is a reagent for"
+            "name": "Show PRR in item tooltips",
+            "description": "Recipes, reagents, auction prices and disenchanting in item tooltips. Turn off to hide all PRR lines."
         },
         "show_crafted_by": {
-            "name": "\"Crafted by\" and \"Teaches\"",
-            "description": "The profession and reagents that craft the item; what a pattern teaches"
+            "name": "Crafted by",
+            "description": "Which profession crafts the item, the skill it requires and its reagents."
         },
         "show_reagent_for": {
-            "name": "\"Reagent for\"",
-            "description": "The recipes the item is used in, by profession"
+            "name": "Reagent for",
+            "description": "Recipes that use the item as a reagent, by profession."
         },
-        "link_header": "Wowhead Quick Link",
-        "copy_link": {
-            "name": "Ctrl+C in the item window -- a Wowhead link to copy",
-            "description": "Only on the icons and recipe rows of the item window"
+        "show_skill_levels": {
+            "name": "Recipe skill levels",
+            "description": "The skill at which a recipe turns orange, yellow, green and gray. On the Crafted by lines and on recipe items (patterns, plans, formulas)."
         },
-        "interface_header": "Interface",
-        "minimap": {
-            "name": "Minimap button",
-            "description": "Click -- the item window, right click -- these settings"
+        "show_auction_price": {
+            "name": "Auction price",
+            "description": "The lowest buyout of the item from your last craft planner scan, with the scan date."
         },
-        "loot_glow": {
-            "name": "Glow of favorite items in the loot window",
-            "description": "A pulsing gold border around a favorite item in the loot; the star on its icon stays"
+        "show_disenchant": {
+            "name": "Disenchants into",
+            "description": "What uncommon, rare and epic weapons and armor disenchant into: materials, chances and amounts."
         },
-        "window_header": "Item window",
+        "show_disenchant_price": {
+            "name": "Material prices",
+            "description": "The auction price of each material and the average value of one disenchant."
+        },
+        "tooltip_professions": {
+            "name": "Recipes of",
+            "description": "Recipes of unchecked professions are left out of item tooltips.",
+            "all": "All professions",
+            "show_all": "Check all",
+            "hide_all": "Uncheck all"
+        },
+        "show_herb_nodes": {
+            "name": "Herb tooltips",
+            "description": "Mouse over an herb: the Herbalism skill it requires, its skill-up colors, your chance to gain a skill point and what it yields."
+        },
+        "show_mining_nodes": {
+            "name": "Mineral vein tooltips",
+            "description": "Mouse over a mineral vein: the Mining skill it requires, its skill-up colors, your chance to gain a skill point and what it yields."
+        },
+        "show_skinning": {
+            "name": "Creature tooltips",
+            "description": "Mouse over a creature: the Skinning skill it requires, your chance to gain a skill point and the leather and hides it yields. Only for characters with Skinning."
+        },
+        "skinning_units": {
+            "name": "Show on",
+            "description": "On every creature, or only on corpses you can skin.",
+            "all": "Living and dead creatures",
+            "dead": "Corpses only"
+        },
+        "show_possible_loot": {
+            "name": "Possible loot",
+            "description": "What the creature or node can give: each item with its drop chance from the WoW Forever loot data."
+        },
+        "show_gathering_own": {
+            "name": "Your loot",
+            "description": "A Your loot section: what your own skins, herbs and veins gave, and how many times you looted. Needs Track your loot."
+        },
+        "show_gathering_stacks": {
+            "name": "Stack sizes",
+            "description": "Under each item: the chance of x1, x2, x3 from one loot. Off: only the item's total chance."
+        },
+        "show_gathering_price": {
+            "name": "Auction prices",
+            "description": "The auction price of each item from your last craft planner scan."
+        },
+        "record_gathering": {
+            "name": "Track your loot",
+            "description": "Records what every skin, herb and vein gives you, for your own drop chances."
+        },
+        "gathering_history": {
+            "name": "Loots kept",
+            "description": "How many of the last loots of each creature and node your chances count. Older loots are dropped."
+        },
+        "gathering_reset": {
+            "name": "Tracked loot",
+            "button": "Reset",
+            "description": "Deletes your loot statistics and starts them over.",
+            "confirm": "Delete your loot statistics (%d loots)?"
+        },
+        "skill_zones": {
+            "name": "Skill-up bar",
+            "description": "Under the selected recipe: its orange, yellow, green and gray skill ranges, your skill on them, your chance to gain a skill point, the cost of the reagents and the sale price."
+        },
         "open_binding": {
-            "name": "Open the window with an item by",
-            "description": "A click on any item -- in the bags, a chat link, loot -- opens the item window with it. Shift+click while the window is open always works.",
+            "name": "Open an item in PRR with",
+            "description": "A click on any item (bags, chat links, loot) opens it in the item window. Shift-click works while the window is open.",
             "values": {
                 "NONE": "None",
                 "ALT_CLICK": "Alt+click",
@@ -159,29 +261,31 @@ ns.Localization.Add("en", [==[
                 "CTRL_ALT_RIGHT_CLICK": "Ctrl+Alt+right click"
             }
         },
-        "planner_header": "Craft planner",
+        "copy_link": {
+            "name": "Ctrl+C copies a Wowhead link",
+            "description": "Over an icon or a recipe in the item window: a box with the Wowhead link, ready to copy."
+        },
         "auction_cut": {
-            "explanation": "The auction house keeps a part of every sale: 5% on the auction house of your faction, 15% on the neutral one (Booty Bay, Gadgetzan, Everlook).\n\nThe craft planner counts the profit of a recipe without that part, on the Prices tab:\n  Profit = Sells for - cut - Cost\nFor example, a craft sells for 1g and its reagents cost 80s: with 5% the auction house keeps 5s and the profit is 15s; with 15% it keeps 15s and the profit is 5s.\n\nSet the cut of the auction house you sell on. The Profit column, the sorting by it and the row tooltip (the \"Auction house cut\" line) change at once.\n",
-            "name": "Auction house cut, %",
-            "description": "What the auction house keeps of a sale: 5% on the auction house of your faction, 15% on the neutral one. The profit counts without it."
+            "name": "Auction House cut",
+            "description": "What the Auction House keeps of a sale: 5% on your faction's, 15% on a neutral one (Booty Bay, Gadgetzan, Everlook). Profit in the planner is counted without it."
         },
-        "show_auction_price": {
-            "name": "Auction price",
-            "description": "The lowest buyout per item seen by the scan of the craft planner, with the date of the scan"
+        "minimap": {
+            "name": "Minimap button",
+            "description": "Left-click: the item window. Right-click: these settings."
         },
-        "tooltip_professions": {
-            "name": "Professions in tooltips",
-            "description": "Recipes of the professions turned off here are not shown in item tooltips.",
-            "show_all": "Show all",
-            "hide_all": "Hide all"
+        "loot_glow": {
+            "name": "Highlight favorite items",
+            "description": "A pulsing gold border around favorite items in the loot window."
         },
-        "language_header": "Language",
         "language": {
-            "name": "Language of the addon",
-            "description": "The texts of PRR: its windows, tooltip lines, settings and chat messages.",
+            "name": "Language",
+            "description": "The language of PRR's windows, tooltip lines, settings and chat messages. Item, recipe and profession names come from the game.",
             "auto": "Game language (%s)",
-            "note": "The new language is used after the interface is reloaded. Names of items, recipes and professions come from the game and stay in the game's language.",
-            "reload": "Reload UI"
+            "reload": {
+                "name": "Apply language",
+                "button": "Reload UI",
+                "description": "A new language is used after the interface is reloaded."
+            }
         }
     },
     "dev": {
@@ -325,6 +429,31 @@ ns.Localization.Add("en", [==[
     },
     "language": {
         "native_name": "English"
+    },
+    "skill_zones": {
+        "title": "Skill-ups:",
+        "zone_orange": "Orange",
+        "zone_yellow": "Yellow",
+        "zone_green": "Green",
+        "zone_gray": "Gray",
+        "chance": "skill-up chance %d%%",
+        "locked": "Learned at %d",
+        "gear_title": "Skill-up zones of the recipe",
+        "gear_hint": "They can be turned off in the settings, on the %s page. Click to open it.",
+        "planner_hint": "Plans the cheapest way to level the profession: which recipes to craft at each skill and how many, the reagents to buy and the cost by the auction prices. Click to open the plan.",
+        "materials": "Materials:",
+        "sale": "Sale:",
+        "no_price": "no price"
+    },
+    "gathering": {
+        "needs": "Requires skill %d",
+        "count_skinning": "Skinned: %d times",
+        "count_mining": "Mined: %d times",
+        "count_herbalism": "Gathered: %d times",
+        "skill_up": "Skill-up chance: %s",
+        "possible": "Possible loot:",
+        "own": "Your loot:",
+        "own_last": "Your loot (last %d):"
     },
     "addon": {
         "title": "PRR: Professions, Recipes, Reagents"

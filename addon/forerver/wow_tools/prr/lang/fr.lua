@@ -13,8 +13,10 @@ ns.Localization.Add("fr", [==[
         "reagent": "%d x %s",
         "reagents_unknown": "composants inconnus",
         "more_shift": "et %d de plus (Maj)",
-        "teaches": "Apprend :",
-        "auction_price": "Enchères(PRR)"
+        "skill_levels": "Niveaux de compétence :",
+        "auction_price": "Enchères(PRR)",
+        "disenchant": "Désenchanter",
+        "disenchant_average": "Moyenne"
     },
     "professions": {
         "0": "Métier inconnu",
@@ -78,8 +80,13 @@ ns.Localization.Add("fr", [==[
         "reagent_for": "Composant pour (%d) :",
         "profession_count": "%s (%d)",
         "no_recipes": "Aucune recette ne fabrique ou n'utilise cet objet.",
-        "search": "Chercher des recettes",
-        "found": "Trouvées : %d",
+        "search": "Chercher des recettes et des composants",
+        "search_reagents": "Composants",
+        "search_reagents_tooltip": "La recherche trouve aussi les composants par leur nom et les recettes qui les utilisent.",
+        "found_reagents": "Composants (%d) :",
+        "found_recipes": "Recettes (%d) :",
+        "found_by_reagent": "Recettes avec ces composants (%d) :",
+        "reagent_recipes": "recettes : %d",
         "all_recipes": "Toutes les recettes (%d)",
         "nothing_found": "Aucun résultat.",
         "history": "Historique",
@@ -102,41 +109,136 @@ ns.Localization.Add("fr", [==[
     },
     "options": {
         "main": {
-            "description": "Ce qui fabrique un objet et pour quoi il sert de composant : dans les infobulles d'objet et dans la fenêtre d'objet. Les paramètres sont sur les pages sous celle-ci dans la liste à gauche.\n\n/prr -- la fenêtre d'objet, /prr planner -- le planificateur d'artisanat.\n",
-            "open_window": "Fenêtre d'objet",
-            "open_planner": "Planificateur d'artisanat"
+            "header": "Métiers, recettes, composants",
+            "description": "Recettes, composants, prix de l'hôtel des ventes et progression pour chaque objet : dans les infobulles, la fenêtre d'objet et le planificateur d'artisanat. Les réglages sont dans les sections en dessous, dans la liste à gauche.",
+            "item_window": {
+                "name": "Fenêtre d'objet",
+                "button": "Ouvrir",
+                "description": "Toutes les recettes qui créent l'objet ou l'utilisent comme composant, avec recherche. Commande : /prr"
+            },
+            "planner": {
+                "name": "Planificateur d'artisanat",
+                "button": "Ouvrir",
+                "description": "Prix de l'hôtel des ventes et profit de chaque recette, et le moyen le moins cher de monter un métier. Commande : /prr planner"
+            }
         },
-        "tooltip_header": "Infobulles",
+        "pages": {
+            "tooltip": "Infobulles d'objets",
+            "gathering": "Récolte et dépeçage",
+            "profession": "Fenêtre de métier",
+            "window": "Fenêtre d'objet",
+            "planner": "Planificateur d'artisanat",
+            "interface": "Interface",
+            "language": "Langue"
+        },
+        "sections": {
+            "general": "Général",
+            "crafting": "Artisanat",
+            "auction": "Hôtel des ventes",
+            "disenchant": "Désenchantement",
+            "professions": "Métiers",
+            "herbalism": "Herboristerie",
+            "mining": "Minage",
+            "skinning": "Dépeçage",
+            "loot": "Butin",
+            "tracking": "Vos statistiques de butin",
+            "recipe": "Recette choisie",
+            "opening": "Ouvrir des objets",
+            "links": "Liens Wowhead",
+            "minimap": "Minicarte",
+            "loot_window": "Fenêtre de butin",
+            "language": "Langue de l'addon"
+        },
         "show_tooltip": {
-            "name": "Afficher les informations de recette dans les infobulles d'objet",
-            "description": "Ce qui fabrique l'objet et pour quoi il sert de composant"
+            "name": "Afficher PRR dans les infobulles d'objets",
+            "description": "Recettes, composants, prix de l'hôtel des ventes et désenchantement dans les infobulles. Désactivé : aucune ligne PRR."
         },
         "show_crafted_by": {
-            "name": "\"Fabriqué par\" et \"Apprend\"",
-            "description": "Le métier et les composants qui fabriquent l'objet ; ce qu'un patron apprend"
+            "name": "Créé par",
+            "description": "Le métier qui crée l'objet, la compétence requise et les composants."
         },
         "show_reagent_for": {
-            "name": "\"Composant pour\"",
-            "description": "Les recettes qui utilisent l'objet, par métier"
+            "name": "Composant pour",
+            "description": "Les recettes qui utilisent l'objet comme composant, par métier."
         },
-        "link_header": "Wowhead Quick Link",
-        "copy_link": {
-            "name": "Ctrl+C dans la fenêtre d'objet -- un lien Wowhead à copier",
-            "description": "Seulement sur les icônes et les lignes de recettes de la fenêtre d'objet"
+        "show_skill_levels": {
+            "name": "Niveaux de compétence des recettes",
+            "description": "À quelle compétence une recette devient orange, jaune, verte et grise. Sur les lignes « Créé par » et les objets de recette (patrons, plans, formules)."
         },
-        "interface_header": "Interface",
-        "minimap": {
-            "name": "Bouton de la minicarte",
-            "description": "Clic -- la fenêtre d'objet, clic droit -- ces paramètres"
+        "show_auction_price": {
+            "name": "Prix à l'hôtel des ventes",
+            "description": "Le plus bas prix d'achat immédiat de votre dernier scan du planificateur, avec la date."
         },
-        "loot_glow": {
-            "name": "Lueur des objets favoris dans la fenêtre de butin",
-            "description": "Un cadre doré pulsant autour d'un objet favori dans le butin ; l'étoile sur son icône reste"
+        "show_disenchant": {
+            "name": "Se désenchante en",
+            "description": "Ce que donnent les armes et armures inhabituelles, rares et épiques : matériaux, chances et quantités."
         },
-        "window_header": "Fenêtre d'objet",
+        "show_disenchant_price": {
+            "name": "Prix des matériaux",
+            "description": "Le prix de chaque matériau à l'hôtel des ventes et la valeur moyenne d'un désenchantement."
+        },
+        "tooltip_professions": {
+            "name": "Recettes de",
+            "description": "Les recettes des métiers non cochés n'apparaissent pas dans les infobulles.",
+            "all": "Tous les métiers",
+            "show_all": "Tout cocher",
+            "hide_all": "Tout décocher"
+        },
+        "show_herb_nodes": {
+            "name": "Infobulles des herbes",
+            "description": "Survolez une herbe : la compétence d'herboristerie requise, ses couleurs, votre chance de gagner un point et ce qu'elle rapporte."
+        },
+        "show_mining_nodes": {
+            "name": "Infobulles des filons",
+            "description": "Survolez un filon : la compétence de minage requise, ses couleurs, votre chance de gagner un point et ce qu'il rapporte."
+        },
+        "show_skinning": {
+            "name": "Infobulles des créatures",
+            "description": "Survolez une créature : la compétence de dépeçage requise, votre chance de gagner un point et les cuirs et peaux qu'elle donne. Seulement pour les personnages qui dépècent."
+        },
+        "skinning_units": {
+            "name": "Afficher sur",
+            "description": "Sur toutes les créatures, ou seulement sur les cadavres à dépecer.",
+            "all": "Créatures vivantes et mortes",
+            "dead": "Cadavres seulement"
+        },
+        "show_possible_loot": {
+            "name": "Butin possible",
+            "description": "Ce que la créature ou le gisement peut donner : chaque objet avec sa chance selon les données de butin de WoW Forever."
+        },
+        "show_gathering_own": {
+            "name": "Votre butin",
+            "description": "Une section « Votre butin » : ce que vos dépeçages, herbes et filons vous ont donné, et combien de fois. Nécessite « Suivre votre butin »."
+        },
+        "show_gathering_stacks": {
+            "name": "Taille des piles",
+            "description": "Sous chaque objet : la chance d'obtenir x1, x2, x3 par butin. Désactivé : seulement la chance totale."
+        },
+        "show_gathering_price": {
+            "name": "Prix à l'hôtel des ventes",
+            "description": "Le prix de chaque objet de votre dernier scan du planificateur."
+        },
+        "record_gathering": {
+            "name": "Suivre votre butin",
+            "description": "Retient ce que chaque dépeçage, herbe et filon vous donne, pour vos propres chances."
+        },
+        "gathering_history": {
+            "name": "Butins conservés",
+            "description": "Combien des derniers butins de chaque créature et gisement comptent pour vos chances. Les plus anciens sont supprimés."
+        },
+        "gathering_reset": {
+            "name": "Butin suivi",
+            "button": "Réinitialiser",
+            "description": "Supprime vos statistiques de butin et les recommence.",
+            "confirm": "Supprimer vos statistiques de butin (%d butins) ?"
+        },
+        "skill_zones": {
+            "name": "Barre de progression",
+            "description": "Sous la recette choisie : ses plages orange, jaune, verte et grise, votre compétence, votre chance de gagner un point, le coût des composants et le prix de vente."
+        },
         "open_binding": {
-            "name": "Ouvrir la fenêtre avec un objet par",
-            "description": "Un clic sur n'importe quel objet -- dans les sacs, un lien de discussion, le butin -- ouvre la fenêtre d'objet avec lui. Maj+clic quand la fenêtre est ouverte fonctionne toujours.",
+            "name": "Ouvrir un objet dans PRR avec",
+            "description": "Un clic sur un objet (sacs, liens de discussion, butin) l'ouvre dans la fenêtre d'objet. Maj-clic marche tant que la fenêtre est ouverte.",
             "values": {
                 "NONE": "Aucun",
                 "ALT_CLICK": "Alt+clic",
@@ -149,29 +251,31 @@ ns.Localization.Add("fr", [==[
                 "CTRL_ALT_RIGHT_CLICK": "Ctrl+Alt+clic droit"
             }
         },
-        "planner_header": "Planificateur d'artisanat",
+        "copy_link": {
+            "name": "Ctrl+C copie un lien Wowhead",
+            "description": "Au-dessus d'une icône ou d'une recette de la fenêtre d'objet : une boîte avec le lien Wowhead, prête à copier."
+        },
         "auction_cut": {
-            "explanation": "L'hôtel des ventes garde une part de chaque vente : 5% à l'hôtel des ventes de votre faction, 15% au neutre (Baie-du-Butin, Gadgetzan, Long-Guet).\n\nLe planificateur compte le bénéfice d'une recette sans cette part, dans l'onglet Prix :\n  Bénéfice = Prix de vente - commission - Coût\nPar exemple, un objet fabriqué se vend 1po et ses composants coûtent 80pa : à 5% l'hôtel des ventes garde 5pa et le bénéfice est de 15pa ; à 15% il garde 15pa et le bénéfice est de 5pa.\n\nRéglez la commission de l'hôtel des ventes où vous vendez. La colonne Bénéfice, le tri sur cette colonne et l'infobulle de la ligne (la ligne \"Commission de l'hôtel des ventes\") changent aussitôt.\n",
-            "name": "Commission de l'hôtel des ventes, %",
-            "description": "Ce que l'hôtel des ventes garde d'une vente : 5% à celui de votre faction, 15% au neutre. Le bénéfice est calculé après déduction de cette commission."
+            "name": "Commission de l'hôtel des ventes",
+            "description": "Ce que l'hôtel des ventes garde d'une vente : 5 % pour votre faction, 15 % pour un neutre (Baie-du-Butin, Gadgetzan, Long-guet). Le profit du planificateur est compté sans elle."
         },
-        "show_auction_price": {
-            "name": "Prix aux enchères",
-            "description": "Le plus bas prix d'achat immédiat par objet vu par l'analyse du planificateur, avec la date de l'analyse"
+        "minimap": {
+            "name": "Bouton de la minicarte",
+            "description": "Clic gauche : la fenêtre d'objet. Clic droit : ces réglages."
         },
-        "tooltip_professions": {
-            "name": "Métiers dans les infobulles",
-            "description": "Les recettes des métiers désactivés ici ne sont pas affichées dans les infobulles d'objet.",
-            "show_all": "Tout afficher",
-            "hide_all": "Tout masquer"
+        "loot_glow": {
+            "name": "Mettre en valeur les favoris",
+            "description": "Un cadre doré pulsant autour des objets favoris dans la fenêtre de butin."
         },
-        "language_header": "Langue",
         "language": {
-            "name": "Langue de l'addon",
-            "description": "Les textes de PRR : ses fenêtres, les lignes d'infobulle, les paramètres et les messages de discussion.",
+            "name": "Langue",
+            "description": "La langue des fenêtres PRR, des lignes d'infobulle, des réglages et des messages. Les noms d'objets, recettes et métiers viennent du jeu.",
             "auto": "Langue du jeu (%s)",
-            "note": "La nouvelle langue s'applique après le rechargement de l'interface. Les noms des objets, recettes et métiers viennent du jeu et restent dans la langue du jeu.",
-            "reload": "Recharger l'interface"
+            "reload": {
+                "name": "Appliquer la langue",
+                "button": "Recharger l'IU",
+                "description": "Une nouvelle langue s'applique après le rechargement de l'interface."
+            }
         }
     },
     "dev": {
@@ -315,6 +419,31 @@ ns.Localization.Add("fr", [==[
     },
     "language": {
         "native_name": "Français"
+    },
+    "skill_zones": {
+        "title": "Gains de compétence :",
+        "zone_orange": "Orange",
+        "zone_yellow": "Jaune",
+        "zone_green": "Vert",
+        "zone_gray": "Gris",
+        "chance": "chance de gain %d%%",
+        "locked": "Apprise à %d",
+        "gear_title": "Zones de compétence de la recette",
+        "gear_hint": "Elles se désactivent dans les paramètres, à la page « %s ». Clique pour l'ouvrir.",
+        "planner_hint": "Planifie la façon la moins chère de monter le métier : quelles recettes fabriquer à chaque niveau et combien, les composants à acheter et le coût selon les prix aux enchères. Clique pour ouvrir le plan.",
+        "materials": "Composants :",
+        "sale": "Vente :",
+        "no_price": "pas de prix"
+    },
+    "gathering": {
+        "needs": "Compétence %d requise",
+        "count_skinning": "Dépecé : %d fois",
+        "count_mining": "Miné : %d fois",
+        "count_herbalism": "Cueilli : %d fois",
+        "skill_up": "Chance de progression : %s",
+        "possible": "Butin possible :",
+        "own": "Votre butin :",
+        "own_last": "Votre butin (%d derniers) :"
     }
 }
 ]==])

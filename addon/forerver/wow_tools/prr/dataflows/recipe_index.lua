@@ -114,8 +114,8 @@ local function Build()
                 recipe.recipeItemBound = recipe.details.recipeItemBound
             end
         end
-        if recipe.details and not recipe.skillUnknown and not (fix and fix.skill)
-            and (not recipe.skill or recipe.details.skillCorrection) then
+        if recipe.details and recipe.details.skill and not recipe.skillUnknown and not (fix and fix.skill)
+            and (not recipe.skill or not recipe.details.skillReference) then
             recipe.skill = recipe.details.skill
             recipe.skillReference = recipe.details.skillReference
         end
@@ -209,6 +209,12 @@ function RecipeIndex.TaughtBy(itemID)
     return byRecipeItem[itemID]
 end
 
+-- The recipe of a spell id, or nil.
+function RecipeIndex.Get(spellID)
+    EnsureBuilt()
+    return recipes[spellID]
+end
+
 -- All recipe spell ids, and how many of them have reagents.
 function RecipeIndex.All()
     EnsureBuilt()
@@ -283,6 +289,54 @@ function RecipeIndex.FilterByName(list, text)
         end
     end
     return found
+end
+
+-- The reagents of the listed recipes whose name contains the text, any case,
+-- sorted by name: a list of item ids and the same ids as a set. Names not
+-- loaded yet are requested, as in FilterByName.
+function RecipeIndex.FindReagents(text)
+    EnsureBuilt()
+    local needle = ns.Utilities.Lower(text)
+    local found = {}
+    local foundSet = {}
+    local names = {}
+    for itemID in pairs(byReagent) do
+        local name = ns.Dataflows.ItemNames.ItemPlainName(itemID)
+        local isMatch = name and ns.Utilities.Lower(name):find(needle, 1, true)
+        if isMatch then
+            table.insert(found, itemID)
+            foundSet[itemID] = true
+            names[itemID] = name
+        end
+    end
+    table.sort(found, function(a, b)
+        if names[a] ~= names[b] then
+            return names[a] < names[b]
+        end
+        return a < b
+    end)
+    return found, foundSet
+end
+
+-- Recipes of the list that use any of the reagents (a set of item ids).
+function RecipeIndex.FilterByReagents(list, reagentSet)
+    local found = {}
+    for _, recipe in ipairs(list) do
+        for _, reagent in ipairs(recipe.reagents or {}) do
+            if reagentSet[reagent[1]] then
+                table.insert(found, recipe)
+                break
+            end
+        end
+    end
+    return found
+end
+
+-- How many listed recipes use the item as a reagent.
+function RecipeIndex.ReagentRecipeCount(itemID)
+    EnsureBuilt()
+    local list = byReagent[itemID]
+    return list and #list or 0
 end
 
 -- { { profession = id, name = "...", recipes = { ... } }, ... } sorted by profession

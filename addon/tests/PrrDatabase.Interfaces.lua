@@ -118,7 +118,7 @@ for _, record in ipairs(questionReview.records) do
             assert(questionReview.sources[sourceID].url, "Missing reviewed source")
         end
         local teachers = {}
-        for _, source in ipairs(recipe.details.trainers or {}) do teachers[source.npcID] = true end
+        for _, source in ipairs(recipe.details and recipe.details.trainers or {}) do teachers[source.npcID] = true end
         for _, npcID in ipairs(requirement.trainerNPCIDs) do
             assert(teachers[npcID] and ns.Database.Trainers[npcID].mapID,
                 "A reviewed teacher lacks its learning location")
@@ -227,24 +227,33 @@ index.Invalidate()
 assert(index.Get(2665).skill == 40, "Cleared hand fixes did not restore the corrected source data")
 
 local current = provenance.skillCalibration
-local equal = current.previousLearnEqualsYellow
 local reviewed = {}
-for _, group in pairs(equal) do
+for _, group in pairs(current.previousLearnEqualsYellow) do
     for _, spellID in ipairs(group) do
-        local recipe = index.Get(spellID)
-        assert(not reviewed[spellID] and recipe.skill and recipe.skill == recipe.yellow,
-            "A recipe with equal learning and yellow ranks was misclassified")
+        assert(not reviewed[spellID] and index.Get(spellID),
+            "A historical equal-rank recipe was duplicated or lost during the upgrade")
         reviewed[spellID] = true
     end
 end
-local total = 0
-for _, recipe in ipairs(index.AllRecipes()) do
-    total = total + 1
-    if recipe.skill and recipe.skill == recipe.yellow then
-        assert(reviewed[recipe.spellID], "A prior equal-rank recipe was omitted from the calibration")
-    end
+local upstream = assert(provenance.prrUpstreamMerge)
+assert(upstream.adoptedVersion == "1.6.0" and #upstream.addedSpellIDs == 6)
+for _, spellID in ipairs(upstream.addedSpellIDs) do
+    assert(index.Get(spellID), "A recipe added by upstream 1.6.0 is missing from the runtime index")
 end
-assert(total == current.recipesChecked, "PRR calibration omitted recipes")
+assert(#index.AllRecipes() == current.recipesChecked + #upstream.addedSpellIDs,
+    "The calibrated baseline and the new upstream recipe list do not reconcile")
+for _, spellID in ipairs(upstream.absorbed.supplementedSkills) do
+    local details = ns.Database.RecipeDetails[spellID]
+    assert(not details or not details.skill, "An upstream learning requirement still has a duplicate supplement")
+end
+for _, spellID in ipairs(upstream.absorbed.calibratedSkills) do
+    assert(not calibration[spellID] or not calibration[spellID].skill,
+        "An upstream learning requirement still has a duplicate calibration")
+end
+for _, spellID in ipairs(upstream.absorbed.calibratedThresholds) do
+    assert(not calibration[spellID] or not calibration[spellID].yellow,
+        "An upstream skill-up range still has a duplicate calibration")
+end
 
 ns.Database.RecipeCalibration = calibration
 index.Invalidate()

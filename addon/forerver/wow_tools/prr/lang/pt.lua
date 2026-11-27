@@ -13,8 +13,10 @@ ns.Localization.Add("pt", [==[
         "reagent": "%d x %s",
         "reagents_unknown": "reagentes desconhecidos",
         "more_shift": "e mais %d (Shift)",
-        "teaches": "Ensina:",
-        "auction_price": "Leilão(PRR)"
+        "skill_levels": "Níveis de perícia:",
+        "auction_price": "Leilão(PRR)",
+        "disenchant": "Desencantar",
+        "disenchant_average": "Média"
     },
     "professions": {
         "0": "Profissão desconhecida",
@@ -78,8 +80,13 @@ ns.Localization.Add("pt", [==[
         "reagent_for": "Reagente para (%d):",
         "profession_count": "%s (%d)",
         "no_recipes": "Nenhuma receita cria ou usa este item.",
-        "search": "Procurar receitas",
-        "found": "Encontradas: %d",
+        "search": "Procurar receitas e reagentes",
+        "search_reagents": "Reagentes",
+        "search_reagents_tooltip": "A busca também encontra reagentes pelo nome e as receitas que os usam.",
+        "found_reagents": "Reagentes (%d):",
+        "found_recipes": "Receitas (%d):",
+        "found_by_reagent": "Receitas com estes reagentes (%d):",
+        "reagent_recipes": "receitas: %d",
         "all_recipes": "Todas as receitas (%d)",
         "nothing_found": "Nada encontrado.",
         "history": "Histórico",
@@ -102,41 +109,136 @@ ns.Localization.Add("pt", [==[
     },
     "options": {
         "main": {
-            "description": "O que cria um item e para que ele é reagente: nas dicas de itens e na janela de item. As configurações estão nas páginas abaixo desta, na lista à esquerda.\n\n/prr -- a janela de item, /prr planner -- o planejador de criação.\n",
-            "open_window": "Janela de item",
-            "open_planner": "Planejador de criação"
+            "header": "Profissões, receitas, reagentes",
+            "description": "Receitas, reagentes, preços de leilão e evolução de perícia para cada item: nas dicas, na janela de item e no planejador de criação. As configurações estão nas seções abaixo, na lista à esquerda.",
+            "item_window": {
+                "name": "Janela de item",
+                "button": "Abrir",
+                "description": "Todas as receitas que criam o item ou o usam como reagente, com busca. Comando: /prr"
+            },
+            "planner": {
+                "name": "Planejador de criação",
+                "button": "Abrir",
+                "description": "Preços de leilão e lucro de cada receita, e o caminho mais barato para evoluir uma profissão. Comando: /prr planner"
+            }
         },
-        "tooltip_header": "Dicas",
+        "pages": {
+            "tooltip": "Dicas de itens",
+            "gathering": "Coleta e esfolamento",
+            "profession": "Janela de profissão",
+            "window": "Janela de item",
+            "planner": "Planejador de criação",
+            "interface": "Interface",
+            "language": "Idioma"
+        },
+        "sections": {
+            "general": "Geral",
+            "crafting": "Criação",
+            "auction": "Casa de Leilões",
+            "disenchant": "Desencantar",
+            "professions": "Profissões",
+            "herbalism": "Herborismo",
+            "mining": "Mineração",
+            "skinning": "Esfolamento",
+            "loot": "Saque",
+            "tracking": "Suas estatísticas de saque",
+            "recipe": "Receita escolhida",
+            "opening": "Abrir itens",
+            "links": "Links do Wowhead",
+            "minimap": "Minimapa",
+            "loot_window": "Janela de saque",
+            "language": "Idioma do addon"
+        },
         "show_tooltip": {
-            "name": "Mostrar informações de receitas nas dicas de itens",
-            "description": "O que cria o item e para que ele é reagente"
+            "name": "Mostrar PRR nas dicas de itens",
+            "description": "Receitas, reagentes, preços de leilão e desencantamento nas dicas. Desligado: nenhuma linha do PRR."
         },
         "show_crafted_by": {
-            "name": "\"Criado com\" e \"Ensina\"",
-            "description": "A profissão e os reagentes que criam o item; o que um molde ensina"
+            "name": "Criado por",
+            "description": "Qual profissão cria o item, a perícia necessária e os reagentes."
         },
         "show_reagent_for": {
-            "name": "\"Reagente para\"",
-            "description": "As receitas em que o item é usado, por profissão"
+            "name": "Reagente para",
+            "description": "As receitas que usam o item como reagente, por profissão."
         },
-        "link_header": "Wowhead Quick Link",
-        "copy_link": {
-            "name": "Ctrl+C na janela de item -- um link do Wowhead para copiar",
-            "description": "Só nos ícones e nas linhas de receitas da janela de item"
+        "show_skill_levels": {
+            "name": "Níveis de perícia das receitas",
+            "description": "Com que perícia uma receita fica laranja, amarela, verde e cinza. Nas linhas «Criado por» e nos itens de receita (moldes, projetos, fórmulas)."
         },
-        "interface_header": "Interface",
-        "minimap": {
-            "name": "Botão do minimapa",
-            "description": "Clique -- a janela de item, clique direito -- estas configurações"
+        "show_auction_price": {
+            "name": "Preço no leilão",
+            "description": "O menor arremate do item no seu último escaneamento do planejador, com a data."
         },
-        "loot_glow": {
-            "name": "Brilho dos itens favoritos na janela de saque",
-            "description": "Uma borda dourada pulsante em volta de um item favorito no saque; a estrela no ícone dele continua"
+        "show_disenchant": {
+            "name": "Desencanta em",
+            "description": "Em que armas e armaduras incomuns, raras e épicas se desencantam: materiais, chances e quantidades."
         },
-        "window_header": "Janela de item",
+        "show_disenchant_price": {
+            "name": "Preços dos materiais",
+            "description": "O preço de leilão de cada material e o valor médio de um desencantamento."
+        },
+        "tooltip_professions": {
+            "name": "Receitas de",
+            "description": "Receitas de profissões desmarcadas não aparecem nas dicas.",
+            "all": "Todas as profissões",
+            "show_all": "Marcar todas",
+            "hide_all": "Desmarcar todas"
+        },
+        "show_herb_nodes": {
+            "name": "Dicas de ervas",
+            "description": "Passe o mouse sobre uma erva: a perícia de herborismo necessária, as cores, sua chance de ganhar um ponto e o que rende."
+        },
+        "show_mining_nodes": {
+            "name": "Dicas de veios",
+            "description": "Passe o mouse sobre um veio: a perícia de mineração necessária, as cores, sua chance de ganhar um ponto e o que rende."
+        },
+        "show_skinning": {
+            "name": "Dicas de criaturas",
+            "description": "Passe o mouse sobre uma criatura: a perícia de esfolamento necessária, sua chance de ganhar um ponto e os couros e peles que rende. Só para personagens com Esfolamento."
+        },
+        "skinning_units": {
+            "name": "Mostrar em",
+            "description": "Em todas as criaturas ou só em cadáveres que você pode esfolar.",
+            "all": "Criaturas vivas e mortas",
+            "dead": "Só cadáveres"
+        },
+        "show_possible_loot": {
+            "name": "Saque possível",
+            "description": "O que a criatura ou o nó pode dar: cada item com sua chance pelos dados de saque do WoW Forever."
+        },
+        "show_gathering_own": {
+            "name": "Seu saque",
+            "description": "Uma seção «Seu saque»: o que seus esfolamentos, ervas e veios deram, e quantas vezes. Requer «Registrar seu saque»."
+        },
+        "show_gathering_stacks": {
+            "name": "Tamanho das pilhas",
+            "description": "Abaixo de cada item: a chance de x1, x2, x3 por saque. Desligado: só a chance total."
+        },
+        "show_gathering_price": {
+            "name": "Preços no leilão",
+            "description": "O preço de cada item no seu último escaneamento do planejador."
+        },
+        "record_gathering": {
+            "name": "Registrar seu saque",
+            "description": "Lembra o que cada esfolamento, erva e veio lhe dá, para as suas próprias chances."
+        },
+        "gathering_history": {
+            "name": "Saques guardados",
+            "description": "Quantos dos últimos saques de cada criatura e nó contam para as suas chances. Os mais antigos são descartados."
+        },
+        "gathering_reset": {
+            "name": "Saque registrado",
+            "button": "Zerar",
+            "description": "Apaga suas estatísticas de saque e as recomeça.",
+            "confirm": "Apagar suas estatísticas de saque (%d saques)?"
+        },
+        "skill_zones": {
+            "name": "Barra de perícia",
+            "description": "Abaixo da receita escolhida: suas faixas laranja, amarela, verde e cinza, sua perícia nelas, sua chance de ganhar um ponto, o custo dos reagentes e o preço de venda."
+        },
         "open_binding": {
-            "name": "Abrir a janela com um item por",
-            "description": "Um clique em qualquer item -- nas bolsas, um link do bate-papo, saque -- abre a janela de item com ele. Shift+clique com a janela aberta sempre funciona.",
+            "name": "Abrir um item no PRR com",
+            "description": "Um clique em qualquer item (bolsas, links do chat, saque) o abre na janela de item. Shift-clique funciona com a janela aberta.",
             "values": {
                 "NONE": "Nenhum",
                 "ALT_CLICK": "Alt+clique",
@@ -149,29 +251,31 @@ ns.Localization.Add("pt", [==[
                 "CTRL_ALT_RIGHT_CLICK": "Ctrl+Alt+clique direito"
             }
         },
-        "planner_header": "Planejador de criação",
+        "copy_link": {
+            "name": "Ctrl+C copia um link do Wowhead",
+            "description": "Sobre um ícone ou receita da janela de item: uma caixa com o link do Wowhead pronta para copiar."
+        },
         "auction_cut": {
-            "explanation": "A casa de leilões fica com uma parte de cada venda: 5% na casa de leilões da sua facção, 15% na neutra (Angra do Butim, Geringontzan, Visteterna).\n\nO planejador calcula o lucro de uma receita sem essa parte, na aba Preços:\n  Lucro = Preço de venda - taxa - Custo\nPor exemplo, um item criado é vendido por 1o e seus reagentes custam 80p: com 5% a casa de leilões fica com 5p e o lucro é 15p; com 15% ela fica com 15p e o lucro é 5p.\n\nDefina a taxa da casa de leilões onde você vende. A coluna Lucro, a ordenação por essa coluna e a dica da linha (a linha \"Taxa da casa de leilões\") mudam na hora.\n",
-            "name": "Taxa da casa de leilões, %",
-            "description": "O que a casa de leilões fica de uma venda: 5% na da sua facção, 15% na neutra. O lucro é calculado já descontando essa taxa."
+            "name": "Taxa da Casa de Leilões",
+            "description": "O que a Casa de Leilões fica de uma venda: 5% na da sua facção, 15% numa neutra (Angra do Butim, Geringontzan, Visteterna). O lucro do planejador é contado sem ela."
         },
-        "show_auction_price": {
-            "name": "Preço no leilão",
-            "description": "O menor preço de arremate por unidade visto pela varredura do planejador, com a data da varredura"
+        "minimap": {
+            "name": "Botão do minimapa",
+            "description": "Clique esquerdo: a janela de item. Clique direito: estas configurações."
         },
-        "tooltip_professions": {
-            "name": "Profissões nas dicas",
-            "description": "As receitas das profissões desligadas aqui não aparecem nas dicas de itens.",
-            "show_all": "Mostrar todas",
-            "hide_all": "Ocultar todas"
+        "loot_glow": {
+            "name": "Destacar favoritos",
+            "description": "Uma borda dourada pulsante em volta dos itens favoritos na janela de saque."
         },
-        "language_header": "Idioma",
         "language": {
-            "name": "Idioma do addon",
-            "description": "Os textos do PRR: suas janelas, linhas das dicas, configurações e mensagens no bate-papo.",
+            "name": "Idioma",
+            "description": "O idioma das janelas do PRR, das linhas das dicas, das configurações e das mensagens. Nomes de itens, receitas e profissões vêm do jogo.",
             "auto": "Idioma do jogo (%s)",
-            "note": "O novo idioma é usado depois que a interface é recarregada. Os nomes de itens, receitas e profissões vêm do jogo e ficam no idioma do jogo.",
-            "reload": "Recarregar interface"
+            "reload": {
+                "name": "Aplicar idioma",
+                "button": "Recarregar IU",
+                "description": "Um novo idioma é usado depois de recarregar a interface."
+            }
         }
     },
     "dev": {
@@ -315,6 +419,31 @@ ns.Localization.Add("pt", [==[
     },
     "language": {
         "native_name": "Português"
+    },
+    "skill_zones": {
+        "title": "Pontos de perícia:",
+        "zone_orange": "Laranja",
+        "zone_yellow": "Amarelo",
+        "zone_green": "Verde",
+        "zone_gray": "Cinza",
+        "chance": "chance de ponto %d%%",
+        "locked": "Aprende-se com %d",
+        "gear_title": "Zonas de perícia da receita",
+        "gear_hint": "Podem ser desligadas nas configurações, na página «%s». Clica para abri-la.",
+        "planner_hint": "Planeja o jeito mais barato de evoluir a profissão: quais receitas criar em cada nível e quantas, os reagentes a comprar e o custo pelos preços de leilão. Clica para abrir o plano.",
+        "materials": "Materiais:",
+        "sale": "Venda:",
+        "no_price": "sem preço"
+    },
+    "gathering": {
+        "needs": "Requer perícia %d",
+        "count_skinning": "Esfolado: %d vezes",
+        "count_mining": "Minerado: %d vezes",
+        "count_herbalism": "Colhido: %d vezes",
+        "skill_up": "Chance de evoluir: %s",
+        "possible": "Saque possível:",
+        "own": "Seu saque:",
+        "own_last": "Seu saque (últimos %d):"
     }
 }
 ]==])

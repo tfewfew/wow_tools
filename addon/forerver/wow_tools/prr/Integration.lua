@@ -12,5 +12,6 @@ events:SetScript("OnEvent", function(self, _, name)
     addon.sources = nil
     addon.Core.Init()
     addon.Components.CraftingSkillRange.Setup()
+    addon.Components.SkillZones.Setup()
     addon.Components.OptionsPanel.Setup()
 end)

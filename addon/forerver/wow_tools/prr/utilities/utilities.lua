@@ -40,6 +40,28 @@ local function LowerCyrillic(letter)
     return string.char(209, second - 32)
 end
 
+-- A "secret" value of the game (unit identity in a dungeon): it can be
+-- printed, but an addon may not compare it, use it as a table key or read it.
+-- issecretvalue tells it where the client has it; otherwise a table key is tried.
+local secretProbe = {}
+function Utilities.IsSecret(value)
+    if value == nil then return false end
+    if issecretvalue then
+        return issecretvalue(value) == true
+    end
+    local ok = pcall(function()
+        secretProbe[value] = true
+        secretProbe[value] = nil
+    end)
+    return not ok
+end
+
+-- The value, or nil when it is secret.
+function Utilities.Open(value)
+    if Utilities.IsSecret(value) then return nil end
+    return value
+end
+
 function Utilities.Lower(text)
     local lowered = text:lower()
     lowered = lowered:gsub("\208[\129\144-\175]", LowerCyrillic)

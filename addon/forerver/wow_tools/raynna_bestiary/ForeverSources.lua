@@ -78,8 +78,8 @@ local function improve(id, row)
         row.maxLevel = nil
     end
 end
-function A.ReferenceMonster(id, name, level)
-    local result = oldMonster(id, name, level)
+function A.ReferenceMonster(id, name, level, progressive)
+    local result = oldMonster(id, name, level, progressive)
     improve(id, result)
     local boss = bosses[id]
     if boss then

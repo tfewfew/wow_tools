@@ -2,6 +2,7 @@
     <Script file="libs\json\json.lua"/>
     <Script file="constants\addon.lua"/>
     <Script file="constants\open_bindings.lua"/>
+    <Script file="constants\disenchant_results.lua"/>
     <Script file="config\defaults.lua"/>
     <Script file="utilities\utilities.lua"/>
     <Script file="utilities\localization.lua"/>
@@ -20,6 +21,8 @@
     <Script file="lang\zh.lua"/>
     <Script file="database\recipes.lua"/>
     <Script file="database\fixes.lua"/>
+    <Script file="database\gathering.lua"/>
+    <Script file="database\gathering_wowhead.lua"/>
     <Script file="database\recipe_details.lua"/>
     <Script file="utilities\recipe_sources.lua"/>
     <Script file="dataflows\item_names.lua"/>
@@ -27,6 +30,8 @@
     <Script file="dataflows\search_history.lua"/>
     <Script file="dataflows\favorites.lua"/>
     <Script file="dataflows\auction_prices.lua"/>
+    <Script file="dataflows\disenchant.lua"/>
+    <Script file="dataflows\gathering.lua"/>
     <Script file="dataflows\craft_planner.lua"/>
     <Script file="dataflows\skill_planner.lua"/>
     <Script file="services\recipe_scan_service.lua"/>
@@ -34,6 +39,7 @@
     <Script file="services\recipe_fix_service.lua"/>
     <Script file="services\auction_scan_service.lua"/>
     <Script file="services\craft_service.lua"/>
+    <Script file="services\gather_recorder.lua"/>
     <Script file="ui\client_border.lua"/>
     <Script file="ui\panel.lua"/>
     <Script file="ui\item_slot.lua"/>
@@ -66,14 +72,18 @@
     <Script file="shared\other_addons\lang\zh.lua"/>
     <Script file="shared\other_addons\other_addons_page.lua"/>
     <Script file="components\item_tooltip.lua"/>
+    <Script file="components\gather_tooltip.lua"/>
     <Script file="components\recipe_fix_menu.lua"/>
     <Script file="components\recipe_row.lua"/>
+    <Script file="components\item_row.lua"/>
     <Script file="components\recipe_list.lua"/>
+    <Script file="components\search_contents.lua"/>
     <Script file="components\side_list_panel.lua"/>
     <Script file="components\history_panel.lua"/>
     <Script file="components\favorites_panel.lua"/>
     <Script file="components\bag_stars.lua"/>
     <Script file="components\loot_glow.lua"/>
+    <Script file="components\skill_zones.lua"/>
     <Script file="components\prices_tab.lua"/>
     <Script file="components\recipe_picker.lua"/>
     <Script file="components\craft_button.lua"/>
@@ -98,6 +108,8 @@
     <Script file="events\hotkeys.lua"/>
     <Script file="events\bag_stars.lua"/>
     <Script file="events\loot_glow.lua"/>
+    <Script file="events\profession_window.lua"/>
+    <Script file="events\gathering.lua"/>
     <Script file="events\auction_house.lua"/>
     <Script file="events\enchant.lua"/>
     <Script file="events\ticker.lua"/>

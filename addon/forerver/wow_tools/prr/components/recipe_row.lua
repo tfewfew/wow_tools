@@ -6,7 +6,8 @@ WoWTools.prr.RegisterSource(function(...)
 --
 -- Hover: the result icon -- the created item, a reagent -- that reagent, the
 -- rest of the row -- the recipe spell. A click on an icon opens that item in
--- the window. The window's own item among the reagents is underlined.
+-- the window. The window's own item and the reagents the search found are
+-- underlined.
 
 local ADDON, ns = ...
 ns.Components = ns.Components or {}
@@ -171,8 +172,9 @@ local function TitleText(recipe)
     return name
 end
 
--- itemID -- the window's item: marked among the reagents.
-function RecipeRow.Fill(row, recipe, itemID)
+-- itemID -- the window's item, markedItems -- a set of item ids (the reagents the
+-- search found): both are marked among the reagents.
+function RecipeRow.Fill(row, recipe, itemID, markedItems)
     row.recipe = recipe
     if recipe.item then
         row.result:SetItem(recipe.item, recipe.count)
@@ -216,7 +218,8 @@ function RecipeRow.Fill(row, recipe, itemID)
         end
         button:SetItem(reagent[1], reagent[2])
         ns.UI.SetFavoriteStar(button, Favorites.IsFavorite(reagent[1]), REAGENT_STAR_SIZE)
-        button.mark:SetShown(reagent[1] == itemID)
+        local isMarked = reagent[1] == itemID or (markedItems ~= nil and markedItems[reagent[1]] == true)
+        button.mark:SetShown(isMarked)
         button:Show()
     end
     for i = #reagents + 1, #row.reagentButtons do

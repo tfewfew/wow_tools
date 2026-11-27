@@ -18,9 +18,9 @@ Fixes[2538] = { skill = 1 }
 Fixes[2540] = { skill = 1 }
 Fixes[2964] = { skill = 55 }
 Fixes[3116] = { skill = 40 }
-Fixes[3170] = { skill = 1 }
+Fixes[3170] = { skill = 15 }
 Fixes[3326] = { skill = 50 }
-Fixes[3755] = { skill = 1 }
+Fixes[3755] = { skill = 5 }
 Fixes[3757] = { skill = 50 }
 Fixes[3839] = { skill = 100 }
 Fixes[3852] = { skill = 105 }

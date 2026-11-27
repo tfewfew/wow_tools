@@ -8,8 +8,12 @@ WoWTools.prr.RegisterSource(function(...)
 -- looked at before (components/history_panel.lua), "Clear" empties the slot and
 -- the search. The star after the item name adds it to the favorites, shown by
 -- "Favorites" at the left of the window (components/favorites_panel.lua).
--- The search field looks through every recipe by name; with an item in the
--- slot it narrows that item's recipes. Empty slot and search -- every recipe.
+-- The search field looks through every recipe by name and, with the checkbox
+-- "Reagents" right of it (settings.window.searchReagents), through the reagents
+-- and the recipes that use them; with an item in the slot it narrows that item's
+-- recipes. Empty slot and search -- every recipe. While a search is on, the
+-- contents of the list stand at the right (components/search_contents.lua); the
+-- window's minimum width leaves them room.
 --
 -- Tabs under the bottom edge: Recipes (all of the above, frame.recipesPage),
 -- Prices and Planner -- the craft planner (components/planner_window.lua).
@@ -33,6 +37,9 @@ local SLOT_TEXT_GAP = 10
 local SEARCH_TOP_GAP = 8         -- between the slot and the search field
 local SEARCH_LEFT_INSET = 6      -- the field's frame is drawn outside of it on the left
 local LIST_TOP_GAP = 8           -- between the search field and the list
+local CHECKBOX_GAP = 8           -- between the search field and the "Reagents" checkbox
+local CHECKBOX_BOX_WIDTH = 24    -- the box and the gap to its label (ui/checkbox.lua)
+local CONTENTS_GAP = 8           -- between the list's scroll bar and the contents
 local CLEAR_BUTTON_WIDTH = 70     -- "Clear" under the icon buttons, right of the slot
 local CLEAR_BUTTON_HEIGHT = 18
 local CLEAR_BUTTON_GAP = 6        -- between the icon buttons and "Clear"
@@ -265,13 +272,34 @@ local function Create()
     local buttonsHeight = TOOL_BUTTON_SIZE + CLEAR_BUTTON_GAP + CLEAR_BUTTON_HEIGHT
     local searchTop = SEARCH_TOP_GAP + math.max(0, buttonsHeight - SLOT_SIZE)
     frame.search:SetPoint("TOPLEFT", frame.slot, "BOTTOMLEFT", SEARCH_LEFT_INSET, -searchTop)
-    frame.search:SetPoint("RIGHT", -PADDING, 0)
+
+    -- "Reagents": the search finds reagents too
+    frame.reagentsCheckbox = ns.UI.Checkbox(page, {
+        text = Text("window.search_reagents"),
+        tooltip = Text("window.search_reagents_tooltip"),
+        checked = ns.db.settings.window.searchReagents,
+        onChange = function(checked)
+            ns.db.settings.window.searchReagents = checked
+            ItemWindow.Refresh(false)
+        end,
+    })
+    local checkboxWidth = CHECKBOX_BOX_WIDTH + frame.reagentsCheckbox.label:GetStringWidth()
+    frame.search:SetPoint("RIGHT", -(PADDING + CHECKBOX_GAP + checkboxWidth), 0)
+    frame.reagentsCheckbox:SetPoint("LEFT", frame.search, "RIGHT", CHECKBOX_GAP, 0)
 
     frame.list = ns.Components.RecipeList.Create(page, {
         onOpenItem = ItemWindow.SetItem,
     })
-    frame.list.area:SetPoint("TOPLEFT", frame.slot, "BOTTOMLEFT", 0, -(searchTop + frame.search:GetHeight() + LIST_TOP_GAP))
-    frame.list.area:SetPoint("BOTTOMRIGHT", -(PADDING + ns.UI.SCROLL_AREA_BAR_SPACE), PADDING)
+    local listTop = -(searchTop + frame.search:GetHeight() + LIST_TOP_GAP)
+    frame.list.area:SetPoint("TOPLEFT", frame.slot, "BOTTOMLEFT", 0, listTop)
+
+    frame.contents = ns.Components.SearchContents.Create(page, function(y)
+        frame.list:ScrollTo(y)
+    end)
+    -- from the list's scroll bar to the right edge: LayoutContents leaves it the room
+    frame.contents:SetPoint("TOPLEFT", frame.list.area, "TOPRIGHT", ns.UI.SCROLL_AREA_BAR_SPACE + CONTENTS_GAP, 0)
+    frame.contents:SetPoint("BOTTOMRIGHT", page, "BOTTOMRIGHT", -PADDING, PADDING)
+    frame.contents:Hide()
 
     CreateTabs()
     ItemWindow.Refresh(false)
@@ -422,6 +450,19 @@ function ItemWindow.OpenHistoryEntry(entry)
     ItemWindow.Refresh(false)
 end
 
+-- While a search is on: the contents at the right of the list, the list narrower by them.
+function ItemWindow.LayoutContents()
+    if not frame then return end
+    local hasContents = searchText ~= ""
+    local right = PADDING + ns.UI.SCROLL_AREA_BAR_SPACE
+    if hasContents then
+        right = right + Config.SEARCH_CONTENTS_WIDTH + CONTENTS_GAP
+        frame.contents:Fill(frame.list:Contents())
+    end
+    frame.contents:SetShown(hasContents)
+    frame.list.area:SetPoint("BOTTOMRIGHT", -right, PADDING)
+end
+
 -- keepPosition -- the same item again: keep the list scrolled where it is.
 function ItemWindow.Refresh(keepPosition)
     if not frame then return end
@@ -429,6 +470,7 @@ function ItemWindow.Refresh(keepPosition)
     frame.slot:SetItem(itemID)
     frame.hint:SetText(SlotHint())   -- the click in the settings may have changed
     frame.list:Show({ itemID = itemID, search = searchText }, keepPosition)
+    ItemWindow.LayoutContents()
 
     if itemID then
         frame.itemName:SetText(ns.Dataflows.ItemNames.ItemName(itemID) or "...")

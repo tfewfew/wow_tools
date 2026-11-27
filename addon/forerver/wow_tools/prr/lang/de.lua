@@ -13,8 +13,10 @@ ns.Localization.Add("de", [==[
         "reagent": "%d x %s",
         "reagents_unknown": "Reagenzien unbekannt",
         "more_shift": "und %d weitere (Umschalt)",
-        "teaches": "Lehrt:",
-        "auction_price": "Auktion(PRR)"
+        "skill_levels": "Fertigkeitsstufen:",
+        "auction_price": "Auktion(PRR)",
+        "disenchant": "Entzaubern",
+        "disenchant_average": "Durchschnitt"
     },
     "professions": {
         "0": "Unbekannter Beruf",
@@ -78,8 +80,13 @@ ns.Localization.Add("de", [==[
         "reagent_for": "Reagenz für (%d):",
         "profession_count": "%s (%d)",
         "no_recipes": "Kein Rezept stellt diesen Gegenstand her oder verwendet ihn.",
-        "search": "Rezepte suchen",
-        "found": "Gefunden: %d",
+        "search": "Rezepte und Reagenzien suchen",
+        "search_reagents": "Reagenzien",
+        "search_reagents_tooltip": "Die Suche findet auch Reagenzien nach Namen und die Rezepte, die sie verwenden.",
+        "found_reagents": "Reagenzien (%d):",
+        "found_recipes": "Rezepte (%d):",
+        "found_by_reagent": "Rezepte mit diesen Reagenzien (%d):",
+        "reagent_recipes": "Rezepte: %d",
         "all_recipes": "Alle Rezepte (%d)",
         "nothing_found": "Nichts gefunden.",
         "history": "Verlauf",
@@ -102,41 +109,136 @@ ns.Localization.Add("de", [==[
     },
     "options": {
         "main": {
-            "description": "Was einen Gegenstand herstellt und wofür er ein Reagenz ist: in Gegenstands-Tooltips und im Gegenstandsfenster. Die Einstellungen stehen auf den Seiten unter dieser in der Liste links.\n\n/prr -- das Gegenstandsfenster, /prr planner -- der Herstellungsplaner.\n",
-            "open_window": "Gegenstandsfenster",
-            "open_planner": "Herstellungsplaner"
+            "header": "Berufe, Rezepte, Reagenzien",
+            "description": "Rezepte, Reagenzien, Auktionspreise und Fertigkeitsstufen für jeden Gegenstand: in Tooltips, im Gegenstandsfenster und im Handwerksplaner. Die Einstellungen stehen in den Abschnitten darunter in der Liste links.",
+            "item_window": {
+                "name": "Gegenstandsfenster",
+                "button": "Öffnen",
+                "description": "Alle Rezepte, die den Gegenstand herstellen oder als Reagenz nutzen, mit Suche. Chatbefehl: /prr"
+            },
+            "planner": {
+                "name": "Handwerksplaner",
+                "button": "Öffnen",
+                "description": "Auktionspreise und Gewinn jedes Rezepts und der günstigste Weg, einen Beruf zu leveln. Chatbefehl: /prr planner"
+            }
         },
-        "tooltip_header": "Tooltips",
+        "pages": {
+            "tooltip": "Gegenstandstooltips",
+            "gathering": "Sammeln & Kürschnerei",
+            "profession": "Berufsfenster",
+            "window": "Gegenstandsfenster",
+            "planner": "Handwerksplaner",
+            "interface": "Interface",
+            "language": "Sprache"
+        },
+        "sections": {
+            "general": "Allgemein",
+            "crafting": "Handwerk",
+            "auction": "Auktionshaus",
+            "disenchant": "Entzaubern",
+            "professions": "Berufe",
+            "herbalism": "Kräuterkunde",
+            "mining": "Bergbau",
+            "skinning": "Kürschnerei",
+            "loot": "Beute",
+            "tracking": "Deine Beutestatistik",
+            "recipe": "Gewähltes Rezept",
+            "opening": "Gegenstände öffnen",
+            "links": "Wowhead-Links",
+            "minimap": "Minikarte",
+            "loot_window": "Beutefenster",
+            "language": "Sprache des Addons"
+        },
         "show_tooltip": {
-            "name": "Rezeptinformationen in Gegenstands-Tooltips zeigen",
-            "description": "Was den Gegenstand herstellt und wofür er ein Reagenz ist"
+            "name": "PRR in Gegenstandstooltips zeigen",
+            "description": "Rezepte, Reagenzien, Auktionspreise und Entzaubern in Gegenstandstooltips. Aus: keine PRR-Zeilen."
         },
         "show_crafted_by": {
-            "name": "\"Hergestellt durch\" und \"Lehrt\"",
-            "description": "Der Beruf und die Reagenzien, die den Gegenstand herstellen; was ein Muster lehrt"
+            "name": "Hergestellt durch",
+            "description": "Welcher Beruf den Gegenstand herstellt, die nötige Fertigkeit und die Reagenzien."
         },
         "show_reagent_for": {
-            "name": "\"Reagenz für\"",
-            "description": "Die Rezepte, in denen der Gegenstand verwendet wird, nach Beruf"
+            "name": "Reagenz für",
+            "description": "Rezepte, die den Gegenstand als Reagenz nutzen, nach Beruf."
         },
-        "link_header": "Wowhead Quick Link",
-        "copy_link": {
-            "name": "Strg+C im Gegenstandsfenster -- ein Wowhead-Link zum Kopieren",
-            "description": "Nur auf den Symbolen und Rezeptzeilen des Gegenstandsfensters"
+        "show_skill_levels": {
+            "name": "Fertigkeitsstufen der Rezepte",
+            "description": "Ab welcher Fertigkeit ein Rezept orange, gelb, grün und grau wird. Bei „Hergestellt durch“ und bei Rezeptgegenständen (Muster, Pläne, Formeln)."
         },
-        "interface_header": "Oberfläche",
-        "minimap": {
-            "name": "Minimap-Button",
-            "description": "Klick -- das Gegenstandsfenster, Rechtsklick -- diese Einstellungen"
+        "show_auction_price": {
+            "name": "Auktionspreis",
+            "description": "Der niedrigste Sofortkaufpreis aus deinem letzten Scan des Handwerksplaners, mit Datum."
         },
-        "loot_glow": {
-            "name": "Leuchten von Favoriten im Beutefenster",
-            "description": "Ein pulsierender goldener Rahmen um einen Favoriten in der Beute; der Stern auf seinem Symbol bleibt"
+        "show_disenchant": {
+            "name": "Entzaubert zu",
+            "description": "Was ungewöhnliche, seltene und epische Waffen und Rüstungen beim Entzaubern ergeben: Materialien, Chancen und Mengen."
         },
-        "window_header": "Gegenstandsfenster",
+        "show_disenchant_price": {
+            "name": "Materialpreise",
+            "description": "Der Auktionspreis jedes Materials und der durchschnittliche Wert einer Entzauberung."
+        },
+        "tooltip_professions": {
+            "name": "Rezepte von",
+            "description": "Rezepte nicht markierter Berufe erscheinen nicht in Gegenstandstooltips.",
+            "all": "Alle Berufe",
+            "show_all": "Alle markieren",
+            "hide_all": "Alle abwählen"
+        },
+        "show_herb_nodes": {
+            "name": "Tooltips an Kräutern",
+            "description": "Maus über ein Kraut: die nötige Kräuterkunde, die Farben, deine Chance auf einen Fertigkeitspunkt und was es liefert."
+        },
+        "show_mining_nodes": {
+            "name": "Tooltips an Erzvorkommen",
+            "description": "Maus über ein Erzvorkommen: der nötige Bergbau, die Farben, deine Chance auf einen Fertigkeitspunkt und was es liefert."
+        },
+        "show_skinning": {
+            "name": "Tooltips an Kreaturen",
+            "description": "Maus über eine Kreatur: die nötige Kürschnerei-Fertigkeit, deine Chance auf einen Fertigkeitspunkt und welches Leder und welche Bälge sie liefert. Nur für Charaktere mit Kürschnerei."
+        },
+        "skinning_units": {
+            "name": "Zeigen bei",
+            "description": "Bei allen Kreaturen oder nur bei Leichen, die du häuten kannst.",
+            "all": "Lebenden und toten Kreaturen",
+            "dead": "Nur Leichen"
+        },
+        "show_possible_loot": {
+            "name": "Mögliche Beute",
+            "description": "Was die Kreatur oder das Vorkommen geben kann: jeder Gegenstand mit seiner Dropchance aus den Beutedaten von WoW Forever."
+        },
+        "show_gathering_own": {
+            "name": "Deine Beute",
+            "description": "Ein Abschnitt „Deine Beute“: was dir deine Häutungen, Kräuter und Vorkommen gaben und wie oft du geplündert hast. Braucht „Deine Beute aufzeichnen“."
+        },
+        "show_gathering_stacks": {
+            "name": "Stapelgrößen",
+            "description": "Unter jedem Gegenstand: die Chance auf x1, x2, x3 pro Plünderung. Aus: nur die Gesamtchance."
+        },
+        "show_gathering_price": {
+            "name": "Auktionspreise",
+            "description": "Der Auktionspreis jedes Gegenstands aus deinem letzten Scan des Handwerksplaners."
+        },
+        "record_gathering": {
+            "name": "Deine Beute aufzeichnen",
+            "description": "Merkt sich, was dir jedes Häuten, Kraut und Vorkommen gibt, für deine eigenen Dropchancen."
+        },
+        "gathering_history": {
+            "name": "Gespeicherte Plünderungen",
+            "description": "Wie viele der letzten Plünderungen jeder Kreatur und jedes Vorkommens deine Chancen zählen. Ältere werden verworfen."
+        },
+        "gathering_reset": {
+            "name": "Aufgezeichnete Beute",
+            "button": "Zurücksetzen",
+            "description": "Löscht deine Beutestatistik und beginnt sie neu.",
+            "confirm": "Deine Beutestatistik löschen (%d Plünderungen)?"
+        },
+        "skill_zones": {
+            "name": "Fertigkeitsleiste",
+            "description": "Unter dem gewählten Rezept: seine orangen, gelben, grünen und grauen Bereiche, deine Fertigkeit darauf, deine Chance auf einen Fertigkeitspunkt, die Kosten der Reagenzien und der Verkaufspreis."
+        },
         "open_binding": {
-            "name": "Das Fenster mit einem Gegenstand öffnen per",
-            "description": "Ein Klick auf einen beliebigen Gegenstand -- in den Taschen, ein Chat-Link, Beute -- öffnet das Gegenstandsfenster damit. Umschalt+Klick bei offenem Fenster funktioniert immer.",
+            "name": "Gegenstand in PRR öffnen mit",
+            "description": "Ein Klick auf einen Gegenstand (Taschen, Chatlinks, Beute) öffnet ihn im Gegenstandsfenster. Shift-Klick geht, solange das Fenster offen ist.",
             "values": {
                 "NONE": "Nichts",
                 "ALT_CLICK": "Alt+Klick",
@@ -149,29 +251,31 @@ ns.Localization.Add("de", [==[
                 "CTRL_ALT_RIGHT_CLICK": "Strg+Alt+Rechtsklick"
             }
         },
-        "planner_header": "Herstellungsplaner",
+        "copy_link": {
+            "name": "Strg+C kopiert einen Wowhead-Link",
+            "description": "Über einem Symbol oder Rezept im Gegenstandsfenster: ein Feld mit dem Wowhead-Link zum Kopieren."
+        },
         "auction_cut": {
-            "explanation": "Das Auktionshaus behält einen Teil jedes Verkaufs: 5% im Auktionshaus deiner Fraktion, 15% im neutralen (Beutebucht, Gadgetzan, Ewige Warte).\n\nDer Herstellungsplaner rechnet den Gewinn eines Rezepts ohne diesen Teil, auf dem Reiter Preise:\n  Gewinn = Verkaufspreis - Anteil - Kosten\nBeispiel: ein Herstellungsergebnis verkauft sich für 1g und seine Reagenzien kosten 80s: bei 5% behält das Auktionshaus 5s und der Gewinn ist 15s; bei 15% behält es 15s und der Gewinn ist 5s.\n\nStelle den Anteil des Auktionshauses ein, in dem du verkaufst. Die Spalte Gewinn, die Sortierung danach und der Zeilen-Tooltip (die Zeile \"Anteil des Auktionshauses\") ändern sich sofort.\n",
-            "name": "Anteil des Auktionshauses, %",
-            "description": "Was das Auktionshaus von einem Verkauf behält: 5% im Auktionshaus deiner Fraktion, 15% im neutralen. Der Gewinn wird nach Abzug dieses Anteils gerechnet."
+            "name": "Gebühr des Auktionshauses",
+            "description": "Was das Auktionshaus von einem Verkauf behält: 5 % im Haus deiner Fraktion, 15 % im neutralen (Beutebucht, Gadgetzan, Ewige Warte). Der Gewinn im Planer wird ohne sie gerechnet."
         },
-        "show_auction_price": {
-            "name": "Auktionspreis",
-            "description": "Der niedrigste Sofortkaufpreis pro Stück, den der Scan des Herstellungsplaners gesehen hat, mit dem Datum des Scans"
+        "minimap": {
+            "name": "Minikartenknopf",
+            "description": "Linksklick: das Gegenstandsfenster. Rechtsklick: diese Einstellungen."
         },
-        "tooltip_professions": {
-            "name": "Berufe in Tooltips",
-            "description": "Rezepte der hier ausgeschalteten Berufe werden in Gegenstands-Tooltips nicht gezeigt.",
-            "show_all": "Alle zeigen",
-            "hide_all": "Alle verbergen"
+        "loot_glow": {
+            "name": "Favoriten hervorheben",
+            "description": "Ein pulsierender goldener Rahmen um Lieblingsgegenstände im Beutefenster."
         },
-        "language_header": "Sprache",
         "language": {
-            "name": "Sprache des Addons",
-            "description": "Die Texte von PRR: seine Fenster, Tooltip-Zeilen, Einstellungen und Chat-Nachrichten.",
-            "auto": "Sprache des Spiels (%s)",
-            "note": "Die neue Sprache gilt nach dem Neuladen der Oberfläche. Namen von Gegenständen, Rezepten und Berufen kommen aus dem Spiel und bleiben in der Sprache des Spiels.",
-            "reload": "Oberfläche neu laden"
+            "name": "Sprache",
+            "description": "Die Sprache der PRR-Fenster, Tooltipzeilen, Einstellungen und Chatnachrichten. Namen von Gegenständen, Rezepten und Berufen kommen aus dem Spiel.",
+            "auto": "Spielsprache (%s)",
+            "reload": {
+                "name": "Sprache anwenden",
+                "button": "UI neu laden",
+                "description": "Eine neue Sprache gilt nach dem Neuladen des Interfaces."
+            }
         }
     },
     "dev": {
@@ -315,6 +419,31 @@ ns.Localization.Add("de", [==[
     },
     "language": {
         "native_name": "Deutsch"
+    },
+    "skill_zones": {
+        "title": "Fertigkeitspunkte:",
+        "zone_orange": "Orange",
+        "zone_yellow": "Gelb",
+        "zone_green": "Grün",
+        "zone_gray": "Grau",
+        "chance": "Chance auf einen Punkt %d%%",
+        "locked": "Erlernbar ab %d",
+        "gear_title": "Fertigkeitszonen des Rezepts",
+        "gear_hint": "Sie lassen sich in den Einstellungen auf der Seite „%s“ ausschalten. Klicken, um sie zu öffnen.",
+        "planner_hint": "Plant den günstigsten Weg, den Beruf zu leveln: welche Rezepte auf welcher Stufe wie oft, welche Reagenzien zu kaufen sind und was es nach Auktionspreisen kostet. Klicken, um den Plan zu öffnen.",
+        "materials": "Materialien:",
+        "sale": "Verkauf:",
+        "no_price": "kein Preis"
+    },
+    "gathering": {
+        "needs": "Benötigt Fertigkeit %d",
+        "count_skinning": "Gehäutet: %d-mal",
+        "count_mining": "Abgebaut: %d-mal",
+        "count_herbalism": "Gesammelt: %d-mal",
+        "skill_up": "Chance auf Fertigkeitspunkt: %s",
+        "possible": "Mögliche Beute:",
+        "own": "Deine Beute:",
+        "own_last": "Deine Beute (letzte %d):"
     }
 }
 ]==])

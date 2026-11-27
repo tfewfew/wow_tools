@@ -470,7 +470,7 @@ if flavor == "forerver" then
     local bestiary, prr = WoWTools.raynnaBestiary, WoWTools.prr
     assert(bestiary == WoWTools.modules.raynna_bestiary and prr == WoWTools.modules.prr,
         "Bestiary/PRR module namespaces are not isolated")
-    assert(bestiary.sourceVersion == "2.4.4" and prr.sourceVersion == "1.5.2", "Adopted source versions differ")
+    assert(bestiary.sourceVersion == "2.4.8" and prr.sourceVersion == "1.6.0", "Adopted source versions differ")
     if TEST_THIRD_PARTY_DISABLED then
         assert(not bestiary.db and not bestiary.BuildBestiary and not RaynnaBestiaryAPI,
             "Disabled Bestiary initialized its runtime")
@@ -488,8 +488,15 @@ if flavor == "forerver" then
             "PRR language default/persistence binding failed")
         assert(prr.Constants.ADDON_TITLE == (expectedLanguage == "zh" and "PRR 配方用途" or "PRR: Professions, Recipes, Reagents"),
             "PRR title localization failed")
-        assert(type(prr.Components.ItemTooltip.Fill) == "function",
+        assert(type(prr.Components.ItemTooltip.Fill) == "function"
+            and type(prr.Components.GatherTooltip.FillNode) == "function"
+            and type(prr.Dataflows.Disenchant.Results) == "function",
             "PRR tooltip component load order failed")
+        local options = chatMock.options.WoWToolsPRR().args
+        assert(options.gathering.args.recordGathering.type == "toggle"
+            and options.profession.args.showSkillZones.type == "toggle",
+            "PRR 1.6 options did not bind to the shared settings canvas")
+        assert(type(bestiary.AdvanceHoverLoot) == "function", "Bestiary progressive source interface did not load")
         assert(prr.GameData.RememberLearnedRecipe(2149)
             and prr.GameData.IsRecipeKnown(2149), "PRR learned recipe event data binding failed")
         local recipeRow = prr.Components.RecipeRow.Create(CreateFrame("Frame"), function() end)
@@ -820,6 +827,10 @@ if flavor == "forerver" then
             "PRR trainer tooltip did not append the indexed recipe skill range")
         local trainerRecipe = prr.Dataflows.RecipeIndex.Get(1257426)
         assert(trainerRecipe.skill == 140 and trainerRecipe.yellow == 145)
+        local aboveYellow = prr.Dataflows.RecipeIndex.Get(10619)
+        assert(prr.SkillRange.Zone(aboveYellow, 224).zone == "locked"
+            and prr.SkillRange.Zone(aboveYellow, 225).zone ~= "locked",
+            "PRR 1.6 skill zones did not honor a verified above-yellow learning requirement")
         local nativeTrainerRank = 150
         function GetTrainerServiceSkillReq(serviceIndex)
             assert(serviceIndex == 7, "PRR did not use the tooltip's trainer service index")
@@ -1023,7 +1034,7 @@ end
 local vendor = WoWTools.betterVendorUI
 assert(vendor and vendor == WoWTools.modules.better_vendor_ui, "Embedded vendor module export failed")
 assert(WoWTools.settings.pages.better_vendor_ui.frame == vendor.settingsPanel, "Vendor settings page binding failed")
-assert(vendor.sourceVersion == "1.3.2" and vendor.sourceFileID == 9676130, "Vendor upstream identity mismatch")
+assert(vendor.sourceVersion == "1.3.4" and vendor.sourceFileID == 9833185, "Vendor upstream identity mismatch")
 if TEST_THIRD_PARTY_DISABLED then
     assert(not vendor.ready and not vendor.DB, "Disabled vendor registered its runtime")
 else

@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.4
+
+### Added
+- **Ctrl+F** puts the cursor in the merchant window's search box (and selects the text, so typing starts a new search). Only while the merchant window is open: any other Ctrl+F binding works again once it closes. Can be turned off under Merchant window.
+- **Focus search when opening a vendor** option (Merchant window section, off by default): start typing as soon as the vendor opens. While the box has the cursor, keys type into it; Enter or Escape leaves it.
+- **Open the filter panel when opening a vendor** option (Filters section, off by default). Escape still closes the panel together with the merchant window.
+
+## 1.3.3
+
+### Added
+- **Window scale** option (Merchant window section, 50–150%): makes the merchant window smaller or bigger without changing the game's UI scale. The Filters panel scales with it. At 100% the window's scale is left alone, so addons that scale it themselves keep working.
+
 ## 1.3.2
 
 ### Fixed
