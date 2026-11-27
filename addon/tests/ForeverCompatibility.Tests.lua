@@ -1108,6 +1108,8 @@ do
         assert(HasLine("时光服没有可通过抓宠领悟的猎人宠物技能。") and not panel.scripts.OnEvent,
             "Titan pet skills must not use the Forever Beast Training interface")
     else
+        local learnedSuffix = "-有 |A:common-icon-checkmark:14:14:0:-1|a"
+        local unlearnedSuffix = "-无 |A:common-icon-redx:14:14:0:-1|a"
         settings.Open("pet_skills")
         assert(HasLine("请使用猎人角色查看。") and not HasLine("公共技能") and not HasLine("家族技能"),
             "The pet skill sections are visible on a non-hunter")
@@ -1129,11 +1131,13 @@ do
         end}
         panel.scripts.OnEvent(panel, "PLAYER_LOGIN")
         settings.Open("pet_skills")
-        assert(HasLine("公共技能") and HasLine("家族技能") and HasLine("风蛇-闪电吐息-无"),
+        assert(HasLine("公共技能") and HasLine("家族技能") and HasLine("风蛇-闪电吐息" .. unlearnedSuffix),
             "Pet skills must display the two sections and exclusive family labels")
-        assert(HasLine("本地化撕咬-无") and HasLine("爪击-有") and HasLine("狼-狂怒之嚎-有"),
-            "Pet skills must read exact highest teaching IDs and preserve existing character records")
-        assert(not HasLine("低吼-无") and not HasLine("低吼-有"), "NPC trainer spells must stay out of the list")
+        assert(HasLine("本地化撕咬" .. unlearnedSuffix) and HasLine("爪击" .. learnedSuffix)
+            and HasLine("狼-狂怒之嚎" .. learnedSuffix),
+            "Pet skill rows must append the correct icon for the highest teaching rank")
+        assert(not HasLine("低吼" .. unlearnedSuffix) and not HasLine("低吼" .. learnedSuffix),
+            "NPC trainer spells must stay out of the list")
 
         local savedTrainer, savedTooltip = C_Trainer, C_TooltipInfo
         local savedCount, savedServiceInfo = GetNumTrainerServices, GetTrainerServiceInfo
@@ -1149,18 +1153,18 @@ do
             if index == 1 then return {id = 17267} end
         end}
         panel.scripts.OnEvent(panel, "TRAINER_SHOW")
-        assert(HasLine("突进-无"), "NPC trainer windows must not mark a spell learned")
+        assert(HasLine("突进" .. unlearnedSuffix), "NPC trainer windows must not mark a spell learned")
         trainerType = Enum.TrainerType.Pet
         panel.scripts.OnEvent(panel, "TRAINER_UPDATE")
-        assert(HasLine("突进-有") and HasLine("本地化撕咬-无"),
+        assert(HasLine("突进" .. learnedSuffix) and HasLine("本地化撕咬" .. unlearnedSuffix),
             "Beast Training must distinguish exact ranks even when a row omits the rank text")
         panel.scripts.OnEvent(panel, "LEARNED_SPELL_IN_SKILL_LINE", 17268)
-        assert(HasLine("本地化撕咬-有") and wowToolsCharacterSettings.knownPetSkills[17268],
+        assert(HasLine("本地化撕咬" .. learnedSuffix) and wowToolsCharacterSettings.knownPetSkills[17268],
             "Learned teaching spell event must bind to the character record")
         local savedLearnText = ERR_LEARN_ABILITY_S
         ERR_LEARN_ABILITY_S = "你学会了%s。"
         panel.scripts.OnEvent(panel, "CHAT_MSG_SYSTEM", "你学会了|Hspell:1264482|h[音爆]|h。")
-        assert(HasLine("蝙蝠-音爆-有") and wowToolsCharacterSettings.knownPetSkills[1264488],
+        assert(HasLine("蝙蝠-音爆" .. learnedSuffix) and wowToolsCharacterSettings.knownPetSkills[1264488],
             "The client learning message must bind the exact pet spell to its teaching ID")
         ERR_LEARN_ABILITY_S = savedLearnText
         UnitClass, C_Spell.GetSpellName, C_SpellBook = savedUnitClass, savedSpellName, savedSpellBook

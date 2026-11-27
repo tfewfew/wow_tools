@@ -44,6 +44,8 @@ end
 
 local known, panel, message, skillList
 local rows = {}
+local learnedSuffix = "-有 |A:common-icon-checkmark:14:14:0:-1|a"
+local unlearnedSuffix = "-无 |A:common-icon-redx:14:14:0:-1|a"
 
 local function IsHunter()
     return select(2, UnitClass("player")) == "HUNTER"
@@ -68,7 +70,7 @@ local function Refresh()
         local teachSpell, family = skill[3], skill[6]
         local learned = known and known[teachSpell] == true
             or Readable(C_SpellBook.IsSpellKnown(teachSpell, Enum.SpellBookSpellBank.Player))
-        local label = SkillName(skill) .. (learned and "-有" or "-无")
+        local label = SkillName(skill) .. (learned and learnedSuffix or unlearnedSuffix)
         rows[skill]:SetText(family and family .. "-" .. label or label)
     end
 end
