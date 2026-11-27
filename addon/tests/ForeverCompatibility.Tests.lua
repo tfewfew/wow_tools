@@ -1098,8 +1098,9 @@ do
     local panel = settings.pages.pet_skills.frame
     local function HasLine(text)
         for _, region in ipairs(widgets) do
-            if region:GetParent() == panel and region.kind == "FontString"
-                and region:IsShown() and region:GetText() == text then return true end
+            local parent = region:GetParent()
+            if parent and (parent == panel or parent:GetParent() == panel) and region.kind == "FontString"
+                and region:IsVisible() and region:GetText() == text then return true end
         end
     end
     if flavor == "titan" then
@@ -1107,6 +1108,9 @@ do
         assert(HasLine("时光服没有可通过抓宠领悟的猎人宠物技能。") and not panel.scripts.OnEvent,
             "Titan pet skills must not use the Forever Beast Training interface")
     else
+        settings.Open("pet_skills")
+        assert(HasLine("请使用猎人角色查看。") and not HasLine("公共技能") and not HasLine("家族技能"),
+            "The pet skill sections are visible on a non-hunter")
         local savedUnitClass, savedSpellName, savedSpellBook = UnitClass, C_Spell.GetSpellName, C_SpellBook
         local savedCharacterSettings = wowToolsCharacterSettings
         wowToolsCharacterSettings = {knownPetSkills = {[3666] = true}}
@@ -1125,7 +1129,9 @@ do
         end}
         panel.scripts.OnEvent(panel, "PLAYER_LOGIN")
         settings.Open("pet_skills")
-        assert(HasLine("本地化撕咬-无") and HasLine("爪击-有") and HasLine("狂怒之嚎-有"),
+        assert(HasLine("公共技能") and HasLine("家族技能") and HasLine("风蛇-闪电吐息-无"),
+            "Pet skills must display the two sections and exclusive family labels")
+        assert(HasLine("本地化撕咬-无") and HasLine("爪击-有") and HasLine("狼-狂怒之嚎-有"),
             "Pet skills must read exact highest teaching IDs and preserve existing character records")
         assert(not HasLine("低吼-无") and not HasLine("低吼-有"), "NPC trainer spells must stay out of the list")
 
@@ -1154,7 +1160,7 @@ do
         local savedLearnText = ERR_LEARN_ABILITY_S
         ERR_LEARN_ABILITY_S = "你学会了%s。"
         panel.scripts.OnEvent(panel, "CHAT_MSG_SYSTEM", "你学会了|Hspell:1264482|h[音爆]|h。")
-        assert(HasLine("音爆-有") and wowToolsCharacterSettings.knownPetSkills[1264488],
+        assert(HasLine("蝙蝠-音爆-有") and wowToolsCharacterSettings.knownPetSkills[1264488],
             "The client learning message must bind the exact pet spell to its teaching ID")
         ERR_LEARN_ABILITY_S = savedLearnText
         UnitClass, C_Spell.GetSpellName, C_SpellBook = savedUnitClass, savedSpellName, savedSpellBook
