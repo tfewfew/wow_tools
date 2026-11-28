@@ -6,5 +6,5 @@ WoWTools.thirdPartyCatalog = {
     better_vendor_ui = { version = "1.3.4", updatedAt = "2026-11-27" },
     pet_xp_bar = { version = "1.3.1", updatedAt = "2026-11-16" },
     raynna_bestiary = { version = "2.4.8", updatedAt = "2026-11-27" },
-    prr = { version = "1.6.0", updatedAt = "2026-11-27" },
+    prr = { version = "1.6.0", updatedAt = "2026-11-28" },
 }
