@@ -12,7 +12,7 @@
 | better_vendor_ui | Better Vendor UI | [Vaniron 官方发布包](https://www.curseforge.com/wow/addons/better-vendor-ui/files/9833185) | 1.3.4 | 上游未公布 Git commit，发布包 SHA256 和文件指纹见 better_vendor_ui/SOURCE.json | 2026-11-27 | BV-01、BV-02、BV-03 | 2026-11-27 正式包 9833185 新增窗口缩放、Ctrl+F 搜索、自动聚焦和自动展开筛选，保留宿主、已学配方标记及中文设置 |
 | pet_xp_bar | PetXPBarPlus | [DustinChecketts/PetXPBarPlus](https://github.com/DustinChecketts/PetXPBarPlus) | 1.3.1 | 0c5da2aef6b2b56e307a77e37151fe4675be6c82 | 2026-11-16 | PX-01、PX-02 | 2026-11-17 官方最新正式版仍为 v1.3.1，tag 解析出的完整 commit 与当前基线一致，宿主与本服接口适配继续适用 |
 | raynna_bestiary | Raynna's Bestiary | [Raynna 官方发布包](https://www.curseforge.com/wow/addons/beastiary/files/9784268) | 2.4.8 | 上游未公布该版本 Git commit，官方文件 9784268 的发布包 SHA256 及文件指纹见 raynna_bestiary/SOURCE.json | 2026-11-27 | RB-01、RB-02、RB-03、RB-05、RB-06、RB-07、RB-08 | 2026-11-27 正式包 9784268 的掉落索引和旧世掉落改为分批加载，保留中文、剥皮分栏、配方商人及原生提示框入口 |
-| prr | PRR | [izicawow 官方发布包](https://www.curseforge.com/wow/addons/prr/files/9779397) | 1.6.0 | 上游未公布 Git commit，发布包 SHA256 与文件指纹见 prr/SOURCE.json | 2026-11-27 | PR-01、PR-02、PR-03、PR-05、PR-06、PR-07、PR-08、PR-09、PR-10、PR-11、PR-12、PR-13、PR-14、PR-15、PR-16 | 2026-11-27 正式包 9779397 新增采集和分解、材料搜索和专业面板熟练度区间，设置接入宿主，保留本服校准及训练师地点 |
+| prr | PRR | [izicawow 官方发布包](https://www.curseforge.com/wow/addons/prr/files/9779397) | 1.6.0 | 上游未公布 Git commit，发布包 SHA256 与文件指纹见 prr/SOURCE.json | 2026-11-28 | PR-01、PR-02、PR-03、PR-05、PR-06、PR-07、PR-09、PR-10、PR-11、PR-12、PR-13、PR-14、PR-15、PR-16 | 正式包 9779397 提供采集和分解、材料搜索和专业面板熟练度区间。2026-11-28 移除本地添加的追踪配方旁熟练度文字 |
 
 ## 当前本地适配
 
@@ -49,8 +49,6 @@
 - PR-06 补齐缺失的专业学习等级。`database/recipe_details.lua` 由 `skills/wow-tools/scripts/build_prr_recipe_details.py` 从 MIT 的 LibProfessionDB 1.10.1 Forever 数据及 CC BY 4.0 的 Efficient Games 实测记录生成，固定发布包 SHA256、数据完整 commit 和输入文件指纹。2026-11-18 经 PR-09、PR-10、PR-11、PR-12 核对后，原 PRR 的 318 个缺项中 156 个采用无限服资料、162 个保留未知。`dataflows/recipe_index.lua` 在既有修正后补缺，显式用户修正及明确未知保持优先。原始上游包未含此数据接入。1.6.0 已吸收的具体数值及剩余覆盖见更新核对。
 - PR-07 显示配方学习地点。`utilities/recipe_sources.lua`、`components/recipe_row.lua`、`recipe_picker.lua` 与 `item_tooltip.lua` 复用 387 个配方与 142 位训练师的关联，行内摘要和悬停列表仅显示地点，已收录地图记录附百分比坐标。同一地点去重，摘要中的其他地点按处计数。位置按 NPC ID 缓存，缺少已收录位置时按 QuestieDB 的 zoneID 获取区域，仍缺失时显示“位置未收录”。PR-11 起运行时采用已核对的无限服观察与明确配方资料，缺失来源显示尚未收录。数据许可随模块附带，运行时采用离线表。2026-11-17 按用户要求调整为地点显示，并核对本服 C_Map.GetMapInfo / GetAreaInfo 与 QuestieDB 字段契约。
 
-- PR-08 原生制作详情页显示配方熟练度阈值。`components/crafting_skill_range.lua` 在 ProfessionsFrame.CraftingPage.SchematicForm.TrackRecipeCheckbox 左侧添加橙、黄、绿、灰等级，复用 RecipeIndex.Get 的当前修正及 SkillRange.Text 的格式和颜色，随原生 Init、面板显示与索引失效刷新。`events/professions.lua` 和 Integration.lua 分别覆盖延迟加载与已加载的专业界面，PRR 停用时沿用宿主加载开关。阈值缺项沿用现有未知语义，等级标签继承勾选框的缩放和显隐。按 Gethe/wow-ui-source forever 的 bebcb6bf309cf41b41bd74f8ca651e6a105b2676 核对本服 SchematicForm.GetRecipeInfo、Init 与 Camelot 勾选框底部锚点，接口检查覆盖加载次序、选中配方、左侧定位、用户修正和受限 ID。
-
 - PR-09 校正学习起始等级与变黄等级的冲突。生成器核对 2,523 个配方，使用 Efficient Games 的 06b4cc7b814c1cb16ff56b746181c2c62944fbc9 实测记录，以及 Forever 1.60.1.70938 的 SkillLineAbility 与 ItemSparse 指纹，逐条记录原有 78 项冲突的来源和处理结果。25 项采用实测学习要求，其中粗制磨刀石与重磨刀石分别由 75/125 修正为 40/100。37 项缺乏本服依据的经典旧世补值恢复未知。16 项经图纸要求、训练师或本服资料确认，允许学习时已进入黄色、绿色或灰色。原生黄色与灰色阈值按 CSV 逐项校验，显式用户/内置修正维持优先，生成的基础修正通过既有索引应用到物品提示、规划和原生制作页。输入 URL、SHA256、旧数据基线及逐条审查记录保存到 RECIPE-SOURCES.json，接口检查覆盖完整有效库与修正优先级。
 
 - PR-10 逐项审查未知学习要求和参考地点。以 c0d8162 的 208 个未知要求及 503 个配方的 5,126 条参考 NPC 关联为固定清单，对照本服五张客户端表、正式服与测试服训练师观察，以及 ForeverDB 的九个专业目录和 28 个 NPC 页面。ForeverDB 采用明确列出配方、训练师和费用且本服 ID、专业及黄灰阈值一致的记录，作为社区资料依据，输入快照摘录与页面指纹保存在 `skills/wow-tools/data/prr-learning-evidence.json`。品红染料补为 120，翠绿染料补为 215，速效毒药按本服自动获得记录补为 1。138 个配方的 389 条参考关联改用无限服资料，并为缺少坐标的对应 NPC 补充地点，已存在的实测坐标优先。余下 205 个等级和 4,737 条关联保存逐项缺证结果并沿用未知或参考显示。旧营火的测试服等级仅列为历史证据，图纸在当前 ItemSparse 缺失以及 MinSkillLineRank 为 1 均不足以确认当前学习要求。接口检查逐个核对审查清单、索引生效和参考标记。
@@ -69,6 +67,7 @@
 
 ## 已回退适配
 
+- 2026-11-28 回退 PR-08，移除 `0ec3c9a` 在追踪配方勾选框左侧添加的熟练度文字及刷新钩子。配方行悬停仍由 PR-14 提供，熟练度区间条沿用 PRR 1.6.0 的 `components/skill_zones.lua`。
 - 2026-11-17 按用户要求回退 RB-04 与 PR-04，删除 Raynna 配方页及其专用 PRR 关系查询接口，物品点击统一进入来源页。部署校验备份后归档旧 RecipeView.lua 与 ItemRecipes.lua。PRR 的原生物品配方窗口继续由其原索引提供数据。
 
 ## 更新时的适配核对

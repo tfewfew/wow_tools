@@ -1,11 +1,11 @@
 WoWTools.prr.RegisterSource(function(...)
--- Show PRR's colored skill thresholds in the native crafting page and recipe hover.
+-- Show PRR's colored skill thresholds when hovering native crafting recipes.
 local _, ns = ...
 ns.Components = ns.Components or {}
 
 local CraftingSkillRange = {}
 ns.Components.CraftingSkillRange = CraftingSkillRange
-local form, label, recipeList
+local recipeList
 
 local function IsReadable(value)
     return not (issecretvalue and issecretvalue(value))
@@ -17,13 +17,6 @@ local function GetLevels(info)
     if not IsReadable(recipeID) or type(recipeID) ~= "number" then return end
     local recipe = ns.Dataflows.RecipeIndex.Get(recipeID)
     return recipe and ns.SkillRange.Text(recipe)
-end
-
-local function Refresh()
-    if not form or not form:IsVisible() or not ns.db then return end
-    local levels = GetLevels(form:GetRecipeInfo())
-    label:SetText(levels or "")
-    label:SetShown(levels ~= nil)
 end
 
 local function OnRecipeEnter(_, row, data)
@@ -53,23 +46,5 @@ function CraftingSkillRange.Setup()
         recipeList = page.RecipeList
         EventRegistry:RegisterCallback("Professions.RecipeListOnEnter", OnRecipeEnter, CraftingSkillRange)
     end
-    if form then return end
-    local schematic = page and page.SchematicForm
-    local checkbox = schematic and schematic.TrackRecipeCheckbox
-    if not checkbox or type(schematic.Init) ~= "function"
-        or type(schematic.GetRecipeInfo) ~= "function" then return end
-
-    form = schematic
-    label = checkbox:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    checkbox.prrSkillRange = label
-    label:SetPoint("RIGHT", checkbox, "LEFT", -8, 0)
-    label:SetJustifyH("RIGHT")
-    label:SetWordWrap(false)
-    label:Hide()
-
-    hooksecurefunc(form, "Init", Refresh)
-    form:HookScript("OnShow", Refresh)
-    hooksecurefunc(ns.Dataflows.RecipeIndex, "Invalidate", Refresh)
-    Refresh()
 end
 end)

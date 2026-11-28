@@ -477,9 +477,7 @@ if flavor == "forerver" then
             "Disabled Bestiary initialized its runtime")
         assert(not prr.db and not prr.Events and not prr.ready, "Disabled PRR initialized its runtime")
         assert(not trainerSpellPostCall, "Disabled PRR registered the trainer tooltip post-call")
-        assert(not nativeRecipeHover and (not ProfessionsFrame
-            or not ProfessionsFrame.CraftingPage.SchematicForm.TrackRecipeCheckbox.prrSkillRange),
-            "Disabled PRR attached its native crafting skill display")
+        assert(not nativeRecipeHover, "Disabled PRR registered the native recipe hover event")
     else
         assert(bestiary.db == wowToolsCharacterSettings.raynnaBestiary.db,
             "Bestiary character settings binding failed")
@@ -757,39 +755,10 @@ if flavor == "forerver" then
             end
         end
         local checkbox = form.TrackRecipeCheckbox
-        local levels = assert(checkbox.prrSkillRange, "PRR did not bind the native recipe tracking checkbox")
-        prr.Components.CraftingSkillRange.Setup()
-        assert(checkbox.prrSkillRange == levels and levels:GetParent() == checkbox
-            and levels.point[1] == "RIGHT" and levels.point[2] == checkbox
-            and levels.point[3] == "LEFT" and levels.point[4] == -8 and not levels.wordWrap
+        form:Init({recipeID = 2159})
+        assert(not checkbox.prrSkillRange and checkbox:IsShown()
             and checkbox:GetScript("OnClick") == checkbox.nativeClick,
-            "PRR skill thresholds lost their left-side anchor, native parent or tracking click binding")
-        form:Init({recipeID = 2159})
-        assert(levels:IsShown() and levels:GetText() == prr.SkillRange.Text(repairedRecipe)
-            and levels:GetText():find("[50]", 1, true) and levels:GetText():find("[70]", 1, true)
-            and levels:GetText():find("[85]", 1, true) and levels:GetText():find("[100]", 1, true),
-            "PRR native crafting selection does not bind all four colored skill thresholds")
-        form:Init({recipeID = 2149})
-        assert(levels:GetText() == prr.SkillRange.Text(prr.Dataflows.RecipeIndex.Get(2149)),
-            "PRR native crafting selection retained a previous recipe's thresholds")
-        form:Init({recipeID = 22331})
-        assert(levels:GetText() == prr.SkillRange.Text(ruggedRecipe)
-            and not levels:GetText():find("[?]", 1, true),
-            "PRR native Rugged Leather detail does not use the corrected indexed requirement")
-        form:Init({recipeID = 99999999})
-        assert(not levels:IsShown() and levels:GetText() == "", "PRR unknown recipes retained old thresholds")
-        form:Init({recipeID = secret})
-        assert(not levels:IsShown(), "PRR native selection compared a restricted recipe ID")
-        form:Init(nil)
-        assert(not levels:IsShown(), "PRR empty native selection retained its skill label")
-        form:Init({recipeID = 2159})
-        local savedFix = prr.db.fixes[2159]
-        prr.Services.RecipeFix.SetSkill(2159, 55)
-        assert(levels:GetText():find("[55]", 1, true), "PRR native skill label did not bind index invalidation")
-        prr.db.fixes[2159] = savedFix
-        prr.Dataflows.RecipeIndex.Invalidate()
-        assert(levels:GetText() == prr.SkillRange.Text(repairedRecipe),
-            "PRR native skill display did not restore the indexed supplement")
+            "The native tracking checkbox must remain visible with its native click binding and no PRR skill label")
         local hover = assert(nativeRecipeHover, "PRR did not register the native recipe hover event")
         local list = ProfessionsFrame.CraftingPage.RecipeList
         local scrollTarget = CreateFrame("Frame", nil, list)
@@ -801,8 +770,8 @@ if flavor == "forerver" then
         GameTooltip:Hide()
         hover(row, info)
         assert(GameTooltip:IsOwned(row) and GameTooltip.anchor == "ANCHOR_RIGHT"
-            and GameTooltip:GetText() == info.name and GameTooltip.lines[1] == skillLine
-            and hoverLevels ~= levels:GetText(), "Native hover must use the hovered recipe ID and native tooltip API")
+            and GameTooltip:GetText() == info.name and GameTooltip.lines[1] == skillLine,
+            "Native hover must use the hovered recipe ID and native tooltip API")
         GameTooltip:SetOwner(row.Label, "ANCHOR_RIGHT")
         GameTooltip:AddLine(info.name)
         GameTooltip:Show()
